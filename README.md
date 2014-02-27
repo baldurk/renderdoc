@@ -5,7 +5,7 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11 develo
 
 This repository is here to keep track of bugs and discussion, as well as to (eventually) house the source code to the application, when it's released.
 
-More information can be found at http://www.crydev.net/renderdoc
+More information can be found at http://cryengine.com/renderdoc
 
 License
 --------------
