@@ -1,0 +1,467 @@
+﻿/******************************************************************************
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2014 Crytek
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+
+namespace renderdoc
+{
+    public struct Vec3f
+    {
+        public Vec3f(float X, float Y, float Z) { x = X; y = Y; z = Z; }
+        public Vec3f(Vec3f v) { x = v.x; y = v.y; z = v.z; }
+        public Vec3f(FloatVector v) { x = v.x; y = v.y; z = v.z; }
+
+        public float Length()
+        {
+            return (float)Math.Sqrt(x * x + y * y + z * z);
+        }
+
+        public Vec3f Sub(Vec3f o)
+        {
+            return new Vec3f(x - o.x,
+                                y - o.y,
+                                z - o.z);
+        }
+
+        public void Mul(float f)
+        {
+            x *= f;
+            y *= f;
+            z *= f;
+        }
+
+        public float x, y, z;
+    };
+
+    public struct Vec4f
+    {
+        public float x, y, z, w;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FloatVector
+    {
+        public FloatVector(float X, float Y, float Z, float W) { x = X; y = Y; z = Z; w = W; }
+        public FloatVector(float X, float Y, float Z) { x = X; y = Y; z = Z; w = 1; }
+        public FloatVector(Vec3f v) { x = v.x; y = v.y; z = v.z; w = 1; }
+
+        public float x, y, z, w;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class ResourceFormat
+    {
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern float Maths_HalfToFloat(UInt16 half);
+
+        public ResourceFormat()
+        {
+            rawType = 0;
+            special = false;
+            specialFormat = SpecialFormat.Unknown;
+
+            compType = FormatComponentType.None;
+            compCount = 0;
+            compByteWidth = 0;
+            srgbCorrected = false;
+
+            strname = "";
+        }
+
+        public ResourceFormat(FormatComponentType type, UInt32 count, UInt32 byteWidth)
+        {
+            rawType = 0;
+            special = false;
+            specialFormat = SpecialFormat.Unknown;
+
+            compType = type;
+            compCount = count;
+            compByteWidth = byteWidth;
+            srgbCorrected = false;
+
+            strname = "";
+        }
+
+        public UInt32 rawType;
+
+        // indicates it's not a type represented with the members below
+        // usually this means non-uniform across components or block compressed
+        public bool special;
+        public SpecialFormat specialFormat;
+
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string strname;
+
+        public UInt32 compCount;
+        public UInt32 compByteWidth;
+        public FormatComponentType compType;
+
+        public bool srgbCorrected;
+
+        public override string ToString()
+        {
+            return strname;
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return obj is ResourceFormat && this == (ResourceFormat)obj;
+        }
+        public override int GetHashCode()
+        {
+            return rawType.GetHashCode();
+        }
+        public static bool operator ==(ResourceFormat x, ResourceFormat y)
+        {
+            return x.rawType == y.rawType;
+        }
+        public static bool operator !=(ResourceFormat x, ResourceFormat y)
+        {
+            return !(x == y);
+        }
+
+        public float ConvertFromHalf(UInt16 comp)
+        {
+            return Maths_HalfToFloat(comp);
+        }
+
+        public string Interpret(UInt32 comp)
+        {
+            if (compByteWidth != 4 || compType == FormatComponentType.Float) throw new ArgumentException();
+
+            if (compType == FormatComponentType.SInt)
+            {
+                int cast = (int)comp;
+                return String.Format("{0}", cast);
+            }
+            else if (compType == FormatComponentType.UInt)
+            {
+                return String.Format("{0}", comp);
+            }
+
+            throw new ArgumentException();
+        }
+
+        public string Interpret(UInt16 comp)
+        {
+            if (compByteWidth != 2 || compType == FormatComponentType.Float) throw new ArgumentException();
+
+            if (compType == FormatComponentType.SInt)
+            {
+                Int16 cast = (Int16)comp;
+                return String.Format("{0}", cast);
+            }
+            else if (compType == FormatComponentType.UInt)
+            {
+                return String.Format("{0}", comp);
+            }
+            else if (compType == FormatComponentType.UNorm)
+            {
+                float f = (float)comp / (float)UInt16.MaxValue;
+                return Formatter.Format(f);
+            }
+            else if (compType == FormatComponentType.UNorm_SRGB)
+            {
+                float f = (float)comp / (float)UInt16.MaxValue;
+                return Formatter.Format(f);
+            }
+            else if (compType == FormatComponentType.SNorm)
+            {
+                Int16 cast = (Int16)comp;
+
+                float f = -1.0f;
+
+                if (cast == -32768)
+                    f = -1.0f;
+                else
+                    f = ((float)cast) / 32767.0f;
+
+                return Formatter.Format(f);
+            }
+
+            throw new ArgumentException();
+        }
+
+        public string Interpret(byte comp)
+        {
+            if (compByteWidth != 1 || compType == FormatComponentType.Float) throw new ArgumentException();
+
+            if (compType == FormatComponentType.SInt)
+            {
+                sbyte cast = (sbyte)comp;
+                return String.Format("{0}", cast);
+            }
+            else if (compType == FormatComponentType.UInt)
+            {
+                return String.Format("{0}", comp);
+            }
+            else if (compType == FormatComponentType.UNorm)
+            {
+                float f = ((float)comp) / 255.0f;
+                return Formatter.Format(f);
+            }
+            else if (compType == FormatComponentType.UNorm_SRGB)
+            {
+                float f = ((float)comp) / 255.0f;
+                return Formatter.Format(f);
+            }
+            else if (compType == FormatComponentType.SNorm)
+            {
+                sbyte cast = (sbyte)comp;
+
+                float f = -1.0f;
+
+                if (cast == -128)
+                    f = -1.0f;
+                else
+                    f = ((float)cast) / 127.0f;
+
+                return Formatter.Format(f);
+            }
+
+            throw new ArgumentException();
+        }
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchBuffer
+    {
+        public ResourceId ID;
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string name;
+        public bool customName;
+        public UInt32 length;
+        public UInt32 structureSize;
+        public BufferCreationFlags creationFlags;
+        public UInt64 byteSize;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchTexture
+    {
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string name;
+        public bool customName;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ResourceFormat format;
+        public UInt32 dimension;
+        public UInt32 width, height, depth;
+        public ResourceId ID;
+        public bool cubemap;
+        public UInt32 mips;
+        public UInt32 arraysize;
+        public UInt32 numSubresources;
+        public TextureCreationFlags creationFlags;
+        public UInt32 msQual, msSamp;
+        public UInt64 byteSize;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class OutputConfig
+    {
+        public OutputType m_Type = OutputType.None;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchFrameInfo
+    {
+        public UInt32 frameNumber;
+        public UInt32 firstEvent;
+        public UInt64 fileOffset;
+        public ResourceId immContextId;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchAPIEvent
+    {
+        public UInt32 eventID;
+
+        public ResourceId context;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public UInt64[] callstack;
+
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string eventDesc;
+
+        public UInt64 fileOffset;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class DebugMessage
+    {
+        public DebugMessageCategory category;
+        public DebugMessageSeverity severity;
+        public UInt32 messageID;
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string description;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class EventUsage
+    {
+        public UInt32 eventID;
+        public ResourceUsage usage;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class FetchDrawcall
+    {
+        public UInt32 eventID, drawcallID;
+
+        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        public string name;
+
+        public DrawcallFlags flags;
+
+        public UInt32 numIndices;
+        public UInt32 numInstances;
+        public UInt32 indexOffset;
+        public UInt32 vertexOffset;
+        public UInt32 instanceOffset;
+
+        public ResourceId context;
+
+        public double duration;
+
+        public Int64 parentDrawcall;
+        public Int64 previousDrawcall;
+        public Int64 nextDrawcall;
+
+        [CustomMarshalAs(CustomUnmanagedType.Skip)]
+        public FetchDrawcall parent;
+        [CustomMarshalAs(CustomUnmanagedType.Skip)]
+        public FetchDrawcall previous;
+        [CustomMarshalAs(CustomUnmanagedType.Skip)]
+        public FetchDrawcall next;
+
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 8)]
+        public ResourceId[] outputs;
+        public ResourceId depthOut;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public FetchAPIEvent[] events;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public FetchDrawcall[] children;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public DebugMessage[] debugMessages;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class MeshDisplay
+    {
+        public MeshDataStage type = MeshDataStage.Unknown;
+
+        public bool arcballCamera = true;
+        public FloatVector cameraPos = new FloatVector();
+        public FloatVector cameraRot = new FloatVector();
+
+        public bool ortho = false;
+        public float fov = 90.0f;
+        public float aspect = 0.0f, nearPlane = 0.0f, farPlane = 0.0f;
+
+        public bool thisDrawOnly = true;
+
+        public bool showVerts;
+        
+        [StructLayout(LayoutKind.Sequential)]
+        public struct HighlightVerts
+        {
+            public FloatVector v0;
+            public FloatVector v1;
+            public FloatVector v2;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public HighlightVerts highlight = new HighlightVerts();
+
+        public FloatVector prevMeshColour = new FloatVector();
+        public FloatVector currentMeshColour = new FloatVector();
+
+        public SolidShadeMode solidShadeMode = SolidShadeMode.None;
+        public bool wireframeDraw = true;
+    };
+    
+    [StructLayout(LayoutKind.Sequential)]
+    public class TextureDisplay
+    {
+        public ResourceId texid = ResourceId.Null;
+        public float rangemin = 0.0f;
+        public float rangemax = 1.0f;
+        public float scale = 1.0f;
+        public bool Red = true, Green = true, Blue = true, Alpha = false;
+        public float HDRMul = -1.0f;
+        public ResourceId CustomShader = ResourceId.Null;
+        public UInt32 mip = 0;
+        public UInt32 sliceFace = 0;
+        public bool rawoutput = false;
+
+        public float offx = 0.0f, offy = 0.0f;
+
+        public FloatVector lightBackgroundColour = new FloatVector(0.666f, 0.666f, 0.666f);
+        public FloatVector darkBackgroundColour = new FloatVector(0.333f, 0.333f, 0.333f);
+
+        public TextureDisplayOverlay overlay = TextureDisplayOverlay.None;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class APIProperties
+    {
+        public APIPipelineStateType pipelineType;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class PixelValue
+    {
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ValueUnion
+        {
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.UInt32)]
+            public UInt32[] u;
+
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.Float)]
+            public float[] f;
+
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.Int32)]
+            public Int32[] i;
+
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.UInt16)]
+            public UInt16[] u16;
+        };
+
+        [CustomMarshalAs(CustomUnmanagedType.Union)]
+        public ValueUnion value;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class PostVSMeshData
+    {
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public byte[] buf;
+        public UInt32 numVerts;
+        public PrimitiveTopology topo;
+    };
+}

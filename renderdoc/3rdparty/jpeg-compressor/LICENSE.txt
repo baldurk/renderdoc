@@ -1,0 +1,4 @@
+jpeg-compressor - C++ class for JPEG compression.
+Public domain, Rich Geldreich <richgel99@gmail.com>
+
+https://code.google.com/p/jpeg-compressor/
