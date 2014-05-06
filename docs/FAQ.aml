@@ -164,18 +164,16 @@
       </content>
     </section>
     <section address="FAQ9">
-      <title>When will RenderDoc be open-sourced?</title>
+      <title>Where can I get the source to RenderDoc?</title>
       <content>
         <para>
-          RenderDoc is licensed under the MIT license so that it can very naturally be open-sourced at
-          a later date.
-        </para>
-        <para>
-          Currently the precise timescale is not defined, but if you'd like more information you can
-          always get in contact to find out how things are looking. In general the source will be
-          opened up once the codebase has stabilised and is more feature complete. Currently it's
-          not in final shape and still changing a lot on a day-to-day basis so it isn't really in a
-          condition where patches could practically be accepted.
+          RenderDoc is licensed under the MIT license and the source is available on
+          <externalLink>
+<linkText>github.com</linkText>
+<linkAlternateText>RenderDoc @ github</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc</linkUri>
+<linkTarget>_blank</linkTarget>
+</externalLink>
         </para>
       </content>
     </section>
