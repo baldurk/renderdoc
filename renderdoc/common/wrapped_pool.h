@@ -79,7 +79,7 @@ class WrappingPool
 			return m_AdditionalPools.back()->Allocate();
 		}
 
-		bool IsAlloc(void *p)
+		bool IsAlloc(const void *p)
 		{
 			// we can check the immediate pool without locking
 			if(m_ImmediatePool.IsAlloc(p))
@@ -219,7 +219,7 @@ class WrappingPool
 #endif
 			}
 
-			bool IsAlloc(void *p)
+			bool IsAlloc(const void *p) const
 			{
 				return p >= &items[0] && p < &items[PoolCount];
 			}
