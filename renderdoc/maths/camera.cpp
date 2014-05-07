@@ -29,7 +29,7 @@
 #include "camera.h"
 #include "matrix.h"
 
-void Camera::Arcball(float dist, Vec3f rot)
+void Camera::Arcball(float dist, const Vec3f &rot)
 {
 	pos = Vec3f(0.0f, 0.0f, dist);
 
@@ -39,7 +39,7 @@ void Camera::Arcball(float dist, Vec3f rot)
 	angles.y = rot.y;
 }
 
-void Camera::fpsLook(Vec3f p, Vec3f rot)
+void Camera::fpsLook(const Vec3f &p, const Vec3f &rot)
 {
 	pos = -p;
 	
@@ -49,7 +49,7 @@ void Camera::fpsLook(Vec3f p, Vec3f rot)
 	order = ORDER_TRANS_ROT;
 }
 
-const Matrix4f Camera::GetMatrix()
+const Matrix4f Camera::GetMatrix() const
 {
 	Matrix4f p = Matrix4f::Translation(pos);
 	Matrix4f r = Matrix4f::RotationXYZ(angles);
@@ -60,17 +60,17 @@ const Matrix4f Camera::GetMatrix()
 	return p.Mul(r);
 }
 
-const Vec3f Camera::GetPosition()
+const Vec3f Camera::GetPosition() const
 {
 	return GetMatrix().GetPosition();
 }
 
-const Vec3f Camera::GetForward()
+const Vec3f Camera::GetForward() const
 {
 	return Matrix4f::RotationZYX(-angles).GetForward();
 }
 
-const Vec3f Camera::GetRight()
+const Vec3f Camera::GetRight() const
 {
 	return Matrix4f::RotationZYX(-angles).GetRight();
 }
