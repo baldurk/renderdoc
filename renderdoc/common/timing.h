@@ -37,14 +37,12 @@ using std::string;
 class PerformanceTimer
 {
 	public:
-		PerformanceTimer()
+		PerformanceTimer() : m_CounterFrequency(Timing::GetTickFrequency())
 		{
-			m_CounterFrequency = Timing::GetTickFrequency();
-
 			Restart();
 		}
 
-		double GetMilliseconds()
+		double GetMilliseconds() const
 		{
 			return double(Timing::GetTick()-m_Start)/m_CounterFrequency;
 		}
