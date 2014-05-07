@@ -52,7 +52,7 @@ class TryScopedLock
 		~TryScopedLock()
 		{ if(m_Owned) m_CS->Unlock(); }
 
-		bool HasLock()
+		bool HasLock() const
 		{
 			return m_Owned;
 		}
