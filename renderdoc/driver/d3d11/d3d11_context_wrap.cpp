@@ -3100,7 +3100,9 @@ vector<DebugMessage> WrappedID3D11DeviceContext::Serialise_DebugMessages()
 	{
 		ScopedContext scope(m_pSerialiser, m_pDebugSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
-		string desc = debugMessages[i].description.elems;
+		string desc;
+		if(m_State >= WRITING)
+			desc = debugMessages[i].description.elems;
 
 		SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
 		SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
