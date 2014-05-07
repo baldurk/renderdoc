@@ -36,17 +36,17 @@ class Camera
 			: order(ORDER_TRANS_ROT), pos(), angles()
 		{ }
 
-		void Arcball(float dist, Vec3f rot);
-		void fpsLook(Vec3f pos, Vec3f rot);
+		void Arcball(float dist, const Vec3f &rot);
+		void fpsLook(const Vec3f &pos, const Vec3f &rot);
 
 		void SetPosition(const Vec3f &p) { pos = p; }
 		void SetAngles(const Vec3f &r) { angles = r; }
 		
-		const Vec3f GetPosition();
-		const Vec3f GetForward();
-		const Vec3f GetRight();
-		const Vec3f GetUp();
-		const Matrix4f GetMatrix();
+		const Vec3f GetPosition() const;
+		const Vec3f GetForward() const;
+		const Vec3f GetRight() const;
+		const Vec3f GetUp() const;
+		const Matrix4f GetMatrix() const;
 
 	private:
 		enum OperationOrder
