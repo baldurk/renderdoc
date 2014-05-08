@@ -244,7 +244,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 		// receive handshake from client and get its name
 		{
 			PacketType type;
-			Serialiser *ser;
+			Serialiser *ser = NULL;
 			if(!RecvPacket(client, type, &ser))
 			{
 				SAFE_DELETE(ser);
