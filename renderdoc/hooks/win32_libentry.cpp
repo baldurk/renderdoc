@@ -56,6 +56,7 @@ BOOL add_hooks()
 	}
 
 	if(f.find(L"renderdoccmd.exe") != wstring::npos ||
+		 f.find(L"renderdocui.vshost.exe") != wstring::npos ||
 		 f.find(L"renderdocui.exe") != wstring::npos)
 	{
 		RDCDEBUG("Not creating hooks - in replay app");
