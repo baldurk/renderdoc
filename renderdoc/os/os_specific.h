@@ -98,7 +98,7 @@ namespace Network
 			~Socket();
 			void Shutdown();
 
-			bool Connected();
+			bool Connected() const;
 
 			Socket *AcceptClient(bool wait);
 
