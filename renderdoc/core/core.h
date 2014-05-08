@@ -145,22 +145,22 @@ class RenderDoc
 		
 		// set from outside of the device creation interface
 		void SetLogFile(const wchar_t *logFile);
-		const wchar_t *GetLogFile() { return m_LogFile.c_str(); }
+		const wchar_t *GetLogFile() const { return m_LogFile.c_str(); }
 		
-		const wchar_t *GetCurrentTarget() { return m_Target.c_str(); }
+		const wchar_t *GetCurrentTarget() const { return m_Target.c_str(); }
 
 		void Initialise();
 
 		void SetReplayApp(bool replay) { m_Replay = replay; }
-		bool IsReplayApp() { return m_Replay; }
+		bool IsReplayApp() const { return m_Replay; }
 
 		void BecomeReplayHost(volatile bool &killReplay);
 
 		void SetCaptureOptions(const CaptureOptions *opts);
-		const CaptureOptions &GetCaptureOptions() { return m_Options; }
+		const CaptureOptions &GetCaptureOptions() const { return m_Options; }
 
 		void RecreateCrashHandler();
-		ICrashHandler *GetCrashHandler() { return m_ExHandler; }
+		ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
 
 		Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels, size_t thlen, uint32_t thwidth, uint32_t thheight);
 		void SuccessfullyWrittenLog();
@@ -191,13 +191,13 @@ class RenderDoc
 		map<RDCDriver, wstring> GetReplayDrivers();
 		map<RDCDriver, wstring> GetRemoteDrivers();
 
-		bool HasReplayDriver(RDCDriver driver);
-		bool HasRemoteDriver(RDCDriver driver);
+		bool HasReplayDriver(RDCDriver driver) const;
+		bool HasRemoteDriver(RDCDriver driver) const;
 
 		void SetCurrentDriver(RDCDriver driver);
 		void GetCurrentDriver(RDCDriver &driver, wstring &name);
 
-		uint32_t GetRemoteAccessIdent() { return m_RemoteIdent; }
+		uint32_t GetRemoteAccessIdent() const { return m_RemoteIdent; }
 
 		void Tick();
 

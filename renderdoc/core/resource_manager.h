@@ -134,10 +134,10 @@ struct ResourceRecord
 	}
 
 	void AddRef() { RefCount++; }	
-	int GetRefCount() { return RefCount; }
+	int GetRefCount() const { return RefCount; }
 	void Delete(ResourceRecordHandler *mgr);
 
-	ResourceId GetResourceID() { return ResID; }
+	ResourceId GetResourceID() const { return ResID; }
 
 	void AddChunk(Chunk *chunk, int32_t ID = 0)
 	{
@@ -150,12 +150,12 @@ struct ResourceRecord
 	void LockChunks() { if(m_ChunkLock) m_ChunkLock->Lock(); }
 	void UnlockChunks() { if(m_ChunkLock) m_ChunkLock->Unlock(); }
 
-	bool HasChunks()
+	bool HasChunks() const
 	{
 		return !m_Chunks.empty();
 	}
 
-	size_t NumChunks()
+	size_t NumChunks() const
 	{
 		return m_Chunks.size();
 	}
@@ -170,7 +170,7 @@ struct ResourceRecord
 		UnlockChunks();
 	}
 
-	Chunk *GetLastChunk()
+	Chunk *GetLastChunk() const
 	{
 		RDCASSERT(HasChunks());
 		return m_Chunks.rbegin()->second;

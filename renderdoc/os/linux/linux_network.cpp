@@ -68,7 +68,7 @@ void Socket::Shutdown()
 	}
 }
 
-bool Socket::Connected()
+bool Socket::Connected() const
 {
 	return (int)socket != -1;
 }

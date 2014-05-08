@@ -372,12 +372,12 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 	return eReplayCreate_Success;
 }
 
-bool RenderDoc::HasReplayDriver(RDCDriver driver)
+bool RenderDoc::HasReplayDriver(RDCDriver driver) const
 {
 	return m_ReplayDriverProviders.find(driver) != m_ReplayDriverProviders.end();
 }
 
-bool RenderDoc::HasRemoteDriver(RDCDriver driver)
+bool RenderDoc::HasRemoteDriver(RDCDriver driver) const
 {
 	if(m_RemoteDriverProviders.find(driver) != m_RemoteDriverProviders.end())
 		return true;

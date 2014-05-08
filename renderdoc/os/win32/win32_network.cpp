@@ -57,7 +57,7 @@ void Socket::Shutdown()
 	}
 }
 
-bool Socket::Connected()
+bool Socket::Connected() const
 {
 	return (SOCKET)socket != INVALID_SOCKET;
 }
