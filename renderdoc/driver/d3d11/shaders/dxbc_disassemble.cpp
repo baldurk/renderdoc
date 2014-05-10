@@ -1827,6 +1827,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 		}
 	}
 	
+#if !defined(RELEASE)
 	if((uint32_t)(tokenStream - begin) > retOp.length)
 	{
 		RDCERR("Consumed too many tokens for %d!", retOp.operation);
@@ -1837,17 +1838,25 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 	}
 	else if((uint32_t)(tokenStream - begin) < retOp.length)
 	{
-		RDCERR("Consumed too few tokens for %d!", retOp.operation);
+		// sometimes this just happens, which is why we only print this in non-release so we can
+		// inspect it. There's probably not much we can do though, it's just magic.
+		RDCWARN("Consumed too few tokens for %d!", retOp.operation);
 		uint32_t missing = retOp.length - (uint32_t)(tokenStream - begin);
 		for(uint32_t i=0; i < missing; i++)
 		{
-			RDCLOG("missing token %d: 0x%08x", tokenStream[0]);
+			RDCLOG("missing token %d: 0x%08x", i, tokenStream[0]);
 			tokenStream++;
 		}
 	}
 
 	// make sure we consumed all uint32s
 	RDCASSERT((uint32_t)(tokenStream - begin) == retOp.length);
+#else
+	// there's no good documentation for this, we're freewheeling blind in a nightmarish hellscape.
+	// Instead of assuming we can predictably decode the whole of every opcode, just advance by the
+	// defined length.
+	tokenStream = begin + retOp.length;
+#endif
 
 	return true;
 }
