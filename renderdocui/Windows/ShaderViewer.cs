@@ -184,8 +184,7 @@ namespace renderdocui.Windows
             {
                 var name = f.Key;
 
-                ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, true);
-                scintilla1.Text = f.Value;
+                ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, f.Value, true);
                 scintilla1.IsReadOnly = false;
                 scintilla1.Tag = name;
 
@@ -354,8 +353,7 @@ namespace renderdocui.Windows
             }
 
             {
-                m_DisassemblyView = MakeEditor("scintillaDisassem", false);
-                m_DisassemblyView.Text = disasm;
+                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, false);
                 m_DisassemblyView.IsReadOnly = true;
                 m_DisassemblyView.TabIndex = 0;
 
@@ -404,8 +402,7 @@ namespace renderdocui.Windows
                 {
                     var name = Path.GetFileName(f.filename);
 
-                    ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, true);
-                    scintilla1.Text = f.filetext;
+                    ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, f.filetext, true);
                     scintilla1.IsReadOnly = true;
 
                     scintilla1.Tag = name;
@@ -507,7 +504,7 @@ namespace renderdocui.Windows
             this.ResumeLayout(false);
         }
 
-        private ScintillaNET.Scintilla MakeEditor(string name, bool hlsl)
+        private ScintillaNET.Scintilla MakeEditor(string name, string text, bool hlsl)
         {
             ScintillaNET.Scintilla scintilla1 = new ScintillaNET.Scintilla();
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).BeginInit();
@@ -525,6 +522,12 @@ namespace renderdocui.Windows
             scintilla1.Margins.Margin2.Width = 16;
             scintilla1.Name = name;
             scintilla1.Size = new System.Drawing.Size(581, 494);
+
+            scintilla1.Text = text;
+            if (scintilla1.Lines.Count > 1000)
+                scintilla1.Margins.Margin0.Width += 6;
+            if (scintilla1.Lines.Count > 10000)
+                scintilla1.Margins.Margin0.Width += 6;
 
             scintilla1.Click += new EventHandler(scintilla1_Click);
 
