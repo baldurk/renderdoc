@@ -644,6 +644,7 @@ namespace renderdocui.Windows
                           @"([1-9])?" + // might be a vector
                           @"(x[1-9])?" + // or a matrix
                           @"(\s+[A-Za-z_][A-Za-z0-9_]*)?" + // get identifier name
+                          @"(\[[0-9]+\])?" + // optional array dimension
                           @"(\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?" + // optional semantic
                           @"$";
 
@@ -688,6 +689,8 @@ namespace renderdocui.Windows
                 var vectorDim = match.Groups[3].Success ? match.Groups[3].Value : "1";
                 var matrixDim = match.Groups[4].Success ? match.Groups[4].Value.Substring(1) : "1";
                 var name = match.Groups[5].Success ? match.Groups[5].Value.Trim() : "data";
+                var arrayDim = match.Groups[6].Success ? match.Groups[6].Value.Trim() : "[1]";
+                arrayDim = arrayDim.Substring(1, arrayDim.Length - 2);
 
                 if(match.Groups[4].Success)
                 {
@@ -700,6 +703,7 @@ namespace renderdocui.Windows
 
                 FormatComponentType type = FormatComponentType.Float;
                 uint count = 0;
+                uint arrayCount = 1;
                 uint matrixCount = 0;
                 uint width = 0;
 
@@ -711,6 +715,11 @@ namespace renderdocui.Windows
                         success = false;
                         break;
                     }
+                    if (!uint.TryParse(arrayDim, out arrayCount))
+                    {
+                        arrayCount = 1;
+                    }
+                    arrayCount = Math.Max(0, arrayCount);
                     if (!uint.TryParse(matrixDim, out matrixCount))
                     {
                         errors = "Invalid matrix second dimension on line:\n" + line;
@@ -809,7 +818,7 @@ namespace renderdocui.Windows
                 }
 
                 if(fmt.compType == FormatComponentType.None)
-                    fmt = new ResourceFormat(type, count, width);
+                    fmt = new ResourceFormat(type, count * arrayCount, width);
 
                 FormatElement elem = new FormatElement(name, 0, input.Strides[0], false, row_major, matrixCount, fmt);
 

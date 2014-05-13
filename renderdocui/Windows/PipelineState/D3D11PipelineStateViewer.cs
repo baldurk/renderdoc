@@ -1912,7 +1912,10 @@ namespace renderdocui.Windows.PipelineState
                 }
                 else
                 {
-                    ret += indentstr + v.type.Name + " " + nameprefix + v.name + ";" + Environment.NewLine;
+                    string arr = "";
+                    if (v.type.descriptor.elements > 1)
+                        arr = String.Format("[{0}]", v.type.descriptor.elements);
+                    ret += indentstr + v.type.Name + " " + nameprefix + v.name + arr + ";" + Environment.NewLine;
                 }
 
                 i++;
