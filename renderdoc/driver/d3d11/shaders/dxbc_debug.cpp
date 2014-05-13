@@ -2859,12 +2859,15 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
 			vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
 			vsProgram += "}";
+
+			UINT texSlot = (UINT)op.operands[2].indices[0].index;
+			UINT sampSlot = op.operands.size() >= 4 ? (UINT)op.operands[3].indices[0].index : 0U;
 			
 			if(op.operation == OPCODE_SAMPLE ||
 				op.operation == OPCODE_SAMPLE_B ||
 				op.operation == OPCODE_SAMPLE_D)
 			{
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n" + sampler + " : register(s" + op.operands[3].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
 				sampleProgram += "t.SampleGrad(s, " + texcoords + ", " + ddx + ", " + ddy + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
@@ -2874,7 +2877,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// lod selection
 				StringFormat::snprintf(buf, 63, "%f", srcOpers[1].value.f.x);
 
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n" + sampler + " : register(s" + op.operands[3].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
 				sampleProgram += "t.SampleLevel(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
@@ -2912,7 +2915,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// comparison value
 				StringFormat::snprintf(buf, 63, "%f", srcOpers[3].value.f.x);
 
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n" + sampler + " : register(s" + op.operands[3].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
 				sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
 				sampleProgram += "\n}\n";
@@ -2922,21 +2925,21 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// comparison value
 				StringFormat::snprintf(buf, 63, "%f", srcOpers[3].value.f.x);
 
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n" + sampler + " : register(s" + op.operands[3].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
 				sampleProgram += "t.SampleCmpLevelZero(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
 			}
 			else if(op.operation == OPCODE_LD)
 			{
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
 				sampleProgram += "t.Load(" + texcoords + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
 			}
 			else if(op.operation == OPCODE_LD_MS)
 			{
-				sampleProgram = texture + " : register(t" + op.operands[2].indices[0].str + ");\n\n";
+				sampleProgram = texture + " : register(t0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
 				sampleProgram += "t.Load(" + texcoords + ", " + sampleIdx + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
@@ -2948,6 +2951,50 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			ID3D11DeviceContext *context = NULL;
 
 			device->GetReal()->GetImmediateContext(&context);
+
+			// back up SRV/sampler on PS slot 0
+
+			ID3D11ShaderResourceView *prevSRV = NULL;
+			ID3D11SamplerState *prevSamp = NULL;
+
+			context->PSGetShaderResources(0, 1, &prevSRV);
+			context->PSGetSamplers(0, 1, &prevSamp);
+
+			ID3D11ShaderResourceView *usedSRV = NULL;
+			ID3D11SamplerState *usedSamp = NULL;
+
+			// fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
+			// load from
+
+			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+				context->VSGetShaderResources(texSlot, 1, &usedSRV);
+			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+				context->HSGetShaderResources(texSlot, 1, &usedSRV);
+			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+				context->DSGetShaderResources(texSlot, 1, &usedSRV);
+			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+				context->GSGetShaderResources(texSlot, 1, &usedSRV);
+			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+				context->PSGetShaderResources(texSlot, 1, &usedSRV);
+			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+				context->CSGetShaderResources(texSlot, 1, &usedSRV);
+			
+			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+
+			// set onto PS while we perform the sample
+			context->PSSetShaderResources(0, 1, &usedSRV);
+			context->PSSetSamplers(0, 1, &usedSamp);
 
 			context->IASetInputLayout(NULL);
 			context->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -3084,7 +3131,19 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			SAFE_RELEASE(rtv);
 			SAFE_RELEASE(vs);
 			SAFE_RELEASE(ps);
+
+			// restore whatever was on PS slot 0 before we messed with it
+			
+			context->PSSetShaderResources(0, 1, &prevSRV);
+			context->PSSetSamplers(0, 1, &prevSamp);
+			
 			SAFE_RELEASE(context);
+
+			SAFE_RELEASE(prevSRV);
+			SAFE_RELEASE(prevSamp);
+
+			SAFE_RELEASE(usedSRV);
+			SAFE_RELEASE(usedSamp);
 
 			// should be a better way of doing this
 			if(op.operands[0].comps[1] == 0xff)
