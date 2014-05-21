@@ -31,12 +31,9 @@
 bool WrappedOpenGL::Serialise_glGenTextures(GLsizei n, GLuint* textures)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(*textures)));
-	SERIALISE_ELEMENT(GLint, activeTexUnit, m_TextureUnit);
-	RDCWARN("HACK! serialising active tex with gen - need to grab initial pipeline state to fix");
 
 	if(m_State == READING)
 	{
-		m_Real.glActiveTexture(RDCGLenum(GL_TEXTURE0 + activeTexUnit));
 		GLuint real = 0;
 		m_Real.glGenTextures(1, &real);
 		
@@ -217,7 +214,10 @@ bool WrappedOpenGL::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint 
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
 
-	size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type, Level, m_TextureAlignment);
+	GLint align = 1;
+	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+
+	size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type, Level, align);
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, subimageSize);
 	
@@ -347,12 +347,7 @@ bool WrappedOpenGL::Serialise_glPixelStorei(GLenum pname, GLint param)
 	SERIALISE_ELEMENT(GLint, Param, param);
 
 	if(m_State == READING)
-	{
-		if(pname == eGL_UNPACK_ALIGNMENT)
-			m_TextureAlignment = param;
-
 		m_Real.glPixelStorei(PName, Param);
-	}
 
 	return true;
 }
@@ -361,9 +356,6 @@ void WrappedOpenGL::glPixelStorei(GLenum pname, GLint param)
 {
 	m_Real.glPixelStorei(pname, param);
 
-	if(pname == eGL_UNPACK_ALIGNMENT)
-		m_TextureAlignment = param;
-	
 	RDCASSERT(m_TextureRecord[m_TextureUnit]);
 	{
 		SCOPED_SERIALISE_CONTEXT(PIXELSTORE);

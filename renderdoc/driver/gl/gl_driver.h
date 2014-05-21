@@ -102,7 +102,6 @@ class WrappedOpenGL
 		GLResourceRecord *m_BufferRecord[16];
 		GLResourceRecord *m_VertexArrayRecord;
 		GLint m_TextureUnit;
-		GLint m_TextureAlignment;
 
 		size_t BufferIdx(GLenum buf);
 

@@ -191,7 +191,6 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_CurDrawcallID = 1;
 
 	RDCEraseEl(m_TextureRecord);
-	m_TextureAlignment = 0;
 	m_TextureUnit = 0;
 	
 	m_LastIndexSize = eGL_UNKNOWN_ENUM;
@@ -688,28 +687,44 @@ void WrappedOpenGL::AttemptCapture()
 
 bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 {
-	//GLRenderState state(m_pSerialiser);
+	// TODO check GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS bound
+	// TODO fetch bindings for other types than 2D
+	ResourceId textures2D[128];
 
 	if(m_State >= WRITING)
 	{
-		//state = *m_CurrentPipelineState;
+		for(int i=0; i < ARRAY_COUNT(textures2D); i++)
+		{
+			GLint binding = 0;
 
-		//state.SetSerialiser(m_pSerialiser);
+			m_Real.glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+			m_Real.glGetIntegerv(eGL_TEXTURE_BINDING_2D, &binding);
 
-		//state.MarkReferenced(this, true);
+			if(binding == 0)
+				textures2D[i] = ResourceId();
+			else
+				textures2D[i] = GetResourceManager()->GetID(TextureRes(binding));
+		}
 	}
 
-	//state.Serialise(m_State, this);
+	m_pSerialiser->Serialise<128>("textures", textures2D);
 
 	if(m_State <= EXECUTING && applyInitialState)
 	{
 		m_DoStateVerify = false;
 		{
-			//*m_CurrentPipelineState = state;
-			//state.ApplyState(this);
+
+			for(int i=0; i < ARRAY_COUNT(textures2D); i++)
+			{
+				m_Real.glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+				if(textures2D[i] == ResourceId())
+					m_Real.glBindTexture(eGL_TEXTURE_2D, 0);
+				else
+					m_Real.glBindTexture(eGL_TEXTURE_2D, GetResourceManager()->GetLiveResource(textures2D[i]).name);
+			}
+
 		}
 		m_DoStateVerify = true;
-		//VerifyState();
 	}
 
 	return true;
