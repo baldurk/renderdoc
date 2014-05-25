@@ -321,13 +321,30 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindSampler(GLuint unit, GLuint sampler)
+{
+	SERIALISE_ELEMENT(uint32_t, Unit, unit);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		glBindSampler(Unit, res.name);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 {
 	m_Real.glBindSampler(unit, sampler);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
-		RDCUNIMPLEMENTED();
+		SCOPED_SERIALISE_CONTEXT(BIND_SAMPLER);
+		Serialise_glBindSampler(unit, sampler);
+
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
