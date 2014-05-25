@@ -382,11 +382,35 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 	RDCUNIMPLEMENTED();
 }
 
+bool WrappedOpenGL::Serialise_glActiveTexture(GLenum texture)
+{
+	SERIALISE_ELEMENT(GLenum, Texture, texture);
+
+	if(m_State < WRITING)
+		m_Real.glActiveTexture(Texture);
+
+	return true;
+}
+
 void WrappedOpenGL::glActiveTexture(GLenum texture)
 {
 	m_Real.glActiveTexture(texture);
 
 	m_TextureUnit = texture-eGL_TEXTURE0;
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		Chunk *chunk = NULL;
+
+		{
+			SCOPED_SERIALISE_CONTEXT(ACTIVE_TEXTURE);
+			Serialise_glActiveTexture(texture);
+
+			chunk = scope.Get();
+		}
+		
+		m_ContextRecord->AddChunk(chunk);
+	}
 }
 
 #pragma endregion

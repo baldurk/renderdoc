@@ -39,6 +39,7 @@ const char *GLChunkNames[] =
 	"WrappedOpenGL::Initialisation",
 	"glGenTextures",
 	"glBindTexture",
+	"glActiveTexture",
 	"glTexStorage2D",
 	"glTexSubImage2D",
 	"glPixelStore",
