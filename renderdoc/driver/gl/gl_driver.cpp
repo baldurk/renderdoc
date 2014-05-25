@@ -89,9 +89,12 @@ const char *GLChunkNames[] =
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
+	"glBindFramebuffer",
 
 	"glGenBuffers",
 	"glBindBuffer",
+	"glBindBufferBase",
+	"glBindBufferRange",
 	"glBufferData",
 	"glGenVertexArrays",
 	"glBindVertexArray",
@@ -843,6 +846,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case GEN_TEXTURE:
 		Serialise_glGenTextures(0, NULL);
 		break;
+	case ACTIVE_TEXTURE:
+		Serialise_glActiveTexture(eGL_UNKNOWN_ENUM);
+		break;
 	case BIND_TEXTURE:
 		Serialise_glBindTexture(eGL_UNKNOWN_ENUM, 0);
 		break;
@@ -939,6 +945,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	//
 
+	case BIND_FRAMEBUFFER:
+		Serialise_glBindFramebuffer(eGL_UNKNOWN_ENUM, 0);
+		break;
+
 	case CLEAR:
 		Serialise_glClear(0);
 		break;
@@ -978,6 +988,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BIND_BUFFER:
 		Serialise_glBindBuffer(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case BIND_BUFFER_BASE:
+		Serialise_glBindBufferBase(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case BIND_BUFFER_RANGE:
+		Serialise_glBindBufferRange(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
 	case BUFFERDATA:
 		Serialise_glBufferData(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);

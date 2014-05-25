@@ -1113,21 +1113,59 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(ResourceId, id, m_BufferRecord[BufferIdx(target)]->GetResourceID());
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		m_Real.glBindBufferBase(Target, Index, res.name);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
-		RDCUNIMPLEMENTED();
+		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
+		Serialise_glBindBufferBase(target, index, buffer);
+
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 
 	m_Real.glBindBufferBase(target, index, buffer);
 }
 
+bool WrappedOpenGL::Serialise_glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(ResourceId, id, m_BufferRecord[BufferIdx(target)]->GetResourceID());
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
+	SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		m_Real.glBindBufferRange(Target, Index, res.name, (GLintptr)Offset, (GLsizeiptr)Size);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
-		RDCUNIMPLEMENTED();
+		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_RANGE);
+		Serialise_glBindBufferRange(target, index, buffer, offset, size);
+
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 
 	m_Real.glBindBufferRange(target, index, buffer, offset, size);
@@ -1163,7 +1201,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GL
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
 	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 	
-	if(m_State == READING)
+	if(m_State < WRITING)
 	{
 		if(id != ResourceId())
 		{
@@ -1200,7 +1238,7 @@ bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 {
 	SERIALISE_ELEMENT(GLuint, Index, index);
 	
-	if(m_State == READING)
+	if(m_State < WRITING)
 	{
 		m_Real.glEnableVertexAttribArray(Index);
 	}

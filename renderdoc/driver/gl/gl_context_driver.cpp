@@ -182,8 +182,37 @@ void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
 	m_Real.glPolygonMode(face, mode);
 }
 
+bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(FramebufferRes(framebuffer)));
+
+	if(m_State <= EXECUTING)
+	{
+		if(Id == ResourceId())
+		{
+			m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glBindFramebuffer(Target, res.name);
+		}
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
+		Serialise_glBindFramebuffer(target, framebuffer);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+
 	if(framebuffer == 0 && (m_State == READING || m_State == EXECUTING))
 		framebuffer = m_FakeBB_FBO;
 
