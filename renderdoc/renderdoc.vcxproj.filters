@@ -285,6 +285,9 @@
     <ClInclude Include="replay\gl_pipestate.h">
       <Filter>Replay\external interface</Filter>
     </ClInclude>
+    <ClInclude Include="driver\gl\gl_renderstate.h">
+      <Filter>Drivers\OpenGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -471,6 +474,9 @@
       <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="driver\gl\gl_debug.cpp">
+      <Filter>Drivers\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\gl_renderstate.cpp">
       <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
   </ItemGroup>

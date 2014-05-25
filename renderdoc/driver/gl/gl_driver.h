@@ -36,6 +36,7 @@
 #include "gl_hookset.h"
 #include "gl_resources.h"
 #include "gl_manager.h"
+#include "gl_renderstate.h"
 #include "gl_replay.h"
 
 #include <list>
@@ -275,6 +276,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloatv(GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegerv(GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegeri_v(GLenum target, GLuint index, GLint *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetInteger64i_v(GLenum target, GLuint index, GLint64 *data));
 		IMPLEMENT_FUNCTION_SERIALISED(const GLubyte *, glGetStringi(GLenum name, GLuint i));
 		IMPLEMENT_FUNCTION_SERIALISED(const GLubyte *, glGetString(GLenum name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenTextures(GLsizei n, GLuint* textures));
@@ -339,6 +341,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBuffer(GLenum target, GLuint buffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBufferBase(GLenum target, GLuint index, GLuint buffer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access));
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glUnmapBuffer(GLenum target));
 

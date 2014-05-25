@@ -262,6 +262,7 @@
     <ClInclude Include="driver\gl\gl_hookset_defs.h" />
     <ClInclude Include="driver\gl\gl_legacy_procs.h" />
     <ClInclude Include="driver\gl\gl_manager.h" />
+    <ClInclude Include="driver\gl\gl_renderstate.h" />
     <ClInclude Include="driver\gl\gl_replay.h" />
     <ClInclude Include="driver\gl\gl_resources.h" />
     <ClInclude Include="driver\gl\official\glcorearb.h" />
@@ -332,6 +333,7 @@
     <ClCompile Include="driver\gl\gl_device_driver.cpp" />
     <ClCompile Include="driver\gl\gl_driver.cpp" />
     <ClCompile Include="driver\gl\gl_manager.cpp" />
+    <ClCompile Include="driver\gl\gl_renderstate.cpp" />
     <ClCompile Include="driver\gl\gl_replay.cpp" />
     <ClCompile Include="driver\gl\gl_replay_win32.cpp" />
     <ClCompile Include="driver\gl\gl_resources.cpp" />

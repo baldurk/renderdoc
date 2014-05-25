@@ -984,10 +984,20 @@ size_t WrappedOpenGL::BufferIdx(GLenum buf)
 {
 	switch(buf)
 	{
-		case eGL_ARRAY_BUFFER: return 0;
-		case eGL_ELEMENT_ARRAY_BUFFER: return 1;
-		case eGL_UNIFORM_BUFFER: return 2;
-		case eGL_COPY_READ_BUFFER: return 3;
+		case eGL_ARRAY_BUFFER:              return 0;
+		case eGL_ATOMIC_COUNTER_BUFFER:     return 1;
+		case eGL_COPY_READ_BUFFER:          return 2;
+		case eGL_COPY_WRITE_BUFFER:         return 3;
+		case eGL_DRAW_INDIRECT_BUFFER:      return 4;
+		case eGL_DISPATCH_INDIRECT_BUFFER:  return 5;
+		case eGL_ELEMENT_ARRAY_BUFFER:      return 6;
+		case eGL_PIXEL_PACK_BUFFER:         return 7;
+		case eGL_PIXEL_UNPACK_BUFFER:       return 8;
+		case eGL_QUERY_BUFFER:              return 9;
+		case eGL_SHADER_STORAGE_BUFFER:     return 10;
+		case eGL_TEXTURE_BUFFER:            return 11;
+		case eGL_TRANSFORM_FEEDBACK_BUFFER: return 12;
+		case eGL_UNIFORM_BUFFER:            return 13;
 		default:
 			RDCERR("Unexpected enum as buffer target: %hs", ToStr::Get(buf).c_str());
 	}
@@ -1111,6 +1121,16 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 	}
 
 	m_Real.glBindBufferBase(target, index, buffer);
+}
+
+void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
+{
+	if(m_State >= WRITING)
+	{
+		RDCUNIMPLEMENTED();
+	}
+
+	m_Real.glBindBufferRange(target, index, buffer, offset, size);
 }
 
 void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)
