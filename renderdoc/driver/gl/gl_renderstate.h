@@ -41,6 +41,7 @@ struct GLRenderState
 	//
 	uint32_t Tex2D[128];
 	GLenum ActiveTexture;
+
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
 	{
@@ -48,6 +49,14 @@ struct GLRenderState
 		uint64_t start;
 		uint64_t size;
 	} AtomicCounter[8], ShaderStorage[8], TransformFeedback[8], UniformBinding[128];
+
+	struct BlendState
+	{
+		GLenum EquationRGB, EquationAlpha;
+		GLenum SourceRGB, SourceAlpha;
+		GLenum DestinationRGB, DestinationAlpha;
+	} Blends[8];
+	float BlendColor[4];
 	//
 
 	void Serialise(LogState state, GLResourceManager *rm);

@@ -78,6 +78,12 @@ const char *GLChunkNames[] =
 	"glClearBufferfv",
 	"glEnable",
 	"glDisable",
+	"glBlendFunc",
+	"glBlendColor",
+	"glBlendFuncSeparate",
+	"glBlendFuncSeparatei",
+	"glBlendEquationSeparate",
+	"glBlendEquationSeparatei",
 	"glDepthFunc",
 	"glViewport",
 	"glUseProgram",
@@ -966,6 +972,24 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case ENABLE:
 		Serialise_glEnable(eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_FUNC:
+		glBlendFunc(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_COLOR:
+		glBlendColor(0, 0, 0, 0);
+		break;
+	case BLEND_FUNC_SEP:
+		glBlendFuncSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_FUNC_SEPI:
+		glBlendFuncSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_EQ_SEP:
+		glBlendEquationSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_EQ_SEPI:
+		glBlendEquationSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
 		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_UNKNOWN_ENUM);

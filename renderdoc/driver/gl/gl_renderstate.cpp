@@ -78,6 +78,20 @@ void GLRenderState::FetchState()
 			m_Real->glGetInteger64i_v(idxBufs[b].size,  i, (GLint64*)&idxBufs[b].bufs[i].size);
 		}
 	}
+	
+	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	{
+		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint*)Blends[i].EquationRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint*)Blends[i].EquationAlpha);
+
+		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_RGB, i, (GLint*)Blends[i].SourceRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, i, (GLint*)Blends[i].SourceAlpha);
+
+		m_Real->glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint*)Blends[i].DestinationRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint*)Blends[i].DestinationAlpha);
+	}
+
+	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 }
 
 void GLRenderState::ApplyState()
@@ -112,6 +126,14 @@ void GLRenderState::ApplyState()
 	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
 		for(int i=0; i < idxBufs[b].count; i++)
 			m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
+	
+	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	{
+		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].DestinationRGB, Blends[i].DestinationAlpha);
+		m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
+	}
+
+	m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
 }
 
 void GLRenderState::Clear()
@@ -123,6 +145,8 @@ void GLRenderState::Clear()
 	RDCEraseEl(ShaderStorage);
 	RDCEraseEl(TransformFeedback);
 	RDCEraseEl(UniformBinding);
+	RDCEraseEl(Blends);
+	RDCEraseEl(BlendColor);
 }
 
 void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
@@ -165,4 +189,18 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 			m_pSerialiser->Serialise("BUFFER_SIZE", idxBufs[b].bufs[i].size);
 		}
 	}
+	
+	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	{
+		m_pSerialiser->Serialise("GL_BLEND_EQUATION_RGB", Blends[i].EquationRGB);
+		m_pSerialiser->Serialise("GL_BLEND_EQUATION_ALPHA", Blends[i].EquationAlpha);
+
+		m_pSerialiser->Serialise("GL_BLEND_SRC_RGB", Blends[i].SourceRGB);
+		m_pSerialiser->Serialise("GL_BLEND_SRC_ALPHA", Blends[i].SourceAlpha);
+
+		m_pSerialiser->Serialise("GL_BLEND_DST_RGB", Blends[i].DestinationRGB);
+		m_pSerialiser->Serialise("GL_BLEND_DST_ALPHA", Blends[i].DestinationAlpha);
+	}
+	
+	m_pSerialiser->Serialise<4>("GL_BLEND_COLOR", BlendColor);
 }

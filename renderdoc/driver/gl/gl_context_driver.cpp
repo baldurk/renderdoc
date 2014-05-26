@@ -29,13 +29,167 @@
 
 #pragma region State functions
 
+bool WrappedOpenGL::Serialise_glBlendFunc(GLenum sfactor, GLenum dfactor)
+{
+	SERIALISE_ELEMENT(GLenum, s, sfactor);
+	SERIALISE_ELEMENT(GLenum, d, dfactor);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendFunc(s, d);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
 	m_Real.glBlendFunc(sfactor, dfactor);
 	
 	if(m_State >= WRITING)
 	{
-		RDCUNIMPLEMENTED();
+		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC);
+		Serialise_glBlendFunc(sfactor, dfactor);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+	SERIALISE_ELEMENT(GLfloat, r, red);
+	SERIALISE_ELEMENT(GLfloat, g, green);
+	SERIALISE_ELEMENT(GLfloat, b, blue);
+	SERIALISE_ELEMENT(GLfloat, a, alpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendColor(r, g, b, a);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+	m_Real.glBlendColor(red, green, blue, alpha);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_COLOR);
+		Serialise_glBlendColor(red, green, blue, alpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+	SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
+	SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
+	SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
+	SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendFuncSeparate(s1, d1, s2, d2);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+	m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEP);
+		Serialise_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+	SERIALISE_ELEMENT(uint32_t, b, buf);
+	SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
+	SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
+	SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
+	SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendFuncSeparatei(b, s1, d1, s2, d2);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+	m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEPI);
+		Serialise_glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
+{
+	SERIALISE_ELEMENT(GLenum, m1, modeRGB);
+	SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendEquationSeparate(m1, m2);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
+{
+	m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEP);
+		Serialise_glBlendEquationSeparate(modeRGB, modeAlpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+	SERIALISE_ELEMENT(uint32_t, b, buf);
+	SERIALISE_ELEMENT(GLenum, m1, modeRGB);
+	SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendEquationSeparatei(b, m1, m2);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+	m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEPI);
+		Serialise_glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -133,6 +287,7 @@ void WrappedOpenGL::glEnable(GLenum cap)
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
+	// TODO replace this with glIsEnabled() for the relevant states
 	if(m_State == WRITING_IDLE)
 	{
 		SCOPED_SERIALISE_CONTEXT(ENABLE);

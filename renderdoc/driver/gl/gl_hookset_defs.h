@@ -33,6 +33,7 @@
 #define DLLExportHooks() \
     HookInit(glBindTexture); \
     HookInit(glBlendFunc); \
+    HookInit(glBlendColor); \
     HookInit(glClear); \
     HookInit(glClearColor); \
     HookInit(glClearDepth); \
@@ -103,6 +104,10 @@
     HookExtension(PFNGLGETSTRINGIPROC, glGetStringi); \
     HookExtension(PFNGLGETINTEGERI_VPROC, glGetIntegeri_v); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
+    HookExtension(PFNGLBLENDFUNCSEPARATEPROC, glBlendFuncSeparate); \
+    HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
+    HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
+    HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
     HookExtension(PFNGLCREATESHADERPROC, glCreateShader); \
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
@@ -158,6 +163,7 @@
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
     HookExtension(PFNGLBLENDFUNCPROC, glBlendFunc); \
+    HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLCLEARPROC, glClear); \
     HookExtension(PFNGLCLEARCOLORPROC, glClearColor); \
     HookExtension(PFNGLCLEARDEPTHPROC, glClearDepth); \
@@ -210,6 +216,7 @@
 #define DefineDLLExportHooks() \
     HookWrapper2(void, glBindTexture, GLenum, target, GLuint, texture); \
     HookWrapper2(void, glBlendFunc, GLenum, sfactor, GLenum, dfactor); \
+    HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glClear, GLbitfield, mask); \
     HookWrapper4(void, glClearColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glClearDepth, GLdouble, depth); \
@@ -280,6 +287,10 @@
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
     HookWrapper3(void, glGetIntegeri_v, GLenum, target, GLuint, index, GLint *, data); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
+    HookWrapper4(void, glBlendFuncSeparate, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
+    HookWrapper5(void, glBlendFuncSeparatei, GLuint, buf, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
+    HookWrapper2(void, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
+    HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper1(GLuint, glCreateShader, GLenum, type); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
