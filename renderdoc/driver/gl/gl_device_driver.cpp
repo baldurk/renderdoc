@@ -478,6 +478,11 @@ void WrappedOpenGL::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum 
 	m_Real.glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
 }
 
+GLenum WrappedOpenGL::glCheckFramebufferStatus(GLenum target)
+{
+	return m_Real.glCheckFramebufferStatus(target);
+}
+
 #pragma endregion
 
 #pragma region Shaders / Programs
