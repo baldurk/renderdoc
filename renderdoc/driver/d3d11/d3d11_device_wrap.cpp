@@ -870,6 +870,14 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 			backbufferTypedDesc.Texture2D.MipSlice = 0;
 			pDesc = &backbufferTypedDesc;
 		}
+
+		// if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
+		// the texture's format. But as above, we fudge around the typeless backbuffer so we
+		// have to set the correct typed format
+		if(HasDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && tex2d->m_RealDescriptor)
+		{
+			pDesc->Format = tex2d->m_RealDescriptor->Format;
+		}
 		
 		HRESULT hr = m_pDevice->CreateRenderTargetView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
 
