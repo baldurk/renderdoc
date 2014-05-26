@@ -96,6 +96,10 @@ namespace renderdocui.Code
                 {
                     MessageBox.Show(String.Format("Error loading config file\n{0}\nA default config is loaded and will be saved out.", Core.ConfigFilename));
                 }
+                catch (System.IO.IOException ex)
+                {
+                    MessageBox.Show(String.Format("Error loading config file: {1}\n{0}\nA default config is loaded and will be saved out.", Core.ConfigFilename, ex.Message));
+                }
             }
 
             // propogate float formatting settings to the Formatter class used globally to format float values

@@ -31,6 +31,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using renderdoc;
+using System.Windows.Forms;
 
 namespace renderdocui.Code
 {
@@ -125,15 +126,23 @@ namespace renderdocui.Code
 
         public void Serialize(string file)
         {
-            ReplayHostKeyValues.Clear();
-            foreach(var kv in ReplayHosts)
-                ReplayHostKeyValues.Add(new SerializableKeyValuePair<string,string>(kv.Key, kv.Value));
+            try
+            {
+                ReplayHostKeyValues.Clear();
+                foreach (var kv in ReplayHosts)
+                    ReplayHostKeyValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
 
-            XmlSerializer xs = new XmlSerializer(this.GetType());
-            StreamWriter writer = File.CreateText(file);
-            xs.Serialize(writer, this);
-            writer.Flush();
-            writer.Close();
+                XmlSerializer xs = new XmlSerializer(this.GetType());
+                StreamWriter writer = File.CreateText(file);
+                xs.Serialize(writer, this);
+                writer.Flush();
+                writer.Close();
+            }
+            catch (System.IO.IOException ex)
+            {
+                // Can't recover, but let user know that we couldn't save their settings.
+                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}\nA default config is loaded and will be saved out.", file, ex.Message));
+            }
         }
 
         public static PersistantConfig Deserialize(string file)
