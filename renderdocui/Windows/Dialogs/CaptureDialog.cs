@@ -42,7 +42,7 @@ namespace renderdocui.Windows.Dialogs
     {
         public class CaptureSettings
         {
-            public CaptureOptions Options = new CaptureOptions();
+            public CaptureOptions Options = CaptureOptions.Defaults;
             public bool Inject = false;
             public bool AutoStart = false;
             public string Executable = "";
