@@ -254,7 +254,7 @@ namespace renderdocui.Windows.Dialogs
 
                 var live = m_InjectCallback(PID, name, GetSettings().Options);
 
-                if (queueFrameCap.Checked)
+                if (queueFrameCap.Checked && live != null)
                     live.QueueCapture((int)queuedCapFrame.Value);
             }
         }
