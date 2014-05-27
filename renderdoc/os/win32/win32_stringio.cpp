@@ -249,7 +249,7 @@ namespace StringFormat
 
 	int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
 	{
-		return ::vsprintf_s(str, bufSize, format, args);
+		return ::vsnprintf_s(str, bufSize, bufSize, format, args);
 	}
 
 	void sntimef(char *str, size_t bufSize, const char *format)

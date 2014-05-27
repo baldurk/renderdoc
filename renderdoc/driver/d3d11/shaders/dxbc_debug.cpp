@@ -2707,9 +2707,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			string sampleProgram;
 
-			char buf[64] = {0};
-			char buf2[64] = {0};
-			char buf3[64] = {0};
+			char buf[256] = {0};
+			char buf2[256] = {0};
+			char buf3[256] = {0};
 
 			ShaderVariable ddxCalc;
 			ShaderVariable ddyCalc;
@@ -2804,19 +2804,19 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			// because of unions in .value we can pass the float versions and printf will interpret it as the right type according to formats
 			if(texcoordType == 0)
-				StringFormat::snprintf(buf, 63, formats[texdim+texdimOffs-1][texcoordType], uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
+				StringFormat::snprintf(buf, 255, formats[texdim+texdimOffs-1][texcoordType], uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
 			else
-				StringFormat::snprintf(buf, 63, formats[texdim+texdimOffs-1][texcoordType], uv.value.i.x, uv.value.i.y, uv.value.i.z, uv.value.i.w);
+				StringFormat::snprintf(buf, 255, formats[texdim+texdimOffs-1][texcoordType], uv.value.i.x, uv.value.i.y, uv.value.i.z, uv.value.i.w);
 
 			if(ddxType == 0)
-				StringFormat::snprintf(buf2, 63, formats[offsdim+texdimOffs-1][ddxType], ddxCalc.value.f.x, ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
+				StringFormat::snprintf(buf2, 255, formats[offsdim+texdimOffs-1][ddxType], ddxCalc.value.f.x, ddxCalc.value.f.y, ddxCalc.value.f.z, ddxCalc.value.f.w);
 			else
-				StringFormat::snprintf(buf2, 63, formats[offsdim+texdimOffs-1][ddxType], ddxCalc.value.i.x, ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
+				StringFormat::snprintf(buf2, 255, formats[offsdim+texdimOffs-1][ddxType], ddxCalc.value.i.x, ddxCalc.value.i.y, ddxCalc.value.i.z, ddxCalc.value.i.w);
 
 			if(ddyType == 0)
-				StringFormat::snprintf(buf3, 63, formats[offsdim+texdimOffs-1][ddyType], ddyCalc.value.f.x, ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
+				StringFormat::snprintf(buf3, 255, formats[offsdim+texdimOffs-1][ddyType], ddyCalc.value.f.x, ddyCalc.value.f.y, ddyCalc.value.f.z, ddyCalc.value.f.w);
 			else
-				StringFormat::snprintf(buf3, 63, formats[offsdim+texdimOffs-1][ddyType], ddyCalc.value.i.x, ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
+				StringFormat::snprintf(buf3, 255, formats[offsdim+texdimOffs-1][ddyType], ddyCalc.value.i.x, ddyCalc.value.i.y, ddyCalc.value.i.z, ddyCalc.value.i.w);
 
 			string texcoords = buf;
 			string ddx = buf2;
@@ -2824,7 +2824,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			if(op.operation == OPCODE_LD_MS)
 			{
-				StringFormat::snprintf(buf, 63, formats[0][1], srcOpers[2].value.i.x);
+				StringFormat::snprintf(buf, 255, formats[0][1], srcOpers[2].value.i.x);
 			}
 			
 			string sampleIdx = buf;
@@ -2834,11 +2834,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if(useOffsets)
 			{
 				if(offsdim == 1)
-					StringFormat::snprintf(buf, 63, ", int(%d)", op.texelOffset[0]);
+					StringFormat::snprintf(buf, 255, ", int(%d)", op.texelOffset[0]);
 				if(offsdim == 2)
-					StringFormat::snprintf(buf, 63, ", int2(%d, %d)", op.texelOffset[0], op.texelOffset[1]);
+					StringFormat::snprintf(buf, 255, ", int2(%d, %d)", op.texelOffset[0], op.texelOffset[1]);
 				if(offsdim == 3)
-					StringFormat::snprintf(buf, 63, ", int3(%d, %d, %d)", op.texelOffset[0], op.texelOffset[1], op.texelOffset[2]);
+					StringFormat::snprintf(buf, 255, ", int3(%d, %d, %d)", op.texelOffset[0], op.texelOffset[1], op.texelOffset[2]);
 				// texdim == 4 is cube arrays, no offset supported
 			
 				offsets = buf;
@@ -2875,7 +2875,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			else if(op.operation == OPCODE_SAMPLE_L)
 			{
 				// lod selection
-				StringFormat::snprintf(buf, 63, "%f", srcOpers[1].value.f.x);
+				StringFormat::snprintf(buf, 255, "%f", srcOpers[1].value.f.x);
 
 				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
@@ -2889,7 +2889,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 				vsProgram = "void main(uint id : SV_VertexID, out float4 pos : SV_Position, out float" + uvDim + " uv : uvs) {\n";
 				
-				StringFormat::snprintf(buf, 63, formats[texdim+texdimOffs-1][texcoordType],
+				StringFormat::snprintf(buf, 255, formats[texdim+texdimOffs-1][texcoordType],
 									 uv.value.f.x + ddyCalc.value.f.x*2.0f,
 									 uv.value.f.y + ddyCalc.value.f.y*2.0f,
 									 uv.value.f.z + ddyCalc.value.f.z*2.0f,
@@ -2897,11 +2897,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 				vsProgram += "if(id == 0) uv = " + string(buf) + ";\n";
 				
-				StringFormat::snprintf(buf, 63, formats[texdim+texdimOffs-1][texcoordType], uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
+				StringFormat::snprintf(buf, 255, formats[texdim+texdimOffs-1][texcoordType], uv.value.f.x, uv.value.f.y, uv.value.f.z, uv.value.f.w);
 				
 				vsProgram += "if(id == 1) uv = " + string(buf) + ";\n";
 				
-				StringFormat::snprintf(buf, 63, formats[texdim+texdimOffs-1][texcoordType],
+				StringFormat::snprintf(buf, 255, formats[texdim+texdimOffs-1][texcoordType],
 									 uv.value.f.x + ddxCalc.value.f.x*2.0f,
 									 uv.value.f.y + ddxCalc.value.f.y*2.0f,
 									 uv.value.f.z + ddxCalc.value.f.z*2.0f,
@@ -2913,7 +2913,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				vsProgram += "}";
 			
 				// comparison value
-				StringFormat::snprintf(buf, 63, "%f", srcOpers[3].value.f.x);
+				StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
 				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
@@ -2923,7 +2923,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			else if(op.operation == OPCODE_SAMPLE_C_LZ)
 			{
 				// comparison value
-				StringFormat::snprintf(buf, 63, "%f", srcOpers[3].value.f.x);
+				StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
 				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
 				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
