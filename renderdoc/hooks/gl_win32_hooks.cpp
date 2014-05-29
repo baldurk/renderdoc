@@ -34,7 +34,9 @@
 #define DLL_NAME "opengl32.dll"
 
 #define HookInit(function) \
-	success &= CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
+	bool CONCAT(function, _success) = CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
+	if(!CONCAT(function, _success)) RDCERR("Couldn't hook %s", STRINGIZE(function)); \
+	success &= CONCAT(function, _success); \
 	GL.function = CONCAT(function, _hook)();
 
 #define HookExtension(funcPtrType, function) \
