@@ -217,6 +217,7 @@ class OpenGLHook : LibraryHook
 		}
 
 		Hook<HGLRC (WINAPI*)(HDC)> wglCreateContext_hook;
+		Hook<HGLRC (WINAPI*)(HDC,int)> wglCreateLayerContext_hook;
 		Hook<BOOL (WINAPI*)(HDC, HGLRC)> wglMakeCurrent_hook;
 		Hook<PROC (WINAPI*)(const char*)> wglGetProcAddress_hook;
 		Hook<BOOL (WINAPI*)(HDC)> SwapBuffers_hook;
@@ -260,6 +261,15 @@ class OpenGLHook : LibraryHook
 		static HGLRC WINAPI wglCreateContext_hooked(HDC dc)
 		{
 			HGLRC ret = glhooks.wglCreateContext_hook()(dc);
+
+			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, NULL, GetInitParamsForDC(dc));
+
+			return ret;
+		}
+
+		static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
+		{
+			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
 
 			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, NULL, GetInitParamsForDC(dc));
 
@@ -367,6 +377,7 @@ class OpenGLHook : LibraryHook
 			bool success = true;
 			
 			success &= wglCreateContext_hook.Initialize("wglCreateContext", DLL_NAME, wglCreateContext_hooked);
+			success &= wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", DLL_NAME, wglCreateLayerContext_hooked);
 			success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
 			success &= wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);
 			success &= SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);
