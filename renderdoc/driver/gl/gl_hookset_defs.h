@@ -157,6 +157,9 @@
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
     HookExtension(PFNGLSAMPLERPARAMETERIPROC, glSamplerParameteri); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
+    HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
+    HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
+    HookExtension(PFNGLCLEARBUFFERFIPROC, glClearBufferfi); \
     HookExtension(PFNGLVIEWPORTINDEXEDFPROC, glViewportIndexedf); \
     HookExtension(PFNGLVIEWPORTINDEXEDFVPROC, glViewportIndexedfv); \
     HookExtension(PFNGLVIEWPORTARRAYVPROC, glViewportArrayv); \
@@ -349,6 +352,9 @@
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
     HookWrapper3(void, glSamplerParameteri, GLuint, sampler, GLenum, pname, GLint, param); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
+    HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
+    HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
+    HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper5(void, glViewportIndexedf, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
     HookWrapper2(void, glViewportIndexedfv, GLuint, index, const GLfloat *, v); \
     HookWrapper3(void, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \

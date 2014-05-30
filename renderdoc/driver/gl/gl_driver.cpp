@@ -78,6 +78,9 @@ const char *GLChunkNames[] =
 	"glClearDepth",
 	"glClear",
 	"glClearBufferfv",
+	"glClearBufferiv",
+	"glClearBufferuiv",
+	"glClearBufferfi",
 	"glCullFace",
 	"glEnable",
 	"glDisable",
@@ -984,6 +987,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case CLEARBUFFERF:
 		Serialise_glClearBufferfv(eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case CLEARBUFFERI:
+		Serialise_glClearBufferiv(eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case CLEARBUFFERUI:
+		Serialise_glClearBufferuiv(eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case CLEARBUFFERFI:
+		Serialise_glClearBufferfi(eGL_UNKNOWN_ENUM, 0, 0, 0);
 		break;
 	case DISABLE:
 		Serialise_glDisable(eGL_UNKNOWN_ENUM);

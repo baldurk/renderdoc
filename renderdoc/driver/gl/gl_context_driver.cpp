@@ -711,12 +711,13 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
+
 bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
 	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
 	
-	if(buf != eGL_DEPTH && buf != eGL_STENCIL)
+	if(buf != eGL_DEPTH)
 	{
 		Vec4f v;
 		if(value) v = *((Vec4f *)value);
@@ -762,6 +763,151 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 	{
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERF);
 		Serialise_glClearBufferfv(buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
+{
+	SERIALISE_ELEMENT(GLenum, buf, buffer);
+	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	
+	if(buf != eGL_STENCIL)
+	{
+		int32_t v[4];
+		if(value) memcpy(v, value, sizeof(v));
+
+		m_pSerialiser->Serialise<4>("value", v);
+		
+		if(m_State <= EXECUTING)
+			m_Real.glClearBufferiv(buf, draw, v);
+	}
+	else
+	{
+		SERIALISE_ELEMENT(GLint, val, *value);
+
+		if(m_State <= EXECUTING)
+			m_Real.glClearBufferiv(buf, draw, &val);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(CLEARBUFFERI, desc);
+		string name = "glClearBufferiv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
+	}
+
+
+	return true;
+}
+
+void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
+{
+	m_Real.glClearBufferiv(buffer, drawbuffer, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERI);
+		Serialise_glClearBufferiv(buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+{
+	SERIALISE_ELEMENT(GLenum, buf, buffer);
+	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	
+	{
+		uint32_t v[4];
+		if(value) memcpy(v, value, sizeof(v));
+
+		m_pSerialiser->Serialise<4>("value", v);
+		
+		if(m_State <= EXECUTING)
+			m_Real.glClearBufferuiv(buf, draw, v);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(CLEARBUFFERUI, desc);
+		string name = "glClearBufferuiv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+{
+	m_Real.glClearBufferuiv(buffer, drawbuffer, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
+		Serialise_glClearBufferuiv(buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+		
+bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
+{
+	SERIALISE_ELEMENT(GLenum, buf, buffer);
+	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	SERIALISE_ELEMENT(GLfloat, d, depth);
+	SERIALISE_ELEMENT(GLint, s, stencil);
+	
+	if(m_State <= EXECUTING)
+		m_Real.glClearBufferfi(buf, draw, d, s);
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(CLEARBUFFERFI, desc);
+		string name = "glClearBufferfi(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
+{
+	m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERFI);
+		Serialise_glClearBufferfi(buffer, drawbuffer, depth, stencil);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
