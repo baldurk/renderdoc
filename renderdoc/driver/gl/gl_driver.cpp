@@ -91,6 +91,8 @@ const char *GLChunkNames[] =
 	"glBlendFuncSeparatei",
 	"glBlendEquationSeparate",
 	"glBlendEquationSeparatei",
+	"glColorMask",
+	"glColorMaski",
 	"glDepthFunc",
 	"glViewport",
 	"glViewportArrayv",
@@ -1023,6 +1025,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BLEND_EQ_SEPI:
 		glBlendEquationSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case COLOR_MASK:
+		glColorMask(0, 0, 0, 0);
+		break;
+	case COLOR_MASKI:
+		glColorMaski(0, 0, 0, 0, 0);
 		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_UNKNOWN_ENUM);

@@ -393,6 +393,63 @@ void WrappedOpenGL::glHint(GLenum target, GLenum mode)
 	RDCUNIMPLEMENTED();
 }
 
+bool WrappedOpenGL::Serialise_glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+{
+	SERIALISE_ELEMENT(uint8_t, r, red);
+	SERIALISE_ELEMENT(uint8_t, g, green);
+	SERIALISE_ELEMENT(uint8_t, b, blue);
+	SERIALISE_ELEMENT(uint8_t, a, alpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glColorMask(r, g, b, a);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+{
+	m_Real.glColorMask(red, green, blue, alpha);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COLOR_MASK);
+		Serialise_glColorMask(red, green, blue, alpha);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+{
+	SERIALISE_ELEMENT(uint32_t, buffer, buf);
+	SERIALISE_ELEMENT(uint8_t, r, red);
+	SERIALISE_ELEMENT(uint8_t, g, green);
+	SERIALISE_ELEMENT(uint8_t, b, blue);
+	SERIALISE_ELEMENT(uint8_t, a, alpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glColorMaski(buffer, r, g, b, a);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
+{
+	m_Real.glColorMaski(buf, red, green, blue, alpha);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COLOR_MASKI);
+		Serialise_glColorMaski(buf, red, green, blue, alpha);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
 	SERIALISE_ELEMENT(GLint, X, x);

@@ -271,6 +271,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClear(GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLclampd depth));
