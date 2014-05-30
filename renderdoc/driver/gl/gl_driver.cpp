@@ -78,8 +78,10 @@ const char *GLChunkNames[] =
 	"glClearDepth",
 	"glClear",
 	"glClearBufferfv",
+	"glCullFace",
 	"glEnable",
 	"glDisable",
+	"glFrontFace",
 	"glBlendFunc",
 	"glBlendColor",
 	"glBlendFuncSeparate",
@@ -973,6 +975,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case CLEAR:
 		Serialise_glClear(0);
 		break;
+	case CULL_FACE:
+		Serialise_glCullFace(eGL_UNKNOWN_ENUM);
+		break;
 	case CLEARBUFFERF:
 		Serialise_glClearBufferfv(eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
@@ -981,6 +986,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case ENABLE:
 		Serialise_glEnable(eGL_UNKNOWN_ENUM);
+		break;
+	case FRONT_FACE:
+		Serialise_glFrontFace(eGL_UNKNOWN_ENUM);
 		break;
 	case BLEND_FUNC:
 		glBlendFunc(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);

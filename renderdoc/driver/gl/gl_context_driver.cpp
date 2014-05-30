@@ -336,6 +336,56 @@ void WrappedOpenGL::glEnable(GLenum cap)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glFrontFace(GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glFrontFace(m);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glFrontFace(GLenum mode)
+{
+	m_Real.glFrontFace(mode);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(FRONT_FACE);
+		Serialise_glFrontFace(mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCullFace(GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glCullFace(m);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCullFace(GLenum mode)
+{
+	m_Real.glCullFace(mode);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CULL_FACE);
+		Serialise_glCullFace(mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glHint(GLenum target, GLenum mode)
 {
 	m_Real.glHint(target, mode);

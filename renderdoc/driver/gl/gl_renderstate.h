@@ -62,6 +62,9 @@ struct GLRenderState
 	{
 		float x, y, width, height;
 	} Viewports[16];
+
+	GLenum FrontFace;
+	GLenum CullFace;
 	//
 
 	void Serialise(LogState state, GLResourceManager *rm);

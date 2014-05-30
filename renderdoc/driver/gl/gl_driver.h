@@ -274,9 +274,11 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClear(GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLclampd depth));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCullFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthFunc(GLenum func));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDisable(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnable(GLenum cap));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFrontFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetError());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloatv(GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegerv(GLenum pname, GLint *params));
