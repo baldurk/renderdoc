@@ -57,10 +57,10 @@ void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 
 bool WrappedOpenGL::Serialise_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
-	SERIALISE_ELEMENT(GLfloat, r, red);
-	SERIALISE_ELEMENT(GLfloat, g, green);
-	SERIALISE_ELEMENT(GLfloat, b, blue);
-	SERIALISE_ELEMENT(GLfloat, a, alpha);
+	SERIALISE_ELEMENT(float, r, red);
+	SERIALISE_ELEMENT(float, g, green);
+	SERIALISE_ELEMENT(float, b, blue);
+	SERIALISE_ELEMENT(float, a, alpha);
 
 	if(m_State <= EXECUTING)
 	{
@@ -452,10 +452,10 @@ void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLb
 
 bool WrappedOpenGL::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
-	SERIALISE_ELEMENT(GLint, X, x);
-	SERIALISE_ELEMENT(GLint, Y, y);
-	SERIALISE_ELEMENT(GLint, W, width);
-	SERIALISE_ELEMENT(GLint, H, height);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, W, width);
+	SERIALISE_ELEMENT(int32_t, H, height);
 
 	if(m_State <= EXECUTING)
 	{
@@ -480,8 +480,8 @@ void WrappedOpenGL::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 
 bool WrappedOpenGL::Serialise_glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
 {
-	SERIALISE_ELEMENT(GLuint, idx, index);
-	SERIALISE_ELEMENT(GLuint, cnt, count);
+	SERIALISE_ELEMENT(uint32_t, idx, index);
+	SERIALISE_ELEMENT(uint32_t, cnt, count);
 	SERIALISE_ELEMENT_ARR(GLfloat, views, v, cnt*4);
 
 	if(m_State <= EXECUTING)
@@ -630,7 +630,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 
 	SERIALISE_ELEMENT(GLenum, Identifier, identifier);
 	SERIALISE_ELEMENT(ResourceId, id, liveid);
-	SERIALISE_ELEMENT(GLsizei, Length, length);
+	SERIALISE_ELEMENT(uint32_t, Length, length);
 	SERIALISE_ELEMENT(bool, HasLabel, label != NULL);
 
 	m_pSerialiser->SerialiseString("label", Label);
@@ -664,10 +664,10 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
 bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);
-	SERIALISE_ELEMENT(GLint, First, first);
-	SERIALISE_ELEMENT(GLsizei, Count, count);
-	SERIALISE_ELEMENT(GLsizei, InstanceCount, instancecount);
-	SERIALISE_ELEMENT(GLuint, BaseInstance, baseinstance);
+	SERIALISE_ELEMENT(int32_t, First, first);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
+	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
 
 	if(m_State <= EXECUTING)
 	{
@@ -720,8 +720,8 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);
-	SERIALISE_ELEMENT(GLint, First, first);
-	SERIALISE_ELEMENT(GLsizei, Count, count);
+	SERIALISE_ELEMENT(int32_t, First, first);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
 
 	if(m_State <= EXECUTING)
 	{
@@ -772,7 +772,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	
 	if(buf != eGL_DEPTH)
 	{
@@ -786,7 +786,7 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 	}
 	else
 	{
-		SERIALISE_ELEMENT(GLfloat, val, *value);
+		SERIALISE_ELEMENT(float, val, *value);
 
 		if(m_State <= EXECUTING)
 			m_Real.glClearBufferfv(buf, draw, &val);
@@ -828,7 +828,7 @@ void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLflo
 bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	
 	if(buf != eGL_STENCIL)
 	{
@@ -842,7 +842,7 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 	}
 	else
 	{
-		SERIALISE_ELEMENT(GLint, val, *value);
+		SERIALISE_ELEMENT(int32_t, val, *value);
 
 		if(m_State <= EXECUTING)
 			m_Real.glClearBufferiv(buf, draw, &val);
@@ -884,7 +884,7 @@ void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint
 bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	
 	{
 		uint32_t v[4];
@@ -931,9 +931,9 @@ void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLui
 bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(GLint, draw, drawbuffer);
-	SERIALISE_ELEMENT(GLfloat, d, depth);
-	SERIALISE_ELEMENT(GLint, s, stencil);
+	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
+	SERIALISE_ELEMENT(float, d, depth);
+	SERIALISE_ELEMENT(int32_t, s, stencil);
 	
 	if(m_State <= EXECUTING)
 		m_Real.glClearBufferfi(buf, draw, d, s);
@@ -972,7 +972,7 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 
 bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 {
-	SERIALISE_ELEMENT(GLbitfield, Mask, mask);
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
 
 	if(m_State <= EXECUTING)
 		m_Real.glClear(Mask);
@@ -1315,9 +1315,9 @@ void WrappedOpenGL::glEnd()
 
 bool WrappedOpenGL::Serialise_glVertex3f(GLfloat x, GLfloat y, GLfloat z)
 {
-	SERIALISE_ELEMENT(GLfloat, X, x);
-	SERIALISE_ELEMENT(GLfloat, Y, y);
-	SERIALISE_ELEMENT(GLfloat, Z, z);
+	SERIALISE_ELEMENT(float, X, x);
+	SERIALISE_ELEMENT(float, Y, y);
+	SERIALISE_ELEMENT(float, Z, z);
 
 	if(m_State <= EXECUTING)
 		m_Real.glVertex3f(X, Y, Z);
@@ -1343,9 +1343,9 @@ void WrappedOpenGL::glVertex3f(GLfloat x, GLfloat y, GLfloat z)
 
 bool WrappedOpenGL::Serialise_glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz)
 {
-	SERIALISE_ELEMENT(GLfloat, NX, nx);
-	SERIALISE_ELEMENT(GLfloat, NY, ny);
-	SERIALISE_ELEMENT(GLfloat, NZ, nz);
+	SERIALISE_ELEMENT(float, NX, nx);
+	SERIALISE_ELEMENT(float, NY, ny);
+	SERIALISE_ELEMENT(float, NZ, nz);
 
 	if(m_State <= EXECUTING)
 		m_Real.glNormal3f(NX, NY, NZ);
@@ -1468,12 +1468,12 @@ void WrappedOpenGL::glLoadIdentity()
 
 bool WrappedOpenGL::Serialise_glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar)
 {
-	SERIALISE_ELEMENT(GLdouble, L, left);
-	SERIALISE_ELEMENT(GLdouble, R, right);
-	SERIALISE_ELEMENT(GLdouble, B, bottom);
-	SERIALISE_ELEMENT(GLdouble, T, top);
-	SERIALISE_ELEMENT(GLdouble, N, zNear);
-	SERIALISE_ELEMENT(GLdouble, F, zFar);
+	SERIALISE_ELEMENT(double, L, left);
+	SERIALISE_ELEMENT(double, R, right);
+	SERIALISE_ELEMENT(double, B, bottom);
+	SERIALISE_ELEMENT(double, T, top);
+	SERIALISE_ELEMENT(double, N, zNear);
+	SERIALISE_ELEMENT(double, F, zFar);
 
 	if(m_State <= EXECUTING)
 		m_Real.glFrustum(L, R, B, T, N, F);
@@ -1495,9 +1495,9 @@ void WrappedOpenGL::glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GL
 
 bool WrappedOpenGL::Serialise_glTranslatef(GLfloat x, GLfloat y, GLfloat z)
 {
-	SERIALISE_ELEMENT(GLfloat, X, x);
-	SERIALISE_ELEMENT(GLfloat, Y, y);
-	SERIALISE_ELEMENT(GLfloat, Z, z);
+	SERIALISE_ELEMENT(float, X, x);
+	SERIALISE_ELEMENT(float, Y, y);
+	SERIALISE_ELEMENT(float, Z, z);
 
 	if(m_State <= EXECUTING)
 		m_Real.glTranslatef(X, Y, Z);
@@ -1524,10 +1524,10 @@ void WrappedOpenGL::glTranslatef(GLfloat x, GLfloat y, GLfloat z)
 
 bool WrappedOpenGL::Serialise_glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
 {
-	SERIALISE_ELEMENT(GLfloat, ang, angle);
-	SERIALISE_ELEMENT(GLfloat, X, x);
-	SERIALISE_ELEMENT(GLfloat, Y, y);
-	SERIALISE_ELEMENT(GLfloat, Z, z);
+	SERIALISE_ELEMENT(float, ang, angle);
+	SERIALISE_ELEMENT(float, X, x);
+	SERIALISE_ELEMENT(float, Y, y);
+	SERIALISE_ELEMENT(float, Z, z);
 
 	if(m_State <= EXECUTING)
 		m_Real.glRotatef(ang, X, Y, Z);

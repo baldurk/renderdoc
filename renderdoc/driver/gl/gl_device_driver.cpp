@@ -167,10 +167,10 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 bool WrappedOpenGL::Serialise_glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(GLsizei, Levels, levels);
+	SERIALISE_ELEMENT(uint32_t, Levels, levels);
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
-	SERIALISE_ELEMENT(GLsizei, Width, width);
-	SERIALISE_ELEMENT(GLsizei, Height, height);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
 
 	if(m_State == READING)
@@ -205,11 +205,11 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 bool WrappedOpenGL::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(GLint, Level, level);
-	SERIALISE_ELEMENT(GLint, xoff, xoffset);
-	SERIALISE_ELEMENT(GLint, yoff, yoffset);
-	SERIALISE_ELEMENT(GLsizei, Width, width);
-	SERIALISE_ELEMENT(GLsizei, Height, height);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+	SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
@@ -361,7 +361,7 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 bool WrappedOpenGL::Serialise_glPixelStorei(GLenum pname, GLint param)
 {
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(GLint, Param, param);
+	SERIALISE_ELEMENT(int32_t, Param, param);
 
 	if(m_State == READING)
 		m_Real.glPixelStorei(PName, Param);
@@ -549,11 +549,11 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
 bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const GLchar* const *source, const GLint *length)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(shader)));
-	SERIALISE_ELEMENT(GLsizei, Count, count);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
 
 	vector<string> srcs;
 
-	for(GLsizei i=0; i < Count; i++)
+	for(uint32_t i=0; i < Count; i++)
 	{
 		string s;
 		if(source)
@@ -573,7 +573,7 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 
-		for(GLsizei i=0; i < Count; i++)
+		for(uint32_t i=0; i < Count; i++)
 			m_Shaders[liveId].sources.push_back(strings[i]);
 
 		m_Real.glShaderSource(GetResourceManager()->GetLiveResource(id).name, Count, strings, NULL);
@@ -787,9 +787,9 @@ void WrappedOpenGL::glUseProgram(GLuint program)
 bool WrappedOpenGL::Serialise_glUniformMatrix(GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type)
 {
 	SERIALISE_ELEMENT(UniformType, Type, type);
-	SERIALISE_ELEMENT(GLint, Loc, location);
-	SERIALISE_ELEMENT(GLsizei, Count, count);
-	SERIALISE_ELEMENT(GLboolean, Transpose, transpose);
+	SERIALISE_ELEMENT(int32_t, Loc, location);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(uint8_t, Transpose, transpose);
 
 	size_t elemsPerMat = 0;
 
@@ -863,8 +863,8 @@ void WrappedOpenGL::glUniformMatrix4fv(GLint location, GLsizei count, GLboolean 
 bool WrappedOpenGL::Serialise_glUniformVector(GLint location, GLsizei count, const void *value, UniformType type)
 {
 	SERIALISE_ELEMENT(UniformType, Type, type);
-	SERIALISE_ELEMENT(GLint, Loc, location);
-	SERIALISE_ELEMENT(GLsizei, Count, count);
+	SERIALISE_ELEMENT(int32_t, Loc, location);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
 	
 	size_t elemsPerVec = 0;
 
@@ -1215,11 +1215,11 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 
 bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer)
 {
-	SERIALISE_ELEMENT(GLuint, Index, index);
-	SERIALISE_ELEMENT(GLint, Size, size);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(int32_t, Size, size);
 	SERIALISE_ELEMENT(GLenum, Type, type);
-	SERIALISE_ELEMENT(GLboolean, Norm, normalized);
-	SERIALISE_ELEMENT(GLsizei, Stride, stride);
+	SERIALISE_ELEMENT(uint8_t, Norm, normalized);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
 	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 	
@@ -1258,7 +1258,7 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 {
-	SERIALISE_ELEMENT(GLuint, Index, index);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
 	
 	if(m_State < WRITING)
 	{
