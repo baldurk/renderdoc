@@ -156,6 +156,7 @@ struct GLHookSet
 	PFNGLUNIFORM3FVPROC glUniform3fv;
 	PFNGLUNIFORM4FVPROC glUniform4fv;
 	PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC glDrawArraysInstancedBaseInstance;
+	PFNGLBLITFRAMEBUFFERPROC glBlitFramebuffer;
 	// --
 
 	// ++ wgl

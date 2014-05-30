@@ -503,6 +503,40 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 	m_Real.glBindFramebuffer(target, framebuffer);
 }
 
+bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+{
+	SERIALISE_ELEMENT(int32_t, sX0, srcX0);
+	SERIALISE_ELEMENT(int32_t, sY0, srcY0);
+	SERIALISE_ELEMENT(int32_t, sX1, srcX1);
+	SERIALISE_ELEMENT(int32_t, sY1, srcY1);
+	SERIALISE_ELEMENT(int32_t, dX0, dstX0);
+	SERIALISE_ELEMENT(int32_t, dY0, dstY0);
+	SERIALISE_ELEMENT(int32_t, dX1, dstX1);
+	SERIALISE_ELEMENT(int32_t, dY1, dstY1);
+	SERIALISE_ELEMENT(uint32_t, msk, mask);
+	SERIALISE_ELEMENT(GLenum, flt, filter);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
+		Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+}
+
 #pragma endregion
 
 #pragma region Debugging annotation

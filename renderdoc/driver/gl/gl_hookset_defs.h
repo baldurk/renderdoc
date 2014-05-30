@@ -168,6 +168,7 @@
     HookExtension(PFNGLUNIFORM3FVPROC, glUniform3fv); \
     HookExtension(PFNGLUNIFORM4FVPROC, glUniform4fv); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
+    HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
     HookExtension(PFNGLBLENDFUNCPROC, glBlendFunc); \
     HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
@@ -359,6 +360,7 @@
     HookWrapper3(void, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper3(void, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
+    HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
 
 
 

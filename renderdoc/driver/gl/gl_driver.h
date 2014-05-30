@@ -321,6 +321,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenerateMipmap(GLenum target));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params));
