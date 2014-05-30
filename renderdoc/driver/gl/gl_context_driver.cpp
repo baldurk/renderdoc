@@ -193,18 +193,57 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
 	}
 }
 
+bool WrappedOpenGL::Serialise_glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
+{
+	SERIALISE_ELEMENT(float, r, red);
+	SERIALISE_ELEMENT(float, g, green);
+	SERIALISE_ELEMENT(float, b, blue);
+	SERIALISE_ELEMENT(float, a, alpha);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearColor(r, g, b, a);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
 	m_Real.glClearColor(red, green, blue, alpha);
 
-	RDCUNIMPLEMENTED();
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEAR_COLOR);
+		Serialise_glClearColor(red, green, blue, alpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClearDepth(GLclampd depth)
+{
+	SERIALISE_ELEMENT(double, d, depth);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearDepth(d);
+	}
+
+	return true;
 }
 
 void WrappedOpenGL::glClearDepth(GLclampd depth)
 {
 	m_Real.glClearDepth(depth);
 
-	RDCUNIMPLEMENTED();
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTH);
+		Serialise_glClearDepth(depth);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 bool WrappedOpenGL::Serialise_glDepthFunc(GLenum func)

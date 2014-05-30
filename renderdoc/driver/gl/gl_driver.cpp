@@ -74,6 +74,8 @@ const char *GLChunkNames[] =
 	"glRotatef",
 	//
 
+	"glClearColor",
+	"glClearDepth",
 	"glClear",
 	"glClearBufferfv",
 	"glEnable",
@@ -960,7 +962,13 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_SAMPLER:
 		Serialise_glBindSampler(0, 0);
 		break;
-
+		
+	case CLEAR_COLOR:
+		Serialise_glClearColor(0, 0, 0, 0);
+		break;
+	case CLEAR_DEPTH:
+		Serialise_glClearDepth(0);
+		break;
 	case CLEAR:
 		Serialise_glClear(0);
 		break;
