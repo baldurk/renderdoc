@@ -92,6 +92,9 @@ void GLRenderState::FetchState()
 	}
 
 	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
+
+	for(int i=0; i < ARRAY_COUNT(Viewports); i++)
+		m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 }
 
 void GLRenderState::ApplyState()
@@ -134,6 +137,8 @@ void GLRenderState::ApplyState()
 	}
 
 	m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
+
+	m_Real->glViewportArrayv(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 }
 
 void GLRenderState::Clear()
@@ -147,6 +152,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(UniformBinding);
 	RDCEraseEl(Blends);
 	RDCEraseEl(BlendColor);
+	RDCEraseEl(Viewports);
 }
 
 void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
@@ -203,4 +209,12 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 	}
 	
 	m_pSerialiser->Serialise<4>("GL_BLEND_COLOR", BlendColor);
+		
+	for(int i=0; i < ARRAY_COUNT(Viewports); i++)
+	{
+		m_pSerialiser->Serialise("GL_VIEWPORT.x", Viewports[i].x);
+		m_pSerialiser->Serialise("GL_VIEWPORT.y", Viewports[i].y);
+		m_pSerialiser->Serialise("GL_VIEWPORT.w", Viewports[i].width);
+		m_pSerialiser->Serialise("GL_VIEWPORT.h", Viewports[i].height);
+	}
 }

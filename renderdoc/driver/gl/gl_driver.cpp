@@ -88,6 +88,7 @@ const char *GLChunkNames[] =
 	"glBlendEquationSeparatei",
 	"glDepthFunc",
 	"glViewport",
+	"glViewportArrayv",
 	"glUseProgram",
 	"glBindVertexArray",
 	"glUniformMatrix*",
@@ -1005,6 +1006,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);
 		break;
+	case VIEWPORT_ARRAY:
+		Serialise_glViewportArrayv(0, 0, 0);
+		break;
 	case USEPROGRAM:
 		Serialise_glUseProgram(0);
 		break;
@@ -1404,6 +1408,11 @@ void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
 void WrappedOpenGL::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
 {
 	m_Real.glGetIntegeri_v(pname, index, data);
+}
+
+void WrappedOpenGL::glGetFloati_v(GLenum pname, GLuint index, GLfloat *data)
+{
+	m_Real.glGetFloati_v(pname, index, data);
 }
 
 void WrappedOpenGL::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)

@@ -371,6 +371,46 @@ void WrappedOpenGL::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
+{
+	SERIALISE_ELEMENT(GLuint, idx, index);
+	SERIALISE_ELEMENT(GLuint, cnt, count);
+	SERIALISE_ELEMENT_ARR(GLfloat, views, v, cnt*4);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glViewportArrayv(idx, cnt, views);
+	}
+
+	delete[] views;
+
+	return true;
+}
+
+void WrappedOpenGL::glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
+{
+	m_Real.glViewportArrayv(index, count, v);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(VIEWPORT_ARRAY);
+		Serialise_glViewportArrayv(index, count, v);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
+{
+	const float v[4] = { x, y, w, h };
+	glViewportArrayv(index, 1, v);
+}
+
+void WrappedOpenGL::glViewportIndexedfv(GLuint index, const GLfloat *v)
+{
+	glViewportArrayv(index, 1, v);
+}
+
 void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
 {
 	m_Real.glPolygonMode(face, mode);

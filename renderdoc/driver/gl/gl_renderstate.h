@@ -57,6 +57,11 @@ struct GLRenderState
 		GLenum DestinationRGB, DestinationAlpha;
 	} Blends[8];
 	float BlendColor[4];
+
+	struct Viewport
+	{
+		float x, y, width, height;
+	} Viewports[16];
 	//
 
 	void Serialise(LogState state, GLResourceManager *rm);
