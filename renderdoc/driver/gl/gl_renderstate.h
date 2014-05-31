@@ -62,6 +62,45 @@ struct GLRenderState
 	{
 		float x, y, width, height;
 	} Viewports[16];
+	
+	struct Scissor
+	{
+		int32_t x, y, width, height;
+	} Scissors[16];
+
+	// TODO:
+	// Disable/Enable bits
+	// Sampler Bindings
+	// Framebuffer Bindings
+	// Program Bindings + Uniform Values
+	// Vertex Attribs/Buffers/Pointers etc
+
+	GLenum PolygonMode;
+	float PolygonOffset[2]; // Factor, Units
+
+	uint8_t DepthWriteMask;
+	float DepthClearValue;
+	struct
+	{
+		float nearZ, farZ;
+	} DepthRanges[16];
+
+	struct
+	{
+		uint8_t red, green, blue, alpha;
+	} ColorMasks[8];
+	struct
+	{
+		float red, green, blue, alpha;
+	} ColorClearValue;
+
+	struct
+	{
+		GLenum Derivatives;
+		GLenum LineSmooth;
+		GLenum PolySmooth;
+		GLenum TexCompression;
+	} Hints;
 
 	GLenum FrontFace;
 	GLenum CullFace;

@@ -96,6 +96,36 @@ void GLRenderState::FetchState()
 	for(int i=0; i < ARRAY_COUNT(Viewports); i++)
 		m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 	
+	for(int i=0; i < ARRAY_COUNT(Scissors); i++)
+		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
+
+	{
+		GLenum dummy[2];
+		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
+		// and back faces.
+		m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+		PolygonMode = dummy[0];
+	}
+	
+	m_Real->glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
+	m_Real->glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
+	m_Real->glGetIntegerv(eGL_POLYGON_SMOOTH_HINT, (GLint *)&Hints.PolySmooth);
+	m_Real->glGetIntegerv(eGL_TEXTURE_COMPRESSION_HINT, (GLint *)&Hints.TexCompression);
+	
+	m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
+	m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
+	
+	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+		m_Real->glGetFloatv(eGL_DEPTH_RANGE, &DepthRanges[i].nearZ);
+	
+	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
+
+	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
+
+	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
+	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
+
 	m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
 	m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 }
@@ -143,6 +173,30 @@ void GLRenderState::ApplyState()
 
 	m_Real->glViewportArrayv(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
+	m_Real->glScissorArrayv(0, ARRAY_COUNT(Scissors), &Scissors[0].x);
+	
+	m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
+	m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
+	m_Real->glHint(eGL_POLYGON_SMOOTH_HINT, Hints.PolySmooth);
+	m_Real->glHint(eGL_TEXTURE_COMPRESSION_HINT, Hints.TexCompression);
+	
+	m_Real->glDepthMask(DepthWriteMask);
+	m_Real->glClearDepth(DepthClearValue);
+	
+	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	{
+		double v[2] = { DepthRanges[i].nearZ, DepthRanges[i].farZ };
+		m_Real->glDepthRangeArrayv(i, 1, v);
+	}
+	
+	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
+
+	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
+
+	m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+	m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
+
 	m_Real->glFrontFace(FrontFace);
 	m_Real->glCullFace(CullFace);
 }
@@ -159,6 +213,17 @@ void GLRenderState::Clear()
 	RDCEraseEl(Blends);
 	RDCEraseEl(BlendColor);
 	RDCEraseEl(Viewports);
+	RDCEraseEl(Scissors);
+	RDCEraseEl(PolygonMode);
+	RDCEraseEl(PolygonOffset);
+	
+	RDCEraseEl(DepthWriteMask);
+	RDCEraseEl(DepthClearValue);
+	RDCEraseEl(DepthRanges);
+	RDCEraseEl(ColorMasks);
+	RDCEraseEl(ColorClearValue);
+
+	RDCEraseEl(Hints);
 	RDCEraseEl(FrontFace);
 	RDCEraseEl(CullFace);
 }
@@ -226,6 +291,37 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_VIEWPORT.h", Viewports[i].height);
 	}
 
+	for(int i=0; i < ARRAY_COUNT(Scissors); i++)
+	{
+		m_pSerialiser->Serialise("GL_VIEWPORT.x", Scissors[i].x);
+		m_pSerialiser->Serialise("GL_VIEWPORT.y", Scissors[i].y);
+		m_pSerialiser->Serialise("GL_VIEWPORT.w", Scissors[i].width);
+		m_pSerialiser->Serialise("GL_VIEWPORT.h", Scissors[i].height);
+	}
+	
+	m_pSerialiser->Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", Hints.Derivatives);
+	m_pSerialiser->Serialise("GL_LINE_SMOOTH_HINT", Hints.LineSmooth);
+	m_pSerialiser->Serialise("GL_POLYGON_SMOOTH_HINT", Hints.PolySmooth);
+	m_pSerialiser->Serialise("GL_TEXTURE_COMPRESSION_HINT", Hints.TexCompression);
+	
+	m_pSerialiser->Serialise("GL_DEPTH_WRITEMASK", DepthWriteMask);
+	m_pSerialiser->Serialise("GL_DEPTH_CLEAR_VALUE", DepthClearValue);
+	
+	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	{
+		m_pSerialiser->Serialise("GL_DEPTH_RANGE.near", DepthRanges[i].nearZ);
+		m_pSerialiser->Serialise("GL_DEPTH_RANGE.far", DepthRanges[i].farZ);
+	}
+	
+	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
+
+	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
+
+	m_pSerialiser->Serialise("GL_POLYGON_MODE", PolygonMode);
+	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_FACTOR", PolygonOffset[0]);
+	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_UNITS", PolygonOffset[1]);
+		
 	m_pSerialiser->Serialise("GL_FRONT_FACE", FrontFace);
 	m_pSerialiser->Serialise("GL_CULL_FACE_MODE", CullFace);
 }
