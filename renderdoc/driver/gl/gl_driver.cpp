@@ -1437,6 +1437,16 @@ void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
 	m_Real.glGetIntegerv(pname, params);
 }
 
+void WrappedOpenGL::glGetBooleanv(GLenum pname, GLboolean *data)
+{
+	m_Real.glGetBooleanv(pname, data);
+}
+
+void WrappedOpenGL::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
+{
+	m_Real.glGetBooleani_v(pname, index, data);
+}
+
 void WrappedOpenGL::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
 {
 	m_Real.glGetIntegeri_v(pname, index, data);
@@ -1470,6 +1480,11 @@ void WrappedOpenGL::glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *pa
 void WrappedOpenGL::glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
 {
 	m_Real.glGetTexParameteriv(target, pname, params);
+}
+
+void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
+{
+	m_Real.glGetTexImage(target, level, format, type, pixels);
 }
 
 void WrappedOpenGL::glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params)
@@ -1563,9 +1578,34 @@ GLint WrappedOpenGL::glGetUniformLocation(GLuint program, const GLchar *name)
 	return m_Real.glGetUniformLocation(program, name);
 }
 
+void WrappedOpenGL::glGetUniformIndices(GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames, GLuint *uniformIndices)
+{
+	m_Real.glGetUniformIndices(program, uniformCount, uniformNames, uniformIndices);
+}
+
+GLuint WrappedOpenGL::glGetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName)
+{
+	return m_Real.glGetUniformBlockIndex(program, uniformBlockName);
+}
+
+GLint WrappedOpenGL::glGetAttribLocation(GLuint program, const GLchar *name)
+{
+	return m_Real.glGetAttribLocation(program, name);
+}
+
 void WrappedOpenGL::glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
 {
 	m_Real.glGetActiveUniform(program, index, bufSize, length, size, type, name);
+}
+
+void WrappedOpenGL::glGetActiveUniformsiv(GLuint program, GLsizei uniformCount, const GLuint *uniformIndices, GLenum pname, GLint *params)
+{
+	m_Real.glGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
+}
+
+void WrappedOpenGL::glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
+{
+	m_Real.glGetActiveAttrib(program, index, bufSize, length, size, type, name);
 }
 
 void WrappedOpenGL::glGetUniformfv(GLuint program, GLint location, GLfloat *params)

@@ -284,8 +284,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetError());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloatv(GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegerv(GLenum pname, GLint *params));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegeri_v(GLenum target, GLuint index, GLint *data));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloati_v(GLenum target, GLuint index, GLfloat *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBooleanv(GLenum pname, GLboolean *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegeri_v(GLenum pname, GLuint index, GLint *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloati_v(GLenum pname, GLuint index, GLfloat *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetInteger64i_v(GLenum target, GLuint index, GLint64 *data));
 		IMPLEMENT_FUNCTION_SERIALISED(const GLubyte *, glGetStringi(GLenum name, GLuint i));
 		IMPLEMENT_FUNCTION_SERIALISED(const GLubyte *, glGetString(GLenum name));
@@ -329,6 +331,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexParameteriv(GLenum target, GLenum pname, GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetInternalformati64v(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint64 *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params));
@@ -372,7 +375,12 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexArray(GLuint array));
 		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetUniformLocation(GLuint program, const GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetUniformIndices(GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames, GLuint *uniformIndices));
+		IMPLEMENT_FUNCTION_SERIALISED(GLuint, glGetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetActiveUniformsiv(GLuint program, GLsizei uniformCount, const GLuint *uniformIndices, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetAttribLocation(GLuint program, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetUniformfv(GLuint program, GLint location, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetUniformiv(GLuint program, GLint location, GLint *params));
 
