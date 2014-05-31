@@ -121,6 +121,11 @@ const char *GLChunkNames[] =
 
 	"glGenSamplers",
 	"glSamplerParameteri",
+	"glSamplerParameterf",
+	"glSamplerParameteriv",
+	"glSamplerParameterfv",
+	"glSamplerParameterIiv",
+	"glSamplerParameterIuiv",
 	"glBindSampler",
 
 	"glGenBuffers",
@@ -1006,6 +1011,21 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case SAMPLER_PARAMETERI:
 		Serialise_glSamplerParameteri(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case SAMPLER_PARAMETERF:
+		Serialise_glSamplerParameterf(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case SAMPLER_PARAMETERIV:
+		Serialise_glSamplerParameteriv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERFV:
+		Serialise_glSamplerParameterfv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERIIV:
+		Serialise_glSamplerParameterIiv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERIUIV:
+		Serialise_glSamplerParameterIuiv(0, eGL_UNKNOWN_ENUM, NULL);
 		break;
 		
 	case CLEAR_COLOR:

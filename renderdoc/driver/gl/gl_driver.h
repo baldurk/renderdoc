@@ -314,6 +314,11 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenSamplers(GLsizei count, GLuint *samplers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindSampler(GLuint unit, GLuint sampler));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameteri(GLuint sampler, GLenum pname, GLint param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewport(GLint x, GLint y, GLsizei width, GLsizei height));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewportIndexedfv(GLuint index, const GLfloat *v));

@@ -171,6 +171,11 @@
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
     HookExtension(PFNGLSAMPLERPARAMETERIPROC, glSamplerParameteri); \
+    HookExtension(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
+    HookExtension(PFNGLSAMPLERPARAMETERIVPROC, glSamplerParameteriv); \
+    HookExtension(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
+    HookExtension(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv); \
+    HookExtension(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
     HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
@@ -396,6 +401,11 @@
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
     HookWrapper3(void, glSamplerParameteri, GLuint, sampler, GLenum, pname, GLint, param); \
+    HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
+    HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
+    HookWrapper3(void, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
