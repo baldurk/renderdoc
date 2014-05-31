@@ -196,6 +196,13 @@
     HookExtension(PFNGLGETUNIFORMFVPROC, glGetUniformfv); \
     HookExtension(PFNGLGETUNIFORMIVPROC, glGetUniformiv); \
     HookExtension(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv); \
+    HookExtension(PFNGLUNIFORM1FPROC, glUniform1f); \
+    HookExtension(PFNGLUNIFORM1IPROC, glUniform1i); \
+    HookExtension(PFNGLUNIFORM1UIPROC, glUniform1ui); \
+    HookExtension(PFNGLUNIFORM1FVPROC, glUniform1fv); \
+    HookExtension(PFNGLUNIFORM1IVPROC, glUniform1iv); \
+    HookExtension(PFNGLUNIFORM1UIVPROC, glUniform1uiv); \
+    HookExtension(PFNGLUNIFORM2FVPROC, glUniform2fv); \
     HookExtension(PFNGLUNIFORM3FVPROC, glUniform3fv); \
     HookExtension(PFNGLUNIFORM4FVPROC, glUniform4fv); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
@@ -426,6 +433,13 @@
     HookWrapper3(void, glGetUniformfv, GLuint, program, GLint, location, GLfloat *, params); \
     HookWrapper3(void, glGetUniformiv, GLuint, program, GLint, location, GLint *, params); \
     HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper2(void, glUniform1f, GLint, location, GLfloat, value); \
+    HookWrapper2(void, glUniform1i, GLint, location, GLint, value); \
+    HookWrapper2(void, glUniform1ui, GLint, location, GLuint, value); \
+    HookWrapper3(void, glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void, glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper3(void, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper3(void, glUniform2fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper3(void, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper3(void, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \

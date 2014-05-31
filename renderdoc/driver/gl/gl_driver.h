@@ -409,6 +409,10 @@ class WrappedOpenGL
 		{
 			UNIFORM_UNKNOWN,
 
+			VEC1FV,
+			VEC1IV,
+			VEC1UIV,
+			VEC2FV,
 			VEC3FV,
 			VEC4FV,
 
@@ -419,6 +423,13 @@ class WrappedOpenGL
 		bool Serialise_glUniformVector(GLint location, GLsizei count, const void *value, UniformType type);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1f(GLint location, GLfloat value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1i(GLint location, GLint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1ui(GLint location, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1iv(GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1uiv(GLint location, GLsizei count, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1fv(GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2fv(GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3fv(GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4fv(GLint location, GLsizei count, const GLfloat *value));
 

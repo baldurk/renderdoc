@@ -1264,6 +1264,10 @@ bool WrappedOpenGL::Serialise_glUniformVector(GLint location, GLsizei count, con
 
 	switch(Type)
 	{
+		case VEC1IV:
+		case VEC1UIV:
+		case VEC1FV: elemsPerVec = 1; break;
+		case VEC2FV: elemsPerVec = 2; break;
 		case VEC3FV: elemsPerVec = 3; break;
 		case VEC4FV: elemsPerVec = 4; break;
 		default:
@@ -1280,6 +1284,10 @@ bool WrappedOpenGL::Serialise_glUniformVector(GLint location, GLsizei count, con
 
 		switch(Type)
 		{
+			case VEC1FV: m_Real.glUniform1fv(Loc, Count, (const GLfloat *)value); break;
+			case VEC1IV: m_Real.glUniform1iv(Loc, Count, (const GLint *)value); break;
+			case VEC1UIV: m_Real.glUniform1uiv(Loc, Count, (const GLuint *)value); break;
+			case VEC2FV: m_Real.glUniform2fv(Loc, Count, (const GLfloat *)value); break;
 			case VEC3FV: m_Real.glUniform3fv(Loc, Count, (const GLfloat *)value); break;
 			case VEC4FV: m_Real.glUniform4fv(Loc, Count, (const GLfloat *)value); break;
 			default:
@@ -1309,6 +1317,97 @@ bool WrappedOpenGL::Serialise_glUniformVector(GLint location, GLsizei count, con
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glUniform1f(GLint location, GLfloat value)
+{
+	m_Real.glUniform1f(location, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, 1, &value, VEC1FV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform1i(GLint location, GLint value)
+{
+	m_Real.glUniform1i(location, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, 1, &value, VEC1IV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform1ui(GLint location, GLuint value)
+{
+	m_Real.glUniform1ui(location, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, 1, &value, VEC1UIV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform1fv(GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glUniform1fv(location, count, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, count, value, VEC1FV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform1iv(GLint location, GLsizei count, const GLint *value)
+{
+	m_Real.glUniform1iv(location, count, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, count, value, VEC1IV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform1uiv(GLint location, GLsizei count, const GLuint *value)
+{
+	m_Real.glUniform1uiv(location, count, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, count, value, VEC1UIV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glUniform2fv(GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glUniform2fv(location, count, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(UNIFORM_VECTOR);
+		Serialise_glUniformVector(location, count, value, VEC2FV);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glUniform3fv(GLint location, GLsizei count, const GLfloat *value)
