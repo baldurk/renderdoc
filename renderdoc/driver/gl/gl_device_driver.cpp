@@ -278,7 +278,7 @@ bool WrappedOpenGL::Serialise_glTexParameteri(GLenum target, GLenum pname, GLint
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Param, param);
 	
-	if(m_State == READING)
+	if(m_State < WRITING)
 	{
 		glTexParameteri(Target, PName, Param);
 	}
@@ -297,8 +297,29 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
 		Serialise_glTexParameteri(target, pname, param);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_IDLE)
+			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
 	}
+}
+
+bool WrappedOpenGL::Serialise_glGenSamplers(GLsizei n, GLuint* samplers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(*samplers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glGenSamplers(1, &real);
+		
+		GLResource res = SamplerRes(real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
 }
 
 void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
@@ -312,7 +333,19 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 
 		if(m_State >= WRITING)
 		{
-			RDCUNIMPLEMENTED();
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_SAMPLERS);
+				Serialise_glGenSamplers(1, samplers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -348,13 +381,34 @@ void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(int32_t, Param, param);
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		glSamplerParameteri(res.name, pname, param);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
 	m_Real.glSamplerParameteri(sampler, pname, param);
 	
 	if(m_State >= WRITING)
 	{
-		RDCUNIMPLEMENTED();
+		SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERI);
+		Serialise_glSamplerParameteri(sampler, pname, param);
+
+		if(m_State == WRITING_IDLE)
+			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -363,7 +417,7 @@ bool WrappedOpenGL::Serialise_glPixelStorei(GLenum pname, GLint param)
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Param, param);
 
-	if(m_State == READING)
+	if(m_State < WRITING)
 		m_Real.glPixelStorei(PName, Param);
 
 	return true;
@@ -390,6 +444,8 @@ void WrappedOpenGL::glPixelStoref(GLenum pname, GLfloat param)
 void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
 	m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED();
 }
 
 void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
@@ -434,6 +490,24 @@ void WrappedOpenGL::glActiveTexture(GLenum texture)
 
 #pragma region Framebuffers
 
+bool WrappedOpenGL::Serialise_glGenFramebuffers(GLsizei n, GLuint* framebuffers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FramebufferRes(*framebuffers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glGenFramebuffers(1, &real);
+		
+		GLResource res = FramebufferRes(real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 {
 	m_Real.glGenFramebuffers(n, framebuffers);
@@ -445,7 +519,19 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 		
 		if(m_State >= WRITING)
 		{
-			RDCUNIMPLEMENTED();
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_FRAMEBUFFERS);
+				Serialise_glGenFramebuffers(1, framebuffers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -454,20 +540,163 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, Attach, attachment);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		glFramebufferTexture(Target, Attach, res.name, Level);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level)
 {
 	m_Real.glFramebufferTexture(target, attachment, texture, level);
 	
 	if(m_State >= WRITING)
-		RDCUNIMPLEMENTED();
+	{
+		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
+		Serialise_glFramebufferTexture(target, attachment, texture, level);
+
+		if(m_State == WRITING_IDLE)
+		{
+			if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+			{
+				if(m_DrawFramebufferRecord)
+					m_DeviceRecord->AddChunk(scope.Get());
+				else
+					m_DrawFramebufferRecord->AddChunk(scope.Get());
+			}
+			else
+			{
+				if(m_ReadFramebufferRecord)
+					m_DeviceRecord->AddChunk(scope.Get());
+				else
+					m_ReadFramebufferRecord->AddChunk(scope.Get());
+			}
+		}
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glReadBuffer(GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State < WRITING)
+		m_Real.glReadBuffer(m);
+	
+	return true;
+}
+
+void WrappedOpenGL::glReadBuffer(GLenum mode)
+{
+	m_Real.glReadBuffer(mode);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
+		Serialise_glReadBuffer(mode);
+
+		if(m_State == WRITING_IDLE)
+		{
+			if(m_ReadFramebufferRecord)
+				m_ReadFramebufferRecord->AddChunk(scope.Get());
+			else
+				m_DeviceRecord->AddChunk(scope.Get());
+		}
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(FramebufferRes(framebuffer)));
+
+	if(m_State <= EXECUTING)
+	{
+		if(Id == ResourceId())
+		{
+			m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glBindFramebuffer(Target, res.name);
+		}
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
+		Serialise_glBindFramebuffer(target, framebuffer);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+
+	if(framebuffer == 0 && m_State < WRITING)
+		framebuffer = m_FakeBB_FBO;
+
+	if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+		m_DrawFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(framebuffer));
+	else
+		m_ReadFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(framebuffer));
+
+	m_Real.glBindFramebuffer(target, framebuffer);
+}
+
+bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+{
+	SERIALISE_ELEMENT(int32_t, sX0, srcX0);
+	SERIALISE_ELEMENT(int32_t, sY0, srcY0);
+	SERIALISE_ELEMENT(int32_t, sX1, srcX1);
+	SERIALISE_ELEMENT(int32_t, sY1, srcY1);
+	SERIALISE_ELEMENT(int32_t, dX0, dstX0);
+	SERIALISE_ELEMENT(int32_t, dY0, dstY0);
+	SERIALISE_ELEMENT(int32_t, dX1, dstX1);
+	SERIALISE_ELEMENT(int32_t, dY1, dstY1);
+	SERIALISE_ELEMENT(uint32_t, msk, mask);
+	SERIALISE_ELEMENT(GLenum, flt, filter);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
+		Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
 void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 {
 	m_Real.glDeleteFramebuffers(n, framebuffers);
-	
-	if(m_State >= WRITING)
-		RDCUNIMPLEMENTED();
 
 	for(GLsizei i=0; i < n; i++)
 		GetResourceManager()->UnregisterResource(FramebufferRes(framebuffers[i]));

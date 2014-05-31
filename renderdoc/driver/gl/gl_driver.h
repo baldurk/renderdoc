@@ -102,6 +102,8 @@ class WrappedOpenGL
 		GLResourceRecord *m_TextureRecord[128];
 		GLResourceRecord *m_BufferRecord[16];
 		GLResourceRecord *m_VertexArrayRecord;
+		GLResourceRecord *m_DrawFramebufferRecord;
+		GLResourceRecord *m_ReadFramebufferRecord;
 		GLint m_TextureUnit;
 
 		size_t BufferIdx(GLenum buf);

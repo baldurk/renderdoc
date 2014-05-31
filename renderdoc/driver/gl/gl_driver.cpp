@@ -84,6 +84,7 @@ const char *GLChunkNames[] =
 	"glPolygonMode",
 	"glPolygonOffset",
 	"glCullFace",
+	"glHint",
 	"glEnable",
 	"glDisable",
 	"glEnablei",
@@ -114,9 +115,12 @@ const char *GLChunkNames[] =
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
+	"glReadBuffer",
 	"glBindFramebuffer",
 	"glBlitFramebuffer",
 
+	"glGenSamplers",
+	"glSamplerParameteri",
 	"glBindSampler",
 
 	"glGenBuffers",
@@ -224,6 +228,10 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_CurDrawcallID = 1;
 
 	RDCEraseEl(m_TextureRecord);
+	RDCEraseEl(m_BufferRecord);
+	m_VertexArrayRecord = NULL;
+	m_DrawFramebufferRecord = NULL;
+	m_ReadFramebufferRecord = NULL;
 	m_TextureUnit = 0;
 	
 	m_LastIndexSize = eGL_UNKNOWN_ENUM;
@@ -973,16 +981,31 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glRotatef(0, 0, 0, 0);
 		break;
 	//
-
+		
+	case GEN_FRAMEBUFFERS:
+		Serialise_glGenFramebuffers(0, NULL);
+		break;
 	case BIND_FRAMEBUFFER:
 		Serialise_glBindFramebuffer(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case READ_BUFFER:
+		Serialise_glReadBuffer(eGL_UNKNOWN_ENUM);
+		break;
+	case FRAMEBUFFER_TEX:
+		Serialise_glFramebufferTexture(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
 	case BLIT_FRAMEBUFFER:
 		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM);
 		break;
-
+		
+	case GEN_SAMPLERS:
+		Serialise_glGenSamplers(0, NULL);
+		break;
 	case BIND_SAMPLER:
 		Serialise_glBindSampler(0, 0);
+		break;
+	case SAMPLER_PARAMETERI:
+		Serialise_glSamplerParameteri(0, eGL_UNKNOWN_ENUM, 0);
 		break;
 		
 	case CLEAR_COLOR:
@@ -1017,6 +1040,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DISABLE:
 		Serialise_glDisable(eGL_UNKNOWN_ENUM);
+		break;
+	case HINT:
+		Serialise_glHint(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
 		break;
 	case ENABLE:
 		Serialise_glEnable(eGL_UNKNOWN_ENUM);
@@ -1450,7 +1476,7 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	}
 }
 
-#pragma region Get functions
+#pragma region Read-only functions
 
 GLenum WrappedOpenGL::glGetError()
 {
@@ -1668,11 +1694,6 @@ void WrappedOpenGL::glGetUniformiv(GLuint program, GLint location, GLint *params
 void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
 {
 	m_Real.glReadPixels(x, y, width, height, format, type, pixels);
-}
-
-void WrappedOpenGL::glReadBuffer(GLenum mode)
-{
-	m_Real.glReadBuffer(mode);
 }
 
 #pragma endregion

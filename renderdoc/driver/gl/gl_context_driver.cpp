@@ -536,11 +536,30 @@ void WrappedOpenGL::glCullFace(GLenum mode)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glHint(GLenum target, GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, t, target);
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glHint(t, m);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glHint(GLenum target, GLenum mode)
 {
 	m_Real.glHint(target, mode);
 
-	RDCUNIMPLEMENTED();
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(HINT);
+		Serialise_glHint(target, mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 bool WrappedOpenGL::Serialise_glColorMask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha)
@@ -786,77 +805,6 @@ void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
-}
-
-bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
-{
-	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(FramebufferRes(framebuffer)));
-
-	if(m_State <= EXECUTING)
-	{
-		if(Id == ResourceId())
-		{
-			m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
-		}
-		else
-		{
-			GLResource res = GetResourceManager()->GetLiveResource(Id);
-			m_Real.glBindFramebuffer(Target, res.name);
-		}
-	}
-
-	return true;
-}
-
-void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
-{
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
-		Serialise_glBindFramebuffer(target, framebuffer);
-		
-		m_ContextRecord->AddChunk(scope.Get());
-	}
-
-	if(framebuffer == 0 && (m_State == READING || m_State == EXECUTING))
-		framebuffer = m_FakeBB_FBO;
-
-	m_Real.glBindFramebuffer(target, framebuffer);
-}
-
-bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
-{
-	SERIALISE_ELEMENT(int32_t, sX0, srcX0);
-	SERIALISE_ELEMENT(int32_t, sY0, srcY0);
-	SERIALISE_ELEMENT(int32_t, sX1, srcX1);
-	SERIALISE_ELEMENT(int32_t, sY1, srcY1);
-	SERIALISE_ELEMENT(int32_t, dX0, dstX0);
-	SERIALISE_ELEMENT(int32_t, dY0, dstY0);
-	SERIALISE_ELEMENT(int32_t, dX1, dstX1);
-	SERIALISE_ELEMENT(int32_t, dY1, dstY1);
-	SERIALISE_ELEMENT(uint32_t, msk, mask);
-	SERIALISE_ELEMENT(GLenum, flt, filter);
-	
-	if(m_State <= EXECUTING)
-	{
-		m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
-	}
-
-	return true;
-}
-
-void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
-{
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-		Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
-		
-		m_ContextRecord->AddChunk(scope.Get());
-	}
-	
-	m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
 #pragma endregion
