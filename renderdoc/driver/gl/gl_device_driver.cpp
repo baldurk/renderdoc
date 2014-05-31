@@ -1282,6 +1282,32 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDisableVertexAttribArray(GLuint index)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	
+	if(m_State < WRITING)
+	{
+		m_Real.glDisableVertexAttribArray(Index);
+	}
+	return true;
+}
+
+void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
+{
+	m_Real.glDisableVertexAttribArray(index);
+	
+	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	RDCASSERT(r);
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
+		Serialise_glDisableVertexAttribArray(index);
+
+		r->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glGenVertexArrays(GLsizei n, GLuint* arrays)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(*arrays)));

@@ -55,6 +55,33 @@ void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBlendFunci(GLuint buf, GLenum src, GLenum dst)
+{
+	SERIALISE_ELEMENT(GLuint, b, buf);
+	SERIALISE_ELEMENT(GLenum, s, src);
+	SERIALISE_ELEMENT(GLenum, d, dst);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendFunci(b, s, d);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
+{
+	m_Real.glBlendFunci(buf, src, dst);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_FUNCI);
+		Serialise_glBlendFunci(buf, src, dst);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
 {
 	SERIALISE_ELEMENT(float, r, red);
@@ -271,6 +298,60 @@ void WrappedOpenGL::glDepthFunc(GLenum func)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDepthMask(GLboolean flag)
+{
+	SERIALISE_ELEMENT(uint8_t, f, flag);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDepthMask(f);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDepthMask(GLboolean flag)
+{
+	m_Real.glDepthMask(flag);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DEPTH_MASK);
+		Serialise_glDepthMask(flag);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
+{
+	SERIALISE_ELEMENT(uint32_t, idx, first);
+	SERIALISE_ELEMENT(uint32_t, cnt, count);
+	SERIALISE_ELEMENT_ARR(GLdouble, ranges, v, cnt*2);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDepthRangeArrayv(idx, cnt, ranges);
+	}
+
+	delete[] ranges;
+
+	return true;
+}
+
+void WrappedOpenGL::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
+{
+	m_Real.glDepthRangeArrayv(first, count, v);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
+		Serialise_glDepthRangeArrayv(first, count, v);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDisable(GLenum cap)
 {
 	SERIALISE_ELEMENT(GLenum, c, cap);
@@ -294,6 +375,7 @@ void WrappedOpenGL::glDisable(GLenum cap)
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
+	// TODO replace this with glIsEnabled() for the relevant states
 	if(m_State == WRITING_IDLE)
 	{
 		SCOPED_SERIALISE_CONTEXT(DISABLE);
@@ -331,6 +413,74 @@ void WrappedOpenGL::glEnable(GLenum cap)
 	{
 		SCOPED_SERIALISE_CONTEXT(ENABLE);
 		Serialise_glEnable(cap);
+
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDisablei(GLenum cap, GLuint index)
+{
+	SERIALISE_ELEMENT(GLenum, c, cap);
+	SERIALISE_ELEMENT(uint32_t, i, index);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDisablei(c, i);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDisablei(GLenum cap, GLuint index)
+{
+	m_Real.glDisablei(cap, index);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DISABLEI);
+		Serialise_glDisablei(cap, index);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	// TODO replace this with glIsEnabled() for the relevant states
+	if(m_State == WRITING_IDLE)
+	{
+		SCOPED_SERIALISE_CONTEXT(DISABLEI);
+		Serialise_glDisablei(cap, index);
+
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glEnablei(GLenum cap, GLuint index)
+{
+	SERIALISE_ELEMENT(GLenum, c, cap);
+	SERIALISE_ELEMENT(uint32_t, i, index);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glEnablei(c, i);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glEnablei(GLenum cap, GLuint index)
+{
+	m_Real.glEnablei(cap, index);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(ENABLEI);
+		Serialise_glEnablei(cap, index);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	// TODO replace this with glIsEnabled() for the relevant states
+	if(m_State == WRITING_IDLE)
+	{
+		SCOPED_SERIALISE_CONTEXT(ENABLEI);
+		Serialise_glEnablei(cap, index);
 
 		m_DeviceRecord->AddChunk(scope.Get());
 	}
@@ -454,8 +604,8 @@ bool WrappedOpenGL::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsize
 {
 	SERIALISE_ELEMENT(int32_t, X, x);
 	SERIALISE_ELEMENT(int32_t, Y, y);
-	SERIALISE_ELEMENT(int32_t, W, width);
-	SERIALISE_ELEMENT(int32_t, H, height);
+	SERIALISE_ELEMENT(uint32_t, W, width);
+	SERIALISE_ELEMENT(uint32_t, H, height);
 
 	if(m_State <= EXECUTING)
 	{
@@ -518,9 +668,124 @@ void WrappedOpenGL::glViewportIndexedfv(GLuint index, const GLfloat *v)
 	glViewportArrayv(index, 1, v);
 }
 
+bool WrappedOpenGL::Serialise_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(uint32_t, W, width);
+	SERIALISE_ELEMENT(uint32_t, H, height);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glScissor(X, Y, W, H);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	m_Real.glScissor(x, y, width, height);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(SCISSOR);
+		Serialise_glScissor(x, y, width, height);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glScissorArrayv(GLuint index, GLsizei count, const GLint *v)
+{
+	SERIALISE_ELEMENT(uint32_t, idx, index);
+	SERIALISE_ELEMENT(uint32_t, cnt, count);
+	SERIALISE_ELEMENT_ARR(GLint, scissors, v, cnt*4);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glScissorArrayv(idx, cnt, scissors);
+	}
+
+	delete[] scissors;
+
+	return true;
+}
+
+void WrappedOpenGL::glScissorArrayv(GLuint first, GLsizei count, const GLint *v)
+{
+	m_Real.glScissorArrayv(first, count, v);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(SCISSOR_ARRAY);
+		Serialise_glScissorArrayv(first, count, v);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width, GLsizei height)
+{
+	const GLint v[4] = { left, bottom, width, height };
+	glScissorArrayv(index, 1, v);
+}
+
+void WrappedOpenGL::glScissorIndexedv(GLuint index, const GLint *v)
+{
+	glScissorArrayv(index, 1, v);
+}
+
+bool WrappedOpenGL::Serialise_glPolygonMode(GLenum face, GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, f, face);
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPolygonMode(f, m);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glPolygonMode(GLenum face, GLenum mode)
 {
 	m_Real.glPolygonMode(face, mode);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POLYGON_MODE);
+		Serialise_glPolygonMode(face, mode);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPolygonOffset(GLfloat factor, GLfloat units)
+{
+	SERIALISE_ELEMENT(float, f, factor);
+	SERIALISE_ELEMENT(float, u, units);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPolygonOffset(f, u);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
+{
+	m_Real.glPolygonOffset(factor, units);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET);
+		Serialise_glPolygonOffset(factor, units);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)

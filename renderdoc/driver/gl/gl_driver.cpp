@@ -81,11 +81,16 @@ const char *GLChunkNames[] =
 	"glClearBufferiv",
 	"glClearBufferuiv",
 	"glClearBufferfi",
+	"glPolygonMode",
+	"glPolygonOffset",
 	"glCullFace",
 	"glEnable",
 	"glDisable",
+	"glEnablei",
+	"glDisablei",
 	"glFrontFace",
 	"glBlendFunc",
+	"glBlendFunci",
 	"glBlendColor",
 	"glBlendFuncSeparate",
 	"glBlendFuncSeparatei",
@@ -94,8 +99,12 @@ const char *GLChunkNames[] =
 	"glColorMask",
 	"glColorMaski",
 	"glDepthFunc",
+	"glDepthMask",
+	"glDepthRangeArrayv",
 	"glViewport",
 	"glViewportArrayv",
+	"glScissor",
+	"glScissorArrayv",
 	"glUseProgram",
 	"glBindVertexArray",
 	"glUniformMatrix*",
@@ -119,6 +128,7 @@ const char *GLChunkNames[] =
 	"glBindVertexArray",
 	"glVertexAttribPointer",
 	"glEnableVertexAttribArray",
+	"glDisableVertexAttribArray",
 	"glDeleteVertexArray",
 	"glDeleteBuffer",
 	
@@ -987,6 +997,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case CULL_FACE:
 		Serialise_glCullFace(eGL_UNKNOWN_ENUM);
 		break;
+	case POLYGON_MODE:
+		glPolygonMode(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case POLYGON_OFFSET:
+		glPolygonOffset(0, 0);
+		break;
 	case CLEARBUFFERF:
 		Serialise_glClearBufferfv(eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
@@ -1004,6 +1020,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case ENABLE:
 		Serialise_glEnable(eGL_UNKNOWN_ENUM);
+		break;
+	case DISABLEI:
+		Serialise_glDisablei(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case ENABLEI:
+		Serialise_glEnablei(eGL_UNKNOWN_ENUM, 0);
 		break;
 	case FRONT_FACE:
 		Serialise_glFrontFace(eGL_UNKNOWN_ENUM);
@@ -1035,11 +1057,23 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_UNKNOWN_ENUM);
 		break;
+	case DEPTH_MASK:
+		Serialise_glDepthMask(0);
+		break;
+	case DEPTH_RANGEARRAY:
+		Serialise_glDepthRangeArrayv(0, 0, NULL);
+		break;
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);
 		break;
 	case VIEWPORT_ARRAY:
 		Serialise_glViewportArrayv(0, 0, 0);
+		break;
+	case SCISSOR:
+		Serialise_glScissor(0, 0, 0, 0);
+		break;
+	case SCISSOR_ARRAY:
+		Serialise_glScissorArrayv(0, 0, 0);
 		break;
 	case USEPROGRAM:
 		Serialise_glUseProgram(0);
@@ -1083,6 +1117,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case ENABLEVERTEXATTRIBARRAY:
 		Serialise_glEnableVertexAttribArray(0);
+		break;
+	case DISABLEVERTEXATTRIBARRAY:
+		Serialise_glDisableVertexAttribArray(0);
 		break;
 
 	case DELETE_VERTEXARRAY:
@@ -1418,6 +1455,16 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 GLenum WrappedOpenGL::glGetError()
 {
 	return m_Real.glGetError();
+}
+
+void WrappedOpenGL::glFlush()
+{
+	m_Real.glFlush();
+}
+
+void WrappedOpenGL::glFinish()
+{
+	m_Real.glFinish();
 }
 
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)

@@ -265,7 +265,9 @@ class WrappedOpenGL
 		//
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture(GLenum target, GLuint texture));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFunc(GLenum sfactor, GLenum dfactor));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFunci(GLuint buf, GLenum sfactor, GLenum dfactor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha));
@@ -278,10 +280,16 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLclampd depth));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCullFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthFunc(GLenum func));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthMask(GLboolean flag));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDisable(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnable(GLenum cap));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDisablei(GLenum cap, GLuint index));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glEnablei(GLenum cap, GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFrontFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetError());
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFinish());
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFlush());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloatv(GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegerv(GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBooleanv(GLenum pname, GLboolean *data));
@@ -297,6 +305,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPixelStorei(GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPixelStoref(GLenum pname, GLfloat param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonMode(GLenum face, GLenum mode));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffset(GLfloat factor, GLfloat units));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameteri(GLenum target, GLenum pname, GLint param));
@@ -307,6 +316,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewportIndexedfv(GLuint index, const GLfloat *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glViewportArrayv(GLuint first, GLuint count, const GLfloat *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glScissor(GLint x, GLint y, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorArrayv(GLuint first, GLsizei count, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorIndexedv(GLuint index, const GLint *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadBuffer(GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenFramebuffers(GLsizei n, GLuint *framebuffers));
@@ -370,6 +383,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnableVertexAttribArray(GLuint index));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDisableVertexAttribArray(GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));
