@@ -1971,9 +1971,10 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 	m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 	
 	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
-	RDCASSERT(r);
 	if(m_State >= WRITING)
 	{
+		RDCASSERT(r);
+
 		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
 		Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
@@ -1997,9 +1998,10 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 	m_Real.glEnableVertexAttribArray(index);
 	
 	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
-	RDCASSERT(r);
 	if(m_State >= WRITING)
 	{
+		RDCASSERT(r);
+
 		SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
 		Serialise_glEnableVertexAttribArray(index);
 
