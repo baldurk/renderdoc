@@ -42,7 +42,7 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 	
 	// TODO fetch bindings for other types than 2D
-	for(int i=0; i < ARRAY_COUNT(Tex2D); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&Tex2D[i]);
@@ -69,7 +69,7 @@ void GLRenderState::FetchState()
 		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, eGL_UNIFORM_BUFFER_START, eGL_UNIFORM_BUFFER_SIZE, },
 	};
 
-	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
+	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
 	{
 		for(int i=0; i < idxBufs[b].count; i++)
 		{
@@ -79,7 +79,7 @@ void GLRenderState::FetchState()
 		}
 	}
 	
-	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Blends); i++)
 	{
 		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint*)&Blends[i].EquationRGB);
 		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint*)&Blends[i].EquationAlpha);
@@ -93,10 +93,10 @@ void GLRenderState::FetchState()
 
 	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
-	for(int i=0; i < ARRAY_COUNT(Viewports); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Viewports); i++)
 		m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 	
-	for(int i=0; i < ARRAY_COUNT(Scissors); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Scissors); i++)
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
 
 	{
@@ -115,10 +115,10 @@ void GLRenderState::FetchState()
 	m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
 	m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
 	
-	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
 		m_Real->glGetFloatv(eGL_DEPTH_RANGE, &DepthRanges[i].nearZ);
 	
-	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
 
 	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
@@ -132,7 +132,7 @@ void GLRenderState::FetchState()
 
 void GLRenderState::ApplyState()
 {
-	for(int i=0; i < ARRAY_COUNT(Tex2D); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
@@ -159,7 +159,7 @@ void GLRenderState::ApplyState()
 		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER, },
 	};
 
-	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
+	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
 		for(int i=0; i < idxBufs[b].count; i++)
 		{
 			if(idxBufs[b].bufs[i].name == 0 ||
@@ -170,7 +170,7 @@ void GLRenderState::ApplyState()
 				m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
 		}
 	
-	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Blends); i++)
 	{
 		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].DestinationRGB, Blends[i].DestinationAlpha);
 		m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
@@ -190,13 +190,13 @@ void GLRenderState::ApplyState()
 	m_Real->glDepthMask(DepthWriteMask);
 	m_Real->glClearDepth(DepthClearValue);
 	
-	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
 	{
 		double v[2] = { DepthRanges[i].nearZ, DepthRanges[i].farZ };
 		m_Real->glDepthRangeArrayv(i, 1, v);
 	}
 	
-	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
 
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
@@ -246,7 +246,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 
 	m_pSerialiser->Serialise("GL_ACTIVE_TEXTURE", ActiveTexture);
 	
-	for(int i=0; i < ARRAY_COUNT(BufferBindings); i++)
+	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{
 		ResourceId ID = ResourceId();
 		if(state >= WRITING) ID = rm->GetID(BufferRes(BufferBindings[i]));
@@ -262,7 +262,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		{ UniformBinding, ARRAY_COUNT(UniformBinding), },
 	};
 
-	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
+	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
 	{
 		for(int i=0; i < idxBufs[b].count; i++)
 		{
@@ -276,7 +276,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		}
 	}
 	
-	for(int i=0; i < ARRAY_COUNT(Blends); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Blends); i++)
 	{
 		m_pSerialiser->Serialise("GL_BLEND_EQUATION_RGB", Blends[i].EquationRGB);
 		m_pSerialiser->Serialise("GL_BLEND_EQUATION_ALPHA", Blends[i].EquationAlpha);
@@ -290,7 +290,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 	
 	m_pSerialiser->Serialise<4>("GL_BLEND_COLOR", BlendColor);
 		
-	for(int i=0; i < ARRAY_COUNT(Viewports); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Viewports); i++)
 	{
 		m_pSerialiser->Serialise("GL_VIEWPORT.x", Viewports[i].x);
 		m_pSerialiser->Serialise("GL_VIEWPORT.y", Viewports[i].y);
@@ -298,7 +298,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_VIEWPORT.h", Viewports[i].height);
 	}
 
-	for(int i=0; i < ARRAY_COUNT(Scissors); i++)
+	for(size_t i=0; i < ARRAY_COUNT(Scissors); i++)
 	{
 		m_pSerialiser->Serialise("GL_VIEWPORT.x", Scissors[i].x);
 		m_pSerialiser->Serialise("GL_VIEWPORT.y", Scissors[i].y);
@@ -314,13 +314,13 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 	m_pSerialiser->Serialise("GL_DEPTH_WRITEMASK", DepthWriteMask);
 	m_pSerialiser->Serialise("GL_DEPTH_CLEAR_VALUE", DepthClearValue);
 	
-	for(int i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
 	{
 		m_pSerialiser->Serialise("GL_DEPTH_RANGE.near", DepthRanges[i].nearZ);
 		m_pSerialiser->Serialise("GL_DEPTH_RANGE.far", DepthRanges[i].farZ);
 	}
 	
-	for(int i=0; i < ARRAY_COUNT(ColorMasks); i++)
+	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
 
 	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);

@@ -44,6 +44,7 @@ driver/gl/gl_debug.o \
 driver/gl/gl_replay.o \
 driver/gl/gl_replay_linux.o \
 driver/gl/gl_resources.o \
+driver/gl/gl_renderstate.o \
 os/linux/linux_callstack.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
