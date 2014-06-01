@@ -33,13 +33,13 @@
 #define DLLExportHooks() \
     HookInit(glBindTexture); \
     HookInit(glBlendFunc); \
-    HookInit(glBlendColor); \
     HookInit(glClear); \
     HookInit(glClearColor); \
     HookInit(glClearDepth); \
     HookInit(glColorMask); \
     HookInit(glCullFace); \
     HookInit(glDepthFunc); \
+    HookInit(glDepthMask); \
     HookInit(glDisable); \
     HookInit(glDrawArrays); \
     HookInit(glEnable); \
@@ -116,13 +116,13 @@
     HookExtension(PFNGLGETFLOATI_VPROC, glGetFloati_v); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
     HookExtension(PFNGLCHECKFRAMEBUFFERSTATUSPROC, glCheckFramebufferStatus); \
+    HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
     HookExtension(PFNGLBLENDFUNCSEPARATEPROC, glBlendFuncSeparate); \
     HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
     HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
-    HookExtension(PFNGLDEPTHMASKPROC, glDepthMask); \
     HookExtension(PFNGLDEPTHRANGEARRAYVPROC, glDepthRangeArrayv); \
     HookExtension(PFNGLCREATESHADERPROC, glCreateShader); \
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
@@ -210,13 +210,13 @@
     HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
     HookExtension(PFNGLBLENDFUNCPROC, glBlendFunc); \
-    HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLCLEARPROC, glClear); \
     HookExtension(PFNGLCLEARCOLORPROC, glClearColor); \
     HookExtension(PFNGLCLEARDEPTHPROC, glClearDepth); \
     HookExtension(PFNGLCOLORMASKPROC, glColorMask); \
     HookExtension(PFNGLCULLFACEPROC, glCullFace); \
     HookExtension(PFNGLDEPTHFUNCPROC, glDepthFunc); \
+    HookExtension(PFNGLDEPTHMASKPROC, glDepthMask); \
     HookExtension(PFNGLDISABLEPROC, glDisable); \
     HookExtension(PFNGLDRAWARRAYSPROC, glDrawArrays); \
     HookExtension(PFNGLENABLEPROC, glEnable); \
@@ -272,13 +272,13 @@
 #define DefineDLLExportHooks() \
     HookWrapper2(void, glBindTexture, GLenum, target, GLuint, texture); \
     HookWrapper2(void, glBlendFunc, GLenum, sfactor, GLenum, dfactor); \
-    HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glClear, GLbitfield, mask); \
     HookWrapper4(void, glClearColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glClearDepth, GLdouble, depth); \
     HookWrapper4(void, glColorMask, GLboolean, red, GLboolean, green, GLboolean, blue, GLboolean, alpha); \
     HookWrapper1(void, glCullFace, GLenum, mode); \
     HookWrapper1(void, glDepthFunc, GLenum, func); \
+    HookWrapper1(void, glDepthMask, GLboolean, flag); \
     HookWrapper1(void, glDisable, GLenum, cap); \
     HookWrapper3(void, glDrawArrays, GLenum, mode, GLint, first, GLsizei, count); \
     HookWrapper1(void, glEnable, GLenum, cap); \
@@ -355,13 +355,13 @@
     HookWrapper3(void, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
     HookWrapper1(GLenum, glCheckFramebufferStatus, GLenum, target); \
+    HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper3(void, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
     HookWrapper4(void, glBlendFuncSeparate, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
     HookWrapper5(void, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
     HookWrapper2(void, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
-    HookWrapper1(void, glDepthMask, GLboolean, flag); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
     HookWrapper1(GLuint, glCreateShader, GLenum, type); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
@@ -435,9 +435,9 @@
     HookWrapper3(void, glGetUniformfv, GLuint, program, GLint, location, GLfloat *, params); \
     HookWrapper3(void, glGetUniformiv, GLuint, program, GLint, location, GLint *, params); \
     HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper2(void, glUniform1f, GLint, location, GLfloat, value); \
-    HookWrapper2(void, glUniform1i, GLint, location, GLint, value); \
-    HookWrapper2(void, glUniform1ui, GLint, location, GLuint, value); \
+    HookWrapper2(void, glUniform1f, GLint, location, GLfloat, v0); \
+    HookWrapper2(void, glUniform1i, GLint, location, GLint, v0); \
+    HookWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
     HookWrapper3(void, glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper3(void, glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper3(void, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \

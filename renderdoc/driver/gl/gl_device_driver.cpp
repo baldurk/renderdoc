@@ -1621,7 +1621,19 @@ bool WrappedOpenGL::Serialise_glBufferData(GLenum target, GLsizeiptr size, const
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		data = dummy;
+	}
+
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+
+	uint64_t offs = m_pSerialiser->GetOffset();
+
 	SERIALISE_ELEMENT(GLenum, Usage, usage);
 	SERIALISE_ELEMENT(ResourceId, id, m_BufferRecord[BufferIdx(target)]->GetResourceID());
 
@@ -1635,6 +1647,13 @@ bool WrappedOpenGL::Serialise_glBufferData(GLenum target, GLsizeiptr size, const
 
 		SAFE_DELETE_ARRAY(bytes);
 	}
+	else if(m_State >= WRITING)
+	{
+		m_BufferRecord[BufferIdx(target)]->SetDataOffset(offs - Bytesize);
+	}
+
+	if(dummy)
+		delete[] dummy;
 
 	return true;
 }
@@ -1652,7 +1671,11 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glBufferData(target, size, data, usage);
 
-		m_BufferRecord[idx]->AddChunk(scope.Get());
+		Chunk *chunk = scope.Get();
+
+		m_BufferRecord[idx]->AddChunk(chunk);
+		m_BufferRecord[idx]->SetDataPtr(chunk->GetData());
+		m_BufferRecord[idx]->Length = size;
 	}
 }
 
@@ -1718,17 +1741,198 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
 {
 	if(m_State >= WRITING)
 	{
-		RDCUNIMPLEMENTED();
+		// haven't implemented non-invalidating write maps
+		if((access & (GL_MAP_INVALIDATE_BUFFER_BIT|GL_MAP_INVALIDATE_RANGE_BIT|GL_MAP_READ_BIT)) == 0)
+			RDCUNIMPLEMENTED();
+		
+		// haven't implemented coherent/persistent bits
+		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
+			RDCUNIMPLEMENTED();
+
+		m_BufferRecord[BufferIdx(target)]->Map.offset = offset;
+		m_BufferRecord[BufferIdx(target)]->Map.length = length;
+		m_BufferRecord[BufferIdx(target)]->Map.access = access;
+
+		if((access & GL_MAP_READ_BIT) != 0)
+		{
+			byte *ptr = m_BufferRecord[BufferIdx(target)]->GetDataPtr();
+
+			if(ptr == NULL)
+			{
+				RDCWARN("Mapping buffer that hasn't been allocated");
+
+				m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Mapped_Read_Real;
+				return m_Real.glMapBufferRange(target, offset, length, access);
+			}
+
+			ptr += offset;
+
+			m_Real.glGetBufferSubData(target, offset, length, ptr);
+			
+			m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Mapped_Read;
+
+			return ptr;
+		}
+		
+		byte *ptr = m_BufferRecord[BufferIdx(target)]->GetDataPtr();
+
+		if(ptr == NULL)
+		{
+			RDCWARN("Mapping buffer that hasn't been allocated");
+			
+			ptr = (byte *)m_Real.glMapBufferRange(target, offset, length, access);
+
+			m_BufferRecord[BufferIdx(target)]->Map.ptr = ptr;
+			m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Mapped_Write_Real;
+		}
+		else
+		{
+			if(m_State == WRITING_CAPFRAME)
+			{
+				ptr = new byte[length];
+				
+				m_BufferRecord[BufferIdx(target)]->Map.ptr = ptr;
+				m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Mapped_Write_Alloc;
+			}
+			else
+			{
+				ptr += offset;
+				
+				m_BufferRecord[BufferIdx(target)]->Map.ptr = ptr;
+				m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Mapped_Write;
+			}
+		}
+
+		return ptr;
 	}
 
 	return m_Real.glMapBufferRange(target, offset, length, access);
+}
+
+bool WrappedOpenGL::Serialise_glUnmapBuffer(GLenum target)
+{
+	GLResourceRecord *record = NULL;
+
+	if(m_State >= WRITING)
+		record = m_BufferRecord[BufferIdx(target)];
+
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
+	SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
+	SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
+
+	uint64_t bufBindStart = 0;
+
+	if(m_State >= WRITING)
+	{
+		if(Target == eGL_ATOMIC_COUNTER_BUFFER)
+			m_Real.glGetInteger64i_v(eGL_ATOMIC_COUNTER_BUFFER_START, 0, (GLint64 *)&bufBindStart);
+		if(Target == eGL_SHADER_STORAGE_BUFFER)
+			m_Real.glGetInteger64i_v(eGL_SHADER_STORAGE_BUFFER_START, 0, (GLint64 *)&bufBindStart);
+		if(Target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+			m_Real.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, 0, (GLint64 *)&bufBindStart);
+		if(Target == eGL_UNIFORM_BUFFER)
+			m_Real.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, 0, (GLint64 *)&bufBindStart);
+	}
+
+	SERIALISE_ELEMENT(uint64_t, bufOffs, bufBindStart);
+
+	SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr, (size_t)len);
+	
+	if(m_State < WRITING ||
+			(m_State >= WRITING &&
+				(record->Map.status == GLResourceRecord::Mapped_Write || record->Map.status == GLResourceRecord::Mapped_Write_Alloc)
+			)
+		)
+	{
+		GLuint oldBuf = 0;
+		GLuint64 oldBufBase = 0;
+		GLuint64 oldBufSize = 0;
+
+		if(m_State == READING)
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(bufID);
+			m_Real.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint *)&oldBuf);
+			m_Real.glGetInteger64i_v(eGL_UNIFORM_BUFFER_START, 0, (GLint64 *)&oldBufBase);
+			m_Real.glGetInteger64i_v(eGL_UNIFORM_BUFFER_SIZE, 0, (GLint64 *)&oldBufSize);
+			m_Real.glBindBufferRange(eGL_UNIFORM_BUFFER, 0, res.name, (GLintptr)bufOffs, (GLsizeiptr)len);
+		}
+
+		void *ptr = m_Real.glMapBufferRange(Target, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
+		memcpy(ptr, data, (size_t)len);
+		m_Real.glUnmapBuffer(Target);
+		
+		if(m_State == READING)
+		{
+			m_Real.glBindBufferRange(eGL_UNIFORM_BUFFER, 0, oldBuf, (GLintptr)oldBufBase, (GLsizeiptr)oldBufSize);
+		}
+	}
+
+	if(m_State < WRITING)
+		delete[] data;
+
+	return true;
 }
 
 GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 {
 	if(m_State >= WRITING)
 	{
-		RDCUNIMPLEMENTED();
+		RDCASSERT(m_BufferRecord[BufferIdx(target)]);
+
+		auto status = m_BufferRecord[BufferIdx(target)]->Map.status;
+		
+		GLboolean ret = GL_TRUE;
+
+		switch(status)
+		{
+			case GLResourceRecord::Unmapped:
+				RDCERR("Unmapped buffer being passed to glUnmapBuffer");
+				break;
+			case GLResourceRecord::Mapped_Read:
+				// can ignore
+				break;
+			case GLResourceRecord::Mapped_Read_Real:
+				// need to do real unmap
+				ret = m_Real.glUnmapBuffer(target);
+				break;
+			case GLResourceRecord::Mapped_Write:
+			{
+				if(m_State == WRITING_CAPFRAME)
+					RDCWARN("Failed to cap frame - uncapped Map/Unmap");
+				
+				SCOPED_SERIALISE_CONTEXT(UNMAP);
+				Serialise_glUnmapBuffer(target);
+				
+				if(m_State == WRITING_CAPFRAME)
+					m_ContextRecord->AddChunk(scope.Get());
+				else
+					m_BufferRecord[BufferIdx(target)]->AddChunk(scope.Get());
+				
+				break;
+			}
+			case GLResourceRecord::Mapped_Write_Alloc:
+			{
+				SCOPED_SERIALISE_CONTEXT(UNMAP);
+				Serialise_glUnmapBuffer(target);
+				
+				if(m_State == WRITING_CAPFRAME)
+					m_ContextRecord->AddChunk(scope.Get());
+
+				delete[] m_BufferRecord[BufferIdx(target)]->Map.ptr;
+
+				break;
+			}
+			case GLResourceRecord::Mapped_Write_Real:
+				RDCWARN("Throwing away map contents as we don't have datastore allocated");
+				RDCWARN("Could init chunk here using known data (although maybe it's only partial)");
+				ret = m_Real.glUnmapBuffer(target);
+				break;
+		}
+
+		m_BufferRecord[BufferIdx(target)]->Map.status = GLResourceRecord::Unmapped;
+
+		return ret;
 	}
 
 	return m_Real.glUnmapBuffer(target);

@@ -92,10 +92,29 @@ struct GLResourceRecord : public ResourceRecord
 	static const NullInitialiser NullResource = MakeNullResource;
 
 	GLResourceRecord(ResourceId id) :
-		ResourceRecord(id, true),
+	ResourceRecord(id, true),
 		datatype(eGL_UNKNOWN_ENUM)
 	{
 	}
+
+	enum MapStatus
+	{
+		Unmapped,
+		Mapped_Read,
+		Mapped_Read_Real,
+		Mapped_Write,
+		Mapped_Write_Real,
+		Mapped_Write_Alloc,
+	};
+
+	struct
+	{
+		GLintptr offset;
+		GLsizeiptr length;
+		GLbitfield access;
+		MapStatus status;
+		byte *ptr;
+	} Map;
 
 	// pointer into binding chunk where datatype enum lives for this resource
 	GLenum datatype;
