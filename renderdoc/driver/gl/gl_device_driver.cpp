@@ -825,6 +825,34 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 	m_Real.glBindFramebuffer(target, framebuffer);
 }
 
+bool WrappedOpenGL::Serialise_glDrawBuffers(GLsizei n, const GLenum *bufs)
+{
+	SERIALISE_ELEMENT(uint32_t, num, n);
+	SERIALISE_ELEMENT_ARR(GLenum, buffers, bufs, num);
+
+	if(m_State < WRITING)
+	{
+		m_Real.glDrawBuffers(num, buffers);
+	}
+
+	delete[] buffers;
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
+		Serialise_glDrawBuffers(n, bufs);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glDrawBuffers(n, bufs);
+}
+
 bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
 	SERIALISE_ELEMENT(int32_t, sX0, srcX0);

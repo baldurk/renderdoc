@@ -148,6 +148,7 @@
     HookExtension(PFNGLDISABLEIPROC, glDisablei); \
     HookExtension(PFNGLGENBUFFERSPROC, glGenBuffers); \
     HookExtension(PFNGLBINDBUFFERPROC, glBindBuffer); \
+    HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
     HookExtension(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer); \
     HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
@@ -385,6 +386,7 @@
     HookWrapper2(void, glDisablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glGenBuffers, GLsizei, n, GLuint *, buffers); \
     HookWrapper2(void, glBindBuffer, GLenum, target, GLuint, buffer); \
+    HookWrapper2(void, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper2(void, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
     HookWrapper2(void, glBindFramebuffer, GLenum, target, GLuint, framebuffer); \
     HookWrapper4(void, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \

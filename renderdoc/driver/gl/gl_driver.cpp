@@ -117,6 +117,7 @@ const char *GLChunkNames[] =
 	"glFramebufferTexture",
 	"glReadBuffer",
 	"glBindFramebuffer",
+	"glDrawBuffers",
 	"glBlitFramebuffer",
 
 	"glGenSamplers",
@@ -998,6 +999,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case FRAMEBUFFER_TEX:
 		Serialise_glFramebufferTexture(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case DRAW_BUFFERS:
+		Serialise_glDrawBuffers(0, NULL);
 		break;
 	case BLIT_FRAMEBUFFER:
 		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM);
