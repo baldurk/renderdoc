@@ -63,10 +63,10 @@ void GLRenderState::FetchState()
 
 	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum start; GLenum size; } idxBufs[] =
 	{
-		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER_BINDING, },
-		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER_BINDING, },
-		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, },
-		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, },
+		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER_BINDING, eGL_ATOMIC_COUNTER_BUFFER_START, eGL_ATOMIC_COUNTER_BUFFER_SIZE, },
+		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER_BINDING, eGL_SHADER_STORAGE_BUFFER_START, eGL_SHADER_STORAGE_BUFFER_SIZE, },
+		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, eGL_TRANSFORM_FEEDBACK_BUFFER_START, eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, },
+		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, eGL_UNIFORM_BUFFER_START, eGL_UNIFORM_BUFFER_SIZE, },
 	};
 
 	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
@@ -81,14 +81,14 @@ void GLRenderState::FetchState()
 	
 	for(int i=0; i < ARRAY_COUNT(Blends); i++)
 	{
-		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint*)Blends[i].EquationRGB);
-		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint*)Blends[i].EquationAlpha);
+		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint*)&Blends[i].EquationRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint*)&Blends[i].EquationAlpha);
 
-		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_RGB, i, (GLint*)Blends[i].SourceRGB);
-		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, i, (GLint*)Blends[i].SourceAlpha);
+		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_RGB, i, (GLint*)&Blends[i].SourceRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, i, (GLint*)&Blends[i].SourceAlpha);
 
-		m_Real->glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint*)Blends[i].DestinationRGB);
-		m_Real->glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint*)Blends[i].DestinationAlpha);
+		m_Real->glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint*)&Blends[i].DestinationRGB);
+		m_Real->glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint*)&Blends[i].DestinationAlpha);
 	}
 
 	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
@@ -161,7 +161,14 @@ void GLRenderState::ApplyState()
 
 	for(int b=0; b < ARRAY_COUNT(idxBufs); b++)
 		for(int i=0; i < idxBufs[b].count; i++)
-			m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
+		{
+			if(idxBufs[b].bufs[i].name == 0 ||
+					(idxBufs[b].bufs[i].start == 0 && idxBufs[b].bufs[i].size == 0)
+				)
+				m_Real->glBindBufferBase(idxBufs[b].binding, i, idxBufs[b].bufs[i].name);
+			else
+				m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
+		}
 	
 	for(int i=0; i < ARRAY_COUNT(Blends); i++)
 	{
@@ -244,7 +251,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		ResourceId ID = ResourceId();
 		if(state >= WRITING) ID = rm->GetID(BufferRes(BufferBindings[i]));
 		m_pSerialiser->Serialise("GL_BUFFER_BINDING", ID);
-		if(state < WRITING) BufferBindings[i] = rm->GetLiveResource(ID).name;
+		if(state < WRITING && ID != ResourceId()) BufferBindings[i] = rm->GetLiveResource(ID).name;
 	}
 	
 	struct { IdxRangeBuffer *bufs; int count; } idxBufs[] =
@@ -262,7 +269,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 			ResourceId ID = ResourceId();
 			if(state >= WRITING) ID = rm->GetID(BufferRes(idxBufs[b].bufs[i].name));
 			m_pSerialiser->Serialise("BUFFER_BINDING", ID);
-			if(state < WRITING) idxBufs[b].bufs[i].name = rm->GetLiveResource(ID).name;
+			if(state < WRITING && ID != ResourceId()) idxBufs[b].bufs[i].name = rm->GetLiveResource(ID).name;
 
 			m_pSerialiser->Serialise("BUFFER_START", idxBufs[b].bufs[i].start);
 			m_pSerialiser->Serialise("BUFFER_SIZE", idxBufs[b].bufs[i].size);
