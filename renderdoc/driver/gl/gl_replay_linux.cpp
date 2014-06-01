@@ -215,7 +215,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver *
 		glXDestroyCtxProc = (PFNGLXDESTROYCONTEXTPROC)dlsym(RTLD_NEXT, "glXDestroyContext");
 		glXSwapProc = (PFNGLXSWAPBUFFERSPROC)dlsym(RTLD_NEXT, "glXSwapBuffers");
 		glXChooseFBConfigProc = (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
-		glXCreatePbufferProc = (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbufferProc");
+		glXCreatePbufferProc = (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbuffer");
 		glXDestroyPbufferProc = (PFNGLXDESTROYPBUFFERPROC)dlsym(RTLD_NEXT, "glXDestroyPbuffer");
 		glXQueryDrawableProc = (PFNGLXQUERYDRAWABLEPROC)dlsym(RTLD_NEXT, "glXQueryDrawable");
 
