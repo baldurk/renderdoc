@@ -201,6 +201,7 @@ enum BufferCreationFlags
 {
 	eBufferCreate_VB			= 0x1,
 	eBufferCreate_IB			= 0x2,
+	eBufferCreate_CB			= 0x4,
 };
 
 enum TextureCreationFlags

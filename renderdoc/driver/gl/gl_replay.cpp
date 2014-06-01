@@ -489,6 +489,9 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 		case eGL_ELEMENT_ARRAY_BUFFER:
 			ret.creationFlags = eBufferCreate_IB;
 			break;
+		case eGL_UNIFORM_BUFFER:
+			ret.creationFlags = eBufferCreate_CB;
+			break;
 		default:
 			RDCERR("Unexpected buffer type %hs", ToStr::Get(res.curType).c_str());
 	}

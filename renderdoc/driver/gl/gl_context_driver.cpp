@@ -279,7 +279,7 @@ bool WrappedOpenGL::Serialise_glDepthFunc(GLenum func)
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glDepthFunc(func);
+		m_Real.glDepthFunc(f);
 	}
 
 	return true;

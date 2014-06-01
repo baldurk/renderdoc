@@ -102,10 +102,17 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 	}
 	else if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(Id);
-		m_Real.glBindTexture(Target, res.name);
+		if(Id == ResourceId())
+		{
+			m_Real.glBindTexture(Target, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glBindTexture(Target, res.name);
 
-		m_Textures[GetResourceManager()->GetLiveID(Id)].curType = Target;
+			m_Textures[GetResourceManager()->GetLiveID(Id)].curType = Target;
+		}
 	}
 
 	return true;
@@ -277,9 +284,12 @@ bool WrappedOpenGL::Serialise_glTexParameteri(GLenum target, GLenum pname, GLint
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Param, param);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
 	
 	if(m_State < WRITING)
 	{
+		if(m_State == READING)
+			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
 		glTexParameteri(Target, PName, Param);
 	}
 
@@ -711,9 +721,40 @@ bool WrappedOpenGL::Serialise_glFramebufferTexture(GLenum target, GLenum attachm
 	SERIALISE_ELEMENT(GLenum, Attach, attachment);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 	SERIALISE_ELEMENT(int32_t, Level, level);
+
+	ResourceId curFrameBuffer;
+
+	if(m_State == WRITING_IDLE)
+	{
+		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+		{
+			if(m_DrawFramebufferRecord)
+				curFrameBuffer = m_DrawFramebufferRecord->GetResourceID();
+		}
+		else
+		{
+			if(m_ReadFramebufferRecord)
+				curFrameBuffer = m_ReadFramebufferRecord->GetResourceID();
+		}
+	}
+
+	SERIALISE_ELEMENT(ResourceId, fbid, curFrameBuffer);
 	
 	if(m_State < WRITING)
 	{
+		if(m_State == READING)
+		{
+			if(fbid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(fbid);
+				m_Real.glBindFramebuffer(Target, res.name);
+			}
+			else
+			{
+				m_Real.glBindFramebuffer(Target, 0);
+			}
+		}
+
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		glFramebufferTexture(Target, Attach, res.name, Level);
 	}
@@ -735,16 +776,16 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 			if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 			{
 				if(m_DrawFramebufferRecord)
-					m_DeviceRecord->AddChunk(scope.Get());
-				else
 					m_DrawFramebufferRecord->AddChunk(scope.Get());
+				else
+					m_DeviceRecord->AddChunk(scope.Get());
 			}
 			else
 			{
 				if(m_ReadFramebufferRecord)
-					m_DeviceRecord->AddChunk(scope.Get());
-				else
 					m_ReadFramebufferRecord->AddChunk(scope.Get());
+				else
+					m_DeviceRecord->AddChunk(scope.Get());
 			}
 		}
 		else
@@ -755,9 +796,22 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 bool WrappedOpenGL::Serialise_glReadBuffer(GLenum mode)
 {
 	SERIALISE_ELEMENT(GLenum, m, mode);
+	SERIALISE_ELEMENT(ResourceId, id, m_ReadFramebufferRecord ? m_ReadFramebufferRecord->GetResourceID() : ResourceId());
 
 	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
+		}
+		else
+		{
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+		}
+
 		m_Real.glReadBuffer(m);
+	}
 	
 	return true;
 }
@@ -1864,7 +1918,10 @@ bool WrappedOpenGL::Serialise_glUnmapBuffer(GLenum target)
 		
 		if(m_State == READING)
 		{
-			m_Real.glBindBufferRange(eGL_UNIFORM_BUFFER, 0, oldBuf, (GLintptr)oldBufBase, (GLsizeiptr)oldBufSize);
+			if(oldBufBase == 0 && oldBufSize == 0)
+				m_Real.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, oldBuf);
+			else
+				m_Real.glBindBufferRange(eGL_UNIFORM_BUFFER, 0, oldBuf, (GLintptr)oldBufBase, (GLsizeiptr)oldBufSize);
 		}
 	}
 
@@ -1985,9 +2042,20 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 {
 	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 	
 	if(m_State < WRITING)
 	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
 		m_Real.glEnableVertexAttribArray(Index);
 	}
 	return true;
@@ -2012,9 +2080,20 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 bool WrappedOpenGL::Serialise_glDisableVertexAttribArray(GLuint index)
 {
 	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 	
 	if(m_State < WRITING)
 	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
 		m_Real.glDisableVertexAttribArray(Index);
 	}
 	return true;

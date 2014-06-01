@@ -99,7 +99,7 @@ class WrappedOpenGL
 		{ ((WrappedOpenGL *)userParam)->DebugSnoop(source, type, id, severity, length, message); }
 
 		// state
-		GLResourceRecord *m_TextureRecord[128];
+		GLResourceRecord *m_TextureRecord[128]; // TODO this needs on per texture type :(
 		GLResourceRecord *m_BufferRecord[16];
 		GLResourceRecord *m_VertexArrayRecord;
 		GLResourceRecord *m_DrawFramebufferRecord;

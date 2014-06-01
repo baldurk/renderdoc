@@ -204,6 +204,7 @@ namespace renderdoc
     {
         VB = 0x1,
         IB = 0x2,
+        CB = 0x4,
     };
 
     [Flags]

@@ -1138,6 +1138,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case UNIFORM_VECTOR:
 		Serialise_glUniformVector(0, 0, NULL, UNIFORM_UNKNOWN);
 		break;
+	case DRAWARRAYS:
+		Serialise_glDrawArrays(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
 	case DRAWARRAYS_INSTANCEDBASEDINSTANCE:
 		Serialise_glDrawArraysInstancedBaseInstance(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
