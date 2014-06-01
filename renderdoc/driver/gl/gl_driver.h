@@ -343,8 +343,12 @@ class WrappedOpenGL
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glActiveTexture(GLenum texture));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenerateMipmap(GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter));
 

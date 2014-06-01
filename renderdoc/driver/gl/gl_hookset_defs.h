@@ -104,8 +104,12 @@
 // gl extensions
 #define HookCheckGLExtensions() \
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
+    HookExtension(PFNGLTEXSTORAGE1DPROC, glTexStorage1D); \
     HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
+    HookExtension(PFNGLTEXSTORAGE3DPROC, glTexStorage3D); \
+    HookExtension(PFNGLTEXSUBIMAGE1DPROC, glTexSubImage1D); \
     HookExtension(PFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D); \
+    HookExtension(PFNGLTEXSUBIMAGE3DPROC, glTexSubImage3D); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtension(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HookExtension(PFNGLGETINTERNALFORMATI64VPROC, glGetInternalformati64v); \
@@ -343,8 +347,12 @@
 // gl extensions
 #define DefineGLExtensionHooks() \
     HookWrapper1(void, glActiveTexture, GLenum, texture); \
+    HookWrapper4(void, glTexStorage1D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
+    HookWrapper7(void, glTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper9(void, glTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
+    HookWrapper11(void, glTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper5(void, glGetInternalformati64v, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint64 *, params); \

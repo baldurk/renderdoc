@@ -40,8 +40,12 @@ const char *GLChunkNames[] =
 	"glGenTextures",
 	"glBindTexture",
 	"glActiveTexture",
+	"glTexStorage1D",
 	"glTexStorage2D",
+	"glTexStorage3D",
+	"glTexSubImage1D",
 	"glTexSubImage2D",
+	"glTexSubImage3D",
 	"glPixelStore",
 	"glTexParameteri",
 	"glGenerateMipmap",
@@ -900,11 +904,23 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_TEXTURE:
 		Serialise_glBindTexture(eGL_UNKNOWN_ENUM, 0);
 		break;
+	case TEXSTORAGE1D:
+		Serialise_glTexStorage1D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0);
+		break;
 	case TEXSTORAGE2D:
 		Serialise_glTexStorage2D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
+	case TEXSTORAGE3D:
+		Serialise_glTexStorage3D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case TEXSUBIMAGE1D:
+		Serialise_glTexSubImage1D(eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
 	case TEXSUBIMAGE2D:
 		Serialise_glTexSubImage2D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case TEXSUBIMAGE3D:
+		Serialise_glTexSubImage3D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
