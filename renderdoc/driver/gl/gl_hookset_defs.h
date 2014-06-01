@@ -41,6 +41,7 @@
     HookInit(glDepthFunc); \
     HookInit(glDepthMask); \
     HookInit(glDisable); \
+    HookInit(glDrawBuffer); \
     HookInit(glDrawArrays); \
     HookInit(glEnable); \
     HookInit(glFlush); \
@@ -211,6 +212,11 @@
     HookExtension(PFNGLUNIFORM3FVPROC, glUniform3fv); \
     HookExtension(PFNGLUNIFORM4FVPROC, glUniform4fv); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
+    HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
+    HookExtension(PFNGLDRAWELEMENTSPROC, glDrawElements); \
+    HookExtension(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
+    HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEPROC, glDrawElementsInstancedBaseInstance); \
+    HookExtension(PFNGLDRAWELEMENTSBASEVERTEXPROC, glDrawElementsBaseVertex); \
     HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
     HookExtension(PFNGLBLENDFUNCPROC, glBlendFunc); \
@@ -222,6 +228,7 @@
     HookExtension(PFNGLDEPTHFUNCPROC, glDepthFunc); \
     HookExtension(PFNGLDEPTHMASKPROC, glDepthMask); \
     HookExtension(PFNGLDISABLEPROC, glDisable); \
+    HookExtension(PFNGLDRAWBUFFERPROC, glDrawBuffer); \
     HookExtension(PFNGLDRAWARRAYSPROC, glDrawArrays); \
     HookExtension(PFNGLENABLEPROC, glEnable); \
     HookExtension(PFNGLFLUSHPROC, glFlush); \
@@ -284,6 +291,7 @@
     HookWrapper1(void, glDepthFunc, GLenum, func); \
     HookWrapper1(void, glDepthMask, GLboolean, flag); \
     HookWrapper1(void, glDisable, GLenum, cap); \
+    HookWrapper1(void, glDrawBuffer, GLenum, mode); \
     HookWrapper3(void, glDrawArrays, GLenum, mode, GLint, first, GLsizei, count); \
     HookWrapper1(void, glEnable, GLenum, cap); \
     HookWrapper0(void, glFlush); \
@@ -453,6 +461,11 @@
     HookWrapper3(void, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper3(void, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
+    HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
+    HookWrapper4(void, glDrawElements, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices); \
+    HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
+    HookWrapper6(void, glDrawElementsInstancedBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLuint, baseinstance); \
+    HookWrapper5(void, glDrawElementsBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
 
 

@@ -330,6 +330,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadBuffer(GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenFramebuffers(GLsizei n, GLuint *framebuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffer(GLenum buf));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffers(GLsizei n, const GLenum *bufs));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindFramebuffer(GLenum target, GLuint framebuffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level));
@@ -439,7 +440,12 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4fv(GLint location, GLsizei count, const GLfloat *value));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteBuffers(GLsizei n, const GLuint *buffers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteVertexArrays(GLsizei n, const GLuint *arrays));

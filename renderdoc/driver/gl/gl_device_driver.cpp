@@ -1047,6 +1047,31 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 	m_Real.glBindFramebuffer(target, framebuffer);
 }
 
+bool WrappedOpenGL::Serialise_glDrawBuffer(GLenum buf)
+{
+	SERIALISE_ELEMENT(GLenum, b, buf);
+
+	if(m_State < WRITING)
+	{
+		m_Real.glDrawBuffer(b);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawBuffer(GLenum buf)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
+		Serialise_glDrawBuffer(buf);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glDrawBuffer(buf);
+}
+
 bool WrappedOpenGL::Serialise_glDrawBuffers(GLsizei n, const GLenum *bufs)
 {
 	SERIALISE_ELEMENT(uint32_t, num, n);

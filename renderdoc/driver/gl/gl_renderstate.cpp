@@ -99,6 +99,11 @@ void GLRenderState::FetchState()
 	for(size_t i=0; i < ARRAY_COUNT(Scissors); i++)
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
 
+	m_Real->glGetIntegerv(eGL_DRAW_BUFFER, (GLint *)&DrawBuffer);
+	
+	for(size_t i=0; i < ARRAY_COUNT(DrawBuffers); i++)
+		m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
+
 	{
 		GLenum dummy[2];
 		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
@@ -181,6 +186,9 @@ void GLRenderState::ApplyState()
 	m_Real->glViewportArrayv(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
 	m_Real->glScissorArrayv(0, ARRAY_COUNT(Scissors), &Scissors[0].x);
+
+	m_Real->glDrawBuffer(DrawBuffer);
+	m_Real->glDrawBuffers(8, DrawBuffers);
 	
 	m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
 	m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
@@ -306,6 +314,9 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_VIEWPORT.h", Scissors[i].height);
 	}
 	
+	m_pSerialiser->Serialise("GL_DRAWBUFFER", DrawBuffer);
+	m_pSerialiser->Serialise<8>("GL_DRAWBUFFERS", DrawBuffers);
+
 	m_pSerialiser->Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", Hints.Derivatives);
 	m_pSerialiser->Serialise("GL_LINE_SMOOTH_HINT", Hints.LineSmooth);
 	m_pSerialiser->Serialise("GL_POLYGON_SMOOTH_HINT", Hints.PolySmooth);

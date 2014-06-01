@@ -874,62 +874,6 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
 
 #pragma region Drawcalls
 
-bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
-{
-	SERIALISE_ELEMENT(GLenum, Mode, mode);
-	SERIALISE_ELEMENT(int32_t, First, first);
-	SERIALISE_ELEMENT(uint32_t, Count, count);
-	SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
-	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
-
-	if(m_State <= EXECUTING)
-	{
-		m_Real.glDrawArraysInstancedBaseInstance(Mode, First, Count, InstanceCount, BaseInstance);
-	}
-	
-	const string desc = m_pSerialiser->GetDebugStr();
-
-	if(m_State == READING)
-	{
-		AddEvent(DRAWARRAYS_INSTANCEDBASEDINSTANCE, desc);
-		string name = "glDrawArraysInstancedBaseInstance(" +
-						ToStr::Get(Mode) + ", " +
-						ToStr::Get(First) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(InstanceCount) + ", " +
-						ToStr::Get(BaseInstance) + ")";
-
-		FetchDrawcall draw;
-		draw.name = widen(name);
-		draw.numIndices = Count;
-		draw.numInstances = InstanceCount;
-		draw.indexOffset = First;
-		draw.vertexOffset = 0;
-		draw.instanceOffset = BaseInstance;
-
-		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
-
-		m_LastDrawMode = Mode;
-
-		AddDrawcall(draw, true);
-	}
-
-	return true;
-}
-
-void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
-{
-	m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
-
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCEDBASEDINSTANCE);
-		Serialise_glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
-
-		m_ContextRecord->AddChunk(scope.Get());
-	}
-}
-
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);
@@ -955,11 +899,11 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 		draw.name = widen(name);
 		draw.numIndices = Count;
 		draw.numInstances = 1;
-		draw.indexOffset = First;
-		draw.vertexOffset = 0;
+		draw.indexOffset = 0;
+		draw.vertexOffset = First;
 		draw.instanceOffset = 0;
 
-		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+		draw.flags |= eDraw_Drawcall;
 
 		m_LastDrawMode = Mode;
 
@@ -977,6 +921,348 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 	{
 		SCOPED_SERIALISE_CONTEXT(DRAWARRAYS);
 		Serialise_glDrawArrays(mode, first, count);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(int32_t, First, first);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawArraysInstanced(Mode, First, Count, InstanceCount);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INSTANCED, desc);
+		string name = "glDrawArraysInstanced(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(First) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(InstanceCount) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = InstanceCount;
+		draw.indexOffset = 0;
+		draw.vertexOffset = First;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
+{
+	m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCED);
+		Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(int32_t, First, first);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
+	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawArraysInstancedBaseInstance(Mode, First, Count, InstanceCount, BaseInstance);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INSTANCEDBASEINSTANCE, desc);
+		string name = "glDrawArraysInstancedBaseInstance(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(First) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(InstanceCount) + ", " +
+						ToStr::Get(BaseInstance) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = InstanceCount;
+		draw.indexOffset = 0;
+		draw.vertexOffset = First;
+		draw.instanceOffset = BaseInstance;
+
+		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
+{
+	m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCEDBASEINSTANCE);
+		Serialise_glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWELEMENTS, desc);
+		string name = "glDrawElements(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(Type) + ", " +
+						ToStr::Get(IdxOffset) + ", " + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = 1;
+		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		m_LastDrawMode = Mode;
+		m_LastIndexSize = Type;
+		m_LastIndexOffset = (GLuint)IdxOffset;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
+{
+	m_Real.glDrawElements(mode, count, type, indices);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS);
+		Serialise_glDrawElements(mode, count, type, indices);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	SERIALISE_ELEMENT(int32_t, BaseVtx, basevertex);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWELEMENTS_BASEVERTEX, desc);
+		string name = "glDrawElementsBaseVertex(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(Type) + ", " +
+						ToStr::Get(IdxOffset) + ", " +
+						ToStr::Get(BaseVtx) + ", " + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = 1;
+		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.vertexOffset = BaseVtx;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		m_LastDrawMode = Mode;
+		m_LastIndexSize = Type;
+		m_LastIndexOffset = (GLuint)IdxOffset;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+{
+	m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_BASEVERTEX);
+		Serialise_glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWELEMENTS_INSTANCED, desc);
+		string name = "glDrawElementsInstanced(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(Type) + ", " +
+						ToStr::Get(IdxOffset) + ", " +
+						ToStr::Get(InstCount) + ", " + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = InstCount;
+		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		m_LastDrawMode = Mode;
+		m_LastIndexSize = Type;
+		m_LastIndexOffset = (GLuint)IdxOffset;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount)
+{
+	m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCED);
+		Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
+	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseInstance);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
+		string name = "glDrawElementsInstancedBaseInstance(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(Type) + ", " +
+						ToStr::Get(IdxOffset) + ", " +
+						ToStr::Get(InstCount) + ", " + 
+						ToStr::Get(BaseInstance) + ", " + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.numIndices = Count;
+		draw.numInstances = InstCount;
+		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = BaseInstance;
+
+		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		m_LastDrawMode = Mode;
+		m_LastIndexSize = Type;
+		m_LastIndexOffset = (GLuint)IdxOffset;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
+{
+	m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEINSTANCE);
+		Serialise_glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

@@ -115,12 +115,17 @@ const char *GLChunkNames[] =
 	"glUniformMatrix*",
 	"glUniformVector*",
 	"glDrawArrays",
-	"glDrawArraysInstancedBasedInstance",
-
+	"glDrawArraysInstanced",
+	"glDrawArraysInstancedBaseInstance",
+	"glDrawElements",
+	"glDrawElementsInstanced",
+	"glDrawElementsInstancedBaseInstance",
+	"glDrawElementsBaseVertex",
 	"glGenFramebuffers",
 	"glFramebufferTexture",
 	"glReadBuffer",
 	"glBindFramebuffer",
+	"glDrawBuffer",
 	"glDrawBuffers",
 	"glBlitFramebuffer",
 
@@ -1021,6 +1026,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case FRAMEBUFFER_TEX:
 		Serialise_glFramebufferTexture(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
+	case DRAW_BUFFER:
+		Serialise_glDrawBuffer(eGL_UNKNOWN_ENUM);
+		break;
 	case DRAW_BUFFERS:
 		Serialise_glDrawBuffers(0, NULL);
 		break;
@@ -1161,10 +1169,25 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DRAWARRAYS:
 		Serialise_glDrawArrays(eGL_UNKNOWN_ENUM, 0, 0);
 		break;
-	case DRAWARRAYS_INSTANCEDBASEDINSTANCE:
+	case DRAWARRAYS_INSTANCED:
+		Serialise_glDrawArraysInstanced(eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case DRAWARRAYS_INSTANCEDBASEINSTANCE:
 		Serialise_glDrawArraysInstancedBaseInstance(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
-
+	case DRAWELEMENTS:
+		Serialise_glDrawElements(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case DRAWELEMENTS_INSTANCED:
+		Serialise_glDrawElementsInstanced(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0);
+		break;
+	case DRAWELEMENTS_INSTANCEDBASEINSTANCE:
+		Serialise_glDrawElementsInstancedBaseInstance(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0, 0);
+		break;
+	case DRAWELEMENTS_BASEVERTEX:
+		Serialise_glDrawElementsBaseVertex(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0);
+		break;
+		
 	case GEN_BUFFER:
 		Serialise_glGenBuffers(0, NULL);
 		break;
