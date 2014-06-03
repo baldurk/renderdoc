@@ -22,7 +22,7 @@ all: bin/renderdoccmd
 
 bin/renderdoccmd: $(OBJECTS) $(SOURCES) ../renderdoc/librenderdoc.so
 	mkdir -p bin/
-	g++ -o bin/renderdoccmd $(LDFLAGS) $(OBJECTS)
+	g++ -o bin/renderdoccmd $(OBJECTS) $(LDFLAGS)
 
 clean:
 	find -type f -iname \*.o -exec rm '{}' \;

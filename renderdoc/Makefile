@@ -66,7 +66,7 @@ all: librenderdoc.so
 	cd $$(dirname $@) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
 
 librenderdoc.so: $(OBJECTS) $(SOURCES)
-	g++ -o librenderdoc.so $(LDFLAGS) $(OBJECTS)
+	g++ -o librenderdoc.so $(OBJECTS) $(LDFLAGS)
 
 clean:
 	find -type f -iname \*.o -exec rm '{}' \;
