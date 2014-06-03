@@ -166,7 +166,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 
 	m_OutputWindows[ret] = win;
 
-	return 0;
+	return ret;
 }
 
 void GLReplay::DestroyOutputWindow(uint64_t id)
