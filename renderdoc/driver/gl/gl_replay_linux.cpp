@@ -85,25 +85,6 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 
 		if(dpy == NULL)
 			return 0;
-
-		// don't need to care about the fb config as we won't be using the default framebuffer (backbuffer)
-		static int visAttribs[] = { 0 };
-		int numCfgs = 0;
-		GLXFBConfig *fbcfg = glXChooseFBConfigProc(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
-
-		if(fbcfg == NULL)
-		{
-			XCloseDisplay(dpy);
-			RDCERR("Couldn't choose default framebuffer config");
-			return 0;
-		}
-
-		// don't care about pbuffer properties for same reason as backbuffer
-		int pbAttribs[] = { GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0 };
-
-		wnd = glXCreatePbufferProc(dpy, fbcfg[0], pbAttribs);
-
-		XFree(fbcfg);
 	}
 
 	static int visAttribs[] = { 
@@ -145,6 +126,14 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 		XCloseDisplay(dpy);
 		RDCERR("Couldn't create 4.3 context - RenderDoc requires OpenGL 4.3 availability");
 		return 0;
+	}
+
+	if(wnd == 0)
+	{
+		// don't care about pbuffer properties as we won't render directly to this
+		int pbAttribs[] = { GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0 };
+
+		wnd = glXCreatePbufferProc(dpy, fbcfg[0], pbAttribs);
 	}
 
 	XFree(fbcfg);
