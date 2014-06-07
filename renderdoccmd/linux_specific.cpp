@@ -23,9 +23,19 @@
  ******************************************************************************/
 
 #include <stdio.h>
+#include <replay/renderdoc.h>
+
+// symbol defined in libGL but not librenderdoc.
+// Forces link of libGL after renderdoc (otherwise all symbols would
+// be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
+extern "C" void glXWaitGL();
 
 int main()
 {
-	puts("foo");
+	RENDERDOC_SpawnReplayHost(NULL);
+
+	volatile bool never_run = false;
+	if(never_run) glXWaitGL();
+
 	return 0;
 }

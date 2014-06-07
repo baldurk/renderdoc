@@ -5,9 +5,9 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
 			 -DRENDERDOC_VERSION_STRING='"0.20"'
-CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I.
+CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
-LDFLAGS=-L../renderdoc -lrenderdoc
+LDFLAGS=-L../renderdoc -lrenderdoc -lGL
 OBJECTS=linux_specific.o
 
 all: bin/renderdoccmd
