@@ -124,7 +124,9 @@ namespace renderdocui.Windows
 
                 if (Type == FollowType.RT_UAV)
                 {
-                    id = core.CurPipelineState.GetOutputTargets()[index];
+                    var outputs = core.CurPipelineState.GetOutputTargets();
+                    if(outputs.Length > index)
+                        id = outputs[index];
                 }
                 else if (Type == FollowType.Depth)
                 {
@@ -132,7 +134,9 @@ namespace renderdocui.Windows
                 }
                 else if (Type == FollowType.PSResource)
                 {
-                    id = core.CurPipelineState.GetResources(ShaderStageType.Pixel)[index];
+                    var res = core.CurPipelineState.GetResources(ShaderStageType.Pixel);
+                    if(res.Length > index)
+                        id = res[index];
                 }
 
                 return id;
