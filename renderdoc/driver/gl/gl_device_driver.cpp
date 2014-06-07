@@ -1922,7 +1922,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
 		m_BufferRecord[idx]->AddChunk(chunk);
 		m_BufferRecord[idx]->SetDataPtr(chunk->GetData());
-		m_BufferRecord[idx]->Length = size;
+		m_BufferRecord[idx]->Length = (int32_t)size;
 	}
 }
 

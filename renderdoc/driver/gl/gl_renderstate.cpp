@@ -42,7 +42,7 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 	
 	// TODO fetch bindings for other types than 2D
-	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&Tex2D[i]);
@@ -69,7 +69,7 @@ void GLRenderState::FetchState()
 		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, eGL_UNIFORM_BUFFER_START, eGL_UNIFORM_BUFFER_SIZE, },
 	};
 
-	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
+	for(GLuint b=0; b < (GLuint)ARRAY_COUNT(idxBufs); b++)
 	{
 		for(int i=0; i < idxBufs[b].count; i++)
 		{
@@ -79,7 +79,7 @@ void GLRenderState::FetchState()
 		}
 	}
 	
-	for(size_t i=0; i < ARRAY_COUNT(Blends); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Blends); i++)
 	{
 		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint*)&Blends[i].EquationRGB);
 		m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint*)&Blends[i].EquationAlpha);
@@ -93,10 +93,10 @@ void GLRenderState::FetchState()
 
 	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
-	for(size_t i=0; i < ARRAY_COUNT(Viewports); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
 		m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 	
-	for(size_t i=0; i < ARRAY_COUNT(Scissors); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
 
 	m_Real->glGetIntegerv(eGL_DRAW_BUFFER, (GLint *)&DrawBuffer);
@@ -175,7 +175,7 @@ void GLRenderState::ApplyState()
 				m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
 		}
 	
-	for(size_t i=0; i < ARRAY_COUNT(Blends); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Blends); i++)
 	{
 		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].DestinationRGB, Blends[i].DestinationAlpha);
 		m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
@@ -198,13 +198,13 @@ void GLRenderState::ApplyState()
 	m_Real->glDepthMask(DepthWriteMask);
 	m_Real->glClearDepth(DepthClearValue);
 	
-	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
 	{
 		double v[2] = { DepthRanges[i].nearZ, DepthRanges[i].farZ };
 		m_Real->glDepthRangeArrayv(i, 1, v);
 	}
 	
-	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
 
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
