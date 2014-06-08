@@ -92,7 +92,7 @@ class CrashHandler : public ICrashHandler
 
 				wstring cmdline = L"\"";
 				cmdline += radpath;
-				cmdline += L"/renderdoccmd.exe\" crashhandle";
+				cmdline += L"/renderdoccmd.exe\" --crashhandle";
 				
 				wchar_t *paramsAlloc = new wchar_t[512];
 

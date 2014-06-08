@@ -22,20 +22,67 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <stdio.h>
+#include <string>
+
+#include <string.h>
+#include <locale.h>
+#include <iconv.h>
+
 #include <replay/renderdoc.h>
+
+using std::wstring;
+
+wstring GetUsername()
+{
+}
+
+void DisplayRendererPreview(ReplayRenderer *renderer)
+{
+	if(renderer == NULL) return;
+
+	// TODO!
+}
 
 // symbol defined in libGL but not librenderdoc.
 // Forces link of libGL after renderdoc (otherwise all symbols would
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitGL();
 
-int main()
+int renderdoccmd(int argc, wchar_t **argv);
+
+int main(int argc, char *argv[])
 {
-	RENDERDOC_SpawnReplayHost(NULL);
+	std::setlocale(LC_CTYPE, "");
 
-	volatile bool never_run = false;
-	if(never_run) glXWaitGL();
+	volatile bool never_run = false; if(never_run) glXWaitGL();
 
-	return 0;
+	// do any linux-specific setup here
+
+	// process any linux-specific arguments here
+
+	wchar_t **wargv = new wchar_t*[argc];
+
+	iconv_t ic = iconv_open("WCHAR_T", "UTF-8");
+
+	for(int i=0; i < argc; i++)
+	{
+		size_t len = strlen(argv[i]);
+		wargv[i] = new wchar_t[len];
+
+		char *inbuf = argv[i];
+		size_t insize = len+1; // include null terminator
+		char *outbuf = (char *)wargv[i];
+		size_t outsize = len*sizeof(wchar_t);
+		iconv(ic, &inbuf, &insize, &outbuf, &outsize);
+	}
+
+	iconv_close(ic);
+
+	int ret = renderdoccmd(argc, wargv);
+
+	for(int i=0; i < argc; i++)
+		delete[] wargv[i];
+	delete[] wargv;
+
+	return ret;
 }

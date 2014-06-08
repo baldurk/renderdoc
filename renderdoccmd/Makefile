@@ -8,7 +8,7 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
 LDFLAGS=-L../renderdoc -lrenderdoc -lGL
-OBJECTS=linux_specific.o
+OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
 all: bin/renderdoccmd
 
