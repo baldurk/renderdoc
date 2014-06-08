@@ -28,12 +28,18 @@
 #include <locale.h>
 #include <iconv.h>
 
+#include <unistd.h>
+
 #include <replay/renderdoc.h>
 
 using std::wstring;
 
 wstring GetUsername()
 {
+	char buf[256] = {0};
+	getlogin_r(buf, 255);
+
+	return wstring(buf, buf+strlen(buf));
 }
 
 void DisplayRendererPreview(ReplayRenderer *renderer)
@@ -67,7 +73,8 @@ int main(int argc, char *argv[])
 	for(int i=0; i < argc; i++)
 	{
 		size_t len = strlen(argv[i]);
-		wargv[i] = new wchar_t[len];
+		wargv[i] = new wchar_t[len+2];
+		memset(wargv[i], 0, (len+2)*sizeof(wchar_t));
 
 		char *inbuf = argv[i];
 		size_t insize = len+1; // include null terminator

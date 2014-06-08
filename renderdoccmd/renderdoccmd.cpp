@@ -29,6 +29,43 @@
 using std::string;
 using std::wstring;
 
+uint32_t wtoi(wchar_t *str)
+{
+	uint32_t ret = 0;
+
+	while(str && *str)
+	{
+		if(*str > L'9' || *str < L'0')
+			break;
+
+		uint32_t digit = uint32_t(*str-L'0');
+
+		ret *= 10;
+		ret += digit;
+
+		str++;
+	}
+
+	return ret;
+}
+
+bool argequal(const wchar_t *a, const wchar_t *b)
+{
+	if(a == NULL || b == NULL) return false;
+
+	while(*a && *b)
+	{
+		if(towlower(*a) != towlower(*b))
+			break;
+
+		a++;
+		b++;
+	}
+
+	// if both reached null terminator then strings are equal
+	return *a == 0 && *b == 0;
+}
+
 // defined in *_specific.cpp
 void DisplayRendererPreview(ReplayRenderer *renderer);
 wstring GetUsername();
@@ -44,7 +81,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 	if(argc >= 2)
 	{
 		// fall through and print usage
-		if(!_wcsicmp(argv[1], L"--help") || !_wcsicmp(argv[1], L"-h"))
+		if(argequal(argv[1], L"--help") || argequal(argv[1], L"-h"))
 		{
 		}
 		// if we were given a logfile, load it and continually replay it.
@@ -57,11 +94,11 @@ int renderdoccmd(int argc, wchar_t **argv)
 			if(renderer && status == eReplayCreate_Success)
 				DisplayRendererPreview(renderer);
 
-			delete renderer;
+			ReplayRenderer_Shutdown(renderer);
 			return 0;
 		}
 		// replay a logfile
-		else if(!_wcsicmp(argv[1], L"--replay") || !_wcsicmp(argv[1], L"-r"))
+		else if(argequal(argv[1], L"--replay") || argequal(argv[1], L"-r"))
 		{
 			if(argc >= 3)
 			{
@@ -72,7 +109,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 				if(renderer && status == eReplayCreate_Success)
 					DisplayRendererPreview(renderer);
 
-				delete renderer;
+				ReplayRenderer_Shutdown(renderer);
 				return 0;
 			}
 			else
@@ -98,7 +135,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 		}
 #endif
 		// capture a program with default capture options
-		else if(!_wcsicmp(argv[1], L"--capture") || !_wcsicmp(argv[1], L"-c"))
+		else if(argequal(argv[1], L"--capture") || argequal(argv[1], L"-c"))
 		{
 			if(argc >= 3)
 			{
@@ -117,21 +154,21 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// inject into a running process with default capture options
-		else if(!_wcsicmp(argv[1], L"--inject") || !_wcsicmp(argv[1], L"-i"))
+		else if(argequal(argv[1], L"--inject") || argequal(argv[1], L"-i"))
 		{
 			if(argc >= 3)
 			{
 				wchar_t *pid = argv[2];
 				while(*pid == L'"' || iswspace(*pid)) pid++;
 
-				uint32_t pidNum = (uint32_t)_wtoi(pid);
+				uint32_t pidNum = (uint32_t)wtoi(pid);
 
 				uint32_t ident = RENDERDOC_InjectIntoProcess(pidNum, NULL, &opts, false);
 
 				if(ident == 0)
-					printf("Failed to inject to %u\n", pid);
+					printf("Failed to inject to %u\n", pidNum);
 				else
-					printf("Injected to %u as %d\n", pid, ident);
+					printf("Injected to %u as %u\n", pidNum, ident);
 
 				return ident;
 			}
@@ -141,13 +178,13 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// spawn remote replay host
-		else if(!_wcsicmp(argv[1], L"--replayhost") || !_wcsicmp(argv[1], L"-rh"))
+		else if(argequal(argv[1], L"--replayhost") || argequal(argv[1], L"-rh"))
 		{
 			RENDERDOC_SpawnReplayHost(NULL);
 			return 1;
 		}
 		// replay a logfile over the network on a remote host
-		else if(!_wcsicmp(argv[1], L"--remotereplay") || !_wcsicmp(argv[1], L"-rr"))
+		else if(argequal(argv[1], L"--remotereplay") || argequal(argv[1], L"-rr"))
 		{
 			if(argc >= 4)
 			{
@@ -174,14 +211,14 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// not documented/useful for manual use on the cmd line, used internally
-		else if(!_wcsicmp(argv[1], L"--cap32for64"))
+		else if(argequal(argv[1], L"--cap32for64"))
 		{
 			if(argc >= 5)
 			{
 				wchar_t *pid = argv[2];
 				while(*pid == L'"' || iswspace(*pid)) pid++;
 
-				uint32_t pidNum = (uint32_t)_wtoi(pid);
+				uint32_t pidNum = (uint32_t)wtoi(pid);
 
 				wchar_t *log = argv[3];
 
