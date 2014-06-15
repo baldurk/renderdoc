@@ -120,7 +120,10 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 	ID3D11Resource *DestResource = pDstResource;
 	if(m_State < WRITING)
-		DestResource = (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(idx);
+	{
+		if(m_pDevice->GetResourceManager()->HasLiveResource(idx))
+			DestResource = (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(idx);
+	}
 
 	if(isUpdate)
 	{
@@ -202,7 +205,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 		SERIALISE_ELEMENT_BUF(byte *, SourceData, (byte *)pSrcData, SourceDataLength);
 
-		if(m_State < WRITING)
+		if(m_State < WRITING && DestResource != NULL)
 		{
 			D3D11_BOX *pBox = NULL;
 			if(HasDestBox)
@@ -228,6 +231,10 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 			SAFE_DELETE_ARRAY(SourceData);
 		}
+		else if(m_State < WRITING)
+		{
+			SAFE_DELETE_ARRAY(SourceData);
+		}
 	}
 	else
 	{
@@ -242,7 +249,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 		SAFE_DELETE_ARRAY(padding);
 
-		if(m_State <= EXECUTING)
+		if(m_State < WRITING && DestResource != NULL)
 		{
 			WrappedID3D11Texture1D *tex1 = WrappedID3D11Texture1D::IsAlloc(DestResource) ? (WrappedID3D11Texture1D *)DestResource : NULL;
 			WrappedID3D11Texture2D *tex2 = WrappedID3D11Texture2D::IsAlloc(DestResource) ? (WrappedID3D11Texture2D *)DestResource : NULL;
@@ -300,7 +307,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			}
 		}
 
-		if(m_State <= EXECUTING)
+		if(m_State < WRITING)
 			SAFE_DELETE_ARRAY(bufData);
 	}
 
