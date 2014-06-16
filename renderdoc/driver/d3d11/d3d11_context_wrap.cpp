@@ -1989,12 +1989,14 @@ void WrappedID3D11DeviceContext::RSGetState(ID3D11RasterizerState **ppRasterizer
 		{
 			real->Release();
 			ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
+#if defined(INCLUDE_D3D_11_1)
 			if(WrappedID3D11RasterizerState1::IsAlloc(state))
 			{
 				*ppRasterizerState = (ID3D11RasterizerState *)(ID3D11RasterizerState1 *)state;
 				(*ppRasterizerState)->AddRef();
 			}
 			else
+#endif
 			{
 				*ppRasterizerState = (ID3D11RasterizerState *)state;
 				(*ppRasterizerState)->AddRef();
@@ -2105,6 +2107,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 	if(m_State <= EXECUTING)
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(id);
+#if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11RasterizerState1::IsAlloc(live))
 		{
 			ID3D11RasterizerState1 *state = (ID3D11RasterizerState1 *)live;
@@ -2112,6 +2115,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 			m_pRealContext->RSSetState((ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, state));
 		}
 		else
+#endif
 		{
 			ID3D11RasterizerState *state = (ID3D11RasterizerState *)live;
 			m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, state);
@@ -2138,6 +2142,7 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 
+#if defined(INCLUDE_D3D_11_1)
 	RDCASSERT(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState) || WrappedID3D11RasterizerState1::IsAlloc(pRasterizerState));
 	
 	m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
@@ -2145,6 +2150,13 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
 		m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, pRasterizerState));
 	else
 		m_pRealContext->RSSetState((ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, pRasterizerState));
+#else
+	RDCASSERT(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState));
+	
+	m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
+	m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, pRasterizerState));
+#endif
+
 	VerifyState();
 }
 
@@ -2589,12 +2601,14 @@ void WrappedID3D11DeviceContext::OMGetBlendState(ID3D11BlendState **ppBlendState
 		if(real != NULL)
 		{
 			ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
+#if defined(INCLUDE_D3D_11_1)
 			if(WrappedID3D11BlendState1::IsAlloc(state))
 			{
 				*ppBlendState = (ID3D11BlendState *)(ID3D11BlendState1 *)state;
 				(*ppBlendState)->AddRef();
 			}
 			else
+#endif
 			{
 				*ppBlendState = (ID3D11BlendState *)state;
 				(*ppBlendState)->AddRef();
@@ -2957,6 +2971,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 	if(m_State <= EXECUTING)
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(State);
+#if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11BlendState1::IsAlloc(live))
 		{
 			ID3D11BlendState1 *state = (ID3D11BlendState1 *)live;
@@ -2964,6 +2979,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 			m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, state), BlendFactor, SampleMask);
 		}
 		else
+#endif
 		{
 			ID3D11BlendState *state = (ID3D11BlendState *)live;
 			m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.BlendState, state);
@@ -3000,10 +3016,16 @@ void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState, 
 	else
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.BlendFactor, DefaultBlendFactor, 0, 4);
 	m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.SampleMask, SampleMask);
+
+#if defined(INCLUDE_D3D_11_1)
 	if(!pBlendState || WrappedID3D11BlendState::IsAlloc(pBlendState))
 		m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, pBlendState), BlendFactor, SampleMask);
 	else
 		m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, pBlendState), BlendFactor, SampleMask);
+#else
+	m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, pBlendState), BlendFactor, SampleMask);
+#endif
+
 	VerifyState();
 }
 

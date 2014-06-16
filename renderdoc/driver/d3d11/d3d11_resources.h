@@ -121,7 +121,14 @@ class TrackedResource
 };
 
 template<typename NestedType>
-class WrappedDXGIInterface : public RefCounter, public IDXGISurface2, public IDXGIKeyedMutex, public IDXGIResource1
+class WrappedDXGIInterface : public RefCounter, public IDXGIKeyedMutex
+#if defined(INCLUDE_D3D_11_1)
+	, public IDXGISurface2
+	, public IDXGIResource1
+#else
+	, public IDXGISurface1
+	, public IDXGIResource
+#endif
 {
 public:
 	WrappedID3D11Device* m_pDevice;
@@ -167,12 +174,6 @@ public:
 			AddRef();
 			return S_OK;
 		}
-		if(riid == __uuidof(IDXGIResource1))
-		{
-			*ppvObject = (IDXGIResource1 *)this;
-			AddRef();
-			return S_OK;
-		}
 		if(riid == __uuidof(IDXGIKeyedMutex))
 		{
 			*ppvObject = (IDXGIKeyedMutex *)this;
@@ -191,12 +192,20 @@ public:
 			AddRef();
 			return S_OK;
 		}
+#if defined(INCLUDE_D3D_11_1)
+		if(riid == __uuidof(IDXGIResource1))
+		{
+			*ppvObject = (IDXGIResource1 *)this;
+			AddRef();
+			return S_OK;
+		}
 		if(riid == __uuidof(IDXGISurface2))
 		{
 			*ppvObject = (IDXGISurface2 *)this;
 			AddRef();
 			return S_OK;
 		}
+#endif
 
 		return m_pWrapped->QueryInterface(riid, ppvObject);
 	}
@@ -327,35 +336,7 @@ public:
 		SAFE_RELEASE(res);
 		return hr;
 	}
-
-	//////////////////////////////
-	// Implement IDXGIResource1
-	virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(UINT index, IDXGISurface2 **ppSurface)
-	{
-		if(ppSurface == NULL) return E_INVALIDARG;
-
-		// maybe this will work?!?
-		AddRef();
-		*ppSurface = (IDXGISurface2 *)this;
-		return S_OK;
-	}
-
-	virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(const SECURITY_ATTRIBUTES *pAttributes, DWORD dwAccess, LPCWSTR lpName, HANDLE *pHandle)
-	{
-		// temporarily get the real interface
-		IDXGIResource1 *res = NULL;
-		HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource1), (void **)&res);
-		if(FAILED(hr))
-		{
-			SAFE_RELEASE(res);
-			return hr;
-		}
-
-		hr = res->CreateSharedHandle(pAttributes, dwAccess, lpName, pHandle);
-		SAFE_RELEASE(res);
-		return hr;
-	}
-
+	
 	//////////////////////////////
 	// Implement IDXGISurface
 	virtual HRESULT STDMETHODCALLTYPE GetDesc(DXGI_SURFACE_DESC *pDesc)
@@ -440,6 +421,35 @@ public:
 		return hr;
 	}
 
+#if defined(INCLUDE_D3D_11_1)
+	//////////////////////////////
+	// Implement IDXGIResource1
+	virtual HRESULT STDMETHODCALLTYPE CreateSubresourceSurface(UINT index, IDXGISurface2 **ppSurface)
+	{
+		if(ppSurface == NULL) return E_INVALIDARG;
+
+		// maybe this will work?!?
+		AddRef();
+		*ppSurface = (IDXGISurface2 *)this;
+		return S_OK;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSharedHandle(const SECURITY_ATTRIBUTES *pAttributes, DWORD dwAccess, LPCWSTR lpName, HANDLE *pHandle)
+	{
+		// temporarily get the real interface
+		IDXGIResource1 *res = NULL;
+		HRESULT hr = m_pWrapped->GetReal()->QueryInterface(__uuidof(IDXGIResource1), (void **)&res);
+		if(FAILED(hr))
+		{
+			SAFE_RELEASE(res);
+			return hr;
+		}
+
+		hr = res->CreateSharedHandle(pAttributes, dwAccess, lpName, pHandle);
+		SAFE_RELEASE(res);
+		return hr;
+	}
+
 	//////////////////////////////
 	// Implement IDXGISurface2
 	virtual HRESULT STDMETHODCALLTYPE GetResource(REFIID riid, void **ppParentResource, UINT *pSubresourceIndex)
@@ -448,6 +458,7 @@ public:
 		if(pSubresourceIndex) pSubresourceIndex = 0;
 		return QueryInterface(riid, ppParentResource);
 	}
+#endif
 };
 
 template<typename NestedType>
@@ -508,14 +519,16 @@ public:
 
 		// for DXGI object queries, just make a new throw-away WrappedDXGIObject
 		// and return.
-		if(riid == __uuidof(IDXGIObject) ||
-			riid == __uuidof(IDXGIDeviceSubObject) ||
-			riid == __uuidof(IDXGIResource) ||
-			riid == __uuidof(IDXGIResource1) ||
-			riid == __uuidof(IDXGIKeyedMutex) ||
-			riid == __uuidof(IDXGISurface) ||
-			riid == __uuidof(IDXGISurface1) ||
-			riid == __uuidof(IDXGISurface2)
+		if(riid == __uuidof(IDXGIObject)
+			|| riid == __uuidof(IDXGIDeviceSubObject)
+			|| riid == __uuidof(IDXGIResource)
+			|| riid == __uuidof(IDXGIKeyedMutex)
+			|| riid == __uuidof(IDXGISurface)
+			|| riid == __uuidof(IDXGISurface1)
+#if defined(INCLUDE_D3D_11_1)
+			|| riid == __uuidof(IDXGIResource1)
+			|| riid == __uuidof(IDXGISurface2)
+#endif
 			)
 		{
 			// ensure the real object has this interface
@@ -538,11 +551,13 @@ public:
 			if(riid == __uuidof(IDXGIObject))               *ppvObject = (IDXGIObject *)(IDXGIKeyedMutex *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGIDeviceSubObject)) *ppvObject = (IDXGIDeviceSubObject *)(IDXGIKeyedMutex *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGIResource))        *ppvObject = (IDXGIResource *)dxgiWrapper;
-			else if(riid == __uuidof(IDXGIResource1))       *ppvObject = (IDXGIResource1 *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGIKeyedMutex))      *ppvObject = (IDXGIKeyedMutex *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface))         *ppvObject = (IDXGISurface *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface1))        *ppvObject = (IDXGISurface1 *)dxgiWrapper;
+#if defined(INCLUDE_D3D_11_1)
+			else if(riid == __uuidof(IDXGIResource1))       *ppvObject = (IDXGIResource1 *)dxgiWrapper;
 			else if(riid == __uuidof(IDXGISurface2))        *ppvObject = (IDXGISurface2 *)dxgiWrapper;
+#endif
 
 			return S_OK;
 		}
@@ -878,32 +893,6 @@ public:
 	}
 };
 
-class WrappedID3D11RasterizerState1 : public WrappedDeviceChild<ID3D11RasterizerState1>
-{
-public:
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11RasterizerState1);
-
-	WrappedID3D11RasterizerState1(ID3D11RasterizerState1* real, WrappedID3D11Device* device)
-		: WrappedDeviceChild<ID3D11RasterizerState1>(real, device) {}
-	virtual ~WrappedID3D11RasterizerState1() { Shutdown(); }
-
-	//////////////////////////////
-	// implement ID3D11RasterizerStat1
-
-	virtual void STDMETHODCALLTYPE GetDesc(D3D11_RASTERIZER_DESC *pDesc)
-	{
-		m_pReal->GetDesc(pDesc);
-	}
-
-	//////////////////////////////
-	// implement ID3D11RasterizerState1
-
-	virtual void STDMETHODCALLTYPE GetDesc1(D3D11_RASTERIZER_DESC1 *pDesc)
-	{
-		m_pReal->GetDesc1(pDesc);
-	}
-};
-
 class WrappedID3D11BlendState : public WrappedDeviceChild<ID3D11BlendState>
 {
 public:
@@ -919,32 +908,6 @@ public:
 	virtual void STDMETHODCALLTYPE GetDesc(D3D11_BLEND_DESC *pDesc)
 	{
 		m_pReal->GetDesc(pDesc);
-	}
-};
-
-class WrappedID3D11BlendState1 : public WrappedDeviceChild<ID3D11BlendState1>
-{
-public:
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11BlendState1);
-
-	WrappedID3D11BlendState1(ID3D11BlendState1* real, WrappedID3D11Device* device)
-		: WrappedDeviceChild<ID3D11BlendState1>(real, device) {}
-	virtual ~WrappedID3D11BlendState1() { Shutdown(); }
-
-	//////////////////////////////
-	// implement ID3D11BlendState
-
-	virtual void STDMETHODCALLTYPE GetDesc(D3D11_BLEND_DESC *pDesc)
-	{
-		m_pReal->GetDesc(pDesc);
-	}
-
-	//////////////////////////////
-	// implement ID3D11BlendState1
-
-	virtual void STDMETHODCALLTYPE GetDesc1(D3D11_BLEND_DESC1 *pDesc)
-	{
-		m_pReal->GetDesc1(pDesc);
 	}
 };
 
@@ -1418,3 +1381,57 @@ public:
 		return m_pReal->GetContextFlags();
 	}
 };
+
+#if defined(INCLUDE_D3D_11_1)
+class WrappedID3D11RasterizerState1 : public WrappedDeviceChild<ID3D11RasterizerState1>
+{
+public:
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11RasterizerState1);
+
+	WrappedID3D11RasterizerState1(ID3D11RasterizerState1* real, WrappedID3D11Device* device)
+		: WrappedDeviceChild<ID3D11RasterizerState1>(real, device) {}
+	virtual ~WrappedID3D11RasterizerState1() { Shutdown(); }
+
+	//////////////////////////////
+	// implement ID3D11RasterizerStat1
+
+	virtual void STDMETHODCALLTYPE GetDesc(D3D11_RASTERIZER_DESC *pDesc)
+	{
+		m_pReal->GetDesc(pDesc);
+	}
+
+	//////////////////////////////
+	// implement ID3D11RasterizerState1
+
+	virtual void STDMETHODCALLTYPE GetDesc1(D3D11_RASTERIZER_DESC1 *pDesc)
+	{
+		m_pReal->GetDesc1(pDesc);
+	}
+};
+
+class WrappedID3D11BlendState1 : public WrappedDeviceChild<ID3D11BlendState1>
+{
+public:
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11BlendState1);
+
+	WrappedID3D11BlendState1(ID3D11BlendState1* real, WrappedID3D11Device* device)
+		: WrappedDeviceChild<ID3D11BlendState1>(real, device) {}
+	virtual ~WrappedID3D11BlendState1() { Shutdown(); }
+
+	//////////////////////////////
+	// implement ID3D11BlendState
+
+	virtual void STDMETHODCALLTYPE GetDesc(D3D11_BLEND_DESC *pDesc)
+	{
+		m_pReal->GetDesc(pDesc);
+	}
+
+	//////////////////////////////
+	// implement ID3D11BlendState1
+
+	virtual void STDMETHODCALLTYPE GetDesc1(D3D11_BLEND_DESC1 *pDesc)
+	{
+		m_pReal->GetDesc1(pDesc);
+	}
+};
+#endif

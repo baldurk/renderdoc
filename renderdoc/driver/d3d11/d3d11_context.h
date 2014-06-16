@@ -28,7 +28,9 @@
 #include "core/core.h"
 #include "replay/renderdoc.h"
 
+#if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>
+#endif
 
 #include "d3d11_manager.h"
 
@@ -68,6 +70,7 @@ struct MapIntercept
 
 class WrappedID3D11DeviceContext;
 
+#if defined(INCLUDE_D3D_11_1)
 // ID3DUserDefinedAnnotation
 class WrappedID3DUserDefinedAnnotation : public RefCounter, public ID3DUserDefinedAnnotation
 {
@@ -90,6 +93,7 @@ class WrappedID3DUserDefinedAnnotation : public RefCounter, public ID3DUserDefin
 	private:
 		WrappedID3D11DeviceContext *m_Context;
 };
+#endif
 
 enum CaptureFailReason
 {
@@ -121,7 +125,12 @@ struct DrawcallTreeNode
 	}
 };
 
-class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext1
+class WrappedID3D11DeviceContext : public RefCounter,
+#if defined(INCLUDE_D3D_11_1)
+	public ID3D11DeviceContext1
+#else
+	public ID3D11DeviceContext
+#endif
 {
 private:
 	friend class WrappedID3D11DeviceContext;
@@ -150,8 +159,10 @@ private:
 
 	WrappedID3D11Device* m_pDevice;
 	ID3D11DeviceContext* m_pRealContext;
+#if defined(INCLUDE_D3D_11_1)
 	ID3D11DeviceContext1* m_pRealContext1;
 	bool m_SetCBuffer1;
+#endif
 
 	set<D3D11ResourceRecord *> m_DeferredRecords;
 	map<ResourceId, int> m_MapResourceRecordAllocs;
@@ -176,7 +187,9 @@ private:
 	vector<FetchAPIEvent> m_CurEvents, m_Events;
 	bool m_AddedDrawcall;
 	
+#if defined(INCLUDE_D3D_11_1)
 	WrappedID3DUserDefinedAnnotation m_UserAnnotation;
+#endif
 	int32_t m_MarkerIndentLevel;
 
 	struct Annotation
@@ -1098,6 +1111,25 @@ public:
 	//////////////////////////////
 	// implement ID3D11DeviceContext1
 	
+	// outside the define as it doesn't depend on any 11_1 definitions, and it's just an unused
+	// virtual function. We re-use the Serialise_UpdateSubresource1 function for Serialise_UpdateSubresource
+    IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, UpdateSubresource1( 
+        /* [annotation] */ 
+        _In_  ID3D11Resource *pDstResource,
+        /* [annotation] */ 
+        _In_  UINT DstSubresource,
+        /* [annotation] */ 
+        _In_opt_  const D3D11_BOX *pDstBox,
+        /* [annotation] */ 
+        _In_  const void *pSrcData,
+        /* [annotation] */ 
+        _In_  UINT SrcRowPitch,
+        /* [annotation] */ 
+        _In_  UINT SrcDepthPitch,
+        /* [annotation] */ 
+        _In_  UINT CopyFlags));
+    
+#if defined(INCLUDE_D3D_11_1)
     IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, CopySubresourceRegion1( 
         /* [annotation] */ 
         _In_  ID3D11Resource *pDstResource,
@@ -1115,22 +1147,6 @@ public:
         _In_  UINT SrcSubresource,
         /* [annotation] */ 
         _In_opt_  const D3D11_BOX *pSrcBox,
-        /* [annotation] */ 
-        _In_  UINT CopyFlags));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, UpdateSubresource1( 
-        /* [annotation] */ 
-        _In_  ID3D11Resource *pDstResource,
-        /* [annotation] */ 
-        _In_  UINT DstSubresource,
-        /* [annotation] */ 
-        _In_opt_  const D3D11_BOX *pDstBox,
-        /* [annotation] */ 
-        _In_  const void *pSrcData,
-        /* [annotation] */ 
-        _In_  UINT SrcRowPitch,
-        /* [annotation] */ 
-        _In_  UINT SrcDepthPitch,
         /* [annotation] */ 
         _In_  UINT CopyFlags));
     
@@ -1307,5 +1323,5 @@ public:
         /* [annotation] */ 
         _In_reads_opt_(NumRects)  const D3D11_RECT *pRects,
         UINT NumRects));
-
+#endif
 };

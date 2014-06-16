@@ -27,6 +27,9 @@
 
 #define INITGUID
 
+// if you don't have the windows 8.1 SDK, remove this define to exclude the 11.1 functionality
+#define INCLUDE_D3D_11_1
+
 #include <dxgi.h>
 #include <d3d11.h>
 
@@ -122,7 +125,9 @@ public:
 
 #include "serialise/serialiser.h"
 
+#if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>
+#endif
 
 // I don't really like this but it's not the end of the world - declare d3d specialisations to enforce
 // that this specialisation gets used.
@@ -135,16 +140,19 @@ template<> void Serialiser::Serialise(const char *name, D3D11_RENDER_TARGET_VIEW
 template<> void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_VIEW_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_UNORDERED_ACCESS_VIEW_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el);
-template<> void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el);
-template<> void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_QUERY_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_COUNTER_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_INPUT_ELEMENT_DESC &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENTRY &el);
 template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &el);
+
+#if defined(INCLUDE_D3D_11_1)
+template<> void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el);
+template<> void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el);
+#endif
 
 #pragma region Chunks
 

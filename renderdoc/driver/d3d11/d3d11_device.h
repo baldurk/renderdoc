@@ -33,7 +33,9 @@
 #include "core/core.h"
 #include "replay/renderdoc.h"
 
+#if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>
+#endif
 
 #include "d3d11_manager.h"
 #include "d3d11_replay.h"
@@ -126,7 +128,12 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-class WrappedID3D11Device : public ID3D11Device1
+class WrappedID3D11Device :
+#if defined(INCLUDE_D3D_11_1)
+	public ID3D11Device1
+#else
+	public ID3D11Device
+#endif
 {
 private:
 	// since enumeration creates a lot of devices, save
@@ -148,7 +155,9 @@ private:
 	RDCInitParams *m_InitParams;
 
 	ID3D11Device* m_pDevice;
+#if defined(INCLUDE_D3D_11_1)
 	ID3D11Device1* m_pDevice1;
+#endif
 	ID3D11InfoQueue *m_pInfoQueue;
 	WrappedID3D11DeviceContext* m_pImmediateContext;
 
@@ -587,8 +596,9 @@ public:
 	
 
 	//////////////////////////////
-	// implement ID3D11Device
-
+	// implement ID3D11Device1
+	
+#if defined(INCLUDE_D3D_11_1)
     IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext));
     
     IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeferredContext1( 
@@ -638,4 +648,5 @@ public:
         /* [annotation] */ 
         _Out_  void **ppResource));
         
+#endif
 };

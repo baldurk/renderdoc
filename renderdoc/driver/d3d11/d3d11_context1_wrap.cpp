@@ -29,79 +29,6 @@
 
 #include "common/string_utils.h"
 
-bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(ID3D11Resource *pDstResource, UINT DstSubresource,
-																	UINT DstX, UINT DstY, UINT DstZ,
-																	ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags)
-{
-	SERIALISE_ELEMENT(ResourceId, Destination, GetIDForResource(pDstResource));
-	SERIALISE_ELEMENT(uint32_t, DestSubresource, DstSubresource);
-	SERIALISE_ELEMENT(uint32_t, DestX, DstX);
-	SERIALISE_ELEMENT(uint32_t, DestY, DstY);
-	SERIALISE_ELEMENT(uint32_t, DestZ, DstZ);
-	SERIALISE_ELEMENT(ResourceId, Source, GetIDForResource(pSrcResource));
-	SERIALISE_ELEMENT(uint32_t, SourceSubresource, SrcSubresource);
-	SERIALISE_ELEMENT(uint8_t, HasSourceBox, pSrcBox != NULL);
-	SERIALISE_ELEMENT_OPT(D3D11_BOX, SourceBox, *pSrcBox, HasSourceBox);
-	SERIALISE_ELEMENT(UINT, flags, CopyFlags);
-
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Destination))
-	{
-		D3D11_BOX *box = &SourceBox;
-		if(!HasSourceBox)
-			box = NULL;
-
-		if(m_pRealContext1)
-		{
-			m_pRealContext1->CopySubresourceRegion1(m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Destination)),
-														DestSubresource, DestX, DestY, DestZ,
-														m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Source)),
-														SourceSubresource, box, flags);
-		}
-		else
-		{
-			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
-		}
-	}
-
-	return true;
-}
-
-void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstResource, UINT DstSubresource,
-														UINT DstX, UINT DstY, UINT DstZ,
-														ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags)
-{
-	if(m_pRealContext1 == NULL) return;
-	
-	DrainAnnotationQueue();
-
-	m_EmptyCommandList = false;
-
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(COPY_SUBRESOURCE_REGION1);
-		m_pSerialiser->Serialise("context", m_ResourceID);	
-		Serialise_CopySubresourceRegion1(pDstResource, DstSubresource, DstX, DstY, DstZ,
-										pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
-
-		m_MissingTracks.insert(GetIDForResource(pDstResource));
-
-		m_ContextRecord->AddChunk(scope.Get());
-	}
-	else
-	{
-		// just mark dirty
-		D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pDstResource));
-		RDCASSERT(record);
-
-		m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pDstResource));
-	}
-	
-	m_pRealContext1->CopySubresourceRegion1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource),
-												DstSubresource, DstX, DstY, DstZ,
-												m_pDevice->GetResourceManager()->UnwrapResource(pSrcResource),
-												SrcSubresource, pSrcBox, CopyFlags);
-}
-
 bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
 																const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
 {
@@ -218,12 +145,14 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			}
 			else
 			{
+#if defined(INCLUDE_D3D_11_1)
 				if(m_pRealContext1)
 				{
 					m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, pBox,
 															SourceData, SourceRowPitch, SourceDepthPitch, flags);
 				}
 				else
+#endif
 				{
 					RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
 				}
@@ -295,12 +224,14 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 			}
 			else
 			{
+#if defined(INCLUDE_D3D_11_1)
 				if(m_pRealContext1)
 				{
 					m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, NULL,
 														bufData, SourceRowPitch, SourceDepthPitch, flags);
 				}
 				else
+#endif
 				{
 					RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
 				}
@@ -317,6 +248,7 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
 													const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
 {
+#if defined(INCLUDE_D3D_11_1)
 	if(m_pRealContext1 == NULL) return;
 
 	DrainAnnotationQueue();
@@ -342,6 +274,83 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
 
 	m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource), DstSubresource, pDstBox,
 											pSrcData, SrcRowPitch, SrcDepthPitch, CopyFlags);
+#else
+	return;
+#endif
+}
+
+#if defined(INCLUDE_D3D_11_1)
+bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(ID3D11Resource *pDstResource, UINT DstSubresource,
+																	UINT DstX, UINT DstY, UINT DstZ,
+																	ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags)
+{
+	SERIALISE_ELEMENT(ResourceId, Destination, GetIDForResource(pDstResource));
+	SERIALISE_ELEMENT(uint32_t, DestSubresource, DstSubresource);
+	SERIALISE_ELEMENT(uint32_t, DestX, DstX);
+	SERIALISE_ELEMENT(uint32_t, DestY, DstY);
+	SERIALISE_ELEMENT(uint32_t, DestZ, DstZ);
+	SERIALISE_ELEMENT(ResourceId, Source, GetIDForResource(pSrcResource));
+	SERIALISE_ELEMENT(uint32_t, SourceSubresource, SrcSubresource);
+	SERIALISE_ELEMENT(uint8_t, HasSourceBox, pSrcBox != NULL);
+	SERIALISE_ELEMENT_OPT(D3D11_BOX, SourceBox, *pSrcBox, HasSourceBox);
+	SERIALISE_ELEMENT(UINT, flags, CopyFlags);
+
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Destination))
+	{
+		D3D11_BOX *box = &SourceBox;
+		if(!HasSourceBox)
+			box = NULL;
+
+		if(m_pRealContext1)
+		{
+			m_pRealContext1->CopySubresourceRegion1(m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Destination)),
+														DestSubresource, DestX, DestY, DestZ,
+														m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Source)),
+														SourceSubresource, box, flags);
+		}
+		else
+		{
+			RDCERR("Replaying a D3D11.1 context without D3D11.1 available");
+		}
+	}
+
+	return true;
+}
+
+void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstResource, UINT DstSubresource,
+														UINT DstX, UINT DstY, UINT DstZ,
+														ID3D11Resource *pSrcResource, UINT SrcSubresource, const D3D11_BOX *pSrcBox, UINT CopyFlags)
+{
+	if(m_pRealContext1 == NULL) return;
+	
+	DrainAnnotationQueue();
+
+	m_EmptyCommandList = false;
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_SUBRESOURCE_REGION1);
+		m_pSerialiser->Serialise("context", m_ResourceID);	
+		Serialise_CopySubresourceRegion1(pDstResource, DstSubresource, DstX, DstY, DstZ,
+										pSrcResource, SrcSubresource, pSrcBox, CopyFlags);
+
+		m_MissingTracks.insert(GetIDForResource(pDstResource));
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else
+	{
+		// just mark dirty
+		D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pDstResource));
+		RDCASSERT(record);
+
+		m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pDstResource));
+	}
+	
+	m_pRealContext1->CopySubresourceRegion1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource),
+												DstSubresource, DstX, DstY, DstZ,
+												m_pDevice->GetResourceManager()->UnwrapResource(pSrcResource),
+												SrcSubresource, pSrcBox, CopyFlags);
 }
 
 bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FLOAT ColorRGBA[4], const D3D11_RECT *pRect, UINT NumRects)
@@ -1319,3 +1328,4 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
 	if(m_pRealContext1 == NULL) return;
 	m_pRealContext1->DiscardView1(pResourceView, pRects, NumRects);
 }
+#endif
