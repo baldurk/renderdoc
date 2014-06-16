@@ -4047,10 +4047,13 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
 		draw.debugMessages = debugMessages;
 
-		if(m_CmdLists.find(cmdList) != m_CmdLists.end())
-			draw.children = m_CmdLists[cmdList].Bake();
-
 		AddDrawcall(draw, true);
+
+		auto cmdDrawChildren = m_CmdLists.find(cmdList);
+
+		if(!m_DrawcallStack.empty() && !m_DrawcallStack.back()->children.empty() &&
+			 cmdDrawChildren != m_CmdLists.end())
+			m_DrawcallStack.back()->children.back().children = cmdDrawChildren->second.children;
 	}
 
 	return true;
