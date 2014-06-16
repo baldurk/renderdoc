@@ -646,12 +646,15 @@ namespace WeifenLuo.WinFormsUI.Docking
             }
             else
             {
-                Color startColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.StartColor;
-                Color endColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.EndColor;
-                LinearGradientMode gradientMode = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.LinearGradientMode;
-                using (LinearGradientBrush brush = new LinearGradientBrush(rect, startColor, endColor, gradientMode))
+                if (rect.Width > 0 && rect.Height > 0)
                 {
-                    e.Graphics.FillRectangle(brush, rect);
+                    Color startColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.StartColor;
+                    Color endColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.EndColor;
+                    LinearGradientMode gradientMode = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.DockStripGradient.LinearGradientMode;
+                    using (LinearGradientBrush brush = new LinearGradientBrush(rect, startColor, endColor, gradientMode))
+                    {
+                        e.Graphics.FillRectangle(brush, rect);
+                    }
                 }
             }
             base.OnPaint(e);
