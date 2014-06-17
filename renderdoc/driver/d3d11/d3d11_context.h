@@ -219,6 +219,7 @@ private:
 
 	void AddEvent(D3D11ChunkType type, string description, ResourceId ctx = ResourceId());
 	void AddDrawcall(FetchDrawcall draw, bool hasEvents);
+	void RefreshDrawcallIDs(DrawcallTreeNode &node);
 
 	////////////////////////////////////////////////////////////////
 	// implement InterceptorSystem privately, since it is not thread safe (like all other context functions)

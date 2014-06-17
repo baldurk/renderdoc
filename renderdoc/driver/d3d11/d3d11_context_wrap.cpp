@@ -4075,7 +4075,12 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
 		if(!m_DrawcallStack.empty() && !m_DrawcallStack.back()->children.empty() &&
 			 cmdDrawChildren != m_CmdLists.end())
+		{
 			m_DrawcallStack.back()->children.back().children = cmdDrawChildren->second.children;
+
+			// assign new drawcall IDs so that we don't get duplicates if this commandlist is executed again
+			RefreshDrawcallIDs(cmdDrawChildren->second);
+		}
 	}
 
 	return true;

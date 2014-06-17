@@ -900,6 +900,22 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 			m_ResourceUses[((WrappedID3D11RenderTargetView *)pipe->OM.RenderTargets[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_OM_RTV));
 }
 
+void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
+{
+	if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+	{
+		m_pDevice->GetImmediateContext()->RefreshDrawcallIDs(node);
+		return;
+	}
+
+	// assign new drawcall IDs
+	for(size_t i=0; i < node.children.size(); i++)
+	{
+		node.children[i].draw.drawcallID = m_CurDrawcallID++;
+		RefreshDrawcallIDs(node.children[i]);
+	}
+}
+
 void WrappedID3D11DeviceContext::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
 	if(d.context == ResourceId()) d.context = m_pDevice->GetResourceManager()->GetOriginalID(m_ResourceID);
