@@ -158,9 +158,9 @@ const char *GLChunkNames[] =
 	"glDeleteBuffer",
 	
 	"glObjectLabel",
-	"PushMarker",
-	"SetMarker",
-	"PopMarker",
+	"glPushDebugGroup",
+	"glDebugMessageInsert",
+	"glPopDebugGroup",
 
 	"Capture",
 	"BeginCapture",
@@ -811,11 +811,94 @@ void WrappedOpenGL::glDebugMessageControl(GLenum source, GLenum type, GLenum sev
 	m_Real.glDebugMessageControl(source, type, severity, count, ids, enabled);
 }
 
+bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf)
+{
+	wstring name = name_ ? widen(string(buf, buf+length)) : L"";
+
+	m_pSerialiser->Serialise("Name", name);
+
+	if(m_State == READING)
+	{
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_SetMarker;
+
+		AddDrawcall(draw, false);
+	}
+
+	return true;
+}
+
 void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf)
 {
+	if(m_State == WRITING_CAPFRAME && type == eGL_DEBUG_TYPE_MARKER)
+	{
+		SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+		Serialise_glDebugMessageInsert(source, type, id, severity, length, buf);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+
 	m_Real.glDebugMessageInsert(source, type, id, severity, length, buf);
 }
 
+bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
+{
+	wstring name = message ? widen(string(message, message+length)) : L"";
+
+	m_pSerialiser->Serialise("Name", name);
+
+	if(m_State == READING)
+	{
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_PushMarker;
+
+		AddDrawcall(draw, false);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
+		Serialise_glPushDebugGroup(source, id, length, message);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glPushDebugGroup(source, id, length, message);
+}
+
+bool WrappedOpenGL::Serialise_glPopDebugGroup()
+{
+	if(m_State == READING && !m_CurEvents.empty())
+	{
+		FetchDrawcall draw;
+		draw.name = L"API Calls";
+		draw.flags |= eDraw_SetMarker;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+void WrappedOpenGL::glPopDebugGroup()
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(END_EVENT);
+		Serialise_glPopDebugGroup();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	m_Real.glPopDebugGroup();
+}
+		
 void WrappedOpenGL::ReadLogInitialisation()
 {
 	uint64_t lastFrame = 0;
@@ -1257,6 +1340,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		
 	case OBJECT_LABEL:
 		Serialise_glObjectLabel(eGL_UNKNOWN_ENUM, 0, 0, NULL);
+		break;
+	case BEGIN_EVENT:
+		Serialise_glPushDebugGroup(eGL_UNKNOWN_ENUM, 0, 0, NULL);
+		break;
+	case SET_MARKER:
+		Serialise_glDebugMessageInsert(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case END_EVENT:
+		Serialise_glPopDebugGroup();
 		break;
 
 	case CAPTURE_SCOPE:
