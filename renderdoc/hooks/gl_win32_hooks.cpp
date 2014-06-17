@@ -84,6 +84,15 @@
 
 	*/
 
+// don't want these definitions, the only place we'll use these is as parameter/variable names
+#ifdef near
+#undef near
+#endif
+
+#ifdef far
+#undef far
+#endif
+
 #define HookWrapper0(ret, function) \
         Hook<ret (WINAPI *) ()> CONCAT(function, _hook); \
         typedef ret (WINAPI *CONCAT(function, _hooktype)) (); \

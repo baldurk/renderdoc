@@ -87,6 +87,15 @@ typedef void (*PFNGLXSWAPBUFFERSPROC)(Display *dpy, GLXDrawable drawable);
 
 	*/
 
+// don't want these definitions, the only place we'll use these is as parameter/variable names
+#ifdef near
+#undef near
+#endif
+
+#ifdef far
+#undef far
+#endif
+
 #define HookWrapper0(ret, function) \
 	typedef ret (*CONCAT(function, _hooktype)) (); \
 	extern "C" __attribute__ ((visibility ("default"))) \

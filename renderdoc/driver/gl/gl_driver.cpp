@@ -813,7 +813,7 @@ void WrappedOpenGL::glDebugMessageControl(GLenum source, GLenum type, GLenum sev
 
 bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf)
 {
-	wstring name = name_ ? widen(string(buf, buf+length)) : L"";
+	wstring name = buf ? widen(string(buf, buf+length)) : L"";
 
 	m_pSerialiser->Serialise("Name", name);
 
