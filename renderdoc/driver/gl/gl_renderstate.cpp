@@ -246,10 +246,13 @@ void GLRenderState::Clear()
 void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 {
 	// TODO check GL_MAX_*
-
+	
+	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
-		ResourceId IDs[128];
-		m_pSerialiser->Serialise<128>("GL_TEXTURE_BINDING_2D", IDs);
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(TextureRes(Tex2D[i]));
+		m_pSerialiser->Serialise("GL_TEXTURE_BINDING_2D", ID);
+		if(state < WRITING && ID != ResourceId()) Tex2D[i] = rm->GetLiveResource(ID).name;
 	}
 
 	m_pSerialiser->Serialise("GL_ACTIVE_TEXTURE", ActiveTexture);
