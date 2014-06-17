@@ -85,7 +85,7 @@ struct GLRenderState
 	float DepthClearValue;
 	struct
 	{
-		float nearZ, farZ;
+		double nearZ, farZ;
 	} DepthRanges[16];
 
 	struct

@@ -283,6 +283,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCullFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthFunc(GLenum func));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthMask(GLboolean flag));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRange(GLdouble nearVal, GLdouble farVal));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangef(GLfloat nearVal, GLfloat farVal));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDisable(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnable(GLenum cap));
@@ -297,6 +299,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBooleanv(GLenum pname, GLboolean *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetIntegeri_v(GLenum pname, GLuint index, GLint *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFloati_v(GLenum pname, GLuint index, GLfloat *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetDoublei_v(GLenum pname, GLuint index, GLdouble *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetInteger64i_v(GLenum target, GLuint index, GLint64 *data));
 		IMPLEMENT_FUNCTION_SERIALISED(const GLubyte *, glGetStringi(GLenum name, GLuint i));

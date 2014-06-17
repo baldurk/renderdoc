@@ -323,6 +323,35 @@ void WrappedOpenGL::glDepthMask(GLboolean flag)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDepthRange(GLdouble nearVal, GLdouble farVal)
+{
+	SERIALISE_ELEMENT(GLdouble, n, nearVal);
+	SERIALISE_ELEMENT(GLdouble, f, farVal);
+
+	if(m_State <= EXECUTING)
+		m_Real.glDepthRange(n, f);
+
+	return true;
+}
+
+void WrappedOpenGL::glDepthRange(GLdouble nearVal, GLdouble farVal)
+{
+	m_Real.glDepthRange(nearVal, farVal);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE);
+		Serialise_glDepthRange(nearVal, farVal);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glDepthRangef(GLfloat nearVal, GLfloat farVal)
+{
+	glDepthRange(nearVal, farVal);
+}
+
 bool WrappedOpenGL::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
 {
 	SERIALISE_ELEMENT(uint32_t, idx, first);

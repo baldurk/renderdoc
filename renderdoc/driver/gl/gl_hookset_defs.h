@@ -119,6 +119,7 @@
     HookExtension(PFNGLGETBOOLEANI_VPROC, glGetBooleani_v); \
     HookExtension(PFNGLGETINTEGERI_VPROC, glGetIntegeri_v); \
     HookExtension(PFNGLGETFLOATI_VPROC, glGetFloati_v); \
+    HookExtension(PFNGLGETDOUBLEI_VPROC, glGetDoublei_v); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
     HookExtension(PFNGLCHECKFRAMEBUFFERSTATUSPROC, glCheckFramebufferStatus); \
     HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
@@ -128,6 +129,8 @@
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
     HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
+    HookExtension(PFNGLDEPTHRANGEPROC, glDepthRange); \
+    HookExtension(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HookExtension(PFNGLDEPTHRANGEARRAYVPROC, glDepthRangeArrayv); \
     HookExtension(PFNGLCREATESHADERPROC, glCreateShader); \
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
@@ -371,6 +374,7 @@
     HookWrapper3(void, glGetBooleani_v, GLenum, target, GLuint, index, GLboolean *, data); \
     HookWrapper3(void, glGetIntegeri_v, GLenum, target, GLuint, index, GLint *, data); \
     HookWrapper3(void, glGetFloati_v, GLenum, target, GLuint, index, GLfloat *, data); \
+    HookWrapper3(void, glGetDoublei_v, GLenum, target, GLuint, index, GLdouble *, data); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
     HookWrapper1(GLenum, glCheckFramebufferStatus, GLenum, target); \
     HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
@@ -380,6 +384,8 @@
     HookWrapper2(void, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
+    HookWrapper2(void, glDepthRange, GLdouble, nearVal, GLdouble, farVal); \
+    HookWrapper2(void, glDepthRangef, GLfloat, nearVal, GLfloat, farVal); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
     HookWrapper1(GLuint, glCreateShader, GLenum, type); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \

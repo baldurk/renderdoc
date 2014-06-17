@@ -120,8 +120,8 @@ void GLRenderState::FetchState()
 	m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
 	m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
 	
-	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
-		m_Real->glGetFloatv(eGL_DEPTH_RANGE, &DepthRanges[i].nearZ);
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
+		m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 	
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
