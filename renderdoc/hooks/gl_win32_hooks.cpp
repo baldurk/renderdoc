@@ -35,7 +35,7 @@
 
 #define HookInit(function) \
 	bool CONCAT(function, _success) = CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
-	if(!CONCAT(function, _success)) RDCERR("Couldn't hook %s", STRINGIZE(function)); \
+	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %s", STRINGIZE(function)); \
 	success &= CONCAT(function, _success); \
 	GL.function = CONCAT(function, _hook)();
 
