@@ -38,6 +38,7 @@ GLRenderState::~GLRenderState()
 void GLRenderState::FetchState()
 {
 	// TODO check GL_MAX_*
+	// TODO check the extensions/core version for these is around
 
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 	
@@ -123,6 +124,8 @@ void GLRenderState::FetchState()
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
 		m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 	
+	m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+	
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
 
@@ -203,6 +206,8 @@ void GLRenderState::ApplyState()
 		double v[2] = { DepthRanges[i].nearZ, DepthRanges[i].farZ };
 		m_Real->glDepthRangeArrayv(i, 1, v);
 	}
+
+	m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
@@ -235,6 +240,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(DepthWriteMask);
 	RDCEraseEl(DepthClearValue);
 	RDCEraseEl(DepthRanges);
+	RDCEraseEl(DepthBounds);
 	RDCEraseEl(ColorMasks);
 	RDCEraseEl(ColorClearValue);
 
@@ -334,6 +340,11 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_DEPTH_RANGE.far", DepthRanges[i].farZ);
 	}
 	
+	{
+		m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.near", DepthBounds.nearZ);
+		m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.far", DepthBounds.farZ);
+	}
+
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
 

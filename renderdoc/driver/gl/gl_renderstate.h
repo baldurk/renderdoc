@@ -87,6 +87,11 @@ struct GLRenderState
 	{
 		double nearZ, farZ;
 	} DepthRanges[16];
+	
+	struct
+	{
+		double nearZ, farZ;
+	} DepthBounds;
 
 	struct
 	{

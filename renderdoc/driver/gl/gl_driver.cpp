@@ -107,6 +107,7 @@ const char *GLChunkNames[] =
 	"glDepthMask",
 	"glDepthRange",
 	"glDepthRangeArrayv",
+	"glDepthBoundsEXT",
 	"glViewport",
 	"glViewportArrayv",
 	"glScissor",
@@ -1157,6 +1158,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DEPTH_RANGEARRAY:
 		Serialise_glDepthRangeArrayv(0, 0, NULL);
 		break;
+	case DEPTH_BOUNDS:
+		Serialise_glDepthBoundsEXT(0, 0);
+		break;
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);
 		break;
@@ -1585,6 +1589,11 @@ void WrappedOpenGL::glFinish()
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
 {
 	m_Real.glGetFloatv(pname, params);
+}
+
+void WrappedOpenGL::glGetDoublev(GLenum pname, GLdouble *params)
+{
+	m_Real.glGetDoublev(pname, params);
 }
 
 void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
