@@ -189,6 +189,16 @@
     HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
     HookExtension(PFNGLDELETEFRAMEBUFFERSPROC, glDeleteFramebuffers); \
     HookExtension(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glGetFramebufferAttachmentParameteriv); \
+    HookExtension(PFNGLFENCESYNCPROC, glFenceSync); \
+    HookExtension(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync); \
+    HookExtension(PFNGLWAITSYNCPROC, glWaitSync); \
+    HookExtension(PFNGLDELETESYNCPROC, glDeleteSync); \
+    HookExtension(PFNGLGENQUERIESPROC, glGenQueries); \
+    HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
+    HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
+    HookExtension(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v); \
+    HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
+    HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
@@ -467,6 +477,16 @@
     HookWrapper4(void, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper2(void, glDeleteFramebuffers, GLsizei, n, const GLuint *, framebuffers); \
     HookWrapper4(void, glGetFramebufferAttachmentParameteriv, GLenum, target, GLenum, attachment, GLenum, pname, GLint *, params); \
+    HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
+    HookWrapper3(GLenum, glClientWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
+    HookWrapper3(void, glWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
+    HookWrapper1(void, glDeleteSync, GLsync, sync); \
+    HookWrapper2(void, glGenQueries, GLsizei, n, GLuint *, ids); \
+    HookWrapper2(void, glBeginQuery, GLenum, target, GLuint, id); \
+    HookWrapper1(void, glEndQuery, GLenum, target); \
+    HookWrapper3(void, glGetQueryObjectui64v, GLuint, id, GLenum, pname, GLuint64 *, params); \
+    HookWrapper3(void, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
+    HookWrapper2(void, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
     HookWrapper4(void, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \

@@ -503,6 +503,9 @@
     <ClCompile Include="driver\gl\wrappers\gl_get_funcs.cpp">
       <Filter>Drivers\OpenGL\Function Wrappers</Filter>
     </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_query_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

@@ -72,6 +72,14 @@ const char *GLChunkNames[] =
 	"glUseProgramStages",
 	"glBindProgramPipeline",
 
+	"glFenceSync",
+	"glClientWaitSync",
+	"glWaitSync",
+
+	"glGenQueries",
+	"glBeginQuery",
+	"glEndQuery",
+
 	"glClearColor",
 	"glClearDepth",
 	"glClear",

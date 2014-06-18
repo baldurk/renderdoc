@@ -350,6 +350,20 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPopDebugGroup());
+		
+		bool Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags);
+		GLsync glFenceSync(GLenum condition, GLbitfield flags);
+
+		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteSync(GLsync sync));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGenQueries(GLsizei n, GLuint *ids));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBeginQuery(GLenum target, GLuint id));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glEndQuery(GLenum target));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteQueries(GLsizei n, const GLuint *ids));
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glActiveTexture(GLenum texture));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));

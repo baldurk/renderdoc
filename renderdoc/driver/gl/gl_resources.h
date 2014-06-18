@@ -43,6 +43,8 @@ enum GLNamespace
 	eResShader,
 	eResProgram,
 	eResProgramPipe,
+	eResQuery,
+	eResSync,
 };
 
 enum GLSpecialResource
@@ -86,6 +88,8 @@ inline GLResource VertexArrayRes(GLuint i) { return GLResource(eResVertexArray, 
 inline GLResource ShaderRes(GLuint i) { return GLResource(eResShader, i); }
 inline GLResource ProgramRes(GLuint i) { return GLResource(eResProgram, i); }
 inline GLResource ProgramPipeRes(GLuint i) { return GLResource(eResProgramPipe, i); }
+inline GLResource QueryRes(GLuint i) { return GLResource(eResQuery, i); }
+inline GLResource SyncRes(GLuint i) { return GLResource(eResSync, i); }
 
 struct GLResourceRecord : public ResourceRecord
 {

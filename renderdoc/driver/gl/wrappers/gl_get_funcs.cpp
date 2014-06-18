@@ -154,6 +154,16 @@ void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeipt
 	m_Real.glGetBufferSubData(target, offset, size, data);
 }
 
+void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
+{
+	m_Real.glGetQueryObjectuiv(id, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params)
+{
+	m_Real.glGetQueryObjectui64v(id, pname, params);
+}
+
 const GLubyte *WrappedOpenGL::glGetString(GLenum name)
 {
 	if(name == GL_EXTENSIONS)

@@ -34,7 +34,7 @@ class WrappedOpenGL;
 class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 {
 	public: 
-		GLResourceManager(WrappedOpenGL *gl) : m_GL(gl) {}
+		GLResourceManager(WrappedOpenGL *gl) : m_GL(gl), m_SyncName(1) {}
 		~GLResourceManager() {}
 
 		void Shutdown()
@@ -115,6 +115,25 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return ResourceManager::GetResourceRecord(GetID(res));
 		}
 
+		void RegisterSync(GLsync sync, GLuint &name, ResourceId &id)
+		{
+			name = (GLuint)Atomic::Inc64(&m_SyncName);
+			id = RegisterResource(SyncRes(name));
+
+			m_SyncIDs[sync] = id;
+			m_CurrentSyncs[name] = sync;
+		}
+
+		GLsync GetSync(GLuint name)
+		{
+			return m_CurrentSyncs[name];
+		}
+
+		ResourceId GetSyncID(GLsync sync)
+		{
+			return m_SyncIDs[sync];
+		}
+
 	private:
 		bool SerialisableResource(ResourceId id, GLResourceRecord *record);
 		
@@ -130,6 +149,12 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		map<GLResource, GLResourceRecord*> m_GLResourceRecords;
 
 		map<GLResource, ResourceId> m_CurrentResourceIds;
+
+		// sync objects must be treated differently as they're not GLuint names, but pointer sized.
+		// We manually give them GLuint names so they're otherwise namespaced as (eResSync, GLuint)
+		map<GLsync, ResourceId> m_SyncIDs;
+		map<GLuint, GLsync> m_CurrentSyncs;
+		volatile int64_t m_SyncName;
 
 		WrappedOpenGL *m_GL;
 };
