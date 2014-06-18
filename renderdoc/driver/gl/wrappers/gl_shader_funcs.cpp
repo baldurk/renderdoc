@@ -402,6 +402,70 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(uint32_t, index, uniformBlockIndex);
+	SERIALISE_ELEMENT(uint32_t, binding, uniformBlockBinding);
+
+	if(m_State == READING)
+	{
+		m_Real.glUniformBlockBinding(GetResourceManager()->GetLiveResource(id).name, index, binding);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding)
+{
+	m_Real.glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(UNIFORM_BLOCKBIND);
+			Serialise_glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name_)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(uint32_t, idx, index);
+	
+	string name = name_ ? name_ : "";
+	m_pSerialiser->Serialise("Name", name);
+
+	if(m_State == READING)
+	{
+		m_Real.glBindAttribLocation(GetResourceManager()->GetLiveResource(id).name, idx, name.c_str());
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
+{
+	m_Real.glBindAttribLocation(program, index, name);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(BINDATTRIB_LOCATION);
+			Serialise_glBindAttribLocation(program, index, name);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));

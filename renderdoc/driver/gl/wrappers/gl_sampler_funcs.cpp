@@ -300,3 +300,11 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
+
+void WrappedOpenGL::glDeleteSamplers(GLsizei n, const GLuint *ids)
+{
+	m_Real.glDeleteSamplers(n, ids);
+
+	for(GLsizei i=0; i < n; i++)
+		GetResourceManager()->UnregisterResource(SamplerRes(ids[i]));
+}

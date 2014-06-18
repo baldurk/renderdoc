@@ -169,7 +169,45 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuint origtexture, GLenum internalformat, GLuint minlevel, GLuint numlevels, GLuint minlayer, GLuint numlayers)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
+	SERIALISE_ELEMENT(uint32_t, MinLevel, minlevel);
+	SERIALISE_ELEMENT(uint32_t, NumLevels, numlevels);
+	SERIALISE_ELEMENT(uint32_t, MinLayer, minlayer);
+	SERIALISE_ELEMENT(uint32_t, NumLayers, numlayers);
+	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(texture)));
+	SERIALISE_ELEMENT(ResourceId, origid, GetResourceManager()->GetID(TextureRes(origtexture)));
 
+	if(m_State == READING)
+	{
+		GLResource tex = GetResourceManager()->GetLiveResource(texid);
+		GLResource origtex = GetResourceManager()->GetLiveResource(origid);
+		m_Real.glTextureView(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels, MinLayer, NumLayers);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtexture, GLenum internalformat, GLuint minlevel, GLuint numlevels, GLuint minlayer, GLuint numlayers)
+{
+	m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer, numlayers);
+	
+	if(m_State >= WRITING)
+	{
+		ResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		ResourceRecord *origrecord = GetResourceManager()->GetResourceRecord(TextureRes(origtexture));
+		RDCASSERT(record && origrecord);
+
+		SCOPED_SERIALISE_CONTEXT(TEXTURE_VIEW);
+		Serialise_glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer, numlayers);
+
+		record->AddChunk(scope.Get());
+		record->AddParent(origrecord);
+	}
+}
+		
 bool WrappedOpenGL::Serialise_glGenerateMipmap(GLenum target)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
