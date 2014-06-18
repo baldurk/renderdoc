@@ -182,10 +182,11 @@ class WrappedOpenGL
 
 		struct ProgramData
 		{
-			ProgramData() : colOutProg(0) {}
+			ProgramData() : colOutProg(0), linked(false) {}
 			vector<ResourceId> shaders;
 
 			GLuint colOutProg;
+			bool linked;
 		};
 
 		map<ResourceId, ShaderData> m_Shaders;
@@ -386,6 +387,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetShaderiv(GLuint shader, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glAttachShader(GLuint program, GLuint shader));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDetachShader(GLuint program, GLuint shader));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReleaseShaderCompiler());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glLinkProgram(GLuint program));

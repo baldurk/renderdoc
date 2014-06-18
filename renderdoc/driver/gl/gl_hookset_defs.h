@@ -145,6 +145,7 @@
     HookExtension(PFNGLCREATEPROGRAMPROC, glCreateProgram); \
     HookExtension(PFNGLDELETEPROGRAMPROC, glDeleteProgram); \
     HookExtension(PFNGLATTACHSHADERPROC, glAttachShader); \
+    HookExtension(PFNGLDETACHSHADERPROC, glDetachShader); \
     HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
@@ -427,6 +428,7 @@
     HookWrapper0(GLuint, glCreateProgram); \
     HookWrapper1(void, glDeleteProgram, GLuint, program); \
     HookWrapper2(void, glAttachShader, GLuint, program, GLuint, shader); \
+    HookWrapper2(void, glDetachShader, GLuint, program, GLuint, shader); \
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \

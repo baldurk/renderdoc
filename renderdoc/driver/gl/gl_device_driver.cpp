@@ -1347,6 +1347,43 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
+{
+	SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(shader)));
+
+	if(m_State == READING)
+	{
+		ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
+		ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
+
+		if(!m_Programs[liveProgId].linked)
+			m_Programs[liveProgId].shaders.push_back(liveShadId);
+		
+		m_Real.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
+								GetResourceManager()->GetLiveResource(shadid).name);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
+{
+	m_Real.glDetachShader(program, shader);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		RDCASSERT(progRecord);
+		{
+			SCOPED_SERIALISE_CONTEXT(DETACHSHADER);
+			Serialise_glDetachShader(program, shader);
+
+			progRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
 #pragma endregion
 
 #pragma region Programs
@@ -1472,6 +1509,10 @@ bool WrappedOpenGL::Serialise_glLinkProgram(GLuint program)
 
 	if(m_State == READING)
 	{
+		ResourceId progid = GetResourceManager()->GetLiveID(id);
+
+		m_Programs[progid].linked = true;
+		
 		m_Real.glLinkProgram(GetResourceManager()->GetLiveResource(id).name);
 	}
 
@@ -1602,6 +1643,9 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(pipeline));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
+			
+			GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			record->AddParent(progrecord);
 		}
 		else
 		{

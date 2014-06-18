@@ -56,6 +56,7 @@ const char *GLChunkNames[] =
 	"glCompileShader",
 	"glShaderSource",
 	"glAttachShader",
+	"glDetachShader",
 	"glUseProgram",
 	"glProgramParameter",
 	"glProgramUniformVector*",
@@ -1060,6 +1061,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case ATTACHSHADER:
 		Serialise_glAttachShader(0, 0);
+		break;
+	case DETACHSHADER:
+		Serialise_glDetachShader(0, 0);
 		break;
 	case USEPROGRAM:
 		Serialise_glUseProgram(0);
