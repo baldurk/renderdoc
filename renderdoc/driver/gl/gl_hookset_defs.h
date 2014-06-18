@@ -83,24 +83,6 @@
     HookInit(glTexParameteri); \
     HookInit(glTexParameteriv); \
     HookInit(glViewport); \
-    HookInit(glLightfv); \
-    HookInit(glMaterialfv); \
-    HookInit(glGenLists); \
-    HookInit(glNewList); \
-    HookInit(glEndList); \
-    HookInit(glCallList); \
-    HookInit(glShadeModel); \
-    HookInit(glBegin); \
-    HookInit(glEnd); \
-    HookInit(glVertex3f); \
-    HookInit(glNormal3f); \
-    HookInit(glPushMatrix); \
-    HookInit(glPopMatrix); \
-    HookInit(glMatrixMode); \
-    HookInit(glLoadIdentity); \
-    HookInit(glFrustum); \
-    HookInit(glTranslatef); \
-    HookInit(glRotatef); \
 
 
 
@@ -323,24 +305,6 @@
     HookExtension(PFNGLTEXPARAMETERIPROC, glTexParameteri); \
     HookExtension(PFNGLTEXPARAMETERIVPROC, glTexParameteriv); \
     HookExtension(PFNGLVIEWPORTPROC, glViewport); \
-    HookExtension(PFNGLLIGHTFVPROC, glLightfv); \
-    HookExtension(PFNGLMATERIALFVPROC, glMaterialfv); \
-    HookExtension(PFNGLGENLISTSPROC, glGenLists); \
-    HookExtension(PFNGLNEWLISTPROC, glNewList); \
-    HookExtension(PFNGLENDLISTPROC, glEndList); \
-    HookExtension(PFNGLCALLLISTPROC, glCallList); \
-    HookExtension(PFNGLSHADEMODELPROC, glShadeModel); \
-    HookExtension(PFNGLBEGINPROC, glBegin); \
-    HookExtension(PFNGLENDPROC, glEnd); \
-    HookExtension(PFNGLVERTEX3FPROC, glVertex3f); \
-    HookExtension(PFNGLNORMAL3FPROC, glNormal3f); \
-    HookExtension(PFNGLPUSHMATRIXPROC, glPushMatrix); \
-    HookExtension(PFNGLPOPMATRIXPROC, glPopMatrix); \
-    HookExtension(PFNGLMATRIXMODEPROC, glMatrixMode); \
-    HookExtension(PFNGLLOADIDENTITYPROC, glLoadIdentity); \
-    HookExtension(PFNGLFRUSTUMPROC, glFrustum); \
-    HookExtension(PFNGLTRANSLATEFPROC, glTranslatef); \
-    HookExtension(PFNGLROTATEFPROC, glRotatef); \
 
 
 
@@ -398,24 +362,6 @@
     HookWrapper3(void, glTexParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glTexParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
     HookWrapper4(void, glViewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-    HookWrapper3(void, glLightfv, GLenum, light, GLenum, pname, const GLfloat *, params); \
-    HookWrapper3(void, glMaterialfv, GLenum, face, GLenum, pname, const GLfloat *, params); \
-    HookWrapper1(GLuint, glGenLists, GLsizei, range); \
-    HookWrapper2(void, glNewList, GLuint, list, GLenum, mode); \
-    HookWrapper0(void, glEndList); \
-    HookWrapper1(void, glCallList, GLuint, list); \
-    HookWrapper1(void, glShadeModel, GLenum, mode); \
-    HookWrapper1(void, glBegin, GLenum, mode); \
-    HookWrapper0(void, glEnd); \
-    HookWrapper3(void, glVertex3f, GLfloat, x, GLfloat, y, GLfloat, z); \
-    HookWrapper3(void, glNormal3f, GLfloat, nx, GLfloat, ny, GLfloat, nz); \
-    HookWrapper0(void, glPushMatrix); \
-    HookWrapper0(void, glPopMatrix); \
-    HookWrapper1(void, glMatrixMode, GLenum, mode); \
-    HookWrapper0(void, glLoadIdentity); \
-    HookWrapper6(void, glFrustum, GLdouble, left, GLdouble, right, GLdouble, bottom, GLdouble, top, GLdouble, zNear, GLdouble, zFar); \
-    HookWrapper3(void, glTranslatef, GLfloat, x, GLfloat, y, GLfloat, z); \
-    HookWrapper4(void, glRotatef, GLfloat, angle, GLfloat, x, GLfloat, y, GLfloat, z); \
 
 
 

@@ -26,7 +26,6 @@
 #pragma once
 
 #include "gl_common.h"
-#include "gl_legacy_procs.h"
 
 struct GLHookSet
 {
@@ -83,25 +82,6 @@ struct GLHookSet
 	PFNGLTEXPARAMETERIPROC glTexParameteri;
 	PFNGLTEXPARAMETERIVPROC glTexParameteriv;
 	PFNGLVIEWPORTPROC glViewport;
-	// legacy
-	PFNGLLIGHTFVPROC glLightfv;
-	PFNGLMATERIALFVPROC glMaterialfv;
-	PFNGLGENLISTSPROC glGenLists;
-	PFNGLNEWLISTPROC glNewList;
-	PFNGLENDLISTPROC glEndList;
-	PFNGLCALLLISTPROC glCallList;
-	PFNGLSHADEMODELPROC glShadeModel;
-	PFNGLBEGINPROC glBegin;
-	PFNGLENDPROC glEnd;
-	PFNGLVERTEX3FPROC glVertex3f;
-	PFNGLNORMAL3FPROC glNormal3f;
-	PFNGLPUSHMATRIXPROC glPushMatrix;
-	PFNGLPOPMATRIXPROC glPopMatrix;
-	PFNGLMATRIXMODEPROC glMatrixMode;
-	PFNGLLOADIDENTITYPROC glLoadIdentity;
-	PFNGLFRUSTUMPROC glFrustum;
-	PFNGLTRANSLATEFPROC glTranslatef;
-	PFNGLROTATEFPROC glRotatef;
 	// --
 
 	// ++ gl

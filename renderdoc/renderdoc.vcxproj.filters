@@ -73,6 +73,9 @@
     <Filter Include="Resources\glsl">
       <UniqueIdentifier>{889cc549-e49b-430b-9e9b-5a42e7c26b03}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Drivers\OpenGL\Function Wrappers">
+      <UniqueIdentifier>{5e7e0e62-aba4-4256-b0ec-a1a7fbcba715}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -276,9 +279,6 @@
     <ClInclude Include="driver\gl\gl_hookset_defs.h">
       <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_legacy_procs.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
     </ClInclude>
@@ -422,12 +422,6 @@
     <ClCompile Include="driver\gl\gl_replay.cpp">
       <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_context_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_device_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="driver\gl\gl_resources.cpp">
       <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
@@ -478,6 +472,36 @@
     </ClCompile>
     <ClCompile Include="driver\gl\gl_renderstate.cpp">
       <Filter>Drivers\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_buffer_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_debug_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_draw_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_framebuffer_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_sampler_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_shader_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_state_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_texture_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_uniform_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_get_funcs.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

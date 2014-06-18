@@ -246,27 +246,6 @@ class WrappedOpenGL
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
 		void Present(void *windowHandle);
 
-		// legacy/immediate mode
-		IMPLEMENT_FUNCTION_SERIALISED(void, glLightfv(GLenum light, GLenum pname, const GLfloat *params));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glMaterialfv(GLenum face, GLenum pname, const GLfloat *params));
-		IMPLEMENT_FUNCTION_SERIALISED(GLuint, glGenLists(GLsizei range));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glNewList(GLuint list, GLenum mode));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glEndList());
-		IMPLEMENT_FUNCTION_SERIALISED(void, glCallList(GLuint list));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glShadeModel(GLenum mode));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glBegin(GLenum mode));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glEnd());
-		IMPLEMENT_FUNCTION_SERIALISED(void, glVertex3f(GLfloat x, GLfloat y, GLfloat z));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glNormal3f(GLfloat nx, GLfloat ny, GLfloat nz));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glPushMatrix());
-		IMPLEMENT_FUNCTION_SERIALISED(void, glPopMatrix());
-		IMPLEMENT_FUNCTION_SERIALISED(void, glMatrixMode(GLenum mode));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glLoadIdentity());
-		IMPLEMENT_FUNCTION_SERIALISED(void, glFrustum(GLdouble left, GLdouble right, GLdouble bottom, GLdouble top, GLdouble zNear, GLdouble zFar));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glTranslatef(GLfloat x, GLfloat y, GLfloat z));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glRotatef(GLfloat angle, GLfloat x, GLfloat y, GLfloat z));
-		//
-
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture(GLenum target, GLuint texture));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFunc(GLenum sfactor, GLenum dfactor));

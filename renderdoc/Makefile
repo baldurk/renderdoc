@@ -36,8 +36,6 @@ os/os_specific.o \
 3rdparty/jpeg-compressor/jpge.o \
 3rdparty/lz4/lz4.o \
 driver/gl/gl_common.o \
-driver/gl/gl_context_driver.o \
-driver/gl/gl_device_driver.o \
 driver/gl/gl_driver.o \
 driver/gl/gl_manager.o \
 driver/gl/gl_debug.o \
@@ -45,6 +43,16 @@ driver/gl/gl_replay.o \
 driver/gl/gl_replay_linux.o \
 driver/gl/gl_resources.o \
 driver/gl/gl_renderstate.o \
+driver/gl/wrappers/gl_buffer_funcs.o \
+driver/gl/wrappers/gl_debug_funcs.o \
+driver/gl/wrappers/gl_draw_funcs.o \
+driver/gl/wrappers/gl_framebuffer_funcs.o \
+driver/gl/wrappers/gl_get_funcs.o \
+driver/gl/wrappers/gl_sampler_funcs.o \
+driver/gl/wrappers/gl_shader_funcs.o \
+driver/gl/wrappers/gl_state_funcs.o \
+driver/gl/wrappers/gl_texture_funcs.o \
+driver/gl/wrappers/gl_uniform_funcs.o \
 os/linux/linux_callstack.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
