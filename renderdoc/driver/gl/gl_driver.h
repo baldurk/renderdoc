@@ -374,23 +374,36 @@ class WrappedOpenGL
 		bool Serialise_glCreateShader(GLuint real, GLenum type);
 		GLuint glCreateShader(GLenum type);
 
+		bool Serialise_glCreateShaderProgramv(GLuint real, GLenum type, GLsizei count, const GLchar *const*strings);
+		GLuint glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const*strings);
+
 		bool Serialise_glCreateProgram(GLuint real);
 		GLuint glCreateProgram();
-
+		
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteShader(GLuint shader));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glShaderSource(GLuint shader, GLsizei count, const GLchar *const*string, const GLint *length));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompileShader(GLuint shader));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetShaderiv(GLuint shader, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glAttachShader(GLuint program, GLuint shader));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glReleaseShaderCompiler());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glLinkProgram(GLuint program));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramParameteri(GLuint program, GLenum pname, GLint value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgram(GLuint program));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramiv(GLuint program, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index, GLsizei propCount, const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index, GLsizei bufSize, GLsizei *length, GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGenProgramPipelines(GLsizei n, GLuint *pipelines));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindProgramPipeline(GLuint pipeline));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize, GLsizei *length, GLchar *infoLog));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgramPipeline(GLuint pipeline));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenBuffers(GLsizei n, GLuint *buffers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBuffer(GLenum target, GLuint buffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage));
@@ -436,6 +449,8 @@ class WrappedOpenGL
 
 		bool Serialise_glUniformMatrix(GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type);
 		bool Serialise_glUniformVector(GLint location, GLsizei count, const void *value, UniformType type);
+		
+		bool Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count, const void *value, UniformType type);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1f(GLint location, GLfloat value));
@@ -447,6 +462,14 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2fv(GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3fv(GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4fv(GLint location, GLsizei count, const GLfloat *value));
+		
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1i(GLuint program, GLint location, GLint v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1uiv(GLuint program, GLint location, GLsizei count, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));

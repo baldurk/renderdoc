@@ -1154,7 +1154,7 @@ GLenum WrappedOpenGL::glCheckFramebufferStatus(GLenum target)
 
 #pragma endregion
 
-#pragma region Shaders / Programs
+#pragma region Shaders
 
 bool WrappedOpenGL::Serialise_glCreateShader(GLuint shader, GLenum type)
 {
@@ -1297,6 +1297,11 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
 	}
 }
 
+void WrappedOpenGL::glReleaseShaderCompiler()
+{
+	m_Real.glReleaseShaderCompiler();
+}
+
 void WrappedOpenGL::glDeleteShader(GLuint shader)
 {
 	m_Real.glDeleteShader(shader);
@@ -1340,6 +1345,77 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 			progRecord->AddChunk(scope.Get());
 		}
 	}
+}
+
+#pragma endregion
+
+#pragma region Programs
+
+bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type, GLsizei count, const GLchar *const*strings)
+{
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+
+	vector<string> src;
+
+	for(int32_t i=0; i < Count; i++)
+	{
+		string s;
+		if(m_State >= WRITING) s = strings[i];
+		m_pSerialiser->SerialiseString("Source", s);
+		if(m_State < WRITING) src.push_back(s);
+	}
+
+	if(m_State == READING)
+	{
+		char **sources = new char*[Count];
+		
+		for(int32_t i=0; i < Count; i++)
+			sources[i] = &src[i][0];
+
+		GLuint real = m_Real.glCreateShaderProgramv(Type, Count, sources);
+
+		delete[] sources;
+		
+		GLResource res = ProgramRes(program);
+
+		m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const*strings)
+{
+	GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
+	
+	GLResource res = ProgramRes(real);
+	ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+	if(m_State >= WRITING)
+	{
+		Chunk *chunk = NULL;
+
+		{
+			SCOPED_SERIALISE_CONTEXT(CREATE_SHADERPROGRAM);
+			Serialise_glCreateShaderProgramv(real, type, count, strings);
+
+			chunk = scope.Get();
+		}
+
+		GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+		RDCASSERT(record);
+
+		record->AddChunk(chunk);
+	}
+	else
+	{
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return real;
 }
 
 bool WrappedOpenGL::Serialise_glCreateProgram(GLuint program)
@@ -1419,6 +1495,37 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(int32_t, Value, value);
+
+	if(m_State == READING)
+	{
+		m_Real.glProgramParameteri(GetResourceManager()->GetLiveResource(id).name, PName, Value);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+	m_Real.glProgramParameteri(program, pname, value);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(PROGRAMPARAMETER);
+			Serialise_glProgramParameteri(program, pname, value);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
 void WrappedOpenGL::glDeleteProgram(GLuint program)
 {
 	m_Real.glDeleteProgram(program);
@@ -1450,6 +1557,143 @@ void WrappedOpenGL::glUseProgram(GLuint program)
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
+
+void WrappedOpenGL::glValidateProgram(GLuint program)
+{
+	m_Real.glValidateProgram(program);
+}
+
+void WrappedOpenGL::glValidateProgramPipeline(GLuint pipeline)
+{
+	m_Real.glValidateProgramPipeline(pipeline);
+}
+
+#pragma endregion
+
+#pragma region Program Pipelines
+
+bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
+{
+	SERIALISE_ELEMENT(ResourceId, pipe, GetResourceManager()->GetID(ProgramPipeRes(pipeline)));
+	SERIALISE_ELEMENT(uint32_t, Stages, stages);
+	SERIALISE_ELEMENT(ResourceId, prog, GetResourceManager()->GetID(ProgramRes(program)));
+
+	if(m_State < WRITING)
+	{
+		m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name,
+															stages,
+															GetResourceManager()->GetLiveResource(prog).name);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
+{
+	m_Real.glUseProgramStages(pipeline, stages, program);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(USE_PROGRAMSTAGES);
+		Serialise_glUseProgramStages(pipeline, stages, program);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(pipeline));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glGenProgramPipelines(GLsizei n, GLuint* pipelines)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(*pipelines)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glGenProgramPipelines(1, &real);
+		
+		GLResource res = ProgramPipeRes(real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+	m_Real.glGenProgramPipelines(n, pipelines);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = ProgramPipeRes(pipelines[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_PROGRAMPIPE);
+				Serialise_glGenProgramPipelines(1, pipelines+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindProgramPipeline(GLuint pipeline)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(pipeline)));
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindProgramPipeline(GetResourceManager()->GetLiveResource(id).name);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
+{
+	m_Real.glBindProgramPipeline(pipeline);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_PROGRAMPIPE);
+		Serialise_glBindProgramPipeline(pipeline);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
+{
+	m_Real.glDeleteProgramPipelines(n, pipelines);
+	
+	for(GLsizei i=0; i < n; i++)
+		GetResourceManager()->UnregisterResource(ProgramPipeRes(pipelines[i]));
+}
+
+#pragma endregion
 
 #pragma region Uniforms
 
@@ -1574,6 +1818,30 @@ bool WrappedOpenGL::Serialise_glUniformVector(GLint location, GLsizei count, con
 	{
 		switch(Type)
 		{
+			case VEC1FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f}\n", f[0]);
+				break;
+			}
+			case VEC1IV:
+			{
+				int32_t *i = (int32_t *)value;
+				m_pSerialiser->DebugPrint("value: {%d}\n", i[0]);
+				break;
+			}
+			case VEC1UIV:
+			{
+				uint32_t *u = (uint32_t *)value;
+				m_pSerialiser->DebugPrint("value: {%u}\n", u[0]);
+				break;
+			}
+			case VEC2FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f %f}\n", f[0], f[1]);
+				break;
+			}
 			case VEC3FV:
 			{
 				float *f = (float *)value;
@@ -1711,7 +1979,251 @@ void WrappedOpenGL::glUniform4fv(GLint location, GLsizei count, const GLfloat *v
 	}
 }
 
-#pragma endregion
+bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count, const void *value, UniformType type)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(UniformType, Type, type);
+	SERIALISE_ELEMENT(int32_t, Loc, location);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	
+	size_t elemsPerVec = 0;
+
+	switch(Type)
+	{
+		case VEC1IV:
+		case VEC1UIV:
+		case VEC1FV: elemsPerVec = 1; break;
+		case VEC2FV: elemsPerVec = 2; break;
+		case VEC3FV: elemsPerVec = 3; break;
+		case VEC4FV: elemsPerVec = 4; break;
+		default:
+			RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+	}
+
+	if(m_State >= WRITING)
+	{
+		m_pSerialiser->RawWriteBytes(value, sizeof(float)*elemsPerVec*Count);
+	}
+	else if(m_State <= EXECUTING)
+	{
+		value = m_pSerialiser->RawReadBytes(sizeof(float)*elemsPerVec*Count);
+
+		GLuint live = GetResourceManager()->GetLiveResource(id).name;
+
+		switch(Type)
+		{
+			case VEC1IV: m_Real.glProgramUniform1iv(live, Loc, Count, (const GLint *)value); break;
+			case VEC1UIV: m_Real.glProgramUniform1uiv(live, Loc, Count, (const GLuint *)value); break;
+			case VEC1FV: m_Real.glProgramUniform1fv(live, Loc, Count, (const GLfloat *)value); break;
+			case VEC2FV: m_Real.glProgramUniform2fv(live, Loc, Count, (const GLfloat *)value); break;
+			case VEC3FV: m_Real.glProgramUniform3fv(live, Loc, Count, (const GLfloat *)value); break;
+			case VEC4FV: m_Real.glProgramUniform4fv(live, Loc, Count, (const GLfloat *)value); break;
+			default:
+				RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+		}
+	}
+
+	if(m_pSerialiser->GetDebugText())
+	{
+		switch(Type)
+		{
+			case VEC1FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f}\n", f[0]);
+				break;
+			}
+			case VEC1IV:
+			{
+				int32_t *i = (int32_t *)value;
+				m_pSerialiser->DebugPrint("value: {%d}\n", i[0]);
+				break;
+			}
+			case VEC1UIV:
+			{
+				uint32_t *u = (uint32_t *)value;
+				m_pSerialiser->DebugPrint("value: {%u}\n", u[0]);
+				break;
+			}
+			case VEC2FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f %f}\n", f[0], f[1]);
+				break;
+			}
+			case VEC3FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f %f %f}\n", f[0], f[1], f[2]);
+				break;
+			}
+			case VEC4FV:
+			{
+				float *f = (float *)value;
+				m_pSerialiser->DebugPrint("value: {%f %f %f %f}\n", f[0], f[1], f[2], f[3]);
+				break;
+			}
+			default:
+				RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+		}
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glProgramUniform1i(GLuint program, GLint location, GLint v0)
+{
+	m_Real.glProgramUniform1i(program, location, v0);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, 1, &v0, VEC1IV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value)
+{
+	m_Real.glProgramUniform1iv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC1IV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glProgramUniform1fv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC1FV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform1uiv(GLuint program, GLint location, GLsizei count, const GLuint *value)
+{
+	m_Real.glProgramUniform1uiv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC1UIV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glProgramUniform2fv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC2FV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glProgramUniform3fv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC3FV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
+
+void WrappedOpenGL::glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat *value)
+{
+	m_Real.glProgramUniform4fv(program, location, count, value);
+
+	if(m_State > WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR);
+		Serialise_glProgramUniformVector(program, location, count, value, VEC4FV);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
+		}
+		else
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+	}
+}
 
 #pragma endregion
 

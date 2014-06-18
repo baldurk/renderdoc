@@ -52,10 +52,18 @@ const char *GLChunkNames[] =
 
 	"glCreateShader",
 	"glCreateProgram",
+	"glCreateShaderProgramv",
 	"glCompileShader",
 	"glShaderSource",
 	"glAttachShader",
+	"glUseProgram",
+	"glProgramParameter",
+	"glProgramUniformVector*",
 	"glLinkProgram",
+	
+	"glGenProgramPipelines",
+	"glUseProgramStages",
+	"glBindProgramPipeline",
 
 	// legacy/immediate mode chunks
 	"glLightfv",
@@ -112,7 +120,6 @@ const char *GLChunkNames[] =
 	"glViewportArrayv",
 	"glScissor",
 	"glScissorArrayv",
-	"glUseProgram",
 	"glBindVertexArray",
 	"glUniformMatrix*",
 	"glUniformVector*",
@@ -1042,6 +1049,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case CREATE_PROGRAM:
 		Serialise_glCreateProgram(0);
 		break;
+	case CREATE_SHADERPROGRAM:
+		Serialise_glCreateShaderProgramv(0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
 	case COMPILESHADER:
 		Serialise_glCompileShader(0);
 		break;
@@ -1051,10 +1061,28 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case ATTACHSHADER:
 		Serialise_glAttachShader(0, 0);
 		break;
+	case USEPROGRAM:
+		Serialise_glUseProgram(0);
+		break;
+	case PROGRAMPARAMETER:
+		Serialise_glProgramParameteri(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case PROGRAMUNIFORM_VECTOR:
+		Serialise_glProgramUniformVector(0, eGL_UNKNOWN_ENUM, 0, 0, UNIFORM_UNKNOWN);
+		break;
 	case LINKPROGRAM:
 		Serialise_glLinkProgram(0);
 		break;
 		
+	case GEN_PROGRAMPIPE:
+		Serialise_glGenProgramPipelines(0, NULL);
+		break;
+	case USE_PROGRAMSTAGES:
+		Serialise_glUseProgramStages(0, 0, 0);
+		break;
+	case BIND_PROGRAMPIPE:
+		Serialise_glBindProgramPipeline(0);
+		break;
 
 	// legacy/immediate mode chunks
 	case LIGHTFV:
@@ -1258,9 +1286,6 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case SCISSOR_ARRAY:
 		Serialise_glScissorArrayv(0, 0, 0);
-		break;
-	case USEPROGRAM:
-		Serialise_glUseProgram(0);
 		break;
 	case BINDVERTEXARRAY:
 		Serialise_glBindVertexArray(0);
@@ -1833,6 +1858,16 @@ void WrappedOpenGL::glGetProgramiv(GLuint program, GLenum pname, GLint *params)
 void WrappedOpenGL::glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
 {
 	m_Real.glGetProgramInfoLog(program, bufSize, length, infoLog);
+}
+
+void WrappedOpenGL::glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
+{
+	m_Real.glGetProgramPipelineiv(pipeline, pname, params);
+}
+
+void WrappedOpenGL::glGetProgramPipelineInfoLog(GLuint pipeline, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
+{
+	m_Real.glGetProgramPipelineInfoLog(pipeline, bufSize, length, infoLog);
 }
 
 void WrappedOpenGL::glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname, GLint *params)

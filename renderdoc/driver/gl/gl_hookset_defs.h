@@ -139,18 +139,36 @@
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
     HookExtension(PFNGLCOMPILESHADERPROC, glCompileShader); \
+    HookExtension(PFNGLCREATESHADERPROGRAMVPROC, glCreateShaderProgramv); \
     HookExtension(PFNGLGETSHADERIVPROC, glGetShaderiv); \
     HookExtension(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog); \
     HookExtension(PFNGLCREATEPROGRAMPROC, glCreateProgram); \
     HookExtension(PFNGLDELETEPROGRAMPROC, glDeleteProgram); \
     HookExtension(PFNGLATTACHSHADERPROC, glAttachShader); \
+    HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
+    HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
+    HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
+    HookExtension(PFNGLPROGRAMUNIFORM1FVPROC, glProgramUniform1fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1IVPROC, glProgramUniform1iv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1UIVPROC, glProgramUniform1uiv); \
+    HookExtension(PFNGLPROGRAMUNIFORM2FVPROC, glProgramUniform2fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM3FVPROC, glProgramUniform3fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM4FVPROC, glProgramUniform4fv); \
     HookExtension(PFNGLUSEPROGRAMPROC, glUseProgram); \
+    HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
+    HookExtension(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
     HookExtension(PFNGLGETPROGRAMIVPROC, glGetProgramiv); \
     HookExtension(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog); \
     HookExtension(PFNGLGETPROGRAMINTERFACEIVPROC, glGetProgramInterfaceiv); \
     HookExtension(PFNGLGETPROGRAMRESOURCEIVPROC, glGetProgramResourceiv); \
     HookExtension(PFNGLGETPROGRAMRESOURCENAMEPROC, glGetProgramResourceName); \
+    HookExtension(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines); \
+    HookExtension(PFNGLBINDPROGRAMPIPELINEPROC, glBindProgramPipeline); \
+    HookExtension(PFNGLDELETEPROGRAMPIPELINESPROC, glDeleteProgramPipelines); \
+    HookExtension(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv); \
+    HookExtension(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog); \
+    HookExtension(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline); \
     HookExtension(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback); \
     HookExtensionAlias(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback, glDebugMessageCallbackARB); \
     HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
@@ -403,18 +421,36 @@
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
     HookWrapper1(void, glCompileShader, GLuint, shader); \
+    HookWrapper3(GLuint, glCreateShaderProgramv, GLenum, type, GLsizei, count, const GLchar *const*, strings); \
     HookWrapper3(void, glGetShaderiv, GLuint, shader, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetShaderInfoLog, GLuint, shader, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper0(GLuint, glCreateProgram); \
     HookWrapper1(void, glDeleteProgram, GLuint, program); \
     HookWrapper2(void, glAttachShader, GLuint, program, GLuint, shader); \
+    HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
+    HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
+    HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
+    HookWrapper4(void, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper4(void, glProgramUniform1uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper4(void, glProgramUniform2fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void, glProgramUniform3fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void, glProgramUniform4fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper1(void, glUseProgram, GLuint, program); \
+    HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
+    HookWrapper1(void, glValidateProgram, GLuint, program); \
     HookWrapper3(void, glGetProgramiv, GLuint, program, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetProgramInfoLog, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper4(void, glGetProgramInterfaceiv, GLuint, program, GLenum, programInterface, GLenum, pname, GLint *, params); \
     HookWrapper8(void, glGetProgramResourceiv, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, propCount, const GLenum *, props, GLsizei, bufSize, GLsizei *, length, GLint *, params); \
     HookWrapper6(void, glGetProgramResourceName, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLchar *, name); \
+    HookWrapper2(void, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \
+    HookWrapper1(void, glBindProgramPipeline, GLuint, pipeline); \
+    HookWrapper2(void, glDeleteProgramPipelines, GLsizei, n, const GLuint *, pipelines); \
+    HookWrapper3(void, glGetProgramPipelineiv, GLuint, pipeline, GLenum, pname, GLint *, params); \
+    HookWrapper4(void, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
+    HookWrapper1(void, glValidateProgramPipeline, GLuint, pipeline); \
     HookWrapper2(void, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \
     HookWrapper6(void, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
