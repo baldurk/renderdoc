@@ -44,14 +44,7 @@ bool WrappedOpenGL::Serialise_glCreateShader(GLuint shader, GLenum type)
 
 		m_Shaders[liveId].type = Type;
 
-		if(m_State >= WRITING)
-		{
-			RDCUNIMPLEMENTED();
-		}
-		else
-		{
-			GetResourceManager()->AddLiveResource(id, res);
-		}
+		GetResourceManager()->AddLiveResource(id, res);
 	}
 
 	return true;

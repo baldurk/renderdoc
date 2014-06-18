@@ -64,6 +64,7 @@ struct GLWindowingData
 
 #include "replay/renderdoc.h"
 
+// similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the debugbreak.
 #define GLNOTIMP(...) RDCDEBUG("OpenGL not implemented - " __VA_ARGS__)
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);

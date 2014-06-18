@@ -1192,13 +1192,13 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetMinMax");
 	return false;
 }
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetHistogram");
 	return false;
 }
 
@@ -1215,17 +1215,17 @@ vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 
 void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SetContextFilter");
 }
 
 void GLReplay::FreeTargetResource(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("FreeTargetResource");
 }
 
 void GLReplay::FreeCustomShader(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("FreeCustomShader");
 }
 
 PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
@@ -1240,74 +1240,74 @@ PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, Me
 
 byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetTextureData");
 	return NULL;
 }
 
 void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("ReplaceResource");
 }
 
 void GLReplay::RemoveReplacement(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("RemoveReplacement");
 }
 
 void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("TimeDrawcalls");
 }
 
 bool GLReplay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SaveTexture");
 	return false;
 }
 
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("BuildTargetShader");
 }
 
 void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("BuildCustomShader");
 }
 
 ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugVertex");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugPixel");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugThread");
 	return ShaderDebugTrace();
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("ApplyCustomShader");
 	return ResourceId();
 }
 
 ResourceId GLReplay::CreateProxyTexture( FetchTexture templateTex )
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("CreateProxyTexture");
 	return ResourceId();
 }
 
 void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SetProxyTextureData");
 }
 
 const GLHookSet &GetRealFunctions();

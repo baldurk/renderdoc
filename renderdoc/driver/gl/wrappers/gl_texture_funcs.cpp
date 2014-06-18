@@ -409,42 +409,42 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 {
 	m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glTexImage1D API not implemented");
 }
 
 void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glTexImage2D API not implemented");
 }
 
 void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glTexImage3D API not implemented");
 }
 
 void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
 	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glCompressedTexImage1D API not implemented");
 }
 
 void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
 	m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glCompressedTexImage2D API not implemented");
 }
 
 void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
 	m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, pixels);
 
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("Old glCompressedTexImage3D API not implemented");
 }
 
 bool WrappedOpenGL::Serialise_glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)

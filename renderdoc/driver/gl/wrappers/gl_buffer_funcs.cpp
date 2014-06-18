@@ -298,13 +298,11 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
 {
 	if(m_State >= WRITING)
 	{
-		// haven't implemented non-invalidating write maps
 		if((access & (GL_MAP_INVALIDATE_BUFFER_BIT|GL_MAP_INVALIDATE_RANGE_BIT|GL_MAP_READ_BIT)) == 0)
-			RDCUNIMPLEMENTED();
+			RDCUNIMPLEMENTED("haven't implemented non-invalidating glMap WRITE");
 		
-		// haven't implemented coherent/persistent bits
 		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
-			RDCUNIMPLEMENTED();
+			RDCUNIMPLEMENTED("haven't implemented coherent/persistant glMap calls");
 
 		m_BufferRecord[BufferIdx(target)]->Map.offset = offset;
 		m_BufferRecord[BufferIdx(target)]->Map.length = length;
