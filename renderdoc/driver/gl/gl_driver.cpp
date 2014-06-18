@@ -47,7 +47,10 @@ const char *GLChunkNames[] =
 	"glTexSubImage2D",
 	"glTexSubImage3D",
 	"glPixelStore",
+	"glTexParameterf",
+	"glTexParameterfv",
 	"glTexParameteri",
+	"glTexParameteriv",
 	"glGenerateMipmap",
 
 	"glCreateShader",
@@ -110,13 +113,22 @@ const char *GLChunkNames[] =
 	"glBlendFuncSeparatei",
 	"glBlendEquationSeparate",
 	"glBlendEquationSeparatei",
+	"glStencilOp",
+	"glStencilOpSeparate",
+	"glStencilFunc",
+	"glStencilFuncSeparate",
+	"glStencilMask",
+	"glStencilMaskSeparate",
 	"glColorMask",
 	"glColorMaski",
+	"glSampleMaski",
 	"glDepthFunc",
 	"glDepthMask",
 	"glDepthRange",
 	"glDepthRangeArrayv",
 	"glDepthBoundsEXT",
+	"glPatchParameteri",
+	"glPatchParameterfv",
 	"glViewport",
 	"glViewportArrayv",
 	"glScissor",
@@ -1037,8 +1049,17 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
 		break;
+	case TEXPARAMETERF:
+		Serialise_glTexParameterf(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case TEXPARAMETERFV:
+		Serialise_glTexParameterfv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
 	case TEXPARAMETERI:
 		Serialise_glTexParameteri(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case TEXPARAMETERIV:
+		Serialise_glTexParameteriv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case GENERATE_MIPMAP:
 		Serialise_glGenerateMipmap(eGL_UNKNOWN_ENUM);
@@ -1258,11 +1279,34 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BLEND_EQ_SEPI:
 		glBlendEquationSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
 		break;
+
+	case STENCIL_OP:
+		glStencilOp(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case STENCIL_OP_SEP:
+		glStencilOpSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case STENCIL_FUNC:
+		glStencilFunc(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case STENCIL_FUNC_SEP:
+		glStencilFuncSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case STENCIL_MASK:
+		glStencilMask(0);
+		break;
+	case STENCIL_MASK_SEP:
+		glStencilMaskSeparate(eGL_UNKNOWN_ENUM, 0);
+		break;
+
 	case COLOR_MASK:
 		glColorMask(0, 0, 0, 0);
 		break;
 	case COLOR_MASKI:
 		glColorMaski(0, 0, 0, 0, 0);
+		break;
+	case SAMPLE_MASK:
+		glSampleMaski(0, 0);
 		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_UNKNOWN_ENUM);
@@ -1278,6 +1322,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DEPTH_BOUNDS:
 		Serialise_glDepthBoundsEXT(0, 0);
+		break;
+	case PATCH_PARAMI:
+		Serialise_glPatchParameteri(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case PATCH_PARAMFV:
+		Serialise_glPatchParameterfv(eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);
@@ -1714,6 +1764,16 @@ void WrappedOpenGL::glFlush()
 void WrappedOpenGL::glFinish()
 {
 	m_Real.glFinish();
+}
+
+GLboolean WrappedOpenGL::glIsEnabled(GLenum cap)
+{
+	return m_Real.glIsEnabled(cap);
+}
+
+GLboolean WrappedOpenGL::glIsEnabledi(GLenum cap, GLuint index)
+{
+	return m_Real.glIsEnabledi(cap, index);
 }
 
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)

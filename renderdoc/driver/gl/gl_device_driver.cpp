@@ -482,6 +482,117 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
+
+	if(m_State < WRITING)
+	{
+		if(m_State == READING)
+			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		glTexParameteriv(Target, PName, Params);
+	}
+
+	delete[] Params;
+
+	return true;
+}
+
+void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
+{
+	m_Real.glTexParameteriv(target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
+		Serialise_glTexParameteriv(target, pname, params);
+
+		if(m_State == WRITING_IDLE)
+			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glTexParameterf(GLenum target, GLenum pname, GLfloat param)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(float, Param, param);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	
+	if(m_State < WRITING)
+	{
+		if(m_State == READING)
+			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		glTexParameterf(Target, PName, Param);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
+{
+	m_Real.glTexParameterf(target, pname, param);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
+		Serialise_glTexParameterf(target, pname, param);
+
+		if(m_State == WRITING_IDLE)
+			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+	SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
+
+	if(m_State < WRITING)
+	{
+		if(m_State == READING)
+			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		glTexParameterfv(Target, PName, Params);
+	}
+
+	delete[] Params;
+
+	return true;
+}
+
+void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+{
+	m_Real.glTexParameterfv(target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
+		Serialise_glTexParameterfv(target, pname, params);
+
+		if(m_State == WRITING_IDLE)
+			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glGenSamplers(GLsizei n, GLuint* samplers)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(*samplers)));
@@ -668,6 +779,8 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname,
 		glSamplerParameterfv(res.name, PName, Params);
 	}
 
+	delete[] Params;
+
 	return true;
 }
 
@@ -794,6 +907,13 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED();
+}
+
+void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
+{
+	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
 
 	RDCUNIMPLEMENTED();
 }

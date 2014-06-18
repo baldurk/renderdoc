@@ -77,6 +77,13 @@ struct GLRenderState
 	// Framebuffer Bindings
 	// Program Bindings + Uniform Values
 	// Vertex Attribs/Buffers/Pointers etc
+	
+	struct
+	{
+		int32_t numVerts;
+		float defaultInnerLevel[2];
+		float defaultOuterLevel[4];
+	} PatchParams;
 
 	GLenum PolygonMode;
 	float PolygonOffset[2]; // Factor, Units
@@ -95,8 +102,23 @@ struct GLRenderState
 
 	struct
 	{
+		GLenum func;
+		int32_t ref;
+		uint8_t valuemask;
+		uint8_t writemask;
+
+		GLenum stencilFail;
+		GLenum depthFail;
+		GLenum pass;
+	} StencilBack, StencilFront;
+
+	struct
+	{
 		uint8_t red, green, blue, alpha;
 	} ColorMasks[8];
+
+	uint32_t SampleMask[2];
+
 	struct
 	{
 		float red, green, blue, alpha;

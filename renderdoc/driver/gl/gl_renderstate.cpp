@@ -105,14 +105,6 @@ void GLRenderState::FetchState()
 	for(size_t i=0; i < ARRAY_COUNT(DrawBuffers); i++)
 		m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
 
-	{
-		GLenum dummy[2];
-		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
-		// and back faces.
-		m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
-		PolygonMode = dummy[0];
-	}
-	
 	m_Real->glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
 	m_Real->glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
 	m_Real->glGetIntegerv(eGL_POLYGON_SMOOTH_HINT, (GLint *)&Hints.PolySmooth);
@@ -125,12 +117,50 @@ void GLRenderState::FetchState()
 		m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 	
 	m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
+
+	{
+		m_Real->glGetIntegerv(eGL_STENCIL_FUNC, (GLint *)&StencilFront.func);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_FUNC, (GLint *)&StencilBack.func);
+
+		m_Real->glGetIntegerv(eGL_STENCIL_REF, (GLint *)&StencilFront.ref);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_REF, (GLint *)&StencilBack.ref);
+
+		GLint maskval;
+		m_Real->glGetIntegerv(eGL_STENCIL_VALUE_MASK, &maskval); StencilFront.valuemask = uint8_t(maskval&0xff);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_VALUE_MASK, &maskval); StencilBack.valuemask = uint8_t(maskval&0xff);
+		
+		m_Real->glGetIntegerv(eGL_STENCIL_WRITEMASK, &maskval); StencilFront.writemask = uint8_t(maskval&0xff);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &maskval); StencilBack.writemask = uint8_t(maskval&0xff);
+
+		m_Real->glGetIntegerv(eGL_STENCIL_FAIL, (GLint *)&StencilFront.stencilFail);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_FAIL, (GLint *)&StencilBack.stencilFail);
+
+		m_Real->glGetIntegerv(eGL_STENCIL_PASS_DEPTH_FAIL, (GLint *)&StencilFront.depthFail);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_FAIL, (GLint *)&StencilBack.depthFail);
+
+		m_Real->glGetIntegerv(eGL_STENCIL_PASS_DEPTH_PASS, (GLint *)&StencilFront.pass);
+		m_Real->glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_PASS, (GLint *)&StencilBack.pass);
+	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
 
-	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
+	m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
 
+	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
+	
+	m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
+	m_Real->glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
+	m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
+	
+	{
+		GLenum dummy[2];
+		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
+		// and back faces.
+		m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+		PolygonMode = dummy[0];
+	}
+	
 	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
 	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
 
@@ -209,10 +239,27 @@ void GLRenderState::ApplyState()
 
 	m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 	
+	{
+		m_Real->glStencilFuncSeparate(eGL_FRONT, StencilFront.func, StencilFront.ref, StencilFront.valuemask);
+		m_Real->glStencilFuncSeparate(eGL_BACK, StencilBack.func, StencilBack.ref, StencilBack.valuemask);
+
+		m_Real->glStencilMaskSeparate(eGL_FRONT, StencilFront.writemask);
+		m_Real->glStencilMaskSeparate(eGL_BACK, StencilBack.writemask);
+
+		m_Real->glStencilOpSeparate(eGL_FRONT, StencilFront.stencilFail, StencilFront.depthFail, StencilFront.pass);
+		m_Real->glStencilOpSeparate(eGL_BACK, StencilBack.stencilFail, StencilBack.depthFail, StencilBack.pass);
+	}
+	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
 
+	m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
+
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
+	
+	m_Real->glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
+	m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
+	m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
 
 	m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 	m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
@@ -234,6 +281,8 @@ void GLRenderState::Clear()
 	RDCEraseEl(BlendColor);
 	RDCEraseEl(Viewports);
 	RDCEraseEl(Scissors);
+
+	RDCEraseEl(PatchParams);
 	RDCEraseEl(PolygonMode);
 	RDCEraseEl(PolygonOffset);
 	
@@ -241,7 +290,10 @@ void GLRenderState::Clear()
 	RDCEraseEl(DepthClearValue);
 	RDCEraseEl(DepthRanges);
 	RDCEraseEl(DepthBounds);
+	RDCEraseEl(StencilFront);
+	RDCEraseEl(StencilBack);
 	RDCEraseEl(ColorMasks);
+	RDCEraseEl(SampleMask);
 	RDCEraseEl(ColorClearValue);
 
 	RDCEraseEl(Hints);
@@ -344,11 +396,42 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.near", DepthBounds.nearZ);
 		m_pSerialiser->Serialise("GL_DEPTH_BOUNDS_EXT.far", DepthBounds.farZ);
 	}
+	
+	{
+		m_pSerialiser->Serialise("GL_STENCIL_FUNC", StencilFront.func);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_FUNC", StencilBack.func);
+
+		m_pSerialiser->Serialise("GL_STENCIL_REF", StencilFront.ref);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_REF", StencilBack.ref);
+
+		m_pSerialiser->Serialise("GL_STENCIL_VALUE_MASK", StencilFront.valuemask);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_VALUE_MASK", StencilBack.valuemask);
+		
+		m_pSerialiser->Serialise("GL_STENCIL_WRITEMASK", StencilFront.writemask);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_WRITEMASK", StencilBack.writemask);
+
+		m_pSerialiser->Serialise("GL_STENCIL_FAIL", StencilFront.stencilFail);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_FAIL", StencilBack.stencilFail);
+
+		m_pSerialiser->Serialise("GL_STENCIL_PASS_DEPTH_FAIL", StencilFront.depthFail);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_PASS_DEPTH_FAIL", StencilBack.depthFail);
+
+		m_pSerialiser->Serialise("GL_STENCIL_PASS_DEPTH_PASS", StencilFront.pass);
+		m_pSerialiser->Serialise("GL_STENCIL_BACK_PASS_DEPTH_PASS", StencilBack.pass);
+	}
 
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
+	
+	m_pSerialiser->Serialise<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
 
 	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
+
+	{
+		m_pSerialiser->Serialise("GL_PATCH_VERTICES", PatchParams.numVerts);
+		m_pSerialiser->Serialise<2>("GL_PATCH_DEFAULT_INNER_LEVEL", &PatchParams.defaultInnerLevel[0]);
+		m_pSerialiser->Serialise<4>("GL_PATCH_DEFAULT_OUTER_LEVEL", &PatchParams.defaultOuterLevel[0]);
+	}
 
 	m_pSerialiser->Serialise("GL_POLYGON_MODE", PolygonMode);
 	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_FACTOR", PolygonOffset[0]);

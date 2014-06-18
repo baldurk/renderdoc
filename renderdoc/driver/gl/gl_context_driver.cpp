@@ -46,7 +46,7 @@ void WrappedOpenGL::glBlendFunc(GLenum sfactor, GLenum dfactor)
 {
 	m_Real.glBlendFunc(sfactor, dfactor);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC);
 		Serialise_glBlendFunc(sfactor, dfactor);
@@ -73,7 +73,7 @@ void WrappedOpenGL::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
 {
 	m_Real.glBlendFunci(buf, src, dst);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_FUNCI);
 		Serialise_glBlendFunci(buf, src, dst);
@@ -101,7 +101,7 @@ void WrappedOpenGL::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLflo
 {
 	m_Real.glBlendColor(red, green, blue, alpha);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_COLOR);
 		Serialise_glBlendColor(red, green, blue, alpha);
@@ -129,7 +129,7 @@ void WrappedOpenGL::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GL
 {
 	m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEP);
 		Serialise_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
@@ -158,7 +158,7 @@ void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum d
 {
 	m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEPI);
 		Serialise_glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
@@ -184,7 +184,7 @@ void WrappedOpenGL::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 {
 	m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEP);
 		Serialise_glBlendEquationSeparate(modeRGB, modeAlpha);
@@ -211,10 +211,171 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
 {
 	m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEPI);
 		Serialise_glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)
+{
+	SERIALISE_ELEMENT(GLenum, f, func);
+	SERIALISE_ELEMENT(int32_t, Ref, ref);
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilFunc(f, Ref, Mask);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilFunc(GLenum func, GLint ref, GLuint mask)
+{
+	m_Real.glStencilFunc(func, ref, mask);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC);
+		Serialise_glStencilFunc(func, ref, mask);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
+{
+	SERIALISE_ELEMENT(GLenum, Face, face);
+	SERIALISE_ELEMENT(GLenum, f, func);
+	SERIALISE_ELEMENT(int32_t, Ref, ref);
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilFuncSeparate(Face, f, Ref, Mask);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
+{
+	m_Real.glStencilFuncSeparate(face, func, ref, mask);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC_SEP);
+		Serialise_glStencilFuncSeparate(face, func, ref, mask);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilMask(GLuint mask)
+{
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilMask(Mask);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilMask(GLuint mask)
+{
+	m_Real.glStencilMask(mask);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_MASK);
+		Serialise_glStencilMask(mask);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilMaskSeparate(GLenum face, GLuint mask)
+{
+	SERIALISE_ELEMENT(GLenum, Face, face);
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilMaskSeparate(Face, Mask);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilMaskSeparate(GLenum face, GLuint mask)
+{
+	m_Real.glStencilMaskSeparate(face, mask);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_MASK_SEP);
+		Serialise_glStencilMaskSeparate(face, mask);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+{
+	SERIALISE_ELEMENT(GLenum, f, fail);
+	SERIALISE_ELEMENT(GLenum, zf, zfail);
+	SERIALISE_ELEMENT(GLenum, p, zpass);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilOp(f, zf, p);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+{
+	m_Real.glStencilOp(fail, zfail, zpass);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_OP);
+		Serialise_glStencilOp(fail, zfail, zpass);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
+{
+	SERIALISE_ELEMENT(GLenum, Face, face);
+	SERIALISE_ELEMENT(GLenum, sf, sfail);
+	SERIALISE_ELEMENT(GLenum, zf, dpfail);
+	SERIALISE_ELEMENT(GLenum, p, dppass);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glStencilOpSeparate(Face, sf, zf, p);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
+{
+	m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(STENCIL_OP_SEP);
+		Serialise_glStencilOpSeparate(face, sfail, dpfail, dppass);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -669,6 +830,87 @@ void WrappedOpenGL::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLb
 	{
 		SCOPED_SERIALISE_CONTEXT(COLOR_MASKI);
 		Serialise_glColorMaski(buf, red, green, blue, alpha);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glSampleMaski(GLuint maskNumber, GLbitfield mask)
+{
+	SERIALISE_ELEMENT(uint32_t, num, maskNumber);
+	SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glSampleMaski(num, Mask);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glSampleMaski(GLuint maskNumber, GLbitfield mask)
+{
+	m_Real.glSampleMaski(maskNumber, mask);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(SAMPLE_MASK);
+		Serialise_glSampleMaski(maskNumber, mask);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPatchParameteri(GLenum pname, GLint value)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(int32_t, Value, value);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPatchParameteri(PName, Value);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPatchParameteri(GLenum pname, GLint value)
+{
+	m_Real.glPatchParameteri(pname, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(PATCH_PARAMI);
+		Serialise_glPatchParameteri(pname, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPatchParameterfv(GLenum pname, const GLfloat *values)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	const size_t nParams = (PName == eGL_PATCH_DEFAULT_OUTER_LEVEL ? 4U : 2U);
+	SERIALISE_ELEMENT_ARR(float, Values, values, nParams);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPatchParameterfv(PName, Values);
+	}
+
+	delete[] Values;
+
+	return true;
+}
+
+void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
+{
+	m_Real.glPatchParameterfv(pname, values);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(PATCH_PARAMFV);
+		Serialise_glPatchParameterfv(pname, values);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
