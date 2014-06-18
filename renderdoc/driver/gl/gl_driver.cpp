@@ -46,6 +46,9 @@ const char *GLChunkNames[] =
 	"glTexSubImage1D",
 	"glTexSubImage2D",
 	"glTexSubImage3D",
+	"glCompressedTexSubImage1D",
+	"glCompressedTexSubImage2D",
+	"glCompressedTexSubImage3D",
 	"glPixelStore",
 	"glTexParameterf",
 	"glTexParameterfv",
@@ -1046,6 +1049,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case TEXSUBIMAGE3D:
 		Serialise_glTexSubImage3D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
+	case TEXSUBIMAGE1D_COMPRESSED:
+		Serialise_glCompressedTexSubImage1D(eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case TEXSUBIMAGE2D_COMPRESSED:
+		Serialise_glCompressedTexSubImage2D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case TEXSUBIMAGE3D_COMPRESSED:
+		Serialise_glCompressedTexSubImage3D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
 		break;
@@ -1851,6 +1863,11 @@ void WrappedOpenGL::glGetTexParameteriv(GLenum target, GLenum pname, GLint *para
 void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
 	m_Real.glGetTexImage(target, level, format, type, pixels);
+}
+
+void WrappedOpenGL::glGetCompressedTexImage(GLenum target, GLint level, void *img)
+{
+	m_Real.glGetCompressedTexImage(target, level, img);
 }
 
 void WrappedOpenGL::glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params)

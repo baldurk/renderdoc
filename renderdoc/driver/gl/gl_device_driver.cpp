@@ -420,6 +420,126 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(GLenum, fmt, format);
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+
+	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
+	
+	if(m_State == READING)
+	{
+		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		m_Real.glCompressedTexSubImage1D(Target, Level, xoff, Width, fmt, byteSize, buf);
+
+		delete[] buf;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
+		Serialise_glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
+
+		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+	SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(uint32_t, Height, height);
+	SERIALISE_ELEMENT(GLenum, fmt, format);
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+
+	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
+	
+	if(m_State == READING)
+	{
+		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		m_Real.glCompressedTexSubImage2D(Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf);
+
+		delete[] buf;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
+		Serialise_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+
+		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+	SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+	SERIALISE_ELEMENT(int32_t, zoff, zoffset);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(uint32_t, Height, height);
+	SERIALISE_ELEMENT(uint32_t, Depth, depth);
+	SERIALISE_ELEMENT(GLenum, fmt, format);
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+
+	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
+	
+	if(m_State == READING)
+	{
+		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
+		m_Real.glCompressedTexSubImage3D(Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf);
+
+		delete[] buf;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
+		Serialise_glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+
+		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glGenerateMipmap(GLenum target)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
@@ -914,6 +1034,27 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED();
+}
+
+void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
+{
+	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
+
+	RDCUNIMPLEMENTED();
+}
+
+void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
+{
+	m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, pixels);
+
+	RDCUNIMPLEMENTED();
+}
+
+void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
+{
+	m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, pixels);
 
 	RDCUNIMPLEMENTED();
 }

@@ -76,6 +76,8 @@
     HookInit(glTexImage1D); \
     HookInit(glTexImage2D); \
     HookInit(glTexImage3D); \
+    HookInit(glTexSubImage1D); \
+    HookInit(glTexSubImage2D); \
     HookInit(glTexParameterf); \
     HookInit(glTexParameterfv); \
     HookInit(glTexParameteri); \
@@ -118,9 +120,13 @@
     HookExtension(PFNGLTEXSTORAGE1DPROC, glTexStorage1D); \
     HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
     HookExtension(PFNGLTEXSTORAGE3DPROC, glTexStorage3D); \
-    HookExtension(PFNGLTEXSUBIMAGE1DPROC, glTexSubImage1D); \
-    HookExtension(PFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D); \
     HookExtension(PFNGLTEXSUBIMAGE3DPROC, glTexSubImage3D); \
+    HookExtension(PFNGLCOMPRESSEDTEXIMAGE1DPROC, glCompressedTexImage1D); \
+    HookExtension(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D); \
+    HookExtension(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D); \
+    HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC, glCompressedTexSubImage1D); \
+    HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D); \
+    HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtension(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HookExtension(PFNGLGETINTERNALFORMATI64VPROC, glGetInternalformati64v); \
@@ -216,6 +222,7 @@
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
     HookExtension(PFNGLGETVERTEXATTRIBIVPROC, glGetVertexAttribiv); \
     HookExtension(PFNGLGETVERTEXATTRIBPOINTERVPROC, glGetVertexAttribPointerv); \
+    HookExtension(PFNGLGETCOMPRESSEDTEXIMAGEPROC, glGetCompressedTexImage); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
     HookExtension(PFNGLSAMPLERPARAMETERIPROC, glSamplerParameteri); \
@@ -309,6 +316,8 @@
     HookExtension(PFNGLTEXIMAGE1DPROC, glTexImage1D); \
     HookExtension(PFNGLTEXIMAGE2DPROC, glTexImage2D); \
     HookExtension(PFNGLTEXIMAGE3DPROC, glTexImage3D); \
+    HookExtension(PFNGLTEXSUBIMAGE1DPROC, glTexSubImage1D); \
+    HookExtension(PFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D); \
     HookExtension(PFNGLTEXPARAMETERFPROC, glTexParameterf); \
     HookExtension(PFNGLTEXPARAMETERFVPROC, glTexParameterfv); \
     HookExtension(PFNGLTEXPARAMETERIPROC, glTexParameteri); \
@@ -382,6 +391,8 @@
     HookWrapper8(void, glTexImage1D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper9(void, glTexImage2D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper10(void, glTexImage3D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
+    HookWrapper7(void, glTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
+    HookWrapper9(void, glTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper3(void, glTexParameterf, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glTexParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
     HookWrapper3(void, glTexParameteri, GLenum, target, GLenum, pname, GLint, param); \
@@ -424,9 +435,13 @@
     HookWrapper4(void, glTexStorage1D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
-    HookWrapper7(void, glTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLenum, type, const void *, pixels); \
-    HookWrapper9(void, glTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper11(void, glTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, pixels); \
+    HookWrapper7(void, glCompressedTexImage1D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookWrapper8(void, glCompressedTexImage2D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookWrapper9(void, glCompressedTexImage3D, GLenum, target, GLint, level, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLsizei, imageSize, const void *, data); \
+    HookWrapper7(void, glCompressedTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookWrapper9(void, glCompressedTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookWrapper11(void, glCompressedTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper5(void, glGetInternalformati64v, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint64 *, params); \
@@ -521,6 +536,7 @@
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \
     HookWrapper3(void, glGetVertexAttribiv, GLuint, index, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetVertexAttribPointerv, GLuint, index, GLenum, pname, void **, pointer); \
+    HookWrapper3(void, glGetCompressedTexImage, GLenum, target, GLint, level, void *, img); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
     HookWrapper3(void, glSamplerParameteri, GLuint, sampler, GLenum, pname, GLint, param); \
