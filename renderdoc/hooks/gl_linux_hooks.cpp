@@ -346,6 +346,8 @@ Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx)
 	
 	OpenGLHook::glhooks.GetDriver()->ActivateContext((void *)drawable, ctx);
 	
+	OpenGLHook::glhooks.GetRealFunctions();
+
 	return ret;
 }
 
