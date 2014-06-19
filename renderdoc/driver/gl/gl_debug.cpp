@@ -172,7 +172,10 @@ void GLReplay::InitDebugData()
 	gl.glGenVertexArrays(1, &DebugData.emptyVAO);
 	gl.glBindVertexArray(DebugData.emptyVAO);
 
+	MakeCurrentReplayContext(&m_ReplayCtx);
+
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
+	gl.glBindVertexArray(DebugData.meshVAO);
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
@@ -647,6 +650,12 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 
 	if(!outw) return;
 	
+	const auto &attr = m_CurPipelineState.m_VtxIn.attributes[0];
+	const auto &vb = m_CurPipelineState.m_VtxIn.vbuffers[attr.BufferSlot];
+
+	if(vb.Buffer == ResourceId())
+		return;
+	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
 	GLint viewport[4];
@@ -700,9 +709,6 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 
 	gl.glBindVertexArray(DebugData.meshVAO);
 
-	const auto &attr = m_CurPipelineState.m_VtxIn.attributes[0];
-	const auto &vb = m_CurPipelineState.m_VtxIn.vbuffers[attr.BufferSlot];
-	
 	// TODO: we should probably use glBindVertexBuffer, glVertexAttribFormat, glVertexAttribBinding.
 	// For now just assume things about the format and vbuffer.
 
