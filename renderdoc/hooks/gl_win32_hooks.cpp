@@ -339,6 +339,8 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->ActivateContext(WindowFromDC(dc), rc);
 
+			glhooks.GetRealFunctions();
+
 			return ret;
 		}
 
