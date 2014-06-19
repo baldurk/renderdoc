@@ -518,6 +518,16 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(GLenum target, GLuint index, GLui
 
 void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
+	if(m_State >= WRITING)
+	{
+		size_t idx = BufferIdx(target);
+
+		if(buffer == 0)
+			m_BufferRecord[idx] = NULL;
+		else
+			m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
+	}
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
@@ -548,6 +558,16 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(GLenum target, GLuint index, GLu
 
 void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
+	if(m_State >= WRITING)
+	{
+		size_t idx = BufferIdx(target);
+
+		if(buffer == 0)
+			m_BufferRecord[idx] = NULL;
+		else
+			m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
+	}
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_RANGE);
