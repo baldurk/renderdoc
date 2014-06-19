@@ -174,6 +174,102 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(buffer)));
+	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		data = dummy;
+	}
+
+	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+
+	uint64_t offs = m_pSerialiser->GetOffset();
+
+	SERIALISE_ELEMENT(uint32_t, Flags, flags);
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		m_Real.glNamedBufferStorageEXT(res.name, (GLsizeiptr)Bytesize, bytes, Flags);
+		
+		m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
+
+		SAFE_DELETE_ARRAY(bytes);
+	}
+	else if(m_State >= WRITING)
+	{
+		GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
+	}
+
+	if(dummy)
+		delete[] dummy;
+
+	return true;
+}
+
+void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+	m_Real.glNamedBufferStorageEXT(buffer, size, data, flags);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
+		Serialise_glNamedBufferStorageEXT(buffer, size, data, flags);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+			record->SetDataPtr(chunk->GetData());
+			record->Length = (int32_t)size;
+		}
+	}
+}
+
+void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+	m_Real.glBufferStorage(target, size, data, flags);
+	
+	size_t idx = BufferIdx(target);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
+		Serialise_glNamedBufferStorageEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																   size, data, flags);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+			record->SetDataPtr(chunk->GetData());
+			record->Length = (int32_t)size;
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(buffer)));
@@ -266,6 +362,141 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(buffer)));
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
+	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(id);
+		m_Real.glNamedBufferSubDataEXT(res.name, (GLintptr)Offset, (GLsizeiptr)Bytesize, bytes);
+
+		SAFE_DELETE_ARRAY(bytes);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data)
+{
+	m_Real.glNamedBufferSubDataEXT(buffer, offset, size, data);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
+		Serialise_glNamedBufferSubDataEXT(buffer, offset, size, data);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(chunk);
+		else
+			record->AddChunk(chunk);
+	}
+}
+
+void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
+{
+	m_Real.glBufferSubData(target, offset, size, data);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
+		Serialise_glNamedBufferSubDataEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																      offset, size, data);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(chunk);
+		else
+			record->AddChunk(chunk);
+	}
+}
+
+bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
+{
+	SERIALISE_ELEMENT(ResourceId, readid, GetResourceManager()->GetID(BufferRes(readBuffer)));
+	SERIALISE_ELEMENT(ResourceId, writeid, GetResourceManager()->GetID(BufferRes(writeBuffer)));
+	SERIALISE_ELEMENT(uint64_t, ReadOffset, (uint64_t)readOffset);
+	SERIALISE_ELEMENT(uint64_t, WriteOffset, (uint64_t)writeOffset);
+	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+	
+	if(m_State < WRITING)
+	{
+		GLResource readres = GetResourceManager()->GetLiveResource(readid);
+		GLResource writeres = GetResourceManager()->GetLiveResource(writeid);
+		m_Real.glNamedCopyBufferSubDataEXT(readres.name, writeres.name, (GLintptr)ReadOffset, (GLintptr)WriteOffset, (GLsizeiptr)Bytesize);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
+{
+	m_Real.glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *readrecord = GetResourceManager()->GetResourceRecord(BufferRes(readBuffer));
+		GLResourceRecord *writerecord = GetResourceManager()->GetResourceRecord(BufferRes(writeBuffer));
+		RDCASSERT(readrecord && writerecord);
+
+		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
+		Serialise_glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			writerecord->AddChunk(chunk);
+			writerecord->AddParent(readrecord);
+		}
+	}
+}
+
+void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
+{
+	m_Real.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *readrecord = m_BufferRecord[BufferIdx(readTarget)];
+		GLResourceRecord *writerecord = m_BufferRecord[BufferIdx(writeTarget)];
+		RDCASSERT(readrecord && writerecord);
+
+		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
+		Serialise_glNamedCopyBufferSubDataEXT(GetResourceManager()->GetCurrentResource(readrecord->GetResourceID()).name,
+																          GetResourceManager()->GetCurrentResource(writerecord->GetResourceID()).name,
+																          readOffset, writeOffset, size);
+
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			writerecord->AddChunk(chunk);
+			writerecord->AddParent(readrecord);
 		}
 	}
 }

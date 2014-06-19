@@ -50,12 +50,14 @@ const char *GLChunkNames[] =
 	"glCompressedTexSubImage1D",
 	"glCompressedTexSubImage2D",
 	"glCompressedTexSubImage3D",
+	"glTexBufferRange",
 	"glPixelStore",
 	"glTexParameterf",
 	"glTexParameterfv",
 	"glTexParameteri",
 	"glTexParameteriv",
 	"glGenerateMipmap",
+	"glCopyImageSubData",
 	"glTextureView",
 
 	"glCreateShader",
@@ -164,7 +166,10 @@ const char *GLChunkNames[] =
 	"glBindBuffer",
 	"glBindBufferBase",
 	"glBindBufferRange",
+	"glBufferStorage",
 	"glBufferData",
+	"glBufferSubData",
+	"glCopyBufferSubData",
 	"glUnmapBuffer",
 	"glGenVertexArrays",
 	"glBindVertexArray",
@@ -949,6 +954,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case TEXSUBIMAGE3D_COMPRESSED:
 		Serialise_glCompressedTextureSubImage3DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
+	case TEXBUFFER_RANGE:
+		Serialise_glTextureBufferRangeEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
 		break;
@@ -966,6 +974,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case GENERATE_MIPMAP:
 		Serialise_glGenerateTextureMipmapEXT(0, eGL_UNKNOWN_ENUM);
+		break;
+	case COPY_SUBIMAGE:
+		Serialise_glCopyImageSubData(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0);
 		break;
 	case TEXTURE_VIEW:
 		Serialise_glTextureView(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
@@ -1277,8 +1288,17 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_BUFFER_RANGE:
 		Serialise_glBindBufferRange(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
+	case BUFFERSTORAGE:
+		Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0);
+		break;
 	case BUFFERDATA:
 		Serialise_glNamedBufferDataEXT(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);
+		break;
+	case BUFFERSUBDATA:
+		Serialise_glNamedBufferSubDataEXT(0, 0, 0, NULL);
+		break;
+	case COPYBUFFERSUBDATA:
+		Serialise_glNamedCopyBufferSubDataEXT(0, 0, 0, 0, 0);
 		break;
 	case UNMAP:
 		Serialise_glUnmapNamedBufferEXT(eGL_UNKNOWN_ENUM);

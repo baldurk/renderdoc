@@ -109,8 +109,10 @@
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC, glCompressedTexSubImage1D); \
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D); \
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D); \
+    HookExtension(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
     HookExtension(PFNGLTEXTUREVIEWPROC, glTextureView); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
+    HookExtension(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData); \
     HookExtension(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HookExtension(PFNGLGETINTERNALFORMATI64VPROC, glGetInternalformati64v); \
     HookExtension(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv); \
@@ -203,6 +205,9 @@
     HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
     HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
+    HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
+    HookExtension(PFNGLBUFFERSUBDATAPROC, glBufferSubData); \
+    HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
     HookExtension(PFNGLMAPBUFFERPROC, glMapBuffer); \
@@ -289,9 +294,13 @@
     HookExtension(PFNGLMAPNAMEDBUFFEREXTPROC, glMapNamedBufferEXT); \
     HookExtension(PFNGLMAPNAMEDBUFFERRANGEEXTPROC, glMapNamedBufferRangeEXT); \
     HookExtension(PFNGLNAMEDBUFFERDATAEXTPROC, glNamedBufferDataEXT); \
+    HookExtension(PFNGLNAMEDBUFFERSTORAGEEXTPROC, glNamedBufferStorageEXT); \
+    HookExtension(PFNGLNAMEDBUFFERSUBDATAEXTPROC, glNamedBufferSubDataEXT); \
+    HookExtension(PFNGLNAMEDCOPYBUFFERSUBDATAEXTPROC, glNamedCopyBufferSubDataEXT); \
     HookExtension(PFNGLNAMEDFRAMEBUFFERTEXTUREEXTPROC, glNamedFramebufferTextureEXT); \
     HookExtension(PFNGLNAMEDFRAMEBUFFERTEXTURE2DEXTPROC, glNamedFramebufferTexture2DEXT); \
     HookExtension(PFNGLNAMEDFRAMEBUFFERTEXTURELAYEREXTPROC, glNamedFramebufferTextureLayerEXT); \
+    HookExtension(PFNGLTEXTUREBUFFERRANGEEXTPROC, glTextureBufferRangeEXT); \
     HookExtension(PFNGLTEXTUREIMAGE1DEXTPROC, glTextureImage1DEXT); \
     HookExtension(PFNGLTEXTUREIMAGE2DEXTPROC, glTextureImage2DEXT); \
     HookExtension(PFNGLTEXTUREIMAGE3DEXTPROC, glTextureImage3DEXT); \
@@ -441,8 +450,10 @@
     HookWrapper7(void, glCompressedTexSubImage1D, GLenum, target, GLint, level, GLint, xoffset, GLsizei, width, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper9(void, glCompressedTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLsizei, imageSize, const void *, data); \
     HookWrapper11(void, glCompressedTexSubImage3D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLsizei, imageSize, const void *, data); \
+    HookWrapper5(void, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper8(void, glTextureView, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
+    HookWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper5(void, glGetInternalformati64v, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint64 *, params); \
     HookWrapper3(void, glGetBufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
@@ -534,6 +545,9 @@
     HookWrapper3(void, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper2(void, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
     HookWrapper4(void, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
+    HookWrapper4(void, glBufferStorage, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+    HookWrapper4(void, glBufferSubData, GLenum, target, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+    HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper2(void *, glMapBuffer, GLenum, target, GLenum, access); \
@@ -620,9 +634,13 @@
     HookWrapper2(void *, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
     HookWrapper4(void *, glMapNamedBufferRangeEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper4(void, glNamedBufferDataEXT, GLuint, buffer, GLsizeiptr, size, const void *, data, GLenum, usage); \
+    HookWrapper4(void, glNamedBufferStorageEXT, GLuint, buffer, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+    HookWrapper4(void, glNamedBufferSubDataEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+    HookWrapper5(void, glNamedCopyBufferSubDataEXT, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper4(void, glNamedFramebufferTextureEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper5(void, glNamedFramebufferTexture2DEXT, GLuint, framebuffer, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
     HookWrapper5(void, glNamedFramebufferTextureLayerEXT, GLuint, framebuffer, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
+    HookWrapper6(void, glTextureBufferRangeEXT, GLuint, texture, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper9(void, glTextureImage1DEXT, GLuint, texture, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper10(void, glTextureImage2DEXT, GLuint, texture, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper11(void, glTextureImage3DEXT, GLuint, texture, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
