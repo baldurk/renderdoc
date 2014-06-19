@@ -208,48 +208,101 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 	}
 }
 		
-bool WrappedOpenGL::Serialise_glGenerateMipmap(GLenum target)
+bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glGenerateMipmap(Target);
+		m_Real.glGenerateTextureMipmapEXT(GetResourceManager()->GetLiveResource(id).name, Target);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
+{
+	m_Real.glGenerateTextureMipmapEXT(texture, target);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
+		Serialise_glGenerateTextureMipmapEXT(texture, target);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
+		Serialise_glGenerateTextureMipmapEXT(texture, target);
+
+		ResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+		if(record)
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glGenerateMipmap(GLenum target)
 {
 	m_Real.glGenerateMipmap(target);
+
+	ResourceRecord *record = m_TextureRecord[m_TextureUnit];
 	
-	RDCASSERT(m_TextureRecord[m_TextureUnit]);
+	RDCASSERT(record);
+	if(!record) return;
+
+	GLuint texture = GetResourceManager()->GetCurrentResource(record->GetResourceID()).name;
+
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
-		Serialise_glGenerateMipmap(target);
+		Serialise_glGenerateTextureMipmapEXT(texture, target);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
+		Serialise_glGenerateTextureMipmapEXT(texture, target);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexParameteri(GLenum target, GLenum pname, GLint param)
+bool WrappedOpenGL::Serialise_glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Param, param);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 	
 	if(m_State < WRITING)
 	{
-		if(m_State == READING)
-			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		glTexParameteri(Target, PName, Param);
+		m_Real.glTextureParameteriEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Param);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
+{
+	m_Real.glTextureParameteriEXT(texture, target, pname, param);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
+		Serialise_glTextureParameteriEXT(texture, target, pname, param);
+
+		if(m_State == WRITING_IDLE)
+			record->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
@@ -258,36 +311,55 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
-		Serialise_glTexParameteri(target, pname, param);
+		Serialise_glTextureParameteriEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		 target, pname, param);
 
 		if(m_State == WRITING_IDLE)
-			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+			record->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
+bool WrappedOpenGL::Serialise_glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
 
 	if(m_State < WRITING)
 	{
-		if(m_State == READING)
-			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		glTexParameteriv(Target, PName, Params);
+		m_Real.glTextureParameterivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
 	}
 
 	delete[] Params;
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params)
+{
+	m_Real.glTextureParameterivEXT(texture, target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
+		Serialise_glTextureParameterivEXT(texture, target, pname, params);
+
+		if(m_State == WRITING_IDLE)
+			record->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
@@ -296,33 +368,52 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
-		Serialise_glTexParameteriv(target, pname, params);
+		Serialise_glTextureParameterivEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		  target, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+			record->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexParameterf(GLenum target, GLenum pname, GLfloat param)
+bool WrappedOpenGL::Serialise_glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(float, Param, param);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 	
 	if(m_State < WRITING)
 	{
-		if(m_State == READING)
-			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		glTexParameterf(Target, PName, Param);
+		m_Real.glTextureParameterfEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Param);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
+{
+	m_Real.glTextureParameterfEXT(texture, target, pname, param);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
+		Serialise_glTextureParameterfEXT(texture, target, pname, param);
+
+		if(m_State == WRITING_IDLE)
+			record->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
@@ -331,36 +422,55 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
-		Serialise_glTexParameterf(target, pname, param);
+		Serialise_glTextureParameterfEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		 target, pname, param);
 
 		if(m_State == WRITING_IDLE)
-			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+			record->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
+bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, const GLfloat *params)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
 
 	if(m_State < WRITING)
 	{
-		if(m_State == READING)
-			m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		glTexParameterfv(Target, PName, Params);
+		m_Real.glTextureParameterfvEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
 	}
 
 	delete[] Params;
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, const GLfloat *params)
+{
+	m_Real.glTextureParameterfvEXT(texture, target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
+		Serialise_glTextureParameterfvEXT(texture, target, pname, params);
+
+		if(m_State == WRITING_IDLE)
+			record->AddChunk(scope.Get());
+		else
+			m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params)
@@ -369,13 +479,15 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
-		Serialise_glTexParameterfv(target, pname, params);
+		Serialise_glTextureParameterfvEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		  target, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+			record->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -464,6 +576,27 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 	RDCUNIMPLEMENTED("Old glTexImage3D API not implemented");
 }
 
+void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED("Old glTexImage1D API not implemented");
+}
+
+void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED("Old glTexImage2D API not implemented");
+}
+
+void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, pixels);
+
+	RDCUNIMPLEMENTED("Old glTexImage3D API not implemented");
+}
+
 void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
 	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
@@ -485,13 +618,34 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 	RDCUNIMPLEMENTED("Old glCompressedTexImage3D API not implemented");
 }
 
-bool WrappedOpenGL::Serialise_glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
+void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
+{
+	m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, pixels);
+
+	RDCUNIMPLEMENTED("Old glCompressedTexImage1D API not implemented");
+}
+
+void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
+{
+	m_Real.glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, pixels);
+
+	RDCUNIMPLEMENTED("Old glCompressedTexImage2D API not implemented");
+}
+
+void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
+{
+	m_Real.glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, pixels);
+
+	RDCUNIMPLEMENTED("Old glCompressedTexImage3D API not implemented");
+}
+
+bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint32_t, Levels, levels);
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	if(m_State == READING)
 	{
@@ -500,11 +654,29 @@ bool WrappedOpenGL::Serialise_glTexStorage1D(GLenum target, GLsizei levels, GLen
 		m_Textures[liveId].height = 1;
 		m_Textures[liveId].depth = 1;
 
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexStorage1D(Target, Levels, Format, Width);
+		m_Real.glTextureStorage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
+{
+	m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE1D);
+		Serialise_glTextureStorage1DEXT(texture, target, levels, internalformat, width);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
@@ -513,23 +685,28 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE1D);
-		Serialise_glTexStorage1D(target, levels, internalformat, width);
+		Serialise_glTextureStorage1DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		target, levels, internalformat, width);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
+bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint32_t, Levels, levels);
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	if(m_State == READING)
 	{
@@ -538,11 +715,29 @@ bool WrappedOpenGL::Serialise_glTexStorage2D(GLenum target, GLsizei levels, GLen
 		m_Textures[liveId].height = Height;
 		m_Textures[liveId].depth = 1;
 
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexStorage2D(Target, Levels, Format, Width, Height);
+		m_Real.glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
+{
+	m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE2D);
+		Serialise_glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
@@ -551,16 +746,21 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE2D);
-		Serialise_glTexStorage2D(target, levels, internalformat, width, height);
+		Serialise_glTextureStorage2DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		target, levels, internalformat, width, height);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
+bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint32_t, Levels, levels);
@@ -568,7 +768,7 @@ bool WrappedOpenGL::Serialise_glTexStorage3D(GLenum target, GLsizei levels, GLen
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(uint32_t, Depth, depth);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	if(m_State == READING)
 	{
@@ -577,11 +777,29 @@ bool WrappedOpenGL::Serialise_glTexStorage3D(GLenum target, GLsizei levels, GLen
 		m_Textures[liveId].height = Height;
 		m_Textures[liveId].depth = Depth;
 
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexStorage3D(Target, Levels, Format, Width, Height, Depth);
+		m_Real.glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height, Depth);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
+{
+	m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3D);
+		Serialise_glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
@@ -590,16 +808,21 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3D);
-		Serialise_glTexStorage3D(target, levels, internalformat, width, height, depth);
+		Serialise_glTextureStorage3DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		target, levels, internalformat, width, height, depth);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
+bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -607,7 +830,7 @@ bool WrappedOpenGL::Serialise_glTexSubImage1D(GLenum target, GLint level, GLint 
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
@@ -618,13 +841,31 @@ bool WrappedOpenGL::Serialise_glTexSubImage1D(GLenum target, GLint level, GLint 
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexSubImage1D(Target, Level, xoff, Width, Format, Type, buf);
+		m_Real.glTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, Format, Type, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+		
+void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
+		Serialise_glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
@@ -633,16 +874,21 @@ void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, G
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
-		Serialise_glTexSubImage1D(target, level, xoffset, width, format, type, pixels);
+		Serialise_glTextureSubImage1DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		 target, level, xoffset, width, format, type, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
+bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -652,7 +898,7 @@ bool WrappedOpenGL::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint 
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
@@ -663,13 +909,31 @@ bool WrappedOpenGL::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint 
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexSubImage2D(Target, Level, xoff, yoff, Width, Height, Format, Type, buf);
+		m_Real.glTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, Format, Type, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, type, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
+		Serialise_glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, type, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
@@ -678,16 +942,21 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
-		Serialise_glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+		Serialise_glTextureSubImage2DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		 target, level, xoffset, yoffset, width, height, format, type, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
+bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -699,7 +968,7 @@ bool WrappedOpenGL::Serialise_glTexSubImage3D(GLenum target, GLint level, GLint 
 	SERIALISE_ELEMENT(uint32_t, Depth, depth);
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
@@ -710,13 +979,31 @@ bool WrappedOpenGL::Serialise_glTexSubImage3D(GLenum target, GLint level, GLint 
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glTexSubImage3D(Target, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf);
+		m_Real.glTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
+{
+	m_Real.glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
+		Serialise_glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
@@ -725,16 +1012,21 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
-		Serialise_glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+		Serialise_glTextureSubImage3DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		 target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
+bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -742,19 +1034,37 @@ bool WrappedOpenGL::Serialise_glCompressedTexSubImage1D(GLenum target, GLint lev
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glCompressedTexSubImage1D(Target, Level, xoff, Width, fmt, byteSize, buf);
+		m_Real.glCompressedTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, fmt, byteSize, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
+		Serialise_glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
@@ -763,16 +1073,21 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
-		Serialise_glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
+		Serialise_glCompressedTextureSubImage1DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		           target, level, xoffset, width, format, imageSize, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
+bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -782,19 +1097,37 @@ bool WrappedOpenGL::Serialise_glCompressedTexSubImage2D(GLenum target, GLint lev
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glCompressedTexSubImage2D(Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf);
+		m_Real.glCompressedTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
+		Serialise_glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
@@ -803,16 +1136,21 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
-		Serialise_glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+		Serialise_glCompressedTextureSubImage2DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		           target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
+bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(int32_t, Level, level);
@@ -824,19 +1162,37 @@ bool WrappedOpenGL::Serialise_glCompressedTexSubImage3D(GLenum target, GLint lev
 	SERIALISE_ELEMENT(uint32_t, Depth, depth);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-	SERIALISE_ELEMENT(ResourceId, id, m_TextureRecord[m_TextureUnit]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, byteSize);
 	
 	if(m_State == READING)
 	{
-		m_Real.glBindTexture(Target, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glCompressedTexSubImage3D(Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf);
+		m_Real.glCompressedTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf);
 
 		delete[] buf;
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
+{
+	m_Real.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
+		Serialise_glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
@@ -845,12 +1201,17 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
 	
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(m_TextureRecord[m_TextureUnit]);
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
-		Serialise_glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+		Serialise_glCompressedTextureSubImage3DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		           target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			record->AddChunk(scope.Get());
 	}
 }
 

@@ -109,6 +109,11 @@ void WrappedOpenGL::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum 
 	m_Real.glGetTexLevelParameteriv(target, level, pname, params);
 }
 
+void WrappedOpenGL::glGetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureLevelParameterivEXT(texture, target, level, pname, params);
+}
+
 void WrappedOpenGL::glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
 {
 	m_Real.glGetTexLevelParameterfv(target, level, pname, params);
@@ -129,9 +134,19 @@ void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLe
 	m_Real.glGetTexImage(target, level, format, type, pixels);
 }
 
+void WrappedOpenGL::glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
+{
+	m_Real.glGetTextureImageEXT(texture, target, level, format, type, pixels);
+}
+
 void WrappedOpenGL::glGetCompressedTexImage(GLenum target, GLint level, void *img)
 {
 	m_Real.glGetCompressedTexImage(target, level, img);
+}
+
+void WrappedOpenGL::glGetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level, void *img)
+{
+	m_Real.glGetCompressedTextureImageEXT(texture, target, level, img);
 }
 
 void WrappedOpenGL::glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params)
@@ -149,9 +164,19 @@ void WrappedOpenGL::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *p
 	m_Real.glGetBufferParameteriv(target, pname, params);
 }
 
+void WrappedOpenGL::glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
+}
+
 void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
 	m_Real.glGetBufferSubData(target, offset, size, data);
+}
+
+void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
+{
+	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
 void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
@@ -183,6 +208,26 @@ const GLubyte *WrappedOpenGL::glGetStringi(GLenum name, GLuint i)
 		return (const GLubyte *)"";
 	}
 	return m_Real.glGetStringi(name, i);
+}
+
+void WrappedOpenGL::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint *params)
+{
+	m_Real.glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment, pname, params);
+}
+
+GLenum WrappedOpenGL::glCheckFramebufferStatus(GLenum target)
+{
+	return m_Real.glCheckFramebufferStatus(target);
+}
+
+GLenum WrappedOpenGL::glCheckNamedFramebufferStatusEXT(GLuint framebuffer, GLenum target)
+{
+	return m_Real.glCheckNamedFramebufferStatusEXT(framebuffer, target);
 }
 
 void WrappedOpenGL::glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)

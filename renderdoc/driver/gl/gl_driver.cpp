@@ -923,49 +923,49 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBindTexture(eGL_UNKNOWN_ENUM, 0);
 		break;
 	case TEXSTORAGE1D:
-		Serialise_glTexStorage1D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0);
+		Serialise_glTextureStorage1DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0);
 		break;
 	case TEXSTORAGE2D:
-		Serialise_glTexStorage2D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0);
+		Serialise_glTextureStorage2DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
 	case TEXSTORAGE3D:
-		Serialise_glTexStorage3D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		Serialise_glTextureStorage3DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0);
 		break;
 	case TEXSUBIMAGE1D:
-		Serialise_glTexSubImage1D(eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureSubImage1DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case TEXSUBIMAGE2D:
-		Serialise_glTexSubImage2D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureSubImage2DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case TEXSUBIMAGE3D:
-		Serialise_glTexSubImage3D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureSubImage3DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case TEXSUBIMAGE1D_COMPRESSED:
-		Serialise_glCompressedTexSubImage1D(eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		Serialise_glCompressedTextureSubImage1DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
 	case TEXSUBIMAGE2D_COMPRESSED:
-		Serialise_glCompressedTexSubImage2D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		Serialise_glCompressedTextureSubImage2DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
 	case TEXSUBIMAGE3D_COMPRESSED:
-		Serialise_glCompressedTexSubImage3D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		Serialise_glCompressedTextureSubImage3DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
 		break;
 	case TEXPARAMETERF:
-		Serialise_glTexParameterf(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		Serialise_glTextureParameterfEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
 		break;
 	case TEXPARAMETERFV:
-		Serialise_glTexParameterfv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureParameterfvEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case TEXPARAMETERI:
-		Serialise_glTexParameteri(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		Serialise_glTextureParameteriEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
 		break;
 	case TEXPARAMETERIV:
-		Serialise_glTexParameteriv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureParameterivEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case GENERATE_MIPMAP:
-		Serialise_glGenerateMipmap(eGL_UNKNOWN_ENUM);
+		Serialise_glGenerateTextureMipmapEXT(0, eGL_UNKNOWN_ENUM);
 		break;
 	case TEXTURE_VIEW:
 		Serialise_glTextureView(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
@@ -1216,13 +1216,13 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glGenFramebuffers(0, NULL);
 		break;
 	case FRAMEBUFFER_TEX:
-		Serialise_glFramebufferTexture(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		Serialise_glNamedFramebufferTextureEXT(0, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
 	case FRAMEBUFFER_TEX2D:
-		Serialise_glFramebufferTexture2D(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		Serialise_glNamedFramebufferTexture2DEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
 		break;
 	case FRAMEBUFFER_TEXLAYER:
-		Serialise_glFramebufferTextureLayer(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0);
 		break;
 	case READ_BUFFER:
 		Serialise_glReadBuffer(eGL_UNKNOWN_ENUM);
@@ -1234,7 +1234,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glDrawBuffer(eGL_UNKNOWN_ENUM);
 		break;
 	case DRAW_BUFFERS:
-		Serialise_glDrawBuffers(0, NULL);
+		Serialise_glFramebufferDrawBuffersEXT(0, 0, NULL);
 		break;
 	case BLIT_FRAMEBUFFER:
 		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM);
@@ -1278,10 +1278,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBindBufferRange(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
 	case BUFFERDATA:
-		Serialise_glBufferData(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);
+		Serialise_glNamedBufferDataEXT(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);
 		break;
 	case UNMAP:
-		Serialise_glUnmapBuffer(eGL_UNKNOWN_ENUM);
+		Serialise_glUnmapNamedBufferEXT(eGL_UNKNOWN_ENUM);
 		break;
 	case GEN_VERTEXARRAY:
 		Serialise_glGenVertexArrays(0, NULL);
