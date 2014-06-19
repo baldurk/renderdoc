@@ -735,11 +735,15 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 			)
 		)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(bufID);
+		if(m_State < WRITING)
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(bufID);
+			buffer = res.name;
+		}
 
-		void *ptr = m_Real.glMapNamedBufferRangeEXT(res.name, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
+		void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
 		memcpy(ptr, data, (size_t)len);
-		m_Real.glUnmapNamedBufferEXT(res.name);
+		m_Real.glUnmapNamedBufferEXT(buffer);
 	}
 
 	if(m_State < WRITING)
