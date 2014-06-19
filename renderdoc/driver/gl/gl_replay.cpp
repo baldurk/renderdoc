@@ -454,6 +454,9 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	tex.creationFlags = eTextureCreate_SRV;
 	if(tex.format.compType == eCompType_Depth)
 		tex.creationFlags |= eTextureCreate_DSV;
+	if(res.resource.name == gl.m_FakeBB_Color)
+		tex.creationFlags |= eTextureCreate_SwapBuffer;
+
 	GLNOTIMP("creationFlags are not calculated yet");
 
 	tex.byteSize = 0;
