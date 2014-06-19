@@ -380,6 +380,12 @@ bool WrappedOpenGL::Serialise_glDrawBuffer(GLenum buf)
 
 	if(m_State < WRITING)
 	{
+		// since we are faking the default framebuffer with our own
+		// to see the results, replace back/front/left/right with color attachment 0
+		if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK ||
+				b == eGL_FRONT_LEFT || b == eGL_FRONT_RIGHT || b == eGL_FRONT)
+				b = eGL_COLOR_ATTACHMENT0;
+
 		m_Real.glDrawBuffer(b);
 	}
 
@@ -407,6 +413,15 @@ bool WrappedOpenGL::Serialise_glFramebufferDrawBuffersEXT(GLuint framebuffer, GL
 
 	if(m_State < WRITING)
 	{
+		for(uint32_t i=0; i < num; i++)
+		{
+			// since we are faking the default framebuffer with our own
+			// to see the results, replace back/front/left/right with color attachment 0
+			if(buffers[i] == eGL_BACK_LEFT || buffers[i] == eGL_BACK_RIGHT || buffers[i] == eGL_BACK ||
+					buffers[i] == eGL_FRONT_LEFT || buffers[i] == eGL_FRONT_RIGHT || buffers[i] == eGL_FRONT)
+					buffers[i] = eGL_COLOR_ATTACHMENT0;
+		}
+
 		m_Real.glFramebufferDrawBuffersEXT(GetResourceManager()->GetLiveResource(Id).name, num, buffers);
 	}
 

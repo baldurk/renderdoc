@@ -100,8 +100,6 @@ void GLRenderState::FetchState()
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
 
-	m_Real->glGetIntegerv(eGL_DRAW_BUFFER, (GLint *)&DrawBuffer);
-	
 	for(size_t i=0; i < ARRAY_COUNT(DrawBuffers); i++)
 		m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
 
@@ -220,8 +218,33 @@ void GLRenderState::ApplyState()
 
 	m_Real->glScissorArrayv(0, ARRAY_COUNT(Scissors), &Scissors[0].x);
 
-	m_Real->glDrawBuffer(DrawBuffer);
-	m_Real->glDrawBuffers(8, DrawBuffers);
+	GLenum DBs[8] = { eGL_UNKNOWN_ENUM };
+	uint32_t numDBs = 0;
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
+	{
+		if(DrawBuffers[i] != eGL_NONE)
+		{
+			numDBs++;
+			DBs[i] = DrawBuffers[i];
+
+			// since we are faking the default framebuffer with our own
+			// to see the results, replace back/front/left/right with color attachment 0
+			if(DBs[i] == eGL_BACK_LEFT || DBs[i] == eGL_BACK_RIGHT ||
+				 DBs[i] == eGL_FRONT_LEFT || DBs[i] == eGL_FRONT_RIGHT)
+				DBs[i] = eGL_COLOR_ATTACHMENT0;
+			
+			// These aren't valid for glDrawBuffers but can be returned when we call glGet,
+			// assume they mean left implicitly
+			if(DBs[i] == eGL_BACK ||
+				 DBs[i] == eGL_FRONT)
+				DBs[i] = eGL_COLOR_ATTACHMENT0;
+		}
+		else
+		{
+			break;
+		}
+	}
+	m_Real->glDrawBuffers(numDBs, DBs);
 	
 	m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
 	m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
@@ -375,7 +398,6 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		m_pSerialiser->Serialise("GL_VIEWPORT.h", Scissors[i].height);
 	}
 	
-	m_pSerialiser->Serialise("GL_DRAWBUFFER", DrawBuffer);
 	m_pSerialiser->Serialise<8>("GL_DRAWBUFFERS", DrawBuffers);
 
 	m_pSerialiser->Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", Hints.Derivatives);

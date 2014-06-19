@@ -68,7 +68,6 @@ struct GLRenderState
 		int32_t x, y, width, height;
 	} Scissors[16];
 
-	GLenum DrawBuffer;
 	GLenum DrawBuffers[8];
 
 	// TODO:
