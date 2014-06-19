@@ -334,12 +334,16 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 
 	gl.glBindTexture(res.curType, res.resource.name);
 
-	// if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
+	GLenum levelQueryType = res.curType;
+	if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
+		levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+	// TODO if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
 	GLint width = 1, height = 1, depth = 1, samples=1;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_WIDTH, &width);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_HEIGHT, &height);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_DEPTH, &depth);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_SAMPLES, &samples);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
 
 	if(res.width == 0)
 	{
@@ -382,6 +386,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
+			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP);
 			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
 			break;
@@ -391,6 +396,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
+			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.arraysize = depth;
 			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP_ARRAY);
 			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
@@ -427,7 +433,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	
 	// surely this will be the same for each level... right? that would be insane if it wasn't
 	GLint fmt = 0;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
 	tex.format = MakeResourceFormat(gl, res.curType, (GLenum)fmt);
 	
