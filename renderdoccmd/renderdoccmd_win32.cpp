@@ -234,8 +234,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 
 	for(int32_t i=0; i < texs.count; i++)
 	{
-		wstring name(texs[i].name.elems, texs[i].name.elems+texs[i].name.count);
-		if(name.find(L"Swap") != wstring::npos)
+		if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
 		{
 			TextureDisplay d;
 			d.texid = texs[i].ID;
