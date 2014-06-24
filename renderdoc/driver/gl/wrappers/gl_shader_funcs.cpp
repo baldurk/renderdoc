@@ -583,19 +583,12 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 		SCOPED_SERIALISE_CONTEXT(USE_PROGRAMSTAGES);
 		Serialise_glUseProgramStages(pipeline, stages, program);
 		
-		if(m_State == WRITING_CAPFRAME)
-		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(pipeline));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
-			
-			GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			record->AddParent(progrecord);
-		}
-		else
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(pipeline));
+		RDCASSERT(record);
+		record->AddChunk(scope.Get());
+
+		GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		record->AddParent(progrecord);
 	}
 }
 
