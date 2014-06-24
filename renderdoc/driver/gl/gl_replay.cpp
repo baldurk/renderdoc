@@ -484,6 +484,16 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
+	if(res.curType == eGL_UNKNOWN_ENUM)
+	{
+		ret.byteSize = 0;
+		ret.creationFlags = 0;
+		ret.customName = false;
+		ret.length = 0;
+		ret.structureSize = 0;
+		return ret;
+	}
+
 	gl.glBindBuffer(res.curType, res.resource.name);
 
 	ret.structureSize = 0;
@@ -500,6 +510,9 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 			break;
 		case eGL_UNIFORM_BUFFER:
 			ret.creationFlags = eBufferCreate_CB;
+			break;
+		case eGL_PIXEL_PACK_BUFFER:
+		case eGL_COPY_WRITE_BUFFER:
 			break;
 		default:
 			RDCERR("Unexpected buffer type %hs", ToStr::Get(res.curType).c_str());
