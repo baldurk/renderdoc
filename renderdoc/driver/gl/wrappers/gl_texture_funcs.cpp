@@ -404,7 +404,7 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(GLuint texture, GLenum tar
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
-	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR || PName == eGL_TEXTURE_SWIZZLE_RGBA ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
 
 	if(m_State < WRITING)
@@ -515,7 +515,7 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(GLuint texture, GLenum tar
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
-	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR || PName == eGL_TEXTURE_SWIZZLE_RGBA ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
 
 	if(m_State < WRITING)
