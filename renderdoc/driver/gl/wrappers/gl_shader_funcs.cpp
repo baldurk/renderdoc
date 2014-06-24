@@ -224,7 +224,17 @@ bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
 		ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
 
 		if(!m_Programs[liveProgId].linked)
-			m_Programs[liveProgId].shaders.push_back(liveShadId);
+		{
+			for(auto it = m_Programs[liveProgId].shaders.begin();
+				   it != m_Programs[liveProgId].shaders.end(); ++it)
+			{
+				if(*it == liveShadId)
+				{
+					m_Programs[liveProgId].shaders.erase(it);
+					break;
+				}
+			}
+		}
 		
 		m_Real.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
 								GetResourceManager()->GetLiveResource(shadid).name);
