@@ -185,6 +185,8 @@ bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuin
 		GLResource tex = GetResourceManager()->GetLiveResource(texid);
 		GLResource origtex = GetResourceManager()->GetLiveResource(origid);
 		m_Real.glTextureView(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels, MinLayer, NumLayers);
+
+		m_Textures[GetResourceManager()->GetLiveID(texid)].curType = Target;
 	}
 
 	return true;
@@ -196,8 +198,8 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 	
 	if(m_State >= WRITING)
 	{
-		ResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
-		ResourceRecord *origrecord = GetResourceManager()->GetResourceRecord(TextureRes(origtexture));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(texture));
+		GLResourceRecord *origrecord = GetResourceManager()->GetResourceRecord(TextureRes(origtexture));
 		RDCASSERT(record && origrecord);
 
 		SCOPED_SERIALISE_CONTEXT(TEXTURE_VIEW);
@@ -205,6 +207,12 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 
 		record->AddChunk(scope.Get());
 		record->AddParent(origrecord);
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
+		else
+			RDCASSERT(record->datatype == target);
 	}
 }
 		
@@ -267,7 +275,9 @@ void WrappedOpenGL::glGenerateMipmap(GLenum target)
 		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
 		Serialise_glGenerateTextureMipmapEXT(texture, target);
 
-		record->AddChunk(scope.Get());
+		RDCASSERT(record);
+		if(record)
+			record->AddChunk(scope.Get());
 	}
 }
 
@@ -563,7 +573,9 @@ bool WrappedOpenGL::Serialise_glPixelStorei(GLenum pname, GLint param)
 	SERIALISE_ELEMENT(int32_t, Param, param);
 
 	if(m_State < WRITING)
+	{
 		m_Real.glPixelStorei(PName, Param);
+	}
 
 	return true;
 }
@@ -572,12 +584,17 @@ void WrappedOpenGL::glPixelStorei(GLenum pname, GLint param)
 {
 	m_Real.glPixelStorei(pname, param);
 
-	RDCASSERT(m_TextureRecord[m_TextureUnit]);
+	if(m_State >= WRITING)
 	{
 		SCOPED_SERIALISE_CONTEXT(PIXELSTORE);
 		Serialise_glPixelStorei(pname, param);
 
-		m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		if(m_TextureRecord[m_TextureUnit])
+			m_TextureRecord[m_TextureUnit]->AddChunk(scope.Get());
+		else if(m_State == WRITING_IDLE)
+			m_DeviceRecord->AddChunk(scope.Get());
+		else if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -717,6 +734,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = 1;
 		m_Textures[liveId].depth = 1;
+		m_Textures[liveId].curType = Target;
 
 		m_Real.glTextureStorage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width);
 	}
@@ -736,10 +754,13 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE1D);
 		Serialise_glTextureStorage1DEXT(texture, target, levels, internalformat, width);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
 		else
-			record->AddChunk(scope.Get());
+			RDCASSERT(record->datatype == target);
 	}
 }
 
@@ -756,10 +777,7 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 		Serialise_glTextureStorage1DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
 																		target, levels, internalformat, width);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
-		else
-			record->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
 	}
 }
 
@@ -778,6 +796,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum targe
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
 		m_Textures[liveId].depth = 1;
+		m_Textures[liveId].curType = Target;
 
 		m_Real.glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height);
 	}
@@ -797,10 +816,13 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE2D);
 		Serialise_glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
 		else
-			record->AddChunk(scope.Get());
+			RDCASSERT(record->datatype == target);
 	}
 }
 
@@ -817,10 +839,13 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 		Serialise_glTextureStorage2DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
 																		target, levels, internalformat, width, height);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
 		else
-			record->AddChunk(scope.Get());
+			RDCASSERT(record->datatype == target);
 	}
 }
 
@@ -840,6 +865,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum targe
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
 		m_Textures[liveId].depth = Depth;
+		m_Textures[liveId].curType = Target;
 
 		m_Real.glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height, Depth);
 	}
@@ -859,10 +885,13 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3D);
 		Serialise_glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
 		else
-			record->AddChunk(scope.Get());
+			RDCASSERT(record->datatype == target);
 	}
 }
 
@@ -879,10 +908,13 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 		Serialise_glTextureStorage3DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
 																		target, levels, internalformat, width, height, depth);
 
-		if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		record->AddChunk(scope.Get());
+
+		// illegal to re-type textures
+		if(record->datatype == eGL_UNKNOWN_ENUM)
+			record->datatype = target;
 		else
-			record->AddChunk(scope.Get());
+			RDCASSERT(record->datatype == target);
 	}
 }
 
