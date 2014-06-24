@@ -551,8 +551,13 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield sta
 
 	if(m_State < WRITING)
 	{
+		ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
+		ResourceId liveProgId = GetResourceManager()->GetLiveID(prog);
+
+		m_Pipelines[livePipeId].programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
+		
 		m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name,
-															stages,
+															Stages,
 															GetResourceManager()->GetLiveResource(prog).name);
 	}
 

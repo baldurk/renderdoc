@@ -188,9 +188,25 @@ class WrappedOpenGL
 			GLuint colOutProg;
 			bool linked;
 		};
+		
+		struct PipelineData
+		{
+			PipelineData() {}
+
+			struct ProgramUse
+			{
+				ProgramUse(ResourceId id_, GLbitfield use_) : id(id_), use(use_) {}
+
+				ResourceId id;
+				GLbitfield use;
+			};
+
+			vector<ProgramUse> programs;
+		};
 
 		map<ResourceId, ShaderData> m_Shaders;
 		map<ResourceId, ProgramData> m_Programs;
+		map<ResourceId, PipelineData> m_Pipelines;
 
 		GLuint m_FakeBB_FBO;
 		GLuint m_FakeBB_Color;
