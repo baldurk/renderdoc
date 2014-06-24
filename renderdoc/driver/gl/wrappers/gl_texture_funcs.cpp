@@ -927,11 +927,14 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(texture)));
-
+	
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	
+	GLint rowlen = 0;
+	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
 
-	size_t subimageSize = GetByteSize(Width, 1, 1, Format, Type, Level, align);
+	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, 1, 1, Format, Type, Level, align);
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, subimageSize);
 	
@@ -998,8 +1001,14 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	
+	GLint rowlen = 0;
+	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
+	
+	GLint imgheight = 0;
+	m_Real.glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imgheight);
 
-	size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type, Level, align);
+	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, imgheight > 0 ? imgheight : Height, 1, Format, Type, Level, align);
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, subimageSize);
 	
@@ -1068,8 +1077,14 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 
 	GLint align = 1;
 	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	
+	GLint rowlen = 0;
+	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
+	
+	GLint imgheight = 0;
+	m_Real.glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imgheight);
 
-	size_t subimageSize = GetByteSize(Width, Height, Depth, Format, Type, Level, align);
+	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, imgheight > 0 ? imgheight : Height, Depth, Format, Type, Level, align);
 
 	SERIALISE_ELEMENT_BUF(byte *, buf, pixels, subimageSize);
 	
