@@ -411,13 +411,14 @@ void WrappedOpenGL::glProgramUniform1i(GLuint program, GLint location, GLint v0)
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -433,13 +434,14 @@ void WrappedOpenGL::glProgramUniform1iv(GLuint program, GLint location, GLsizei 
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -455,13 +457,14 @@ void WrappedOpenGL::glProgramUniform1fv(GLuint program, GLint location, GLsizei 
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -477,13 +480,14 @@ void WrappedOpenGL::glProgramUniform1uiv(GLuint program, GLint location, GLsizei
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -499,13 +503,14 @@ void WrappedOpenGL::glProgramUniform2fv(GLuint program, GLint location, GLsizei 
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -521,13 +526,14 @@ void WrappedOpenGL::glProgramUniform3fv(GLuint program, GLint location, GLsizei 
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
@@ -543,13 +549,14 @@ void WrappedOpenGL::glProgramUniform4fv(GLuint program, GLint location, GLsizei 
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-			RDCASSERT(record);
-			record->AddChunk(scope.Get());
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			m_ContextRecord->AddChunk(scope.Get());
+			// TODO grab this at capture time as initial state for program resources
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			RDCASSERT(record);
+			record->AddChunk(scope.Get());
 		}
 	}
 }
