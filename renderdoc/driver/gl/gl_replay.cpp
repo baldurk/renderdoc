@@ -939,32 +939,8 @@ void GLReplay::SavePipelineState()
 			break;
 		}
 	}
-
-	// Shader stages
 	
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(curProg))];
-
-	RDCASSERT(progDetails.shaders.size());
-
-	for(size_t i=0; i < progDetails.shaders.size(); i++)
-	{
-		if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
-			pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-		else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
-			pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-	}
-	
-	pipe.m_VS.stage = eShaderStage_Vertex;
-	pipe.m_TCS.stage = eShaderStage_Tess_Control;
-	pipe.m_TES.stage = eShaderStage_Tess_Eval;
-	pipe.m_GS.stage = eShaderStage_Geometry;
-	pipe.m_FS.stage = eShaderStage_Fragment;
-	pipe.m_CS.stage = eShaderStage_Compute;
-
-	// Textures
+	// Shader stages & Textures
 	
 	GLint numTexUnits = 8;
 	gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
@@ -973,124 +949,160 @@ void GLReplay::SavePipelineState()
 	GLenum activeTexture = eGL_TEXTURE0;
 	gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint*)&activeTexture);
 
-	// GL is ass-backwards in its handling of texture units. When a shader is active
-	// the types in the glsl samplers inform which targets are used from which texture units
-	//
-	// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
-	// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
-	// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
-	// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
-	// different types). It makes it all rather pointless and needlessly complex.
-	//
-	// What we have to do then, is consider the program, look at the values of the uniforms, and
-	// then get the appropriate current binding based on the uniform type. We can warn/alert the
-	// user if we hit the illegal case of two uniforms with different types but the same value
-	//
-	// Handling is different if no shaders are active, but we don't consider that case.
-
-
-	// prefetch uniform values in GetShader()
-	ShaderReflection *refls[6];
-	for(size_t s=0; s < progDetails.shaders.size(); s++)
-		refls[s] = GetShader(progDetails.shaders[s]);
-
-	for(GLint unit=0; unit < numTexUnits; unit++)
+	pipe.m_VS.stage = eShaderStage_Vertex;
+	pipe.m_TCS.stage = eShaderStage_Tess_Control;
+	pipe.m_TES.stage = eShaderStage_Tess_Eval;
+	pipe.m_GS.stage = eShaderStage_Geometry;
+	pipe.m_FS.stage = eShaderStage_Fragment;
+	pipe.m_CS.stage = eShaderStage_Compute;
+	
+	GLuint curProg = 0;
+	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+	
+	if(curProg == 0)
 	{
-		GLenum binding = eGL_UNKNOWN_ENUM;
-		GLenum target = eGL_UNKNOWN_ENUM;
+		pipe.m_VS.Shader = ResourceId();
+		pipe.m_FS.Shader = ResourceId();
 		
-		for(size_t s=0; s < progDetails.shaders.size(); s++)
+		for(GLint unit=0; unit < numTexUnits; unit++)
 		{
-			if(refls[s] == NULL) continue;
+			pipe.Textures[unit].FirstSlice = 0;
+			pipe.Textures[unit].Resource = ResourceId();
+		}
+	}
+	else
+	{
+		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(curProg))];
 
-			for(int32_t r=0; r < refls[s]->Resources.count; r++)
+		RDCASSERT(progDetails.shaders.size());
+
+		for(size_t i=0; i < progDetails.shaders.size(); i++)
+		{
+			if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
+				pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
+			else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
+				pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
+		}
+
+		// GL is ass-backwards in its handling of texture units. When a shader is active
+		// the types in the glsl samplers inform which targets are used from which texture units
+		//
+		// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
+		// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
+		// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
+		// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
+		// different types). It makes it all rather pointless and needlessly complex.
+		//
+		// What we have to do then, is consider the program, look at the values of the uniforms, and
+		// then get the appropriate current binding based on the uniform type. We can warn/alert the
+		// user if we hit the illegal case of two uniforms with different types but the same value
+		//
+		// Handling is different if no shaders are active, but we don't consider that case.
+
+
+		// prefetch uniform values in GetShader()
+		ShaderReflection *refls[6];
+		for(size_t s=0; s < progDetails.shaders.size(); s++)
+			refls[s] = GetShader(progDetails.shaders[s]);
+
+		for(GLint unit=0; unit < numTexUnits; unit++)
+		{
+			GLenum binding = eGL_UNKNOWN_ENUM;
+			GLenum target = eGL_UNKNOWN_ENUM;
+
+			for(size_t s=0; s < progDetails.shaders.size(); s++)
 			{
-				// bindPoint is the uniform value for this sampler
-				if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
+				if(refls[s] == NULL) continue;
+
+				for(int32_t r=0; r < refls[s]->Resources.count; r++)
 				{
-					GLenum t = eGL_UNKNOWN_ENUM;
+					// bindPoint is the uniform value for this sampler
+					if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
+					{
+						GLenum t = eGL_UNKNOWN_ENUM;
 
-					switch(refls[s]->Resources[r].resType)
-					{
-						case eResType_None:
-							t = eGL_UNKNOWN_ENUM;
-							break;
-						case eResType_Buffer:
-							t = eGL_TEXTURE_BINDING_BUFFER;
-							break;
-						case eResType_Texture1D:
-							t = eGL_TEXTURE_BINDING_1D;
-							target = eGL_TEXTURE_1D;
-							break;
-						case eResType_Texture1DArray:
-							t = eGL_TEXTURE_BINDING_1D_ARRAY;
-							target = eGL_TEXTURE_1D_ARRAY;
-							break;
-						case eResType_Texture2D:
-							t = eGL_TEXTURE_BINDING_2D;
-							target = eGL_TEXTURE_2D;
-							break;
-						case eResType_Texture2DArray:
-							t = eGL_TEXTURE_BINDING_2D_ARRAY;
-							target = eGL_TEXTURE_2D_ARRAY;
-							break;
-						case eResType_Texture2DMS:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
-							target = eGL_TEXTURE_2D_MULTISAMPLE;
-							break;
-						case eResType_Texture2DMSArray:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
-							target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-							break;
-						case eResType_Texture3D:
-							t = eGL_TEXTURE_BINDING_3D;
-							target = eGL_TEXTURE_3D;
-							break;
-						case eResType_TextureCube:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP;
-							target = eGL_TEXTURE_CUBE_MAP;
-							break;
-						case eResType_TextureCubeArray:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
-							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
-							break;
-					}
+						switch(refls[s]->Resources[r].resType)
+						{
+							case eResType_None:
+								t = eGL_UNKNOWN_ENUM;
+								break;
+							case eResType_Buffer:
+								t = eGL_TEXTURE_BINDING_BUFFER;
+								break;
+							case eResType_Texture1D:
+								t = eGL_TEXTURE_BINDING_1D;
+								target = eGL_TEXTURE_1D;
+								break;
+							case eResType_Texture1DArray:
+								t = eGL_TEXTURE_BINDING_1D_ARRAY;
+								target = eGL_TEXTURE_1D_ARRAY;
+								break;
+							case eResType_Texture2D:
+								t = eGL_TEXTURE_BINDING_2D;
+								target = eGL_TEXTURE_2D;
+								break;
+							case eResType_Texture2DArray:
+								t = eGL_TEXTURE_BINDING_2D_ARRAY;
+								target = eGL_TEXTURE_2D_ARRAY;
+								break;
+							case eResType_Texture2DMS:
+								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
+								target = eGL_TEXTURE_2D_MULTISAMPLE;
+								break;
+							case eResType_Texture2DMSArray:
+								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
+								target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+								break;
+							case eResType_Texture3D:
+								t = eGL_TEXTURE_BINDING_3D;
+								target = eGL_TEXTURE_3D;
+								break;
+							case eResType_TextureCube:
+								t = eGL_TEXTURE_BINDING_CUBE_MAP;
+								target = eGL_TEXTURE_CUBE_MAP;
+								break;
+							case eResType_TextureCubeArray:
+								t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
+								target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+								break;
+						}
 
-					if(binding == eGL_UNKNOWN_ENUM)
-					{
-						binding = t;
-					}
-					else if(binding == t)
-					{
-						// two uniforms with the same type pointing to the same slot is fine
-						binding = t;
-					}
-					else if(binding != t)
-					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						if(binding == eGL_UNKNOWN_ENUM)
+						{
+							binding = t;
+						}
+						else if(binding == t)
+						{
+							// two uniforms with the same type pointing to the same slot is fine
+							binding = t;
+						}
+						else if(binding != t)
+						{
+							RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						}
 					}
 				}
 			}
-		}
 
-		if(binding != eGL_UNKNOWN_ENUM)
-		{
-			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
+			if(binding != eGL_UNKNOWN_ENUM)
+			{
+				gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
 
-			GLuint tex;
-			gl.glGetIntegerv(binding, (GLint *)&tex);
+				GLuint tex;
+				gl.glGetIntegerv(binding, (GLint *)&tex);
 
-			// very bespoke/specific
-			GLint firstSlice = 0;
-			gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+				// very bespoke/specific
+				GLint firstSlice = 0;
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
 
-			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(tex)));
-			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
-		}
-		else
-		{
-			// what should we do in this case? there could be something bound just not used,
-			// it'd be nice to return that
+				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(tex)));
+				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+			}
+			else
+			{
+				// what should we do in this case? there could be something bound just not used,
+				// it'd be nice to return that
+			}
 		}
 	}
 
