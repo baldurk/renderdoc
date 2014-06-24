@@ -1097,7 +1097,10 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
 		Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
-		r->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			r->AddChunk(scope.Get());
 	}
 }
 
@@ -1140,7 +1143,10 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
 		Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
 
-		r->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			r->AddChunk(scope.Get());
 	}
 }
 
@@ -1178,7 +1184,10 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 		SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
 		Serialise_glEnableVertexAttribArray(index);
 
-		r->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			r->AddChunk(scope.Get());
 	}
 }
 
@@ -1215,7 +1224,10 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 		SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
 		Serialise_glDisableVertexAttribArray(index);
 
-		r->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+			m_ContextRecord->AddChunk(scope.Get());
+		else
+			r->AddChunk(scope.Get());
 	}
 }
 
