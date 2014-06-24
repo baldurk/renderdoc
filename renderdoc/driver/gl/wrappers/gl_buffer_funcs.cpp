@@ -330,6 +330,16 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
 		RDCASSERT(record);
+		
+		// detect buffer orphaning and just update backing store
+		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL && size == record->Length && usage == record->usage)
+		{
+			if(data)
+				memcpy(record->GetDataPtr(), data, (size_t)size);
+			else
+				memset(record->GetDataPtr(), 0xbe, (size_t)size);
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
@@ -345,6 +355,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
+			record->usage = usage;
 		}
 	}
 }
@@ -359,6 +370,16 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 	{
 		GLResourceRecord *record = m_BufferRecord[BufferIdx(target)];
 		RDCASSERT(record);
+
+		// detect buffer orphaning and just update backing store
+		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL && size == record->Length && usage == record->usage)
+		{
+			if(data)
+				memcpy(record->GetDataPtr(), data, (size_t)size);
+			else
+				memset(record->GetDataPtr(), 0xbe, (size_t)size);
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
@@ -375,6 +396,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
+			record->usage = usage;
 		}
 	}
 }
