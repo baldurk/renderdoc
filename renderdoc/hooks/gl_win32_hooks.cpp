@@ -201,9 +201,11 @@ class OpenGLHook : LibraryHook
 			// an extension that it doesn't!
 
 			wglExts.push_back("WGL_ARB_extensions_string");
-			//wglExts.push_back("WGL_ARB_multisample");
+			wglExts.push_back("WGL_ARB_multisample");
+			wglExts.push_back("WGL_ARB_framebuffer_sRGB");
 			wglExts.push_back("WGL_ARB_create_context");
 			wglExts.push_back("WGL_ARB_create_context_profile");
+			wglExts.push_back("WGL_ARB_pixel_format");
 			
 			merge(wglExts, wglExtsString, ' ');
 
@@ -270,6 +272,9 @@ class OpenGLHook : LibraryHook
 
 		PROC (WINAPI* wglGetProcAddress_realfunc)(const char*);
 		PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB_realfunc;
+		PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB_realfunc;
+		PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB_realfunc;
+		PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB_realfunc;
 
 		static private GLInitParams GetInitParamsForDC(HDC dc)
 		{
@@ -329,6 +334,19 @@ class OpenGLHook : LibraryHook
 			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, hShareContext, GetInitParamsForDC(dc));
 
 			return ret;
+		}
+		
+		static BOOL WINAPI wglChoosePixelFormatARB_hooked(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats)
+		{
+			return glhooks.wglChoosePixelFormatARB_realfunc(hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);
+		}
+		static BOOL WINAPI wglGetPixelFormatAttribfvARB_hooked(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues)
+		{
+			return glhooks.wglGetPixelFormatAttribfvARB_realfunc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues);
+		}
+		static BOOL WINAPI wglGetPixelFormatAttribivARB_hooked(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues)
+		{
+			return glhooks.wglGetPixelFormatAttribivARB_realfunc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);
 		}
 
 		// wglShareLists_hooked ?
@@ -399,6 +417,21 @@ class OpenGLHook : LibraryHook
 			{
 				glhooks.wglCreateContextAttribsARB_realfunc = (PFNWGLCREATECONTEXTATTRIBSARBPROC)realFunc;
 				return (PROC)&wglCreateContextAttribsARB_hooked;
+			}
+			if(!strcmp(func, "wglChoosePixelFormatARB"))
+			{
+				glhooks.wglChoosePixelFormatARB_realfunc = (PFNWGLCHOOSEPIXELFORMATARBPROC)realFunc;
+				return (PROC)&wglChoosePixelFormatARB_hooked;
+			}
+			if(!strcmp(func, "wglGetPixelFormatAttribfvARB"))
+			{
+				glhooks.wglGetPixelFormatAttribfvARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBFVARBPROC)realFunc;
+				return (PROC)&wglGetPixelFormatAttribfvARB_hooked;
+			}
+			if(!strcmp(func, "wglGetPixelFormatAttribivARB"))
+			{
+				glhooks.wglGetPixelFormatAttribivARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)realFunc;
+				return (PROC)&wglGetPixelFormatAttribivARB_hooked;
 			}
 
 			HookCheckWGLExtensions();
