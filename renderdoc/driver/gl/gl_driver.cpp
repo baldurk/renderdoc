@@ -245,6 +245,10 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
 
 	glExts.push_back("GL_ARB_multitexture");
+	glExts.push_back("GL_ARB_debug_output");
+	glExts.push_back("GL_EXT_direct_state_access");
+	glExts.push_back("GL_ARB_internalformat_query");
+	glExts.push_back("GL_ARB_internalformat_query2");
 	
 #if !defined(_RELEASE)
 	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
