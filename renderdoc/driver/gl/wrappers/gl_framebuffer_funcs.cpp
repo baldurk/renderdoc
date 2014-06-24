@@ -335,7 +335,7 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
 bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(FramebufferRes(framebuffer)));
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(framebuffer)) : ResourceId()));
 
 	if(m_State <= EXECUTING)
 	{

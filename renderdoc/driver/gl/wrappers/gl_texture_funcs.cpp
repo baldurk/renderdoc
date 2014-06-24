@@ -92,7 +92,7 @@ void WrappedOpenGL::glDeleteTextures(GLsizei n, const GLuint *textures)
 bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(TextureRes(texture)));
+	SERIALISE_ELEMENT(ResourceId, Id, (texture ? GetResourceManager()->GetID(TextureRes(texture)) : ResourceId()));
 	
 	if(m_State == WRITING_IDLE)
 	{

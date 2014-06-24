@@ -79,12 +79,19 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 bool WrappedOpenGL::Serialise_glBindSampler(GLuint unit, GLuint sampler)
 {
 	SERIALISE_ELEMENT(uint32_t, Unit, unit);
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, sampler ? GetResourceManager()->GetID(SamplerRes(sampler)) : ResourceId());
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glBindSampler(Unit, res.name);
+		if(id == ResourceId())
+		{
+			m_Real.glBindSampler(Unit, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindSampler(Unit, res.name);
+		}
 	}
 
 	return true;

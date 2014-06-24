@@ -108,20 +108,28 @@ size_t WrappedOpenGL::BufferIdx(GLenum buf)
 bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, Id, GetResourceManager()->GetID(BufferRes(buffer)));
+	SERIALISE_ELEMENT(ResourceId, Id, (buffer ? GetResourceManager()->GetID(BufferRes(buffer)) : ResourceId()));
 	
 	if(m_State >= WRITING)
 	{
 		size_t idx = BufferIdx(target);
 
-		m_BufferRecord[idx]->datatype = Target;
+		if(buffer != 0)
+			m_BufferRecord[idx]->datatype = Target;
 	}
 	else if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(Id);
-		m_Real.glBindBuffer(Target, res.name);
+		if(Id == ResourceId())
+		{
+			m_Real.glBindBuffer(Target, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glBindBuffer(Target, res.name);
 
-		m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
+			m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
+		}
 	}
 
 	return true;
@@ -131,9 +139,16 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 {
 	m_Real.glBindBuffer(target, buffer);
 	
+	size_t idx = BufferIdx(target);
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		Chunk *chunk = NULL;
+		
+		if(buffer == 0)
+			m_BufferRecord[idx] = NULL;
+		else
+			m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
 
 		{
 			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
@@ -144,8 +159,6 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		
 		m_ContextRecord->AddChunk(chunk);
 	}
-
-	size_t idx = BufferIdx(target);
 
 	if(buffer == 0)
 	{
@@ -505,12 +518,19 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(GLenum target, GLuint index, GLui
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint32_t, Index, index);
-	SERIALISE_ELEMENT(ResourceId, id, m_BufferRecord[BufferIdx(target)]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(buffer)) : ResourceId()));
 
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
-		m_Real.glBindBufferBase(Target, Index, res.name);
+		if(id == ResourceId())
+		{
+			m_Real.glBindBuffer(Target, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindBufferBase(Target, Index, res.name);
+		}
 	}
 
 	return true;
@@ -543,14 +563,21 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(GLenum target, GLuint index, GLu
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(uint32_t, Index, index);
-	SERIALISE_ELEMENT(ResourceId, id, m_BufferRecord[BufferIdx(target)]->GetResourceID());
+	SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(buffer)) : ResourceId()));
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
 	SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
 
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
-		m_Real.glBindBufferRange(Target, Index, res.name, (GLintptr)Offset, (GLsizeiptr)Size);
+		if(id == ResourceId())
+		{
+			m_Real.glBindBuffer(Target, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindBufferRange(Target, Index, res.name, (GLintptr)Offset, (GLsizeiptr)Size);
+		}
 	}
 
 	return true;
@@ -1077,11 +1104,19 @@ void WrappedOpenGL::glGenVertexArrays(GLsizei n, GLuint *arrays)
 
 bool WrappedOpenGL::Serialise_glBindVertexArray(GLuint array)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(array)));
+	SERIALISE_ELEMENT(ResourceId, id, (array ? GetResourceManager()->GetID(VertexArrayRes(array)) : ResourceId()));
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glBindVertexArray(GetResourceManager()->GetLiveResource(id).name);
+		if(id == ResourceId())
+		{
+			m_Real.glBindVertexArray(0);
+		}
+		else
+		{
+			GLuint live = GetResourceManager()->GetLiveResource(id).name;
+			m_Real.glBindVertexArray(live);
+		}
 	}
 
 	return true;

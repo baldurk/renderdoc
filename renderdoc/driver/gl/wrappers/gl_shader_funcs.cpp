@@ -636,11 +636,19 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 
 bool WrappedOpenGL::Serialise_glBindProgramPipeline(GLuint pipeline)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(pipeline)));
+	SERIALISE_ELEMENT(ResourceId, id, (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(pipeline)) : ResourceId()));
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glBindProgramPipeline(GetResourceManager()->GetLiveResource(id).name);
+		if(id == ResourceId())
+		{
+			m_Real.glBindProgramPipeline(0);
+		}
+		else
+		{
+			GLuint live = GetResourceManager()->GetLiveResource(id).name;
+			m_Real.glBindProgramPipeline(live);
+		}
 	}
 
 	return true;
