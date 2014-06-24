@@ -119,7 +119,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, 
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameteri(res.name, PName, Param);
+		m_Real.glSamplerParameteri(res.name, PName, Param);
 	}
 
 	return true;
@@ -150,7 +150,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, 
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameterf(res.name, PName, Param);
+		m_Real.glSamplerParameterf(res.name, PName, Param);
 	}
 
 	return true;
@@ -182,7 +182,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameteriv(GLuint sampler, GLenum pname,
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameteriv(res.name, PName, Params);
+		m_Real.glSamplerParameteriv(res.name, PName, Params);
 	}
 
 	delete[] Params;
@@ -216,7 +216,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname,
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameterfv(res.name, PName, Params);
+		m_Real.glSamplerParameterfv(res.name, PName, Params);
 	}
 
 	delete[] Params;
@@ -250,7 +250,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIiv(GLuint sampler, GLenum pname
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameterIiv(res.name, PName, Params);
+		m_Real.glSamplerParameterIiv(res.name, PName, Params);
 	}
 
 	delete[] Params;
@@ -284,7 +284,7 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(GLuint sampler, GLenum pnam
 	if(m_State < WRITING)
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glSamplerParameterIuiv(res.name, PName, Params);
+		m_Real.glSamplerParameterIuiv(res.name, PName, Params);
 	}
 
 	delete[] Params;
