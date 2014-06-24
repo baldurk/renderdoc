@@ -403,18 +403,32 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 	
 	if(m_State >= WRITING)
 	{
+		if(m_HighTrafficResources.find(BufferRes(buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
 		RDCASSERT(record);
 
-		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
+		SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
 		Serialise_glNamedBufferSubDataEXT(buffer, offset, size, data);
 
 		Chunk *chunk = scope.Get();
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(chunk);
+		}
 		else
+		{
 			record->AddChunk(chunk);
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 60)
+			{
+				m_HighTrafficResources.insert(BufferRes(buffer));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -614,14 +628,38 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 
 		GLint length;
 		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &length);
+		
+		bool straightUp = false;
+		if(m_HighTrafficResources.find(BufferRes(buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			straightUp = true;
+		
+		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
+			straightUp = true;
 
-		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
-
+		if(!straightUp && (access == eGL_WRITE_ONLY || access == eGL_READ_WRITE) && m_State != WRITING_CAPFRAME)
+		{
+			straightUp = true;
+			m_HighTrafficResources.insert(BufferRes(buffer));
+			if(m_State != WRITING_CAPFRAME)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		
 		record->Map.offset = 0;
 		record->Map.length = length;
+		record->Map.invalidate = false;
 		     if(access == eGL_READ_ONLY)  record->Map.access = GL_MAP_READ_BIT;
 		else if(access == eGL_WRITE_ONLY) record->Map.access = GL_MAP_WRITE_BIT;
 		else if(access == eGL_READ_WRITE) record->Map.access = GL_MAP_READ_BIT|GL_MAP_WRITE_BIT;
+
+		if(straightUp && m_State == WRITING_IDLE)
+		{
+			record->Map.ptr = (byte *)m_Real.glMapNamedBufferEXT(buffer, access);
+			record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
+
+			return record->Map.ptr;
+		}
+
+		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
 
 		if(access == eGL_READ_ONLY)
 		{
@@ -633,15 +671,52 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 
 		if(ptr == NULL)
 		{
-			ptr = new byte[length];
-
 			RDCWARN("Mapping buffer that hasn't been allocated");
+			
+			ptr = (byte *)m_Real.glMapNamedBufferEXT(buffer, access);
 
-			record->Map.status = GLResourceRecord::Mapped_Write_Alloc;
+			record->Map.ptr = ptr;
+			record->Map.status = GLResourceRecord::Mapped_Write_Real;
 		}
 		else
 		{
-			record->Map.status = GLResourceRecord::Mapped_Write;
+			if(m_State == WRITING_CAPFRAME)
+			{
+				byte *shadow = (byte *)record->GetShadowPtr(0);
+
+				if(shadow == NULL)
+				{
+					record->AllocShadowStorage(length);
+					shadow = (byte *)record->GetShadowPtr(0);
+
+					if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
+					{
+						// TODO get contents from frame initial state
+
+						m_Real.glGetNamedBufferSubDataEXT(buffer, 0, length, ptr);
+						memcpy(shadow, ptr, length);
+					}
+					else
+					{
+						memcpy(shadow, ptr, length);
+					}
+
+					memcpy(record->GetShadowPtr(1), shadow, length);
+				}
+
+				record->Map.ptr = ptr = shadow;
+				record->Map.status = GLResourceRecord::Mapped_Write;
+			}
+			else
+			{
+				record->Map.ptr = ptr;
+				record->Map.status = GLResourceRecord::Mapped_Write;
+
+				record->UpdateCount++;
+				
+				if(record->UpdateCount > 60)
+					m_HighTrafficResources.insert(BufferRes(buffer));
+			}
 		}
 
 		m_Real.glGetNamedBufferSubDataEXT(buffer, 0, length, ptr);
@@ -674,17 +749,40 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
 
-		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
-
-		if((access & (GL_MAP_INVALIDATE_BUFFER_BIT|GL_MAP_INVALIDATE_RANGE_BIT|GL_MAP_READ_BIT)) == 0)
-			RDCUNIMPLEMENTED("haven't implemented non-invalidating glMap WRITE");
+		bool straightUp = false;
+		if(m_HighTrafficResources.find(BufferRes(buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			straightUp = true;
 		
-		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
-			RDCUNIMPLEMENTED("haven't implemented coherent/persistant glMap calls");
+		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
+			straightUp = true;
 
+		bool invalidateMap = (access & (GL_MAP_INVALIDATE_BUFFER_BIT|GL_MAP_INVALIDATE_RANGE_BIT)) != 0;
+		
+		if(!straightUp && !invalidateMap && (access & GL_MAP_WRITE_BIT) && m_State != WRITING_CAPFRAME)
+		{
+			straightUp = true;
+			m_HighTrafficResources.insert(BufferRes(buffer));
+			if(m_State != WRITING_CAPFRAME)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		
 		record->Map.offset = offset;
 		record->Map.length = length;
 		record->Map.access = access;
+		record->Map.invalidate = invalidateMap;
+
+		if(straightUp && m_State == WRITING_IDLE)
+		{
+			record->Map.ptr = (byte *)m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
+			record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
+
+			return record->Map.ptr;
+		}
+
+		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
+
+		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
+			RDCUNIMPLEMENTED("haven't implemented coherent/persistant glMap calls");
 
 		if((access & GL_MAP_READ_BIT) != 0)
 		{
@@ -722,10 +820,43 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		{
 			if(m_State == WRITING_CAPFRAME)
 			{
-				ptr = new byte[length];
-				
-				record->Map.ptr = ptr;
-				record->Map.status = GLResourceRecord::Mapped_Write_Alloc;
+				byte *shadow = (byte *)record->GetShadowPtr(0);
+
+				if(shadow == NULL)
+				{
+					GLint buflength;
+					m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
+
+					record->AllocShadowStorage(buflength);
+					shadow = (byte *)record->GetShadowPtr(0);
+
+					if(!invalidateMap)
+					{
+						if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
+						{
+							// TODO get contents from frame initial state
+							
+							m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, ptr);
+							memcpy(shadow, ptr, buflength);
+			
+						}
+						else
+						{
+							memcpy(shadow+offset, ptr+offset, length);
+						}
+					}
+
+					memcpy(record->GetShadowPtr(1), shadow, buflength);
+				}
+
+				if(invalidateMap)
+				{
+					memset(shadow+offset, 0xcc, length);
+					memset(record->GetShadowPtr(1)+offset, 0xcc, length);
+				}
+
+				record->Map.ptr = ptr = shadow;
+				record->Map.status = GLResourceRecord::Mapped_Write;
 			}
 			else
 			{
@@ -733,6 +864,11 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 				
 				record->Map.ptr = ptr;
 				record->Map.status = GLResourceRecord::Mapped_Write;
+
+				record->UpdateCount++;
+				
+				if(record->UpdateCount > 60)
+					m_HighTrafficResources.insert(BufferRes(buffer));
 			}
 		}
 
@@ -765,31 +901,80 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 	if(m_State >= WRITING)
 		record = GetResourceManager()->GetResourceRecord(BufferRes(buffer));
 
-	SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
-	SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
-	SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
+	ResourceId bufID;
+	uint64_t offs = 0;
+	uint64_t len = 0;
+
+	if(m_State < WRITING || m_State == WRITING_CAPFRAME)
+	{
+		SERIALISE_ELEMENT(ResourceId, ID, record->GetResourceID());
+		SERIALISE_ELEMENT(uint64_t, offset, record->Map.offset);
+		SERIALISE_ELEMENT(uint64_t, length, record->Map.length);
+
+		bufID = ID;
+		offs = offset;
+		len = length;
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		bufID = record->GetResourceID();
+		offs = record->Map.offset;
+		len = record->Map.length;
+		
+		void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
+		memcpy(ptr, record->Map.ptr, (size_t)len);
+		m_Real.glUnmapNamedBufferEXT(buffer);
+		return true;
+	}
 
 	uint64_t bufBindStart = 0;
 
-	SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr, (size_t)len);
+	size_t diffStart = 0;
+	size_t diffEnd = (size_t)len;
 
-	if(m_State >= WRITING && record && record->GetDataPtr() == NULL)
-		record->SetDataOffset(m_pSerialiser->GetOffset() - (uint64_t)len);
-
-	if(m_State < WRITING ||
-			(m_State >= WRITING &&
-				(record->Map.status == GLResourceRecord::Mapped_Write || record->Map.status == GLResourceRecord::Mapped_Write_Alloc)
-			)
-		)
+	if(m_State == WRITING_CAPFRAME && len > 512 && !record->Map.invalidate)
 	{
-		if(m_State < WRITING)
+		bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1), (size_t)len, diffStart, diffEnd);
+		if(found)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(bufID);
-			buffer = res.name;
-		}
+			static size_t saved = 0;
 
-		void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
-		memcpy(ptr, data, (size_t)len);
+			saved += (size_t)len - (diffEnd-diffStart);
+
+			RDCDEBUG("Mapped resource size %u, difference: %u -> %u. Total bytes saved so far: %u",
+				(uint32_t)len, (uint32_t)diffStart, (uint32_t)diffEnd, (uint32_t)saved);
+
+			len = diffEnd-diffStart;
+		}
+		else
+		{
+			diffStart = 0;
+			diffEnd = 0;
+
+			len = 1;
+		}
+	}
+	
+	if(m_State == WRITING_CAPFRAME && record->GetShadowPtr(1))
+	{
+		memcpy(record->GetShadowPtr(1)+diffStart, record->Map.ptr+diffStart, diffEnd-diffStart);
+	}
+		
+	SERIALISE_ELEMENT(uint32_t, DiffStart, (uint32_t)diffStart);
+	SERIALISE_ELEMENT(uint32_t, DiffEnd, (uint32_t)diffEnd);
+
+	SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr+diffStart, (size_t)len);
+
+	if(m_State < WRITING)
+	{
+		GLResource res = GetResourceManager()->GetLiveResource(bufID);
+		buffer = res.name;
+	}
+
+	if(DiffEnd > DiffStart)
+	{
+		void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)(offs+DiffStart), GLsizeiptr(DiffEnd-DiffStart), GL_MAP_WRITE_BIT);
+		memcpy(ptr, data, size_t(DiffEnd-DiffStart));
 		m_Real.glUnmapNamedBufferEXT(buffer);
 	}
 
@@ -816,6 +1001,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 			case GLResourceRecord::Mapped_Read:
 				// can ignore
 				break;
+			case GLResourceRecord::Mapped_Ignore_Real:
+				if(m_State == WRITING_CAPFRAME)
+					RDCWARN("Failed to cap frame - uncapped Map/Unmap");
+				// deliberate fallthrough
 			case GLResourceRecord::Mapped_Read_Real:
 				// need to do real unmap
 				ret = m_Real.glUnmapNamedBufferEXT(buffer);
@@ -823,36 +1012,14 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 			case GLResourceRecord::Mapped_Write:
 			{
 				if(m_State == WRITING_CAPFRAME)
-					RDCWARN("Failed to cap frame - uncapped Map/Unmap");
-				
-				SCOPED_SERIALISE_CONTEXT(UNMAP);
-				Serialise_glUnmapNamedBufferEXT(buffer);
-				
-				if(m_State == WRITING_CAPFRAME)
-					m_ContextRecord->AddChunk(scope.Get());
-				else
-					record->AddChunk(scope.Get());
-				
-				break;
-			}
-			case GLResourceRecord::Mapped_Write_Alloc:
-			{
-				SCOPED_SERIALISE_CONTEXT(UNMAP);
-				Serialise_glUnmapNamedBufferEXT(buffer);
-				
-				if(m_State == WRITING_CAPFRAME)
 				{
+					SCOPED_SERIALISE_CONTEXT(UNMAP);
+					Serialise_glUnmapNamedBufferEXT(buffer);
 					m_ContextRecord->AddChunk(scope.Get());
 				}
 				else
-				{
-					Chunk *chunk = scope.Get();
-					record->AddChunk(chunk);
-					record->SetDataPtr(chunk->GetData());
-				}
-
-				delete[] record->Map.ptr;
-
+					Serialise_glUnmapNamedBufferEXT(buffer);
+				
 				break;
 			}
 			case GLResourceRecord::Mapped_Write_Real:

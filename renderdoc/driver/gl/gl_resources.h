@@ -97,8 +97,15 @@ struct GLResourceRecord : public ResourceRecord
 
 	GLResourceRecord(ResourceId id) :
 	ResourceRecord(id, true),
-		datatype(eGL_UNKNOWN_ENUM)
+		datatype(eGL_UNKNOWN_ENUM),
+		usage(eGL_UNKNOWN_ENUM)
 	{
+		RDCEraseEl(ShadowPtr);
+	}
+
+	~GLResourceRecord()
+	{
+		FreeShadowStorage();
 	}
 
 	enum MapStatus
@@ -108,7 +115,7 @@ struct GLResourceRecord : public ResourceRecord
 		Mapped_Read_Real,
 		Mapped_Write,
 		Mapped_Write_Real,
-		Mapped_Write_Alloc,
+		Mapped_Ignore_Real,
 	};
 
 	struct
@@ -117,11 +124,39 @@ struct GLResourceRecord : public ResourceRecord
 		GLsizeiptr length;
 		GLbitfield access;
 		MapStatus status;
+		bool invalidate;
 		byte *ptr;
 	} Map;
 
-	// pointer into binding chunk where datatype enum lives for this resource
 	GLenum datatype;
+	GLenum usage;
+
+	void AllocShadowStorage(size_t size)
+	{
+		if(ShadowPtr[0] == NULL)
+		{
+			ShadowPtr[0] = Serialiser::AllocAlignedBuffer(size);
+			ShadowPtr[1] = Serialiser::AllocAlignedBuffer(size);
+		}
+	}
+
+	void FreeShadowStorage()
+	{
+		if(ShadowPtr[0] != NULL)
+		{
+			Serialiser::FreeAlignedBuffer(ShadowPtr[0]);
+			Serialiser::FreeAlignedBuffer(ShadowPtr[1]);
+		}
+		ShadowPtr[0] = ShadowPtr[1] = NULL;
+	}
+	
+	byte *GetShadowPtr(int p)
+	{
+		return ShadowPtr[p];
+	}
+	
+private:
+	byte *ShadowPtr[2];
 };
 
 namespace TrackedResource

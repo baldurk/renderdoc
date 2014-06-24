@@ -133,6 +133,8 @@ class WrappedOpenGL
 		PerformanceTimer m_FrameTimer;
 		vector<double> m_FrameTimes;
 		double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
+		
+		set<GLResource> m_HighTrafficResources;
 
 		vector<FetchFrameRecord> m_FrameRecord;
 		
