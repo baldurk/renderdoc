@@ -87,8 +87,11 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(GLsync sync, GLbitfield flags, GL
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+		if(GetResourceManager()->HasLiveResource(id))
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+		}
 	}
 
 	return true;
@@ -117,8 +120,11 @@ bool WrappedOpenGL::Serialise_glWaitSync(GLsync sync, GLbitfield flags, GLuint64
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
-		glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+		if(GetResourceManager()->HasLiveResource(id))
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+		}
 	}
 
 	return true;
