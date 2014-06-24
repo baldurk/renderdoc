@@ -291,7 +291,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 
 		delete[] sources;
 		
-		GLResource res = ProgramRes(program);
+		GLResource res = ProgramRes(real);
 
 		m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
