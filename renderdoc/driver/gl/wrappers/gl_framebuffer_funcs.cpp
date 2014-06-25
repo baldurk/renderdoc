@@ -323,7 +323,15 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
 		if(m_State == WRITING_IDLE)
 		{
 			if(m_ReadFramebufferRecord)
+			{
+				Chunk *last = m_ReadFramebufferRecord->GetLastChunk();
+				if(last->GetChunkType() == READ_BUFFER)
+				{
+					delete last;
+					m_ReadFramebufferRecord->PopChunk();
+				}
 				m_ReadFramebufferRecord->AddChunk(scope.Get());
+			}
 			else
 				m_DeviceRecord->AddChunk(scope.Get());
 		}
