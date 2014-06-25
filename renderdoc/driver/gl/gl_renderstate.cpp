@@ -39,6 +39,44 @@ void GLRenderState::FetchState()
 {
 	// TODO check GL_MAX_*
 	// TODO check the extensions/core version for these is around
+	
+	{
+		GLenum pnames[eEnabled_Count] =
+		{
+			eGL_CLIP_DISTANCE0,
+			eGL_CLIP_DISTANCE1,
+			eGL_CLIP_DISTANCE2,
+			eGL_CLIP_DISTANCE3,
+			eGL_CLIP_DISTANCE4,
+			eGL_CLIP_DISTANCE5,
+			eGL_CLIP_DISTANCE6,
+			eGL_CLIP_DISTANCE7,
+			eGL_COLOR_LOGIC_OP,
+			eGL_CULL_FACE,
+			eGL_DEPTH_CLAMP,
+			eGL_DEPTH_TEST,
+			eGL_DITHER,
+			eGL_FRAMEBUFFER_SRGB,
+			eGL_LINE_SMOOTH,
+			eGL_MULTISAMPLE,
+			eGL_POLYGON_SMOOTH,
+			eGL_POLYGON_OFFSET_FILL,
+			eGL_POLYGON_OFFSET_LINE,
+			eGL_POLYGON_OFFSET_POINT,
+			eGL_PROGRAM_POINT_SIZE,
+			eGL_PRIMITIVE_RESTART,
+			eGL_SAMPLE_ALPHA_TO_COVERAGE,
+			eGL_SAMPLE_ALPHA_TO_ONE,
+			eGL_SAMPLE_COVERAGE,
+			eGL_SAMPLE_MASK,
+			eGL_SCISSOR_TEST,
+			eGL_STENCIL_TEST,
+			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
+		};
+		
+		for(GLuint i=0; i < eEnabled_Count; i++)
+			Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
+	}
 
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 	
@@ -90,6 +128,8 @@ void GLRenderState::FetchState()
 
 		m_Real->glGetIntegeri_v(eGL_BLEND_DST_RGB, i, (GLint*)&Blends[i].DestinationRGB);
 		m_Real->glGetIntegeri_v(eGL_BLEND_DST_ALPHA, i, (GLint*)&Blends[i].DestinationAlpha);
+
+		Blends[i].Enabled = (m_Real->glIsEnabledi(eGL_BLEND, i) == GL_TRUE);
 	}
 
 	m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
@@ -168,6 +208,44 @@ void GLRenderState::FetchState()
 
 void GLRenderState::ApplyState()
 {
+	{
+		GLenum pnames[eEnabled_Count] =
+		{
+			eGL_CLIP_DISTANCE0,
+			eGL_CLIP_DISTANCE1,
+			eGL_CLIP_DISTANCE2,
+			eGL_CLIP_DISTANCE3,
+			eGL_CLIP_DISTANCE4,
+			eGL_CLIP_DISTANCE5,
+			eGL_CLIP_DISTANCE6,
+			eGL_CLIP_DISTANCE7,
+			eGL_COLOR_LOGIC_OP,
+			eGL_CULL_FACE,
+			eGL_DEPTH_CLAMP,
+			eGL_DEPTH_TEST,
+			eGL_DITHER,
+			eGL_FRAMEBUFFER_SRGB,
+			eGL_LINE_SMOOTH,
+			eGL_MULTISAMPLE,
+			eGL_POLYGON_SMOOTH,
+			eGL_POLYGON_OFFSET_FILL,
+			eGL_POLYGON_OFFSET_LINE,
+			eGL_POLYGON_OFFSET_POINT,
+			eGL_PROGRAM_POINT_SIZE,
+			eGL_PRIMITIVE_RESTART,
+			eGL_SAMPLE_ALPHA_TO_COVERAGE,
+			eGL_SAMPLE_ALPHA_TO_ONE,
+			eGL_SAMPLE_COVERAGE,
+			eGL_SAMPLE_MASK,
+			eGL_SCISSOR_TEST,
+			eGL_STENCIL_TEST,
+			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
+		};
+		
+		for(GLuint i=0; i < eEnabled_Count; i++)
+			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
+	}
+
 	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
@@ -210,6 +288,11 @@ void GLRenderState::ApplyState()
 	{
 		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].DestinationRGB, Blends[i].DestinationAlpha);
 		m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
+		
+		if(Blends[i].Enabled)
+			m_Real->glEnablei(eGL_BLEND, i);
+		else
+			m_Real->glDisablei(eGL_BLEND, i);
 	}
 
 	m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
@@ -293,6 +376,8 @@ void GLRenderState::ApplyState()
 
 void GLRenderState::Clear()
 {
+	RDCEraseEl(Enabled);
+
 	RDCEraseEl(Tex2D);
 	RDCEraseEl(ActiveTexture);
 	RDCEraseEl(BufferBindings);
@@ -327,6 +412,8 @@ void GLRenderState::Clear()
 void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 {
 	// TODO check GL_MAX_*
+
+	m_pSerialiser->Serialise<eEnabled_Count>("GL_ENABLED", Enabled);
 	
 	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
@@ -378,6 +465,8 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 
 		m_pSerialiser->Serialise("GL_BLEND_DST_RGB", Blends[i].DestinationRGB);
 		m_pSerialiser->Serialise("GL_BLEND_DST_ALPHA", Blends[i].DestinationAlpha);
+		
+		m_pSerialiser->Serialise("GL_BLEND", Blends[i].Enabled);
 	}
 	
 	m_pSerialiser->Serialise<4>("GL_BLEND_COLOR", BlendColor);

@@ -38,6 +38,43 @@ struct GLRenderState
 	void ApplyState();
 	void Clear();
 
+	enum
+	{
+		// eEnabled_Blend // handled below with blend values
+		eEnabled_ClipDistance0,
+		eEnabled_ClipDistance1,
+		eEnabled_ClipDistance2,
+		eEnabled_ClipDistance3,
+		eEnabled_ClipDistance4,
+		eEnabled_ClipDistance5,
+		eEnabled_ClipDistance6,
+		eEnabled_ClipDistance7,
+		eEnabled_ColorLogicOp,
+		eEnabled_CullFace,
+		eEnabled_DepthClamp,
+		eEnabled_DepthTest,
+		eEnabled_Dither,
+		eEnabled_FramebufferSRGB,
+		eEnabled_LineSmooth,
+		eEnabled_Multisample,
+		eEnabled_PolySmooth,
+		eEnabled_PolyOffsetFill,
+		eEnabled_PolyOffsetLine,
+		eEnabled_PolyOffsetPoint,
+		eEnabled_ProgramPointSize,
+		eEnabled_PrimitiveRestart,
+		eEnabled_SampleAlphaToCoverage,
+		eEnabled_SampleAlphaToOne,
+		eEnabled_SampleCoverage,
+		eEnabled_SampleMask,
+		eEnabled_ScissorTest,
+		eEnabled_StencilTest,
+		eEnabled_TexCubeSeamless,
+		eEnabled_Count,
+	};
+
+	bool Enabled[eEnabled_Count];
+
 	//
 	uint32_t Tex2D[128];
 	GLenum ActiveTexture;
@@ -55,6 +92,7 @@ struct GLRenderState
 		GLenum EquationRGB, EquationAlpha;
 		GLenum SourceRGB, SourceAlpha;
 		GLenum DestinationRGB, DestinationAlpha;
+		bool Enabled;
 	} Blends[8];
 	float BlendColor[4];
 

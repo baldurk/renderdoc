@@ -581,21 +581,13 @@ bool WrappedOpenGL::Serialise_glDisable(GLenum cap)
 void WrappedOpenGL::glDisable(GLenum cap)
 {
 	m_Real.glDisable(cap);
-
+	
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(DISABLE);
 		Serialise_glDisable(cap);
 
 		m_ContextRecord->AddChunk(scope.Get());
-	}
-	// TODO replace this with glIsEnabled() for the relevant states
-	if(m_State == WRITING_IDLE)
-	{
-		SCOPED_SERIALISE_CONTEXT(DISABLE);
-		Serialise_glDisable(cap);
-
-		m_DeviceRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -622,14 +614,6 @@ void WrappedOpenGL::glEnable(GLenum cap)
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
-	// TODO replace this with glIsEnabled() for the relevant states
-	if(m_State == WRITING_IDLE)
-	{
-		SCOPED_SERIALISE_CONTEXT(ENABLE);
-		Serialise_glEnable(cap);
-
-		m_DeviceRecord->AddChunk(scope.Get());
-	}
 }
 
 bool WrappedOpenGL::Serialise_glDisablei(GLenum cap, GLuint index)
@@ -648,21 +632,13 @@ bool WrappedOpenGL::Serialise_glDisablei(GLenum cap, GLuint index)
 void WrappedOpenGL::glDisablei(GLenum cap, GLuint index)
 {
 	m_Real.glDisablei(cap, index);
-
+	
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(DISABLEI);
 		Serialise_glDisablei(cap, index);
 
 		m_ContextRecord->AddChunk(scope.Get());
-	}
-	// TODO replace this with glIsEnabled() for the relevant states
-	if(m_State == WRITING_IDLE)
-	{
-		SCOPED_SERIALISE_CONTEXT(DISABLEI);
-		Serialise_glDisablei(cap, index);
-
-		m_DeviceRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -682,21 +658,13 @@ bool WrappedOpenGL::Serialise_glEnablei(GLenum cap, GLuint index)
 void WrappedOpenGL::glEnablei(GLenum cap, GLuint index)
 {
 	m_Real.glEnablei(cap, index);
-
+	
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(ENABLEI);
 		Serialise_glEnablei(cap, index);
 
 		m_ContextRecord->AddChunk(scope.Get());
-	}
-	// TODO replace this with glIsEnabled() for the relevant states
-	if(m_State == WRITING_IDLE)
-	{
-		SCOPED_SERIALISE_CONTEXT(ENABLEI);
-		Serialise_glEnablei(cap, index);
-
-		m_DeviceRecord->AddChunk(scope.Get());
 	}
 }
 
