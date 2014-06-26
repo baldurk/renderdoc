@@ -1084,10 +1084,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glClearBufferfi(eGL_UNKNOWN_ENUM, 0, 0, 0);
 		break;
 	case POLYGON_MODE:
-		glPolygonMode(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		Serialise_glPolygonMode(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
 		break;
 	case POLYGON_OFFSET:
-		glPolygonOffset(0, 0);
+		Serialise_glPolygonOffset(0, 0);
 		break;
 	case CULL_FACE:
 		Serialise_glCullFace(eGL_UNKNOWN_ENUM);
