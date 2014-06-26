@@ -285,8 +285,8 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
 												                         GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
 												                         GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
 {
-	SERIALISE_ELEMENT(ResourceId, srcid, GetResourceManager()->GetID(BufferRes(srcName)));
-	SERIALISE_ELEMENT(ResourceId, dstid, GetResourceManager()->GetID(BufferRes(dstName)));
+	SERIALISE_ELEMENT(ResourceId, srcid, GetResourceManager()->GetID(TextureRes(srcName)));
+	SERIALISE_ELEMENT(ResourceId, dstid, GetResourceManager()->GetID(TextureRes(dstName)));
 	SERIALISE_ELEMENT(GLenum, SourceTarget, srcTarget);
 	SERIALISE_ELEMENT(GLenum, DestTarget, dstTarget);
 	SERIALISE_ELEMENT(uint32_t, SourceLevel, srcLevel);
