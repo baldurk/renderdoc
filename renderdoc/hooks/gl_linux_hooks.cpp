@@ -416,6 +416,12 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	return NULL;
 }
 
+__attribute__ ((visibility ("default")))
+__GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
+{
+	return glXGetProcAddress(f);
+}
+
 bool OpenGLHook::PopulateHooks()
 {
 	bool success = true;
