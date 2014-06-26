@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 #include "globalconfig.h"
 
 /////////////////////////////////////////////////
