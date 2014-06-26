@@ -40,9 +40,14 @@ typedef GLXContext (*PFNGLXCREATECONTEXTPROC)(Display *dpy, XVisualInfo *vis, GL
 typedef const char *(*PFNGLXQUERYEXTENSIONSSTRING)(Display *dpy, int screen);
 typedef Bool (*PFNGLXMAKECURRENTPROC)(Display *dpy, GLXDrawable drawable, GLXContext ctx);
 typedef void (*PFNGLXSWAPBUFFERSPROC)(Display *dpy, GLXDrawable drawable);
+typedef XVisualInfo* (*PFNGLXGETVISUALFROMFBCONFIGPROC)(Display *dpy, GLXFBConfig config);
+typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, int * value);
+typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *eventBase);
+
+void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
 #define HookInit(function) \
-	GL.function = (CONCAT(function, _hooktype))dlsym(RTLD_NEXT, STRINGIZE(function));
+	GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function));
 
 #define HookExtension(funcPtrType, function) \
 	if(!strcmp(func, STRINGIZE(function))) \
@@ -262,6 +267,9 @@ class OpenGLHook : LibraryHook
 		PFNGLXGETPROCADDRESSPROC glXGetProcAddress_real;
 		PFNGLXMAKECURRENTPROC glXMakeCurrent_real;
 		PFNGLXSWAPBUFFERSPROC glXSwapBuffers_real;
+		PFNGLXGETCONFIGPROC glXGetConfig_real;
+		PFNGLXGETVISUALFROMFBCONFIGPROC glXGetVisualFromFBConfig_real;
+		PFNGLXQUERYEXTENSIONPROC glXQueryExtension_real;
 
 		WrappedOpenGL *m_GLDriver;
 		
@@ -281,11 +289,6 @@ class OpenGLHook : LibraryHook
 DefineDLLExportHooks();
 DefineGLExtensionHooks();
 
-typedef XVisualInfo* (*PFNGLXGETVISUALFROMFBCONFIGPROC)(Display *dpy, GLXFBConfig config);
-typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, int * value);
-
-static PFNGLXGETCONFIGPROC getVisualInfoAttrib = NULL;
-
 __attribute__ ((visibility ("default")))
 GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct)
 {
@@ -299,11 +302,10 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	int value = 0;
 	
 	if(Keyboard::CurrentXDisplay == NULL) Keyboard::CurrentXDisplay = dpy;	
-	if(getVisualInfoAttrib == NULL) getVisualInfoAttrib = (PFNGLXGETCONFIGPROC)dlsym(RTLD_NEXT, "glXGetConfig");
-	
-	getVisualInfoAttrib(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
-	getVisualInfoAttrib(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
-	getVisualInfoAttrib(dpy, vis, GLX_STENCIL_SIZE, &value); init.stencilBits = value;
+
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value); init.stencilBits = value;
 
 	OpenGLHook::glhooks.GetDriver()->CreateContext(NULL, ret, shareList, init);
 
@@ -314,9 +316,8 @@ __attribute__ ((visibility ("default")))
 GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXContext shareList, Bool direct, const int *attribList)
 {
 	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribList);
-	
-	PFNGLXGETVISUALFROMFBCONFIGPROC getVisual = (PFNGLXGETVISUALFROMFBCONFIGPROC)dlsym(RTLD_NEXT, "glXGetVisualFromFBConfig");
-	XVisualInfo *vis = getVisual(dpy, config);	
+
+	XVisualInfo *vis = OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);	
 	
 	GLInitParams init;
 	
@@ -326,11 +327,10 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	int value = 0;
 	
 	if(Keyboard::CurrentXDisplay == NULL) Keyboard::CurrentXDisplay = dpy;
-	if(getVisualInfoAttrib == NULL) getVisualInfoAttrib = (PFNGLXGETCONFIGPROC)dlsym(RTLD_NEXT, "glXGetConfig");
 	
-	getVisualInfoAttrib(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
-	getVisualInfoAttrib(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
-	getVisualInfoAttrib(dpy, vis, GLX_STENCIL_SIZE, &value); init.stencilBits = value;
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value); init.stencilBits = value;
 
 	XFree(vis);
 	
@@ -367,10 +367,16 @@ void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 }
 
 __attribute__ ((visibility ("default")))
+Bool glXQueryExtension(Display *dpy, int *errorBase, int *eventBase)
+{
+	return OpenGLHook::glhooks.glXQueryExtension_real(dpy, errorBase, eventBase);
+}
+
+__attribute__ ((visibility ("default")))
 const char *glXQueryExtensionsString(Display *dpy, int screen)
 {
-#if !defined(_RELEASE)
-	PFNGLXQUERYEXTENSIONSSTRING glXGetExtStr = (PFNGLXQUERYEXTENSIONSSTRING)dlsym(RTLD_NEXT, "glXQueryExtensionsString");
+#if !defined(_RELEASE) && 0
+	PFNGLXQUERYEXTENSIONSSTRING glXGetExtStr = (PFNGLXQUERYEXTENSIONSSTRING)dlsym(libGLdlsymHandle, "glXQueryExtensionsString");
 	string realExtsString = glXGetExtStr(dpy, screen);
 	vector<string> realExts;
 	split(realExtsString, realExts, ' ');
@@ -382,11 +388,14 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
 	bool success = true;
 	
-	glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(RTLD_NEXT, "glXGetProcAddress");
-	glXCreateContext_real = (PFNGLXCREATECONTEXTPROC)dlsym(RTLD_NEXT, "glXCreateContext");
-	glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)dlsym(RTLD_NEXT, "glXCreateContextAttribsARB");
-	glXMakeCurrent_real = (PFNGLXMAKECURRENTPROC)dlsym(RTLD_NEXT, "glXMakeCurrent");
-	glXSwapBuffers_real = (PFNGLXSWAPBUFFERSPROC)dlsym(RTLD_NEXT, "glXSwapBuffers");
+	if(glXGetProcAddress_real == NULL)          glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(libGLdlsymHandle, "glXGetProcAddress");
+	if(glXCreateContext_real == NULL)           glXCreateContext_real = (PFNGLXCREATECONTEXTPROC)dlsym(libGLdlsymHandle, "glXCreateContext");
+	if(glXCreateContextAttribsARB_real == NULL) glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)dlsym(libGLdlsymHandle, "glXCreateContextAttribsARB");
+	if(glXMakeCurrent_real == NULL)             glXMakeCurrent_real = (PFNGLXMAKECURRENTPROC)dlsym(libGLdlsymHandle, "glXMakeCurrent");
+	if(glXSwapBuffers_real == NULL)             glXSwapBuffers_real = (PFNGLXSWAPBUFFERSPROC)dlsym(libGLdlsymHandle, "glXSwapBuffers");
+	if(glXGetConfig_real == NULL)               glXGetConfig_real = (PFNGLXGETCONFIGPROC)dlsym(libGLdlsymHandle, "glXGetConfig");
+	if(glXGetVisualFromFBConfig_real == NULL)   glXGetVisualFromFBConfig_real = (PFNGLXGETVISUALFROMFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXGetVisualFromFBConfig");
+	if(glXQueryExtension_real == NULL)               glXQueryExtension_real = (PFNGLXQUERYEXTENSIONPROC)dlsym(libGLdlsymHandle, "glXQueryExtension");
 	
 	DLLExportHooks();
 
@@ -399,16 +408,37 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	__GLXextFuncPtr realFunc = OpenGLHook::glhooks.glXGetProcAddress_real(f);
 	const char *func = (const char *)f;
 
+	// if the client code did dlopen on libGL then tried to fetch some functions
+	// we don't hook/export it will fail, so allow these to pass through
+	if(!strcmp(func, "glXChooseVisual") ||
+		 !strcmp(func, "glXDestroyContext") ||
+		 !strcmp(func, "glXQueryDrawable"))
+	{
+		if(realFunc != NULL) return realFunc;
+
+		if(libGLdlsymHandle != NULL)
+			return (__GLXextFuncPtr)dlsym(libGLdlsymHandle, (const char *)f);
+	}
+
+	// handle a few functions that we only export as real functions, just
+	// in case
+	if(!strcmp(func, "glXCreateContext"))
+		return (__GLXextFuncPtr)&glXCreateContext;
+	if(!strcmp(func, "glXCreateContextAttribsARB"))
+		return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
+	if(!strcmp(func, "glXMakeCurrent"))
+		return (__GLXextFuncPtr)&glXMakeCurrent;
+	if(!strcmp(func, "glXSwapBuffers"))
+		return (__GLXextFuncPtr)&glXSwapBuffers;
+	if(!strcmp(func, "glXQueryExtension"))
+		return (__GLXextFuncPtr)&glXQueryExtension;
+	if(!strcmp(func, "glXQueryExtensionsString"))
+		return (__GLXextFuncPtr)&glXQueryExtensionsString;
+
 	// if the real RC doesn't support this function, don't bother hooking
 	if(realFunc == NULL)
 		return realFunc;
 	
-	if(!strcmp(func, "glXCreateContextAttribsARB"))
-	{
-		OpenGLHook::glhooks.glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)realFunc;
-		return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
-	}
-
 	HookCheckGLExtensions();
 
 	// claim not to know this extension!
@@ -422,17 +452,36 @@ __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
 	return glXGetProcAddress(f);
 }
 
+typedef void* (*DLOPENPROC)(const char*,int);
+DLOPENPROC realdlopen = NULL;
+
+__attribute__ ((visibility ("default")))
+void *dlopen(const char *filename, int flag)
+{
+	if(realdlopen == NULL) realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
+
+	void *ret = realdlopen(filename, flag);
+
+	if(filename && ret && strstr(filename, "libGL.so"))
+	{
+		RDCDEBUG("Redirecting dlopen to ourselves");
+		ret = realdlopen("librenderdoc.so", flag);
+	}
+
+	return ret;
+}
+
 bool OpenGLHook::PopulateHooks()
 {
 	bool success = true;
 
 	if(glXGetProcAddress_real == NULL)
-		glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(RTLD_NEXT, "glXGetProcAddress");
+		glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(libGLdlsymHandle, "glXGetProcAddress");
 
 	glXGetProcAddress_real((const GLubyte *)"glXCreateContextAttribsARB");
 	
 #undef HookInit
-#define HookInit(function) if(GL.function == NULL) GL.function = (CONCAT(function, _hooktype))dlsym(RTLD_NEXT, "glXGetProcAddress");
+#define HookInit(function) if(GL.function == NULL) GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, "glXGetProcAddress");
 	
 	// cheeky
 #undef HookExtension
