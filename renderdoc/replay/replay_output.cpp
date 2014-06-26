@@ -205,14 +205,16 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 
 	RDCASSERT(wnd);
 	
-	rdctype::array<FetchTexture> texs;
-	m_pRenderer->GetTextures(&texs);
-
 	bool depthMode = false;
 
-	for(int32_t t=0; t < texs.count; t++)
-		if(texs[t].ID == texID)
-			depthMode = (texs[t].creationFlags & eTextureCreate_DSV) > 0;
+	for(size_t t=0; t < m_pRenderer->m_Textures.size(); t++)
+	{
+		if(m_pRenderer->m_Textures[t].ID == texID)
+		{
+			depthMode = (m_pRenderer->m_Textures[t].creationFlags & eTextureCreate_DSV) > 0;
+			break;
+		}
+	}
 
 	for(size_t i=0; i < m_Thumbnails.size(); i++)
 	{
