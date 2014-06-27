@@ -412,6 +412,7 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	// we don't hook/export it will fail, so allow these to pass through
 	if(!strcmp(func, "glXChooseVisual") ||
 		 !strcmp(func, "glXDestroyContext") ||
+		 !strcmp(func, "glXChooseFBConfig") ||
 		 !strcmp(func, "glXQueryDrawable"))
 	{
 		if(realFunc != NULL) return realFunc;
@@ -422,18 +423,12 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 
 	// handle a few functions that we only export as real functions, just
 	// in case
-	if(!strcmp(func, "glXCreateContext"))
-		return (__GLXextFuncPtr)&glXCreateContext;
-	if(!strcmp(func, "glXCreateContextAttribsARB"))
-		return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
-	if(!strcmp(func, "glXMakeCurrent"))
-		return (__GLXextFuncPtr)&glXMakeCurrent;
-	if(!strcmp(func, "glXSwapBuffers"))
-		return (__GLXextFuncPtr)&glXSwapBuffers;
-	if(!strcmp(func, "glXQueryExtension"))
-		return (__GLXextFuncPtr)&glXQueryExtension;
-	if(!strcmp(func, "glXQueryExtensionsString"))
-		return (__GLXextFuncPtr)&glXQueryExtensionsString;
+	if(!strcmp(func, "glXCreateContext"))           return (__GLXextFuncPtr)&glXCreateContext;
+	if(!strcmp(func, "glXCreateContextAttribsARB")) return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
+	if(!strcmp(func, "glXMakeCurrent"))             return (__GLXextFuncPtr)&glXMakeCurrent;
+	if(!strcmp(func, "glXSwapBuffers"))             return (__GLXextFuncPtr)&glXSwapBuffers;
+	if(!strcmp(func, "glXQueryExtension"))          return (__GLXextFuncPtr)&glXQueryExtension;
+	if(!strcmp(func, "glXQueryExtensionsString"))   return (__GLXextFuncPtr)&glXQueryExtensionsString;
 
 	// if the real RC doesn't support this function, don't bother hooking
 	if(realFunc == NULL)
