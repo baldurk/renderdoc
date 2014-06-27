@@ -1120,9 +1120,16 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 		Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
 		else
-			r->AddChunk(scope.Get());
+		{
+			r->RemoveChunk(r->ptrchunks[index]);
+			delete r->ptrchunks[index];
+			Chunk *newchunk = r->ptrchunks[index] = scope.Get();
+			r->AddChunk(newchunk);
+		}
 	}
 }
 
@@ -1166,9 +1173,16 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 		Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
 		else
-			r->AddChunk(scope.Get());
+		{
+			r->RemoveChunk(r->ptrchunks[index]);
+			delete r->ptrchunks[index];
+			Chunk *newchunk = r->ptrchunks[index] = scope.Get();
+			r->AddChunk(newchunk);
+		}
 	}
 }
 
@@ -1207,9 +1221,16 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 		Serialise_glEnableVertexAttribArray(index);
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
 		else
-			r->AddChunk(scope.Get());
+		{
+			r->RemoveChunk(r->enabledchunks[index]);
+			delete r->enabledchunks[index];
+			Chunk *newchunk = r->enabledchunks[index] = scope.Get();
+			r->AddChunk(newchunk);
+		}
 	}
 }
 
@@ -1247,9 +1268,16 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 		Serialise_glDisableVertexAttribArray(index);
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
 		else
-			r->AddChunk(scope.Get());
+		{
+			r->RemoveChunk(r->enabledchunks[index]);
+			delete r->enabledchunks[index];
+			Chunk *newchunk = r->enabledchunks[index] = scope.Get();
+			r->AddChunk(newchunk);
+		}
 	}
 }
 

@@ -139,6 +139,20 @@ struct ResourceRecord
 
 	ResourceId GetResourceID() const { return ResID; }
 
+	void RemoveChunk(Chunk *chunk)
+	{
+		LockChunks();
+		for(auto it=m_Chunks.begin(); it != m_Chunks.end(); ++it)
+		{
+			if(it->second == chunk)
+			{
+				m_Chunks.erase(it);
+				break;
+			}
+		}
+		UnlockChunks();
+	}
+
 	void AddChunk(Chunk *chunk, int32_t ID = 0)
 	{
 		LockChunks();
