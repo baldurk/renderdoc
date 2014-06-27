@@ -480,6 +480,11 @@ WrappedOpenGL::~WrappedOpenGL()
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
 
+void *WrappedOpenGL::GetCtx()
+{
+	return m_ActiveContexts[Threading::GetCurrentID()];
+}
+
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -492,6 +497,7 @@ void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void 
 
 void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 {
+	m_ActiveContexts[Threading::GetCurrentID()] = contextHandle;
 	// TODO: support multiple GL contexts more explicitly
 	Keyboard::AddInputWindow(windowHandle);
 }

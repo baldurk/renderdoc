@@ -134,6 +134,12 @@ namespace Threading
 
 		return (ThreadHandle)thread;
 	}
+
+	uint64_t GetCurrentID()
+	{
+		return (uint64_t)pthread_self();
+	}
+
 	void JoinThread(ThreadHandle handle)
 	{
 		pthread_join((pthread_t)handle, NULL);

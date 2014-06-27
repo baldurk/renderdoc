@@ -84,6 +84,7 @@ namespace Threading
 	typedef void (*ThreadEntry)(void *);
 	typedef uint64_t ThreadHandle;
 	ThreadHandle CreateThread(ThreadEntry entryFunc, void *userData);
+	uint64_t GetCurrentID();
 	void JoinThread(ThreadHandle handle);
 	void CloseThread(ThreadHandle handle);
 	void Sleep(uint32_t milliseconds);

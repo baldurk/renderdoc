@@ -121,6 +121,11 @@ namespace Threading
 		return (ThreadHandle)h;
 	}
 
+	uint64_t GetCurrentID()
+	{
+		return (uint64_t)::GetCurrentThreadId();
+	}
+
 	void JoinThread(ThreadHandle handle)
 	{
 		if(handle == 0) return;
