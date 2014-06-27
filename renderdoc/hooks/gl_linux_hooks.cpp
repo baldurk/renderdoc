@@ -31,6 +31,7 @@
 #include "driver/gl/gl_hookset.h"
 #include "driver/gl/gl_driver.h"
 
+#include "common/threading.h"
 #include "common/string_utils.h"
 
 // bit of a hack
@@ -83,7 +84,7 @@ void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if 
             for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo ") \\";
         
-        echo -en "\t{ return OpenGLHook::glhooks.GetDriver()->function(";
+        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -n "); }";
     }
@@ -105,97 +106,99 @@ void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if 
 	typedef ret (*CONCAT(function, _hooktype)) (); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function() \
-	{ return OpenGLHook::glhooks.GetDriver()->function(); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(); }
 
 #define HookWrapper1(ret, function, t1, p1) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1); }
 
 #define HookWrapper2(ret, function, t1, p1, t2, p2) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2); }
 
 #define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3); }
 
 #define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4); }
 
 #define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5); }
 
 #define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6); }
 
 #define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7); }
 
 #define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8); }
 
 #define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); }
 
 #define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); }
 
 #define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); }
 
 #define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); }
 
 #define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); }
 
 #define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); }
 
 #define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15) \
 	typedef ret (*CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15); \
 	extern "C" __attribute__ ((visibility ("default"))) \
 	ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
-	{ return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); }
+	{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); }
+
+Threading::CriticalSection glLock;
 
 class OpenGLHook : LibraryHook
 {
