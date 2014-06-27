@@ -409,7 +409,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(CullFace);
 }
 
-void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
+void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 {
 	// TODO check GL_MAX_*
 
@@ -418,7 +418,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 	{
 		ResourceId ID = ResourceId();
-		if(state >= WRITING) ID = rm->GetID(TextureRes(Tex2D[i]));
+		if(state >= WRITING) ID = rm->GetID(TextureRes(ctx, Tex2D[i]));
 		m_pSerialiser->Serialise("GL_TEXTURE_BINDING_2D", ID);
 		if(state < WRITING && ID != ResourceId()) Tex2D[i] = rm->GetLiveResource(ID).name;
 	}
@@ -428,7 +428,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{
 		ResourceId ID = ResourceId();
-		if(state >= WRITING) ID = rm->GetID(BufferRes(BufferBindings[i]));
+		if(state >= WRITING) ID = rm->GetID(BufferRes(ctx, BufferBindings[i]));
 		m_pSerialiser->Serialise("GL_BUFFER_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) BufferBindings[i] = rm->GetLiveResource(ID).name;
 	}
@@ -446,7 +446,7 @@ void GLRenderState::Serialise(LogState state, GLResourceManager *rm)
 		for(int i=0; i < idxBufs[b].count; i++)
 		{
 			ResourceId ID = ResourceId();
-			if(state >= WRITING) ID = rm->GetID(BufferRes(idxBufs[b].bufs[i].name));
+			if(state >= WRITING) ID = rm->GetID(BufferRes(ctx, idxBufs[b].bufs[i].name));
 			m_pSerialiser->Serialise("BUFFER_BINDING", ID);
 			if(state < WRITING && ID != ResourceId()) idxBufs[b].bufs[i].name = rm->GetLiveResource(ID).name;
 

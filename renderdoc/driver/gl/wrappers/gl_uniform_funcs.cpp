@@ -310,7 +310,7 @@ void WrappedOpenGL::glUniform4fv(GLint location, GLsizei count, const GLfloat *v
 
 bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count, const void *value, UniformType type)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 	SERIALISE_ELEMENT(UniformType, Type, type);
 	SERIALISE_ELEMENT(int32_t, Loc, location);
 	SERIALISE_ELEMENT(uint32_t, Count, count);
@@ -416,7 +416,7 @@ void WrappedOpenGL::glProgramUniform1i(GLuint program, GLint location, GLint v0)
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -439,7 +439,7 @@ void WrappedOpenGL::glProgramUniform1iv(GLuint program, GLint location, GLsizei 
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -462,7 +462,7 @@ void WrappedOpenGL::glProgramUniform1fv(GLuint program, GLint location, GLsizei 
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -485,7 +485,7 @@ void WrappedOpenGL::glProgramUniform1uiv(GLuint program, GLint location, GLsizei
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -508,7 +508,7 @@ void WrappedOpenGL::glProgramUniform2fv(GLuint program, GLint location, GLsizei 
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -531,7 +531,7 @@ void WrappedOpenGL::glProgramUniform3fv(GLuint program, GLint location, GLsizei 
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}
@@ -554,7 +554,7 @@ void WrappedOpenGL::glProgramUniform4fv(GLuint program, GLint location, GLsizei 
 		else
 		{
 			// TODO grab this at capture time as initial state for program resources
-			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 			RDCASSERT(record);
 			record->AddChunk(scope.Get());
 		}

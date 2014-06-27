@@ -325,8 +325,8 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 
 	m_ResourceManager = new GLResourceManager(this);
 
-	m_DeviceResourceID = GetResourceManager()->RegisterResource(GLResource(eResSpecial, eSpecialResDevice));
-	m_ContextResourceID = GetResourceManager()->RegisterResource(GLResource(eResSpecial, eSpecialResContext));
+	m_DeviceResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResDevice));
+	m_ContextResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
 
 	if(!RenderDoc::Inst().IsReplayApp())
 	{
@@ -791,7 +791,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 		state.FetchState();
 	}
 
-	state.Serialise(m_State, GetResourceManager());
+	state.Serialise(m_State, GetCtx(), GetResourceManager());
 
 	if(m_State <= EXECUTING && applyInitialState)
 	{
@@ -925,7 +925,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		{
 			SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
 
-			m_ResourceManager->AddLiveResource(immContextId, GLResource(eResSpecial, eSpecialResContext));
+			m_ResourceManager->AddLiveResource(immContextId, GLResource(NULL, eResSpecial, eSpecialResContext));
 			break;
 		}
 	case GEN_TEXTURE:
@@ -1548,8 +1548,8 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	draw.depthOut = ResourceId();
 
 	GLNOTIMP("Hack, not getting current pipeline state framebufer binding");
-	draw.outputs[0] = GetResourceManager()->GetID(TextureRes(m_FakeBB_Color));
-	draw.depthOut = GetResourceManager()->GetID(TextureRes(m_FakeBB_DepthStencil));
+	draw.outputs[0] = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
+	draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
 
 	m_CurDrawcallID++;
 	if(hasEvents)

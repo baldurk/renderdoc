@@ -38,9 +38,9 @@ bool WrappedOpenGL::Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfi
 		
 		GLuint name = 0;
 		ResourceId liveid = ResourceId();
-		GetResourceManager()->RegisterSync(real, name, liveid);
+		GetResourceManager()->RegisterSync(GetCtx(), real, name, liveid);
 
-		GLResource res = SyncRes(name);
+		GLResource res = SyncRes(GetCtx(), name);
 
 		ResourceId live = m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -55,8 +55,8 @@ GLsync WrappedOpenGL::glFenceSync(GLenum condition, GLbitfield flags)
 	
 	GLuint name = 0;
 	ResourceId id = ResourceId();
-	GetResourceManager()->RegisterSync(sync, name, id);
-	GLResource res = SyncRes(name);
+	GetResourceManager()->RegisterSync(GetCtx(), sync, name, id);
+	GLResource res = SyncRes(GetCtx(), name);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -154,14 +154,14 @@ void WrappedOpenGL::glDeleteSync(GLsync sync)
 
 bool WrappedOpenGL::Serialise_glGenQueries(GLsizei n, GLuint* ids)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(*ids)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
 
 	if(m_State == READING)
 	{
 		GLuint real = 0;
 		m_Real.glGenSamplers(1, &real);
 		
-		GLResource res = QueryRes(real);
+		GLResource res = QueryRes(GetCtx(), real);
 
 		ResourceId live = m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -176,7 +176,7 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 
 	for(GLsizei i=0; i < count; i++)
 	{
-		GLResource res = QueryRes(ids[i]);
+		GLResource res = QueryRes(GetCtx(), ids[i]);
 		ResourceId id = GetResourceManager()->RegisterResource(res);
 
 		if(m_State >= WRITING)
@@ -205,7 +205,7 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(qid)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), qid)));
 	
 	if(m_State < WRITING)
 	{
@@ -258,5 +258,5 @@ void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
 	m_Real.glDeleteQueries(n, ids);
 
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(QueryRes(ids[i]));
+		GetResourceManager()->UnregisterResource(QueryRes(GetCtx(), ids[i]));
 }

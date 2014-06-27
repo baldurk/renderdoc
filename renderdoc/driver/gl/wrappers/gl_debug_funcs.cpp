@@ -47,10 +47,10 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 		switch(identifier)
 		{
 			case eGL_TEXTURE:
-				liveid = GetResourceManager()->GetID(TextureRes(name));
+				liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name));
 				break;
 			case eGL_BUFFER:
-				liveid = GetResourceManager()->GetID(BufferRes(name));
+				liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name));
 				break;
 			default:
 				RDCERR("Unhandled namespace in glObjectLabel");

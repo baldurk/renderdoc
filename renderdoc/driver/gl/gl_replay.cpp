@@ -555,7 +555,9 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	void *ctx = m_ReplayCtx.ctx;
+	
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
 
 	auto &refl = shaderDetails.reflection;
@@ -777,7 +779,9 @@ void GLReplay::SavePipelineState()
 	GLint curIdxBuf = 0;
 	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &curIdxBuf);
 
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(curIdxBuf)));
+	void *ctx = m_ReplayCtx.ctx;
+
+	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, curIdxBuf)));
 
 	// Vertex buffers and attributes
 	GLint numVBufferBindings = 16;
@@ -793,7 +797,7 @@ void GLReplay::SavePipelineState()
 	{
 		GLint vb = 0;
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, &vb);
-		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(vb)));
+		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, vb)));
 
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
@@ -972,7 +976,7 @@ void GLReplay::SavePipelineState()
 	}
 	else
 	{
-		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(curProg))];
+		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
 
 		RDCASSERT(progDetails.shaders.size());
 
@@ -1095,7 +1099,7 @@ void GLReplay::SavePipelineState()
 				GLint firstSlice = 0;
 				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
 
-				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(tex)));
+				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
 				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
 			}
 			else
@@ -1130,13 +1134,13 @@ void GLReplay::SavePipelineState()
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
 	}
 
-	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(curFBO)));
+	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curFBO)));
 	create_array_uninit(pipe.m_FB.Color, numCols);
 	for(GLint i=0; i < numCols; i++)
-		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(curCol[i])));
+		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curCol[i])));
 
-	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(curDepth)));
-	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(curStencil)));
+	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curDepth)));
+	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
 void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
@@ -1148,7 +1152,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(m_ReplayCtx.ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
 	GLint numUniforms = 0;

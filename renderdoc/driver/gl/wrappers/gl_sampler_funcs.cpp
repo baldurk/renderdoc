@@ -28,14 +28,14 @@
 
 bool WrappedOpenGL::Serialise_glGenSamplers(GLsizei n, GLuint* samplers)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(*samplers)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
 
 	if(m_State == READING)
 	{
 		GLuint real = 0;
 		m_Real.glGenSamplers(1, &real);
 		
-		GLResource res = SamplerRes(real);
+		GLResource res = SamplerRes(GetCtx(), real);
 
 		ResourceId live = m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -50,7 +50,7 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 
 	for(GLsizei i=0; i < count; i++)
 	{
-		GLResource res = SamplerRes(samplers[i]);
+		GLResource res = SamplerRes(GetCtx(), samplers[i]);
 		ResourceId id = GetResourceManager()->RegisterResource(res);
 
 		if(m_State >= WRITING)
@@ -79,7 +79,7 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 bool WrappedOpenGL::Serialise_glBindSampler(GLuint unit, GLuint sampler)
 {
 	SERIALISE_ELEMENT(uint32_t, Unit, unit);
-	SERIALISE_ELEMENT(ResourceId, id, sampler ? GetResourceManager()->GetID(SamplerRes(sampler)) : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, id, sampler ? GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)) : ResourceId());
 	
 	if(m_State < WRITING)
 	{
@@ -112,7 +112,7 @@ void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 
 bool WrappedOpenGL::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Param, param);
 
@@ -135,7 +135,7 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 		Serialise_glSamplerParameteri(sampler, pname, param);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -143,7 +143,7 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 
 bool WrappedOpenGL::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(float, Param, param);
 
@@ -166,7 +166,7 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
 		Serialise_glSamplerParameterf(sampler, pname, param);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -174,7 +174,7 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
 
 bool WrappedOpenGL::Serialise_glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
@@ -200,7 +200,7 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 		Serialise_glSamplerParameteriv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -208,7 +208,7 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 
 bool WrappedOpenGL::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
@@ -234,7 +234,7 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
 		Serialise_glSamplerParameterfv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -242,7 +242,7 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
 
 bool WrappedOpenGL::Serialise_glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
@@ -268,7 +268,7 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 		Serialise_glSamplerParameterIiv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -276,7 +276,7 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 
 bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(sampler)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
 	SERIALISE_ELEMENT_ARR(uint32_t, Params, params, nParams);
@@ -302,7 +302,7 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 		Serialise_glSamplerParameterIuiv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
-			GetResourceManager()->GetResourceRecord(SamplerRes(sampler))->AddChunk(scope.Get());
+			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
 		else
 			m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -313,5 +313,5 @@ void WrappedOpenGL::glDeleteSamplers(GLsizei n, const GLuint *ids)
 	m_Real.glDeleteSamplers(n, ids);
 
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(SamplerRes(ids[i]));
+		GetResourceManager()->UnregisterResource(SamplerRes(GetCtx(), ids[i]));
 }

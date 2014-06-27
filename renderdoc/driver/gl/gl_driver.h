@@ -117,7 +117,6 @@ class WrappedOpenGL
 		GLInitParams m_InitParams;
 
 		map<uint64_t, void *> m_ActiveContexts;
-		void *GetCtx();
 
 		ResourceId m_DeviceResourceID;
 		GLResourceRecord *m_DeviceRecord;
@@ -253,6 +252,7 @@ class WrappedOpenGL
 		ResourceId GetContextResourceID() { return m_ContextResourceID; }
 
 		GLReplay *GetReplay() { return &m_Replay; }
+		void *GetCtx();
 		
 		// replay interface
 		void Initialise(GLInitParams &params);

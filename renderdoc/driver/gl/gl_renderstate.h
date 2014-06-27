@@ -173,7 +173,7 @@ struct GLRenderState
 	GLenum CullFace;
 	//
 
-	void Serialise(LogState state, GLResourceManager *rm);
+	void Serialise(LogState state, void *ctx, GLResourceManager *rm);
 private:
 	Serialiser *m_pSerialiser;
 	const GLHookSet *m_Real;

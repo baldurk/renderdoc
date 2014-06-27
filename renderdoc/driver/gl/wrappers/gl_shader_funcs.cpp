@@ -32,13 +32,13 @@
 bool WrappedOpenGL::Serialise_glCreateShader(GLuint shader, GLenum type)
 {
 	SERIALISE_ELEMENT(GLenum, Type, type);
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(shader)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 
 	if(m_State == READING)
 	{
 		GLuint real = m_Real.glCreateShader(Type);
 		
-		GLResource res = ShaderRes(real);
+		GLResource res = ShaderRes(GetCtx(), real);
 
 		ResourceId liveId = GetResourceManager()->RegisterResource(res);
 
@@ -54,7 +54,7 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
 {
 	GLuint real = m_Real.glCreateShader(type);
 
-	GLResource res = ShaderRes(real);
+	GLResource res = ShaderRes(GetCtx(), real);
 	ResourceId id = GetResourceManager()->RegisterResource(res);
 
 	if(m_State >= WRITING)
@@ -83,7 +83,7 @@ GLuint WrappedOpenGL::glCreateShader(GLenum type)
 
 bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const GLchar* const *source, const GLint *length)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(shader)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 	SERIALISE_ELEMENT(uint32_t, Count, count);
 
 	vector<string> srcs;
@@ -123,7 +123,7 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar* c
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(shader));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(SHADERSOURCE);
@@ -136,7 +136,7 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar* c
 
 bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(shader)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 	
 	if(m_State == READING)
 	{
@@ -152,7 +152,7 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(shader));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(COMPILESHADER);
@@ -172,13 +172,13 @@ void WrappedOpenGL::glDeleteShader(GLuint shader)
 {
 	m_Real.glDeleteShader(shader);
 	
-	GetResourceManager()->UnregisterResource(ShaderRes(shader));
+	GetResourceManager()->UnregisterResource(ShaderRes(GetCtx(), shader));
 }
 
 bool WrappedOpenGL::Serialise_glAttachShader(GLuint program, GLuint shader)
 {
-	SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(program)));
-	SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(shader)));
+	SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+	SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 
 	if(m_State == READING)
 	{
@@ -200,8 +200,8 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
-		GLResourceRecord *shadRecord = GetResourceManager()->GetResourceRecord(ShaderRes(shader));
+		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+		GLResourceRecord *shadRecord = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
 		RDCASSERT(progRecord && shadRecord);
 		{
 			SCOPED_SERIALISE_CONTEXT(ATTACHSHADER);
@@ -215,8 +215,8 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 
 bool WrappedOpenGL::Serialise_glDetachShader(GLuint program, GLuint shader)
 {
-	SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(program)));
-	SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(shader)));
+	SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+	SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
 
 	if(m_State == READING)
 	{
@@ -249,7 +249,7 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(progRecord);
 		{
 			SCOPED_SERIALISE_CONTEXT(DETACHSHADER);
@@ -268,7 +268,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 {
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(int32_t, Count, count);
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
 	vector<string> src;
 
@@ -291,7 +291,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 
 		delete[] sources;
 		
-		GLResource res = ProgramRes(real);
+		GLResource res = ProgramRes(GetCtx(), real);
 
 		m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -304,7 +304,7 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 {
 	GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
 	
-	GLResource res = ProgramRes(real);
+	GLResource res = ProgramRes(GetCtx(), real);
 	ResourceId id = GetResourceManager()->RegisterResource(res);
 		
 	if(m_State >= WRITING)
@@ -333,13 +333,13 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 
 bool WrappedOpenGL::Serialise_glCreateProgram(GLuint program)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
 	if(m_State == READING)
 	{
 		GLuint real = m_Real.glCreateProgram();
 		
-		GLResource res = ProgramRes(real);
+		GLResource res = ProgramRes(GetCtx(), real);
 
 		m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -352,7 +352,7 @@ GLuint WrappedOpenGL::glCreateProgram()
 {
 	GLuint real = m_Real.glCreateProgram();
 	
-	GLResource res = ProgramRes(real);
+	GLResource res = ProgramRes(GetCtx(), real);
 	ResourceId id = GetResourceManager()->RegisterResource(res);
 		
 	if(m_State >= WRITING)
@@ -381,7 +381,7 @@ GLuint WrappedOpenGL::glCreateProgram()
 
 bool WrappedOpenGL::Serialise_glLinkProgram(GLuint program)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
 	if(m_State == READING)
 	{
@@ -401,7 +401,7 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(LINKPROGRAM);
@@ -414,7 +414,7 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
 
 bool WrappedOpenGL::Serialise_glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 	SERIALISE_ELEMENT(uint32_t, index, uniformBlockIndex);
 	SERIALISE_ELEMENT(uint32_t, binding, uniformBlockBinding);
 
@@ -432,7 +432,7 @@ void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockInd
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(UNIFORM_BLOCKBIND);
@@ -445,7 +445,7 @@ void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockInd
 
 bool WrappedOpenGL::Serialise_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name_)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 	SERIALISE_ELEMENT(uint32_t, idx, index);
 	
 	string name = name_ ? name_ : "";
@@ -465,7 +465,7 @@ void WrappedOpenGL::glBindAttribLocation(GLuint program, GLuint index, const GLc
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(BINDATTRIB_LOCATION);
@@ -478,7 +478,7 @@ void WrappedOpenGL::glBindAttribLocation(GLuint program, GLuint index, const GLc
 
 bool WrappedOpenGL::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 	SERIALISE_ELEMENT(GLenum, PName, pname);
 	SERIALISE_ELEMENT(int32_t, Value, value);
 
@@ -496,7 +496,7 @@ void WrappedOpenGL::glProgramParameteri(GLuint program, GLenum pname, GLint valu
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(record);
 		{
 			SCOPED_SERIALISE_CONTEXT(PROGRAMPARAMETER);
@@ -511,12 +511,12 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
 {
 	m_Real.glDeleteProgram(program);
 	
-	GetResourceManager()->UnregisterResource(ProgramRes(program));
+	GetResourceManager()->UnregisterResource(ProgramRes(GetCtx(), program));
 }
 
 bool WrappedOpenGL::Serialise_glUseProgram(GLuint program)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
 	if(m_State <= EXECUTING)
 	{
@@ -555,9 +555,9 @@ void WrappedOpenGL::glValidateProgramPipeline(GLuint pipeline)
 
 bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
 {
-	SERIALISE_ELEMENT(ResourceId, pipe, GetResourceManager()->GetID(ProgramPipeRes(pipeline)));
+	SERIALISE_ELEMENT(ResourceId, pipe, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)));
 	SERIALISE_ELEMENT(uint32_t, Stages, stages);
-	SERIALISE_ELEMENT(ResourceId, prog, GetResourceManager()->GetID(ProgramRes(program)));
+	SERIALISE_ELEMENT(ResourceId, prog, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
 
 	if(m_State < WRITING)
 	{
@@ -583,25 +583,25 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 		SCOPED_SERIALISE_CONTEXT(USE_PROGRAMSTAGES);
 		Serialise_glUseProgramStages(pipeline, stages, program);
 		
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(pipeline));
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
 		RDCASSERT(record);
 		record->AddChunk(scope.Get());
 
-		GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(program));
+		GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		record->AddParent(progrecord);
 	}
 }
 
 bool WrappedOpenGL::Serialise_glGenProgramPipelines(GLsizei n, GLuint* pipelines)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(*pipelines)));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
 
 	if(m_State == READING)
 	{
 		GLuint real = 0;
 		m_Real.glGenProgramPipelines(1, &real);
 		
-		GLResource res = ProgramPipeRes(real);
+		GLResource res = ProgramPipeRes(GetCtx(), real);
 
 		ResourceId live = m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
@@ -616,7 +616,7 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 
 	for(GLsizei i=0; i < n; i++)
 	{
-		GLResource res = ProgramPipeRes(pipelines[i]);
+		GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
 		ResourceId id = GetResourceManager()->RegisterResource(res);
 
 		if(m_State >= WRITING)
@@ -644,7 +644,7 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 
 bool WrappedOpenGL::Serialise_glBindProgramPipeline(GLuint pipeline)
 {
-	SERIALISE_ELEMENT(ResourceId, id, (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(pipeline)) : ResourceId()));
+	SERIALISE_ELEMENT(ResourceId, id, (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)) : ResourceId()));
 
 	if(m_State <= EXECUTING)
 	{
@@ -680,7 +680,7 @@ void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
 	m_Real.glDeleteProgramPipelines(n, pipelines);
 	
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(ProgramPipeRes(pipelines[i]));
+		GetResourceManager()->UnregisterResource(ProgramPipeRes(GetCtx(), pipelines[i]));
 }
 
 #pragma endregion

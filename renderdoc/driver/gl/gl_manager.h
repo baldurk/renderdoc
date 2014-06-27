@@ -115,10 +115,10 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return ResourceManager::GetResourceRecord(GetID(res));
 		}
 
-		void RegisterSync(GLsync sync, GLuint &name, ResourceId &id)
+		void RegisterSync(void *ctx, GLsync sync, GLuint &name, ResourceId &id)
 		{
 			name = (GLuint)Atomic::Inc64(&m_SyncName);
-			id = RegisterResource(SyncRes(name));
+			id = RegisterResource(SyncRes(ctx, name));
 
 			m_SyncIDs[sync] = id;
 			m_CurrentSyncs[name] = sync;

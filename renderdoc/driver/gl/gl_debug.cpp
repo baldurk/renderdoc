@@ -408,8 +408,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	GLuint curReadFBO = 0;
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+
+	void *ctx = m_ReplayCtx.ctx;
 	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, curProg))];
 
 	if(progDetails.colOutProg == 0)
 	{
@@ -626,7 +628,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
 	gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
-	return m_pDriver->GetResourceManager()->GetID(TextureRes(DebugData.overlayTex));
+	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
 void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)

@@ -59,13 +59,15 @@ struct GLResource
 {
 	GLResource() { Namespace = eResUnknown; name = ~0U; }
 	GLResource(NullInitialiser) { Namespace = eResUnknown; name = ~0U; }
-	GLResource(GLNamespace n, GLuint i) { Namespace = n; name = i; }
+	GLResource(void *ctx, GLNamespace n, GLuint i) { Context = ctx; Namespace = n; name = i; }
+
+	void *Context;
 	GLNamespace Namespace;
 	GLuint name;
 
 	bool operator ==(const GLResource &o) const
 	{
-		return Namespace == o.Namespace && name == o.name;
+		return Context == o.Context && Namespace == o.Namespace && name == o.name;
 	}
 
 	bool operator !=(const GLResource &o) const
@@ -75,21 +77,26 @@ struct GLResource
 
 	bool operator <(const GLResource &o) const
 	{
+		if(Context != o.Context) return Context < o.Context;
 		if(Namespace != o.Namespace) return Namespace < o.Namespace;
 		return name < o.name;
 	}
 };
 
-inline GLResource TextureRes(GLuint i) { return GLResource(eResTexture, i); }
-inline GLResource SamplerRes(GLuint i) { return GLResource(eResSampler, i); }
-inline GLResource FramebufferRes(GLuint i) { return GLResource(eResFramebuffer, i); }
-inline GLResource BufferRes(GLuint i) { return GLResource(eResBuffer, i); }
-inline GLResource VertexArrayRes(GLuint i) { return GLResource(eResVertexArray, i); }
-inline GLResource ShaderRes(GLuint i) { return GLResource(eResShader, i); }
-inline GLResource ProgramRes(GLuint i) { return GLResource(eResProgram, i); }
-inline GLResource ProgramPipeRes(GLuint i) { return GLResource(eResProgramPipe, i); }
-inline GLResource QueryRes(GLuint i) { return GLResource(eResQuery, i); }
-inline GLResource SyncRes(GLuint i) { return GLResource(eResSync, i); }
+// Shared objects currently ignore the context parameter.
+// For correctness we'd need to check if the context is shared and if so move up to a 'parent'
+// so the context value ends up being identical for objects being shared, but can be different
+// for objects in non-shared contexts
+inline GLResource TextureRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResTexture, i); }
+inline GLResource SamplerRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResSampler, i); }
+inline GLResource FramebufferRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResFramebuffer, i); }
+inline GLResource BufferRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResBuffer, i); }
+inline GLResource VertexArrayRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResVertexArray, i); }
+inline GLResource ShaderRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResShader, i); }
+inline GLResource ProgramRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResProgram, i); }
+inline GLResource ProgramPipeRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResProgramPipe, i); }
+inline GLResource QueryRes(void *ctx, GLuint i)       {            return GLResource(ctx,  eResQuery, i); }
+inline GLResource SyncRes(void *ctx, GLuint i)        { (void)ctx; return GLResource(NULL, eResSync, i); }
 
 struct GLResourceRecord : public ResourceRecord
 {
