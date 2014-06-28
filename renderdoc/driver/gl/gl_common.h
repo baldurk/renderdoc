@@ -39,7 +39,7 @@
 struct GLWindowingData
 {
 	HDC DC;
-	HGLRC RC;
+	HGLRC ctx;
 	HWND wnd;
 };
 

@@ -47,7 +47,7 @@ void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
 	if(wglMakeCurrentProc && ctx && ctx != prev)
 	{
 		prev = ctx;
-		wglMakeCurrentProc(ctx->DC, ctx->RC);
+		wglMakeCurrentProc(ctx->DC, ctx->ctx);
 	}
 }
 
@@ -60,7 +60,7 @@ void GLReplay::CloseReplayContext()
 {
 	if(wglDeleteRC)
 	{
-		wglDeleteRC(m_ReplayCtx.RC);
+		wglDeleteRC(m_ReplayCtx.ctx);
 		ReleaseDC(m_ReplayCtx.wnd, m_ReplayCtx.DC);
 		::DestroyWindow(m_ReplayCtx.wnd);
 	}
@@ -103,7 +103,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
 	attribs[i++] = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB|WGL_CONTEXT_DEBUG_BIT_ARB;
 
-	HGLRC rc = createContextAttribs(DC, m_ReplayCtx.RC, attribs);
+	HGLRC rc = createContextAttribs(DC, m_ReplayCtx.ctx, attribs);
 	if(rc == NULL)
 	{
 		ReleaseDC(w, DC);
@@ -113,7 +113,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 
 	OutputWindow win;
 	win.DC = DC;
-	win.RC = rc;
+	win.ctx = rc;
 	win.wnd = w;
 
 	RECT rect = {0};
@@ -139,7 +139,7 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
 	OutputWindow &outw = it->second;
 
-	wglDeleteRC(outw.RC);
+	wglDeleteRC(outw.ctx);
 	ReleaseDC(outw.wnd, outw.DC);
 
 	m_OutputWindows.erase(it);
@@ -338,7 +338,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver *
 	replay->SetProxy(logfile == NULL);
 	GLWindowingData data;
 	data.DC = dc;
-	data.RC = rc;
+	data.ctx = rc;
 	data.wnd = w;
 	replay->SetReplayData(data);
 
