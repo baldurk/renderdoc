@@ -1005,6 +1005,7 @@ void ResourceManager<ResourceType, RecordType>::RemoveWrapper(ResourceType real)
 	if(real == (ResourceType)RecordType::NullResource || !HasWrapper(real))
 	{
 		RDCERR("Invalid state removing resource wrapper - real resource is NULL or doesn't have wrapper");
+		return;
 	}
 
 	m_WrapperMap.erase( m_WrapperMap.find(real) );
