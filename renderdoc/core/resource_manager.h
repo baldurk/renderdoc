@@ -361,7 +361,7 @@ class ResourceManager : public ResourceRecordHandler
 		void ApplyInitialContents();
 
 		// Resource wrapping, allows for querying and adding/removing of wrapper layers around resources
-		void AddWrapper(ResourceType wrap, ResourceType real);
+		bool AddWrapper(ResourceType wrap, ResourceType real);
 		bool HasWrapper(ResourceType real);
 		ResourceType GetWrapper(ResourceType real);
 		void RemoveWrapper(ResourceType real);
@@ -980,21 +980,27 @@ void ResourceManager<ResourceType, RecordType>::RemoveResourceRecord(ResourceId 
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::AddWrapper(ResourceType wrap, ResourceType real)
+bool ResourceManager<ResourceType, RecordType>::AddWrapper(ResourceType wrap, ResourceType real)
 {
 	SCOPED_LOCK(m_Lock);
+
+	bool ret = true;
 
 	if(wrap == (ResourceType)RecordType::NullResource || real == (ResourceType)RecordType::NullResource)
 	{
 		RDCERR("Invalid state creating resource wrapper - wrapped or real resource is NULL");
+		ret = false;
 	}
 
 	if(m_WrapperMap[real] != (ResourceType)RecordType::NullResource)
 	{
 		RDCERR("Overriding wrapper for 0x%p - to 0x%p", real, wrap);
+		ret = false;
 	}
 
 	m_WrapperMap[real] = wrap;
+
+	return ret;
 }
 
 template<typename ResourceType, typename RecordType>
