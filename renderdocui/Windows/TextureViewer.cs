@@ -1318,7 +1318,11 @@ namespace renderdocui.Windows
                 }
             }
 
-            string statusText = "Hover - " + (m_CurHoverPixel.X >> (int)m_TexDisplay.mip) + ", " + (m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            string hoverCoords = String.Format("{0}, {1}", m_CurHoverPixel.X >> (int)m_TexDisplay.mip, m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            string statusText = "Hover - " + hoverCoords;
+
+            if (m_CurHoverPixel.X > tex.width || m_CurHoverPixel.Y > tex.height || m_CurHoverPixel.X < 0 || m_CurHoverPixel.Y < 0)
+                statusText = "Hover - [" + hoverCoords + "]";
 
             if (m_CurPixelValue != null)
             {
@@ -1845,22 +1849,26 @@ namespace renderdocui.Windows
         {
             bool nudged = false;
 
-            if (e.KeyCode == Keys.Up)
+            FetchTexture tex = CurrentTexture;
+
+            if (tex == null) return;
+
+            if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Down)
+            else if (e.KeyCode == Keys.Down && m_PickedPoint.Y < tex.height-1)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + 1);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Left)
+            else if (e.KeyCode == Keys.Left && m_PickedPoint.X > 0)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X - 1, m_PickedPoint.Y);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Right)
+            else if (e.KeyCode == Keys.Right && m_PickedPoint.X < tex.width - 1)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X + 1, m_PickedPoint.Y);
                 nudged = true;
@@ -1921,13 +1929,21 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.Right && m_TexDisplay.texid != ResourceId.Null)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
@@ -1973,13 +1989,21 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.Right)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
@@ -2449,6 +2473,9 @@ namespace renderdocui.Windows
             ShaderDebugTrace trace = null;
 
             ShaderReflection shaderDetails = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+
+            if(m_PickedPoint.X < 0 || m_PickedPoint.Y < 0)
+                return;
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
