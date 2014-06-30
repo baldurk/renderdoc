@@ -454,9 +454,8 @@ void ReplayOutput::DisplayTex()
 	m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
 	m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
 
-	if(m_RenderData.texDisplay.Alpha)
-		m_pDevice->RenderCheckerboard(Vec3f(texDisplay.lightBackgroundColour.x, texDisplay.lightBackgroundColour.y, texDisplay.lightBackgroundColour.z),
-									  Vec3f(texDisplay.darkBackgroundColour.x, texDisplay.darkBackgroundColour.y, texDisplay.darkBackgroundColour.z));
+	m_pDevice->RenderCheckerboard(Vec3f(texDisplay.lightBackgroundColour.x, texDisplay.lightBackgroundColour.y, texDisplay.lightBackgroundColour.z),
+	                              Vec3f(texDisplay.darkBackgroundColour.x,  texDisplay.darkBackgroundColour.y,  texDisplay.darkBackgroundColour.z));
 
 	m_pDevice->RenderTexture(texDisplay);
 	

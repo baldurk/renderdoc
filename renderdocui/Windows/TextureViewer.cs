@@ -268,12 +268,16 @@ namespace renderdocui.Windows
             public int persistVersion = currentPersistVersion;
 
             public string panelLayout;
+            public FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+            public FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
             public static PersistData GetDefaults()
             {
                 PersistData data = new PersistData();
 
                 data.panelLayout = "";
+                data.darkBack = new FloatVector(0, 0, 0, 0);
+                data.lightBack = new FloatVector(0, 0, 0, 0);
 
                 return data;
             }
@@ -329,10 +333,14 @@ namespace renderdocui.Windows
         }
 
         private string onloadLayout = "";
+        private FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+        private FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
         private void ApplyPersistData(PersistData data)
         {
             onloadLayout = data.panelLayout;
+            darkBack = data.darkBack;
+            lightBack = data.lightBack;
         }
 
         private void TextureViewer_Load(object sender, EventArgs e)
@@ -361,6 +369,21 @@ namespace renderdocui.Windows
 
                 onloadLayout = "";
             }
+
+            if (darkBack.x != lightBack.x)
+            {
+                backcolorPick.Checked = false;
+                checkerBack.Checked = true;
+            }
+            else
+            {
+                backcolorPick.Checked = true;
+                checkerBack.Checked = false;
+
+                colorDialog.Color = Color.FromArgb((int)(255 * darkBack.x),
+                    (int)(255 * darkBack.y),
+                    (int)(255 * darkBack.z));
+            }
         }
 
         private string PersistString()
@@ -378,6 +401,9 @@ namespace renderdocui.Windows
             dockPanel.SaveAsXml(path, "", enc);
             data.panelLayout = File.ReadAllText(path, enc);
             File.Delete(path);
+
+            data.darkBack = darkBack;
+            data.lightBack = lightBack;
 
             System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(PersistData));
             xs.Serialize(writer, data);
@@ -682,6 +708,9 @@ namespace renderdocui.Windows
             texturefilter.Text = "";
             textureList.FillTextureList("", true, true);
 
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
+
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
@@ -712,6 +741,8 @@ namespace renderdocui.Windows
             texturefilter.SelectedIndex = 0;
 
             m_TexDisplay = new TextureDisplay();
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
 
             PixelPicked = false;
 
@@ -721,11 +752,6 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
             rangeHistogram.SetRange(0.0f, 1.0f);
-
-            checkerBack.Checked = true;
-            backcolorPick.Checked = false;
-
-            checkerBack.Enabled = backcolorPick.Enabled = false;
 
             channels.SelectedIndex = 0;
             overlay.SelectedIndex = 0;
@@ -1457,8 +1483,6 @@ namespace renderdocui.Windows
                 backcolorPick.Visible = true;
                 checkerBack.Visible = true;
 
-                checkerBack.Enabled = backcolorPick.Enabled = customAlpha.Checked;
-
                 mulSep.Visible = false;
 
                 m_TexDisplay.Red = customRed.Checked;
@@ -1559,11 +1583,40 @@ namespace renderdocui.Windows
             render.Invalidate();
         }
 
+        private void DrawCheckerboard(Graphics g, Rectangle rect)
+        {
+            int numX = (int)Math.Ceiling((float)rect.Width / 64.0f);
+            int numY = (int)Math.Ceiling((float)rect.Height / 64.0f);
+
+            Brush dark = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(darkBack.x))),
+                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.y))),
+                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.z)))));
+
+            Brush light = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(lightBack.x))),
+                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.y))),
+                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.z)))));
+
+            for (int x = 0; x < numX; x++)
+            {
+                for (int y = 0; y < numY; y++)
+                {
+                    var brush = ((x%2) == (y%2)) ? dark : light;
+                    g.FillRectangle(brush, x * 64, y * 64, 64, 64);
+                }
+            }
+
+            dark.Dispose();
+            light.Dispose();
+        }
+
         private void pixelContext_Paint(object sender, PaintEventArgs e)
         {
             if (m_Output == null || m_Core.Renderer == null || PixelPicked == false)
             {
-                e.Graphics.Clear(Color.Black);
+                if (backcolorPick.Checked)
+                    e.Graphics.Clear(colorDialog.Color);
+                else
+                    DrawCheckerboard(e.Graphics, pixelContext.DisplayRectangle);
                 return;
             }
 
@@ -1575,7 +1628,10 @@ namespace renderdocui.Windows
             renderContainer.Invalidate();
             if (m_Output == null || m_Core.Renderer == null)
             {
-                e.Graphics.Clear(Color.Black);
+                if (backcolorPick.Checked)
+                    e.Graphics.Clear(colorDialog.Color);
+                else
+                    DrawCheckerboard(e.Graphics, render.DisplayRectangle);
                 return;
             }
 
@@ -2119,7 +2175,7 @@ namespace renderdocui.Windows
 
             if (result == DialogResult.OK || result == DialogResult.Yes)
             {
-                m_TexDisplay.darkBackgroundColour =
+                darkBack = lightBack = m_TexDisplay.darkBackgroundColour =
                     m_TexDisplay.lightBackgroundColour = new FloatVector(
                         ((float)colorDialog.Color.R) / 255.0f,
                         ((float)colorDialog.Color.G) / 255.0f,
@@ -2130,19 +2186,31 @@ namespace renderdocui.Windows
             }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
 
         private void checkerBack_Click(object sender, EventArgs e)
         {
             var defaults = new TextureDisplay();
 
-            m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
-            m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
+            darkBack = m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
+            lightBack = m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
 
             backcolorPick.Checked = false;
             checkerBack.Checked = true;
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
         private void mipLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
