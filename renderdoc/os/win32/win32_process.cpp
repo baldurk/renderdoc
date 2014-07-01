@@ -281,6 +281,10 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	// misc
 	InjectDLL(hProcess, L"kernel32.dll");
 
+	
+#if DXGL
+	InjectDLL(hProcess, L"dxgl.dll");
+#else
 	// D3D11
 	InjectDLL(hProcess, L"d3d9.dll");
 	InjectDLL(hProcess, L"d3d11.dll");
@@ -289,7 +293,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	// OpenGL
 	InjectDLL(hProcess, L"opengl32.dll");
 	InjectDLL(hProcess, L"gdi32.dll");
-
+#endif
 	InjectDLL(hProcess, renderdocPath);
 
 	uintptr_t loc = FindRemoteDLL(pid, L"renderdoc.dll");

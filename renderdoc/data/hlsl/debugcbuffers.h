@@ -63,7 +63,10 @@ cbuffer DebugVertexCBuffer REG(b0)
 	row_major float4x4 ModelViewProj;
 	
 	float Scale;
-	float3 dummy1;
+	//float3 dummy1;
+	/**/float dummy1_0;
+	/**/float dummy1_1;
+	/**/float dummy1_2;
 };
 
 cbuffer DebugGeometryCBuffer REG(b0)
@@ -88,6 +91,9 @@ cbuffer DebugPixelCBufferData REG(b0)
 	float2 Padding;
 
 	int RawOutput;
+	/**/int dummy2_0;
+	/**/int dummy2_1;
+	/**/int dummy2_2;
 	float3 TextureResolutionPS;
 };
 

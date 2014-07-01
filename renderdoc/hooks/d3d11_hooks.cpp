@@ -28,7 +28,11 @@
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks.h"
 
+#if DXGL
+#define DLL_NAME "dxgl.dll"
+#else
 #define DLL_NAME "d3d11.dll"
+#endif
 
 class D3D11Hook : LibraryHook
 {
@@ -39,12 +43,14 @@ public:
 	{
 		bool success = true;
 
+#if !DXGL
 		// require dxgi.dll hooked as well for proper operation
 		if(GetModuleHandleA("dxgi.dll") == NULL)
 		{
 			RDCWARN("Failed to load dxgi.dll - not inserting D3D11 hooks.");
 			return false;
 		}
+#endif
 
 		// also require d3dcompiler_??.dll
 		if(GetD3DCompiler() == NULL)
@@ -53,7 +59,9 @@ public:
 			return false;
 		}
 
+#if !DXGL
 		success &= CreateDevice.Initialize("D3D11CreateDevice", DLL_NAME, D3D11CreateDevice_hook);
+#endif
 		success &= CreateDeviceAndSwapChain.Initialize("D3D11CreateDeviceAndSwapChain", DLL_NAME, D3D11CreateDeviceAndSwapChain_hook);
 
 		if(!success) return false;
@@ -65,7 +73,7 @@ public:
 		// push r13
 		//
 		// FRAPS stomps over this with its own hook that we detect and handle later.
-		void *hooked_func_ptr = GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
+		void *hooked_func_ptr = GetProcAddress(GetModuleHandleA(DLL_NAME), "D3D11CreateDeviceAndSwapChain");
 		if(hooked_func_ptr == NULL) return false;
 		memcpy(CreateDeviceAndSwapChain_ident, hooked_func_ptr, 16);
 
@@ -111,7 +119,9 @@ private:
 
 	byte CreateDeviceAndSwapChain_ident[16];
 	Hook<PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN> CreateDeviceAndSwapChain;
+#if !DXGL
 	Hook<PFN_D3D11_CREATE_DEVICE> CreateDevice;
+#endif
 
 	// re-entrancy detection (can happen in rare cases with e.g. fraps)
 	bool m_InsideCreate;
@@ -140,7 +150,7 @@ private:
 			if(m_HasHooks)
 				createFunc = CreateDeviceAndSwapChain();
 			else
-				createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
+				createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA(DLL_NAME), "D3D11CreateDeviceAndSwapChain");
 		
 			return createFunc(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
 								SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
@@ -186,7 +196,7 @@ private:
 
 		RDCDEBUG("Calling real createdevice...");
 
-		PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
+		PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA(DLL_NAME), "D3D11CreateDeviceAndSwapChain");
 		
 		if(createFunc)
 		{

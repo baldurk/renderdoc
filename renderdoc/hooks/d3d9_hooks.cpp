@@ -59,7 +59,9 @@ class D3D9Hook : LibraryHook
 			if(!success) return false;
 
 			m_HasHooks = true;
+#if !DXGL
 			m_EnabledHooks = true;
+#endif
 
 			return true;
 		}

@@ -27,7 +27,11 @@
 #include "driver/dxgi/dxgi_wrapped.h"
 #include "hooks.h"
 
+#if DXGL
+#define DLL_NAME "dxgl.dll"
+#else
 #define DLL_NAME "dxgi.dll"
+#endif
 
 typedef HRESULT (WINAPI* PFN_CREATE_DXGI_FACTORY)( __in REFIID, __out  void **ppFactory);
 
@@ -40,8 +44,10 @@ public:
 	{
 		bool success = true;
 
+#if !DXGL
 		// require d3d11.dll hooked as well for proper operation
 		if(GetModuleHandleA("d3d11.dll") == NULL) return false;
+#endif
 
 		success &= CreateDXGIFactory.Initialize("CreateDXGIFactory", DLL_NAME, CreateDXGIFactory_hook);
 		success &= CreateDXGIFactory1.Initialize("CreateDXGIFactory1", DLL_NAME, CreateDXGIFactory1_hook);
@@ -69,7 +75,7 @@ public:
 		if(dxgihooks.m_HasHooks)
 			return dxgihooks.CreateDXGIFactory1_hook(riid, ppFactory);
 
-		PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+		PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA(DLL_NAME), "CreateDXGIFactory1");
 
 		if(!createFunc)
 		{

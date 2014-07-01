@@ -1527,6 +1527,14 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 	RDCDEBUG("Creating a D3D11 replay device");
 
 	HMODULE lib = NULL;
+#if DXGL
+	lib = LoadLibraryA("dxgl.dll");
+	if(lib == NULL)
+	{
+		RDCERR("Failed to load dxgl.dll");
+		return eReplayCreate_APIInitFailed;
+	}
+#else
 	lib = LoadLibraryA("d3d11.dll");
 	if(lib == NULL)
 	{
@@ -1547,6 +1555,7 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 		RDCERR("Failed to load dxgi.dll");
 		return eReplayCreate_APIInitFailed;
 	}
+#endif
 
 	if(GetD3DCompiler() == NULL)
 	{

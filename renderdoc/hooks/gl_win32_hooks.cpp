@@ -167,7 +167,9 @@ class OpenGLHook : LibraryHook
 
 			m_GLDriver = NULL;
 
+#if !DXGL
 			m_EnabledHooks = true;
+#endif
 			m_PopulatedHooks = false;
 		}
 		~OpenGLHook()

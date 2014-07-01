@@ -328,11 +328,13 @@ D3D11DebugManager::~D3D11DebugManager()
 		m_ShaderItemCache.pop_back();
 	}
 
+#if !DXGL
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
 		SAFE_RELEASE(it->second.vsout.buf);
 		SAFE_RELEASE(it->second.gsout.buf);
 	}
+#endif
 
 	m_PostVSData.clear();
 	
@@ -1230,9 +1232,11 @@ void D3D11DebugManager::ShutdownFontRendering()
 
 void D3D11DebugManager::ShutdownStreamOut()
 {
+#if !DXGL
 	SAFE_RELEASE(m_SOBuffer);
 	SAFE_RELEASE(m_SOStatsQuery);
 	SAFE_RELEASE(m_SOStagingBuffer);
+#endif
 
 	SAFE_RELEASE(m_WireframeHelpersRS);
 	SAFE_RELEASE(m_WireframeHelpersBS);
@@ -1251,6 +1255,8 @@ bool D3D11DebugManager::InitStreamOut()
 	m_MeshDisplayNULLVB = 0;
 	m_PrevMeshInputLayout = NULL;
 
+	HRESULT hr = S_OK;
+#if !DXGL
 	D3D11_BUFFER_DESC bufferDesc =
 	{
 		m_SOBufferSize,
@@ -1260,7 +1266,6 @@ bool D3D11DebugManager::InitStreamOut()
 		0,
 		0
 	};
-	HRESULT hr = S_OK;
 	
 	hr = m_pDevice->CreateBuffer( &bufferDesc, NULL, &m_SOBuffer );
 	
@@ -1278,6 +1283,7 @@ bool D3D11DebugManager::InitStreamOut()
 
 	hr = m_pDevice->CreateQuery(&qdesc, &m_SOStatsQuery);
 	if(FAILED(hr)) RDCERR("Failed to create m_SOStatsQuery %08x", hr);
+#endif
 
 	D3D11_RASTERIZER_DESC desc;
 	{
@@ -3697,6 +3703,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	D3D11_PRIMITIVE_TOPOLOGY topo;
 	m_pImmediateContext->IAGetPrimitiveTopology(&topo);
 	
+#if !DXGL
 	WrappedID3D11Shader<ID3D11VertexShader> *wrappedVS = (WrappedID3D11Shader<ID3D11VertexShader> *)m_WrappedDevice->GetResourceManager()->GetWrapper(vs);
 	
 	if(!wrappedVS)
@@ -4210,6 +4217,9 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims*3; break;
 		}
 	}
+#else
+	m_PostVSData[idx].vsin.topo = topo;
+#endif
 }
 
 void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)

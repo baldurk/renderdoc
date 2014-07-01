@@ -64,24 +64,31 @@ struct PostVSData
 
 		float nearPlane;
 		float farPlane;
-	} vsin, vsout, gsout;
+	} vsin
+#if !DXGL
+		, vsout, gsout
+#endif
+		;
 
 	PostVSData()
 	{
 		RDCEraseEl(vsin);
+#if !DXGL
 		RDCEraseEl(vsout);
 		RDCEraseEl(gsout);
+#endif
 	}
 
 	const StageData &GetStage(MeshDataStage type)
 	{
+#if !DXGL
 		if(type == eMeshDataStage_VSOut)
 			return vsout;
 		else if(type == eMeshDataStage_GSOut)
 			return gsout;
 		else
 			RDCERR("Unexpected mesh data stage!");
-
+#endif
 		return vsin;
 	}
 };
@@ -279,9 +286,10 @@ class D3D11DebugManager
 		static const uint32_t m_ShaderCacheVersion = 2;
 		bool m_ShaderCacheDirty, m_CacheShaders;
 		map<uint32_t, ID3DBlob*> m_ShaderCache;
-
+#if !DXGL
 		static const int m_SOBufferSize = 16*1024*1024;
 		ID3D11Buffer *m_SOBuffer;
+#endif
 		ID3D11Buffer *m_SOStagingBuffer;
 		ID3D11Query *m_SOStatsQuery;
 		// <frame,event> -> data
