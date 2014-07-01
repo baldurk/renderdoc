@@ -45,7 +45,7 @@ while(<HOOKSET>)
 			my $name = $2;
 			my $aliases = $4;
 
-			my $def = trim(`grep -h $typedef gl_legacy_procs.h official/*`);
+			my $def = trim(`grep -h $typedef official/*`);
 
 			if($def =~ /^typedef (.*)\([A-Z *]* $typedef\) \((.*)\);/)
 			{

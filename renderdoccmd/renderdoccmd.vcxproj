@@ -93,8 +93,9 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;RENDERDOC_PLATFORM=win32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\renderdoc\replay\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\renderdoc\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -109,8 +110,9 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;RENDERDOC_PLATFORM=win32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\renderdoc\replay\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\renderdoc\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -127,7 +129,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;RENDERDOC_PLATFORM=win32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\renderdoc\replay\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\renderdoc\</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -146,7 +149,8 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;RENDERDOC_PLATFORM=win32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\renderdoc\replay\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\renderdoc\</AdditionalIncludeDirectories>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -159,6 +163,7 @@
   <ItemGroup>
     <ClCompile Include="miniz.c" />
     <ClCompile Include="renderdoccmd.cpp" />
+    <ClCompile Include="renderdoccmd_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="renderdoccmd.rc" />

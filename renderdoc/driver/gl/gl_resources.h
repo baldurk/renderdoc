@@ -42,7 +42,9 @@ enum GLNamespace
 	eResVertexArray,
 	eResShader,
 	eResProgram,
-	eResDisplayList,
+	eResProgramPipe,
+	eResQuery,
+	eResSync,
 };
 
 enum GLSpecialResource
@@ -57,13 +59,15 @@ struct GLResource
 {
 	GLResource() { Namespace = eResUnknown; name = ~0U; }
 	GLResource(NullInitialiser) { Namespace = eResUnknown; name = ~0U; }
-	GLResource(GLNamespace n, GLuint i) { Namespace = n; name = i; }
+	GLResource(void *ctx, GLNamespace n, GLuint i) { Context = ctx; Namespace = n; name = i; }
+
+	void *Context;
 	GLNamespace Namespace;
 	GLuint name;
 
 	bool operator ==(const GLResource &o) const
 	{
-		return Namespace == o.Namespace && name == o.name;
+		return Context == o.Context && Namespace == o.Namespace && name == o.name;
 	}
 
 	bool operator !=(const GLResource &o) const
@@ -73,32 +77,98 @@ struct GLResource
 
 	bool operator <(const GLResource &o) const
 	{
+		if(Context != o.Context) return Context < o.Context;
 		if(Namespace != o.Namespace) return Namespace < o.Namespace;
 		return name < o.name;
 	}
 };
 
-inline GLResource TextureRes(GLuint i) { return GLResource(eResTexture, i); }
-inline GLResource SamplerRes(GLuint i) { return GLResource(eResSampler, i); }
-inline GLResource FramebufferRes(GLuint i) { return GLResource(eResFramebuffer, i); }
-inline GLResource BufferRes(GLuint i) { return GLResource(eResBuffer, i); }
-inline GLResource VertexArrayRes(GLuint i) { return GLResource(eResVertexArray, i); }
-inline GLResource ShaderRes(GLuint i) { return GLResource(eResShader, i); }
-inline GLResource ProgramRes(GLuint i) { return GLResource(eResProgram, i); }
-inline GLResource DisplayListRes(GLuint i) { return GLResource(eResDisplayList, i); }
+// Shared objects currently ignore the context parameter.
+// For correctness we'd need to check if the context is shared and if so move up to a 'parent'
+// so the context value ends up being identical for objects being shared, but can be different
+// for objects in non-shared contexts
+inline GLResource TextureRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResTexture, i); }
+inline GLResource SamplerRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResSampler, i); }
+inline GLResource FramebufferRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResFramebuffer, i); }
+inline GLResource BufferRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResBuffer, i); }
+inline GLResource VertexArrayRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResVertexArray, i); }
+inline GLResource ShaderRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResShader, i); }
+inline GLResource ProgramRes(void *ctx, GLuint i)     { (void)ctx; return GLResource(NULL, eResProgram, i); }
+inline GLResource ProgramPipeRes(void *ctx, GLuint i) {            return GLResource(ctx,  eResProgramPipe, i); }
+inline GLResource QueryRes(void *ctx, GLuint i)       {            return GLResource(ctx,  eResQuery, i); }
+inline GLResource SyncRes(void *ctx, GLuint i)        { (void)ctx; return GLResource(NULL, eResSync, i); }
 
 struct GLResourceRecord : public ResourceRecord
 {
 	static const NullInitialiser NullResource = MakeNullResource;
 
 	GLResourceRecord(ResourceId id) :
-		ResourceRecord(id, true),
-		datatype(eGL_UNKNOWN_ENUM)
+	ResourceRecord(id, true),
+		datatype(eGL_UNKNOWN_ENUM),
+		usage(eGL_UNKNOWN_ENUM)
 	{
+		RDCEraseEl(ShadowPtr);
+		RDCEraseEl(ptrchunks);
+		RDCEraseEl(enabledchunks);
 	}
 
-	// pointer into binding chunk where datatype enum lives for this resource
+	~GLResourceRecord()
+	{
+		FreeShadowStorage();
+	}
+
+	enum MapStatus
+	{
+		Unmapped,
+		Mapped_Read,
+		Mapped_Read_Real,
+		Mapped_Write,
+		Mapped_Write_Real,
+		Mapped_Ignore_Real,
+	};
+
+	struct
+	{
+		GLintptr offset;
+		GLsizeiptr length;
+		GLbitfield access;
+		MapStatus status;
+		bool invalidate;
+		byte *ptr;
+	} Map;
+
 	GLenum datatype;
+	GLenum usage;
+
+	void AllocShadowStorage(size_t size)
+	{
+		if(ShadowPtr[0] == NULL)
+		{
+			ShadowPtr[0] = Serialiser::AllocAlignedBuffer(size);
+			ShadowPtr[1] = Serialiser::AllocAlignedBuffer(size);
+		}
+	}
+
+	void FreeShadowStorage()
+	{
+		if(ShadowPtr[0] != NULL)
+		{
+			Serialiser::FreeAlignedBuffer(ShadowPtr[0]);
+			Serialiser::FreeAlignedBuffer(ShadowPtr[1]);
+		}
+		ShadowPtr[0] = ShadowPtr[1] = NULL;
+	}
+	
+	byte *GetShadowPtr(int p)
+	{
+		return ShadowPtr[p];
+	}
+
+	Chunk *ptrchunks[12];
+	Chunk *enabledchunks[12];
+	
+private:
+	byte *ShadowPtr[2];
 };
 
 namespace TrackedResource

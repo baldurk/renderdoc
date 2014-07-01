@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include <stddef.h>
+
 #include "globalconfig.h"
 
 /////////////////////////////////////////////////
@@ -83,6 +85,8 @@ template<typename T>
 inline T AlignUp16(T x) { return (x+0xf) & (~0xf); }
 
 #define MAKE_FOURCC(a, b, c, d) (((uint32_t)(d) << 24) | ((uint32_t)(c) << 16) | ((uint32_t)(b) << 8) | (uint32_t)(a))
+
+bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd);
 
 /////////////////////////////////////////////////
 // Debugging features

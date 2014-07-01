@@ -1852,6 +1852,24 @@ namespace renderdocui.Windows.PipelineState
 
         private void ShowCBuffer(D3D11PipelineState.ShaderStage stage, UInt32 slot)
         {
+            if (stage.ShaderDetails != null &&
+                (stage.ShaderDetails.ConstantBlocks.Length <= slot ||
+                 stage.ShaderDetails.ConstantBlocks[slot].name == "")
+               )
+            {
+                // unused cbuffer, open regular buffer viewer
+                var viewer = new BufferViewer(m_Core, false);
+
+                if (stage.ConstantBuffers.Length < slot)
+                    return;
+
+                var buf = stage.ConstantBuffers[slot].Buffer;
+                viewer.ViewRawBuffer(buf);
+                viewer.Show(m_DockContent.DockPanel);
+
+                return;
+            }
+
             var existing = ConstantBufferPreviewer.Has(stage.stage, slot);
             if (existing != null)
             {

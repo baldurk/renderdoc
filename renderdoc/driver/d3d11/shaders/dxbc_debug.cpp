@@ -563,10 +563,12 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 		}
 		default:
 		{
+			RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
+
 			string name = dstoper.toString();
 			for(int32_t i=0; i < outputs.count; i++)
 			{
-				if(!strcmp(name.c_str(), outputs[i].name.elems))
+				if(outputs[i].name.elems && !strcmp(name.c_str(), outputs[i].name.elems))
 				{
 					v = &outputs[i];
 					break;
@@ -576,7 +578,6 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 			if(v)
 				break;
 
-			RDCERR("Currently unsupported destination operand type %d!", dstoper.type);
 			break;
 		}
 	}

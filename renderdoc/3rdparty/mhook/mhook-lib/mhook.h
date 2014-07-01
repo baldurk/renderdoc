@@ -38,5 +38,3 @@ bool Mhook_Unhook(void **ppHookedFunction);
 void Mhook_SuspendOtherThreads();
 void Mhook_ResumeOtherThreads();
 
-#define MHOOKS_MAX_SUPPORTED_HOOKS	512
-

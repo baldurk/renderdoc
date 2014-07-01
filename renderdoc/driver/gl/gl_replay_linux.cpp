@@ -85,25 +85,6 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 
 		if(dpy == NULL)
 			return 0;
-
-		// don't need to care about the fb config as we won't be using the default framebuffer (backbuffer)
-		static int visAttribs[] = { 0 };
-		int numCfgs = 0;
-		GLXFBConfig *fbcfg = glXChooseFBConfigProc(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
-
-		if(fbcfg == NULL)
-		{
-			XCloseDisplay(dpy);
-			RDCERR("Couldn't choose default framebuffer config");
-			return 0;
-		}
-
-		// don't care about pbuffer properties for same reason as backbuffer
-		int pbAttribs[] = { GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0 };
-
-		wnd = glXCreatePbufferProc(dpy, fbcfg[0], pbAttribs);
-
-		XFree(fbcfg);
 	}
 
 	static int visAttribs[] = { 
@@ -147,6 +128,14 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 		return 0;
 	}
 
+	if(wnd == 0)
+	{
+		// don't care about pbuffer properties as we won't render directly to this
+		int pbAttribs[] = { GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0 };
+
+		wnd = glXCreatePbufferProc(dpy, fbcfg[0], pbAttribs);
+	}
+
 	XFree(fbcfg);
 
 	OutputWindow win;
@@ -166,7 +155,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 
 	m_OutputWindows[ret] = win;
 
-	return 0;
+	return ret;
 }
 
 void GLReplay::DestroyOutputWindow(uint64_t id)
@@ -215,7 +204,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver *
 		glXDestroyCtxProc = (PFNGLXDESTROYCONTEXTPROC)dlsym(RTLD_NEXT, "glXDestroyContext");
 		glXSwapProc = (PFNGLXSWAPBUFFERSPROC)dlsym(RTLD_NEXT, "glXSwapBuffers");
 		glXChooseFBConfigProc = (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
-		glXCreatePbufferProc = (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbufferProc");
+		glXCreatePbufferProc = (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbuffer");
 		glXDestroyPbufferProc = (PFNGLXDESTROYPBUFFERPROC)dlsym(RTLD_NEXT, "glXDestroyPbuffer");
 		glXQueryDrawableProc = (PFNGLXQUERYDRAWABLEPROC)dlsym(RTLD_NEXT, "glXQueryDrawable");
 

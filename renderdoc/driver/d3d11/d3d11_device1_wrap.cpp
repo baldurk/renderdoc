@@ -27,6 +27,7 @@
 #include "d3d11_resources.h"
 #include "d3d11_context.h"
 
+#if defined(INCLUDE_D3D_11_1)
 void WrappedID3D11Device::GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext)
 {
 	if(m_pDevice1 == NULL) return;
@@ -230,3 +231,4 @@ HRESULT WrappedID3D11Device::OpenSharedResourceByName(LPCWSTR lpName, DWORD dwDe
 	RDCUNIMPLEMENTED("Not wrapping OpenSharedResourceByName");
 	return m_pDevice1->OpenSharedResourceByName(lpName, dwDesiredAccess, returnedInterface, ppResource);
 }
+#endif

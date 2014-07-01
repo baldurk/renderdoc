@@ -37,72 +37,151 @@
 const char *GLChunkNames[] =
 {
 	"WrappedOpenGL::Initialisation",
+
 	"glGenTextures",
 	"glBindTexture",
+	"glActiveTexture",
+	"glTexStorage1D",
 	"glTexStorage2D",
+	"glTexStorage3D",
+	"glTexSubImage1D",
 	"glTexSubImage2D",
+	"glTexSubImage3D",
+	"glCompressedTexSubImage1D",
+	"glCompressedTexSubImage2D",
+	"glCompressedTexSubImage3D",
+	"glTexBufferRange",
 	"glPixelStore",
+	"glTexParameterf",
+	"glTexParameterfv",
 	"glTexParameteri",
+	"glTexParameteriv",
 	"glGenerateMipmap",
+	"glCopyImageSubData",
+	"glTextureView",
 
 	"glCreateShader",
 	"glCreateProgram",
+	"glCreateShaderProgramv",
 	"glCompileShader",
 	"glShaderSource",
 	"glAttachShader",
+	"glDetachShader",
+	"glUseProgram",
+	"glProgramParameter",
+	"glBindAttribLocation",
+	"glUniformBlockBinding",
+	"glProgramUniformVector*",
 	"glLinkProgram",
+	
+	"glGenProgramPipelines",
+	"glUseProgramStages",
+	"glBindProgramPipeline",
 
-	// legacy/immediate mode chunks
-	"glLightfv",
-	"glMaterialfv",
-	"glGenLists",
-	"glNewList",
-	"glEndList",
-	"glCallList",
-	"glShadeModel",
-	"glBegin",
-	"glEnd",
-	"glVertex3f",
-	"glNormal3f",
-	"glPushMatrix",
-	"glPopMatrix",
-	"glMatrixMode",
-	"glLoadIdentity",
-	"glFrustum",
-	"glTranslatef",
-	"glRotatef",
-	//
+	"glFenceSync",
+	"glClientWaitSync",
+	"glWaitSync",
 
+	"glGenQueries",
+	"glBeginQuery",
+	"glEndQuery",
+
+	"glClearColor",
+	"glClearDepth",
 	"glClear",
 	"glClearBufferfv",
+	"glClearBufferiv",
+	"glClearBufferuiv",
+	"glClearBufferfi",
+	"glPolygonMode",
+	"glPolygonOffset",
+	"glCullFace",
+	"glHint",
 	"glEnable",
 	"glDisable",
+	"glEnablei",
+	"glDisablei",
+	"glFrontFace",
+	"glBlendFunc",
+	"glBlendFunci",
+	"glBlendColor",
+	"glBlendFuncSeparate",
+	"glBlendFuncSeparatei",
+	"glBlendEquationSeparate",
+	"glBlendEquationSeparatei",
+	"glStencilOp",
+	"glStencilOpSeparate",
+	"glStencilFunc",
+	"glStencilFuncSeparate",
+	"glStencilMask",
+	"glStencilMaskSeparate",
+	"glColorMask",
+	"glColorMaski",
+	"glSampleMaski",
 	"glDepthFunc",
+	"glDepthMask",
+	"glDepthRange",
+	"glDepthRangeArrayv",
+	"glDepthBoundsEXT",
+	"glPatchParameteri",
+	"glPatchParameterfv",
 	"glViewport",
-	"glUseProgram",
+	"glViewportArrayv",
+	"glScissor",
+	"glScissorArrayv",
 	"glBindVertexArray",
 	"glUniformMatrix*",
 	"glUniformVector*",
 	"glDrawArrays",
-	"glDrawArraysInstancedBasedInstance",
+	"glDrawArraysInstanced",
+	"glDrawArraysInstancedBaseInstance",
+	"glDrawElements",
+	"glDrawRangeElements",
+	"glDrawElementsInstanced",
+	"glDrawElementsInstancedBaseInstance",
+	"glDrawElementsBaseVertex",
+	"glDrawElementsInstancedBaseVertex",
+	"glDrawElementsInstancedBaseVertexBaseInstance",
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
+	"glFramebufferTexture2D",
+	"glFramebufferTextureLayer",
+	"glReadBuffer",
+	"glBindFramebuffer",
+	"glDrawBuffer",
+	"glDrawBuffers",
+	"glBlitFramebuffer",
+
+	"glGenSamplers",
+	"glSamplerParameteri",
+	"glSamplerParameterf",
+	"glSamplerParameteriv",
+	"glSamplerParameterfv",
+	"glSamplerParameterIiv",
+	"glSamplerParameterIuiv",
+	"glBindSampler",
 
 	"glGenBuffers",
 	"glBindBuffer",
+	"glBindBufferBase",
+	"glBindBufferRange",
+	"glBufferStorage",
 	"glBufferData",
+	"glBufferSubData",
+	"glCopyBufferSubData",
+	"glUnmapBuffer",
 	"glGenVertexArrays",
 	"glBindVertexArray",
 	"glVertexAttribPointer",
+	"glVertexAttribIPointer",
 	"glEnableVertexAttribArray",
-	"glDeleteVertexArray",
-	"glDeleteBuffer",
+	"glDisableVertexAttribArray",
 	
 	"glObjectLabel",
-	"PushMarker",
-	"SetMarker",
-	"PopMarker",
+	"glPushDebugGroup",
+	"glDebugMessageInsert",
+	"glPopDebugGroup",
 
 	"Capture",
 	"BeginCapture",
@@ -115,6 +194,10 @@ string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::
 	switch(el)
 	{
 		case WrappedOpenGL::UNIFORM_UNKNOWN: return "unk";
+		case WrappedOpenGL::VEC1FV: return "1fv";
+		case WrappedOpenGL::VEC1IV: return "1iv";
+		case WrappedOpenGL::VEC1UIV: return "1uiv";
+		case WrappedOpenGL::VEC2FV: return "2fv";
 		case WrappedOpenGL::VEC3FV: return "3fv";
 		case WrappedOpenGL::VEC4FV: return "4fv";
 		case WrappedOpenGL::MAT4FV: return "4fv";
@@ -162,6 +245,10 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
 
 	glExts.push_back("GL_ARB_multitexture");
+	glExts.push_back("GL_ARB_debug_output");
+	glExts.push_back("GL_EXT_direct_state_access");
+	glExts.push_back("GL_ARB_internalformat_query");
+	glExts.push_back("GL_ARB_internalformat_query2");
 	
 #if !defined(_RELEASE)
 	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
@@ -191,7 +278,10 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_CurDrawcallID = 1;
 
 	RDCEraseEl(m_TextureRecord);
-	m_TextureAlignment = 0;
+	RDCEraseEl(m_BufferRecord);
+	m_VertexArrayRecord = NULL;
+	m_DrawFramebufferRecord = NULL;
+	m_ReadFramebufferRecord = NULL;
 	m_TextureUnit = 0;
 	
 	m_LastIndexSize = eGL_UNKNOWN_ENUM;
@@ -235,8 +325,8 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 
 	m_ResourceManager = new GLResourceManager(this);
 
-	m_DeviceResourceID = GetResourceManager()->RegisterResource(GLResource(eResSpecial, eSpecialResDevice));
-	m_ContextResourceID = GetResourceManager()->RegisterResource(GLResource(eResSpecial, eSpecialResContext));
+	m_DeviceResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResDevice));
+	m_ContextResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
 
 	if(!RenderDoc::Inst().IsReplayApp())
 	{
@@ -390,6 +480,11 @@ WrappedOpenGL::~WrappedOpenGL()
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 }
 
+void *WrappedOpenGL::GetCtx()
+{
+	return m_ActiveContexts[Threading::GetCurrentID()];
+}
+
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -402,6 +497,7 @@ void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void 
 
 void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 {
+	m_ActiveContexts[Threading::GetCurrentID()] = contextHandle;
 	// TODO: support multiple GL contexts more explicitly
 	Keyboard::AddInputWindow(windowHandle);
 }
@@ -688,28 +784,20 @@ void WrappedOpenGL::AttemptCapture()
 
 bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 {
-	//GLRenderState state(m_pSerialiser);
+	GLRenderState state(&m_Real, m_pSerialiser);
 
 	if(m_State >= WRITING)
 	{
-		//state = *m_CurrentPipelineState;
-
-		//state.SetSerialiser(m_pSerialiser);
-
-		//state.MarkReferenced(this, true);
+		state.FetchState();
 	}
 
-	//state.Serialise(m_State, this);
+	state.Serialise(m_State, GetCtx(), GetResourceManager());
 
 	if(m_State <= EXECUTING && applyInitialState)
 	{
 		m_DoStateVerify = false;
-		{
-			//*m_CurrentPipelineState = state;
-			//state.ApplyState(this);
-		}
+		state.ApplyState();
 		m_DoStateVerify = true;
-		//VerifyState();
 	}
 
 	return true;
@@ -738,14 +826,6 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 
 	if(m_RealDebugFunc)
 		m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
-}
-
-void WrappedOpenGL::glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
-{
-	m_RealDebugFunc = callback;
-	m_RealDebugFuncParam = userParam;
-
-	m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
 }
 
 void WrappedOpenGL::ReadLogInitialisation()
@@ -845,29 +925,71 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		{
 			SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
 
-			m_ResourceManager->AddLiveResource(immContextId, GLResource(eResSpecial, eSpecialResContext));
+			m_ResourceManager->AddLiveResource(immContextId, GLResource(NULL, eResSpecial, eSpecialResContext));
 			break;
 		}
 	case GEN_TEXTURE:
 		Serialise_glGenTextures(0, NULL);
 		break;
+	case ACTIVE_TEXTURE:
+		Serialise_glActiveTexture(eGL_UNKNOWN_ENUM);
+		break;
 	case BIND_TEXTURE:
 		Serialise_glBindTexture(eGL_UNKNOWN_ENUM, 0);
 		break;
+	case TEXSTORAGE1D:
+		Serialise_glTextureStorage1DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0);
+		break;
 	case TEXSTORAGE2D:
-		Serialise_glTexStorage2D(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0);
+		Serialise_glTextureStorage2DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case TEXSTORAGE3D:
+		Serialise_glTextureStorage3DEXT(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case TEXSUBIMAGE1D:
+		Serialise_glTextureSubImage1DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case TEXSUBIMAGE2D:
-		Serialise_glTexSubImage2D(eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		Serialise_glTextureSubImage2DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case TEXSUBIMAGE3D:
+		Serialise_glTextureSubImage3DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case TEXSUBIMAGE1D_COMPRESSED:
+		Serialise_glCompressedTextureSubImage1DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case TEXSUBIMAGE2D_COMPRESSED:
+		Serialise_glCompressedTextureSubImage2DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case TEXSUBIMAGE3D_COMPRESSED:
+		Serialise_glCompressedTextureSubImage3DEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case TEXBUFFER_RANGE:
+		Serialise_glTextureBufferRangeEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0, 0);
 		break;
 	case PIXELSTORE:
 		Serialise_glPixelStorei(eGL_UNKNOWN_ENUM, 0);
 		break;
+	case TEXPARAMETERF:
+		Serialise_glTextureParameterfEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case TEXPARAMETERFV:
+		Serialise_glTextureParameterfvEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+		break;
 	case TEXPARAMETERI:
-		Serialise_glTexParameteri(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		Serialise_glTextureParameteriEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case TEXPARAMETERIV:
+		Serialise_glTextureParameterivEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case GENERATE_MIPMAP:
-		Serialise_glGenerateMipmap(eGL_UNKNOWN_ENUM);
+		Serialise_glGenerateTextureMipmapEXT(0, eGL_UNKNOWN_ENUM);
+		break;
+	case COPY_SUBIMAGE:
+		Serialise_glCopyImageSubData(0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0, 0, 0, 0);
+		break;
+	case TEXTURE_VIEW:
+		Serialise_glTextureView(0, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
 
 	case CREATE_SHADER:
@@ -875,6 +997,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case CREATE_PROGRAM:
 		Serialise_glCreateProgram(0);
+		break;
+	case CREATE_SHADERPROGRAM:
+		Serialise_glCreateShaderProgramv(0, eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
 	case COMPILESHADER:
 		Serialise_glCompileShader(0);
@@ -885,88 +1010,188 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case ATTACHSHADER:
 		Serialise_glAttachShader(0, 0);
 		break;
+	case DETACHSHADER:
+		Serialise_glDetachShader(0, 0);
+		break;
+	case USEPROGRAM:
+		Serialise_glUseProgram(0);
+		break;
+	case PROGRAMPARAMETER:
+		Serialise_glProgramParameteri(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case BINDATTRIB_LOCATION:
+		Serialise_glBindAttribLocation(0, 0, NULL);
+		break;
+	case UNIFORM_BLOCKBIND:
+		Serialise_glUniformBlockBinding(0, 0, 0);
+		break;
+	case PROGRAMUNIFORM_VECTOR:
+		Serialise_glProgramUniformVector(0, eGL_UNKNOWN_ENUM, 0, 0, UNIFORM_UNKNOWN);
+		break;
 	case LINKPROGRAM:
 		Serialise_glLinkProgram(0);
 		break;
 		
+	case GEN_PROGRAMPIPE:
+		Serialise_glGenProgramPipelines(0, NULL);
+		break;
+	case USE_PROGRAMSTAGES:
+		Serialise_glUseProgramStages(0, 0, 0);
+		break;
+	case BIND_PROGRAMPIPE:
+		Serialise_glBindProgramPipeline(0);
+		break;
+		
+	case FENCE_SYNC:
+		Serialise_glFenceSync(NULL, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case CLIENTWAIT_SYNC:
+		Serialise_glClientWaitSync(NULL, 0, 0);
+		break;
+	case WAIT_SYNC:
+		Serialise_glWaitSync(NULL, 0, 0);
+		break;
+		
+	case GEN_QUERIES:
+		Serialise_glGenQueries(0, NULL);
+		break;
+	case BEGIN_QUERY:
+		Serialise_glBeginQuery(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case END_QUERY:
+		Serialise_glEndQuery(eGL_UNKNOWN_ENUM);
+		break;
 
-	// legacy/immediate mode chunks
-	case LIGHTFV:
-		Serialise_glLightfv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+	case CLEAR_COLOR:
+		Serialise_glClearColor(0, 0, 0, 0);
 		break;
-	case MATERIALFV:
-		Serialise_glMaterialfv(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, NULL);
+	case CLEAR_DEPTH:
+		Serialise_glClearDepth(0);
 		break;
-	case GENLISTS:
-		Serialise_glGenLists(0);
-		break;
-	case NEWLIST:
-		Serialise_glNewList(0, eGL_UNKNOWN_ENUM);
-		break;
-	case ENDLIST:
-		Serialise_glEndList();
-		break;
-	case CALLLIST:
-		Serialise_glCallList(0);
-		break;
-	case SHADEMODEL:
-		Serialise_glShadeModel(eGL_UNKNOWN_ENUM);
-		break;
-	case BEGIN:
-		Serialise_glBegin(eGL_UNKNOWN_ENUM);
-		break;
-	case END:
-		Serialise_glEnd();
-		break;
-	case VERTEX3F:
-		Serialise_glVertex3f(0, 0, 0);
-		break;
-	case NORMAL3F:
-		Serialise_glNormal3f(0, 0, 0);
-		break;
-	case PUSHMATRIX:
-		Serialise_glPushMatrix();
-		break;
-	case POPMATRIX:
-		Serialise_glPopMatrix();
-		break;
-	case MATRIXMODE:
-		Serialise_glMatrixMode(eGL_UNKNOWN_ENUM);
-		break;
-	case LOADIDENTITY:
-		Serialise_glLoadIdentity();
-		break;
-	case FRUSTUM:
-		Serialise_glFrustum(0, 0, 0, 0, 0, 0);
-		break;
-	case TRANSLATEF:
-		Serialise_glTranslatef(0, 0, 0);
-		break;
-	case ROTATEF:
-		Serialise_glRotatef(0, 0, 0, 0);
-		break;
-	//
-
 	case CLEAR:
 		Serialise_glClear(0);
 		break;
 	case CLEARBUFFERF:
 		Serialise_glClearBufferfv(eGL_UNKNOWN_ENUM, 0, NULL);
 		break;
-	case DISABLE:
-		Serialise_glDisable(eGL_UNKNOWN_ENUM);
+	case CLEARBUFFERI:
+		Serialise_glClearBufferiv(eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case CLEARBUFFERUI:
+		Serialise_glClearBufferuiv(eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case CLEARBUFFERFI:
+		Serialise_glClearBufferfi(eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case POLYGON_MODE:
+		Serialise_glPolygonMode(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case POLYGON_OFFSET:
+		Serialise_glPolygonOffset(0, 0);
+		break;
+	case CULL_FACE:
+		Serialise_glCullFace(eGL_UNKNOWN_ENUM);
+		break;
+	case HINT:
+		Serialise_glHint(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
 		break;
 	case ENABLE:
 		Serialise_glEnable(eGL_UNKNOWN_ENUM);
 		break;
+	case DISABLE:
+		Serialise_glDisable(eGL_UNKNOWN_ENUM);
+		break;
+	case ENABLEI:
+		Serialise_glEnablei(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case DISABLEI:
+		Serialise_glDisablei(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case FRONT_FACE:
+		Serialise_glFrontFace(eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_FUNC:
+		Serialise_glBlendFunc(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_FUNCI:
+		Serialise_glBlendFunci(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_COLOR:
+		Serialise_glBlendColor(0, 0, 0, 0);
+		break;
+	case BLEND_FUNC_SEP:
+		Serialise_glBlendFuncSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_FUNC_SEPI:
+		Serialise_glBlendFuncSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_EQ_SEP:
+		Serialise_glBlendEquationSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case BLEND_EQ_SEPI:
+		Serialise_glBlendEquationSeparatei(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+
+	case STENCIL_OP:
+		Serialise_glStencilOp(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case STENCIL_OP_SEP:
+		Serialise_glStencilOpSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM);
+		break;
+	case STENCIL_FUNC:
+		Serialise_glStencilFunc(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case STENCIL_FUNC_SEP:
+		Serialise_glStencilFuncSeparate(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case STENCIL_MASK:
+		Serialise_glStencilMask(0);
+		break;
+	case STENCIL_MASK_SEP:
+		Serialise_glStencilMaskSeparate(eGL_UNKNOWN_ENUM, 0);
+		break;
+
+	case COLOR_MASK:
+		Serialise_glColorMask(0, 0, 0, 0);
+		break;
+	case COLOR_MASKI:
+		Serialise_glColorMaski(0, 0, 0, 0, 0);
+		break;
+	case SAMPLE_MASK:
+		Serialise_glSampleMaski(0, 0);
+		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_UNKNOWN_ENUM);
+		break;
+	case DEPTH_MASK:
+		Serialise_glDepthMask(0);
+		break;
+	case DEPTH_RANGE:
+		Serialise_glDepthRange(0, 0);
+		break;
+	case DEPTH_RANGEARRAY:
+		Serialise_glDepthRangeArrayv(0, 0, NULL);
+		break;
+	case DEPTH_BOUNDS:
+		Serialise_glDepthBoundsEXT(0, 0);
+		break;
+	case PATCH_PARAMI:
+		Serialise_glPatchParameteri(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case PATCH_PARAMFV:
+		Serialise_glPatchParameterfv(eGL_UNKNOWN_ENUM, NULL);
 		break;
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);
 		break;
-	case USEPROGRAM:
-		Serialise_glUseProgram(0);
+	case VIEWPORT_ARRAY:
+		Serialise_glViewportArrayv(0, 0, 0);
+		break;
+	case SCISSOR:
+		Serialise_glScissor(0, 0, 0, 0);
+		break;
+	case SCISSOR_ARRAY:
+		Serialise_glScissorArrayv(0, 0, 0);
 		break;
 	case BINDVERTEXARRAY:
 		Serialise_glBindVertexArray(0);
@@ -977,18 +1202,116 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case UNIFORM_VECTOR:
 		Serialise_glUniformVector(0, 0, NULL, UNIFORM_UNKNOWN);
 		break;
-	case DRAWARRAYS_INSTANCEDBASEDINSTANCE:
+	case DRAWARRAYS:
+		Serialise_glDrawArrays(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case DRAWARRAYS_INSTANCED:
+		Serialise_glDrawArraysInstanced(eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case DRAWARRAYS_INSTANCEDBASEINSTANCE:
 		Serialise_glDrawArraysInstancedBaseInstance(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
 		break;
-
+	case DRAWELEMENTS:
+		Serialise_glDrawElements(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case DRAWRANGEELEMENTS:
+		Serialise_glDrawRangeElements(eGL_UNKNOWN_ENUM, 0, 0, 0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case DRAWELEMENTS_INSTANCED:
+		Serialise_glDrawElementsInstanced(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0);
+		break;
+	case DRAWELEMENTS_INSTANCEDBASEINSTANCE:
+		Serialise_glDrawElementsInstancedBaseInstance(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0, 0);
+		break;
+	case DRAWELEMENTS_BASEVERTEX:
+		Serialise_glDrawElementsBaseVertex(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0);
+		break;
+	case DRAWELEMENTS_INSTANCEDBASEVERTEX:
+		Serialise_glDrawElementsInstancedBaseVertex(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0, 0);
+		break;
+	case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
+		Serialise_glDrawElementsInstancedBaseVertexBaseInstance(eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, NULL, 0, 0, 0);
+		break;
+		
+	case GEN_FRAMEBUFFERS:
+		Serialise_glGenFramebuffers(0, NULL);
+		break;
+	case FRAMEBUFFER_TEX:
+		Serialise_glNamedFramebufferTextureEXT(0, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case FRAMEBUFFER_TEX2D:
+		Serialise_glNamedFramebufferTexture2DEXT(0, eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case FRAMEBUFFER_TEXLAYER:
+		Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_UNKNOWN_ENUM, 0, 0, 0);
+		break;
+	case READ_BUFFER:
+		Serialise_glReadBuffer(eGL_UNKNOWN_ENUM);
+		break;
+	case BIND_FRAMEBUFFER:
+		Serialise_glBindFramebuffer(eGL_UNKNOWN_ENUM, 0);
+		break;
+	case DRAW_BUFFER:
+		Serialise_glDrawBuffer(eGL_UNKNOWN_ENUM);
+		break;
+	case DRAW_BUFFERS:
+		Serialise_glFramebufferDrawBuffersEXT(0, 0, NULL);
+		break;
+	case BLIT_FRAMEBUFFER:
+		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_UNKNOWN_ENUM);
+		break;
+		
+	case GEN_SAMPLERS:
+		Serialise_glGenSamplers(0, NULL);
+		break;
+	case SAMPLER_PARAMETERI:
+		Serialise_glSamplerParameteri(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case SAMPLER_PARAMETERF:
+		Serialise_glSamplerParameterf(0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case SAMPLER_PARAMETERIV:
+		Serialise_glSamplerParameteriv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERFV:
+		Serialise_glSamplerParameterfv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERIIV:
+		Serialise_glSamplerParameterIiv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case SAMPLER_PARAMETERIUIV:
+		Serialise_glSamplerParameterIuiv(0, eGL_UNKNOWN_ENUM, NULL);
+		break;
+	case BIND_SAMPLER:
+		Serialise_glBindSampler(0, 0);
+		break;
+		
 	case GEN_BUFFER:
 		Serialise_glGenBuffers(0, NULL);
 		break;
 	case BIND_BUFFER:
 		Serialise_glBindBuffer(eGL_UNKNOWN_ENUM, 0);
 		break;
+	case BIND_BUFFER_BASE:
+		Serialise_glBindBufferBase(eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case BIND_BUFFER_RANGE:
+		Serialise_glBindBufferRange(eGL_UNKNOWN_ENUM, 0, 0, 0, 0);
+		break;
+	case BUFFERSTORAGE:
+		Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0);
+		break;
 	case BUFFERDATA:
-		Serialise_glBufferData(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);
+		Serialise_glNamedBufferDataEXT(eGL_UNKNOWN_ENUM, 0, NULL, eGL_UNKNOWN_ENUM);
+		break;
+	case BUFFERSUBDATA:
+		Serialise_glNamedBufferSubDataEXT(0, 0, 0, NULL);
+		break;
+	case COPYBUFFERSUBDATA:
+		Serialise_glNamedCopyBufferSubDataEXT(0, 0, 0, 0, 0);
+		break;
+	case UNMAP:
+		Serialise_glUnmapNamedBufferEXT(eGL_UNKNOWN_ENUM);
 		break;
 	case GEN_VERTEXARRAY:
 		Serialise_glGenVertexArrays(0, NULL);
@@ -999,17 +1322,27 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case VERTEXATTRIBPOINTER:
 		Serialise_glVertexAttribPointer(0, 0, eGL_UNKNOWN_ENUM, 0, 0, NULL);
 		break;
+	case VERTEXATTRIBIPOINTER:
+		Serialise_glVertexAttribIPointer(0, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
 	case ENABLEVERTEXATTRIBARRAY:
 		Serialise_glEnableVertexAttribArray(0);
 		break;
-
-	case DELETE_VERTEXARRAY:
-	case DELETE_BUFFER:
-		RDCFATAL("Not impl");
+	case DISABLEVERTEXATTRIBARRAY:
+		Serialise_glDisableVertexAttribArray(0);
 		break;
-		
+
 	case OBJECT_LABEL:
 		Serialise_glObjectLabel(eGL_UNKNOWN_ENUM, 0, 0, NULL);
+		break;
+	case BEGIN_EVENT:
+		Serialise_glPushDebugGroup(eGL_UNKNOWN_ENUM, 0, 0, NULL);
+		break;
+	case SET_MARKER:
+		Serialise_glDebugMessageInsert(eGL_UNKNOWN_ENUM, eGL_UNKNOWN_ENUM, 0, eGL_UNKNOWN_ENUM, 0, NULL);
+		break;
+	case END_EVENT:
+		Serialise_glPopDebugGroup();
 		break;
 
 	case CAPTURE_SCOPE:
@@ -1215,8 +1548,8 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	draw.depthOut = ResourceId();
 
 	GLNOTIMP("Hack, not getting current pipeline state framebufer binding");
-	draw.outputs[0] = GetResourceManager()->GetID(TextureRes(m_FakeBB_Color));
-	draw.depthOut = GetResourceManager()->GetID(TextureRes(m_FakeBB_DepthStencil));
+	draw.outputs[0] = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
+	draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
 
 	m_CurDrawcallID++;
 	if(hasEvents)
@@ -1330,170 +1663,3 @@ void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			RDCFATAL("Unexpected replay type");
 	}
 }
-
-#pragma region Get functions
-
-GLenum WrappedOpenGL::glGetError()
-{
-	return m_Real.glGetError();
-}
-
-void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
-{
-	m_Real.glGetFloatv(pname, params);
-}
-
-void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
-{
-	if(pname == GL_NUM_EXTENSIONS)
-	{
-		if(params)
-			*params = (GLint)glExts.size();
-		return;
-	}
-
-	m_Real.glGetIntegerv(pname, params);
-}
-
-void WrappedOpenGL::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
-{
-	m_Real.glGetIntegeri_v(pname, index, data);
-}
-
-void WrappedOpenGL::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
-{
-	m_Real.glGetTexLevelParameteriv(target, level, pname, params);
-}
-
-void WrappedOpenGL::glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
-{
-	m_Real.glGetTexLevelParameterfv(target, level, pname, params);
-}
-
-void WrappedOpenGL::glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
-{
-	m_Real.glGetTexParameterfv(target, pname, params);
-}
-
-void WrappedOpenGL::glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-	m_Real.glGetTexParameteriv(target, pname, params);
-}
-
-void WrappedOpenGL::glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params)
-{
-	m_Real.glGetInternalformativ(target, internalformat, pname, bufSize, params);
-}
-
-void WrappedOpenGL::glGetInternalformati64v(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint64 *params)
-{
-	m_Real.glGetInternalformati64v(target, internalformat, pname, bufSize, params);
-}
-
-void WrappedOpenGL::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
-{
-	m_Real.glGetBufferParameteriv(target, pname, params);
-}
-
-void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
-{
-	m_Real.glGetBufferSubData(target, offset, size, data);
-}
-
-const GLubyte *WrappedOpenGL::glGetString(GLenum name)
-{
-	if(name == GL_EXTENSIONS)
-	{
-		return (const GLubyte *)glExtsString.c_str();
-	}
-	return m_Real.glGetString(name);
-}
-
-const GLubyte *WrappedOpenGL::glGetStringi(GLenum name, GLuint i)
-{
-	if(name == GL_EXTENSIONS)
-	{
-		if((size_t)i < glExts.size())
-			return (const GLubyte *)glExts[i].c_str();
-
-		return (const GLubyte *)"";
-	}
-	return m_Real.glGetStringi(name, i);
-}
-
-void WrappedOpenGL::glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
-{
-	m_Real.glGetVertexAttribiv(index, pname, params);
-}
-
-void WrappedOpenGL::glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
-{
-	m_Real.glGetVertexAttribPointerv(index, pname, pointer);
-}
-
-void WrappedOpenGL::glGetShaderiv(GLuint shader, GLenum pname, GLint *params)
-{
-	m_Real.glGetShaderiv(shader, pname, params);
-}
-
-void WrappedOpenGL::glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
-{
-	m_Real.glGetShaderInfoLog(shader, bufSize, length, infoLog);
-}
-
-void WrappedOpenGL::glGetProgramiv(GLuint program, GLenum pname, GLint *params)
-{
-	m_Real.glGetProgramiv(program, pname, params);
-}
-
-void WrappedOpenGL::glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
-{
-	m_Real.glGetProgramInfoLog(program, bufSize, length, infoLog);
-}
-
-void WrappedOpenGL::glGetProgramInterfaceiv(GLuint program, GLenum programInterface, GLenum pname, GLint *params)
-{
-	m_Real.glGetProgramInterfaceiv(program, programInterface, pname, params);
-}
-
-void WrappedOpenGL::glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index, GLsizei propCount, const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params)
-{
-	m_Real.glGetProgramResourceiv(program, programInterface, index, propCount, props, bufSize, length, params);
-}
-
-void WrappedOpenGL::glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index, GLsizei bufSize, GLsizei *length, GLchar *name)
-{
-	m_Real.glGetProgramResourceName(program, programInterface, index, bufSize, length, name);
-}
-
-GLint WrappedOpenGL::glGetUniformLocation(GLuint program, const GLchar *name)
-{
-	return m_Real.glGetUniformLocation(program, name);
-}
-
-void WrappedOpenGL::glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
-{
-	m_Real.glGetActiveUniform(program, index, bufSize, length, size, type, name);
-}
-
-void WrappedOpenGL::glGetUniformfv(GLuint program, GLint location, GLfloat *params)
-{
-	m_Real.glGetUniformfv(program, location, params);
-}
-
-void WrappedOpenGL::glGetUniformiv(GLuint program, GLint location, GLint *params)
-{
-	m_Real.glGetUniformiv(program, location, params);
-}
-
-void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
-{
-	m_Real.glReadPixels(x, y, width, height, format, type, pixels);
-}
-
-void WrappedOpenGL::glReadBuffer(GLenum mode)
-{
-	m_Real.glReadBuffer(mode);
-}
-
-#pragma endregion

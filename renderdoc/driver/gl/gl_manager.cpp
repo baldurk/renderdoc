@@ -32,3 +32,18 @@ bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *re
 		return false;
 	return true;
 }
+
+bool GLResourceManager::Prepare_InitialState(GLResource res)
+{
+	if(res.Namespace == eResBuffer)
+	{
+		GLResourceRecord *record = GetResourceRecord(res);
+		
+		GLint length;
+		m_GL->glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, &length);
+	
+		m_GL->glGetNamedBufferSubDataEXT(res.name, 0, length, record->GetDataPtr());
+	}
+
+	return true;
+}

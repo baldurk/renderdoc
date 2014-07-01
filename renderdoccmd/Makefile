@@ -5,10 +5,10 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
 			 -DRENDERDOC_VERSION_STRING='"0.20"'
-CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I.
+CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
-LDFLAGS=-L../renderdoc -lrenderdoc
-OBJECTS=linux_specific.o
+LDFLAGS=-L../renderdoc -lrenderdoc -lGL
+OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
 all: bin/renderdoccmd
 
@@ -22,7 +22,7 @@ all: bin/renderdoccmd
 
 bin/renderdoccmd: $(OBJECTS) $(SOURCES) ../renderdoc/librenderdoc.so
 	mkdir -p bin/
-	g++ -o bin/renderdoccmd $(LDFLAGS) $(OBJECTS)
+	g++ -o bin/renderdoccmd $(OBJECTS) $(LDFLAGS)
 
 clean:
 	find -type f -iname \*.o -exec rm '{}' \;

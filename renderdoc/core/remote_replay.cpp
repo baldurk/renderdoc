@@ -112,7 +112,7 @@ void RenderDoc::BecomeReplayHost(volatile bool &killReplay)
 		
 		map<RDCDriver,wstring> drivers = RenderDoc::Inst().GetRemoteDrivers();
 
-		size_t count = drivers.size();
+		uint32_t count = (uint32_t)drivers.size();
 		ser.Serialise("", count);
 
 		for(auto it=drivers.begin(); it != drivers.end(); ++it)
@@ -248,10 +248,10 @@ struct RemoteRenderer
 
 				if(ser)
 				{
-					size_t count = 0;
+					uint32_t count = 0;
 					ser->Serialise("", count);
 
-					for(size_t i=0; i < count; i++)
+					for(uint32_t i=0; i < count; i++)
 					{
 						RDCDriver driver = RDC_Unknown;
 						wstring name = L"";

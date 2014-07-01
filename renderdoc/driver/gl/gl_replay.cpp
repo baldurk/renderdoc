@@ -334,12 +334,16 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 
 	gl.glBindTexture(res.curType, res.resource.name);
 
-	// if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
+	GLenum levelQueryType = res.curType;
+	if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
+		levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+	// TODO if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
 	GLint width = 1, height = 1, depth = 1, samples=1;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_WIDTH, &width);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_HEIGHT, &height);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_DEPTH, &depth);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_SAMPLES, &samples);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
 
 	if(res.width == 0)
 	{
@@ -382,6 +386,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
+			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP);
 			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
 			break;
@@ -391,6 +396,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
+			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.arraysize = depth;
 			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP_ARRAY);
 			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
@@ -427,7 +433,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	
 	// surely this will be the same for each level... right? that would be insane if it wasn't
 	GLint fmt = 0;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
 	tex.format = MakeResourceFormat(gl, res.curType, (GLenum)fmt);
 	
@@ -448,6 +454,9 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	tex.creationFlags = eTextureCreate_SRV;
 	if(tex.format.compType == eCompType_Depth)
 		tex.creationFlags |= eTextureCreate_DSV;
+	if(res.resource.name == gl.m_FakeBB_Color)
+		tex.creationFlags |= eTextureCreate_SwapBuffer;
+
 	GLNOTIMP("creationFlags are not calculated yet");
 
 	tex.byteSize = 0;
@@ -475,6 +484,16 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
+	if(res.curType == eGL_UNKNOWN_ENUM)
+	{
+		ret.byteSize = 0;
+		ret.creationFlags = 0;
+		ret.customName = false;
+		ret.length = 0;
+		ret.structureSize = 0;
+		return ret;
+	}
+
 	gl.glBindBuffer(res.curType, res.resource.name);
 
 	ret.structureSize = 0;
@@ -488,6 +507,12 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 			break;
 		case eGL_ELEMENT_ARRAY_BUFFER:
 			ret.creationFlags = eBufferCreate_IB;
+			break;
+		case eGL_UNIFORM_BUFFER:
+			ret.creationFlags = eBufferCreate_CB;
+			break;
+		case eGL_PIXEL_PACK_BUFFER:
+		case eGL_COPY_WRITE_BUFFER:
 			break;
 		default:
 			RDCERR("Unexpected buffer type %hs", ToStr::Get(res.curType).c_str());
@@ -530,7 +555,9 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	void *ctx = m_ReplayCtx.ctx;
+	
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
 
 	auto &refl = shaderDetails.reflection;
@@ -752,7 +779,9 @@ void GLReplay::SavePipelineState()
 	GLint curIdxBuf = 0;
 	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &curIdxBuf);
 
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(curIdxBuf)));
+	void *ctx = m_ReplayCtx.ctx;
+
+	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, curIdxBuf)));
 
 	// Vertex buffers and attributes
 	GLint numVBufferBindings = 16;
@@ -768,7 +797,7 @@ void GLReplay::SavePipelineState()
 	{
 		GLint vb = 0;
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, &vb);
-		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(vb)));
+		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, vb)));
 
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
@@ -914,32 +943,8 @@ void GLReplay::SavePipelineState()
 			break;
 		}
 	}
-
-	// Shader stages
 	
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(curProg))];
-
-	RDCASSERT(progDetails.shaders.size());
-
-	for(size_t i=0; i < progDetails.shaders.size(); i++)
-	{
-		if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
-			pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-		else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
-			pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-	}
-	
-	pipe.m_VS.stage = eShaderStage_Vertex;
-	pipe.m_TCS.stage = eShaderStage_Tess_Control;
-	pipe.m_TES.stage = eShaderStage_Tess_Eval;
-	pipe.m_GS.stage = eShaderStage_Geometry;
-	pipe.m_FS.stage = eShaderStage_Fragment;
-	pipe.m_CS.stage = eShaderStage_Compute;
-
-	// Textures
+	// Shader stages & Textures
 	
 	GLint numTexUnits = 8;
 	gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
@@ -948,124 +953,160 @@ void GLReplay::SavePipelineState()
 	GLenum activeTexture = eGL_TEXTURE0;
 	gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint*)&activeTexture);
 
-	// GL is ass-backwards in its handling of texture units. When a shader is active
-	// the types in the glsl samplers inform which targets are used from which texture units
-	//
-	// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
-	// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
-	// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
-	// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
-	// different types). It makes it all rather pointless and needlessly complex.
-	//
-	// What we have to do then, is consider the program, look at the values of the uniforms, and
-	// then get the appropriate current binding based on the uniform type. We can warn/alert the
-	// user if we hit the illegal case of two uniforms with different types but the same value
-	//
-	// Handling is different if no shaders are active, but we don't consider that case.
-
-
-	// prefetch uniform values in GetShader()
-	ShaderReflection *refls[6];
-	for(size_t s=0; s < progDetails.shaders.size(); s++)
-		refls[s] = GetShader(progDetails.shaders[s]);
-
-	for(GLint unit=0; unit < numTexUnits; unit++)
+	pipe.m_VS.stage = eShaderStage_Vertex;
+	pipe.m_TCS.stage = eShaderStage_Tess_Control;
+	pipe.m_TES.stage = eShaderStage_Tess_Eval;
+	pipe.m_GS.stage = eShaderStage_Geometry;
+	pipe.m_FS.stage = eShaderStage_Fragment;
+	pipe.m_CS.stage = eShaderStage_Compute;
+	
+	GLuint curProg = 0;
+	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+	
+	if(curProg == 0)
 	{
-		GLenum binding = eGL_UNKNOWN_ENUM;
-		GLenum target = eGL_UNKNOWN_ENUM;
+		pipe.m_VS.Shader = ResourceId();
+		pipe.m_FS.Shader = ResourceId();
 		
-		for(size_t s=0; s < progDetails.shaders.size(); s++)
+		for(GLint unit=0; unit < numTexUnits; unit++)
 		{
-			if(refls[s] == NULL) continue;
+			pipe.Textures[unit].FirstSlice = 0;
+			pipe.Textures[unit].Resource = ResourceId();
+		}
+	}
+	else
+	{
+		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
 
-			for(int32_t r=0; r < refls[s]->Resources.count; r++)
+		RDCASSERT(progDetails.shaders.size());
+
+		for(size_t i=0; i < progDetails.shaders.size(); i++)
+		{
+			if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
+				pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
+			else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
+				pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
+		}
+
+		// GL is ass-backwards in its handling of texture units. When a shader is active
+		// the types in the glsl samplers inform which targets are used from which texture units
+		//
+		// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
+		// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
+		// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
+		// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
+		// different types). It makes it all rather pointless and needlessly complex.
+		//
+		// What we have to do then, is consider the program, look at the values of the uniforms, and
+		// then get the appropriate current binding based on the uniform type. We can warn/alert the
+		// user if we hit the illegal case of two uniforms with different types but the same value
+		//
+		// Handling is different if no shaders are active, but we don't consider that case.
+
+
+		// prefetch uniform values in GetShader()
+		ShaderReflection *refls[6];
+		for(size_t s=0; s < progDetails.shaders.size(); s++)
+			refls[s] = GetShader(progDetails.shaders[s]);
+
+		for(GLint unit=0; unit < numTexUnits; unit++)
+		{
+			GLenum binding = eGL_UNKNOWN_ENUM;
+			GLenum target = eGL_UNKNOWN_ENUM;
+
+			for(size_t s=0; s < progDetails.shaders.size(); s++)
 			{
-				// bindPoint is the uniform value for this sampler
-				if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
+				if(refls[s] == NULL) continue;
+
+				for(int32_t r=0; r < refls[s]->Resources.count; r++)
 				{
-					GLenum t = eGL_UNKNOWN_ENUM;
+					// bindPoint is the uniform value for this sampler
+					if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
+					{
+						GLenum t = eGL_UNKNOWN_ENUM;
 
-					switch(refls[s]->Resources[r].resType)
-					{
-						case eResType_None:
-							t = eGL_UNKNOWN_ENUM;
-							break;
-						case eResType_Buffer:
-							t = eGL_TEXTURE_BINDING_BUFFER;
-							break;
-						case eResType_Texture1D:
-							t = eGL_TEXTURE_BINDING_1D;
-							target = eGL_TEXTURE_1D;
-							break;
-						case eResType_Texture1DArray:
-							t = eGL_TEXTURE_BINDING_1D_ARRAY;
-							target = eGL_TEXTURE_1D_ARRAY;
-							break;
-						case eResType_Texture2D:
-							t = eGL_TEXTURE_BINDING_2D;
-							target = eGL_TEXTURE_2D;
-							break;
-						case eResType_Texture2DArray:
-							t = eGL_TEXTURE_BINDING_2D_ARRAY;
-							target = eGL_TEXTURE_2D_ARRAY;
-							break;
-						case eResType_Texture2DMS:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
-							target = eGL_TEXTURE_2D_MULTISAMPLE;
-							break;
-						case eResType_Texture2DMSArray:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
-							target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-							break;
-						case eResType_Texture3D:
-							t = eGL_TEXTURE_BINDING_3D;
-							target = eGL_TEXTURE_3D;
-							break;
-						case eResType_TextureCube:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP;
-							target = eGL_TEXTURE_CUBE_MAP;
-							break;
-						case eResType_TextureCubeArray:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
-							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
-							break;
-					}
+						switch(refls[s]->Resources[r].resType)
+						{
+							case eResType_None:
+								t = eGL_UNKNOWN_ENUM;
+								break;
+							case eResType_Buffer:
+								t = eGL_TEXTURE_BINDING_BUFFER;
+								break;
+							case eResType_Texture1D:
+								t = eGL_TEXTURE_BINDING_1D;
+								target = eGL_TEXTURE_1D;
+								break;
+							case eResType_Texture1DArray:
+								t = eGL_TEXTURE_BINDING_1D_ARRAY;
+								target = eGL_TEXTURE_1D_ARRAY;
+								break;
+							case eResType_Texture2D:
+								t = eGL_TEXTURE_BINDING_2D;
+								target = eGL_TEXTURE_2D;
+								break;
+							case eResType_Texture2DArray:
+								t = eGL_TEXTURE_BINDING_2D_ARRAY;
+								target = eGL_TEXTURE_2D_ARRAY;
+								break;
+							case eResType_Texture2DMS:
+								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
+								target = eGL_TEXTURE_2D_MULTISAMPLE;
+								break;
+							case eResType_Texture2DMSArray:
+								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
+								target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+								break;
+							case eResType_Texture3D:
+								t = eGL_TEXTURE_BINDING_3D;
+								target = eGL_TEXTURE_3D;
+								break;
+							case eResType_TextureCube:
+								t = eGL_TEXTURE_BINDING_CUBE_MAP;
+								target = eGL_TEXTURE_CUBE_MAP;
+								break;
+							case eResType_TextureCubeArray:
+								t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
+								target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+								break;
+						}
 
-					if(binding == eGL_UNKNOWN_ENUM)
-					{
-						binding = t;
-					}
-					else if(binding == t)
-					{
-						// two uniforms with the same type pointing to the same slot is fine
-						binding = t;
-					}
-					else if(binding != t)
-					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						if(binding == eGL_UNKNOWN_ENUM)
+						{
+							binding = t;
+						}
+						else if(binding == t)
+						{
+							// two uniforms with the same type pointing to the same slot is fine
+							binding = t;
+						}
+						else if(binding != t)
+						{
+							RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						}
 					}
 				}
 			}
-		}
 
-		if(binding != eGL_UNKNOWN_ENUM)
-		{
-			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
+			if(binding != eGL_UNKNOWN_ENUM)
+			{
+				gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
 
-			GLuint tex;
-			gl.glGetIntegerv(binding, (GLint *)&tex);
+				GLuint tex;
+				gl.glGetIntegerv(binding, (GLint *)&tex);
 
-			// very bespoke/specific
-			GLint firstSlice = 0;
-			gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+				// very bespoke/specific
+				GLint firstSlice = 0;
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
 
-			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(tex)));
-			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
-		}
-		else
-		{
-			// what should we do in this case? there could be something bound just not used,
-			// it'd be nice to return that
+				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
+				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+			}
+			else
+			{
+				// what should we do in this case? there could be something bound just not used,
+				// it'd be nice to return that
+			}
 		}
 	}
 
@@ -1093,13 +1134,13 @@ void GLReplay::SavePipelineState()
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
 	}
 
-	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(curFBO)));
+	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curFBO)));
 	create_array_uninit(pipe.m_FB.Color, numCols);
 	for(GLint i=0; i < numCols; i++)
-		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(curCol[i])));
+		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curCol[i])));
 
-	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(curDepth)));
-	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(curStencil)));
+	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curDepth)));
+	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
 void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
@@ -1111,7 +1152,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(m_ReplayCtx.ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
 	GLint numUniforms = 0;
@@ -1189,13 +1230,13 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetMinMax");
 	return false;
 }
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetHistogram");
 	return false;
 }
 
@@ -1212,17 +1253,17 @@ vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 
 void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SetContextFilter");
 }
 
 void GLReplay::FreeTargetResource(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("FreeTargetResource");
 }
 
 void GLReplay::FreeCustomShader(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("FreeCustomShader");
 }
 
 PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
@@ -1237,74 +1278,74 @@ PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, Me
 
 byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("GetTextureData");
 	return NULL;
 }
 
 void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("ReplaceResource");
 }
 
 void GLReplay::RemoveReplacement(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("RemoveReplacement");
 }
 
 void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("TimeDrawcalls");
 }
 
 bool GLReplay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SaveTexture");
 	return false;
 }
 
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("BuildTargetShader");
 }
 
 void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("BuildCustomShader");
 }
 
 ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugVertex");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugPixel");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("DebugThread");
 	return ShaderDebugTrace();
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("ApplyCustomShader");
 	return ResourceId();
 }
 
 ResourceId GLReplay::CreateProxyTexture( FetchTexture templateTex )
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("CreateProxyTexture");
 	return ResourceId();
 }
 
 void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED();
+	RDCUNIMPLEMENTED("SetProxyTextureData");
 }
 
 const GLHookSet &GetRealFunctions();

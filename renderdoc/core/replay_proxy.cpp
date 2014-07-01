@@ -255,6 +255,58 @@ void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexAttribute &el)
+{
+	Serialise("", el.BufferSlot);
+	Serialise("", el.Enabled);
+	Serialise("", el.Format);
+	Serialise("", el.RelativeOffset);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexBuffer &el)
+{
+	Serialise("", el.Buffer);
+	Serialise("", el.Divisor);
+	Serialise("", el.Offset);
+	Serialise("", el.PerInstance);
+	Serialise("", el.Stride);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::IndexBuffer &el)
+{
+	Serialise("", el.Buffer);
+	Serialise("", el.Offset);
+	Serialise("", el.Format);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
+{
+	Serialise("", el.attributes);
+	Serialise("", el.ibuffer);
+	Serialise("", el.vbuffers);
+	Serialise("", el.Topology);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
+{
+	Serialise("", el.FBO);
+	Serialise("", el.Color);
+	Serialise("", el.Depth);
+	Serialise("", el.Stencil);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::Texture &el)
+{
+	Serialise("", el.Resource);
+	Serialise("", el.FirstSlice);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, GLPipelineState &el)
 {
 	Serialise("", el.m_VS);
@@ -263,6 +315,10 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 	Serialise("", el.m_GS);
 	Serialise("", el.m_FS);
 	Serialise("", el.m_CS);
+
+	Serialise("", el.m_VtxIn);
+	Serialise("", el.Textures);
+	Serialise("", el.m_FB);
 }
 
 template<>

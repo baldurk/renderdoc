@@ -437,8 +437,16 @@ namespace renderdocui.Windows
         private void SaveLayout(int layout)
         {
             string path = GetConfigPath(layout);
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-            dockPanel.SaveAsXml(path, SaveCustomString());
+
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path));
+                dockPanel.SaveAsXml(path, SaveCustomString());
+            }
+            catch (System.Exception)
+            {
+                MessageBox.Show(String.Format("Error saving config file\n{0}\nNo config will be saved out.", path));
+            }
         }
 
         private void LoadSaveLayout(ToolStripItem c, bool save)

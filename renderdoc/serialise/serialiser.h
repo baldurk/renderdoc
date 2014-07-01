@@ -428,19 +428,10 @@ class Serialiser
 		
 		void Serialise(const char *name, rdctype::wstr &el)
 		{
-			int32_t sz = el.count;
-			Serialise(name, sz);
-			if(m_Mode == WRITING)
-			{
-				for(int32_t i=0; i < sz; i++)
-					Serialise("[]", el.elems[i]);
-			}
-			else
-			{
-				create_array_uninit(el, sz);
-				for(int32_t i=0; i < sz; i++)
-					Serialise("", el.elems[i]);
-			}
+			wstring str;
+			if(m_Mode == WRITING && el.elems != NULL) str = el.elems;
+			SerialiseString(name, str);
+			if(m_Mode == READING) el = str;
 		}
 		
 		void Serialise(const char *name, rdctype::str &el)

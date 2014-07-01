@@ -419,7 +419,6 @@ struct D3D11RenderState
 
 	void SetSerialiser(Serialiser *ser) { m_pSerialiser = ser; }
 	void Serialise(LogState state, WrappedID3D11Device *device);
-	ID3D11Resource *GetSerialised(ID3D11Resource *res) const;
 
 	void SetImmediatePipeline(WrappedID3D11Device *device) { m_ImmediatePipeline = true; m_pDevice = device; }
 

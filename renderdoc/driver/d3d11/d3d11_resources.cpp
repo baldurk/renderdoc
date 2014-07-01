@@ -34,10 +34,8 @@ WRAPPED_POOL_INST(WrappedID3D11Texture3D);
 WRAPPED_POOL_INST(WrappedID3D11InputLayout);
 WRAPPED_POOL_INST(WrappedID3D11SamplerState);
 WRAPPED_POOL_INST(WrappedID3D11RasterizerState);
-WRAPPED_POOL_INST(WrappedID3D11RasterizerState1);
 WRAPPED_POOL_INST(WrappedID3D11DepthStencilState);
 WRAPPED_POOL_INST(WrappedID3D11BlendState);
-WRAPPED_POOL_INST(WrappedID3D11BlendState1);
 WRAPPED_POOL_INST(WrappedID3D11ShaderResourceView);
 WRAPPED_POOL_INST(WrappedID3D11UnorderedAccessView);
 WRAPPED_POOL_INST(WrappedID3D11RenderTargetView);
@@ -53,6 +51,10 @@ WRAPPED_POOL_INST(WrappedID3D11Query);
 WRAPPED_POOL_INST(WrappedID3D11Predicate);
 WRAPPED_POOL_INST(WrappedID3D11ClassInstance);
 WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
+#if defined(INCLUDE_D3D_11_1)
+WRAPPED_POOL_INST(WrappedID3D11RasterizerState1);
+WRAPPED_POOL_INST(WrappedID3D11BlendState1);
+#endif
 
 volatile LONGLONG TrackedResource::globalIDCounter = 1;
 
@@ -290,6 +292,7 @@ UINT GetFormatBPP(DXGI_FORMAT f)
 			ret *= 16;
 			break;
 
+#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_YUY2:
@@ -311,6 +314,7 @@ UINT GetFormatBPP(DXGI_FORMAT f)
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret *= 2; // 4 channels, half a byte each
 			break;
+#endif
 
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", f);
@@ -449,6 +453,7 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
 				  RDCMAX(Depth>>mip,1);
 			ret *= 1;
 			break;
+#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_YUY2:
@@ -470,6 +475,7 @@ UINT GetByteSize(int Width, int Height, int Depth, DXGI_FORMAT Format, int mip)
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret *= 2; // 4 channels, half a byte each
 			break;
+#endif
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", Format);
 			break;
@@ -1270,6 +1276,7 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
 		case DXGI_FORMAT_BC7_UNORM_SRGB:
 			return DXGI_FORMAT_BC7_TYPELESS;
 
+#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_R1_UNORM:
 		case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
 		case DXGI_FORMAT_B5G6R5_UNORM:
@@ -1292,14 +1299,12 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
 		case DXGI_FORMAT_A8P8:
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			RDCERR("No Typeless DXGI Format for %d", f);
-			break;
+			return DXGI_FORMAT_UNKNOWN;
+#endif
 
 		default:
 			RDCFATAL("Unrecognised DXGI Format: %d", f);
-			break;
 	}
-
-	return DXGI_FORMAT_UNKNOWN;
 }
 
 string ToStrHelper<false, ResourceType>::Get(const ResourceType &el)
@@ -1374,14 +1379,16 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
 		return ((WrappedID3D11RasterizerState *)ptr)->GetResourceID();
 	if(WrappedID3D11BlendState::IsAlloc(ptr))
 		return ((WrappedID3D11BlendState *)ptr)->GetResourceID();
-	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
-		return ((WrappedID3D11RasterizerState1 *)ptr)->GetResourceID();
-	if(WrappedID3D11BlendState1::IsAlloc(ptr))
-		return ((WrappedID3D11BlendState1 *)ptr)->GetResourceID();
 	if(WrappedID3D11DepthStencilState::IsAlloc(ptr))
 		return ((WrappedID3D11DepthStencilState *)ptr)->GetResourceID();
 	if(WrappedID3D11SamplerState::IsAlloc(ptr))
 		return ((WrappedID3D11SamplerState *)ptr)->GetResourceID();
+#if defined(INCLUDE_D3D_11_1)
+	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
+		return ((WrappedID3D11RasterizerState1 *)ptr)->GetResourceID();
+	if(WrappedID3D11BlendState1::IsAlloc(ptr))
+		return ((WrappedID3D11BlendState1 *)ptr)->GetResourceID();
+#endif
 	
 	if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
 		return ((WrappedID3D11RenderTargetView *)ptr)->GetResourceID();
@@ -1441,14 +1448,16 @@ ResourceType IdentifyTypeByPtr(IUnknown *ptr)
 		return Resource_RasterizerState;
 	if(WrappedID3D11BlendState::IsAlloc(ptr))
 		return Resource_BlendState;
-	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
-		return Resource_RasterizerState1;
-	if(WrappedID3D11BlendState1::IsAlloc(ptr))
-		return Resource_BlendState1;
 	if(WrappedID3D11DepthStencilState::IsAlloc(ptr))
 		return Resource_DepthStencilState;
 	if(WrappedID3D11SamplerState::IsAlloc(ptr))
 		return Resource_SamplerState;
+#if defined(INCLUDE_D3D_11_1)
+	if(WrappedID3D11RasterizerState1::IsAlloc(ptr))
+		return Resource_RasterizerState1;
+	if(WrappedID3D11BlendState1::IsAlloc(ptr))
+		return Resource_BlendState1;
+#endif
 	
 	if(WrappedID3D11RenderTargetView::IsAlloc(ptr))
 		return Resource_RenderTargetView;

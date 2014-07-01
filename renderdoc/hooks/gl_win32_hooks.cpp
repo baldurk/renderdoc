@@ -27,6 +27,7 @@
 #include "driver/gl/gl_hookset.h"
 #include "driver/gl/gl_driver.h"
 
+#include "common/threading.h"
 #include "common/string_utils.h"
 
 #include "hooks.h"
@@ -34,7 +35,9 @@
 #define DLL_NAME "opengl32.dll"
 
 #define HookInit(function) \
-	success &= CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
+	bool CONCAT(function, _success) = CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
+	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %s", STRINGIZE(function)); \
+	success &= CONCAT(function, _success); \
 	GL.function = CONCAT(function, _hook)();
 
 #define HookExtension(funcPtrType, function) \
@@ -73,7 +76,7 @@
             for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo ") \\";
         
-        echo -en "\t{ return glhooks.GetDriver()->function(";
+        echo -en "\t{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -n "); }";
     }
@@ -82,71 +85,112 @@
 
 	*/
 
+// don't want these definitions, the only place we'll use these is as parameter/variable names
+#ifdef near
+#undef near
+#endif
+
+#ifdef far
+#undef far
+#endif
+
 #define HookWrapper0(ret, function) \
-        Hook<ret (WINAPI *) ()> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (); \
-        static ret WINAPI CONCAT(function, _hooked)() \
-        { return glhooks.GetDriver()->function(); }
+	Hook<ret (WINAPI *) ()> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (); \
+	static ret WINAPI CONCAT(function, _hooked)() \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(); }
 
 #define HookWrapper1(ret, function, t1, p1) \
-        Hook<ret (WINAPI *) (t1)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1) \
-        { return glhooks.GetDriver()->function(p1); }
+	Hook<ret (WINAPI *) (t1)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1); }
 
 #define HookWrapper2(ret, function, t1, p1, t2, p2) \
-        Hook<ret (WINAPI *) (t1, t2)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2) \
-        { return glhooks.GetDriver()->function(p1, p2); }
+	Hook<ret (WINAPI *) (t1, t2)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2); }
 
 #define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3) \
-        Hook<ret (WINAPI *) (t1, t2, t3)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3) \
-        { return glhooks.GetDriver()->function(p1, p2, p3); }
+	Hook<ret (WINAPI *) (t1, t2, t3)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3); }
 
 #define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4); }
 
 #define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5); }
 
 #define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6); }
 
 #define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7); }
 
 #define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8); }
 
 #define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9); }
 
 #define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10) \
-        Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)> CONCAT(function, _hook); \
-        typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10); \
-        static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
-        { return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); }
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); }
+
+#define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11) \
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); }
+
+#define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12) \
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); }
+
+#define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13) \
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); }
+
+#define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14) \
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); }
+
+#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15) \
+	Hook<ret (WINAPI *) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15)> CONCAT(function, _hook); \
+	typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15); \
+	static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
+	{ SCOPED_LOCK(glLock); return glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); }
+
+Threading::CriticalSection glLock;
 
 class OpenGLHook : LibraryHook
 {
@@ -159,9 +203,11 @@ class OpenGLHook : LibraryHook
 			// an extension that it doesn't!
 
 			wglExts.push_back("WGL_ARB_extensions_string");
-			//wglExts.push_back("WGL_ARB_multisample");
+			wglExts.push_back("WGL_ARB_multisample");
+			wglExts.push_back("WGL_ARB_framebuffer_sRGB");
 			wglExts.push_back("WGL_ARB_create_context");
 			wglExts.push_back("WGL_ARB_create_context_profile");
+			wglExts.push_back("WGL_ARB_pixel_format");
 			
 			merge(wglExts, wglExtsString, ' ');
 
@@ -183,6 +229,12 @@ class OpenGLHook : LibraryHook
 
 			if(!m_EnabledHooks)
 				return false;
+			
+			if(GetModuleHandleA(DLL_NAME) == NULL)
+			{
+				RDCWARN("Failed to load %s - not inserting OpenGL hooks.", DLL_NAME);
+				return false;
+			}
 
 			bool success = SetupHooks(GL);
 
@@ -217,12 +269,16 @@ class OpenGLHook : LibraryHook
 		}
 
 		Hook<HGLRC (WINAPI*)(HDC)> wglCreateContext_hook;
+		Hook<HGLRC (WINAPI*)(HDC,int)> wglCreateLayerContext_hook;
 		Hook<BOOL (WINAPI*)(HDC, HGLRC)> wglMakeCurrent_hook;
 		Hook<PROC (WINAPI*)(const char*)> wglGetProcAddress_hook;
 		Hook<BOOL (WINAPI*)(HDC)> SwapBuffers_hook;
 
 		PROC (WINAPI* wglGetProcAddress_realfunc)(const char*);
 		PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB_realfunc;
+		PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB_realfunc;
+		PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB_realfunc;
+		PFNWGLGETPIXELFORMATATTRIBIVARBPROC wglGetPixelFormatAttribivARB_realfunc;
 
 		static private GLInitParams GetInitParamsForDC(HDC dc)
 		{
@@ -266,6 +322,15 @@ class OpenGLHook : LibraryHook
 			return ret;
 		}
 
+		static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
+		{
+			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
+
+			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, NULL, GetInitParamsForDC(dc));
+
+			return ret;
+		}
+
 		static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContext, const int *attribList)
 		{
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribList);
@@ -273,6 +338,19 @@ class OpenGLHook : LibraryHook
 			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, hShareContext, GetInitParamsForDC(dc));
 
 			return ret;
+		}
+		
+		static BOOL WINAPI wglChoosePixelFormatARB_hooked(HDC hdc, const int *piAttribIList, const FLOAT *pfAttribFList, UINT nMaxFormats, int *piFormats, UINT *nNumFormats)
+		{
+			return glhooks.wglChoosePixelFormatARB_realfunc(hdc, piAttribIList, pfAttribFList, nMaxFormats, piFormats, nNumFormats);
+		}
+		static BOOL WINAPI wglGetPixelFormatAttribfvARB_hooked(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, FLOAT *pfValues)
+		{
+			return glhooks.wglGetPixelFormatAttribfvARB_realfunc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, pfValues);
+		}
+		static BOOL WINAPI wglGetPixelFormatAttribivARB_hooked(HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, const int *piAttributes, int *piValues)
+		{
+			return glhooks.wglGetPixelFormatAttribivARB_realfunc(hdc, iPixelFormat, iLayerPlane, nAttributes, piAttributes, piValues);
 		}
 
 		// wglShareLists_hooked ?
@@ -282,6 +360,8 @@ class OpenGLHook : LibraryHook
 			BOOL ret = glhooks.wglMakeCurrent_hook()(dc, rc);
 
 			glhooks.GetDriver()->ActivateContext(WindowFromDC(dc), rc);
+
+			glhooks.GetRealFunctions();
 
 			return ret;
 		}
@@ -342,6 +422,21 @@ class OpenGLHook : LibraryHook
 				glhooks.wglCreateContextAttribsARB_realfunc = (PFNWGLCREATECONTEXTATTRIBSARBPROC)realFunc;
 				return (PROC)&wglCreateContextAttribsARB_hooked;
 			}
+			if(!strcmp(func, "wglChoosePixelFormatARB"))
+			{
+				glhooks.wglChoosePixelFormatARB_realfunc = (PFNWGLCHOOSEPIXELFORMATARBPROC)realFunc;
+				return (PROC)&wglChoosePixelFormatARB_hooked;
+			}
+			if(!strcmp(func, "wglGetPixelFormatAttribfvARB"))
+			{
+				glhooks.wglGetPixelFormatAttribfvARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBFVARBPROC)realFunc;
+				return (PROC)&wglGetPixelFormatAttribfvARB_hooked;
+			}
+			if(!strcmp(func, "wglGetPixelFormatAttribivARB"))
+			{
+				glhooks.wglGetPixelFormatAttribivARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)realFunc;
+				return (PROC)&wglGetPixelFormatAttribivARB_hooked;
+			}
 
 			HookCheckWGLExtensions();
 			HookCheckGLExtensions();
@@ -367,6 +462,7 @@ class OpenGLHook : LibraryHook
 			bool success = true;
 			
 			success &= wglCreateContext_hook.Initialize("wglCreateContext", DLL_NAME, wglCreateContext_hooked);
+			success &= wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", DLL_NAME, wglCreateLayerContext_hooked);
 			success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
 			success &= wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);
 			success &= SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);

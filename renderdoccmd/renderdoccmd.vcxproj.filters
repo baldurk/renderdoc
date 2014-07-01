@@ -3,6 +3,7 @@
   <ItemGroup>
     <ClCompile Include="renderdoccmd.cpp" />
     <ClCompile Include="miniz.c" />
+    <ClCompile Include="renderdoccmd_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

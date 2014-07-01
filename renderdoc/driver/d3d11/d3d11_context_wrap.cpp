@@ -1989,12 +1989,14 @@ void WrappedID3D11DeviceContext::RSGetState(ID3D11RasterizerState **ppRasterizer
 		{
 			real->Release();
 			ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
+#if defined(INCLUDE_D3D_11_1)
 			if(WrappedID3D11RasterizerState1::IsAlloc(state))
 			{
 				*ppRasterizerState = (ID3D11RasterizerState *)(ID3D11RasterizerState1 *)state;
 				(*ppRasterizerState)->AddRef();
 			}
 			else
+#endif
 			{
 				*ppRasterizerState = (ID3D11RasterizerState *)state;
 				(*ppRasterizerState)->AddRef();
@@ -2105,6 +2107,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 	if(m_State <= EXECUTING)
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(id);
+#if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11RasterizerState1::IsAlloc(live))
 		{
 			ID3D11RasterizerState1 *state = (ID3D11RasterizerState1 *)live;
@@ -2112,6 +2115,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 			m_pRealContext->RSSetState((ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, state));
 		}
 		else
+#endif
 		{
 			ID3D11RasterizerState *state = (ID3D11RasterizerState *)live;
 			m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, state);
@@ -2138,6 +2142,7 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 
+#if defined(INCLUDE_D3D_11_1)
 	RDCASSERT(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState) || WrappedID3D11RasterizerState1::IsAlloc(pRasterizerState));
 	
 	m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
@@ -2145,6 +2150,13 @@ void WrappedID3D11DeviceContext::RSSetState(ID3D11RasterizerState *pRasterizerSt
 		m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, pRasterizerState));
 	else
 		m_pRealContext->RSSetState((ID3D11RasterizerState *)UNWRAP(WrappedID3D11RasterizerState1, pRasterizerState));
+#else
+	RDCASSERT(!pRasterizerState || WrappedID3D11RasterizerState::IsAlloc(pRasterizerState));
+	
+	m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->RS.State, pRasterizerState);
+	m_pRealContext->RSSetState(UNWRAP(WrappedID3D11RasterizerState, pRasterizerState));
+#endif
+
 	VerifyState();
 }
 
@@ -2589,12 +2601,14 @@ void WrappedID3D11DeviceContext::OMGetBlendState(ID3D11BlendState **ppBlendState
 		if(real != NULL)
 		{
 			ID3D11DeviceChild *state = m_pDevice->GetResourceManager()->GetWrapper(real);
+#if defined(INCLUDE_D3D_11_1)
 			if(WrappedID3D11BlendState1::IsAlloc(state))
 			{
 				*ppBlendState = (ID3D11BlendState *)(ID3D11BlendState1 *)state;
 				(*ppBlendState)->AddRef();
 			}
 			else
+#endif
 			{
 				*ppBlendState = (ID3D11BlendState *)state;
 				(*ppBlendState)->AddRef();
@@ -2957,6 +2971,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 	if(m_State <= EXECUTING)
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(State);
+#if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11BlendState1::IsAlloc(live))
 		{
 			ID3D11BlendState1 *state = (ID3D11BlendState1 *)live;
@@ -2964,6 +2979,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 			m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, state), BlendFactor, SampleMask);
 		}
 		else
+#endif
 		{
 			ID3D11BlendState *state = (ID3D11BlendState *)live;
 			m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.BlendState, state);
@@ -3000,10 +3016,16 @@ void WrappedID3D11DeviceContext::OMSetBlendState(ID3D11BlendState *pBlendState, 
 	else
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.BlendFactor, DefaultBlendFactor, 0, 4);
 	m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.SampleMask, SampleMask);
+
+#if defined(INCLUDE_D3D_11_1)
 	if(!pBlendState || WrappedID3D11BlendState::IsAlloc(pBlendState))
 		m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, pBlendState), BlendFactor, SampleMask);
 	else
 		m_pRealContext->OMSetBlendState((ID3D11BlendState *)UNWRAP(WrappedID3D11BlendState1, pBlendState), BlendFactor, SampleMask);
+#else
+	m_pRealContext->OMSetBlendState(UNWRAP(WrappedID3D11BlendState, pBlendState), BlendFactor, SampleMask);
+#endif
+
 	VerifyState();
 }
 
@@ -4047,10 +4069,18 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
 		draw.debugMessages = debugMessages;
 
-		if(m_CmdLists.find(cmdList) != m_CmdLists.end())
-			draw.children = m_CmdLists[cmdList].Bake();
-
 		AddDrawcall(draw, true);
+
+		auto cmdDrawChildren = m_CmdLists.find(cmdList);
+
+		if(!m_DrawcallStack.empty() && !m_DrawcallStack.back()->children.empty() &&
+			 cmdDrawChildren != m_CmdLists.end())
+		{
+			m_DrawcallStack.back()->children.back().children = cmdDrawChildren->second.children;
+
+			// assign new drawcall IDs so that we don't get duplicates if this commandlist is executed again
+			RefreshDrawcallIDs(cmdDrawChildren->second);
+		}
 	}
 
 	return true;
@@ -6016,144 +6046,6 @@ void MapIntercept::CopyToD3D(size_t RangeStart, size_t RangeEnd)
 		sliceSrc += app.DepthPitch;
 		sliceDst += d3d.DepthPitch;
 	}
-}
-
-static __m128 zero = {0};
-
-// assumes a and b both point to 16-byte aligned 16-byte chunks of memory.
-// Returns if they're equal or different
-bool Vec16NotEqual(void *a, void *b)
-{
-	// disabled SSE version as it's acting dodgy
-#if 0
-	__m128 avec = _mm_load_ps(aflt);
-	__m128 bvec = _mm_load_ps(bflt);
-
-	__m128 diff = _mm_xor_ps(avec, bvec);
-
-	__m128 eq = _mm_cmpeq_ps(diff, zero);
-	int mask = _mm_movemask_ps(eq);
-	int signMask = _mm_movemask_ps(diff);
-
-	// first check ensures that diff is floatequal to zero (ie. avec bitwise equal to bvec).
-	// HOWEVER -0 is floatequal to 0, so we ensure no sign bits are set on diff
-	if((mask^0xf) || signMask != 0)
-	{
-		return true;
-	}
-	
-	return false;
-#elif defined(WIN64)
-	uint64_t *a64 = (uint64_t *)a;
-	uint64_t *b64 = (uint64_t *)b;
-
-	return a64[0] != b64[0] ||
-		   a64[1] != b64[1];
-#else
-	uint32_t *a32 = (uint32_t *)a;
-	uint32_t *b32 = (uint32_t *)b;
-
-	return a32[0] != b32[0] ||
-		   a32[1] != b32[1] ||
-		   a32[2] != b32[2] ||
-		   a32[3] != b32[3];
-#endif
-}
-
-bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd)
-{
-	RDCASSERT(((unsigned long)a)%16 == 0);
-	RDCASSERT(((unsigned long)b)%16 == 0);
-
-	diffStart = bufSize+1;
-	diffEnd = 0;
-
-	size_t alignedSize = bufSize&(~0xf);
-	size_t numVecs = alignedSize/16;
-
-	size_t offs = 0;
-
-	float *aflt = (float *)a;
-	float *bflt = (float *)b;
-
-	// init a vector to 0
-	__m128 zero = {0};
-
-	// sweep to find the start of differences
-	for(size_t v=0; v < numVecs; v++)
-	{
-		if(Vec16NotEqual(aflt, bflt))
-		{
-			diffStart = offs;
-			break;
-		}
-
-		aflt+=4;bflt+=4;offs+=4*sizeof(float);
-	}
-
-	// make sure we're byte-accurate, to comply with WRITE_NO_OVERWRITE
-	while(diffStart < bufSize && *((byte *)a + diffStart) == *((byte *)b + diffStart)) diffStart++;
-
-	// do we have some unaligned bytes at the end of the buffer?
-	if(bufSize > alignedSize)
-	{
-		size_t numBytes = alignedSize-bufSize;
-
-		// if we haven't even found a start, check in these bytes
-		if(diffStart > bufSize)
-		{
-			offs = bufSize;
-
-			for(size_t by=0; by < numBytes; by++)
-			{
-				if(*((byte *)a + alignedSize + by) != *((byte *)b + alignedSize + by))
-				{
-					diffStart = offs;
-					break;
-				}
-
-				offs++;
-			}
-		}
-		
-		// sweep from the last byte to find the end
-		for(size_t by=0; by < numBytes; by++)
-		{
-			if(*((byte *)a + bufSize-1 - by) != *((byte *)b + bufSize-1 - by))
-			{
-				diffEnd = bufSize-by;
-				break;
-			}
-		}
-	}
-
-	// if we haven't found a start, or we've found a start AND and end,
-	// then we're done.
-	if(diffStart > bufSize || diffEnd > 0)
-		return diffStart < bufSize;
-	
-	offs = alignedSize;
-
-	// sweep from the last __m128
-	aflt = (float *)a + offs/sizeof(float) - 4;
-	bflt = (float *)b + offs/sizeof(float) - 4;
-
-	for(size_t v=0; v < numVecs; v++)
-	{
-		if(Vec16NotEqual(aflt, bflt))
-		{
-			diffEnd = offs;
-			break;
-		}
-
-		aflt-=4;bflt-=4;offs-=16;
-	}
-	
-	// make sure we're byte-accurate, to comply with WRITE_NO_OVERWRITE
-	while(diffEnd > 0 && *((byte *)a + diffEnd - 1) == *((byte *)b + diffEnd - 1)) diffEnd--;
-	
-	// if we found a start then we necessarily found an end
-	return diffStart < bufSize;
 }
 
 bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT Subresource, D3D11_MAP MapType, UINT MapFlags, D3D11_MAPPED_SUBRESOURCE *pMappedResource)

@@ -139,6 +139,20 @@ struct ResourceRecord
 
 	ResourceId GetResourceID() const { return ResID; }
 
+	void RemoveChunk(Chunk *chunk)
+	{
+		LockChunks();
+		for(auto it=m_Chunks.begin(); it != m_Chunks.end(); ++it)
+		{
+			if(it->second == chunk)
+			{
+				m_Chunks.erase(it);
+				break;
+			}
+		}
+		UnlockChunks();
+	}
+
 	void AddChunk(Chunk *chunk, int32_t ID = 0)
 	{
 		LockChunks();
@@ -347,7 +361,7 @@ class ResourceManager : public ResourceRecordHandler
 		void ApplyInitialContents();
 
 		// Resource wrapping, allows for querying and adding/removing of wrapper layers around resources
-		void AddWrapper(ResourceType wrap, ResourceType real);
+		bool AddWrapper(ResourceType wrap, ResourceType real);
 		bool HasWrapper(ResourceType real);
 		ResourceType GetWrapper(ResourceType real);
 		void RemoveWrapper(ResourceType real);
@@ -966,21 +980,27 @@ void ResourceManager<ResourceType, RecordType>::RemoveResourceRecord(ResourceId 
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::AddWrapper(ResourceType wrap, ResourceType real)
+bool ResourceManager<ResourceType, RecordType>::AddWrapper(ResourceType wrap, ResourceType real)
 {
 	SCOPED_LOCK(m_Lock);
+
+	bool ret = true;
 
 	if(wrap == (ResourceType)RecordType::NullResource || real == (ResourceType)RecordType::NullResource)
 	{
 		RDCERR("Invalid state creating resource wrapper - wrapped or real resource is NULL");
+		ret = false;
 	}
 
 	if(m_WrapperMap[real] != (ResourceType)RecordType::NullResource)
 	{
 		RDCERR("Overriding wrapper for 0x%p - to 0x%p", real, wrap);
+		ret = false;
 	}
 
 	m_WrapperMap[real] = wrap;
+
+	return ret;
 }
 
 template<typename ResourceType, typename RecordType>
@@ -991,6 +1011,7 @@ void ResourceManager<ResourceType, RecordType>::RemoveWrapper(ResourceType real)
 	if(real == (ResourceType)RecordType::NullResource || !HasWrapper(real))
 	{
 		RDCERR("Invalid state removing resource wrapper - real resource is NULL or doesn't have wrapper");
+		return;
 	}
 
 	m_WrapperMap.erase( m_WrapperMap.find(real) );

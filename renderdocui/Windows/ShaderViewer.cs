@@ -814,7 +814,7 @@ namespace renderdocui.Windows
 
                 string reg = item.SubItems[0].Text.Trim();
 
-                var regexp = "^([rvo])([0-9]+)(\\.[xyzwrgba]+)?(,[xfiud])?$";
+                var regexp = "^([rvo])([0-9]+)(\\.[xyzwrgba]+)?(,[xfiudb])?$";
 
                 var match = Regex.Match(reg, regexp);
 
@@ -878,6 +878,8 @@ namespace renderdocui.Windows
                                     val += vr.value.uv[elindex];
                                 else if (regcast == "x")
                                     val += String.Format("0x{0:X8}", vr.value.uv[elindex]);
+                                else if (regcast == "b")
+                                    val += String.Format("{0}", Convert.ToString(vr.value.uv[elindex], 2).PadLeft(32, '0'));
                                 else if (regcast == "d")
                                 {
                                     if (elindex < 2)

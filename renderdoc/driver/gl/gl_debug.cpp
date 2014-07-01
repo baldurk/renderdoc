@@ -172,7 +172,10 @@ void GLReplay::InitDebugData()
 	gl.glGenVertexArrays(1, &DebugData.emptyVAO);
 	gl.glBindVertexArray(DebugData.emptyVAO);
 
+	MakeCurrentReplayContext(&m_ReplayCtx);
+
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
+	gl.glBindVertexArray(DebugData.meshVAO);
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
@@ -405,8 +408,10 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	GLuint curReadFBO = 0;
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+
+	void *ctx = m_ReplayCtx.ctx;
 	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
+	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, curProg))];
 
 	if(progDetails.colOutProg == 0)
 	{
@@ -623,7 +628,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
 	gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
 
-	return m_pDriver->GetResourceManager()->GetID(TextureRes(DebugData.overlayTex));
+	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
 void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
@@ -646,6 +651,12 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 	}
 
 	if(!outw) return;
+	
+	const auto &attr = m_CurPipelineState.m_VtxIn.attributes[0];
+	const auto &vb = m_CurPipelineState.m_VtxIn.vbuffers[attr.BufferSlot];
+
+	if(vb.Buffer == ResourceId())
+		return;
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -700,9 +711,6 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 
 	gl.glBindVertexArray(DebugData.meshVAO);
 
-	const auto &attr = m_CurPipelineState.m_VtxIn.attributes[0];
-	const auto &vb = m_CurPipelineState.m_VtxIn.vbuffers[attr.BufferSlot];
-	
 	// TODO: we should probably use glBindVertexBuffer, glVertexAttribFormat, glVertexAttribBinding.
 	// For now just assume things about the format and vbuffer.
 

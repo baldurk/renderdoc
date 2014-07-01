@@ -124,7 +124,9 @@ namespace renderdocui.Windows
 
                 if (Type == FollowType.RT_UAV)
                 {
-                    id = core.CurPipelineState.GetOutputTargets()[index];
+                    var outputs = core.CurPipelineState.GetOutputTargets();
+                    if(outputs.Length > index)
+                        id = outputs[index];
                 }
                 else if (Type == FollowType.Depth)
                 {
@@ -132,7 +134,9 @@ namespace renderdocui.Windows
                 }
                 else if (Type == FollowType.PSResource)
                 {
-                    id = core.CurPipelineState.GetResources(ShaderStageType.Pixel)[index];
+                    var res = core.CurPipelineState.GetResources(ShaderStageType.Pixel);
+                    if(res.Length > index)
+                        id = res[index];
                 }
 
                 return id;
@@ -264,12 +268,16 @@ namespace renderdocui.Windows
             public int persistVersion = currentPersistVersion;
 
             public string panelLayout;
+            public FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+            public FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
             public static PersistData GetDefaults()
             {
                 PersistData data = new PersistData();
 
                 data.panelLayout = "";
+                data.darkBack = new FloatVector(0, 0, 0, 0);
+                data.lightBack = new FloatVector(0, 0, 0, 0);
 
                 return data;
             }
@@ -325,10 +333,14 @@ namespace renderdocui.Windows
         }
 
         private string onloadLayout = "";
+        private FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+        private FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
         private void ApplyPersistData(PersistData data)
         {
             onloadLayout = data.panelLayout;
+            darkBack = data.darkBack;
+            lightBack = data.lightBack;
         }
 
         private void TextureViewer_Load(object sender, EventArgs e)
@@ -357,6 +369,21 @@ namespace renderdocui.Windows
 
                 onloadLayout = "";
             }
+
+            if (darkBack.x != lightBack.x)
+            {
+                backcolorPick.Checked = false;
+                checkerBack.Checked = true;
+            }
+            else
+            {
+                backcolorPick.Checked = true;
+                checkerBack.Checked = false;
+
+                colorDialog.Color = Color.FromArgb((int)(255 * darkBack.x),
+                    (int)(255 * darkBack.y),
+                    (int)(255 * darkBack.z));
+            }
         }
 
         private string PersistString()
@@ -374,6 +401,9 @@ namespace renderdocui.Windows
             dockPanel.SaveAsXml(path, "", enc);
             data.panelLayout = File.ReadAllText(path, enc);
             File.Delete(path);
+
+            data.darkBack = darkBack;
+            data.lightBack = lightBack;
 
             System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(PersistData));
             xs.Serialize(writer, data);
@@ -678,6 +708,9 @@ namespace renderdocui.Windows
             texturefilter.Text = "";
             textureList.FillTextureList("", true, true);
 
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
+
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
@@ -708,6 +741,8 @@ namespace renderdocui.Windows
             texturefilter.SelectedIndex = 0;
 
             m_TexDisplay = new TextureDisplay();
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
 
             PixelPicked = false;
 
@@ -717,11 +752,6 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
             rangeHistogram.SetRange(0.0f, 1.0f);
-
-            checkerBack.Checked = true;
-            backcolorPick.Checked = false;
-
-            checkerBack.Enabled = backcolorPick.Enabled = false;
 
             channels.SelectedIndex = 0;
             overlay.SelectedIndex = 0;
@@ -1314,7 +1344,11 @@ namespace renderdocui.Windows
                 }
             }
 
-            string statusText = "Hover - " + (m_CurHoverPixel.X >> (int)m_TexDisplay.mip) + ", " + (m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            string hoverCoords = String.Format("{0}, {1}", m_CurHoverPixel.X >> (int)m_TexDisplay.mip, m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            string statusText = "Hover - " + hoverCoords;
+
+            if (m_CurHoverPixel.X > tex.width || m_CurHoverPixel.Y > tex.height || m_CurHoverPixel.X < 0 || m_CurHoverPixel.Y < 0)
+                statusText = "Hover - [" + hoverCoords + "]";
 
             if (m_CurPixelValue != null)
             {
@@ -1449,8 +1483,6 @@ namespace renderdocui.Windows
                 backcolorPick.Visible = true;
                 checkerBack.Visible = true;
 
-                checkerBack.Enabled = backcolorPick.Enabled = customAlpha.Checked;
-
                 mulSep.Visible = false;
 
                 m_TexDisplay.Red = customRed.Checked;
@@ -1551,11 +1583,40 @@ namespace renderdocui.Windows
             render.Invalidate();
         }
 
+        private void DrawCheckerboard(Graphics g, Rectangle rect)
+        {
+            int numX = (int)Math.Ceiling((float)rect.Width / 64.0f);
+            int numY = (int)Math.Ceiling((float)rect.Height / 64.0f);
+
+            Brush dark = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(darkBack.x))),
+                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.y))),
+                                                       (int)(255 * Math.Sqrt(Math.Sqrt(darkBack.z)))));
+
+            Brush light = new SolidBrush(Color.FromArgb((int)(255 * Math.Sqrt(Math.Sqrt(lightBack.x))),
+                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.y))),
+                                                        (int)(255 * Math.Sqrt(Math.Sqrt(lightBack.z)))));
+
+            for (int x = 0; x < numX; x++)
+            {
+                for (int y = 0; y < numY; y++)
+                {
+                    var brush = ((x%2) == (y%2)) ? dark : light;
+                    g.FillRectangle(brush, x * 64, y * 64, 64, 64);
+                }
+            }
+
+            dark.Dispose();
+            light.Dispose();
+        }
+
         private void pixelContext_Paint(object sender, PaintEventArgs e)
         {
             if (m_Output == null || m_Core.Renderer == null || PixelPicked == false)
             {
-                e.Graphics.Clear(Color.Black);
+                if (backcolorPick.Checked)
+                    e.Graphics.Clear(colorDialog.Color);
+                else
+                    DrawCheckerboard(e.Graphics, pixelContext.DisplayRectangle);
                 return;
             }
 
@@ -1567,7 +1628,10 @@ namespace renderdocui.Windows
             renderContainer.Invalidate();
             if (m_Output == null || m_Core.Renderer == null)
             {
-                e.Graphics.Clear(Color.Black);
+                if (backcolorPick.Checked)
+                    e.Graphics.Clear(colorDialog.Color);
+                else
+                    DrawCheckerboard(e.Graphics, render.DisplayRectangle);
                 return;
             }
 
@@ -1841,22 +1905,26 @@ namespace renderdocui.Windows
         {
             bool nudged = false;
 
-            if (e.KeyCode == Keys.Up)
+            FetchTexture tex = CurrentTexture;
+
+            if (tex == null) return;
+
+            if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Down)
+            else if (e.KeyCode == Keys.Down && m_PickedPoint.Y < tex.height-1)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + 1);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Left)
+            else if (e.KeyCode == Keys.Left && m_PickedPoint.X > 0)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X - 1, m_PickedPoint.Y);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Right)
+            else if (e.KeyCode == Keys.Right && m_PickedPoint.X < tex.width - 1)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X + 1, m_PickedPoint.Y);
                 nudged = true;
@@ -1917,13 +1985,21 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.Right && m_TexDisplay.texid != ResourceId.Null)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
@@ -1969,13 +2045,21 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.Right)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
@@ -2091,7 +2175,7 @@ namespace renderdocui.Windows
 
             if (result == DialogResult.OK || result == DialogResult.Yes)
             {
-                m_TexDisplay.darkBackgroundColour =
+                darkBack = lightBack = m_TexDisplay.darkBackgroundColour =
                     m_TexDisplay.lightBackgroundColour = new FloatVector(
                         ((float)colorDialog.Color.R) / 255.0f,
                         ((float)colorDialog.Color.G) / 255.0f,
@@ -2102,19 +2186,31 @@ namespace renderdocui.Windows
             }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
 
         private void checkerBack_Click(object sender, EventArgs e)
         {
             var defaults = new TextureDisplay();
 
-            m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
-            m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
+            darkBack = m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
+            lightBack = m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
 
             backcolorPick.Checked = false;
             checkerBack.Checked = true;
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
         private void mipLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -2445,6 +2541,9 @@ namespace renderdocui.Windows
             ShaderDebugTrace trace = null;
 
             ShaderReflection shaderDetails = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+
+            if(m_PickedPoint.X < 0 || m_PickedPoint.Y < 0)
+                return;
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {

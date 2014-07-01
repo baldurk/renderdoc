@@ -113,19 +113,23 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
 			case eSpecial_B8G8R8A8:
 				ret = DXGI_FORMAT_B8G8R8A8_UNORM;
 				break;
+#if defined(INCLUDE_D3D_11_1)
 			case eSpecial_B4G4R4A4:
 				ret = DXGI_FORMAT_B4G4R4A4_UNORM;
 				break;
+#endif
 			case eSpecial_D24S8:
 				ret = DXGI_FORMAT_R24G8_TYPELESS;
 				break;
 			case eSpecial_D32S8:
 				ret = DXGI_FORMAT_R32G8X24_TYPELESS;
 				break;
+#if defined(INCLUDE_D3D_11_1)
 			case eSpecial_YUV:
 				RDCERR("Video format not unambiguously encoded");
 				ret = DXGI_FORMAT_AYUV;
 				break;
+#endif
 			default:
 				RDCERR("Unrecognised special format");
 				break;
@@ -637,6 +641,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			ret.specialFormat = eSpecial_B8G8R8A8;
 			break;
 
+#if defined(INCLUDE_D3D_11_1)
 		case DXGI_FORMAT_AYUV:
 		case DXGI_FORMAT_Y410:
 		case DXGI_FORMAT_Y416:
@@ -658,6 +663,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_B4G4R4A4_UNORM:
 			ret.specialFormat = eSpecial_B4G4R4A4;
 			break;
+#endif
 
 		default:
 			break;
@@ -1170,39 +1176,6 @@ void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
-{
-	ScopedContext scope(this, this, name, "D3D11_BLEND_DESC1", 0, true);
-
-	Serialise("AlphaToCoverageEnable", el.AlphaToCoverageEnable);
-	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
-	for(int i=0; i < 8; i++)
-	{
-		ScopedContext scope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
-
-		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
-		Serialise("BlendEnable", enable);
-		el.RenderTarget[i].BlendEnable = enable;
-		
-		enable = el.RenderTarget[i].LogicOpEnable == TRUE;
-		Serialise("LogicOpEnable", enable);
-		el.RenderTarget[i].LogicOpEnable = enable;
-
-		{
-			Serialise("SrcBlend", el.RenderTarget[i].SrcBlend);
-			Serialise("DestBlend", el.RenderTarget[i].DestBlend);
-			Serialise("BlendOp", el.RenderTarget[i].BlendOp);
-			Serialise("SrcBlendAlpha", el.RenderTarget[i].SrcBlendAlpha);
-			Serialise("DestBlendAlpha", el.RenderTarget[i].DestBlendAlpha);
-			Serialise("BlendOpAlpha", el.RenderTarget[i].BlendOpAlpha);
-			Serialise("LogicOp", el.RenderTarget[i].LogicOp);
-		}
-
-		Serialise("RenderTargetWriteMask", el.RenderTarget[i].RenderTargetWriteMask);
-	}
-}
-
-template<>
 void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el)
 {
 	ScopedContext scope(this, this, name, "D3D11_DEPTH_STENCIL_DESC", 0, true);
@@ -1245,24 +1218,6 @@ void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC &el)
 	Serialise("ScissorEnable", el.ScissorEnable);
 	Serialise("MultisampleEnable", el.MultisampleEnable);
 	Serialise("AntialiasedLineEnable", el.AntialiasedLineEnable);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el)
-{
-	ScopedContext scope(this, this, name, "D3D11_RASTERIZER_DESC1", 0, true);
-
-	Serialise("FillMode", el.FillMode);
-	Serialise("CullMode", el.CullMode);
-	Serialise("FrontCounterClockwise", el.FrontCounterClockwise);
-	Serialise("DepthBias", el.DepthBias);
-	Serialise("DepthBiasClamp", el.DepthBiasClamp);
-	Serialise("SlopeScaledDepthBias", el.SlopeScaledDepthBias);
-	Serialise("DepthClipEnable", el.DepthClipEnable);
-	Serialise("ScissorEnable", el.ScissorEnable);
-	Serialise("MultisampleEnable", el.MultisampleEnable);
-	Serialise("AntialiasedLineEnable", el.AntialiasedLineEnable);
-	Serialise("ForcedSampleCount", el.ForcedSampleCount);
 }
 
 template<>
@@ -1370,6 +1325,58 @@ template<> void Serialiser::Serialise(const char *name, D3D11_SUBRESOURCE_DATA &
 	Serialise("SysMemSlicePitch", el.SysMemSlicePitch);
 }
 
+#if defined(INCLUDE_D3D_11_1)
+template<>
+void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
+{
+	ScopedContext scope(this, this, name, "D3D11_BLEND_DESC1", 0, true);
+
+	Serialise("AlphaToCoverageEnable", el.AlphaToCoverageEnable);
+	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
+	for(int i=0; i < 8; i++)
+	{
+		ScopedContext scope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
+
+		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
+		Serialise("BlendEnable", enable);
+		el.RenderTarget[i].BlendEnable = enable;
+		
+		enable = el.RenderTarget[i].LogicOpEnable == TRUE;
+		Serialise("LogicOpEnable", enable);
+		el.RenderTarget[i].LogicOpEnable = enable;
+
+		{
+			Serialise("SrcBlend", el.RenderTarget[i].SrcBlend);
+			Serialise("DestBlend", el.RenderTarget[i].DestBlend);
+			Serialise("BlendOp", el.RenderTarget[i].BlendOp);
+			Serialise("SrcBlendAlpha", el.RenderTarget[i].SrcBlendAlpha);
+			Serialise("DestBlendAlpha", el.RenderTarget[i].DestBlendAlpha);
+			Serialise("BlendOpAlpha", el.RenderTarget[i].BlendOpAlpha);
+			Serialise("LogicOp", el.RenderTarget[i].LogicOp);
+		}
+
+		Serialise("RenderTargetWriteMask", el.RenderTarget[i].RenderTargetWriteMask);
+	}
+}
+
+template<>
+void Serialiser::Serialise(const char *name, D3D11_RASTERIZER_DESC1 &el)
+{
+	ScopedContext scope(this, this, name, "D3D11_RASTERIZER_DESC1", 0, true);
+
+	Serialise("FillMode", el.FillMode);
+	Serialise("CullMode", el.CullMode);
+	Serialise("FrontCounterClockwise", el.FrontCounterClockwise);
+	Serialise("DepthBias", el.DepthBias);
+	Serialise("DepthBiasClamp", el.DepthBiasClamp);
+	Serialise("SlopeScaledDepthBias", el.SlopeScaledDepthBias);
+	Serialise("DepthClipEnable", el.DepthClipEnable);
+	Serialise("ScissorEnable", el.ScissorEnable);
+	Serialise("MultisampleEnable", el.MultisampleEnable);
+	Serialise("AntialiasedLineEnable", el.AntialiasedLineEnable);
+	Serialise("ForcedSampleCount", el.ForcedSampleCount);
+}
+#endif
 
 /////////////////////////////////////////////////////////////
 // Trivial structures
@@ -1578,35 +1585,6 @@ string ToStrHelper<false, D3D11_BLEND_OP>::Get(const D3D11_BLEND_OP &el)
 	return tostrBuf;
 }
 
-string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
-{
-	switch(el)
-	{
-        case D3D11_LOGIC_OP_CLEAR:			return "CLEAR";
-        case D3D11_LOGIC_OP_SET:			return "SET";
-        case D3D11_LOGIC_OP_COPY:			return "COPY";
-        case D3D11_LOGIC_OP_COPY_INVERTED:	return "COPY_INVERTED";
-        case D3D11_LOGIC_OP_NOOP:			return "NOOP";
-        case D3D11_LOGIC_OP_INVERT:			return "INVERT";
-        case D3D11_LOGIC_OP_AND:			return "AND";
-        case D3D11_LOGIC_OP_NAND:			return "NAND";
-        case D3D11_LOGIC_OP_OR:				return "OR";
-        case D3D11_LOGIC_OP_NOR:			return "NOR";
-        case D3D11_LOGIC_OP_XOR:			return "XOR";
-        case D3D11_LOGIC_OP_EQUIV:			return "EQUIV";
-        case D3D11_LOGIC_OP_AND_REVERSE:	return "AND_REVERSE";
-        case D3D11_LOGIC_OP_AND_INVERTED:	return "AND_INVERTED";
-        case D3D11_LOGIC_OP_OR_REVERSE:		return "OR_REVERSE";
-        case D3D11_LOGIC_OP_OR_INVERTED:	return "OR_INVERTED";
-		default: break;
-	}
-	
-	char tostrBuf[256] = {0};
-	StringFormat::snprintf(tostrBuf, 255, "D3D11_LOGIC_OP<%d>", el);
-
-	return tostrBuf;
-}
-
 string ToStrHelper<false, D3D11_CULL_MODE>::Get(const D3D11_CULL_MODE &el)
 {
 	switch(el)
@@ -1780,7 +1758,9 @@ string ToStrHelper<false, D3D_FEATURE_LEVEL>::Get(const D3D_FEATURE_LEVEL &el)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_10_0)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_10_1)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_11_0)
+#if defined(INCLUDE_D3D_11_1)
 		TOSTR_CASE_STRINGIZE(D3D_FEATURE_LEVEL_11_1)
+#endif
 		default: break;
 	}
 	
@@ -1932,6 +1912,36 @@ string ToStrHelper<false, D3D11_INPUT_CLASSIFICATION>::Get(const D3D11_INPUT_CLA
 	return tostrBuf;
 }
 
+#if defined(INCLUDE_D3D_11_1)
+string ToStrHelper<false, D3D11_LOGIC_OP>::Get(const D3D11_LOGIC_OP &el)
+{
+	switch(el)
+	{
+        case D3D11_LOGIC_OP_CLEAR:			return "CLEAR";
+        case D3D11_LOGIC_OP_SET:			return "SET";
+        case D3D11_LOGIC_OP_COPY:			return "COPY";
+        case D3D11_LOGIC_OP_COPY_INVERTED:	return "COPY_INVERTED";
+        case D3D11_LOGIC_OP_NOOP:			return "NOOP";
+        case D3D11_LOGIC_OP_INVERT:			return "INVERT";
+        case D3D11_LOGIC_OP_AND:			return "AND";
+        case D3D11_LOGIC_OP_NAND:			return "NAND";
+        case D3D11_LOGIC_OP_OR:				return "OR";
+        case D3D11_LOGIC_OP_NOR:			return "NOR";
+        case D3D11_LOGIC_OP_XOR:			return "XOR";
+        case D3D11_LOGIC_OP_EQUIV:			return "EQUIV";
+        case D3D11_LOGIC_OP_AND_REVERSE:	return "AND_REVERSE";
+        case D3D11_LOGIC_OP_AND_INVERTED:	return "AND_INVERTED";
+        case D3D11_LOGIC_OP_OR_REVERSE:		return "OR_REVERSE";
+        case D3D11_LOGIC_OP_OR_INVERTED:	return "OR_INVERTED";
+		default: break;
+	}
+	
+	char tostrBuf[256] = {0};
+	StringFormat::snprintf(tostrBuf, 255, "D3D11_LOGIC_OP<%d>", el);
+
+	return tostrBuf;
+}
+#endif
 
 string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 {
@@ -2037,6 +2047,7 @@ string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_BC7_UNORM)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_BC7_UNORM_SRGB)
 		
+#if defined(INCLUDE_D3D_11_1)
 		// D3D11.1 formats
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_AYUV)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_Y410)
@@ -2054,6 +2065,7 @@ string ToStrHelper<false, DXGI_FORMAT>::Get(const DXGI_FORMAT &el)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_P8)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_A8P8)
 		TOSTR_CASE_STRINGIZE(DXGI_FORMAT_B4G4R4A4_UNORM)
+#endif
 		default: break;
 	}
 	
