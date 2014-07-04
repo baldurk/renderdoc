@@ -3464,7 +3464,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 		pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
 		srvOffset = 20;
 	}
-	if(!IsSRGBFormat(details.texFmt))
+	if(!IsSRGBFormat(details.texFmt) && cfg.linearDisplayAsGamma)
 	{
 		pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 	}

@@ -361,6 +361,7 @@ bool ReplayOutput::Display()
 		disp.Red = disp.Green = disp.Blue = true;
 		disp.Alpha = false;
 		disp.HDRMul = -1.0f;
+		disp.linearDisplayAsGamma = true;
 		disp.mip = 0;
 		disp.CustomShader = ResourceId();
 		disp.texid = m_pDevice->GetLiveID(m_Thumbnails[i].texture);

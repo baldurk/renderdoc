@@ -1437,6 +1437,13 @@ namespace renderdocui.Windows
 
             channelStrip.SuspendLayout();
 
+            if (tex != null && !tex.format.srgbCorrected)
+                gammaDisplay.Enabled = true;
+            else
+                gammaDisplay.Enabled = false;
+
+            m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
+
             if (tex != null && (tex.creationFlags & TextureCreationFlags.DSV) > 0 &&
                 (string)channels.SelectedItem != "Custom")
             {

@@ -414,6 +414,7 @@ namespace renderdoc
         public float scale = 1.0f;
         public bool Red = true, Green = true, Blue = true, Alpha = false;
         public float HDRMul = -1.0f;
+        public bool linearDisplayAsGamma = true;
         public ResourceId CustomShader = ResourceId.Null;
         public UInt32 mip = 0;
         public UInt32 sliceFace = 0;

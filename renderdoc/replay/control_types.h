@@ -60,6 +60,7 @@ struct TextureDisplay
 	float scale;
 	bool32 Red, Green, Blue, Alpha;
 	float HDRMul;
+	bool32 linearDisplayAsGamma;
 	ResourceId CustomShader;
 	uint32_t mip;
 	uint32_t sliceFace;
