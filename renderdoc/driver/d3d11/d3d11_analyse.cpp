@@ -210,7 +210,16 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					if(columnMajor)
 					{
 						uint32_t tmp[16] = {0};
-						memcpy(tmp, d, RDCMIN(data.size()-dataOffset, elemByteSize*rows*cols));
+
+						// matrices always have 4 columns, for padding reasons (the same reason arrays
+						// put every element on a new vec4)
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+						}
 
 						// transpose
 						for(size_t r=0; r < rows; r++)
@@ -219,7 +228,15 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					}
 					else // CLASS_MATRIX_ROWS or other data not to transpose.
 					{
-						memcpy(&outvars[outIdx].value.uv[0], d, RDCMIN(data.size()-dataOffset, elemByteSize*rows*cols));
+						// matrices always have 4 columns, for padding reasons (the same reason arrays
+						// put every element on a new vec4)
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*rows*cols));
+						}
 					}
 				}
 			}
