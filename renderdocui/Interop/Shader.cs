@@ -121,12 +121,10 @@ namespace renderdoc
             else return String.Format("{0}{1}x{2}", type.Str(), rows, columns);
 		}
 
-        public string RowValuesToString(int cols, double x, double y, double z, double w)
+        public string RowValuesToString(int cols, double x, double y)
 		{
             if (cols == 1) return Formatter.Format(x);
-            else if (cols == 2) return Formatter.Format(x) + ", " + Formatter.Format(y);
-            else if (cols == 3) return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z);
-            else return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z) + ", " + Formatter.Format(w);
+            else return Formatter.Format(x) + ", " + Formatter.Format(y);
         }
 
         public string RowValuesToString(int cols, float x, float y, float z, float w)
@@ -156,7 +154,7 @@ namespace renderdoc
 		public string Row(int row, VarType t)
 		{
 			if(t == VarType.Double)
-				return RowValuesToString((int)columns, value.dv[row*columns+0], value.dv[row*columns+1], value.dv[row*columns+2], value.dv[row*columns+3]);
+				return RowValuesToString((int)columns, value.dv[row*columns+0], value.dv[row*columns+1]);
 			else if(t == VarType.Int)
                 return RowValuesToString((int)columns, value.iv[row * columns + 0], value.iv[row * columns + 1], value.iv[row * columns + 2], value.iv[row * columns + 3]);
 			else if(t == VarType.UInt)
