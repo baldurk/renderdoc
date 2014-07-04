@@ -520,8 +520,21 @@ void State::Init()
 
 				registers[t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
 			}
+		}
+		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_INDEXABLE_TEMP)
+		{
+			if(indexableTemps.size() <= dxbc->m_Declarations[i].tempReg)
+				indexableTemps.resize(dxbc->m_Declarations[i].tempReg+1);
 
-			break;
+			indexableTemps[dxbc->m_Declarations[i].tempReg].resize(dxbc->m_Declarations[i].numTemps);
+			for(uint32_t t=0; t < dxbc->m_Declarations[i].numTemps; t++)
+			{
+				char buf[64] = {0};
+
+				StringFormat::snprintf(buf, 63, "x%u[%u]", dxbc->m_Declarations[i].tempReg, t);
+
+				indexableTemps[dxbc->m_Declarations[i].tempReg][t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
+			}
 		}
 	}
 }
@@ -534,19 +547,58 @@ bool State::Finished()
 void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const ShaderVariable &val)
 {
 	ShaderVariable *v = NULL;
+	
+	uint32_t indices[4];
+
+	RDCASSERT(dstoper.indices.size() <= 4);
+
+	for(size_t i=0; i < dstoper.indices.size(); i++)
+	{
+		if(dstoper.indices[i].absolute)
+			indices[i] = (uint32_t)dstoper.indices[i].index;
+		else
+			indices[i] = 0;
+
+		if(dstoper.indices[i].relative)
+		{
+			ShaderVariable idx = GetSrc(dstoper.indices[i].operand, op);
+
+			indices[i] += idx.value.i.x;
+		}
+	}
 
 	switch(dstoper.type)
 	{
 		case TYPE_TEMP:
 		{
-			RDCASSERT(dstoper.indices[0].index < (uint32_t)registers.count);
-			v = &registers[(size_t)dstoper.indices[0].index];
+			RDCASSERT(indices[0] < (uint32_t)registers.count);
+			if(indices[0] < (uint32_t)registers.count)
+				v = &registers[(size_t)indices[0]];
+			break;
+		}
+		case TYPE_INDEXABLE_TEMP:
+		{
+			RDCASSERT(dstoper.indices.size() == 2);
+
+			if(dstoper.indices.size() == 2)
+			{
+				RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
+				if(indices[0] < (uint32_t)indexableTemps.size())
+				{
+					RDCASSERT(indices[1] < (uint32_t)indexableTemps[ indices[0] ].size());
+					if(indices[1] < (uint32_t)indexableTemps[ indices[0] ].size())
+					{
+						v = &indexableTemps[ indices[0] ][ indices[1] ];
+					}
+				}
+			}
 			break;
 		}
 		case TYPE_OUTPUT:
 		{
-			RDCASSERT(dstoper.indices[0].index < (uint32_t)outputs.count);
-			v = &outputs[(size_t)dstoper.indices[0].index];
+			RDCASSERT(indices[0] < (uint32_t)outputs.count);
+			if(indices[0] < (uint32_t)outputs.count)
+				v = &outputs[(size_t)indices[0]];
 			break;
 		}
 		case TYPE_INPUT:
@@ -704,6 +756,24 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 			else
 				v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
 
+			break;
+		}
+		case TYPE_INDEXABLE_TEMP:
+		{
+			RDCASSERT(oper.indices.size() == 2);
+
+			if(oper.indices.size() == 2)
+			{
+				RDCASSERT(indices[0] < (uint32_t)indexableTemps.size());
+				if(indices[0] < (uint32_t)indexableTemps.size())
+				{
+					RDCASSERT(indices[1] < (uint32_t)indexableTemps[ indices[0] ].size());
+					if(indices[1] < (uint32_t)indexableTemps[ indices[0] ].size())
+					{
+						v = s = indexableTemps[ indices[0] ][ indices[1] ];
+					}
+				}
+			}
 			break;
 		}
 		case TYPE_INPUT:
