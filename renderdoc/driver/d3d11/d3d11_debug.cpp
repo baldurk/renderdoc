@@ -3985,6 +3985,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			D3D11_SO_DECLARATION_ENTRY decl;
 
+			// for now, skip streams that aren't stream 0
+			if(sign.stream != 0)
+				continue;
+
 			decl.Stream = 0;
 			decl.OutputSlot = 0;
 
