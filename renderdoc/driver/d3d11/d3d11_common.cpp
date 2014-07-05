@@ -1259,17 +1259,24 @@ template<> void Serialiser::Serialise(const char *name, D3D11_SO_DECLARATION_ENT
 {
 	ScopedContext scope(this, this, name, "D3D11_SO_DECLARATION_ENTRY", 0, true);
 	
-	string s;
-	if(m_Mode >= WRITING)
+	string s = "";
+	if(m_Mode >= WRITING && el.SemanticName != NULL)
 		s = el.SemanticName;
 	
 	Serialise("SemanticName", s);
 
 	if(m_Mode == READING)
 	{
-		string str = (char *)m_BufferHead-s.length();
-		m_StringDB.insert(str);
-		el.SemanticName = m_StringDB.find(str)->c_str();
+		if(s == "")
+		{
+			el.SemanticName = NULL;
+		}
+		else
+		{
+			string str = (char *)m_BufferHead-s.length();
+			m_StringDB.insert(str);
+			el.SemanticName = m_StringDB.find(str)->c_str();
+		}
 	}
 
 	// so we can just take a char* into the buffer above for the semantic name,
