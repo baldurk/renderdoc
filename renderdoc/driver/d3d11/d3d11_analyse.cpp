@@ -2705,3 +2705,9 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 	return m_OverlayResourceId;
 }
+
+vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+{
+	RDCUNIMPLEMENTED("D3D11DebugManager::PixelHistory");
+	return vector<PixelModification>();
+}

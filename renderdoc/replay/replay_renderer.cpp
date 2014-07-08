@@ -326,6 +326,82 @@ bool ReplayRenderer::SaveTexture(ResourceId tex, uint32_t saveMip, const wchar_t
 	return m_pDevice->SaveTexture(m_pDevice->GetLiveID(tex), saveMip, path);
 }
 
+bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
+{
+	bool outofbounds = false;
+	
+	for(size_t t=0; t < m_Textures.size(); t++)
+	{
+		if(m_Textures[t].ID == target)
+		{
+			if(x >= m_Textures[t].width || y >= m_Textures[t].height)
+			{
+				RDCDEBUG("PixelHistory out of bounds on %llx (%u,%u) vs (%u,%u)", target, x, y, m_Textures[t].width, m_Textures[t].height);
+				history->count = 0;
+				history->elems = NULL;
+				return false;
+			}
+
+			break;
+		}
+	}
+
+	auto usage = m_pDevice->GetUsage(m_pDevice->GetLiveID(target));
+
+	vector<uint32_t> events;
+
+	for(size_t i=0; i < usage.size(); i++)
+	{
+		if(usage[i].eventID > m_EventID)
+			continue;
+
+		switch(usage[i].usage)
+		{
+			case eUsage_IA_VB:
+			case eUsage_IA_IB:
+			case eUsage_VS_CB:
+			case eUsage_HS_CB:
+			case eUsage_DS_CB:
+			case eUsage_GS_CB:
+			case eUsage_PS_CB:
+			case eUsage_CS_CB:
+			case eUsage_VS_SRV:
+			case eUsage_HS_SRV:
+			case eUsage_DS_SRV:
+			case eUsage_GS_SRV:
+			case eUsage_PS_SRV:
+			case eUsage_CS_SRV:
+				// read-only, not a valid pixel history event
+				continue;
+			
+			case eUsage_SO:
+			case eUsage_CS_UAV:
+			case eUsage_PS_UAV:
+			case eUsage_OM_RTV:
+			case eUsage_OM_DSV:
+			case eUsage_Clear:
+				// writing - include in pixel history events
+				break;
+		}
+
+		events.push_back(usage[i].eventID);
+	}
+	
+	if(events.empty())
+	{
+		RDCDEBUG("Target %llx not written to before %u", target, m_EventID);
+		history->count = 0;
+		history->elems = NULL;
+		return false;
+	}
+
+	*history = m_pDevice->PixelHistory(m_FrameID, events, m_pDevice->GetLiveID(target), x, y);
+	
+	SetFrameEvent(m_FrameID, m_EventID, true);
+
+	return true;
+}
+
 bool ReplayRenderer::VSGetDebugStates(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
 {
 	if(trace == NULL) return false;
@@ -694,6 +770,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRende
 extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
 { return rend->GetShaderDetails(shader); }
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
+{ return rend->PixelHistory(target, x, y, history); }
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_VSGetDebugStates(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
 { return rend->VSGetDebugStates(vertid, instid, idx, instOffset, vertOffset, trace); }
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PSGetDebugStates(ReplayRenderer *rend, uint32_t x, uint32_t y, ShaderDebugTrace *trace)

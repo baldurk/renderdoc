@@ -202,6 +202,23 @@ struct PixelValue
 	};
 };
 
+struct PixelModification
+{
+	uint32_t eventID;
+
+	PixelValue preMod;
+	PixelValue shaderOut;
+	PixelValue postMod;
+
+	bool32 backfaceCulled;
+	bool32 depthClipped;
+	bool32 viewClipped;
+	bool32 scissorClipped;
+	bool32 shaderDiscarded;
+	bool32 depthTestFailed;
+	bool32 stencilTestFailed;
+};
+
 struct PostVSMeshData
 {
 	rdctype::array<byte> buf;

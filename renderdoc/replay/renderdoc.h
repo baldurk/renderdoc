@@ -123,6 +123,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRende
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::wstr> *trace);
 extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader);
 
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history);
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_VSGetDebugStates(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PSGetDebugStates(ReplayRenderer *rend, uint32_t x, uint32_t y, ShaderDebugTrace *trace);
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_CSGetDebugStates(ReplayRenderer *rend, uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);

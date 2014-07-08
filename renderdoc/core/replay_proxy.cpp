@@ -525,6 +525,24 @@ void Serialiser::Serialise(const char *name, PostVSMeshData &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, PixelModification &el)
+{
+	Serialise("", el.eventID);
+
+	Serialise<4>("", el.preMod.value_u);
+	Serialise<4>("", el.shaderOut.value_u);
+	Serialise<4>("", el.postMod.value_u);
+	
+	Serialise("", el.backfaceCulled);
+	Serialise("", el.depthClipped);
+	Serialise("", el.viewClipped);
+	Serialise("", el.scissorClipped);
+	Serialise("", el.shaderDiscared);
+	Serialise("", el.depthTestFailed);
+	Serialise("", el.stencilTestFailed);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, ShaderDebugState &el)
 {
 	Serialise("", el.registers);
@@ -750,6 +768,9 @@ bool ProxySerialiser::Tick()
 			break;
 		case eCommand_RenderOverlay:
 			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0);
+			break;
+		case eCommand_PixelHistory:
+			PixelHistory(0, vector<uint32_t>(), ResourceId(), 0, 0);
 			break;
 		case eCommand_DebugVertex:
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
@@ -1437,6 +1458,31 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 		if(!SendReplayCommand(eCommand_RemoveReplacement))
 			return;
 	}
+}
+
+vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+{
+	vector<PixelModification> ret;
+	
+	m_ToReplaySerialiser->Serialise("", frameID);
+	m_ToReplaySerialiser->Serialise("", events);
+	m_ToReplaySerialiser->Serialise("", target);
+	m_ToReplaySerialiser->Serialise("", x);
+	m_ToReplaySerialiser->Serialise("", y);
+
+	if(m_ReplayHost)
+	{
+		ret = m_Remote->PixelHistory(frameID, events, target, x, y);
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_PixelHistory))
+			return ret;
+	}
+
+	m_FromReplaySerialiser->Serialise("", ret);
+
+	return ret;
 }
 
 ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)

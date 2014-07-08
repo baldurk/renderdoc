@@ -458,6 +458,27 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class PixelModification
+    {
+        public UInt32 eventID;
+
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public PixelValue preMod;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public PixelValue shaderOut;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public PixelValue postMod;
+
+        public bool backfaceCulled;
+        public bool depthClipped;
+        public bool viewClipped;
+        public bool scissorClipped;
+        public bool shaderDiscarded;
+        public bool depthTestFailed;
+        public bool stencilTestFailed;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class PostVSMeshData
     {
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
