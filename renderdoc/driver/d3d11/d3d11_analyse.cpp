@@ -2759,6 +2759,27 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				 targetres = ((WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[target].m_Texture)->GetReal();
 	else if(WrappedID3D11Texture3D::m_TextureList.find(target) != WrappedID3D11Texture3D::m_TextureList.end())
 				 targetres = ((WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[target].m_Texture)->GetReal();
+
+	// while issuing the above queries we can check to see which tests are enabled so we don't
+	// bother checking if depth testing failed if the depth test was disabled
+	vector<uint32_t> flags(events.size());
+	enum {
+		TestEnabled_BackfaceCulling = 1<<0,
+		TestEnabled_DepthClip       = 1<<1,
+		TestEnabled_Scissor         = 1<<2,
+		TestEnabled_DepthTesting    = 1<<3,
+		TestEnabled_StencilTesting  = 1<<4,
+
+		// important to know if blending is enabled or not as we currently skip a bunch of stuff
+		// and only pay attention to the final passing fragment if blending is off
+		Blending_Enabled            = 1<<5,
+		
+		// additional flags we can trivially detect on the CPU for edge cases
+		TestMustFail_Scissor        = 1<<6, // if the scissor is enabled, pixel lies outside all regions (could be only one)
+		TestMustFail_DepthTesting   = 1<<7, // if the comparison func is NEVER
+		TestMustFail_StencilTesting = 1<<8, // if the comparison func is NEVER for both faces, or one face is backface culled and the other is NEVER
+	};
+
 #if 1
 	BOOL occlData = 0;
 	const D3D11_QUERY_DESC occlDesc = { D3D11_QUERY_OCCLUSION_PREDICATE, 0 };
@@ -2841,14 +2862,118 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			/*AntialiasedLineEnable =*/ FALSE,
 		};
 
+		D3D11_RASTERIZER_DESC rsDesc;
+		RDCEraseEl(rsDesc);
+
 		if(curRS)
 		{
-			curRS->GetDesc(&rd);
+			curRS->GetDesc(&rsDesc);
+
+			rd = rsDesc;
+
+			if(rd.CullMode != D3D11_CULL_NONE)
+				flags[ev] |= TestEnabled_BackfaceCulling;
+			if(rd.DepthClipEnable)
+				flags[ev] |= TestEnabled_DepthClip;
+			if(rd.ScissorEnable)
+				flags[ev] |= TestEnabled_Scissor;
 
 			rd.CullMode = D3D11_CULL_NONE;
 			rd.DepthClipEnable = FALSE;
 
 			rd.ScissorEnable = TRUE;
+		}
+		else
+		{
+			rsDesc.CullMode = D3D11_CULL_BACK;
+			rsDesc.ScissorEnable = FALSE;
+
+			// defaults
+			flags[ev] |= (TestEnabled_BackfaceCulling|TestEnabled_DepthClip);
+		}
+
+		if(curDS)
+		{
+			D3D11_DEPTH_STENCIL_DESC dsDesc;
+			curDS->GetDesc(&dsDesc);
+
+			if(dsDesc.DepthEnable)
+			{
+				if(dsDesc.DepthFunc != D3D11_COMPARISON_ALWAYS)
+					flags[ev] |= TestEnabled_DepthTesting;
+
+				if(dsDesc.DepthFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_DepthTesting;
+			}
+			
+			if(dsDesc.StencilEnable)
+			{
+				if(dsDesc.FrontFace.StencilFunc != D3D11_COMPARISON_ALWAYS || dsDesc.BackFace.StencilFunc != D3D11_COMPARISON_ALWAYS)
+					flags[ev] |= TestEnabled_StencilTesting;
+
+				if(dsDesc.FrontFace.StencilFunc == D3D11_COMPARISON_NEVER && dsDesc.BackFace.StencilFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_StencilTesting;
+
+				if(dsDesc.FrontFace.StencilFunc == D3D11_COMPARISON_NEVER && rsDesc.CullMode == D3D11_CULL_BACK                   )
+					flags[ev] |= TestMustFail_StencilTesting;
+
+				if(rsDesc.CullMode == D3D11_CULL_FRONT                    && dsDesc.BackFace.StencilFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_StencilTesting;
+			}
+		}
+		else
+		{
+			// defaults
+			flags[ev] |= TestEnabled_DepthTesting;
+		}
+
+		if(rsDesc.ScissorEnable)
+		{
+			// see if we can find at least one scissor region this pixel could fall into
+			bool inRegion = false;
+
+			for(UINT i=0; i < curNumScissors && i < curNumViews; i++)
+			{
+				if(xf >= curViewports[i].TopLeftX + float(curScissors[i].left) &&
+					 yf >= curViewports[i].TopLeftY + float(curScissors[i].top) &&
+					 xf < curViewports[i].TopLeftX + RDCMIN(curViewports[i].Width, float(curScissors[i].right)) &&
+					 yf < curViewports[i].TopLeftY + RDCMIN(curViewports[i].Height, float(curScissors[i].bottom))
+					)
+				{
+					inRegion = true;
+					break;
+				}
+			}
+
+			if(!inRegion)
+				flags[ev] |= TestMustFail_Scissor;
+		}
+
+		if(curBS)
+		{
+			D3D11_BLEND_DESC desc;
+			curBS->GetDesc(&desc);
+
+			if(desc.IndependentBlendEnable)
+			{
+				for(int i=0; i < 8; i++)
+				{
+					if(desc.RenderTarget[i].BlendEnable)
+					{
+						flags[ev] |= Blending_Enabled;
+						break;
+					}
+				}
+			}
+			else
+			{
+				if(desc.RenderTarget[0].BlendEnable)
+					flags[ev] |= Blending_Enabled;
+			}
+		}
+		else
+		{
+			// no blending enabled by default
 		}
 
 		m_pDevice->CreateRasterizerState(&rd, &newRS);
