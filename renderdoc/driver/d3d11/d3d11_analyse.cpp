@@ -2712,7 +2712,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	if(events.empty())
 		return history;
-
+	
+	TextureShaderDetails details = GetShaderDetails(target, true);
+	
+	if(details.texFmt == DXGI_FORMAT_UNKNOWN)
+		return history;
+	
 	SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 
 	// needed for comparison with viewports
@@ -2721,9 +2726,39 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	RDCDEBUG("Checking Pixel History on %llx (%u, %u) with %u possible events", target, x, y, (uint32_t)events.size());
 
+	// these occlusion queries are run with every test possible disabled
 	vector<ID3D11Query*> occl;
 	occl.reserve(events.size());
 
+	// reserve 4 pixels per draw on average. Pre/Shaderout/Post required at minimum,
+	// and hopefully overdraw within draws will average to only 2 times.
+	uint32_t pixstoreSlots = (uint32_t)(events.size() * 6);
+
+	// define a texture that we can copy before/after results into
+	D3D11_TEXTURE2D_DESC pixstoreDesc = {
+		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
+		RDCMAX(1U, pixstoreSlots / 2048),
+		1U,
+		1U,
+		details.texFmt,
+		{ 1, 0 },
+		D3D11_USAGE_STAGING,
+		0,
+		D3D11_CPU_ACCESS_READ,
+		0,
+	};
+
+	ID3D11Texture2D *pixstore = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+	
+	ID3D11Resource *targetres = NULL;
+	
+	     if(WrappedID3D11Texture1D::m_TextureList.find(target) != WrappedID3D11Texture1D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[target].m_Texture)->GetReal();
+	else if(WrappedID3D11Texture2D::m_TextureList.find(target) != WrappedID3D11Texture2D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[target].m_Texture)->GetReal();
+	else if(WrappedID3D11Texture3D::m_TextureList.find(target) != WrappedID3D11Texture3D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[target].m_Texture)->GetReal();
 #if 1
 	BOOL occlData = 0;
 	const D3D11_QUERY_DESC occlDesc = { D3D11_QUERY_OCCLUSION_PREDICATE, 0 };
@@ -2848,6 +2883,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		// scissor every viewport
 		m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
+		D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
+
+		// figure out where this event lies in the pixstore texture
+		UINT storex = UINT(ev % (2048/3));
+		UINT storey = UINT(ev / (2048/3));
+
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 0, storey, 0, targetres, 0, &srcbox);
+
 		m_pImmediateContext->Begin(occl[ev]);
 
 		m_WrappedDevice->ReplayLog(frameID, 0, events[ev], eReplay_OnlyDraw);
@@ -2873,7 +2916,16 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		// state (otherwise this draw e.g. wouldn't write depth when it should)
 		if(ev < events.size()-1)
 			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev+1], eReplay_WithoutDraw);
+		else
+			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
+		
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 1, storey, 0, targetres, 0, &srcbox);
 	}
+
+	D3D11_MAPPED_SUBRESOURCE mapped = {0};
+	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+
+	byte *pixstoreData = (byte *)mapped.pData;
 
 	for(size_t i=0; i < occl.size(); i++)
 	{
@@ -2883,20 +2935,45 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		} while(hr == S_FALSE);
 		RDCASSERT(hr == S_OK);
 
+		// todo determine if an event is a clear, and unconditionally include it if it clears the current
+		// target
 		if(occlData > 0)
 		{
 			PixelModification mod;
 			RDCEraseEl(mod);
 
 			mod.eventID = events[i];
-			mod.preMod.value_f[0] = 1.0f;
-			mod.preMod.value_f[1] = 2.0f;
-			mod.preMod.value_f[2] = 3.0f;
-			mod.preMod.value_f[3] = 4.0f;
-			mod.postMod.value_f[0] = mod.shaderOut.value_f[0] = 4.0f;
-			mod.postMod.value_f[1] = mod.shaderOut.value_f[1] = 1.0f;
-			mod.postMod.value_f[2] = mod.shaderOut.value_f[2] = 3.0f;
-			mod.postMod.value_f[3] = mod.shaderOut.value_f[3] = 2.0f;
+
+			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+			
+			if(fmt.specialFormat == eSpecial_D24S8 ||
+				 fmt.specialFormat == eSpecial_D32S8 ||
+				 fmt.specialFormat == eSpecial_R10G10B10A2 ||
+				 fmt.specialFormat == eSpecial_R11G11B10 ||
+				 fmt.specialFormat == eSpecial_B8G8R8A8 ||
+				 (!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+				 )
+			{
+				// figure out where this event lies in the pixstore texture
+				uint32_t storex = uint32_t(i % (2048/3));
+				uint32_t storey = uint32_t(i / (2048/3));
+
+				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+					memcpy(&mod.preMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+					memcpy(&mod.postMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+			}
+
+			mod.shaderOut.value_f[0] = mod.postMod.value_f[0];
+			mod.shaderOut.value_f[1] = mod.postMod.value_f[1];
+			mod.shaderOut.value_f[2] = mod.postMod.value_f[2];
+			mod.shaderOut.value_f[3] = mod.postMod.value_f[3];
 
 			history.push_back(mod);
 
@@ -2908,8 +2985,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(occl[i]);
 	}
 
+	m_pImmediateContext->Unmap(pixstore, 0);
+
 	SAFE_RELEASE(nopBlendState);
 	SAFE_RELEASE(nopDSState);
+
+	SAFE_RELEASE(pixstore);
 
 	return history;
 }
