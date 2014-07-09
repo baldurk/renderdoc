@@ -3071,13 +3071,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
 			
-			if(fmt.specialFormat == eSpecial_D24S8 ||
-				 fmt.specialFormat == eSpecial_D32S8 ||
-				 fmt.specialFormat == eSpecial_R10G10B10A2 ||
-				 fmt.specialFormat == eSpecial_R11G11B10 ||
-				 fmt.specialFormat == eSpecial_B8G8R8A8 ||
-				 (!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
-				 )
+			if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
 			{
 				// figure out where this event lies in the pixstore texture
 				uint32_t storex = uint32_t(i % (2048/3));
@@ -3086,13 +3080,138 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
 
-				for(uint32_t c=0; c < fmt.compCount; c++)
-					memcpy(&mod.preMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+				if(fmt.compType == eCompType_SInt)
+				{
+					// need to get correct sign, but otherwise just copy
 
-				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+					if(fmt.compByteWidth == 1)
+					{
+						int8_t *d = (int8_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 2)
+					{
+						int16_t *d = (int16_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 4)
+					{
+						int32_t *d = (int32_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.value_i[c] = d[c];
+					}
 
-				for(uint32_t c=0; c < fmt.compCount; c++)
-					memcpy(&mod.postMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+					
+					if(fmt.compByteWidth == 1)
+					{
+						int8_t *d = (int8_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 2)
+					{
+						int16_t *d = (int16_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 4)
+					{
+						int32_t *d = (int32_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.value_i[c] = d[c];
+					}
+				}
+				else
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						memcpy(&mod.preMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						memcpy(&mod.postMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+					if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.value_u[c]));
+							mod.postMod.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.value_u[c]));
+						}
+					}
+					else if(fmt.compType == eCompType_UNorm)
+					{
+						// only 32bit unorm format is depth, handled separately
+						float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+						RDCASSERT(fmt.compByteWidth < 4);
+
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.value_f[c]  = float(mod.preMod.value_u[c])/maxVal;
+							mod.postMod.value_f[c] = float(mod.postMod.value_u[c])/maxVal;
+						}
+					}
+					else if(fmt.compType == eCompType_UNorm_SRGB)
+					{
+						RDCASSERT(fmt.compByteWidth == 1);
+
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.value_f[c]  = ConvertFromSRGB8(mod.preMod.value_u[c]&0xff);
+							mod.postMod.value_f[c] = ConvertFromSRGB8(mod.postMod.value_u[c]&0xff);
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.value_f[c]  = float(mod.preMod.value_u[c]);
+							mod.postMod.value_f[c] = float(mod.postMod.value_u[c]);
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							int8_t *d = (int8_t *)&mod.preMod.value_u[c];
+
+							if(*d == -128)
+								mod.preMod.value_f[c] = -1.0f;
+							else
+								mod.preMod.value_f[c] = float(*d)/127.0f;
+
+							d = (int8_t *)&mod.preMod.value_u[c];
+
+							if(*d == -128)
+								mod.preMod.value_f[c] = -1.0f;
+							else
+								mod.preMod.value_f[c] = float(*d)/127.0f;
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							int16_t *d = (int16_t *)&mod.preMod.value_u[c];
+
+							if(*d == -32768)
+								mod.preMod.value_f[c] = -1.0f;
+							else
+								mod.preMod.value_f[c] = float(*d)/32767.0f;
+
+							d = (int16_t *)&mod.preMod.value_u[c];
+
+							if(*d == -32768)
+								mod.preMod.value_f[c] = -1.0f;
+							else
+								mod.preMod.value_f[c] = float(*d)/32767.0f;
+						}
+					}
+				}
 			}
 
 			mod.shaderOut.value_f[0] = mod.postMod.value_f[0];
