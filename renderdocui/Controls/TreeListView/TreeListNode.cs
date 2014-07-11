@@ -26,6 +26,8 @@ namespace TreelistView
         Color               m_backCol = Color.Transparent;
         Color               m_defbackCol = Color.Transparent;
 
+        Color[]             m_backCols = null;
+
         public TreeListView OwnerView = null;
 
 		public Node Parent
@@ -146,15 +148,24 @@ namespace TreelistView
             get { return m_defbackCol; }
             set { m_defbackCol = value; }
         }
+        public Color[] IndexedBackColor
+        {
+            get
+            {
+                return m_backCols;
+            }
+        }
 
-		public Node()
-		{
-			m_data = new object[1];
-		}
-		public Node(string text)
-		{
-			m_data = new object[1] {text};
-		}
+        public Node()
+        {
+            m_data = new object[1];
+            m_backCols = new Color[1] { Color.Transparent };
+        }
+        public Node(string text)
+        {
+            m_data = new object[1] { text };
+            m_backCols = new Color[1] { Color.Transparent };
+        }
 		public Node(object[] fields)
 		{
 			SetData(fields);
@@ -196,11 +207,14 @@ namespace TreelistView
 		{
 			return m_data;
 		}
-		public void SetData(object[] fields)
-		{
-			m_data = new object[fields.Length];
-			fields.CopyTo(m_data, 0);
-		}
+        public void SetData(object[] fields)
+        {
+            m_data = new object[fields.Length];
+            fields.CopyTo(m_data, 0);
+
+            m_backCols = new Color[fields.Length];
+            for (int i = 0; i < fields.Length; i++) m_backCols[i] = Color.Transparent;
+        }
 		public int VisibleNodeCount
 		{
 			get 
