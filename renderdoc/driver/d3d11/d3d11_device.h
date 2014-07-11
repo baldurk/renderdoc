@@ -198,6 +198,7 @@ private:
 	double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
 	vector<FetchFrameRecord> m_FrameRecord;
+	const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
 public:
 	static const int AllocPoolCount = 4;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);
@@ -227,6 +228,8 @@ public:
 	ResourceId GetResourceID() { return m_ResourceID; }
 
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
+
+	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 	vector<DebugMessage> GetDebugMessages();
 	const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout) { return m_LayoutDescs[layout]; }

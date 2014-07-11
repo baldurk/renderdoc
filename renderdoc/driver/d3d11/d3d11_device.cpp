@@ -3160,3 +3160,49 @@ WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext( size_t idx 
 
 	return *it;
 }
+
+const FetchDrawcall *WrappedID3D11Device::GetDrawcall(const FetchDrawcall *draw, uint32_t eventID)
+{
+	if(draw == NULL) return NULL;
+	if(draw->eventID == eventID) return draw;
+
+	int32_t count = draw->children.count;
+	for(int32_t i=0; i < count; i++)
+	{
+		const FetchDrawcall *cur = &draw->children.elems[i];
+		const FetchDrawcall *next = i+1 < count ? &draw->children.elems[i+1] : NULL;
+
+		if(next && next->eventID <= eventID)
+			continue;
+
+		cur = GetDrawcall(cur, eventID);
+
+		if(cur)
+			return cur;
+	}
+
+	return NULL;
+}
+
+const FetchDrawcall *WrappedID3D11Device::GetDrawcall(uint32_t frameID, uint32_t eventID)
+{
+	if(frameID >= m_FrameRecord.size())
+		return NULL;
+
+	int32_t count = m_FrameRecord[frameID].drawcallList.count;
+	for(int32_t i=0; i < count; i++)
+	{
+		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList.elems[i];
+		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList.elems[i+1] : NULL;
+
+		if(next && next->eventID <= eventID)
+			continue;
+
+		cur = GetDrawcall(cur, eventID);
+
+		if(cur)
+			return cur;
+	}
+	
+	return NULL;
+}
