@@ -311,6 +311,8 @@ namespace renderdoc
         Instanced = 0x200,
         Auto = 0x400,
         Indirect = 0x800,
+        ClearColour = 0x1000,
+        ClearDepth = 0x2000,
     };
 
     public enum SolidShadeMode

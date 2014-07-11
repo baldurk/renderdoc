@@ -293,19 +293,21 @@ enum ResourceUsage
 enum DrawcallFlags
 {
 	// types
-	eDraw_Clear			= 0x01,
-	eDraw_Drawcall		= 0x02,
-	eDraw_Dispatch		= 0x04,
-	eDraw_CmdList		= 0x08,
-	eDraw_SetMarker		= 0x10,
-	eDraw_PushMarker	= 0x20,
-	eDraw_Present		= 0x40,
+	eDraw_Clear       = 0x01,
+	eDraw_Drawcall    = 0x02,
+	eDraw_Dispatch    = 0x04,
+	eDraw_CmdList     = 0x08,
+	eDraw_SetMarker   = 0x10,
+	eDraw_PushMarker  = 0x20,
+	eDraw_Present     = 0x40,
 
 	// flags
-	eDraw_UseIBuffer	= 0x100,
-	eDraw_Instanced		= 0x200,
-	eDraw_Auto			= 0x400,
-	eDraw_Indirect		= 0x800,
+	eDraw_UseIBuffer  = 0x0100,
+	eDraw_Instanced   = 0x0200,
+	eDraw_Auto        = 0x0400,
+	eDraw_Indirect    = 0x0800,
+	eDraw_ClearColour = 0x1000,
+	eDraw_ClearDepth  = 0x2000,
 };
 
 enum SolidShadeMode

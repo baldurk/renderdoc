@@ -5187,7 +5187,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 
 		FetchDrawcall draw;
 		draw.name = widen(name);
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_Clear|eDraw_ClearColour;
 
 		draw.debugMessages = debugMessages;
 
@@ -5541,7 +5541,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 
 		FetchDrawcall draw;
 		draw.name = widen(name);
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_Clear|eDraw_ClearDepth;
 
 		draw.debugMessages = debugMessages;
 
