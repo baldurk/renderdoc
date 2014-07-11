@@ -110,6 +110,8 @@
             this.customDelete = new System.Windows.Forms.ToolStripButton();
             this.backcolorPick = new System.Windows.Forms.ToolStripButton();
             this.checkerBack = new System.Windows.Forms.ToolStripButton();
+            this.gammaSeparator = new System.Windows.Forms.ToolStripSeparator();
+            this.gammaDisplay = new System.Windows.Forms.ToolStripButton();
             this.statusbar = new System.Windows.Forms.StatusStrip();
             this.texStatusDim = new System.Windows.Forms.ToolStripStatusLabel();
             this.hoverSwatch = new System.Windows.Forms.ToolStripStatusLabel();
@@ -120,28 +122,28 @@
             this.debugPixel = new System.Windows.Forms.ToolStripButton();
             this.texListShow = new System.Windows.Forms.ToolStripButton();
             this.texlistContainer = new System.Windows.Forms.TableLayoutPanel();
+            this.textureList = new renderdocui.Controls.TextureListBox();
             this.texturefilter = new System.Windows.Forms.ComboBox();
             this.label1 = new System.Windows.Forms.Label();
             this.clearTexFilter = new System.Windows.Forms.Button();
             this.renderToolstripContainer = new System.Windows.Forms.ToolStripContainer();
             this.renderScrollTable = new System.Windows.Forms.TableLayoutPanel();
+            this.renderContainer = new renderdocui.Controls.NoScrollPanel();
+            this.render = new renderdocui.Controls.NoScrollPanel();
             this.renderVScroll = new System.Windows.Forms.VScrollBar();
             this.renderHScroll = new System.Windows.Forms.HScrollBar();
             this.pixelContextPanel = new System.Windows.Forms.TableLayoutPanel();
+            this.pixelContext = new renderdocui.Controls.NoScrollPanel();
             this.debugPixelContext = new System.Windows.Forms.Button();
+            this.pixelHistory = new System.Windows.Forms.Button();
             this.tabContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.closeTab = new System.Windows.Forms.ToolStripMenuItem();
             this.closeOtherTabs = new System.Windows.Forms.ToolStripMenuItem();
             this.closeTabsToRight = new System.Windows.Forms.ToolStripMenuItem();
-            this.gammaDisplay = new System.Windows.Forms.ToolStripButton();
-            this.gammaSeparator = new System.Windows.Forms.ToolStripSeparator();
-            this.textureList = new renderdocui.Controls.TextureListBox();
             this.texPanel = new renderdocui.Controls.ThumbnailStrip();
             this.rtPanel = new renderdocui.Controls.ThumbnailStrip();
-            this.pixelContext = new renderdocui.Controls.NoScrollPanel();
-            this.renderContainer = new renderdocui.Controls.NoScrollPanel();
-            this.render = new renderdocui.Controls.NoScrollPanel();
             this.rangeHistogram = new renderdocui.Controls.RangeHistogram();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             subSep = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
@@ -163,9 +165,9 @@
             this.renderToolstripContainer.ContentPanel.SuspendLayout();
             this.renderToolstripContainer.SuspendLayout();
             this.renderScrollTable.SuspendLayout();
+            this.renderContainer.SuspendLayout();
             this.pixelContextPanel.SuspendLayout();
             this.tabContextMenu.SuspendLayout();
-            this.renderContainer.SuspendLayout();
             this.SuspendLayout();
             // 
             // subSep
@@ -861,6 +863,26 @@
             this.checkerBack.ToolTipText = "Alpha: Show Checkerboard Background";
             this.checkerBack.Click += new System.EventHandler(this.checkerBack_Click);
             // 
+            // gammaSeparator
+            // 
+            this.gammaSeparator.Name = "gammaSeparator";
+            this.gammaSeparator.Size = new System.Drawing.Size(6, 25);
+            // 
+            // gammaDisplay
+            // 
+            this.gammaDisplay.Checked = true;
+            this.gammaDisplay.CheckOnClick = true;
+            this.gammaDisplay.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.gammaDisplay.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.gammaDisplay.Image = ((System.Drawing.Image)(resources.GetObject("gammaDisplay.Image")));
+            this.gammaDisplay.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.gammaDisplay.Name = "gammaDisplay";
+            this.gammaDisplay.Size = new System.Drawing.Size(23, 22);
+            this.gammaDisplay.Text = "γ";
+            this.gammaDisplay.ToolTipText = "Override display of linear data in gamma space\r\n\r\nSee FAQ on \"Gamma display of li" +
+    "near data\"";
+            this.gammaDisplay.CheckedChanged += new System.EventHandler(this.updateChannelsHandler);
+            // 
             // statusbar
             // 
             this.statusbar.Dock = System.Windows.Forms.DockStyle.None;
@@ -871,7 +893,7 @@
             this.statusbar.LayoutStyle = System.Windows.Forms.ToolStripLayoutStyle.Flow;
             this.statusbar.Location = new System.Drawing.Point(0, 0);
             this.statusbar.Name = "statusbar";
-            this.statusbar.Size = new System.Drawing.Size(420, 19);
+            this.statusbar.Size = new System.Drawing.Size(420, 18);
             this.statusbar.SizingGrip = false;
             this.statusbar.TabIndex = 0;
             // 
@@ -984,6 +1006,20 @@
             this.texlistContainer.Size = new System.Drawing.Size(136, 260);
             this.texlistContainer.TabIndex = 1;
             // 
+            // textureList
+            // 
+            this.texlistContainer.SetColumnSpan(this.textureList, 2);
+            this.textureList.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.textureList.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
+            this.textureList.IntegralHeight = false;
+            this.textureList.ItemHeight = 16;
+            this.textureList.Location = new System.Drawing.Point(3, 50);
+            this.textureList.Name = "textureList";
+            this.textureList.SelectionMode = System.Windows.Forms.SelectionMode.None;
+            this.textureList.Size = new System.Drawing.Size(130, 207);
+            this.textureList.TabIndex = 0;
+            this.textureList.MouseUp += new System.Windows.Forms.MouseEventHandler(this.textureList_MouseUp);
+            // 
             // texturefilter
             // 
             this.texturefilter.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -1033,7 +1069,7 @@
             // renderToolstripContainer.ContentPanel
             // 
             this.renderToolstripContainer.ContentPanel.Controls.Add(this.renderScrollTable);
-            this.renderToolstripContainer.ContentPanel.Size = new System.Drawing.Size(420, 247);
+            this.renderToolstripContainer.ContentPanel.Size = new System.Drawing.Size(420, 248);
             this.renderToolstripContainer.LeftToolStripPanelVisible = false;
             this.renderToolstripContainer.Location = new System.Drawing.Point(299, 87);
             this.renderToolstripContainer.Name = "renderToolstripContainer";
@@ -1058,8 +1094,35 @@
             this.renderScrollTable.RowCount = 2;
             this.renderScrollTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.renderScrollTable.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.renderScrollTable.Size = new System.Drawing.Size(420, 247);
+            this.renderScrollTable.Size = new System.Drawing.Size(420, 248);
             this.renderScrollTable.TabIndex = 2;
+            // 
+            // renderContainer
+            // 
+            this.renderContainer.BackColor = System.Drawing.Color.Maroon;
+            this.renderContainer.Controls.Add(this.render);
+            this.renderContainer.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.renderContainer.Location = new System.Drawing.Point(0, 0);
+            this.renderContainer.Margin = new System.Windows.Forms.Padding(0);
+            this.renderContainer.Name = "renderContainer";
+            this.renderContainer.Size = new System.Drawing.Size(404, 232);
+            this.renderContainer.TabIndex = 1;
+            // 
+            // render
+            // 
+            this.render.BackColor = System.Drawing.Color.Black;
+            this.render.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.render.Location = new System.Drawing.Point(0, 0);
+            this.render.Name = "render";
+            this.render.Size = new System.Drawing.Size(404, 232);
+            this.render.TabIndex = 0;
+            this.render.Paint += new System.Windows.Forms.PaintEventHandler(this.render_Paint);
+            this.render.Layout += new System.Windows.Forms.LayoutEventHandler(this.render_Layout);
+            this.render.MouseClick += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
+            this.render.MouseDown += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
+            this.render.MouseLeave += new System.EventHandler(this.render_MouseLeave);
+            this.render.MouseMove += new System.Windows.Forms.MouseEventHandler(this.render_MouseMove);
+            this.render.MouseUp += new System.Windows.Forms.MouseEventHandler(this.render_MouseUp);
             // 
             // renderVScroll
             // 
@@ -1067,7 +1130,7 @@
             this.renderVScroll.Enabled = false;
             this.renderVScroll.Location = new System.Drawing.Point(404, 0);
             this.renderVScroll.Name = "renderVScroll";
-            this.renderVScroll.Size = new System.Drawing.Size(16, 231);
+            this.renderVScroll.Size = new System.Drawing.Size(16, 232);
             this.renderVScroll.TabIndex = 2;
             this.renderVScroll.Scroll += new System.Windows.Forms.ScrollEventHandler(this.renderVScroll_Scroll);
             // 
@@ -1075,7 +1138,7 @@
             // 
             this.renderHScroll.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.renderHScroll.Enabled = false;
-            this.renderHScroll.Location = new System.Drawing.Point(0, 231);
+            this.renderHScroll.Location = new System.Drawing.Point(0, 232);
             this.renderHScroll.Name = "renderHScroll";
             this.renderHScroll.Size = new System.Drawing.Size(404, 16);
             this.renderHScroll.TabIndex = 3;
@@ -1083,29 +1146,55 @@
             // 
             // pixelContextPanel
             // 
-            this.pixelContextPanel.ColumnCount = 1;
-            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pixelContextPanel.ColumnCount = 2;
+            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.pixelContextPanel.Controls.Add(this.pixelContext, 0, 0);
-            this.pixelContextPanel.Controls.Add(this.debugPixelContext, 0, 1);
+            this.pixelContextPanel.Controls.Add(this.debugPixelContext, 1, 1);
+            this.pixelContextPanel.Controls.Add(this.pixelHistory, 0, 1);
             this.pixelContextPanel.Location = new System.Drawing.Point(780, 258);
             this.pixelContextPanel.Name = "pixelContextPanel";
             this.pixelContextPanel.RowCount = 2;
             this.pixelContextPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pixelContextPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.pixelContextPanel.Size = new System.Drawing.Size(108, 127);
+            this.pixelContextPanel.Size = new System.Drawing.Size(215, 156);
             this.pixelContextPanel.TabIndex = 11;
+            // 
+            // pixelContext
+            // 
+            this.pixelContext.BackColor = System.Drawing.Color.Transparent;
+            this.pixelContextPanel.SetColumnSpan(this.pixelContext, 2);
+            this.pixelContext.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pixelContext.Location = new System.Drawing.Point(3, 3);
+            this.pixelContext.Name = "pixelContext";
+            this.pixelContext.Size = new System.Drawing.Size(209, 121);
+            this.pixelContext.TabIndex = 6;
+            this.pixelContext.Paint += new System.Windows.Forms.PaintEventHandler(this.pixelContext_Paint);
             // 
             // debugPixelContext
             // 
             this.debugPixelContext.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.debugPixelContext.AutoSize = true;
-            this.debugPixelContext.Location = new System.Drawing.Point(5, 101);
+            this.debugPixelContext.Location = new System.Drawing.Point(136, 130);
             this.debugPixelContext.Name = "debugPixelContext";
-            this.debugPixelContext.Size = new System.Drawing.Size(97, 23);
+            this.debugPixelContext.Size = new System.Drawing.Size(49, 23);
             this.debugPixelContext.TabIndex = 7;
-            this.debugPixelContext.Text = "Debug This Pixel";
+            this.debugPixelContext.Text = "Debug";
+            this.toolTip.SetToolTip(this.debugPixelContext, "Debug this pixel");
             this.debugPixelContext.UseVisualStyleBackColor = true;
             this.debugPixelContext.Click += new System.EventHandler(this.debugPixel_Click);
+            // 
+            // pixelHistory
+            // 
+            this.pixelHistory.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.pixelHistory.Location = new System.Drawing.Point(29, 130);
+            this.pixelHistory.Name = "pixelHistory";
+            this.pixelHistory.Size = new System.Drawing.Size(48, 23);
+            this.pixelHistory.TabIndex = 8;
+            this.pixelHistory.Text = "History";
+            this.toolTip.SetToolTip(this.pixelHistory, "Show history for this pixel");
+            this.pixelHistory.UseVisualStyleBackColor = true;
+            this.pixelHistory.Click += new System.EventHandler(this.pixelHistory_Click);
             // 
             // tabContextMenu
             // 
@@ -1138,40 +1227,6 @@
             this.closeTabsToRight.Text = "Close tabs to right";
             this.closeTabsToRight.Click += new System.EventHandler(this.closeTabsToRight_Click);
             // 
-            // gammaDisplay
-            // 
-            this.gammaDisplay.Checked = true;
-            this.gammaDisplay.CheckOnClick = true;
-            this.gammaDisplay.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.gammaDisplay.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            this.gammaDisplay.Image = ((System.Drawing.Image)(resources.GetObject("gammaDisplay.Image")));
-            this.gammaDisplay.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.gammaDisplay.Name = "gammaDisplay";
-            this.gammaDisplay.Size = new System.Drawing.Size(23, 22);
-            this.gammaDisplay.Text = "γ";
-            this.gammaDisplay.ToolTipText = "Override display of linear data in gamma space\r\n\r\nSee FAQ on \"Gamma display of li" +
-    "near data\"";
-            this.gammaDisplay.CheckedChanged += new System.EventHandler(this.updateChannelsHandler);
-            // 
-            // gammaSeparator
-            // 
-            this.gammaSeparator.Name = "gammaSeparator";
-            this.gammaSeparator.Size = new System.Drawing.Size(6, 25);
-            // 
-            // textureList
-            // 
-            this.texlistContainer.SetColumnSpan(this.textureList, 2);
-            this.textureList.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.textureList.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
-            this.textureList.IntegralHeight = false;
-            this.textureList.ItemHeight = 16;
-            this.textureList.Location = new System.Drawing.Point(3, 50);
-            this.textureList.Name = "textureList";
-            this.textureList.SelectionMode = System.Windows.Forms.SelectionMode.None;
-            this.textureList.Size = new System.Drawing.Size(130, 207);
-            this.textureList.TabIndex = 0;
-            this.textureList.MouseUp += new System.Windows.Forms.MouseEventHandler(this.textureList_MouseUp);
-            // 
             // texPanel
             // 
             this.texPanel.AutoScroll = true;
@@ -1196,43 +1251,6 @@
             this.rtPanel.Size = new System.Drawing.Size(200, 60);
             this.rtPanel.TabIndex = 2;
             this.rtPanel.MouseClick += new System.Windows.Forms.MouseEventHandler(this.thumbsLayout_MouseClick);
-            // 
-            // pixelContext
-            // 
-            this.pixelContext.BackColor = System.Drawing.Color.Transparent;
-            this.pixelContext.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pixelContext.Location = new System.Drawing.Point(3, 3);
-            this.pixelContext.Name = "pixelContext";
-            this.pixelContext.Size = new System.Drawing.Size(102, 92);
-            this.pixelContext.TabIndex = 6;
-            this.pixelContext.Paint += new System.Windows.Forms.PaintEventHandler(this.pixelContext_Paint);
-            // 
-            // renderContainer
-            // 
-            this.renderContainer.BackColor = System.Drawing.Color.Maroon;
-            this.renderContainer.Controls.Add(this.render);
-            this.renderContainer.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.renderContainer.Location = new System.Drawing.Point(0, 0);
-            this.renderContainer.Margin = new System.Windows.Forms.Padding(0);
-            this.renderContainer.Name = "renderContainer";
-            this.renderContainer.Size = new System.Drawing.Size(404, 231);
-            this.renderContainer.TabIndex = 1;
-            // 
-            // render
-            // 
-            this.render.BackColor = System.Drawing.Color.Black;
-            this.render.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.render.Location = new System.Drawing.Point(0, 0);
-            this.render.Name = "render";
-            this.render.Size = new System.Drawing.Size(404, 231);
-            this.render.TabIndex = 0;
-            this.render.Paint += new System.Windows.Forms.PaintEventHandler(this.render_Paint);
-            this.render.Layout += new System.Windows.Forms.LayoutEventHandler(this.render_Layout);
-            this.render.MouseClick += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
-            this.render.MouseDown += new System.Windows.Forms.MouseEventHandler(this.render_MouseClick);
-            this.render.MouseLeave += new System.EventHandler(this.render_MouseLeave);
-            this.render.MouseMove += new System.Windows.Forms.MouseEventHandler(this.render_MouseMove);
-            this.render.MouseUp += new System.Windows.Forms.MouseEventHandler(this.render_MouseUp);
             // 
             // rangeHistogram
             // 
@@ -1299,10 +1317,10 @@
             this.renderToolstripContainer.ResumeLayout(false);
             this.renderToolstripContainer.PerformLayout();
             this.renderScrollTable.ResumeLayout(false);
+            this.renderContainer.ResumeLayout(false);
             this.pixelContextPanel.ResumeLayout(false);
             this.pixelContextPanel.PerformLayout();
             this.tabContextMenu.ResumeLayout(false);
-            this.renderContainer.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1403,6 +1421,8 @@
         private System.Windows.Forms.ToolStripButton customEdit;
         private System.Windows.Forms.ToolStripButton gammaDisplay;
         private System.Windows.Forms.ToolStripSeparator gammaSeparator;
+        private System.Windows.Forms.ToolTip toolTip;
+        private System.Windows.Forms.Button pixelHistory;
 
     }
 }

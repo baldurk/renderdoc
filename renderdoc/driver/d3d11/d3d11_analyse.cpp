@@ -3066,6 +3066,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
 
 	byte *pixstoreData = (byte *)mapped.pData;
+	
+	bool depthStencilTex = details.texType == eTexType_Depth || 
+		details.texType == eTexType_DepthMS ||
+		details.texType == eTexType_Stencil ||
+		details.texType == eTexType_StencilMS;
 
 	for(size_t i=0; i < occl.size(); i++)
 	{
@@ -3075,9 +3080,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		} while(hr == S_FALSE);
 		RDCASSERT(hr == S_OK);
 
-		// todo determine if an event is a clear, and unconditionally include it if it clears the current
-		// target
-		if(occlData > 0)
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i]);
+
+		bool clear = (draw->flags & eDraw_Clear);
+
+		if(occlData > 0 || clear)
 		{
 			PixelModification mod;
 			RDCEraseEl(mod);
@@ -3174,10 +3181,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					{
 						RDCASSERT(fmt.compByteWidth == 1);
 
-						for(uint32_t c=0; c < fmt.compCount; c++)
+						for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
 						{
 							mod.preMod.value_f[c]  = ConvertFromSRGB8(mod.preMod.value_u[c]&0xff);
 							mod.postMod.value_f[c] = ConvertFromSRGB8(mod.postMod.value_u[c]&0xff);
+						}
+
+						// alpha is not SRGB'd
+						if(fmt.compCount == 4)
+						{
+							mod.preMod.value_f[3] = float(mod.preMod.value_u[3]&0xff)/255.0f;
+							mod.postMod.value_f[3] = float(mod.postMod.value_u[3]&0xff)/255.0f;
 						}
 					}
 					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
@@ -3236,391 +3250,394 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			if(flags[i] & Blending_Enabled)
 			{
 			}
-
-			if(flags[i] & TestMustFail_DepthTesting)
-				mod.depthTestFailed = true;
-			if(flags[i] & TestMustFail_StencilTesting)
-				mod.stencilTestFailed = true;
-			if(flags[i] & TestMustFail_Scissor)
-				mod.scissorClipped = true;
-
-			bool dirty = false;
-		
-			m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-			curNumScissors = curNumViews = 16;
-			m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
-			m_pImmediateContext->RSGetScissorRects(&curNumScissors, curScissors);
-			m_pImmediateContext->RSGetState(&curRS);
-			m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
-			blendFactor[0] = blendFactor[1] = blendFactor[2] = blendFactor[3] = 1.0f;
-			curSample = ~0U;
-
-			D3D11_RASTERIZER_DESC rdesc = {
-				/*FillMode =*/ D3D11_FILL_SOLID,
-				/*CullMode =*/ D3D11_CULL_BACK,
-				/*FrontCounterClockwise =*/ FALSE,
-				/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
-				/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
-				/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
-				/*DepthClipEnable =*/ TRUE,
-				/*ScissorEnable =*/ FALSE,
-				/*MultisampleEnable =*/ FALSE,
-				/*AntialiasedLineEnable =*/ FALSE,
-			};
-			if(curRS)
-				curRS->GetDesc(&rdesc);
-
-			D3D11_DEPTH_STENCIL_DESC dsdesc = {
-				/*DepthEnable =*/ TRUE,
-				/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
-				/*DepthFunc =*/ D3D11_COMPARISON_LESS,
-				/*StencilEnable =*/ FALSE,
-				/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
-				/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
-				/*FrontFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
-				/*BackFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
-			};
 			
-			if(curDS)
-				curDS->GetDesc(&dsdesc);
-
-			for(UINT v=0; v < curNumViews; v++)
-			{
-				// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
-
-				// if (x,y) pixel isn't in viewport, make empty rect)
-				if(xf < curViewports[v].TopLeftX ||
-					yf < curViewports[v].TopLeftY ||
-					xf >= curViewports[v].TopLeftX + curViewports[v].Width ||
-					yf >= curViewports[v].TopLeftY + curViewports[v].Height)
-				{
-					newScissors[v].left = newScissors[v].top = newScissors[v].bottom = newScissors[v].right = 0;
-				}
-				else
-				{
-					newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
-					newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
-					newScissors[v].right = newScissors[v].left+1;
-					newScissors[v].bottom = newScissors[v].top+1;
-				}
-			}
-
-			// for each test we only disable pipeline rejection tests that fall *after* it.
-			// e.g. to get an idea if a pixel failed backface culling or not, we enable only backface
-			// culling and disable everything else (since it happens first).
-			// For depth testing, we leave all tests enabled up to then - as we only want to know which
-			// pixels were rejected by the depth test, not pixels that might have passed the depth test
-			// had they not been discarded earlier by backface culling or depth clipping.
-
-			if(flags[i] & TestEnabled_BackfaceCulling)
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				rd.DepthClipEnable = FALSE;
-				// leave backface culling mode as normal
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-				m_pImmediateContext->Begin(testQueries[0]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[0]);
-
-				SAFE_RELEASE(newRS);
-			}
-
-			if(flags[i] & TestEnabled_DepthClip)
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				// leave depth clip mode as normal
-				// leave backface culling mode as normal
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-				m_pImmediateContext->Begin(testQueries[1]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[1]);
-
-				SAFE_RELEASE(newRS);
-			}
-
-			// only check scissor if test is enabled and we don't know if it's pass or fail yet
-			if((flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				// leave depth clip mode as normal
-				// leave backface culling mode as normal
-				
-				// newScissors has scissor regions calculated to hit our target pixel on every viewport, but we must
-				// intersect that with the original scissors regions for correct testing behaviour.
-				// This amounts to making any scissor region that doesn't overlap with the target pixel empty.
-				//
-				// Note that in the case of only one scissor region we can trivially detect pass/fail of the test against
-				// our pixel on the CPU so we won't come in here (see check above against MustFail/MustPass). So we will
-				// only do this in the case where we have multiple scissor regions/viewports, some intersecting the pixel
-				// and some not. So we make the not intersecting scissor regions empty so our occlusion query tests to see
-				// if any pixels were written to the "passing" viewports
-				D3D11_RECT intersectScissors[16] = {0};
-				memcpy(intersectScissors, newScissors, sizeof(intersectScissors));
-
-				for(UINT s=0; s < curNumScissors; s++)
-				{
-					if(curScissors[i].left > newScissors[i].left ||
-						 curScissors[i].right < newScissors[i].right ||
-						 curScissors[i].top > newScissors[i].top ||
-						 curScissors[i].bottom < newScissors[i].bottom)
-					{
-						// scissor region from the log doesn't touch our target pixel, make empty.
-						intersectScissors[i].left = intersectScissors[i].right = intersectScissors[i].top = intersectScissors[i].bottom = 0;
-					}
-				}
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
-
-				m_pImmediateContext->Begin(testQueries[2]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[2]);
-
-				SAFE_RELEASE(newRS);
-			}
-
-			// test shader discard
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				// leave depth clip mode as normal
-				// leave backface culling mode as normal
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-				m_pImmediateContext->Begin(testQueries[3]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[3]);
-
-				SAFE_RELEASE(newRS);
-			}
-			
-			if(flags[i] & TestEnabled_DepthTesting)
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				// leave depth clip mode as normal
-				// leave backface culling mode as normal
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-
-				D3D11_DEPTH_STENCIL_DESC dsd = dsdesc;
-
-				dsd.StencilEnable = FALSE;
-				dsd.StencilReadMask = 0;
-				dsd.StencilWriteMask = 0;
-
-				m_pDevice->CreateDepthStencilState(&dsd, &newDS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-				m_pImmediateContext->Begin(testQueries[4]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[4]);
-
-				SAFE_RELEASE(newRS);
-				SAFE_RELEASE(newDS);
-			}
-
-			if(flags[i] & TestEnabled_StencilTesting)
-			{
-				D3D11_RASTERIZER_DESC rd = rdesc;
-
-				rd.ScissorEnable = TRUE;
-				rd.DepthClipEnable = FALSE;
-				rd.CullMode = D3D11_CULL_NONE;
-
-				m_pDevice->CreateRasterizerState(&rd, &newRS);
-
-				// leave depthstencil testing exactly as is, because a depth-fail means
-				// stencil isn't run
-				m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
-				
-				if(dirty)
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-				m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-				m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-				m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
-				m_pImmediateContext->RSSetState(newRS);
-				m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-				m_pImmediateContext->Begin(testQueries[5]);
-
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-				dirty = true;
-
-				m_pImmediateContext->End(testQueries[5]);
-
-				SAFE_RELEASE(newRS);
-				SAFE_RELEASE(newDS);
-			}
-
-			SAFE_RELEASE(curRS);
-
 			mod.shaderOut.value_f[0] = mod.postMod.value_f[0];
 			mod.shaderOut.value_f[1] = mod.postMod.value_f[1];
 			mod.shaderOut.value_f[2] = mod.postMod.value_f[2];
 			mod.shaderOut.value_f[3] = mod.postMod.value_f[3];
 
-			// we check these in the order defined, as a positive from the backface cull test
-			// will invalidate tests later (as they will also be backface culled)
-
-			do 
+			if((draw->flags & eDraw_Clear) == 0)
 			{
+				if(flags[i] & TestMustFail_DepthTesting)
+					mod.depthTestFailed = true;
+				if(flags[i] & TestMustFail_StencilTesting)
+					mod.stencilTestFailed = true;
+				if(flags[i] & TestMustFail_Scissor)
+					mod.scissorClipped = true;
+
+				bool dirty = false;
+
+				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+				curNumScissors = curNumViews = 16;
+				m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
+				m_pImmediateContext->RSGetScissorRects(&curNumScissors, curScissors);
+				m_pImmediateContext->RSGetState(&curRS);
+				m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
+				blendFactor[0] = blendFactor[1] = blendFactor[2] = blendFactor[3] = 1.0f;
+				curSample = ~0U;
+
+				D3D11_RASTERIZER_DESC rdesc = {
+					/*FillMode =*/ D3D11_FILL_SOLID,
+					/*CullMode =*/ D3D11_CULL_BACK,
+					/*FrontCounterClockwise =*/ FALSE,
+					/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
+					/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+					/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+					/*DepthClipEnable =*/ TRUE,
+					/*ScissorEnable =*/ FALSE,
+					/*MultisampleEnable =*/ FALSE,
+					/*AntialiasedLineEnable =*/ FALSE,
+				};
+				if(curRS)
+					curRS->GetDesc(&rdesc);
+
+				D3D11_DEPTH_STENCIL_DESC dsdesc = {
+					/*DepthEnable =*/ TRUE,
+					/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+					/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+					/*StencilEnable =*/ FALSE,
+					/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+					/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+					/*FrontFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+					/*BackFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+				};
+
+				if(curDS)
+					curDS->GetDesc(&dsdesc);
+
+				for(UINT v=0; v < curNumViews; v++)
+				{
+					// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
+
+					// if (x,y) pixel isn't in viewport, make empty rect)
+					if(xf < curViewports[v].TopLeftX ||
+						yf < curViewports[v].TopLeftY ||
+						xf >= curViewports[v].TopLeftX + curViewports[v].Width ||
+						yf >= curViewports[v].TopLeftY + curViewports[v].Height)
+					{
+						newScissors[v].left = newScissors[v].top = newScissors[v].bottom = newScissors[v].right = 0;
+					}
+					else
+					{
+						newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
+						newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
+						newScissors[v].right = newScissors[v].left+1;
+						newScissors[v].bottom = newScissors[v].top+1;
+					}
+				}
+
+				// for each test we only disable pipeline rejection tests that fall *after* it.
+				// e.g. to get an idea if a pixel failed backface culling or not, we enable only backface
+				// culling and disable everything else (since it happens first).
+				// For depth testing, we leave all tests enabled up to then - as we only want to know which
+				// pixels were rejected by the depth test, not pixels that might have passed the depth test
+				// had they not been discarded earlier by backface culling or depth clipping.
 
 				if(flags[i] & TestEnabled_BackfaceCulling)
 				{
-					do
-					{
-						hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+					D3D11_RASTERIZER_DESC rd = rdesc;
 
-					mod.backfaceCulled = (occlData == 0);
+					rd.ScissorEnable = TRUE;
+					rd.DepthClipEnable = FALSE;
+					// leave backface culling mode as normal
 
-					if(mod.backfaceCulled)
-						break;
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[0]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[0]);
+
+					SAFE_RELEASE(newRS);
 				}
 
 				if(flags[i] & TestEnabled_DepthClip)
 				{
-					do
-					{
-						hr = m_pImmediateContext->GetData(testQueries[1], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+					D3D11_RASTERIZER_DESC rd = rdesc;
 
-					mod.depthClipped = (occlData == 0);
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
 
-					if(mod.depthClipped)
-						break;
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[1]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[1]);
+
+					SAFE_RELEASE(newRS);
 				}
 
-				if(!mod.backfaceCulled && (flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
+				// only check scissor if test is enabled and we don't know if it's pass or fail yet
+				if((flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
 				{
-					do
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					// newScissors has scissor regions calculated to hit our target pixel on every viewport, but we must
+					// intersect that with the original scissors regions for correct testing behaviour.
+					// This amounts to making any scissor region that doesn't overlap with the target pixel empty.
+					//
+					// Note that in the case of only one scissor region we can trivially detect pass/fail of the test against
+					// our pixel on the CPU so we won't come in here (see check above against MustFail/MustPass). So we will
+					// only do this in the case where we have multiple scissor regions/viewports, some intersecting the pixel
+					// and some not. So we make the not intersecting scissor regions empty so our occlusion query tests to see
+					// if any pixels were written to the "passing" viewports
+					D3D11_RECT intersectScissors[16] = {0};
+					memcpy(intersectScissors, newScissors, sizeof(intersectScissors));
+
+					for(UINT s=0; s < curNumScissors; s++)
 					{
-						hr = m_pImmediateContext->GetData(testQueries[2], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+						if(curScissors[i].left > newScissors[i].left ||
+							curScissors[i].right < newScissors[i].right ||
+							curScissors[i].top > newScissors[i].top ||
+							curScissors[i].bottom < newScissors[i].bottom)
+						{
+							// scissor region from the log doesn't touch our target pixel, make empty.
+							intersectScissors[i].left = intersectScissors[i].right = intersectScissors[i].top = intersectScissors[i].bottom = 0;
+						}
+					}
 
-					mod.scissorClipped = (occlData == 0);
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					if(mod.scissorClipped)
-						break;
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
+
+					m_pImmediateContext->Begin(testQueries[2]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[2]);
+
+					SAFE_RELEASE(newRS);
 				}
 
+				// test shader discard
 				{
-					do
-					{
-						hr = m_pImmediateContext->GetData(testQueries[3], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+					D3D11_RASTERIZER_DESC rd = rdesc;
 
-					mod.shaderDiscarded = (occlData == 0);
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
 
-					if(mod.shaderDiscarded)
-						break;
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[3]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[3]);
+
+					SAFE_RELEASE(newRS);
 				}
 
 				if(flags[i] & TestEnabled_DepthTesting)
 				{
-					do
-					{
-						hr = m_pImmediateContext->GetData(testQueries[4], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+					D3D11_RASTERIZER_DESC rd = rdesc;
 
-					mod.depthTestFailed = (occlData == 0);
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
 
-					if(mod.depthTestFailed)
-						break;
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					D3D11_DEPTH_STENCIL_DESC dsd = dsdesc;
+
+					dsd.StencilEnable = FALSE;
+					dsd.StencilReadMask = 0;
+					dsd.StencilWriteMask = 0;
+
+					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
+
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[4]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[4]);
+
+					SAFE_RELEASE(newRS);
+					SAFE_RELEASE(newDS);
 				}
 
 				if(flags[i] & TestEnabled_StencilTesting)
 				{
-					do
-					{
-						hr = m_pImmediateContext->GetData(testQueries[5], &occlData, sizeof(occlData), 0);
-					} while(hr == S_FALSE);
-					RDCASSERT(hr == S_OK);
+					D3D11_RASTERIZER_DESC rd = rdesc;
 
-					mod.stencilTestFailed = (occlData == 0);
+					rd.ScissorEnable = TRUE;
+					rd.DepthClipEnable = FALSE;
+					rd.CullMode = D3D11_CULL_NONE;
 
-					if(mod.stencilTestFailed)
-						break;
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					// leave depthstencil testing exactly as is, because a depth-fail means
+					// stencil isn't run
+					m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
+
+					if(dirty)
+						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[5]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					dirty = true;
+
+					m_pImmediateContext->End(testQueries[5]);
+
+					SAFE_RELEASE(newRS);
+					SAFE_RELEASE(newDS);
 				}
-			} while (0);
+
+				SAFE_RELEASE(curRS);
+
+				// we check these in the order defined, as a positive from the backface cull test
+				// will invalidate tests later (as they will also be backface culled)
+
+				do 
+				{
+
+					if(flags[i] & TestEnabled_BackfaceCulling)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.backfaceCulled = (occlData == 0);
+
+						if(mod.backfaceCulled)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_DepthClip)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[1], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.depthClipped = (occlData == 0);
+
+						if(mod.depthClipped)
+							break;
+					}
+
+					if(!mod.backfaceCulled && (flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[2], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.scissorClipped = (occlData == 0);
+
+						if(mod.scissorClipped)
+							break;
+					}
+
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[3], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.shaderDiscarded = (occlData == 0);
+
+						if(mod.shaderDiscarded)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_DepthTesting)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[4], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.depthTestFailed = (occlData == 0);
+
+						if(mod.depthTestFailed)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_StencilTesting)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[5], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.stencilTestFailed = (occlData == 0);
+
+						if(mod.stencilTestFailed)
+							break;
+					}
+				} while (0);
+			}
 			
 			history.push_back(mod);
 

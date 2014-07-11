@@ -537,7 +537,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 	Serialise("", el.depthClipped);
 	Serialise("", el.viewClipped);
 	Serialise("", el.scissorClipped);
-	Serialise("", el.shaderDiscared);
+	Serialise("", el.shaderDiscarded);
 	Serialise("", el.depthTestFailed);
 	Serialise("", el.stencilTestFailed);
 }

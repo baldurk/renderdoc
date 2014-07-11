@@ -1291,7 +1291,11 @@ namespace renderdocui.Windows
                 if (value == true)
                 {
                     debugPixel.Enabled = debugPixelContext.Enabled = true;
-                    debugPixel.Text = debugPixelContext.Text = "Debug this Pixel";
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Debug this pixel");
+                    toolTip.SetToolTip(pixelHistory, "Show history for this pixel");
+
+                    pixelHistory.Enabled = true;
                 }
                 else
                 {
@@ -1299,7 +1303,11 @@ namespace renderdocui.Windows
                     m_CurRealValue = null;
 
                     debugPixel.Enabled = debugPixelContext.Enabled = false;
-                    debugPixel.Text = debugPixelContext.Text = "RMB to Pick";
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Right Click to choose a pixel");
+                    toolTip.SetToolTip(pixelHistory, "Right Click to choose a pixel");
+
+                    pixelHistory.Enabled = false;
                 }
 
                 pixelContext.Invalidate();
@@ -2542,6 +2550,22 @@ namespace renderdocui.Windows
         private void TextureViewer_Resize(object sender, EventArgs e)
         {
             render.Invalidate();
+        }
+
+        private void pixelHistory_Click(object sender, EventArgs e)
+        {
+            PixelModification[] history = null;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+                
+                this.BeginInvoke(new Action(() =>
+                {
+                    PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint, history);
+                    hist.Show(DockPanel);
+                }));
+            });
         }
 
         private void debugPixel_Click(object sender, EventArgs e)
