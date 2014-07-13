@@ -142,7 +142,7 @@ namespace renderdocui.Windows
 
                 var node = events.Nodes.Add(new object[] { mod.eventID, name, preModVal, "", postModVal, "" });
 
-                node.BackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
+                node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
 
                 if (floatTex)
                 {
