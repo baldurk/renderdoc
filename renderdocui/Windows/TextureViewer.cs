@@ -800,7 +800,8 @@ namespace renderdocui.Windows
             uint firstuav = uint.MaxValue;
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 &&
-                m_Core.CurD3D11PipelineState != null)
+                m_Core.CurD3D11PipelineState != null &&
+                m_Core.CurD3D11PipelineState.m_OM.UAVs[0].Resource != ResourceId.Null)
                 firstuav = m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
 
             if (m_Output == null) return;
