@@ -3265,8 +3265,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				if(flags[i] & TestMustFail_Scissor)
 					mod.scissorClipped = true;
 
-				bool dirty = false;
-
 				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 				curNumScissors = curNumViews = 16;
@@ -3333,6 +3331,38 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				// For depth testing, we leave all tests enabled up to then - as we only want to know which
 				// pixels were rejected by the depth test, not pixels that might have passed the depth test
 				// had they not been discarded earlier by backface culling or depth clipping.
+				
+				// test shader discard
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[3]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[3]);
+
+					SAFE_RELEASE(newRS);
+					
+					// This full replay seems to work around a D3D/driver bug where sometimes tests will fail
+					// wrongly. It seems something to do with small scissor rects interacting with small triangles,
+					// but it's not clear (there's definitely a bug as disabling scissor and just looking at # pixels
+					// passing overall in the draw changes based on the scissor rect that is set).
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_Full);
+				}
 
 				if(flags[i] & TestEnabled_BackfaceCulling)
 				{
@@ -3344,8 +3374,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
@@ -3356,7 +3385,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->Begin(testQueries[0]);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
 
 					m_pImmediateContext->End(testQueries[0]);
 
@@ -3373,8 +3401,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
@@ -3385,7 +3412,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->Begin(testQueries[1]);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
 
 					m_pImmediateContext->End(testQueries[1]);
 
@@ -3427,8 +3453,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
@@ -3439,37 +3464,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->Begin(testQueries[2]);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
 
 					m_pImmediateContext->End(testQueries[2]);
-
-					SAFE_RELEASE(newRS);
-				}
-
-				// test shader discard
-				{
-					D3D11_RASTERIZER_DESC rd = rdesc;
-
-					rd.ScissorEnable = TRUE;
-					// leave depth clip mode as normal
-					// leave backface culling mode as normal
-
-					m_pDevice->CreateRasterizerState(&rd, &newRS);
-
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
-
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
-					m_pImmediateContext->RSSetState(newRS);
-					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
-
-					m_pImmediateContext->Begin(testQueries[3]);
-
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
-
-					m_pImmediateContext->End(testQueries[3]);
 
 					SAFE_RELEASE(newRS);
 				}
@@ -3492,8 +3488,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
 
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
@@ -3504,7 +3499,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->Begin(testQueries[4]);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
 
 					m_pImmediateContext->End(testQueries[4]);
 
@@ -3526,8 +3520,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					// stencil isn't run
 					m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
 
-					if(dirty)
-						m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
@@ -3538,7 +3531,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->Begin(testQueries[5]);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
-					dirty = true;
 
 					m_pImmediateContext->End(testQueries[5]);
 
