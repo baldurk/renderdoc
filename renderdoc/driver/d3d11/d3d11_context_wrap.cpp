@@ -2866,6 +2866,13 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 	DrainAnnotationQueue();
 
 	m_EmptyCommandList = false;
+	
+	UINT StartSlot = UAVStartSlot;
+
+	// D3D11 doesn't seem to complain about this case, but it messes our render state tracking so
+	// ensure we don't blat over any RTs with 'empty' UAVs.
+	if(NumUAVs == 0)
+		UAVStartSlot = RDCMAX(NumRTVs, UAVStartSlot);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -2898,6 +2905,20 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 	{
 		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+	}
+	
+	// invalid case where UAV/RTV overlap, UAV seems to take precedence
+	bool UAVOverlap = (NumUAVs > 0 && NumUAVs <= D3D11_PS_CS_UAV_REGISTER_COUNT &&
+								     NumRTVs > 0 && NumRTVs <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT &&
+										 StartSlot < NumRTVs);
+
+	if(UAVOverlap)
+	{
+		ID3D11RenderTargetView *NullRTs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+
+		// unset any RTs overlapping with the UAV range
+		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets, NullRTs, StartSlot,
+						RDCMIN(NumUAVs, D3D11_PS_CS_UAV_REGISTER_COUNT - StartSlot));
 	}
 
 	for(UINT i=0; ppRenderTargetViews && i < NumRTVs; i++)
