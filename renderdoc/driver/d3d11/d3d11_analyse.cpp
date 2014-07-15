@@ -2819,6 +2819,19 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	};
 	ID3D11DepthStencilState *nopDSState = NULL;
 	m_pDevice->CreateDepthStencilState(&nopDSStateDesc, &nopDSState);
+	
+	D3D11_DEPTH_STENCIL_DESC allpassDSStateDesc = { // tests enabled to trivially pass, writing enabled
+		TRUE, // DepthEnable;
+		D3D11_DEPTH_WRITE_MASK_ALL, // DepthWriteMask;
+		D3D11_COMPARISON_ALWAYS, // DepthFunc;
+		TRUE, // StencilEnable;
+		0xff, // StencilReadMask;
+		0xff, // StencilWriteMask;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
+	};
+	ID3D11DepthStencilState *allpassDSState = NULL;
+	m_pDevice->CreateDepthStencilState(&allpassDSStateDesc, &allpassDSState);
 
 	m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
 
@@ -3345,7 +3358,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -3356,12 +3369,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_pImmediateContext->End(testQueries[3]);
 
 					SAFE_RELEASE(newRS);
-					
-					// This full replay seems to work around a D3D/driver bug where sometimes tests will fail
-					// wrongly. It seems something to do with small scissor rects interacting with small triangles,
-					// but it's not clear (there's definitely a bug as disabling scissor and just looking at # pixels
-					// passing overall in the draw changes based on the scissor rect that is set).
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_Full);
 				}
 
 				if(flags[i] & TestEnabled_BackfaceCulling)
@@ -3378,7 +3385,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -3405,7 +3412,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -3457,7 +3464,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
 
@@ -3482,9 +3489,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					D3D11_DEPTH_STENCIL_DESC dsd = dsdesc;
 
-					dsd.StencilEnable = FALSE;
-					dsd.StencilReadMask = 0;
-					dsd.StencilWriteMask = 0;
+					// make stencil trivially pass
+					dsd.StencilEnable = TRUE;
+					dsd.StencilReadMask = 0xff;
+					dsd.StencilWriteMask = 0xff;
+					dsd.FrontFace = allpassDSStateDesc.FrontFace;
+					dsd.BackFace = allpassDSStateDesc.BackFace;
 
 					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
 
