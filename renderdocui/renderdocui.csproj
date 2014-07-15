@@ -485,8 +485,8 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Y /Q $(SolutionDir)\ScintillaNET\SciLexer.dll $(TargetDir) &gt; nul
-xcopy /Y /Q $(SolutionDir)\ScintillaNET\SciLexer64.dll $(TargetDir) &gt; nul</PostBuildEvent>
+    <PostBuildEvent>xcopy /Y /Q "$(SolutionDir)\ScintillaNET\SciLexer.dll" "$(TargetDir)" &gt; nul
+xcopy /Y /Q "$(SolutionDir)\ScintillaNET\SciLexer64.dll" "$(TargetDir)" &gt; nul</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
