@@ -41,7 +41,7 @@ namespace renderdocui.Windows
     {
         Core m_Core;
 
-        public PixelHistoryView(Core core, FetchTexture tex, Point pt, PixelModification[] history)
+        public PixelHistoryView(Core core, FetchTexture tex, Point pt, float rangemin, float rangemax, PixelModification[] history)
         {
             InitializeComponent();
 
@@ -59,6 +59,8 @@ namespace renderdocui.Windows
             bool srgbTex = tex.format.srgbCorrected ||
                            (tex.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
             bool floatTex = (!uintTex && !sintTex);
+
+            float rangesize = (rangemax - rangemin);
 
             foreach (PixelModification mod in history)
             {
@@ -146,9 +148,9 @@ namespace renderdocui.Windows
 
                 if (floatTex)
                 {
-                    float r = Helpers.Clamp(mod.preMod.value.f[0], 0.0f, 1.0f);
-                    float g = Helpers.Clamp(mod.preMod.value.f[1], 0.0f, 1.0f);
-                    float b = Helpers.Clamp(mod.preMod.value.f[2], 0.0f, 1.0f);
+                    float r = Helpers.Clamp((mod.preMod.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float g = Helpers.Clamp((mod.preMod.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float b = Helpers.Clamp((mod.preMod.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {
@@ -159,9 +161,9 @@ namespace renderdocui.Windows
 
                     node.IndexedBackColor[3] = Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
 
-                    r = Helpers.Clamp(mod.postMod.value.f[0], 0.0f, 1.0f);
-                    g = Helpers.Clamp(mod.postMod.value.f[1], 0.0f, 1.0f);
-                    b = Helpers.Clamp(mod.postMod.value.f[2], 0.0f, 1.0f);
+                    r = Helpers.Clamp((mod.postMod.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((mod.postMod.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((mod.postMod.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {

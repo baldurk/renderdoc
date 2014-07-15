@@ -2562,7 +2562,8 @@ namespace renderdocui.Windows
                 
                 this.BeginInvoke(new Action(() =>
                 {
-                    PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint, history);
+                    PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint,
+                                                                 m_TexDisplay.rangemin, m_TexDisplay.rangemax, history);
                     hist.Show(DockPanel);
                 }));
             });
