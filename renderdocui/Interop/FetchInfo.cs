@@ -463,7 +463,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public PixelValue col;
         public float depth;
-        public byte stencil;
+        public Int32 stencil;
     };
 
     [StructLayout(LayoutKind.Sequential)]

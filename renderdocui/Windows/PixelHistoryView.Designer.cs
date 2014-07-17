@@ -50,7 +50,7 @@
             treeListColumn2.CellFormat.TextAlignment = System.Drawing.ContentAlignment.TopLeft;
             treeListColumn2.Width = 100;
             treeListColumn3.AutoSizeMinSize = 10;
-            treeListColumn3.Width = 50;
+            treeListColumn3.Width = 60;
             treeListColumn4.AutoSizeMinSize = 20;
             treeListColumn4.Width = 40;
             treeListColumn5.AutoSizeMinSize = 20;
@@ -69,7 +69,7 @@
             this.events.Location = new System.Drawing.Point(0, 0);
             this.events.MultiSelect = false;
             this.events.Name = "events";
-            this.events.RowOptions.ItemHeight = 84;
+            this.events.RowOptions.ItemHeight = 96;
             this.events.RowOptions.ShowHeader = false;
             this.events.Size = new System.Drawing.Size(386, 478);
             this.events.TabIndex = 1;

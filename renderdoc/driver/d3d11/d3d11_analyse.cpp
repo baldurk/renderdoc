@@ -3600,10 +3600,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 3 + 0));
 				
 				mod.preMod.depth = data[0];
-				mod.preMod.stencil = int(data[1])&0xff;
+				mod.preMod.stencil = int32_t(data[1]);
 
 				mod.postMod.depth = data[2];
-				mod.postMod.stencil = int(data[3])&0xff;
+				mod.postMod.stencil = int32_t(data[3]);
 			}
 
 			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a

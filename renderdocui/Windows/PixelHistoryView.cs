@@ -142,11 +142,27 @@ namespace renderdocui.Windows
                                  Formatter.Format(mod.postMod.col.value.f[3]);
                 }
 
-                preModVal += "\nD: " + Formatter.Format(mod.preMod.depth);
-                preModVal += String.Format("\nS: {0:X}", mod.preMod.stencil);
+                if (mod.preMod.depth >= 0.0f)
+                {
+                    preModVal += "\nD: " + Formatter.Format(mod.preMod.depth);
+                    postModVal += "\nD:" + Formatter.Format(mod.postMod.depth);
+                }
+                else
+                {
+                    preModVal += "\nD: -";
+                    postModVal += "\nD: -";
+                }
 
-                postModVal += "\nD:" + Formatter.Format(mod.postMod.depth);
-                postModVal += String.Format("\nS: {0:X}", mod.postMod.stencil);
+                if (mod.preMod.stencil >= 0)
+                {
+                    preModVal += String.Format("\nS: {0:X}", mod.preMod.stencil);
+                    postModVal += String.Format("\nS: {0:X}", mod.postMod.stencil);
+                }
+                else
+                {
+                    preModVal += "\nS: -";
+                    postModVal += "\nS: -";
+                }
 
                 var node = events.Nodes.Add(new object[] { mod.eventID, name, preModVal, "", postModVal, "" });
 

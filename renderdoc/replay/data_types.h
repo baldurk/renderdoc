@@ -206,7 +206,7 @@ struct ModificationValue
 {
 	PixelValue col;
 	float depth;
-	uint8_t stencil;
+	int32_t stencil;
 };
 
 struct PixelModification
