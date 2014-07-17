@@ -2078,7 +2078,12 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 
 vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
 {
-	ID3D11Buffer *buffer = WrappedID3D11Buffer::m_BufferList[buff].m_Buffer;
+	auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
+
+	if(it == WrappedID3D11Buffer::m_BufferList.end())
+		return vector<byte>();
+
+	ID3D11Buffer *buffer = it->second.m_Buffer;
 
 	RDCASSERT(buffer);
 
