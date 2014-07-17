@@ -458,16 +458,25 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class ModificationValue
+    {
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public PixelValue col;
+        public float depth;
+        public byte stencil;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class PixelModification
     {
         public UInt32 eventID;
 
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public PixelValue preMod;
+        public ModificationValue preMod;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public PixelValue shaderOut;
+        public ModificationValue shaderOut;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public PixelValue postMod;
+        public ModificationValue postMod;
 
         public bool backfaceCulled;
         public bool depthClipped;

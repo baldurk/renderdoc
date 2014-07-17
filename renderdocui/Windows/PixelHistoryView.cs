@@ -110,37 +110,43 @@ namespace renderdocui.Windows
 
                 if (uintTex)
                 {
-                    preModVal = mod.preMod.value.u[0].ToString() + "\n" +
-                                mod.preMod.value.u[1].ToString() + "\n" +
-                                mod.preMod.value.u[2].ToString() + "\n" +
-                                mod.preMod.value.u[3].ToString();
-                    postModVal = mod.postMod.value.u[0].ToString() + "\n" +
-                                 mod.postMod.value.u[1].ToString() + "\n" +
-                                 mod.postMod.value.u[2].ToString() + "\n" +
-                                 mod.postMod.value.u[3].ToString();
+                    preModVal = mod.preMod.col.value.u[0].ToString() + "\n" +
+                                mod.preMod.col.value.u[1].ToString() + "\n" +
+                                mod.preMod.col.value.u[2].ToString() + "\n" +
+                                mod.preMod.col.value.u[3].ToString();
+                    postModVal = mod.postMod.col.value.u[0].ToString() + "\n" +
+                                 mod.postMod.col.value.u[1].ToString() + "\n" +
+                                 mod.postMod.col.value.u[2].ToString() + "\n" +
+                                 mod.postMod.col.value.u[3].ToString();
                 }
                 else if (sintTex)
                 {
-                    preModVal = mod.preMod.value.i[0].ToString() + "\n" +
-                                mod.preMod.value.i[1].ToString() + "\n" +
-                                mod.preMod.value.i[2].ToString() + "\n" +
-                                mod.preMod.value.i[3].ToString();
-                    postModVal = mod.postMod.value.i[0].ToString() + "\n" +
-                                 mod.postMod.value.i[1].ToString() + "\n" +
-                                 mod.postMod.value.i[2].ToString() + "\n" +
-                                 mod.postMod.value.i[3].ToString();
+                    preModVal = mod.preMod.col.value.i[0].ToString() + "\n" +
+                                mod.preMod.col.value.i[1].ToString() + "\n" +
+                                mod.preMod.col.value.i[2].ToString() + "\n" +
+                                mod.preMod.col.value.i[3].ToString();
+                    postModVal = mod.postMod.col.value.i[0].ToString() + "\n" +
+                                 mod.postMod.col.value.i[1].ToString() + "\n" +
+                                 mod.postMod.col.value.i[2].ToString() + "\n" +
+                                 mod.postMod.col.value.i[3].ToString();
                 }
                 else
                 {
-                    preModVal = Formatter.Format(mod.preMod.value.f[0]) + "\n" +
-                                Formatter.Format(mod.preMod.value.f[1]) + "\n" +
-                                Formatter.Format(mod.preMod.value.f[2]) + "\n" +
-                                Formatter.Format(mod.preMod.value.f[3]);
-                    postModVal = Formatter.Format(mod.postMod.value.f[0]) + "\n" +
-                                 Formatter.Format(mod.postMod.value.f[1]) + "\n" +
-                                 Formatter.Format(mod.postMod.value.f[2]) + "\n" +
-                                 Formatter.Format(mod.postMod.value.f[3]);
+                    preModVal = Formatter.Format(mod.preMod.col.value.f[0]) + "\n" +
+                                Formatter.Format(mod.preMod.col.value.f[1]) + "\n" +
+                                Formatter.Format(mod.preMod.col.value.f[2]) + "\n" +
+                                Formatter.Format(mod.preMod.col.value.f[3]);
+                    postModVal = Formatter.Format(mod.postMod.col.value.f[0]) + "\n" +
+                                 Formatter.Format(mod.postMod.col.value.f[1]) + "\n" +
+                                 Formatter.Format(mod.postMod.col.value.f[2]) + "\n" +
+                                 Formatter.Format(mod.postMod.col.value.f[3]);
                 }
+
+                preModVal += "\nD: " + Formatter.Format(mod.preMod.depth);
+                preModVal += String.Format("\nS: {0:X}", mod.preMod.stencil);
+
+                postModVal += "\nD:" + Formatter.Format(mod.postMod.depth);
+                postModVal += String.Format("\nS: {0:X}", mod.postMod.stencil);
 
                 var node = events.Nodes.Add(new object[] { mod.eventID, name, preModVal, "", postModVal, "" });
 
@@ -148,9 +154,9 @@ namespace renderdocui.Windows
 
                 if (floatTex)
                 {
-                    float r = Helpers.Clamp((mod.preMod.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
-                    float g = Helpers.Clamp((mod.preMod.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
-                    float b = Helpers.Clamp((mod.preMod.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float r = Helpers.Clamp((mod.preMod.col.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float g = Helpers.Clamp((mod.preMod.col.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float b = Helpers.Clamp((mod.preMod.col.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {
@@ -161,9 +167,9 @@ namespace renderdocui.Windows
 
                     node.IndexedBackColor[3] = Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
 
-                    r = Helpers.Clamp((mod.postMod.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((mod.postMod.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((mod.postMod.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
+                    r = Helpers.Clamp((mod.postMod.col.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((mod.postMod.col.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((mod.postMod.col.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {

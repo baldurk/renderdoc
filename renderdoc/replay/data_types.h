@@ -202,13 +202,20 @@ struct PixelValue
 	};
 };
 
+struct ModificationValue
+{
+	PixelValue col;
+	float depth;
+	uint8_t stencil;
+};
+
 struct PixelModification
 {
 	uint32_t eventID;
 
-	PixelValue preMod;
-	PixelValue shaderOut;
-	PixelValue postMod;
+	ModificationValue preMod;
+	ModificationValue shaderOut;
+	ModificationValue postMod;
 
 	bool32 backfaceCulled;
 	bool32 depthClipped;

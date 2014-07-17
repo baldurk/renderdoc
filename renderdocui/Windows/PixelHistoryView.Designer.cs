@@ -69,7 +69,7 @@
             this.events.Location = new System.Drawing.Point(0, 0);
             this.events.MultiSelect = false;
             this.events.Name = "events";
-            this.events.RowOptions.ItemHeight = 64;
+            this.events.RowOptions.ItemHeight = 84;
             this.events.RowOptions.ShowHeader = false;
             this.events.Size = new System.Drawing.Size(386, 478);
             this.events.TabIndex = 1;

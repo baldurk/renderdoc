@@ -2752,7 +2752,120 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Texture2D *pixstore = NULL;
 	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+
+	// we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil components.
+	// for stencil we just write the data into 32bits, no problem. For depth we write it as is, and we'll
+	// do processing appropriate to if it's 16/24/32 on the CPU side on final readback.
+	pixstoreDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+
+	ID3D11Texture2D *pixstoreDepthReadback = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepthReadback);
+
+	pixstoreDesc.Usage = D3D11_USAGE_DEFAULT;
+	pixstoreDesc.CPUAccessFlags = 0;
+	pixstoreDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+
+	ID3D11Texture2D *pixstoreDepth = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepth);
+
+	ID3D11UnorderedAccessView *pixstoreDepthUAV = NULL;
+	m_pDevice->CreateUnorderedAccessView(pixstoreDepth, NULL, &pixstoreDepthUAV);
 	
+	// depth texture to copy to, as CopySubresourceRegion can't copy single pixels out of a depth buffer,
+	// and we can't guarantee that the original depth texture is SRV-compatible to allow single-pixel copies
+	// via compute shader.
+	//
+	// Due to copies having to match formats between source and destination we don't create these textures up
+	// front but on demand, and resize up as necessary. We do a whole copy from this, then a CS copy via SRV to UAV
+	// to copy into the pixstore (which we do a final copy to for readback). The extra step is necessary as
+	// you can Copy to a staging texture but you can't use a CS, which we need for single-pixel depth (and stencil) copy.
+	
+	D3D11_TEXTURE2D_DESC depthCopyD24S8Desc = {
+		details.texWidth,
+		details.texHeight,
+		1U,
+		1U,
+		DXGI_FORMAT_R24G8_TYPELESS,
+		{ 1, 0 },
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_SHADER_RESOURCE,
+		0,
+		0,
+	};
+	ID3D11Texture2D *depthCopyD24S8 = NULL;
+	ID3D11ShaderResourceView *depthCopyD24S8_DepthSRV = NULL, *depthCopyD24S8_StencilSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD32S8Desc = depthCopyD24S8Desc;
+	depthCopyD32S8Desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+	ID3D11Texture2D *depthCopyD32S8 = NULL;
+	ID3D11ShaderResourceView *depthCopyD32S8_DepthSRV = NULL, *depthCopyD32S8_StencilSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD32Desc = depthCopyD32S8Desc;
+	depthCopyD32Desc.Format = DXGI_FORMAT_R32_TYPELESS;
+	ID3D11Texture2D *depthCopyD32 = NULL;
+	ID3D11ShaderResourceView *depthCopyD32_DepthSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD16Desc = depthCopyD24S8Desc;
+	depthCopyD16Desc.Format = DXGI_FORMAT_R16_TYPELESS;
+	ID3D11Texture2D *depthCopyD16 = NULL;
+	ID3D11ShaderResourceView *depthCopyD16_DepthSRV = NULL;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC copyDepthSRVDesc, copyStencilSRVDesc;
+	copyDepthSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	copyDepthSRVDesc.Texture2D.MipLevels = 1;
+	copyDepthSRVDesc.Texture2D.MostDetailedMip = 0;
+	copyStencilSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	copyStencilSRVDesc.Texture2D.MipLevels = 1;
+	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
+
+	string unusedDepthHLSL =
+		"cbuffer cb0 : register(c0) { uint2 src_coord; uint2 padding0; };\n" \
+		"cbuffer cb1 : register(c1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
+		"Texture2D<float2> depth_src : register(t0);\n" \
+		"Texture2D<uint2> stencil_src : register(t1);\n" \
+		"RWTexture2D<float2> depth_out : register(u0);\n" \
+		"\n" \
+		"[numthreads(1, 1, 1)]\n" \
+		"void main()\n";
+	
+	string copyDepthStencilHLSL = unusedDepthHLSL;
+
+	unusedDepthHLSL += "{ depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f); }";
+	copyDepthStencilHLSL +=
+		"{ depth_out[dst_coord.xy].rg = float2(" \
+		"depth_src[src_coord.xy].r, " \
+		"(float)stencil_src[src_coord.xy].g); }";
+
+	ID3D11ComputeShader *unusedDepthCS = MakeCShader(unusedDepthHLSL.c_str(), "main", "cs_5_0");
+	ID3D11ComputeShader *copyDepthStencilCS = MakeCShader(copyDepthStencilHLSL.c_str(), "main", "cs_5_0");
+	ID3D11Buffer *srcxyCBuf = NULL;
+	ID3D11Buffer *storexyCBuf = NULL;
+
+	uint32_t srcxyData[4] = { x, y, 0, 0 };
+
+	D3D11_BUFFER_DESC cbufDesc = {
+		sizeof(uint32_t)*4,
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_CONSTANT_BUFFER,
+		0,
+		0,
+		0
+	};
+
+	D3D11_SUBRESOURCE_DATA data = { srcxyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4 };
+
+	m_pDevice->CreateBuffer(&cbufDesc, &data, &srcxyCBuf);
+	m_pDevice->CreateBuffer(&cbufDesc, NULL, &storexyCBuf);
+
+	// so we do:
+	// per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy--> pixstoreDepth
+	// at end: pixstoreDepth --copy--> pixstoreDepthReadback
+	//
+	// First copy is needed since orig depth might not be SRV-able
+	// CS pixel copy is needed since it's the only way to copy only one pixel from depth texture
+	//
+	// final copy is needed to get data into a readback texture since we can't have CS writing to staging texture
+
 	ID3D11Resource *targetres = NULL;
 	
 	     if(WrappedID3D11Texture1D::m_TextureList.find(target) != WrappedID3D11Texture1D::m_TextureList.end())
@@ -3041,6 +3154,168 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		UINT storey = UINT(ev / (2048/3));
 
 		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 0, storey, 0, targetres, 0, &srcbox);
+		
+		bool depthBound = false;
+		ID3D11Texture2D **copyTex = NULL;
+		ID3D11ShaderResourceView **copyDepthSRV = NULL;
+		ID3D11ShaderResourceView **copyStencilSRV = NULL;
+		ID3D11Resource *depthRes = NULL;
+
+		{
+			ID3D11DepthStencilView *dsv = NULL;
+			m_pImmediateContext->OMGetRenderTargets(0, NULL, &dsv);
+
+			if(dsv)
+			{
+				depthBound = true;
+
+				dsv->GetResource(&depthRes);
+
+				SAFE_RELEASE(dsv);
+
+				D3D11_RESOURCE_DIMENSION dim;
+				depthRes->GetType(&dim);
+				
+				D3D11_TEXTURE2D_DESC desc2d;
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+				{
+					ID3D11Texture1D *tex = (ID3D11Texture1D *)depthRes;
+					D3D11_TEXTURE1D_DESC desc1d;
+					tex->GetDesc(&desc1d);
+
+					desc2d.Format = desc1d.Format;
+					desc2d.Width = desc1d.Width;
+					desc2d.Height = 1;
+				}
+				else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					ID3D11Texture2D *tex = (ID3D11Texture2D *)depthRes;
+					tex->GetDesc(&desc2d);
+				}
+
+				D3D11_TEXTURE2D_DESC *copyDesc = NULL;
+				if(desc2d.Format == DXGI_FORMAT_R16_FLOAT ||
+					 desc2d.Format == DXGI_FORMAT_R16_SINT ||
+					 desc2d.Format == DXGI_FORMAT_R16_UINT ||
+					 desc2d.Format == DXGI_FORMAT_R16_SNORM ||
+					 desc2d.Format == DXGI_FORMAT_R16_UNORM ||
+					 desc2d.Format == DXGI_FORMAT_R16_TYPELESS ||
+					 desc2d.Format == DXGI_FORMAT_D16_UNORM)
+				{
+					copyDesc = &depthCopyD16Desc;
+					copyTex = &depthCopyD16;
+					copyDepthSRV = &depthCopyD16_DepthSRV;
+					copyStencilSRV = NULL;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R16_UNORM;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_R24G8_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D24_UNORM_S8_UINT)
+				{
+					copyDesc = &depthCopyD24S8Desc;
+					copyTex = &depthCopyD24S8;
+					copyDepthSRV = &depthCopyD24S8_DepthSRV;
+					copyStencilSRV = &depthCopyD24S8_StencilSRV;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+					copyStencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R32_FLOAT ||
+					      desc2d.Format == DXGI_FORMAT_R32_SINT ||
+					      desc2d.Format == DXGI_FORMAT_R32_UINT ||
+					      desc2d.Format == DXGI_FORMAT_R32_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D32_FLOAT)
+				{
+					copyDesc = &depthCopyD32Desc;
+					copyTex = &depthCopyD32;
+					copyDepthSRV = &depthCopyD32_DepthSRV;
+					copyStencilSRV = NULL;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_R32G8X24_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+				{
+					copyDesc = &depthCopyD32S8Desc;
+					copyTex = &depthCopyD32S8;
+					copyDepthSRV = &depthCopyD32S8_DepthSRV;
+					copyStencilSRV = &depthCopyD32S8_StencilSRV;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+					copyStencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+				}
+
+				if(*copyTex == NULL || desc2d.Width > copyDesc->Width || desc2d.Height > copyDesc->Height)
+				{
+					// recreate texture
+					SAFE_RELEASE(*copyTex);
+					SAFE_RELEASE(*copyDepthSRV);
+					if(copyStencilSRV) SAFE_RELEASE(*copyStencilSRV);
+
+					m_pDevice->CreateTexture2D(copyDesc, NULL, copyTex);
+					m_pDevice->CreateShaderResourceView(*copyTex, &copyDepthSRVDesc, copyDepthSRV);
+					if(copyStencilSRV) m_pDevice->CreateShaderResourceView(*copyTex, &copyStencilSRVDesc, copyStencilSRV);
+				}
+			}
+		}
+		
+		{
+			if(depthBound)
+				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
+			
+			ID3D11ComputeShader *curCS = NULL;
+			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+			ID3D11Buffer *curCSCBuf[2] = {0};
+			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+			ID3D11UnorderedAccessView *curCSUAV = NULL;
+			UINT initCounts = ~0U;
+
+			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+			uint32_t storexyData[4] = { storex*3 + 0, storey, (copyStencilSRV != NULL), 0 };
+
+			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
+			
+			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
+			m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+
+			if(depthBound)
+			{
+				// dispatch to copy from desired pixel (x, y) to target in pixstore (storex*3 + 0, storey)
+				m_pImmediateContext->CSSetShader(copyDepthStencilCS, NULL, 0);
+				m_pImmediateContext->Dispatch(1, 1, 1);
+			}
+			else
+			{
+				// dispatch to mark pixel as no dsv bound
+				m_pImmediateContext->CSSetShader(unusedDepthCS, NULL, 0);
+				m_pImmediateContext->Dispatch(1, 1, 1);
+			}
+
+			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+			SAFE_RELEASE(curCS);
+			for(UINT i=0; i < curCSNumInst; i++)
+				SAFE_RELEASE(curCSInst[i]);
+			SAFE_RELEASE(curCSCBuf[0]);
+			SAFE_RELEASE(curCSCBuf[1]);
+			SAFE_RELEASE(curCSSRVs[0]);
+			SAFE_RELEASE(curCSSRVs[1]);
+			SAFE_RELEASE(curCSUAV);
+		}
 
 		m_pImmediateContext->Begin(occl[ev]);
 
@@ -3073,10 +3348,74 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
 		
 		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 1, storey, 0, targetres, 0, &srcbox);
+		
+		{
+			if(depthBound)
+				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
+			
+			ID3D11ComputeShader *curCS = NULL;
+			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+			ID3D11Buffer *curCSCBuf[2] = {0};
+			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+			ID3D11UnorderedAccessView *curCSUAV = NULL;
+			UINT initCounts = ~0U;
+
+			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+			uint32_t storexyData[4] = { storex*3 + 1, storey, (copyStencilSRV != NULL), 0 };
+
+			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
+			
+			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
+			m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+
+			if(depthBound)
+			{
+				// dispatch to copy from desired pixel (x, y) to target in pixstore (storex*3 + 0, storey)
+				m_pImmediateContext->CSSetShader(copyDepthStencilCS, NULL, 0);
+				m_pImmediateContext->Dispatch(1, 1, 1);
+			}
+			else
+			{
+				// dispatch to mark pixel as no dsv bound
+				m_pImmediateContext->CSSetShader(unusedDepthCS, NULL, 0);
+				m_pImmediateContext->Dispatch(1, 1, 1);
+			}
+
+			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+			SAFE_RELEASE(curCS);
+			for(UINT i=0; i < curCSNumInst; i++)
+				SAFE_RELEASE(curCSInst[i]);
+			SAFE_RELEASE(curCSCBuf[0]);
+			SAFE_RELEASE(curCSCBuf[1]);
+			SAFE_RELEASE(curCSSRVs[0]);
+			SAFE_RELEASE(curCSSRVs[1]);
+			SAFE_RELEASE(curCSUAV);
+		}
+
+		SAFE_RELEASE(depthRes);
 	}
+
+	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
 
 	D3D11_MAPPED_SUBRESOURCE mapped = {0};
 	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+
+	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
+	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
+
+	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
 
 	byte *pixstoreData = (byte *)mapped.pData;
 	
@@ -3105,13 +3444,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			mod.eventID = events[i];
 
 			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
-			
+
+			// figure out where this event lies in the pixstore texture
+			uint32_t storex = uint32_t(i % (2048/3));
+			uint32_t storey = uint32_t(i / (2048/3));
+
 			if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
 			{
-				// figure out where this event lies in the pixstore texture
-				uint32_t storex = uint32_t(i % (2048/3));
-				uint32_t storey = uint32_t(i / (2048/3));
-
 				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
 
@@ -3123,19 +3462,19 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					{
 						int8_t *d = (int8_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.value_i[c] = d[c];
+							mod.preMod.col.value_i[c] = d[c];
 					}
 					else if(fmt.compByteWidth == 2)
 					{
 						int16_t *d = (int16_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.value_i[c] = d[c];
+							mod.preMod.col.value_i[c] = d[c];
 					}
 					else if(fmt.compByteWidth == 4)
 					{
 						int32_t *d = (int32_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.value_i[c] = d[c];
+							mod.preMod.col.value_i[c] = d[c];
 					}
 
 					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
@@ -3144,37 +3483,37 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					{
 						int8_t *d = (int8_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.value_i[c] = d[c];
+							mod.postMod.col.value_i[c] = d[c];
 					}
 					else if(fmt.compByteWidth == 2)
 					{
 						int16_t *d = (int16_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.value_i[c] = d[c];
+							mod.postMod.col.value_i[c] = d[c];
 					}
 					else if(fmt.compByteWidth == 4)
 					{
 						int32_t *d = (int32_t*)data;
 						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.value_i[c] = d[c];
+							mod.postMod.col.value_i[c] = d[c];
 					}
 				}
 				else
 				{
 					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.preMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+						memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
 
 					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
 
 					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.postMod.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+						memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
 
 					if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
 					{
 						for(uint32_t c=0; c < fmt.compCount; c++)
 						{
-							mod.preMod.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.value_u[c]));
-							mod.postMod.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.value_u[c]));
+							mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
+							mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
 						}
 					}
 					else if(fmt.compType == eCompType_UNorm)
@@ -3186,8 +3525,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 						for(uint32_t c=0; c < fmt.compCount; c++)
 						{
-							mod.preMod.value_f[c]  = float(mod.preMod.value_u[c])/maxVal;
-							mod.postMod.value_f[c] = float(mod.postMod.value_u[c])/maxVal;
+							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
 						}
 					}
 					else if(fmt.compType == eCompType_UNorm_SRGB)
@@ -3196,64 +3535,75 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 						for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
 						{
-							mod.preMod.value_f[c]  = ConvertFromSRGB8(mod.preMod.value_u[c]&0xff);
-							mod.postMod.value_f[c] = ConvertFromSRGB8(mod.postMod.value_u[c]&0xff);
+							mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
+							mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
 						}
 
 						// alpha is not SRGB'd
 						if(fmt.compCount == 4)
 						{
-							mod.preMod.value_f[3] = float(mod.preMod.value_u[3]&0xff)/255.0f;
-							mod.postMod.value_f[3] = float(mod.postMod.value_u[3]&0xff)/255.0f;
+							mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
+							mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
 						}
 					}
 					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
 					{
 						for(uint32_t c=0; c < fmt.compCount; c++)
 						{
-							mod.preMod.value_f[c]  = float(mod.preMod.value_u[c]);
-							mod.postMod.value_f[c] = float(mod.postMod.value_u[c]);
+							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
+							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
 						}
 					}
 					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
 					{
 						for(uint32_t c=0; c < fmt.compCount; c++)
 						{
-							int8_t *d = (int8_t *)&mod.preMod.value_u[c];
+							int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
 
 							if(*d == -128)
-								mod.preMod.value_f[c] = -1.0f;
+								mod.preMod.col.value_f[c] = -1.0f;
 							else
-								mod.preMod.value_f[c] = float(*d)/127.0f;
+								mod.preMod.col.value_f[c] = float(*d)/127.0f;
 
-							d = (int8_t *)&mod.preMod.value_u[c];
+							d = (int8_t *)&mod.preMod.col.value_u[c];
 
 							if(*d == -128)
-								mod.preMod.value_f[c] = -1.0f;
+								mod.preMod.col.value_f[c] = -1.0f;
 							else
-								mod.preMod.value_f[c] = float(*d)/127.0f;
+								mod.preMod.col.value_f[c] = float(*d)/127.0f;
 						}
 					}
 					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
 					{
 						for(uint32_t c=0; c < fmt.compCount; c++)
 						{
-							int16_t *d = (int16_t *)&mod.preMod.value_u[c];
+							int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
 
 							if(*d == -32768)
-								mod.preMod.value_f[c] = -1.0f;
+								mod.preMod.col.value_f[c] = -1.0f;
 							else
-								mod.preMod.value_f[c] = float(*d)/32767.0f;
+								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
 
-							d = (int16_t *)&mod.preMod.value_u[c];
+							d = (int16_t *)&mod.preMod.col.value_u[c];
 
 							if(*d == -32768)
-								mod.preMod.value_f[c] = -1.0f;
+								mod.preMod.col.value_f[c] = -1.0f;
 							else
-								mod.preMod.value_f[c] = float(*d)/32767.0f;
+								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
 						}
 					}
 				}
+			}
+
+			{
+				byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
+				float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 3 + 0));
+				
+				mod.preMod.depth = data[0];
+				mod.preMod.stencil = int(data[1])&0xff;
+
+				mod.postMod.depth = data[2];
+				mod.postMod.stencil = int(data[3])&0xff;
 			}
 
 			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a
@@ -3264,10 +3614,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			{
 			}
 			
-			mod.shaderOut.value_f[0] = mod.postMod.value_f[0];
-			mod.shaderOut.value_f[1] = mod.postMod.value_f[1];
-			mod.shaderOut.value_f[2] = mod.postMod.value_f[2];
-			mod.shaderOut.value_f[3] = mod.postMod.value_f[3];
+			mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
+			mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
+			mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
+			mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
+			mod.shaderOut.depth = mod.postMod.depth;
+			mod.shaderOut.stencil = mod.postMod.stencil;
 
 			if((draw->flags & eDraw_Clear) == 0)
 			{
@@ -3651,6 +4003,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(occl[i]);
 	}
 
+	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 	m_pImmediateContext->Unmap(pixstore, 0);
 	
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
@@ -3660,6 +4013,29 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	SAFE_RELEASE(nopDSState);
 
 	SAFE_RELEASE(pixstore);
+	
+	SAFE_RELEASE(pixstoreDepthReadback);
+	SAFE_RELEASE(pixstoreDepth);
+	SAFE_RELEASE(pixstoreDepthUAV);
+
+	SAFE_RELEASE(depthCopyD24S8);
+	SAFE_RELEASE(depthCopyD24S8_DepthSRV);
+	SAFE_RELEASE(depthCopyD24S8_StencilSRV);
+
+	SAFE_RELEASE(depthCopyD32S8);
+	SAFE_RELEASE(depthCopyD32S8_DepthSRV);
+	SAFE_RELEASE(depthCopyD32S8_StencilSRV);
+
+	SAFE_RELEASE(depthCopyD32);
+	SAFE_RELEASE(depthCopyD32_DepthSRV);
+
+	SAFE_RELEASE(depthCopyD16);
+	SAFE_RELEASE(depthCopyD16_DepthSRV);
+
+	SAFE_RELEASE(unusedDepthCS);
+	SAFE_RELEASE(copyDepthStencilCS);
+	SAFE_RELEASE(srcxyCBuf);
+	SAFE_RELEASE(storexyCBuf);
 
 	return history;
 }

@@ -529,9 +529,15 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 {
 	Serialise("", el.eventID);
 
-	Serialise<4>("", el.preMod.value_u);
-	Serialise<4>("", el.shaderOut.value_u);
-	Serialise<4>("", el.postMod.value_u);
+	Serialise<4>("", el.preMod.col.value_u);
+	Serialise("", el.preMod.depth);
+	Serialise("", el.preMod.stencil);
+	Serialise<4>("", el.shaderOut.col.value_u);
+	Serialise("", el.shaderOut.depth);
+	Serialise("", el.shaderOut.stencil);
+	Serialise<4>("", el.postMod.col.value_u);
+	Serialise("", el.postMod.depth);
+	Serialise("", el.postMod.stencil);
 	
 	Serialise("", el.backfaceCulled);
 	Serialise("", el.depthClipped);
