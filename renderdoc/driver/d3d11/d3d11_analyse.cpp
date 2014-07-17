@@ -2754,8 +2754,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
 
 	// we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil components.
-	// for stencil we just write the data into 32bits, no problem. For depth we write it as is, and we'll
-	// do processing appropriate to if it's 16/24/32 on the CPU side on final readback.
+	// the shader does the upcasting for us when we read from depth or stencil
 	pixstoreDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
 
 	ID3D11Texture2D *pixstoreDepthReadback = NULL;
@@ -2819,8 +2818,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
 
 	string unusedDepthHLSL =
-		"cbuffer cb0 : register(c0) { uint2 src_coord; uint2 padding0; };\n" \
-		"cbuffer cb1 : register(c1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
+		"cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };\n" \
+		"cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
 		"Texture2D<float2> depth_src : register(t0);\n" \
 		"Texture2D<uint2> stencil_src : register(t1);\n" \
 		"RWTexture2D<float2> depth_out : register(u0);\n" \
@@ -2834,7 +2833,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	copyDepthStencilHLSL +=
 		"{ depth_out[dst_coord.xy].rg = float2(" \
 		"depth_src[src_coord.xy].r, " \
-		"(float)stencil_src[src_coord.xy].g); }";
+		"copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f); }";
 
 	ID3D11ComputeShader *unusedDepthCS = MakeCShader(unusedDepthHLSL.c_str(), "main", "cs_5_0");
 	ID3D11ComputeShader *copyDepthStencilCS = MakeCShader(copyDepthStencilHLSL.c_str(), "main", "cs_5_0");
@@ -3286,21 +3285,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
 			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
 			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
 
-			if(depthBound)
-			{
-				// dispatch to copy from desired pixel (x, y) to target in pixstore (storex*3 + 0, storey)
-				m_pImmediateContext->CSSetShader(copyDepthStencilCS, NULL, 0);
-				m_pImmediateContext->Dispatch(1, 1, 1);
-			}
-			else
-			{
-				// dispatch to mark pixel as no dsv bound
-				m_pImmediateContext->CSSetShader(unusedDepthCS, NULL, 0);
-				m_pImmediateContext->Dispatch(1, 1, 1);
-			}
+			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->Dispatch(1, 1, 1);
 
 			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
 			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
@@ -3373,21 +3362,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
 			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
 			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
-
-			if(depthBound)
-			{
-				// dispatch to copy from desired pixel (x, y) to target in pixstore (storex*3 + 0, storey)
-				m_pImmediateContext->CSSetShader(copyDepthStencilCS, NULL, 0);
-				m_pImmediateContext->Dispatch(1, 1, 1);
-			}
-			else
-			{
-				// dispatch to mark pixel as no dsv bound
-				m_pImmediateContext->CSSetShader(unusedDepthCS, NULL, 0);
-				m_pImmediateContext->Dispatch(1, 1, 1);
-			}
+			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+			
+			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->Dispatch(1, 1, 1);
 
 			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
 			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
