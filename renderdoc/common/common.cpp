@@ -46,7 +46,7 @@ using std::string;
 //		  SRGB8_lookuptable[comp] = powf((0.055f + srgbF) / 1.055f, 2.4f);
 //	}
 
-extern float SRGB8_lookuptable[256] = {
+float SRGB8_lookuptable[256] = {
 	0.000000f, 0.000304f, 0.000607f, 0.000911f, 0.001214f, 0.001518f, 0.001821f, 0.002125f,
 	0.002428f, 0.002732f, 0.003035f, 0.003347f, 0.003677f, 0.004025f, 0.004391f, 0.004777f,
 	0.005182f, 0.005605f, 0.006049f, 0.006512f, 0.006995f, 0.007499f, 0.008023f, 0.008568f,
@@ -102,7 +102,9 @@ void rdcassert(const char *condition, const char *file, unsigned int line, const
 	rdclog_int(RDCLog_Error, file, line, "Assertion failed: '%hs'", condition, file, line);
 }
 
+#if 0
 static __m128 zero = {0};
+#endif
 
 // assumes a and b both point to 16-byte aligned 16-byte chunks of memory.
 // Returns if they're equal or different
@@ -159,9 +161,6 @@ bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &
 
 	float *aflt = (float *)a;
 	float *bflt = (float *)b;
-
-	// init a vector to 0
-	__m128 zero = {0};
 
 	// sweep to find the start of differences
 	for(size_t v=0; v < numVecs; v++)

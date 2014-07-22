@@ -374,6 +374,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 				// read-only, not a valid pixel history event
 				continue;
 			
+			case eUsage_None:
 			case eUsage_SO:
 			case eUsage_CS_UAV:
 			case eUsage_PS_UAV:
