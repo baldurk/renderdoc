@@ -1351,7 +1351,7 @@ namespace renderdocui.Windows
             Input input = state.m_Input;
             uint instance = m_CurInst;
 
-            Thread th = new Thread(new ThreadStart(() =>
+            Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
                 byte[][] d = data.Buffers;
 

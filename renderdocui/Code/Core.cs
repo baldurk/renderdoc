@@ -383,7 +383,7 @@ namespace renderdocui.Code
             // We'll close it down when log loading finishes (whether it succeeds or fails)
             ModalPopup modal = new ModalPopup(LogLoadCallback, true);
 
-            Thread modalThread = new Thread(new ThreadStart(() =>
+            Thread modalThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 modal.SetModalText(string.Format("Loading Log {0}.", m_LogFile));
 
@@ -396,7 +396,7 @@ namespace renderdocui.Code
 
             // this thread continually ticks and notifies any threads of the progress, through a float
             // that is updated by the main loading code
-            Thread thread = new Thread(new ThreadStart(() =>
+            Thread thread = Helpers.NewThread(new ThreadStart(() =>
             {
                 modal.LogfileProgressBegin();
 

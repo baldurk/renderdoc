@@ -87,7 +87,7 @@ namespace renderdocui.Windows.Dialogs
 
             refresh.Enabled = false;
 
-            Thread th = new Thread(new ParameterizedThreadStart(LookupHostConnections));
+            Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
             th.Start(node);
         }
 
@@ -263,7 +263,7 @@ namespace renderdocui.Windows.Dialogs
                 n.Image = global::renderdocui.Properties.Resources.hourglass;
                 n.Bold = false;
 
-                Thread th = new Thread(new ParameterizedThreadStart(LookupHostConnections));
+                Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
                 th.Start(n);
             }
             hosts.EndUpdate();

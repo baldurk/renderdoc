@@ -2302,7 +2302,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            rangePaintThread = new Thread(new ThreadStart(() =>
+            rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
                 Thread.Sleep(8);

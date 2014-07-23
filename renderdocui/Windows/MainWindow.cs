@@ -561,7 +561,7 @@ namespace renderdocui.Windows
                         }
                     }
 
-                    thread = new Thread(new ThreadStart(() =>
+                    thread = Helpers.NewThread(new ThreadStart(() =>
                     {
                         string[] drivers = new string[0];
                         try
@@ -644,7 +644,7 @@ namespace renderdocui.Windows
             }
             else
             {
-                thread = new Thread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary)));
+                thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary)));
             }
             
             thread.Start();
@@ -879,7 +879,7 @@ namespace renderdocui.Windows
 
             m_Core.Config.CheckUpdate_LastUpdate = today;
 
-            var updateThread = new Thread(new ThreadStart(() =>
+            var updateThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 // spawn thread to check update
                 WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", VersionString));
@@ -1263,7 +1263,7 @@ namespace renderdocui.Windows
         {
             bool killReplay = false;
 
-            Thread thread = new Thread(new ThreadStart(() =>
+            Thread thread = Helpers.NewThread(new ThreadStart(() =>
             {
                 StaticExports.SpawnReplayHost(ref killReplay);
             }));

@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using Microsoft.Win32;
@@ -80,6 +81,20 @@ namespace renderdocui.Code
             {
                 return new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
             }
+        }
+
+        public static Thread NewThread(ParameterizedThreadStart s)
+        {
+            Thread ret = new Thread(s);
+            ret.CurrentCulture = Application.CurrentCulture;
+            return ret;
+        }
+
+        public static Thread NewThread(ThreadStart s)
+        {
+            Thread ret = new Thread(s);
+            ret.CurrentCulture = Application.CurrentCulture;
+            return ret;
         }
 
         public static void RefreshAssociations()
