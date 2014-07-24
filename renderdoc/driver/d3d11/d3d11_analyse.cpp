@@ -210,7 +210,16 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					if(columnMajor)
 					{
 						uint32_t tmp[16] = {0};
-						memcpy(tmp, d, RDCMIN(data.size()-dataOffset, elemByteSize*rows*cols));
+
+						// matrices always have 4 columns, for padding reasons (the same reason arrays
+						// put every element on a new vec4)
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+						}
 
 						// transpose
 						for(size_t r=0; r < rows; r++)
@@ -219,7 +228,15 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					}
 					else // CLASS_MATRIX_ROWS or other data not to transpose.
 					{
-						memcpy(&outvars[outIdx].value.uv[0], d, RDCMIN(data.size()-dataOffset, elemByteSize*rows*cols));
+						// matrices always have 4 columns, for padding reasons (the same reason arrays
+						// put every element on a new vec4)
+						for(uint32_t r=0; r < rows; r++)
+						{
+							size_t srcoffs = 4*elemByteSize*r;
+							size_t dstoffs = cols*elemByteSize*r;
+							memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*rows*cols));
+						}
 					}
 				}
 			}
@@ -1396,6 +1413,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 
 		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 		texDisplay.HDRMul = -1.0f;
+		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.mip = mip;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
@@ -2048,6 +2066,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 	disp.texid = texid;
 	disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0,0,0,0);
 	disp.HDRMul = -1.0f;
+	disp.linearDisplayAsGamma = true;
 	disp.mip = mip;
 	disp.overlay = eTexOverlay_None;
 	disp.rangemin = 0.0f;
@@ -2685,4 +2704,1317 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 	old.ApplyState(m_WrappedContext);
 
 	return m_OverlayResourceId;
+}
+
+vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+{
+	vector<PixelModification> history;
+
+	if(events.empty())
+		return history;
+	
+	TextureShaderDetails details = GetShaderDetails(target, true);
+	
+	if(details.texFmt == DXGI_FORMAT_UNKNOWN)
+		return history;
+	
+	SCOPED_TIMER("D3D11DebugManager::PixelHistory");
+
+	// needed for comparison with viewports
+	float xf = (float)x;
+	float yf = (float)y;
+
+	RDCDEBUG("Checking Pixel History on %llx (%u, %u) with %u possible events", target, x, y, (uint32_t)events.size());
+
+	// these occlusion queries are run with every test possible disabled
+	vector<ID3D11Query*> occl;
+	occl.reserve(events.size());
+
+	ID3D11Query *testQueries[6] = {0}; // one query for each test we do per-drawcall
+
+	// reserve 6 pixels per draw on average. Pre/Shaderout/Post required at minimum,
+	// and hopefully overdraw within draws will average to only 2 times.
+	uint32_t pixstoreSlots = (uint32_t)(events.size() * 6);
+
+	// define a texture that we can copy before/after results into
+	D3D11_TEXTURE2D_DESC pixstoreDesc = {
+		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
+		RDCMAX(1U, pixstoreSlots / 2048),
+		1U,
+		1U,
+		details.texFmt,
+		{ 1, 0 },
+		D3D11_USAGE_STAGING,
+		0,
+		D3D11_CPU_ACCESS_READ,
+		0,
+	};
+
+	ID3D11Texture2D *pixstore = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+
+	// we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil components.
+	// the shader does the upcasting for us when we read from depth or stencil
+	pixstoreDesc.Format = DXGI_FORMAT_R32G32_FLOAT;
+
+	ID3D11Texture2D *pixstoreDepthReadback = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepthReadback);
+
+	pixstoreDesc.Usage = D3D11_USAGE_DEFAULT;
+	pixstoreDesc.CPUAccessFlags = 0;
+	pixstoreDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+
+	ID3D11Texture2D *pixstoreDepth = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstoreDepth);
+
+	ID3D11UnorderedAccessView *pixstoreDepthUAV = NULL;
+	m_pDevice->CreateUnorderedAccessView(pixstoreDepth, NULL, &pixstoreDepthUAV);
+	
+	// depth texture to copy to, as CopySubresourceRegion can't copy single pixels out of a depth buffer,
+	// and we can't guarantee that the original depth texture is SRV-compatible to allow single-pixel copies
+	// via compute shader.
+	//
+	// Due to copies having to match formats between source and destination we don't create these textures up
+	// front but on demand, and resize up as necessary. We do a whole copy from this, then a CS copy via SRV to UAV
+	// to copy into the pixstore (which we do a final copy to for readback). The extra step is necessary as
+	// you can Copy to a staging texture but you can't use a CS, which we need for single-pixel depth (and stencil) copy.
+	
+	D3D11_TEXTURE2D_DESC depthCopyD24S8Desc = {
+		details.texWidth,
+		details.texHeight,
+		1U,
+		1U,
+		DXGI_FORMAT_R24G8_TYPELESS,
+		{ 1, 0 },
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_SHADER_RESOURCE,
+		0,
+		0,
+	};
+	ID3D11Texture2D *depthCopyD24S8 = NULL;
+	ID3D11ShaderResourceView *depthCopyD24S8_DepthSRV = NULL, *depthCopyD24S8_StencilSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD32S8Desc = depthCopyD24S8Desc;
+	depthCopyD32S8Desc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+	ID3D11Texture2D *depthCopyD32S8 = NULL;
+	ID3D11ShaderResourceView *depthCopyD32S8_DepthSRV = NULL, *depthCopyD32S8_StencilSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD32Desc = depthCopyD32S8Desc;
+	depthCopyD32Desc.Format = DXGI_FORMAT_R32_TYPELESS;
+	ID3D11Texture2D *depthCopyD32 = NULL;
+	ID3D11ShaderResourceView *depthCopyD32_DepthSRV = NULL;
+
+	D3D11_TEXTURE2D_DESC depthCopyD16Desc = depthCopyD24S8Desc;
+	depthCopyD16Desc.Format = DXGI_FORMAT_R16_TYPELESS;
+	ID3D11Texture2D *depthCopyD16 = NULL;
+	ID3D11ShaderResourceView *depthCopyD16_DepthSRV = NULL;
+
+	D3D11_SHADER_RESOURCE_VIEW_DESC copyDepthSRVDesc, copyStencilSRVDesc;
+	copyDepthSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	copyDepthSRVDesc.Texture2D.MipLevels = 1;
+	copyDepthSRVDesc.Texture2D.MostDetailedMip = 0;
+	copyStencilSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	copyStencilSRVDesc.Texture2D.MipLevels = 1;
+	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
+
+	string unusedDepthHLSL =
+		"cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };\n" \
+		"cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
+		"Texture2D<float2> depth_src : register(t0);\n" \
+		"Texture2D<uint2> stencil_src : register(t1);\n" \
+		"RWTexture2D<float2> depth_out : register(u0);\n" \
+		"\n" \
+		"[numthreads(1, 1, 1)]\n" \
+		"void main()\n";
+	
+	string copyDepthStencilHLSL = unusedDepthHLSL;
+
+	unusedDepthHLSL += "{ depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f); }";
+	copyDepthStencilHLSL +=
+		"{ depth_out[dst_coord.xy].rg = float2(" \
+		"depth_src[src_coord.xy].r, " \
+		"copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f); }";
+
+	ID3D11ComputeShader *unusedDepthCS = MakeCShader(unusedDepthHLSL.c_str(), "main", "cs_5_0");
+	ID3D11ComputeShader *copyDepthStencilCS = MakeCShader(copyDepthStencilHLSL.c_str(), "main", "cs_5_0");
+	ID3D11Buffer *srcxyCBuf = NULL;
+	ID3D11Buffer *storexyCBuf = NULL;
+
+	uint32_t srcxyData[4] = { x, y, 0, 0 };
+
+	D3D11_BUFFER_DESC cbufDesc = {
+		sizeof(uint32_t)*4,
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_CONSTANT_BUFFER,
+		0,
+		0,
+		0
+	};
+
+	D3D11_SUBRESOURCE_DATA data = { srcxyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4 };
+
+	m_pDevice->CreateBuffer(&cbufDesc, &data, &srcxyCBuf);
+	m_pDevice->CreateBuffer(&cbufDesc, NULL, &storexyCBuf);
+
+	// so we do:
+	// per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy--> pixstoreDepth
+	// at end: pixstoreDepth --copy--> pixstoreDepthReadback
+	//
+	// First copy is needed since orig depth might not be SRV-able
+	// CS pixel copy is needed since it's the only way to copy only one pixel from depth texture
+	//
+	// final copy is needed to get data into a readback texture since we can't have CS writing to staging texture
+
+	ID3D11Resource *targetres = NULL;
+	
+	     if(WrappedID3D11Texture1D::m_TextureList.find(target) != WrappedID3D11Texture1D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[target].m_Texture)->GetReal();
+	else if(WrappedID3D11Texture2D::m_TextureList.find(target) != WrappedID3D11Texture2D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[target].m_Texture)->GetReal();
+	else if(WrappedID3D11Texture3D::m_TextureList.find(target) != WrappedID3D11Texture3D::m_TextureList.end())
+				 targetres = ((WrappedID3D11Texture3D *)WrappedID3D11Texture3D::m_TextureList[target].m_Texture)->GetReal();
+
+	// while issuing the above queries we can check to see which tests are enabled so we don't
+	// bother checking if depth testing failed if the depth test was disabled
+	vector<uint32_t> flags(events.size());
+	enum {
+		TestEnabled_BackfaceCulling = 1<<0,
+		TestEnabled_DepthClip       = 1<<1,
+		TestEnabled_Scissor         = 1<<2,
+		TestEnabled_DepthTesting    = 1<<3,
+		TestEnabled_StencilTesting  = 1<<4,
+
+		// important to know if blending is enabled or not as we currently skip a bunch of stuff
+		// and only pay attention to the final passing fragment if blending is off
+		Blending_Enabled            = 1<<5,
+		
+		// additional flags we can trivially detect on the CPU for edge cases
+		TestMustFail_Scissor        = 1<<6, // if the scissor is enabled, pixel lies outside all regions (could be only one)
+		TestMustPass_Scissor        = 1<<7, // if the scissor is enabled, pixel lies inside all regions (could be only one)
+		TestMustFail_DepthTesting   = 1<<8, // if the comparison func is NEVER
+		TestMustFail_StencilTesting = 1<<9, // if the comparison func is NEVER for both faces, or one face is backface culled and the other is NEVER
+	};
+
+#if 1
+	BOOL occlData = 0;
+	const D3D11_QUERY_DESC occlDesc = { D3D11_QUERY_OCCLUSION_PREDICATE, 0 };
+#else
+	UINT64 occlData = 0;
+	const D3D11_QUERY_DESC occlDesc = { D3D11_QUERY_OCCLUSION, 0 };
+#endif
+
+	HRESULT hr = S_OK;
+
+	for(size_t i=0; i < events.size(); i++)
+	{
+		ID3D11Query *q = NULL;
+		m_pDevice->CreateQuery(&occlDesc, &q);
+		occl.push_back(q);
+	}
+	
+	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
+		m_pDevice->CreateQuery(&occlDesc, &testQueries[i]);
+
+	D3D11_BLEND_DESC nopBlendStateDesc = {0}; // no blending enabled anywhere, 0 write mask
+	ID3D11BlendState *nopBlendState = NULL;
+	m_pDevice->CreateBlendState(&nopBlendStateDesc, &nopBlendState);
+
+	D3D11_DEPTH_STENCIL_DESC nopDSStateDesc = { // no tests enabled, no writing enabled
+		FALSE, // DepthEnable;
+		D3D11_DEPTH_WRITE_MASK_ZERO, // DepthWriteMask;
+		D3D11_COMPARISON_ALWAYS, // DepthFunc;
+		FALSE, // StencilEnable;
+		0, // StencilReadMask;
+		0, // StencilWriteMask;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
+	};
+	ID3D11DepthStencilState *nopDSState = NULL;
+	m_pDevice->CreateDepthStencilState(&nopDSStateDesc, &nopDSState);
+	
+	D3D11_DEPTH_STENCIL_DESC allpassDSStateDesc = { // tests enabled to trivially pass, writing enabled
+		TRUE, // DepthEnable;
+		D3D11_DEPTH_WRITE_MASK_ALL, // DepthWriteMask;
+		D3D11_COMPARISON_ALWAYS, // DepthFunc;
+		TRUE, // StencilEnable;
+		0xff, // StencilReadMask;
+		0xff, // StencilWriteMask;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
+		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
+	};
+	ID3D11DepthStencilState *allpassDSState = NULL;
+	m_pDevice->CreateDepthStencilState(&allpassDSStateDesc, &allpassDSState);
+
+	m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+
+	D3D11_VIEWPORT viewport = { (float)x, (float)y, 10.0f, 10.0f, 0.0f, 1.0f }; // 1x1 viewport of our destination pixel
+
+	ID3D11RasterizerState *curRS = NULL;
+	ID3D11RasterizerState *newRS = NULL;
+	ID3D11DepthStencilState *newDS = NULL;
+	ID3D11PixelShader *curPS = NULL;
+	ID3D11ClassInstance *curInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+	UINT curNumInst = 0;
+	UINT curNumViews = 0;
+	UINT curNumScissors = 0;
+	D3D11_VIEWPORT curViewports[16] = {0};
+	D3D11_RECT curScissors[16] = {0};
+	D3D11_RECT newScissors[16] = {0};
+	ID3D11BlendState *curBS = NULL;
+	float blendFactor[4] = {0};
+	UINT curSample = 0;
+	ID3D11DepthStencilState *curDS = NULL;
+	UINT stencilRef = 0;
+
+	for(size_t ev=0; ev < events.size(); ev++)
+	{
+		curNumInst = D3D11_SHADER_MAX_INTERFACES;
+		curNumScissors = curNumViews = 16;
+
+		m_pImmediateContext->RSGetState(&curRS);
+		m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
+		m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
+		m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
+		m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
+		m_pImmediateContext->RSGetScissorRects(&curNumScissors, curScissors);
+
+		// defaults (mostly)
+		// disable tests/clips and enable scissor as we need it to clip visibility to just our pixel
+		// TODO determine if a pixel would have been scissor clipped.
+		D3D11_RASTERIZER_DESC rd = {
+			/*FillMode =*/ D3D11_FILL_SOLID,
+			/*CullMode =*/ D3D11_CULL_NONE,
+			/*FrontCounterClockwise =*/ FALSE,
+			/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
+			/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+			/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+			/*DepthClipEnable =*/ FALSE,
+			/*ScissorEnable =*/ TRUE,
+			/*MultisampleEnable =*/ FALSE,
+			/*AntialiasedLineEnable =*/ FALSE,
+		};
+
+		D3D11_RASTERIZER_DESC rsDesc;
+		RDCEraseEl(rsDesc);
+
+		if(curRS)
+		{
+			curRS->GetDesc(&rsDesc);
+
+			rd = rsDesc;
+
+			if(rd.CullMode != D3D11_CULL_NONE)
+				flags[ev] |= TestEnabled_BackfaceCulling;
+			if(rd.DepthClipEnable)
+				flags[ev] |= TestEnabled_DepthClip;
+			if(rd.ScissorEnable)
+				flags[ev] |= TestEnabled_Scissor;
+
+			rd.CullMode = D3D11_CULL_NONE;
+			rd.DepthClipEnable = FALSE;
+
+			rd.ScissorEnable = TRUE;
+		}
+		else
+		{
+			rsDesc.CullMode = D3D11_CULL_BACK;
+			rsDesc.ScissorEnable = FALSE;
+
+			// defaults
+			flags[ev] |= (TestEnabled_BackfaceCulling|TestEnabled_DepthClip);
+		}
+
+		if(curDS)
+		{
+			D3D11_DEPTH_STENCIL_DESC dsDesc;
+			curDS->GetDesc(&dsDesc);
+
+			if(dsDesc.DepthEnable)
+			{
+				if(dsDesc.DepthFunc != D3D11_COMPARISON_ALWAYS)
+					flags[ev] |= TestEnabled_DepthTesting;
+
+				if(dsDesc.DepthFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_DepthTesting;
+			}
+			
+			if(dsDesc.StencilEnable)
+			{
+				if(dsDesc.FrontFace.StencilFunc != D3D11_COMPARISON_ALWAYS || dsDesc.BackFace.StencilFunc != D3D11_COMPARISON_ALWAYS)
+					flags[ev] |= TestEnabled_StencilTesting;
+
+				if(dsDesc.FrontFace.StencilFunc == D3D11_COMPARISON_NEVER && dsDesc.BackFace.StencilFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_StencilTesting;
+
+				if(dsDesc.FrontFace.StencilFunc == D3D11_COMPARISON_NEVER && rsDesc.CullMode == D3D11_CULL_BACK                   )
+					flags[ev] |= TestMustFail_StencilTesting;
+
+				if(rsDesc.CullMode == D3D11_CULL_FRONT                    && dsDesc.BackFace.StencilFunc == D3D11_COMPARISON_NEVER)
+					flags[ev] |= TestMustFail_StencilTesting;
+			}
+		}
+		else
+		{
+			// defaults
+			flags[ev] |= TestEnabled_DepthTesting;
+		}
+
+		if(rsDesc.ScissorEnable)
+		{
+			// see if we can find at least one scissor region this pixel could fall into
+			bool inRegion = false;
+			bool inAllRegions = true;
+
+			for(UINT i=0; i < curNumScissors && i < curNumViews; i++)
+			{
+				if(xf >= curViewports[i].TopLeftX + float(curScissors[i].left) &&
+					 yf >= curViewports[i].TopLeftY + float(curScissors[i].top) &&
+					 xf < curViewports[i].TopLeftX + RDCMIN(curViewports[i].Width, float(curScissors[i].right)) &&
+					 yf < curViewports[i].TopLeftY + RDCMIN(curViewports[i].Height, float(curScissors[i].bottom))
+					)
+				{
+					inRegion = true;
+				}
+				else
+				{
+					inAllRegions = false;
+				}
+			}
+
+			if(!inRegion)
+				flags[ev] |= TestMustFail_Scissor;
+			if(inAllRegions)
+				flags[ev] |= TestMustPass_Scissor;
+		}
+
+		if(curBS)
+		{
+			D3D11_BLEND_DESC desc;
+			curBS->GetDesc(&desc);
+
+			if(desc.IndependentBlendEnable)
+			{
+				for(int i=0; i < 8; i++)
+				{
+					if(desc.RenderTarget[i].BlendEnable)
+					{
+						flags[ev] |= Blending_Enabled;
+						break;
+					}
+				}
+			}
+			else
+			{
+				if(desc.RenderTarget[0].BlendEnable)
+					flags[ev] |= Blending_Enabled;
+			}
+		}
+		else
+		{
+			// no blending enabled by default
+		}
+
+		m_pDevice->CreateRasterizerState(&rd, &newRS);
+		m_pImmediateContext->RSSetState(newRS);
+
+		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+
+		m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+		m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+
+		for(UINT i=0; i < curNumViews; i++)
+		{
+			// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
+
+			// if (x,y) pixel isn't in viewport, make empty rect)
+			if(xf < curViewports[i].TopLeftX ||
+				yf < curViewports[i].TopLeftY ||
+				xf >= curViewports[i].TopLeftX + curViewports[i].Width ||
+				yf >= curViewports[i].TopLeftY + curViewports[i].Height)
+			{
+				newScissors[i].left = newScissors[i].top = newScissors[i].bottom = newScissors[i].right = 0;
+			}
+			else
+			{
+				newScissors[i].left = LONG(xf - curViewports[i].TopLeftX);
+				newScissors[i].top = LONG(yf - curViewports[i].TopLeftY);
+				newScissors[i].right = newScissors[i].left+1;
+				newScissors[i].bottom = newScissors[i].top+1;
+			}
+		}
+
+		// scissor every viewport
+		m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+		D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
+
+		// figure out where this event lies in the pixstore texture
+		UINT storex = UINT(ev % (2048/3));
+		UINT storey = UINT(ev / (2048/3));
+
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 0, storey, 0, targetres, 0, &srcbox);
+		
+		bool depthBound = false;
+		ID3D11Texture2D **copyTex = NULL;
+		ID3D11ShaderResourceView **copyDepthSRV = NULL;
+		ID3D11ShaderResourceView **copyStencilSRV = NULL;
+		ID3D11Resource *depthRes = NULL;
+
+		{
+			ID3D11DepthStencilView *dsv = NULL;
+			m_pImmediateContext->OMGetRenderTargets(0, NULL, &dsv);
+
+			if(dsv)
+			{
+				depthBound = true;
+
+				dsv->GetResource(&depthRes);
+
+				SAFE_RELEASE(dsv);
+
+				D3D11_RESOURCE_DIMENSION dim;
+				depthRes->GetType(&dim);
+				
+				D3D11_TEXTURE2D_DESC desc2d;
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+				{
+					ID3D11Texture1D *tex = (ID3D11Texture1D *)depthRes;
+					D3D11_TEXTURE1D_DESC desc1d;
+					tex->GetDesc(&desc1d);
+
+					desc2d.Format = desc1d.Format;
+					desc2d.Width = desc1d.Width;
+					desc2d.Height = 1;
+				}
+				else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					ID3D11Texture2D *tex = (ID3D11Texture2D *)depthRes;
+					tex->GetDesc(&desc2d);
+				}
+
+				D3D11_TEXTURE2D_DESC *copyDesc = NULL;
+				if(desc2d.Format == DXGI_FORMAT_R16_FLOAT ||
+					 desc2d.Format == DXGI_FORMAT_R16_SINT ||
+					 desc2d.Format == DXGI_FORMAT_R16_UINT ||
+					 desc2d.Format == DXGI_FORMAT_R16_SNORM ||
+					 desc2d.Format == DXGI_FORMAT_R16_UNORM ||
+					 desc2d.Format == DXGI_FORMAT_R16_TYPELESS ||
+					 desc2d.Format == DXGI_FORMAT_D16_UNORM)
+				{
+					copyDesc = &depthCopyD16Desc;
+					copyTex = &depthCopyD16;
+					copyDepthSRV = &depthCopyD16_DepthSRV;
+					copyStencilSRV = NULL;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R16_UNORM;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_R24G8_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D24_UNORM_S8_UINT)
+				{
+					copyDesc = &depthCopyD24S8Desc;
+					copyTex = &depthCopyD24S8;
+					copyDepthSRV = &depthCopyD24S8_DepthSRV;
+					copyStencilSRV = &depthCopyD24S8_StencilSRV;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+					copyStencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R32_FLOAT ||
+					      desc2d.Format == DXGI_FORMAT_R32_SINT ||
+					      desc2d.Format == DXGI_FORMAT_R32_UINT ||
+					      desc2d.Format == DXGI_FORMAT_R32_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D32_FLOAT)
+				{
+					copyDesc = &depthCopyD32Desc;
+					copyTex = &depthCopyD32;
+					copyDepthSRV = &depthCopyD32_DepthSRV;
+					copyStencilSRV = NULL;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT;
+				}
+				else if(desc2d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_R32G8X24_TYPELESS ||
+					      desc2d.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
+				{
+					copyDesc = &depthCopyD32S8Desc;
+					copyTex = &depthCopyD32S8;
+					copyDepthSRV = &depthCopyD32S8_DepthSRV;
+					copyStencilSRV = &depthCopyD32S8_StencilSRV;
+
+					copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+					copyStencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+				}
+
+				if(*copyTex == NULL || desc2d.Width > copyDesc->Width || desc2d.Height > copyDesc->Height)
+				{
+					// recreate texture
+					SAFE_RELEASE(*copyTex);
+					SAFE_RELEASE(*copyDepthSRV);
+					if(copyStencilSRV) SAFE_RELEASE(*copyStencilSRV);
+
+					m_pDevice->CreateTexture2D(copyDesc, NULL, copyTex);
+					m_pDevice->CreateShaderResourceView(*copyTex, &copyDepthSRVDesc, copyDepthSRV);
+					if(copyStencilSRV) m_pDevice->CreateShaderResourceView(*copyTex, &copyStencilSRVDesc, copyStencilSRV);
+				}
+			}
+		}
+		
+		{
+			if(depthBound)
+				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
+			
+			ID3D11ComputeShader *curCS = NULL;
+			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+			ID3D11Buffer *curCSCBuf[2] = {0};
+			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+			ID3D11UnorderedAccessView *curCSUAV = NULL;
+			UINT initCounts = ~0U;
+
+			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+			uint32_t storexyData[4] = { storex*3 + 0, storey, (copyStencilSRV != NULL), 0 };
+
+			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
+			
+			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
+			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+
+			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->Dispatch(1, 1, 1);
+
+			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+			SAFE_RELEASE(curCS);
+			for(UINT i=0; i < curCSNumInst; i++)
+				SAFE_RELEASE(curCSInst[i]);
+			SAFE_RELEASE(curCSCBuf[0]);
+			SAFE_RELEASE(curCSCBuf[1]);
+			SAFE_RELEASE(curCSSRVs[0]);
+			SAFE_RELEASE(curCSSRVs[1]);
+			SAFE_RELEASE(curCSUAV);
+		}
+
+		m_pImmediateContext->Begin(occl[ev]);
+
+		m_WrappedDevice->ReplayLog(frameID, 0, events[ev], eReplay_OnlyDraw);
+
+		m_pImmediateContext->End(occl[ev]);
+
+		// TODO, if drawcall has side-effects (i.e UAVs bound) replay from start of log here?
+
+		m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+		m_pImmediateContext->RSSetState(curRS);
+		m_pImmediateContext->RSSetScissorRects(curNumScissors, curScissors);
+		m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
+		m_pImmediateContext->OMSetDepthStencilState(curDS, stencilRef);
+
+		for(UINT i=0; i < curNumInst; i++)
+			SAFE_RELEASE(curInst[i]);
+
+		SAFE_RELEASE(curPS);
+		SAFE_RELEASE(curRS);
+		SAFE_RELEASE(newRS);
+		SAFE_RELEASE(curBS);
+		SAFE_RELEASE(curDS);
+
+		// deliberately include drawcall in this range so that it gets replayed with correct
+		// state (otherwise this draw e.g. wouldn't write depth when it should)
+		if(ev < events.size()-1)
+			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev+1], eReplay_WithoutDraw);
+		else
+			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
+		
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 1, storey, 0, targetres, 0, &srcbox);
+		
+		{
+			if(depthBound)
+				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
+			
+			ID3D11ComputeShader *curCS = NULL;
+			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+			ID3D11Buffer *curCSCBuf[2] = {0};
+			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+			ID3D11UnorderedAccessView *curCSUAV = NULL;
+			UINT initCounts = ~0U;
+
+			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+			uint32_t storexyData[4] = { storex*3 + 1, storey, (copyStencilSRV != NULL), 0 };
+
+			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
+			
+			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
+			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+			
+			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->Dispatch(1, 1, 1);
+
+			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+			SAFE_RELEASE(curCS);
+			for(UINT i=0; i < curCSNumInst; i++)
+				SAFE_RELEASE(curCSInst[i]);
+			SAFE_RELEASE(curCSCBuf[0]);
+			SAFE_RELEASE(curCSCBuf[1]);
+			SAFE_RELEASE(curCSSRVs[0]);
+			SAFE_RELEASE(curCSSRVs[1]);
+			SAFE_RELEASE(curCSUAV);
+		}
+
+		SAFE_RELEASE(depthRes);
+	}
+
+	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
+
+	D3D11_MAPPED_SUBRESOURCE mapped = {0};
+	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+
+	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
+	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
+
+	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
+
+	byte *pixstoreData = (byte *)mapped.pData;
+	
+	bool depthStencilTex = details.texType == eTexType_Depth || 
+		details.texType == eTexType_DepthMS ||
+		details.texType == eTexType_Stencil ||
+		details.texType == eTexType_StencilMS;
+
+	for(size_t i=0; i < occl.size(); i++)
+	{
+		do
+		{
+			hr = m_pImmediateContext->GetData(occl[i], &occlData, sizeof(occlData), 0);
+		} while(hr == S_FALSE);
+		RDCASSERT(hr == S_OK);
+
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i]);
+
+		bool clear = (draw->flags & eDraw_Clear);
+
+		if(occlData > 0 || clear)
+		{
+			PixelModification mod;
+			RDCEraseEl(mod);
+
+			mod.eventID = events[i];
+
+			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+
+			// figure out where this event lies in the pixstore texture
+			uint32_t storex = uint32_t(i % (2048/3));
+			uint32_t storey = uint32_t(i / (2048/3));
+
+			if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+			{
+				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
+
+				if(fmt.compType == eCompType_SInt)
+				{
+					// need to get correct sign, but otherwise just copy
+
+					if(fmt.compByteWidth == 1)
+					{
+						int8_t *d = (int8_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 2)
+					{
+						int16_t *d = (int16_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 4)
+					{
+						int32_t *d = (int32_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.preMod.col.value_i[c] = d[c];
+					}
+
+					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+					
+					if(fmt.compByteWidth == 1)
+					{
+						int8_t *d = (int8_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 2)
+					{
+						int16_t *d = (int16_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 4)
+					{
+						int32_t *d = (int32_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							mod.postMod.col.value_i[c] = d[c];
+					}
+				}
+				else
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
+
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+					if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
+							mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
+						}
+					}
+					else if(fmt.compType == eCompType_UNorm)
+					{
+						// only 32bit unorm format is depth, handled separately
+						float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+						RDCASSERT(fmt.compByteWidth < 4);
+
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
+						}
+					}
+					else if(fmt.compType == eCompType_UNorm_SRGB)
+					{
+						RDCASSERT(fmt.compByteWidth == 1);
+
+						for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
+						{
+							mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
+							mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
+						}
+
+						// alpha is not SRGB'd
+						if(fmt.compCount == 4)
+						{
+							mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
+							mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
+							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
+
+							if(*d == -128)
+								mod.preMod.col.value_f[c] = -1.0f;
+							else
+								mod.preMod.col.value_f[c] = float(*d)/127.0f;
+
+							d = (int8_t *)&mod.preMod.col.value_u[c];
+
+							if(*d == -128)
+								mod.preMod.col.value_f[c] = -1.0f;
+							else
+								mod.preMod.col.value_f[c] = float(*d)/127.0f;
+						}
+					}
+					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+						{
+							int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
+
+							if(*d == -32768)
+								mod.preMod.col.value_f[c] = -1.0f;
+							else
+								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+
+							d = (int16_t *)&mod.preMod.col.value_u[c];
+
+							if(*d == -32768)
+								mod.preMod.col.value_f[c] = -1.0f;
+							else
+								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+						}
+					}
+				}
+			}
+
+			{
+				byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
+				float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 3 + 0));
+				
+				mod.preMod.depth = data[0];
+				mod.preMod.stencil = int32_t(data[1]);
+
+				mod.postMod.depth = data[2];
+				mod.postMod.stencil = int32_t(data[3]);
+			}
+
+			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a
+			// PixelModification event for all of them.
+			//
+			// Is there any value in doing this anyway for non-blended cases where other fragments are completely discarded?
+			if(flags[i] & Blending_Enabled)
+			{
+			}
+			
+			mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
+			mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
+			mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
+			mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
+			mod.shaderOut.depth = mod.postMod.depth;
+			mod.shaderOut.stencil = mod.postMod.stencil;
+
+			if((draw->flags & eDraw_Clear) == 0)
+			{
+				if(flags[i] & TestMustFail_DepthTesting)
+					mod.depthTestFailed = true;
+				if(flags[i] & TestMustFail_StencilTesting)
+					mod.stencilTestFailed = true;
+				if(flags[i] & TestMustFail_Scissor)
+					mod.scissorClipped = true;
+
+				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+				curNumScissors = curNumViews = 16;
+				m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
+				m_pImmediateContext->RSGetScissorRects(&curNumScissors, curScissors);
+				m_pImmediateContext->RSGetState(&curRS);
+				m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
+				blendFactor[0] = blendFactor[1] = blendFactor[2] = blendFactor[3] = 1.0f;
+				curSample = ~0U;
+
+				D3D11_RASTERIZER_DESC rdesc = {
+					/*FillMode =*/ D3D11_FILL_SOLID,
+					/*CullMode =*/ D3D11_CULL_BACK,
+					/*FrontCounterClockwise =*/ FALSE,
+					/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
+					/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+					/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+					/*DepthClipEnable =*/ TRUE,
+					/*ScissorEnable =*/ FALSE,
+					/*MultisampleEnable =*/ FALSE,
+					/*AntialiasedLineEnable =*/ FALSE,
+				};
+				if(curRS)
+					curRS->GetDesc(&rdesc);
+
+				D3D11_DEPTH_STENCIL_DESC dsdesc = {
+					/*DepthEnable =*/ TRUE,
+					/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+					/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+					/*StencilEnable =*/ FALSE,
+					/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+					/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+					/*FrontFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+					/*BackFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+				};
+
+				if(curDS)
+					curDS->GetDesc(&dsdesc);
+
+				for(UINT v=0; v < curNumViews; v++)
+				{
+					// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
+
+					// if (x,y) pixel isn't in viewport, make empty rect)
+					if(xf < curViewports[v].TopLeftX ||
+						yf < curViewports[v].TopLeftY ||
+						xf >= curViewports[v].TopLeftX + curViewports[v].Width ||
+						yf >= curViewports[v].TopLeftY + curViewports[v].Height)
+					{
+						newScissors[v].left = newScissors[v].top = newScissors[v].bottom = newScissors[v].right = 0;
+					}
+					else
+					{
+						newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
+						newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
+						newScissors[v].right = newScissors[v].left+1;
+						newScissors[v].bottom = newScissors[v].top+1;
+					}
+				}
+
+				// for each test we only disable pipeline rejection tests that fall *after* it.
+				// e.g. to get an idea if a pixel failed backface culling or not, we enable only backface
+				// culling and disable everything else (since it happens first).
+				// For depth testing, we leave all tests enabled up to then - as we only want to know which
+				// pixels were rejected by the depth test, not pixels that might have passed the depth test
+				// had they not been discarded earlier by backface culling or depth clipping.
+				
+				// test shader discard
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[3]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[3]);
+
+					SAFE_RELEASE(newRS);
+				}
+
+				if(flags[i] & TestEnabled_BackfaceCulling)
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					rd.DepthClipEnable = FALSE;
+					// leave backface culling mode as normal
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[0]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[0]);
+
+					SAFE_RELEASE(newRS);
+				}
+
+				if(flags[i] & TestEnabled_DepthClip)
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[1]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[1]);
+
+					SAFE_RELEASE(newRS);
+				}
+
+				// only check scissor if test is enabled and we don't know if it's pass or fail yet
+				if((flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					// newScissors has scissor regions calculated to hit our target pixel on every viewport, but we must
+					// intersect that with the original scissors regions for correct testing behaviour.
+					// This amounts to making any scissor region that doesn't overlap with the target pixel empty.
+					//
+					// Note that in the case of only one scissor region we can trivially detect pass/fail of the test against
+					// our pixel on the CPU so we won't come in here (see check above against MustFail/MustPass). So we will
+					// only do this in the case where we have multiple scissor regions/viewports, some intersecting the pixel
+					// and some not. So we make the not intersecting scissor regions empty so our occlusion query tests to see
+					// if any pixels were written to the "passing" viewports
+					D3D11_RECT intersectScissors[16] = {0};
+					memcpy(intersectScissors, newScissors, sizeof(intersectScissors));
+
+					for(UINT s=0; s < curNumScissors; s++)
+					{
+						if(curScissors[i].left > newScissors[i].left ||
+							curScissors[i].right < newScissors[i].right ||
+							curScissors[i].top > newScissors[i].top ||
+							curScissors[i].bottom < newScissors[i].bottom)
+						{
+							// scissor region from the log doesn't touch our target pixel, make empty.
+							intersectScissors[i].left = intersectScissors[i].right = intersectScissors[i].top = intersectScissors[i].bottom = 0;
+						}
+					}
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
+
+					m_pImmediateContext->Begin(testQueries[2]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[2]);
+
+					SAFE_RELEASE(newRS);
+				}
+
+				if(flags[i] & TestEnabled_DepthTesting)
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					// leave depth clip mode as normal
+					// leave backface culling mode as normal
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					D3D11_DEPTH_STENCIL_DESC dsd = dsdesc;
+
+					// make stencil trivially pass
+					dsd.StencilEnable = TRUE;
+					dsd.StencilReadMask = 0xff;
+					dsd.StencilWriteMask = 0xff;
+					dsd.FrontFace = allpassDSStateDesc.FrontFace;
+					dsd.BackFace = allpassDSStateDesc.BackFace;
+
+					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[4]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[4]);
+
+					SAFE_RELEASE(newRS);
+					SAFE_RELEASE(newDS);
+				}
+
+				if(flags[i] & TestEnabled_StencilTesting)
+				{
+					D3D11_RASTERIZER_DESC rd = rdesc;
+
+					rd.ScissorEnable = TRUE;
+					rd.DepthClipEnable = FALSE;
+					rd.CullMode = D3D11_CULL_NONE;
+
+					m_pDevice->CreateRasterizerState(&rd, &newRS);
+
+					// leave depthstencil testing exactly as is, because a depth-fail means
+					// stencil isn't run
+					m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+
+					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
+					m_pImmediateContext->RSSetState(newRS);
+					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+
+					m_pImmediateContext->Begin(testQueries[5]);
+
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+
+					m_pImmediateContext->End(testQueries[5]);
+
+					SAFE_RELEASE(newRS);
+					SAFE_RELEASE(newDS);
+				}
+
+				SAFE_RELEASE(curRS);
+
+				// we check these in the order defined, as a positive from the backface cull test
+				// will invalidate tests later (as they will also be backface culled)
+
+				do 
+				{
+
+					if(flags[i] & TestEnabled_BackfaceCulling)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.backfaceCulled = (occlData == 0);
+
+						if(mod.backfaceCulled)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_DepthClip)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[1], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.depthClipped = (occlData == 0);
+
+						if(mod.depthClipped)
+							break;
+					}
+
+					if(!mod.backfaceCulled && (flags[i] & (TestEnabled_Scissor|TestMustPass_Scissor|TestMustFail_Scissor)) == TestEnabled_Scissor)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[2], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.scissorClipped = (occlData == 0);
+
+						if(mod.scissorClipped)
+							break;
+					}
+
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[3], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.shaderDiscarded = (occlData == 0);
+
+						if(mod.shaderDiscarded)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_DepthTesting)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[4], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.depthTestFailed = (occlData == 0);
+
+						if(mod.depthTestFailed)
+							break;
+					}
+
+					if(flags[i] & TestEnabled_StencilTesting)
+					{
+						do
+						{
+							hr = m_pImmediateContext->GetData(testQueries[5], &occlData, sizeof(occlData), 0);
+						} while(hr == S_FALSE);
+						RDCASSERT(hr == S_OK);
+
+						mod.stencilTestFailed = (occlData == 0);
+
+						if(mod.stencilTestFailed)
+							break;
+					}
+				} while (0);
+			}
+			
+			history.push_back(mod);
+
+			RDCDEBUG("Event %u is visible", events[i]);
+			if(sizeof(occlData) == sizeof(UINT64)) // if we've changed from OCCLUSION_PREDICATE to OCCLUSION for debugging
+				RDCDEBUG("   %llu samples visible", occlData);
+		}
+
+		SAFE_RELEASE(occl[i]);
+	}
+
+	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
+	m_pImmediateContext->Unmap(pixstore, 0);
+	
+	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
+		SAFE_RELEASE(testQueries[i]);
+
+	SAFE_RELEASE(nopBlendState);
+	SAFE_RELEASE(nopDSState);
+
+	SAFE_RELEASE(pixstore);
+	
+	SAFE_RELEASE(pixstoreDepthReadback);
+	SAFE_RELEASE(pixstoreDepth);
+	SAFE_RELEASE(pixstoreDepthUAV);
+
+	SAFE_RELEASE(depthCopyD24S8);
+	SAFE_RELEASE(depthCopyD24S8_DepthSRV);
+	SAFE_RELEASE(depthCopyD24S8_StencilSRV);
+
+	SAFE_RELEASE(depthCopyD32S8);
+	SAFE_RELEASE(depthCopyD32S8_DepthSRV);
+	SAFE_RELEASE(depthCopyD32S8_StencilSRV);
+
+	SAFE_RELEASE(depthCopyD32);
+	SAFE_RELEASE(depthCopyD32_DepthSRV);
+
+	SAFE_RELEASE(depthCopyD16);
+	SAFE_RELEASE(depthCopyD16_DepthSRV);
+
+	SAFE_RELEASE(unusedDepthCS);
+	SAFE_RELEASE(copyDepthStencilCS);
+	SAFE_RELEASE(srcxyCBuf);
+	SAFE_RELEASE(storexyCBuf);
+
+	return history;
 }

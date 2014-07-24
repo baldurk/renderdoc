@@ -217,6 +217,17 @@
   </row>
   <row>
     <entry>
+      <para>&#947;
+      Gamma display of Linear data
+      </para>
+    </entry>
+    <entry><para>A proper explanation of this is available in the
+    <link xlink:href="b97b19f8-2b97-4dca-8a7a-ed7026eb43fe" />. In short, linear data is 'overcorrected' to
+    look as expected, but this behaviour can be overridden</para>
+	</entry>
+  </row>
+  <row>
+    <entry>
       <para><mediaLinkInline><image xlink:href="color_wheel"/></mediaLinkInline> 
       <mediaLinkInline><image xlink:href="crosshatch"/></mediaLinkInline> 
       Alpha Background
@@ -226,8 +237,8 @@
     the semi-transparent sections more obvious. With these two controls you can either choose a checkerboard pattern
     <mediaLinkInline><image xlink:href="crosshatch"/></mediaLinkInline> or open a colour picker to choose a solid
     colour <mediaLinkInline><image xlink:href="color_wheel"/></mediaLinkInline>.</para>
-	</entry>
 	<para>The currently enabled mode will be highlighted.</para>
+	</entry>
   </row>
   <row>
     <entry>

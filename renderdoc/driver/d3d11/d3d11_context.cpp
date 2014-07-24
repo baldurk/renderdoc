@@ -443,6 +443,8 @@ void WrappedID3D11DeviceContext::BeginFrame()
 
 void WrappedID3D11DeviceContext::EndFrame()
 {
+	DrainAnnotationQueue();
+
 	m_pDevice->GetResourceManager()->FlushPendingDirty();
 }
 

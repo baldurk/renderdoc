@@ -110,6 +110,8 @@
             this.customDelete = new System.Windows.Forms.ToolStripButton();
             this.backcolorPick = new System.Windows.Forms.ToolStripButton();
             this.checkerBack = new System.Windows.Forms.ToolStripButton();
+            this.gammaSeparator = new System.Windows.Forms.ToolStripSeparator();
+            this.gammaDisplay = new System.Windows.Forms.ToolStripButton();
             this.statusbar = new System.Windows.Forms.StatusStrip();
             this.texStatusDim = new System.Windows.Forms.ToolStripStatusLabel();
             this.hoverSwatch = new System.Windows.Forms.ToolStripStatusLabel();
@@ -133,6 +135,7 @@
             this.pixelContextPanel = new System.Windows.Forms.TableLayoutPanel();
             this.pixelContext = new renderdocui.Controls.NoScrollPanel();
             this.debugPixelContext = new System.Windows.Forms.Button();
+            this.pixelHistory = new System.Windows.Forms.Button();
             this.tabContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.closeTab = new System.Windows.Forms.ToolStripMenuItem();
             this.closeOtherTabs = new System.Windows.Forms.ToolStripMenuItem();
@@ -140,6 +143,7 @@
             this.texPanel = new renderdocui.Controls.ThumbnailStrip();
             this.rtPanel = new renderdocui.Controls.ThumbnailStrip();
             this.rangeHistogram = new renderdocui.Controls.RangeHistogram();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             subSep = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
@@ -517,7 +521,7 @@
             this.overlayStrip.Location = new System.Drawing.Point(216, 50);
             this.overlayStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.overlayStrip.Name = "overlayStrip";
-            this.overlayStrip.Size = new System.Drawing.Size(204, 25);
+            this.overlayStrip.Size = new System.Drawing.Size(171, 25);
             this.overlayStrip.TabIndex = 3;
             // 
             // toolStripLabel5
@@ -553,7 +557,7 @@
             this.mipLevel,
             this.sliceFaceLabel,
             this.sliceFace});
-            this.subStrip.Location = new System.Drawing.Point(604, 0);
+            this.subStrip.Location = new System.Drawing.Point(633, 0);
             this.subStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.subStrip.Name = "subStrip";
             this.subStrip.Size = new System.Drawing.Size(400, 25);
@@ -604,7 +608,7 @@
             this.autoFit,
             this.reset01,
             this.visualiseRange});
-            this.rangeStrip.Location = new System.Drawing.Point(432, 50);
+            this.rangeStrip.Location = new System.Drawing.Point(399, 50);
             this.rangeStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.rangeStrip.Name = "rangeStrip";
             this.rangeStrip.Size = new System.Drawing.Size(237, 25);
@@ -686,11 +690,13 @@
             this.customEdit,
             this.customDelete,
             this.backcolorPick,
-            this.checkerBack});
+            this.checkerBack,
+            this.gammaSeparator,
+            this.gammaDisplay});
             this.channelStrip.Location = new System.Drawing.Point(0, 0);
             this.channelStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.channelStrip.Name = "channelStrip";
-            this.channelStrip.Size = new System.Drawing.Size(592, 25);
+            this.channelStrip.Size = new System.Drawing.Size(621, 25);
             this.channelStrip.TabIndex = 1;
             // 
             // channels
@@ -856,6 +862,26 @@
             this.checkerBack.Size = new System.Drawing.Size(23, 22);
             this.checkerBack.ToolTipText = "Alpha: Show Checkerboard Background";
             this.checkerBack.Click += new System.EventHandler(this.checkerBack_Click);
+            // 
+            // gammaSeparator
+            // 
+            this.gammaSeparator.Name = "gammaSeparator";
+            this.gammaSeparator.Size = new System.Drawing.Size(6, 25);
+            // 
+            // gammaDisplay
+            // 
+            this.gammaDisplay.Checked = true;
+            this.gammaDisplay.CheckOnClick = true;
+            this.gammaDisplay.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.gammaDisplay.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            this.gammaDisplay.Image = ((System.Drawing.Image)(resources.GetObject("gammaDisplay.Image")));
+            this.gammaDisplay.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.gammaDisplay.Name = "gammaDisplay";
+            this.gammaDisplay.Size = new System.Drawing.Size(23, 22);
+            this.gammaDisplay.Text = "γ";
+            this.gammaDisplay.ToolTipText = "Override display of linear data in gamma space\r\n\r\nSee FAQ on \"Gamma display of li" +
+    "near data\"";
+            this.gammaDisplay.CheckedChanged += new System.EventHandler(this.updateChannelsHandler);
             // 
             // statusbar
             // 
@@ -1120,25 +1146,28 @@
             // 
             // pixelContextPanel
             // 
-            this.pixelContextPanel.ColumnCount = 1;
-            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.pixelContextPanel.ColumnCount = 2;
+            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
+            this.pixelContextPanel.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.pixelContextPanel.Controls.Add(this.pixelContext, 0, 0);
-            this.pixelContextPanel.Controls.Add(this.debugPixelContext, 0, 1);
+            this.pixelContextPanel.Controls.Add(this.debugPixelContext, 1, 1);
+            this.pixelContextPanel.Controls.Add(this.pixelHistory, 0, 1);
             this.pixelContextPanel.Location = new System.Drawing.Point(780, 258);
             this.pixelContextPanel.Name = "pixelContextPanel";
             this.pixelContextPanel.RowCount = 2;
             this.pixelContextPanel.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.pixelContextPanel.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.pixelContextPanel.Size = new System.Drawing.Size(108, 127);
+            this.pixelContextPanel.Size = new System.Drawing.Size(215, 156);
             this.pixelContextPanel.TabIndex = 11;
             // 
             // pixelContext
             // 
             this.pixelContext.BackColor = System.Drawing.Color.Transparent;
+            this.pixelContextPanel.SetColumnSpan(this.pixelContext, 2);
             this.pixelContext.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pixelContext.Location = new System.Drawing.Point(3, 3);
             this.pixelContext.Name = "pixelContext";
-            this.pixelContext.Size = new System.Drawing.Size(102, 92);
+            this.pixelContext.Size = new System.Drawing.Size(209, 121);
             this.pixelContext.TabIndex = 6;
             this.pixelContext.Paint += new System.Windows.Forms.PaintEventHandler(this.pixelContext_Paint);
             // 
@@ -1146,13 +1175,26 @@
             // 
             this.debugPixelContext.Anchor = System.Windows.Forms.AnchorStyles.Bottom;
             this.debugPixelContext.AutoSize = true;
-            this.debugPixelContext.Location = new System.Drawing.Point(5, 101);
+            this.debugPixelContext.Location = new System.Drawing.Point(136, 130);
             this.debugPixelContext.Name = "debugPixelContext";
-            this.debugPixelContext.Size = new System.Drawing.Size(97, 23);
+            this.debugPixelContext.Size = new System.Drawing.Size(49, 23);
             this.debugPixelContext.TabIndex = 7;
-            this.debugPixelContext.Text = "Debug This Pixel";
+            this.debugPixelContext.Text = "Debug";
+            this.toolTip.SetToolTip(this.debugPixelContext, "Debug this pixel");
             this.debugPixelContext.UseVisualStyleBackColor = true;
             this.debugPixelContext.Click += new System.EventHandler(this.debugPixel_Click);
+            // 
+            // pixelHistory
+            // 
+            this.pixelHistory.Anchor = System.Windows.Forms.AnchorStyles.Top;
+            this.pixelHistory.Location = new System.Drawing.Point(29, 130);
+            this.pixelHistory.Name = "pixelHistory";
+            this.pixelHistory.Size = new System.Drawing.Size(48, 23);
+            this.pixelHistory.TabIndex = 8;
+            this.pixelHistory.Text = "History";
+            this.toolTip.SetToolTip(this.pixelHistory, "Show history for this pixel");
+            this.pixelHistory.UseVisualStyleBackColor = true;
+            this.pixelHistory.Click += new System.EventHandler(this.pixelHistory_Click);
             // 
             // tabContextMenu
             // 
@@ -1377,6 +1419,10 @@
         private System.Windows.Forms.ToolStripButton customCreate;
         private System.Windows.Forms.ToolStripButton customDelete;
         private System.Windows.Forms.ToolStripButton customEdit;
+        private System.Windows.Forms.ToolStripButton gammaDisplay;
+        private System.Windows.Forms.ToolStripSeparator gammaSeparator;
+        private System.Windows.Forms.ToolTip toolTip;
+        private System.Windows.Forms.Button pixelHistory;
 
     }
 }

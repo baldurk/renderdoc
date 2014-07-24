@@ -89,7 +89,7 @@ namespace renderdocui.Code
 
             InitException = null;
 
-            m_Thread = new Thread(new ThreadStart(this.RunThread));
+            m_Thread = Helpers.NewThread(new ThreadStart(this.RunThread));
             m_Thread.Priority = ThreadPriority.Highest;
             m_Thread.Start();
 

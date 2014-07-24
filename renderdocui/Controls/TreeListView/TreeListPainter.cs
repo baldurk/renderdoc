@@ -199,14 +199,17 @@ namespace TreelistView
             if (format.BackColor != Color.Transparent)
                 c = format.BackColor;
 
-            if (node.BackColor != Color.Transparent)
-                c = node.BackColor;
-            
-			if (!m_owner.NodesSelection.Contains(node) && m_owner.FocusedNode != node &&
+            if (!m_owner.NodesSelection.Contains(node) && m_owner.FocusedNode != node &&
                 !(hoverNode == node && m_owner.RowOptions.HoverHighlight) &&
                 node.DefaultBackColor != Color.Transparent)
                 c = node.DefaultBackColor;
 
+            if (node.BackColor != Color.Transparent)
+                c = node.BackColor;
+
+            if (column.Index < node.IndexedBackColor.Length && node.IndexedBackColor[column.Index] != Color.Transparent)
+                c = node.IndexedBackColor[column.Index];
+            
             if (c != Color.Transparent)
             {
                 Rectangle r = cellRect;

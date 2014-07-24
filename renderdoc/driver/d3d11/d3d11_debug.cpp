@@ -2084,7 +2084,12 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 
 vector<byte> D3D11DebugManager::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
 {
-	ID3D11Buffer *buffer = WrappedID3D11Buffer::m_BufferList[buff].m_Buffer;
+	auto it = WrappedID3D11Buffer::m_BufferList.find(buff);
+
+	if(it == WrappedID3D11Buffer::m_BufferList.end())
+		return vector<byte>();
+
+	ID3D11Buffer *buffer = it->second.m_Buffer;
 
 	RDCASSERT(buffer);
 
@@ -3476,7 +3481,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 		pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
 		srvOffset = 20;
 	}
-	if(!IsSRGBFormat(details.texFmt))
+	if(!IsSRGBFormat(details.texFmt) && cfg.linearDisplayAsGamma)
 	{
 		pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 	}
@@ -3997,6 +4002,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			SigParameter &sign = lastShader->m_OutputSig[i];
 
 			D3D11_SO_DECLARATION_ENTRY decl;
+
+			// for now, skip streams that aren't stream 0
+			if(sign.stream != 0)
+				continue;
 
 			decl.Stream = 0;
 			decl.OutputSlot = 0;

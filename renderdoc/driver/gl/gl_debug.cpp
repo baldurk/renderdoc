@@ -198,6 +198,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
 		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 		texDisplay.HDRMul = -1.0f;
+		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.mip = mip;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;

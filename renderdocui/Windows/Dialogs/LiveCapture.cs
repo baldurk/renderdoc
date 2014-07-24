@@ -115,7 +115,7 @@ namespace renderdocui.Windows
 
         private void LiveCapture_Shown(object sender, EventArgs e)
         {
-            m_ConnectThread = new Thread(new ThreadStart(ConnectionThreadEntry));
+            m_ConnectThread = Helpers.NewThread(new ThreadStart(ConnectionThreadEntry));
             m_ConnectThread.Start();
         }
 

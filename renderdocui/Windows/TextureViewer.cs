@@ -800,7 +800,8 @@ namespace renderdocui.Windows
             uint firstuav = uint.MaxValue;
 
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 &&
-                m_Core.CurD3D11PipelineState != null)
+                m_Core.CurD3D11PipelineState != null &&
+                m_Core.CurD3D11PipelineState.m_OM.UAVs[0].Resource != ResourceId.Null)
                 firstuav = m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
 
             if (m_Output == null) return;
@@ -1290,7 +1291,11 @@ namespace renderdocui.Windows
                 if (value == true)
                 {
                     debugPixel.Enabled = debugPixelContext.Enabled = true;
-                    debugPixel.Text = debugPixelContext.Text = "Debug this Pixel";
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Debug this pixel");
+                    toolTip.SetToolTip(pixelHistory, "Show history for this pixel");
+
+                    pixelHistory.Enabled = true;
                 }
                 else
                 {
@@ -1298,7 +1303,11 @@ namespace renderdocui.Windows
                     m_CurRealValue = null;
 
                     debugPixel.Enabled = debugPixelContext.Enabled = false;
-                    debugPixel.Text = debugPixelContext.Text = "RMB to Pick";
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Right Click to choose a pixel");
+                    toolTip.SetToolTip(pixelHistory, "Right Click to choose a pixel");
+
+                    pixelHistory.Enabled = false;
                 }
 
                 pixelContext.Invalidate();
@@ -1436,6 +1445,13 @@ namespace renderdocui.Windows
             FetchTexture tex = CurrentTexture;
 
             channelStrip.SuspendLayout();
+
+            if (tex != null && !tex.format.srgbCorrected)
+                gammaDisplay.Enabled = true;
+            else
+                gammaDisplay.Enabled = false;
+
+            m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
 
             if (tex != null && (tex.creationFlags & TextureCreationFlags.DSV) > 0 &&
                 (string)channels.SelectedItem != "Custom")
@@ -2286,7 +2302,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            rangePaintThread = new Thread(new ThreadStart(() =>
+            rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
                 Thread.Sleep(8);
@@ -2534,6 +2550,23 @@ namespace renderdocui.Windows
         private void TextureViewer_Resize(object sender, EventArgs e)
         {
             render.Invalidate();
+        }
+
+        private void pixelHistory_Click(object sender, EventArgs e)
+        {
+            PixelModification[] history = null;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+                
+                this.BeginInvoke(new Action(() =>
+                {
+                    PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint,
+                                                                 m_TexDisplay.rangemin, m_TexDisplay.rangemax, history);
+                    hist.Show(DockPanel);
+                }));
+            });
         }
 
         private void debugPixel_Click(object sender, EventArgs e)

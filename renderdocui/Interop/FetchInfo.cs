@@ -414,6 +414,7 @@ namespace renderdoc
         public float scale = 1.0f;
         public bool Red = true, Green = true, Blue = true, Alpha = false;
         public float HDRMul = -1.0f;
+        public bool linearDisplayAsGamma = true;
         public ResourceId CustomShader = ResourceId.Null;
         public UInt32 mip = 0;
         public UInt32 sliceFace = 0;
@@ -454,6 +455,36 @@ namespace renderdoc
 
         [CustomMarshalAs(CustomUnmanagedType.Union)]
         public ValueUnion value;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class ModificationValue
+    {
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public PixelValue col;
+        public float depth;
+        public Int32 stencil;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class PixelModification
+    {
+        public UInt32 eventID;
+
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ModificationValue preMod;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ModificationValue shaderOut;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ModificationValue postMod;
+
+        public bool backfaceCulled;
+        public bool depthClipped;
+        public bool viewClipped;
+        public bool scissorClipped;
+        public bool shaderDiscarded;
+        public bool depthTestFailed;
+        public bool stencilTestFailed;
     };
 
     [StructLayout(LayoutKind.Sequential)]

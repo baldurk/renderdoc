@@ -218,5 +218,38 @@
         </para>
       </content>
     </section>
+    <section address="FAQ12">
+      <title>Gamma display of linear data, or "Why doesn't my texture look right?"</title>
+      <content>
+        <para>
+          Gamma/SRGB correctness is a rather painful subject. If we could all just agree to store everything
+          in 32bit float data we could probably do away with it. Until that time we have to worry about
+          displaying textures while making sure to respect SRGB.
+        </para>
+        <para>
+          For texture formats that explicitly specify that they contain SRGB data this isn't a problem and
+          everything works smoothly. Note that RenderDoc shows picked texel values in linear float format,
+          so if you pick a pixel that is 0.5, 0.5, 0.5, the actual bytes might be stored as say 186, 186, 186.
+        </para>
+        <para>
+          For other textures it's more difficult - for starters they may actually contain SRGB data but the
+          correction is handled by shaders so there's no markup. Or indeed the app may not be gamma-correct so the
+          data is SRGB but uncorrected. If we display these textures in a technically correct way, such that the
+          data is not over or under gamma-corrected, the result often looks 'wrong' or unintuitively different
+          from expected.
+        </para>
+        <para>
+          Nothing is actually wrong here except perhaps that when visualising linear data it is often more convenient
+          to "overcorrect" such that the data is <em>perceptually</em> linear. A good example to use is a normal map:
+          The classic deep blue of (127,127,255) flat normals is technically incorrect as everyone is used to
+          visualising these textures in programs that display the data as if it were SRGB (which is the convention for
+          normal images that do not represent vectors).
+        </para>
+        <para>
+          You can override this behaviour on any texture that isn't listed as explicitly SRGB with the gamma (&#947;)
+          button - toggle this off and the overcorrection will be disabled.
+        </para>
+      </content>
+    </section>
   </developerConceptualDocument>
 </topic>

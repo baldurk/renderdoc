@@ -95,5 +95,11 @@ inline Vec4f ConvertFromB4G4R4A4(uint16_t data)
 				  (float)((data >> 12) & 0xf) / 15.0f );
 }
 
-#include "half_convert.h"
+extern float SRGB8_lookuptable[256];
 
+inline float ConvertFromSRGB8(uint8_t comp)
+{
+	return SRGB8_lookuptable[comp];
+}
+
+#include "half_convert.h"
