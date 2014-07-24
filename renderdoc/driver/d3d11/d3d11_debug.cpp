@@ -2793,6 +2793,9 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 			desc.CPUAccessFlags = 0;
 			desc.Usage = D3D11_USAGE_DEFAULT;
 			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+#if DXGL
+			desc.MiscFlags |= 0x80000000L; //D3D11_RESOURCE_MISC_DXGL_FORCE_ARRAY
+#endif
 
 			if(mode == TEXDISPLAY_DEPTH_TARGET)
 				desc.Format = GetTypelessFormat(desc.Format);
@@ -2880,6 +2883,9 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 			desc.CPUAccessFlags = 0;
 			desc.Usage = D3D11_USAGE_DEFAULT;
 			desc.BindFlags |= D3D11_BIND_SHADER_RESOURCE;
+#if DXGL
+			desc.MiscFlags |= 0x80000000L; //D3D11_RESOURCE_MISC_DXGL_FORCE_ARRAY
+#endif
 
 			if(mode == TEXDISPLAY_DEPTH_TARGET)
 			{
