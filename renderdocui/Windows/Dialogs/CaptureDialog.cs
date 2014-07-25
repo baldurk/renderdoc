@@ -50,6 +50,8 @@ namespace renderdocui.Windows.Dialogs
             public string CmdLine = "";
         }
 
+        private bool workDirHint = true;
+
         private Core m_Core;
 
         private void SetSettings(CaptureSettings settings)
@@ -72,9 +74,19 @@ namespace renderdocui.Windows.Dialogs
             DelayForDebugger.Value = settings.Options.DelayForDebugger;
             AutoStart.Checked = settings.AutoStart;
 
+            UpdateWorkDirHint();
+
             if (settings.AutoStart)
             {
                 TriggerCapture();
+            }
+        }
+
+        private string RealWorkDir
+        {
+            get
+            {
+                return workDirHint ? "" : workDirPath.Text;
             }
         }
 
@@ -87,7 +99,7 @@ namespace renderdocui.Windows.Dialogs
             ret.AutoStart = AutoStart.Checked;
 
             ret.Executable = exePath.Text;
-            ret.WorkingDir = workDirPath.Text;
+            ret.WorkingDir = RealWorkDir;
             ret.CmdLine = cmdline.Text;
 
             ret.Options.AllowFullscreen = AllowFullscreen.Checked;
@@ -153,6 +165,9 @@ namespace renderdocui.Windows.Dialogs
             m_InjectCallback = injectCallback;
 
             m_Core = core;
+
+            workDirHint = true;
+            workDirPath.ForeColor = SystemColors.GrayText;
 
             SetSettings(defaults);
         }
@@ -232,8 +247,8 @@ namespace renderdocui.Windows.Dialogs
             }
 
             string workingDir = "";
-            if (Directory.Exists(workDirPath.Text))
-                workingDir = workDirPath.Text;
+            if (Directory.Exists(RealWorkDir))
+                workingDir = RealWorkDir;
 
             string cmdLine = cmdline.Text;
 
@@ -315,6 +330,8 @@ namespace renderdocui.Windows.Dialogs
         {
             exePath.Text = exeBrowser.FileName;
 
+            UpdateWorkDirHint();
+
             m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
         }
 
@@ -332,6 +349,8 @@ namespace renderdocui.Windows.Dialogs
             if (fn != "")
             {
                 exePath.Text = fn;
+
+                UpdateWorkDirHint();
 
                 m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
             }
@@ -358,6 +377,8 @@ namespace renderdocui.Windows.Dialogs
             if (res == DialogResult.Yes || res == DialogResult.OK)
             {
                 workDirPath.Text = workDirBrowser.SelectedPath;
+                workDirHint = false;
+                workDirPath.ForeColor = SystemColors.WindowText;
             }
         }
 
@@ -422,6 +443,47 @@ namespace renderdocui.Windows.Dialogs
         private void capOptsGroup_Layout(object sender, LayoutEventArgs e)
         {
             capOptsFlow.MaximumSize = new Size(capOptsGroup.ClientRectangle.Width - 8, 0);
+        }
+
+        private void workDirPath_Enter(object sender, EventArgs e)
+        {
+            if (workDirHint)
+            {
+                workDirPath.ForeColor = SystemColors.WindowText;
+                workDirPath.Text = "";
+            }
+
+            workDirHint = false;
+        }
+
+        private void workDirPath_Leave(object sender, EventArgs e)
+        {
+            if (workDirPath.Text == "")
+            {
+                workDirHint = true;
+                workDirPath.ForeColor = SystemColors.GrayText;
+
+                UpdateWorkDirHint();
+            }
+        }
+
+        private void exePath_TextChanged(object sender, EventArgs e)
+        {
+            UpdateWorkDirHint();
+        }
+
+        private void UpdateWorkDirHint()
+        {
+            if (workDirHint == false) return;
+
+            try
+            {
+                workDirPath.Text = Path.GetDirectoryName(exePath.Text);
+            }
+            catch (ArgumentException)
+            {
+                // invalid path or similar
+            }
         }
     }
 }

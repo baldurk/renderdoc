@@ -505,6 +505,8 @@
             this.workDirPath.TabIndex = 2;
             this.toolTip.SetToolTip(this.workDirPath, "The working directory the executable will be launched in");
             this.workDirPath.TextChanged += new System.EventHandler(this.workDirPath_TextChanged);
+            this.workDirPath.Enter += new System.EventHandler(this.workDirPath_Enter);
+            this.workDirPath.Leave += new System.EventHandler(this.workDirPath_Leave);
             // 
             // exeBrowse
             // 
@@ -528,6 +530,7 @@
             this.exePath.Size = new System.Drawing.Size(430, 20);
             this.exePath.TabIndex = 0;
             this.toolTip.SetToolTip(this.exePath, "The executable file to launch");
+            this.exePath.TextChanged += new System.EventHandler(this.exePath_TextChanged);
             this.exePath.DragDrop += new System.Windows.Forms.DragEventHandler(this.exePath_DragDrop);
             this.exePath.DragEnter += new System.Windows.Forms.DragEventHandler(this.exePath_DragEnter);
             // 
