@@ -3176,6 +3176,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				depthRes->GetType(&dim);
 				
 				D3D11_TEXTURE2D_DESC desc2d;
+				RDCEraseEl(desc2d);
 
 				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
 				{
@@ -3191,6 +3192,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				{
 					ID3D11Texture2D *tex = (ID3D11Texture2D *)depthRes;
 					tex->GetDesc(&desc2d);
+				}
+				else
+				{
+					RDCERR("Unexpected size of depth buffer");
 				}
 
 				D3D11_TEXTURE2D_DESC *copyDesc = NULL;
