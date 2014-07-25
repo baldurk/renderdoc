@@ -148,7 +148,7 @@ namespace renderdoc
             return Maths_HalfToFloat(comp);
         }
 
-        public string Interpret(UInt32 comp)
+        public string Interpret(UInt32 comp, bool hex)
         {
             if (compByteWidth != 4 || compType == FormatComponentType.Float) throw new ArgumentException();
 
@@ -159,13 +159,13 @@ namespace renderdoc
             }
             else if (compType == FormatComponentType.UInt)
             {
-                return String.Format("{0}", comp);
+                return String.Format(hex ? "{0:X8}" : "{0}", comp);
             }
 
             throw new ArgumentException();
         }
 
-        public string Interpret(UInt16 comp)
+        public string Interpret(UInt16 comp, bool hex)
         {
             if (compByteWidth != 2 || compType == FormatComponentType.Float) throw new ArgumentException();
 
@@ -176,7 +176,7 @@ namespace renderdoc
             }
             else if (compType == FormatComponentType.UInt)
             {
-                return String.Format("{0}", comp);
+                return String.Format(hex ? "{0:X4}" : "{0}", comp);
             }
             else if (compType == FormatComponentType.UNorm)
             {
@@ -205,7 +205,7 @@ namespace renderdoc
             throw new ArgumentException();
         }
 
-        public string Interpret(byte comp)
+        public string Interpret(byte comp, bool hex)
         {
             if (compByteWidth != 1 || compType == FormatComponentType.Float) throw new ArgumentException();
 
@@ -216,7 +216,7 @@ namespace renderdoc
             }
             else if (compType == FormatComponentType.UInt)
             {
-                return String.Format("{0}", comp);
+                return String.Format(hex ? "{0:X2}" : "{0}", comp);
             }
             else if (compType == FormatComponentType.UNorm)
             {

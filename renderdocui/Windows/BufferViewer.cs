@@ -639,7 +639,11 @@ namespace renderdocui.Windows
                           @"uintten|unormten" +
                           @"|unormh|unormb" +
                           @"|snormh|snormb" +
-                          @"|bool|byte|ubyte|short|ushort|int|uint|half|float|double" + // basic types last since they're most the most common match
+                          @"|bool" + // bool is stored as 4-byte int in hlsl
+                          @"|byte|short|int" + // signed ints
+                          @"|ubyte|ushort|uint" + // unsigned ints
+                          @"|xbyte|xshort|xint" + // hex ints
+                          @"|half|float|double" + // float types
                           @")" +
                           @"([1-9])?" + // might be a vector
                           @"(x[1-9])?" + // or a matrix
@@ -701,6 +705,8 @@ namespace renderdocui.Windows
 
                 ResourceFormat fmt = new ResourceFormat(FormatComponentType.None, 0, 0);
 
+                bool hex = false;
+
                 FormatComponentType type = FormatComponentType.Float;
                 uint count = 0;
                 uint arrayCount = 1;
@@ -737,7 +743,7 @@ namespace renderdocui.Windows
                         type = FormatComponentType.SInt;
                         width = 1;
                     }
-                    else if (basetype == "ubyte")
+                    else if (basetype == "ubyte" || basetype == "xbyte")
                     {
                         type = FormatComponentType.UInt;
                         width = 1;
@@ -747,7 +753,7 @@ namespace renderdocui.Windows
                         type = FormatComponentType.SInt;
                         width = 2;
                     }
-                    else if (basetype == "ushort")
+                    else if (basetype == "ushort" || basetype == "xshort")
                     {
                         type = FormatComponentType.UInt;
                         width = 2;
@@ -757,7 +763,7 @@ namespace renderdocui.Windows
                         type = FormatComponentType.SInt;
                         width = 4;
                     }
-                    else if (basetype == "uint")
+                    else if (basetype == "uint" || basetype == "xint")
                     {
                         type = FormatComponentType.UInt;
                         width = 4;
@@ -817,10 +823,13 @@ namespace renderdocui.Windows
                     }
                 }
 
+                if (basetype == "xint" || basetype == "xshort" || basetype == "xbyte")
+                    hex = true;
+
                 if(fmt.compType == FormatComponentType.None)
                     fmt = new ResourceFormat(type, count * arrayCount, width);
 
-                FormatElement elem = new FormatElement(name, 0, input.Strides[0], false, row_major, matrixCount, fmt);
+                FormatElement elem = new FormatElement(name, 0, input.Strides[0], false, row_major, matrixCount, fmt, hex);
 
                 elems.Add(elem);
                 input.Strides[0] += elem.ByteSize;
@@ -832,7 +841,7 @@ namespace renderdocui.Windows
 
                 var fmt = new ResourceFormat(FormatComponentType.UInt, 4, 4);
 
-                elems.Add(new FormatElement("data", 0, input.Strides[0], false, false, 1, fmt));
+                elems.Add(new FormatElement("data", 0, input.Strides[0], false, false, 1, fmt, true));
                 input.Strides[0] = elems.Last().ByteSize;
             }
 
@@ -949,7 +958,8 @@ namespace renderdocui.Windows
                                              a.PerInstance,
                                              false, // row major matrix
                                              1, // matrix dimension
-                                             a.Format);
+                                             a.Format,
+                                             false);
                     i++;
                 }
             }
@@ -971,7 +981,7 @@ namespace renderdocui.Windows
             ret.Offsets = o;
             ret.Buffers = bs;
 
-            ret.IndexFormat = new FormatElement("", 0, 0, false, false, 1, ifmt);
+            ret.IndexFormat = new FormatElement("", 0, 0, false, false, 1, ifmt, false);
             ret.IndexBuffer = ibuffer;
             ret.IndexOffset = ioffset;
 
@@ -1660,10 +1670,10 @@ namespace renderdocui.Windows
                                 byte r = read.ReadByte();
                                 byte a = read.ReadByte();
 
-                                rowdata[x+0] = fmt.Interpret(r);
-                                rowdata[x+1] = fmt.Interpret(g);
-                                rowdata[x+2] = fmt.Interpret(b);
-                                rowdata[x+3] = fmt.Interpret(a);
+                                rowdata[x + 0] = fmt.Interpret(r, false);
+                                rowdata[x + 1] = fmt.Interpret(g, false);
+                                rowdata[x + 2] = fmt.Interpret(b, false);
+                                rowdata[x + 3] = fmt.Interpret(a, false);
                                 x += 4;
                             }
                             else if (fmt.special && fmt.specialFormat == SpecialFormat.B5G5R5A1)
@@ -1757,11 +1767,11 @@ namespace renderdocui.Windows
                                     else
                                     {
                                         if (fmt.compByteWidth == 4)
-                                            arr[i] = fmt.Interpret(read.ReadUInt32());
+                                            arr[i] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
                                         else if (fmt.compByteWidth == 2)
-                                            arr[i] = fmt.Interpret(read.ReadUInt16());
+                                            arr[i] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
                                         else if (fmt.compByteWidth == 1)
-                                            arr[i] = fmt.Interpret(read.ReadByte());
+                                            arr[i] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
                                     }
                                 }
 
@@ -1797,11 +1807,11 @@ namespace renderdocui.Windows
                                 for (int i = 0; i < fmt.compCount; i++, x++)
                                 {
                                     if (fmt.compByteWidth == 4)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt32());
+                                        rowdata[x] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
                                     else if (fmt.compByteWidth == 2)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt16());
+                                        rowdata[x] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
                                     else if (fmt.compByteWidth == 1)
-                                        rowdata[x] = fmt.Interpret(read.ReadByte());
+                                        rowdata[x] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
                                 }
                             }
                         }
@@ -2754,9 +2764,10 @@ namespace renderdocui.Windows
             rowmajor = false;
             matrixdim = 0;
             format = new ResourceFormat();
+            hex = false;
         }
 
-        public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat fmt)
+        public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat fmt, bool h)
         {
             name = Name;
             buffer = buf;
@@ -2765,6 +2776,7 @@ namespace renderdocui.Windows
             perinstance = pi;
             rowmajor = rowMat;
             matrixdim = matDim;
+            hex = h;
         }
 
         public uint ByteSize
@@ -2782,6 +2794,7 @@ namespace renderdocui.Windows
         public bool rowmajor;
         public uint matrixdim;
         public ResourceFormat format;
+        public bool hex;
     }
 
 }

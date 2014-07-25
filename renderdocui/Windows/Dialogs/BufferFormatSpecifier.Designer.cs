@@ -45,9 +45,9 @@
             // 
             groupBox1.Controls.Add(this.formatText);
             groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            groupBox1.Location = new System.Drawing.Point(3, 117);
+            groupBox1.Location = new System.Drawing.Point(3, 195);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(650, 141);
+            groupBox1.Size = new System.Drawing.Size(571, 102);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "Format";
@@ -60,7 +60,7 @@
             this.formatText.Multiline = true;
             this.formatText.Name = "formatText";
             this.formatText.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.formatText.Size = new System.Drawing.Size(644, 122);
+            this.formatText.Size = new System.Drawing.Size(565, 83);
             this.formatText.TabIndex = 0;
             this.formatText.Text = "float4 asd; // blah blah\r\nfloat3 bar;";
             this.formatText.KeyDown += new System.Windows.Forms.KeyEventHandler(this.formatText_KeyDown);
@@ -68,35 +68,36 @@
             // label1
             // 
             label1.AutoSize = true;
+            this.tableLayoutPanel1.SetColumnSpan(label1, 2);
             label1.Location = new System.Drawing.Point(8, 8);
             label1.Margin = new System.Windows.Forms.Padding(8);
             label1.Name = "label1";
-            label1.Size = new System.Drawing.Size(549, 52);
+            label1.Size = new System.Drawing.Size(517, 130);
             label1.TabIndex = 1;
             label1.Text = resources.GetString("label1.Text");
             // 
             // tableLayoutPanel1
             // 
-            this.tableLayoutPanel1.ColumnCount = 1;
+            this.tableLayoutPanel1.ColumnCount = 2;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel1.Controls.Add(groupBox1, 0, 2);
             this.tableLayoutPanel1.Controls.Add(label1, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.apply, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.errors, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.apply, 1, 2);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 4;
+            this.tableLayoutPanel1.RowCount = 3;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.Size = new System.Drawing.Size(656, 300);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // apply
             // 
-            this.apply.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.apply.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.apply.Location = new System.Drawing.Point(585, 269);
             this.apply.Margin = new System.Windows.Forms.Padding(8);
             this.apply.Name = "apply";
@@ -108,10 +109,11 @@
             // 
             // errors
             // 
+            this.tableLayoutPanel1.SetColumnSpan(this.errors, 2);
             this.errors.Dock = System.Windows.Forms.DockStyle.Fill;
             this.errors.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.errors.ForeColor = System.Drawing.Color.DarkRed;
-            this.errors.Location = new System.Drawing.Point(3, 68);
+            this.errors.Location = new System.Drawing.Point(3, 146);
             this.errors.Name = "errors";
             this.errors.Size = new System.Drawing.Size(650, 46);
             this.errors.TabIndex = 3;
