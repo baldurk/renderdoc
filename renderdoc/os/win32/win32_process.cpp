@@ -216,7 +216,21 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	}
 
 #if !defined(WIN64)
-	if(!isWow64)
+	BOOL selfWow64 = FALSE;
+
+	HANDLE hSelfProcess = GetCurrentProcess();
+
+	success = IsWow64Process(hSelfProcess, &selfWow64);
+
+	CloseHandle(hSelfProcess);
+
+	if(!success)
+	{
+		RDCERR("Couldn't determine bitness of self");
+		return 0;
+	}
+
+	if(selfWow64 && !isWow64)
 	{
 		RDCERR("Can't capture x64 process with x86 renderdoc");
 		CloseHandle(hProcess);
