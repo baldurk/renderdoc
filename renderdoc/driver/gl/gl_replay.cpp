@@ -571,12 +571,14 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 	
+	// TODO this shouldn't be tied to the current program
+	// This is only really needed to fill the latest sampler uniform values,
+	// which could potentially be done instead in SavePipelineState?
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
 	void *ctx = m_ReplayCtx.ctx;
 	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
 
 	auto &refl = shaderDetails.reflection;
@@ -601,12 +603,12 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		GLint numUniforms = 0;
 		gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
 
-		const size_t numProps = 6;
+		const size_t numProps = 7;
 
 		GLenum resProps[numProps] = {
 			eGL_REFERENCED_BY_VERTEX_SHADER,
 			
-			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE,
+			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, 
 		};
 
 		if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
@@ -627,32 +629,214 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			
 			ShaderResource res;
 			res.IsSampler = false; // no separate sampler objects in GL
+			res.IsSRV = true;
+			res.IsTexture = true;
+			res.IsUAV = false;
+			res.variableType.descriptor.rows = 1;
+			res.variableType.descriptor.cols = 4;
+			res.variableType.descriptor.elements = 1;
 
-			if(values[1] == GL_SAMPLER_2D)
+			// float samplers
+			if(values[1] == GL_SAMPLER_BUFFER)
 			{
-				res.IsSRV = true;
-				res.IsTexture = true;
-				res.IsUAV = false;
+				res.resType = eResType_Buffer;
+				res.variableType.descriptor.name = "samplerBuffer";
+			}
+			else if(values[1] == GL_SAMPLER_1D)
+			{
+				res.resType = eResType_Texture1D;
+				res.variableType.descriptor.name = "sampler1D";
+			}
+			else if(values[1] == GL_SAMPLER_1D_ARRAY)
+			{
+				res.resType = eResType_Texture1DArray;
+				res.variableType.descriptor.name = "sampler1DArray";
+			}
+			else if(values[1] == GL_SAMPLER_1D_SHADOW)
+			{
+				res.resType = eResType_Texture1D;
+				res.variableType.descriptor.name = "sampler1DShadow";
+			}
+			else if(values[1] == GL_SAMPLER_1D_ARRAY_SHADOW)
+			{
+				res.resType = eResType_Texture1DArray;
+				res.variableType.descriptor.name = "sampler1DArrayShadow";
+			}
+			else if(values[1] == GL_SAMPLER_2D)
+			{
 				res.resType = eResType_Texture2D;
 				res.variableType.descriptor.name = "sampler2D";
-				res.variableType.descriptor.rows = 1;
-				res.variableType.descriptor.cols = 4;
-				res.variableType.descriptor.elements = 1;
+			}
+			else if(values[1] == GL_SAMPLER_2D_ARRAY)
+			{
+				res.resType = eResType_Texture2DArray;
+				res.variableType.descriptor.name = "sampler2DArray";
+			}
+			else if(values[1] == GL_SAMPLER_2D_SHADOW)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2DShadow";
+			}
+			else if(values[1] == GL_SAMPLER_2D_ARRAY_SHADOW)
+			{
+				res.resType = eResType_Texture2DArray;
+				res.variableType.descriptor.name = "sampler2DArrayShadow";
+			}
+			else if(values[1] == GL_SAMPLER_2D_RECT)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2DRect";
+			}
+			else if(values[1] == GL_SAMPLER_2D_RECT_SHADOW)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2DRectShadow";
+			}
+			else if(values[1] == GL_SAMPLER_3D)
+			{
+				res.resType = eResType_Texture3D;
+				res.variableType.descriptor.name = "sampler3D";
+			}
+			else if(values[1] == GL_SAMPLER_CUBE)
+			{
+				res.resType = eResType_TextureCube;
+				res.variableType.descriptor.name = "samplerCube";
+			}
+			else if(values[1] == GL_SAMPLER_CUBE_SHADOW)
+			{
+				res.resType = eResType_TextureCube;
+				res.variableType.descriptor.name = "samplerCubeShadow";
+			}
+			else if(values[1] == GL_SAMPLER_CUBE_MAP_ARRAY)
+			{
+				res.resType = eResType_TextureCubeArray;
+				res.variableType.descriptor.name = "samplerCubeArray";
+			}
+			else if(values[1] == GL_SAMPLER_2D_MULTISAMPLE)
+			{
+				res.resType = eResType_Texture2DMS;
+				res.variableType.descriptor.name = "sampler2DMS";
+			}
+			else if(values[1] == GL_SAMPLER_2D_MULTISAMPLE_ARRAY)
+			{
+				res.resType = eResType_Texture2DMSArray;
+				res.variableType.descriptor.name = "sampler2DMSArray";
+			}
+			// int samplers
+			else if(values[1] == GL_INT_SAMPLER_BUFFER)
+			{
+				res.resType = eResType_Buffer;
+				res.variableType.descriptor.name = "samplerBuffer";
 			}
 			else if(values[1] == GL_INT_SAMPLER_1D)
 			{
-				res.IsSRV = true;
-				res.IsTexture = true;
-				res.IsUAV = false;
 				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "isampler1D";
-				res.variableType.descriptor.rows = 1;
-				res.variableType.descriptor.cols = 4;
-				res.variableType.descriptor.elements = 1;
+				res.variableType.descriptor.name = "sampler1D";
+			}
+			else if(values[1] == GL_INT_SAMPLER_1D_ARRAY)
+			{
+				res.resType = eResType_Texture1DArray;
+				res.variableType.descriptor.name = "sampler1DArray";
+			}
+			else if(values[1] == GL_INT_SAMPLER_2D)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2D";
+			}
+			else if(values[1] == GL_INT_SAMPLER_2D_ARRAY)
+			{
+				res.resType = eResType_Texture2DArray;
+				res.variableType.descriptor.name = "sampler2DArray";
+			}
+			else if(values[1] == GL_INT_SAMPLER_2D_RECT)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2DRect";
+			}
+			else if(values[1] == GL_INT_SAMPLER_3D)
+			{
+				res.resType = eResType_Texture3D;
+				res.variableType.descriptor.name = "sampler3D";
+			}
+			else if(values[1] == GL_INT_SAMPLER_CUBE)
+			{
+				res.resType = eResType_TextureCube;
+				res.variableType.descriptor.name = "samplerCube";
+			}
+			else if(values[1] == GL_INT_SAMPLER_CUBE_MAP_ARRAY)
+			{
+				res.resType = eResType_TextureCubeArray;
+				res.variableType.descriptor.name = "samplerCubeArray";
+			}
+			else if(values[1] == GL_INT_SAMPLER_2D_MULTISAMPLE)
+			{
+				res.resType = eResType_Texture2DMS;
+				res.variableType.descriptor.name = "sampler2DMS";
+			}
+			else if(values[1] == GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
+			{
+				res.resType = eResType_Texture2DMSArray;
+				res.variableType.descriptor.name = "sampler2DMSArray";
+			}
+			// unsigned int samplers
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_BUFFER)
+			{
+				res.resType = eResType_Buffer;
+				res.variableType.descriptor.name = "samplerBuffer";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_1D)
+			{
+				res.resType = eResType_Texture1D;
+				res.variableType.descriptor.name = "sampler1D";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
+			{
+				res.resType = eResType_Texture1DArray;
+				res.variableType.descriptor.name = "sampler1DArray";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2D";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
+			{
+				res.resType = eResType_Texture2DArray;
+				res.variableType.descriptor.name = "sampler2DArray";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_RECT)
+			{
+				res.resType = eResType_Texture2D;
+				res.variableType.descriptor.name = "sampler2DRect";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_3D)
+			{
+				res.resType = eResType_Texture3D;
+				res.variableType.descriptor.name = "sampler3D";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_CUBE)
+			{
+				res.resType = eResType_TextureCube;
+				res.variableType.descriptor.name = "samplerCube";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
+			{
+				res.resType = eResType_TextureCubeArray;
+				res.variableType.descriptor.name = "samplerCubeArray";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
+			{
+				res.resType = eResType_Texture2DMS;
+				res.variableType.descriptor.name = "sampler2DMS";
+			}
+			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
+			{
+				res.resType = eResType_Texture2DMSArray;
+				res.variableType.descriptor.name = "sampler2DMSArray";
 			}
 			else
 			{
-				// fill in more sampler types
+				// not a sampler
 				continue;
 			}
 
@@ -668,23 +852,50 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		refl.Resources = resources;
 
 		vector<ShaderConstant> globalUniforms;
+		
+		GLint numUBOs = 0;
+		vector<string> uboNames;
+		vector<bool> uboUsed;
+		vector<ShaderConstant> *ubos = NULL;
+		
+		{
+			gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
+
+			ubos = new vector<ShaderConstant>[numUBOs];
+			uboNames.resize(numUBOs);
+			uboUsed.resize(numUBOs);
+
+			for(GLint u=0; u < numUBOs; u++)
+			{
+				const size_t propnum = 2;
+				GLenum UBOResProps[propnum] = {
+					resProps[0], eGL_NAME_LENGTH,
+				};
+				GLint UBOValues[propnum];
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, u, propnum, UBOResProps, propnum, NULL, UBOValues);
+
+				// skip if unused by this stage
+				if(UBOValues[0] == GL_FALSE)
+					continue;
+
+				char *nm = new char[UBOValues[1]+1];
+				gl.glGetProgramResourceName(curProg, eGL_UNIFORM_BLOCK, u, UBOValues[1]+1, NULL, nm);
+				uboNames[u] = nm;
+				delete[] nm;
+
+				uboUsed[u] = true;
+			}
+		}
 
 		for(GLint u=0; u < numUniforms; u++)
 		{
 			GLint values[numProps];
 			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 			
-			// skip if unused by this stage
-			if(values[0] == GL_FALSE)
+			// skip if global and unused by this stage, or if a UBO that is unused by this stage
+			if(values[0] == GL_FALSE && (values[4] == -1 || !uboUsed[ values[4] ]))
 				continue;
 
-			// don't look at block uniforms just yet
-			if(values[4] != -1)
-			{
-				GLNOTIMP("Not fetching uniforms in UBOs (should become their own ConstantBlocks)");
-				continue;
-			}
-			
 			ShaderConstant var;
 			
 			if(values[1] == GL_FLOAT_VEC4)
@@ -692,21 +903,28 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 				var.type.descriptor.name = "vec4";
 				var.type.descriptor.rows = 1;
 				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = values[5];
+				var.type.descriptor.elements = RDCMAX(1, values[5]);
 			}
 			else if(values[1] == GL_FLOAT_VEC3)
 			{
 				var.type.descriptor.name = "vec3";
 				var.type.descriptor.rows = 1;
 				var.type.descriptor.cols = 3;
-				var.type.descriptor.elements = values[5];
+				var.type.descriptor.elements = RDCMAX(1, values[5]);
 			}
 			else if(values[1] == GL_FLOAT_MAT4)
 			{
 				var.type.descriptor.name = "mat4";
 				var.type.descriptor.rows = 4;
 				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = values[5];
+				var.type.descriptor.elements = RDCMAX(1, values[5]);
+			}
+			else if(values[1] == GL_UNSIGNED_INT_VEC4)
+			{
+				var.type.descriptor.name = "uvec4";
+				var.type.descriptor.rows = 1;
+				var.type.descriptor.cols = 4;
+				var.type.descriptor.elements = RDCMAX(1, values[5]);
 			}
 			else
 			{
@@ -714,22 +932,63 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 				continue;
 			}
 
-			var.reg.vec = values[3];
-			var.reg.comp = 0;
+			var.reg.vec = values[6] / 16;
+			var.reg.comp = (values[6] / 4) % 4;
 
 			create_array_uninit(var.name, values[2]+1);
 			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
 			var.name.count--; // trim off trailing null
 
+			int32_t c = var.name.count;
+
+			// trim off trailing [0] if it's an array
+			if(values[5] > 1 && var.name[c-3] == '[' && var.name[c-2] == '0' && var.name[c-1] == ']')
+				var.name.count -= 3;
+
 			if(strchr(var.name.elems, '.'))
 			{
 				GLNOTIMP("Variable contains . - structure not reconstructed");
 			}
+			
+			vector<ShaderConstant> *UBO = &globalUniforms;
 
-			globalUniforms.push_back(var);
+			// don't look at block uniforms just yet
+			if(values[4] != -1)
+			{
+				RDCASSERT(values[4] < numUBOs);
+				UBO = &ubos[ values[4] ];
+			}
+			
+			UBO->push_back(var);
 		}
 
 		vector<ConstantBlock> cbuffers;
+		
+		if(ubos)
+		{
+			cbuffers.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
+
+			for(int i=0; i < numUBOs; i++)
+			{
+				if(!ubos[i].empty())
+				{
+					struct ubo_offset_sort
+					{
+						bool operator() (const ShaderConstant &a, const ShaderConstant &b)
+						{ if(a.reg.vec == b.reg.vec) return a.reg.comp < b.reg.comp; else return a.reg.vec < b.reg.vec; }
+					};
+
+					ConstantBlock cblock;
+					cblock.name = uboNames[i];
+					cblock.bufferAddress = i;
+					std::sort(ubos[i].begin(), ubos[i].end(), ubo_offset_sort());
+
+					cblock.variables = ubos[i];
+
+					cbuffers.push_back(cblock);
+				}
+			}
+		}
 
 		if(!globalUniforms.empty())
 		{
@@ -741,8 +1000,8 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			cbuffers.push_back(globals);
 		}
 
-		// here we would iterate over UNIFORM_BLOCKs or similar
-
+		delete[] ubos;
+		
 		// TODO: fill in Interfaces with shader subroutines?
 		// TODO: find a way of generating input/output signature.
 		//       The only way I can think of doing this is to generate separable programs for each
