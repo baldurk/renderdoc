@@ -78,7 +78,7 @@ cbuffer DebugPixelCBufferData REG(b0)
 	float RangeMinimum;
 	float InverseRangeSize;
 	float MipLevel;
-	int padding;
+	int FlipY;
 
 	float3 WireframeColour;
 	int OutputDisplayFormat;

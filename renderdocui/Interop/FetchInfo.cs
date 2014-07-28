@@ -413,6 +413,7 @@ namespace renderdoc
         public float rangemax = 1.0f;
         public float scale = 1.0f;
         public bool Red = true, Green = true, Blue = true, Alpha = false;
+        public bool FlipY = false;
         public float HDRMul = -1.0f;
         public bool linearDisplayAsGamma = true;
         public ResourceId CustomShader = ResourceId.Null;

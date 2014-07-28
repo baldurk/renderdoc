@@ -1414,6 +1414,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 		texDisplay.HDRMul = -1.0f;
 		texDisplay.linearDisplayAsGamma = true;
+		texDisplay.FlipY = false;
 		texDisplay.mip = mip;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
@@ -2060,6 +2061,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
 	TextureDisplay disp;
 	disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
+	disp.FlipY = false;
 	disp.offx = 0.0f;
 	disp.offy = 0.0f;
 	disp.CustomShader = shader;

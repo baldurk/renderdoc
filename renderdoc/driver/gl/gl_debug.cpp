@@ -197,6 +197,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 		TextureDisplay texDisplay;
 
 		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+		texDisplay.FlipY = false;
 		texDisplay.HDRMul = -1.0f;
 		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.mip = mip;
@@ -240,23 +241,23 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	struct uboData
 	{
-		Vec2f Position;
-		float Scale;
-		float HDRMul;
+		Vec2f   Position;
+		float   Scale;
+		float   HDRMul;
 
-		Vec4f Channels;
+		Vec4f   Channels;
 
-		float RangeMinimum;
-		float InverseRangeSize;
-		float MipLevel;
-		float dummy2;
+		float   RangeMinimum;
+		float   InverseRangeSize;
+		float   MipLevel;
+		int32_t FlipY;
 		
-		Vec3f TextureResolutionPS;
-		int   OutputDisplayFormat;
+		Vec3f   TextureResolutionPS;
+		int32_t OutputDisplayFormat;
 		
-		Vec2f OutputRes;
-		int   RawOutput;
-		float Slice;
+		Vec2f   OutputRes;
+		int32_t RawOutput;
+		float   Slice;
 	};
 
 	uboData *ubo = (uboData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uboData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -290,6 +291,8 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	}
 
 	ubo->HDRMul = cfg.HDRMul;
+
+	ubo->FlipY = cfg.FlipY ? 1 : 0;
 	
 	if(cfg.rangemax <= cfg.rangemin) cfg.rangemax += 0.00001f;
 

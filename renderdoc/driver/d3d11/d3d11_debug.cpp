@@ -3271,6 +3271,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 	pixelData.WireframeColour.x = cfg.HDRMul;
 
 	pixelData.RawOutput = cfg.rawoutput ? 1 : 0;
+
+	pixelData.FlipY = cfg.FlipY ? 1 : 0;
 	
 	TextureShaderDetails details = GetShaderDetails(cfg.texid, cfg.rawoutput ? true : false);
 	

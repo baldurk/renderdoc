@@ -298,6 +298,14 @@
   </row>
   <row>
     <entry>
+      <para><mediaLinkInline><image xlink:href="flip_y"/></mediaLinkInline> Flip Y</para>
+    </entry>
+    <entry><para>This button toggles flipping the co-ordinate system in Y - y=0 is at the bottom of the window
+    instead of at the top.</para>
+	</entry>
+  </row>
+  <row>
+    <entry>
       <para>Render Overlay <mediaLinkInline><image xlink:href="OverlaySelect"/></mediaLinkInline></para>
     </entry>
     <entry><para>This is a powerful tool for quickly diagnosing issues and can be very useful for locating

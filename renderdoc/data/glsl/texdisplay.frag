@@ -35,7 +35,7 @@ layout (binding = 0, std140) uniform texdisplay
   float RangeMinimum;
   float InverseRangeSize;
   float MipLevel;
-  float dummy2;
+  int   FlipY;
 
   vec3  TextureResolutionPS;
   int   OutputDisplayFormat;
@@ -64,7 +64,7 @@ void main(void)
 	// TODO: Use MipLevel and Slice parameters
 	// TODO: Sample from a point or linear sampler depending on if we're
 	//       upscaling (point) or downscaling mip 0 (linear)
-	vec4 col = texture(tex0, vec2(uv.x, 1.0f-uv.y));
+	vec4 col = texture(tex0, vec2(uv.x, FlipY > 0 ? uv.y : 1.0f-uv.y));
 
 	if(RawOutput != 0)
 	{

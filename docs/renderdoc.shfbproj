@@ -118,6 +118,10 @@
     <Tokens Include="Tokens.tokens" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="imgs\icons\flip_y.png">
+      <ImageId>flip_y</ImageId>
+      <AlternateText>flip y</AlternateText>
+    </Image>
     <Image Include="imgs\Screenshots\DebugMessages.png">
       <ImageId>DebugMessages</ImageId>
       <AlternateText>Debug Messages Window</AlternateText>

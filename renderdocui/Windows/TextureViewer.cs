@@ -1353,7 +1353,11 @@ namespace renderdocui.Windows
                 }
             }
 
-            string hoverCoords = String.Format("{0}, {1}", m_CurHoverPixel.X >> (int)m_TexDisplay.mip, m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
+            if (m_TexDisplay.FlipY)
+                y = (int)tex.height - y;
+
+            string hoverCoords = String.Format("{0}, {1}", m_CurHoverPixel.X >> (int)m_TexDisplay.mip, y);
             string statusText = "Hover - " + hoverCoords;
 
             if (m_CurHoverPixel.X > tex.width || m_CurHoverPixel.Y > tex.height || m_CurHoverPixel.X < 0 || m_CurHoverPixel.Y < 0)
@@ -1361,8 +1365,12 @@ namespace renderdocui.Windows
 
             if (m_CurPixelValue != null)
             {
+                y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+                if (m_TexDisplay.FlipY)
+                    y = (int)tex.height - y;
+
                 statusText += " - Right click - " +
-                                (m_PickedPoint.X >> (int)m_TexDisplay.mip) + "," + (m_PickedPoint.Y >> (int)m_TexDisplay.mip) + ": ";
+                                (m_PickedPoint.X >> (int)m_TexDisplay.mip) + "," + y + ": ";
 
                 PixelValue val = m_CurPixelValue;
 
@@ -1583,6 +1591,8 @@ namespace renderdocui.Windows
                     customCreate.Enabled = true;
                 }
             }
+
+            m_TexDisplay.FlipY = flip_y.Checked;
 
             channelStrip.ResumeLayout();
 
@@ -1894,8 +1904,15 @@ namespace renderdocui.Windows
 
         private void RT_PickPixelsAndUpdate(int x, int y, bool ctx)
         {
+            FetchTexture tex = CurrentTexture;
+
+            if (tex == null) return;
+
             if(ctx)
                 m_Output.SetPixelContextLocation((UInt32)x, (UInt32)y);
+
+            if (m_TexDisplay.FlipY)
+                y = (int)tex.height - y;
 
             var pickValue = m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)x, (UInt32)y,
                                                     m_TexDisplay.sliceFace, m_TexDisplay.mip);
@@ -2022,13 +2039,22 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.None && m_TexDisplay.texid != ResourceId.Null)
             {
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-                {
-                    if (m_Output != null)
-                        RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, (UInt32)m_CurHoverPixel.Y,
-                                                                  m_TexDisplay.sliceFace, m_TexDisplay.mip));
-                });
+                FetchTexture tex = CurrentTexture;
 
+                if (tex != null)
+                {
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                        {
+                            UInt32 y = (UInt32)m_CurHoverPixel.Y;
+                            if (m_TexDisplay.FlipY)
+                                y = tex.height - y;
+                            RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, y,
+                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip));
+                        }
+                    });
+                }
             }
 
             Panel p = renderContainer;

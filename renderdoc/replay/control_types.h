@@ -59,6 +59,7 @@ struct TextureDisplay
 	float rangemax;
 	float scale;
 	bool32 Red, Green, Blue, Alpha;
+	bool32 FlipY;
 	float HDRMul;
 	bool32 linearDisplayAsGamma;
 	ResourceId CustomShader;

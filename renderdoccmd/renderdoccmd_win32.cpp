@@ -242,6 +242,8 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 			d.overlay = eTexOverlay_None;
 			d.CustomShader = ResourceId();
 			d.HDRMul = -1.0f;
+			d.linearDisplayAsGamma = true;
+			d.FlipY = false;
 			d.rangemin = 0.0f;
 			d.rangemax = 1.0f;
 			d.scale = 1.0f;
@@ -249,6 +251,8 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 			d.offy = 0.0f;
 			d.sliceFace = 0;
 			d.rawoutput = false;
+			d.lightBackgroundColour = d.darkBackgroundColour = 
+				FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
 			d.Red = d.Green = d.Blue = true;
 			d.Alpha = false;
 

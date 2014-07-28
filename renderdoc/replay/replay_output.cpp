@@ -362,6 +362,7 @@ bool ReplayOutput::Display()
 		disp.Alpha = false;
 		disp.HDRMul = -1.0f;
 		disp.linearDisplayAsGamma = true;
+		disp.FlipY = false;
 		disp.mip = 0;
 		disp.CustomShader = ResourceId();
 		disp.texid = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
@@ -471,6 +472,7 @@ void ReplayOutput::DisplayTex()
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.scale = m_RenderData.texDisplay.scale;
 		texDisplay.HDRMul = -1.0f;
+		texDisplay.FlipY = false;
 		texDisplay.rangemin = 0.0f;
 		texDisplay.rangemax = 1.0f;
 
