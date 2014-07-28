@@ -189,8 +189,14 @@ bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuin
 		GLResource tex = GetResourceManager()->GetLiveResource(texid);
 		GLResource origtex = GetResourceManager()->GetLiveResource(origid);
 		m_Real.glTextureView(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels, MinLayer, NumLayers);
+		
+		ResourceId liveTexId = GetResourceManager()->GetLiveID(texid);
+		ResourceId liveOrigId = GetResourceManager()->GetLiveID(origid);
 
-		m_Textures[GetResourceManager()->GetLiveID(texid)].curType = Target;
+		m_Textures[liveTexId].curType = Target;
+		m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
+		m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
+		m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
 	}
 
 	return true;
@@ -217,6 +223,15 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
+	}
+	else
+	{
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId origId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
+
+		m_Textures[texId].width = m_Textures[origId].width;
+		m_Textures[texId].height = m_Textures[origId].height;
+		m_Textures[texId].depth = m_Textures[origId].depth;
 	}
 }
 		
@@ -766,6 +781,14 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 		else
 			RDCASSERT(record->datatype == target);
 	}
+	else
+	{
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+	}
 }
 
 void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
@@ -782,6 +805,16 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 																		target, levels, internalformat, width);
 
 		record->AddChunk(scope.Get());
+	}
+	else
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(eGL_TEXTURE_BINDING_1D, (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
 	}
 }
 
@@ -828,6 +861,14 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 		else
 			RDCASSERT(record->datatype == target);
 	}
+	else
+	{
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = 1;
+	}
 }
 
 void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
@@ -850,6 +891,16 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
+	}
+	else
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = 1;
 	}
 }
 
@@ -897,6 +948,14 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 		else
 			RDCASSERT(record->datatype == target);
 	}
+	else
+	{
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = depth;
+	}
 }
 
 void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
@@ -919,6 +978,16 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
+	}
+	else
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(eGL_TEXTURE_BINDING_3D, (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = depth;
 	}
 }
 
