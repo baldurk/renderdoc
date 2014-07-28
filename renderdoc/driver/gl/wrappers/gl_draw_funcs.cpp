@@ -45,7 +45,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 		string name = "glDrawArrays(" +
 						ToStr::Get(Mode) + ", " +
 						ToStr::Get(First) + ", " +
-						ToStr::Get(Count) + ", " + ")";
+						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
 		draw.name = widen(name);
