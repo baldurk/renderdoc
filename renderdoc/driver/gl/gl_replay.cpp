@@ -932,8 +932,20 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 				continue;
 			}
 
-			var.reg.vec = values[6] / 16;
-			var.reg.comp = (values[6] / 4) % 4;
+			if(values[6] == -1 && values[3] >= 0)
+			{
+				var.reg.vec = values[3];
+				var.reg.comp = 0;
+			}
+			else if(values[6] >= 0)
+			{
+				var.reg.vec = values[6] / 16;
+				var.reg.comp = (values[6] / 4) % 4;
+			}
+			else
+			{
+				var.reg.vec = var.reg.comp = ~0U;
+			}
 
 			create_array_uninit(var.name, values[2]+1);
 			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
