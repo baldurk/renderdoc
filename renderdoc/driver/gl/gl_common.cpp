@@ -142,11 +142,32 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
 	{
 		// depth format
-		GLNOTIMP("Not getting depth format yet");
-		ret.specialFormat = eSpecial_D24S8;
-		ret.special = true;
-
 		ret.compType = eCompType_Depth;
+
+		switch(fmt)
+		{
+			case eGL_DEPTH_COMPONENT16:
+				ret.compByteWidth = 2;
+				ret.compCount = 1;
+				break;
+			case eGL_DEPTH_COMPONENT24:
+				ret.compByteWidth = 3;
+				ret.compCount = 1;
+				break;
+			case eGL_DEPTH_COMPONENT32:
+			case eGL_DEPTH_COMPONENT32F:
+				ret.compByteWidth = 4;
+				ret.compCount = 1;
+				break;
+			case eGL_DEPTH24_STENCIL8:
+				ret.specialFormat = eSpecial_D24S8;
+				ret.special = true;
+				break;
+			case eGL_DEPTH32F_STENCIL8:
+				ret.specialFormat = eSpecial_D32S8;
+				ret.special = true;
+				break;
+		}
 	}
 	else
 	{
