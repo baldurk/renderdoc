@@ -451,13 +451,11 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 
 	tex.name = widen(str);
 
-	tex.creationFlags = eTextureCreate_SRV;
+	tex.creationFlags = res.creationFlags;
 	if(tex.format.compType == eCompType_Depth)
 		tex.creationFlags |= eTextureCreate_DSV;
-	if(res.resource.name == gl.m_FakeBB_Color)
+	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
 		tex.creationFlags |= eTextureCreate_SwapBuffer;
-
-	GLNOTIMP("creationFlags are not calculated yet");
 
 	tex.byteSize = 0;
 	GLNOTIMP("Not calculating bytesize");

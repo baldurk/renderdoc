@@ -169,10 +169,11 @@ class WrappedOpenGL
 		
 		struct TextureData
 		{
-			TextureData() : width(0), height(0), depth(0) {}
+			TextureData() : width(0), height(0), depth(0), creationFlags(0) {}
 			GLResource resource;
 			GLenum curType;
 			GLint width, height, depth;
+			uint32_t creationFlags;
 		};
 
 		map<ResourceId, TextureData> m_Textures;

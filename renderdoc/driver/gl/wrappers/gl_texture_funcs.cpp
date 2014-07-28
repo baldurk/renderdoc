@@ -109,7 +109,11 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 			GLResource res = GetResourceManager()->GetLiveResource(Id);
 			m_Real.glBindTexture(Target, res.name);
 
-			m_Textures[GetResourceManager()->GetLiveID(Id)].curType = Target;
+			if(m_State == READING)
+			{
+				m_Textures[GetResourceManager()->GetLiveID(Id)].curType = Target;
+				m_Textures[GetResourceManager()->GetLiveID(Id)].creationFlags |= eTextureCreate_SRV;
+			}
 		}
 	}
 
