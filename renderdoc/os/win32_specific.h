@@ -30,6 +30,8 @@
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
 
+#define OS_DEBUG_BREAK() __debugbreak()
+
 #define GetEmbeddedResource(filename) GetEmbeddedResourceWin32( CONCAT(RESOURCE_, filename) )
 string GetEmbeddedResourceWin32(int resource);
 

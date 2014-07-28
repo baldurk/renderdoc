@@ -94,7 +94,7 @@ bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &
 #define RDCDUMP() do { OSUtility::ForceCrash(); } while(0)
 
 #if !defined(RELEASE) || defined(FORCE_DEBUGBREAK)
-#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OSUtility::DebugBreak(); else RDCDUMP(); } while(0)
+#define RDCBREAK() do { if(OSUtility::DebuggerPresent()) OS_DEBUG_BREAK(); else RDCDUMP(); } while(0)
 #else
 #define RDCBREAK() do { } while(0)
 #endif

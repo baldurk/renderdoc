@@ -32,6 +32,8 @@
 
 #define __PRETTY_FUNCTION_SIGNATURE__ __PRETTY_FUNCTION__
 
+#define OS_DEBUG_BREAK() raise(SIGTRAP)
+
 #define GetEmbeddedResource(filename) string( CONCAT(CONCAT(_binary_, filename), _start) , CONCAT(CONCAT(_binary_, filename), _end) )
 
 namespace OSUtility
