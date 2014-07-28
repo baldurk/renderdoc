@@ -29,7 +29,7 @@
 
 #include "driver/gl/gl_common.h"
 
-size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int level, int align);
+size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align);
 
 enum GLNamespace
 {

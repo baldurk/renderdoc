@@ -457,8 +457,30 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
 		tex.creationFlags |= eTextureCreate_SwapBuffer;
 
+	GLint compressed;
+	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_COMPRESSED, &compressed);
 	tex.byteSize = 0;
-	GLNOTIMP("Not calculating bytesize");
+	for(uint32_t a=0; a < tex.arraysize; a++)
+	{
+		for(uint32_t m=0; m < tex.mips; m++)
+		{
+			if(compressed)
+			{
+				gl.glGetTexLevelParameteriv(levelQueryType, m, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
+				tex.byteSize += compressed;
+			}
+			else if(tex.format.special)
+			{
+				tex.byteSize += GetByteSize(RDCMAX(1U, tex.width>>m), RDCMAX(1U, tex.height>>m), RDCMAX(1U, tex.depth>>m), 
+																		(GLenum)fmt, (GLenum)fmt, 1);
+			}
+			else
+			{
+				tex.byteSize += RDCMAX(1U, tex.width>>m)*RDCMAX(1U, tex.height>>m)*RDCMAX(1U, tex.depth>>m)*
+													tex.format.compByteWidth*tex.format.compCount;
+			}
+		}
+	}
 
 	return tex;
 }
@@ -495,7 +517,6 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	gl.glBindBuffer(res.curType, res.resource.name);
 
 	ret.structureSize = 0;
-	GLNOTIMP("Not fetching structure size (if there's an equivalent)");
 
 	ret.creationFlags = 0;
 	switch(res.curType)

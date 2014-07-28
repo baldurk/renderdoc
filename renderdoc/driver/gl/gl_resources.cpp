@@ -25,9 +25,30 @@
 
 #include "gl_resources.h"
 
-size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int level, int align)
+size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align)
 {
 	size_t elemSize = 0;
+
+	GLsizei alignMask = ~0x0;
+	GLsizei alignAdd = 0;
+	switch(align)
+	{
+		default:
+		case 1:
+			break;
+		case 2:
+			alignMask = ~0x1;
+			alignAdd = 1;
+			break;
+		case 4:
+			alignMask = ~0x3;
+			alignAdd = 3;
+			break;
+		case 8:
+			alignMask = ~0x7;
+			alignAdd = 7;
+			break;
+	}
 
 	switch(type)
 	{
@@ -47,19 +68,28 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 			break;
 		case eGL_UNSIGNED_BYTE_3_3_2:
 		case eGL_UNSIGNED_BYTE_2_3_3_REV:
-			return w*h*d;
+			return ((w + alignAdd) & alignMask)*h*d;
 		case eGL_UNSIGNED_SHORT_5_6_5:
 		case eGL_UNSIGNED_SHORT_5_6_5_REV:
 		case eGL_UNSIGNED_SHORT_4_4_4_4:
 		case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
 		case eGL_UNSIGNED_SHORT_5_5_5_1:
 		case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
-			return w*h*d*2;
+			return ((w*2 + alignAdd) & alignMask)*h*d;
 		case eGL_UNSIGNED_INT_8_8_8_8:
 		case eGL_UNSIGNED_INT_8_8_8_8_REV:
 		case eGL_UNSIGNED_INT_10_10_10_2:
 		case eGL_UNSIGNED_INT_2_10_10_10_REV:
-			return w*h*d*4;
+			return ((w*4 + alignAdd) & alignMask)*h*d;
+		case eGL_DEPTH_COMPONENT16:
+			return ((w*2 + alignAdd) & alignMask)*h*d;
+		case eGL_DEPTH_COMPONENT24:
+		case eGL_DEPTH24_STENCIL8:
+		case eGL_DEPTH_COMPONENT32:
+		case eGL_DEPTH_COMPONENT32F:
+			return ((w*4 + alignAdd) & alignMask)*h*d;
+		case eGL_DEPTH32F_STENCIL8:
+			return ((w*5 + alignAdd) & alignMask)*h*d;
 		default:
 			RDCERR("Unhandled Byte Size type %d!", type);
 			break;
@@ -73,20 +103,20 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_GREEN_INTEGER:
 		case eGL_BLUE:
 		case eGL_BLUE_INTEGER:
-			return w*h*d*elemSize;
+			return ((w*elemSize + alignAdd) & alignMask)*h*d;
 		case eGL_RG:
 		case eGL_RG_INTEGER:
-			return w*h*d*elemSize*2;
+			return ((w*elemSize*2 + alignAdd) & alignMask)*h*d;
 		case eGL_RGB:
 		case eGL_RGB_INTEGER:
 		case eGL_BGR:
 		case eGL_BGR_INTEGER:
-			return w*h*d*elemSize*3;
+			return ((w*elemSize*3 + alignAdd) & alignMask)*h*d;
 		case eGL_RGBA:
 		case eGL_RGBA_INTEGER:
 		case eGL_BGRA:
 		case eGL_BGRA_INTEGER:
-			return w*h*d*elemSize*4;
+			return ((w*elemSize*4 + alignAdd) & alignMask)*h*d;
 		default:
 			RDCERR("Unhandled Byte Size format %d!", format);
 			break;
