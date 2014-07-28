@@ -309,10 +309,6 @@ bool GLReplay::IsRenderOutput(ResourceId id)
 	return false;
 }
 
-#pragma endregion
-
-#pragma region Mostly Implemented
-
 FetchTexture GLReplay::GetTexture(ResourceId id)
 {
 	FetchTexture tex;
@@ -564,6 +560,10 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 
 	return ret;
 }
+
+#pragma endregion
+
+#pragma region Mostly Implemented
 
 ShaderReflection *GLReplay::GetShader(ResourceId id)
 {
