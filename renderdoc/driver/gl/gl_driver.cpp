@@ -1541,15 +1541,23 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	FetchDrawcall draw = d;
 	draw.eventID = m_CurEventID;
 	draw.drawcallID = m_CurDrawcallID;
+	
+	GLuint curCol[8] = { 0 };
+	GLuint curDepth = 0;
 
-	for(int i=0; i < 8; i++)
-		draw.outputs[i] = ResourceId();
+	{
+		GLint numCols = 8;
+		m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
-	draw.depthOut = ResourceId();
+		for(GLint i=0; i < RDCMIN(numCols, 8); i++)
+		{
+			m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curCol[i]);
+			draw.outputs[i] = GetResourceManager()->GetID(TextureRes(GetCtx(), curCol[i]));
+		}
 
-	GLNOTIMP("Hack, not getting current pipeline state framebufer binding");
-	draw.outputs[0] = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color));
-	draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil));
+		m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
+		draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), curDepth));
+	}
 
 	m_CurDrawcallID++;
 	if(hasEvents)
