@@ -3176,6 +3176,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				depthRes->GetType(&dim);
 				
 				D3D11_TEXTURE2D_DESC desc2d;
+				ZeroMemory((void*)&desc2d, sizeof(desc2d));
 
 				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
 				{

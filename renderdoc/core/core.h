@@ -44,8 +44,6 @@ class Chunk;
 #include "os/os_specific.h"
 #include "common/threading.h"
 
-#define DXGL 1
-
 struct ICrashHandler
 {
 	virtual ~ICrashHandler() {}

@@ -95,6 +95,7 @@ cbuffer DebugPixelCBufferData REG(b0)
 	/**/int dummy2_1;
 	/**/int dummy2_2;
 	float3 TextureResolutionPS;
+	/**/int dummy2_3;
 };
 
 cbuffer HistogramCBufferData REG(b0)
