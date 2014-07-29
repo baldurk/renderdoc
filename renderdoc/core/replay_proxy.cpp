@@ -307,6 +307,14 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Texture &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::Buffer &el)
+{
+	Serialise("", el.Resource);
+	Serialise("", el.Offset);
+	Serialise("", el.Size);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, GLPipelineState &el)
 {
 	Serialise("", el.m_VS);
@@ -318,6 +326,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
 	Serialise("", el.m_VtxIn);
 	Serialise("", el.Textures);
+	Serialise("", el.UniformBuffers);
 	Serialise("", el.m_FB);
 }
 
@@ -342,9 +351,11 @@ template<>
 void Serialiser::Serialise(const char *name, ShaderVariableType &el)
 {
 	Serialise("", el.descriptor.name);
+	Serialise("", el.descriptor.type);
 	Serialise("", el.descriptor.rows);
 	Serialise("", el.descriptor.cols);
 	Serialise("", el.descriptor.elements);
+	Serialise("", el.descriptor.rowMajorStorage);
 	Serialise("", el.members);
 }
 
@@ -374,6 +385,7 @@ void Serialiser::Serialise(const char *name, ConstantBlock &el)
 	Serialise("", el.name);
 	Serialise("", el.variables);
 	Serialise("", el.bufferAddress);
+	Serialise("", el.bindPoint);
 }
 
 template<>

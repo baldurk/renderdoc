@@ -288,9 +288,11 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public struct ShaderVarDescriptor
         {
+            public VarType type;
             public UInt32 rows;
             public UInt32 cols;
             public UInt32 elements;
+            public bool rowMajorStorage;
             [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
             public string name;
         };
@@ -331,7 +333,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderConstant[] variables;
 
-        public UInt32 bufferAddress;
+        public Int32 bufferAddress;
+        public Int32 bindPoint;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -348,8 +351,8 @@ namespace renderdoc
         public string name;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType variableType;
-        public UInt32 variableAddress;
-        public UInt32 bindPoint;
+        public Int32 variableAddress;
+        public Int32 bindPoint;
     };
 
     [StructLayout(LayoutKind.Sequential)]

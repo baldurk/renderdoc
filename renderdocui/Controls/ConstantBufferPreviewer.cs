@@ -52,7 +52,8 @@ namespace renderdocui.Controls
             UpdateLabels();
 
             uint offs = 0;
-            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs);
+            uint size = 0;
+            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs, out size);
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
@@ -170,7 +171,8 @@ namespace renderdocui.Controls
         public void OnEventSelected(UInt32 frameID, UInt32 eventID)
         {
             uint offs = 0;
-            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs);
+            uint size = 0;
+            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, out cbuffer, out offs, out size);
 
             shader = m_Core.CurPipelineState.GetShader(Stage);
             var reflection = m_Core.CurPipelineState.GetShaderReflection(Stage);

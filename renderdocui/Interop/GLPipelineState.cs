@@ -107,6 +107,17 @@ namespace renderdoc
         public Texture[] Textures;
 
         [StructLayout(LayoutKind.Sequential)]
+        public class Buffer
+        {
+            public ResourceId Resource;
+
+            public UInt64 Offset;
+            public UInt64 Size;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public Buffer[] UniformBuffers;
+
+        [StructLayout(LayoutKind.Sequential)]
         public class FrameBuffer
         {
             public ResourceId FBO;

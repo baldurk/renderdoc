@@ -91,6 +91,8 @@ class WrappedOpenGL
 
 		friend class GLReplay;
 
+		const GLHookSet &GetHookset() { return m_Real; }
+
 		GLDEBUGPROC m_RealDebugFunc;
 		const void *m_RealDebugFuncParam;
 

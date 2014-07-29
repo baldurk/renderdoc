@@ -603,12 +603,12 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		GLint numUniforms = 0;
 		gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
 
-		const size_t numProps = 7;
+		const size_t numProps = 8;
 
 		GLenum resProps[numProps] = {
 			eGL_REFERENCED_BY_VERTEX_SHADER,
 			
-			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, 
+			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, eGL_IS_ROW_MAJOR,
 		};
 
 		if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
@@ -901,6 +901,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			if(values[1] == GL_FLOAT_VEC4)
 			{
 				var.type.descriptor.name = "vec4";
+				var.type.descriptor.type = eVar_Float;
 				var.type.descriptor.rows = 1;
 				var.type.descriptor.cols = 4;
 				var.type.descriptor.elements = RDCMAX(1, values[5]);
@@ -908,6 +909,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			else if(values[1] == GL_FLOAT_VEC3)
 			{
 				var.type.descriptor.name = "vec3";
+				var.type.descriptor.type = eVar_Float;
 				var.type.descriptor.rows = 1;
 				var.type.descriptor.cols = 3;
 				var.type.descriptor.elements = RDCMAX(1, values[5]);
@@ -915,6 +917,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			else if(values[1] == GL_FLOAT_MAT4)
 			{
 				var.type.descriptor.name = "mat4";
+				var.type.descriptor.type = eVar_Float;
 				var.type.descriptor.rows = 4;
 				var.type.descriptor.cols = 4;
 				var.type.descriptor.elements = RDCMAX(1, values[5]);
@@ -922,6 +925,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			else if(values[1] == GL_UNSIGNED_INT_VEC4)
 			{
 				var.type.descriptor.name = "uvec4";
+				var.type.descriptor.type = eVar_UInt;
 				var.type.descriptor.rows = 1;
 				var.type.descriptor.cols = 4;
 				var.type.descriptor.elements = RDCMAX(1, values[5]);
@@ -941,11 +945,15 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			{
 				var.reg.vec = values[6] / 16;
 				var.reg.comp = (values[6] / 4) % 4;
+
+				RDCASSERT((values[6] % 4) == 0);
 			}
 			else
 			{
 				var.reg.vec = var.reg.comp = ~0U;
 			}
+
+			var.type.descriptor.rowMajorStorage = (values[7] >= 0);
 
 			create_array_uninit(var.name, values[2]+1);
 			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
@@ -993,6 +1001,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 					ConstantBlock cblock;
 					cblock.name = uboNames[i];
 					cblock.bufferAddress = i;
+					cblock.bindPoint = -1;
 					std::sort(ubos[i].begin(), ubos[i].end(), ubo_offset_sort());
 
 					cblock.variables = ubos[i];
@@ -1005,8 +1014,9 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		if(!globalUniforms.empty())
 		{
 			ConstantBlock globals;
-			globals.name = "Globals";
+			globals.name = "$Globals";
 			globals.bufferAddress = -1;
+			globals.bindPoint = -1;
 			globals.variables = globalUniforms;
 
 			cbuffers.push_back(globals);
@@ -1022,11 +1032,17 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		refl.ConstantBlocks = cbuffers;
 	}
 
-	// update samplers with latest uniform values
+	// update with latest uniform values
 	for(int32_t i=0; i < refl.Resources.count; i++)
 	{
 		if(refl.Resources.elems[i].IsSRV && refl.Resources.elems[i].IsTexture)
 			gl.glGetUniformiv(curProg, refl.Resources.elems[i].variableAddress, (GLint *)&refl.Resources.elems[i].bindPoint);
+	}
+	for(int32_t i=0; i < refl.ConstantBlocks.count; i++)
+	{
+		if(refl.ConstantBlocks.elems[i].bufferAddress >= 0)
+			gl.glGetActiveUniformBlockiv(curProg, refl.ConstantBlocks.elems[i].bufferAddress,
+																		eGL_UNIFORM_BLOCK_BINDING, (GLint *)&refl.ConstantBlocks.elems[i].bindPoint);
 	}
 
 	return &refl;
@@ -1037,6 +1053,9 @@ void GLReplay::SavePipelineState()
 	GLPipelineState &pipe = m_CurPipelineState;
 	WrappedOpenGL &gl = *m_pDriver;
 	GLResourceManager *rm = m_pDriver->GetResourceManager();
+
+	GLRenderState rs(&gl.GetHookset(), NULL);
+	rs.FetchState();
 
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -1066,12 +1085,9 @@ void GLReplay::SavePipelineState()
 			break;
 	}
 
-	GLint curIdxBuf = 0;
-	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &curIdxBuf);
-
 	void *ctx = m_ReplayCtx.ctx;
 
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, curIdxBuf)));
+	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.BufferBindings[GLRenderState::eBufIdx_Element_Array])));
 
 	// Vertex buffers and attributes
 	GLint numVBufferBindings = 16;
@@ -1311,7 +1327,7 @@ void GLReplay::SavePipelineState()
 				for(int32_t r=0; r < refls[s]->Resources.count; r++)
 				{
 					// bindPoint is the uniform value for this sampler
-					if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
+					if(refls[s]->Resources[r].bindPoint == unit)
 					{
 						GLenum t = eGL_UNKNOWN_ENUM;
 
@@ -1401,6 +1417,22 @@ void GLReplay::SavePipelineState()
 	}
 
 	gl.glActiveTexture(activeTexture);
+	
+	create_array_uninit(pipe.UniformBuffers, ARRAY_COUNT(rs.UniformBinding));
+	for(int32_t b=0; b < pipe.UniformBuffers.count; b++)
+	{
+		if(rs.UniformBinding[b].name == 0)
+		{
+			pipe.UniformBuffers[b].Resource = ResourceId();
+			pipe.UniformBuffers[b].Offset = pipe.UniformBuffers[b].Size = 0;
+		}
+		else
+		{
+			pipe.UniformBuffers[b].Resource = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.UniformBinding[b].name)));
+			pipe.UniformBuffers[b].Offset = rs.UniformBinding[b].start;
+			pipe.UniformBuffers[b].Size = rs.UniformBinding[b].size;
+		}
+	}
 
 	GLuint curFBO = 0;
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
@@ -1433,6 +1465,52 @@ void GLReplay::SavePipelineState()
 	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
+void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
+											const vector<byte> &data, ShaderVariable &outVar)
+{
+	const byte *bufdata = data.empty() ? NULL : &data[0];
+
+	if(bufferBacked)
+	{
+		size_t rangelen = outVar.rows*outVar.columns*4;
+		size_t offs = locA*4*sizeof(float) + (locB&0xf)*sizeof(float);
+
+		if(offs < data.size())
+		{
+			rangelen = RDCMIN(rangelen, data.size()-offs);
+			memcpy(&outVar.value.uv[0], bufdata + offs, rangelen);
+		}
+	}
+	else
+	{
+		switch(outVar.type)
+		{
+		case eVar_Float:
+			gl.glGetUniformfv(prog, locA, outVar.value.fv);
+			break;
+		case eVar_Int:
+			gl.glGetUniformiv(prog, locA, outVar.value.iv);
+			break;
+		case eVar_UInt:
+			gl.glGetUniformuiv(prog, locA, outVar.value.uv);
+			break;
+		case eVar_Double:
+			RDCUNIMPLEMENTED("Double uniform variables");
+			break;
+		}
+	}
+
+	if(!rowMajor)
+	{
+		uint32_t uv[16];
+		memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
+
+		for(uint32_t x=0; x < outVar.columns; x++)
+			for(uint32_t y=0; y < outVar.rows; y++)
+				outVar.value.uv[y + x*outVar.rows] = uv[x + y*outVar.columns];
+	}
+}
+
 void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
 	WrappedOpenGL &gl = *m_pDriver;
@@ -1442,75 +1520,59 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(m_ReplayCtx.ctx, curProg))];
 	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-	GLint numUniforms = 0;
-	gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
-
-	const size_t numProps = 6;
-
-	GLenum resProps[numProps] = {
-		eGL_REFERENCED_BY_VERTEX_SHADER,
-
-		eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE,
-	};
-
-	if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
-	if(shaderDetails.type == eGL_TESS_CONTROL_SHADER)    resProps[0] = eGL_REFERENCED_BY_TESS_CONTROL_SHADER;
-	if(shaderDetails.type == eGL_TESS_EVALUATION_SHADER) resProps[0] = eGL_REFERENCED_BY_TESS_EVALUATION_SHADER;
-	if(shaderDetails.type == eGL_GEOMETRY_SHADER)        resProps[0] = eGL_REFERENCED_BY_GEOMETRY_SHADER;
-	if(shaderDetails.type == eGL_FRAGMENT_SHADER)        resProps[0] = eGL_REFERENCED_BY_FRAGMENT_SHADER;
-	if(shaderDetails.type == eGL_COMPUTE_SHADER)         resProps[0] = eGL_REFERENCED_BY_COMPUTE_SHADER;
-
-	for(GLint u=0; u < numUniforms; u++)
+	if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count)
 	{
-		GLint values[numProps];
-		gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
+		RDCERR("Requesting invalid constant block");
+		return;
+	}
 
-		if(values[0] == GL_FALSE)
-			continue;
+	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
 
-		// don't look at block uniforms just yet
-		if(values[4] != -1)
-			continue;
+	for(int32_t i=0; i < cblock.variables.count; i++)
+	{
+		auto desc = cblock.variables[i].type.descriptor;
 
 		ShaderVariable var;
+		var.name = cblock.variables[i].name;
+		var.rows = desc.rows;
+		var.columns = desc.cols;
+		var.type = desc.type;
 
-		RDCASSERT(values[5] <= 1); // don't handle arrays yet
+		if(cblock.variables[i].type.members.count > 0)
+			RDCUNIMPLEMENTED("Variables with members");
 
-		if(values[1] == GL_FLOAT_VEC4)
+		RDCEraseEl(var.value);
+
+		bool bufferBacked = (cblock.bindPoint >= 0 && cblock.bufferAddress >= 0 && !data.empty());
+		bool hasValue = bufferBacked || (cblock.bindPoint < 0 && cblock.bufferAddress < 0); // buffer backed (with data), or global uniforms
+
+		if(desc.elements == 1)
 		{
-			var.type = eVar_Float;
-			var.columns = 4;
-			var.rows = 1;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
-		}
-		else if(values[1] == GL_FLOAT_VEC3)
-		{
-			var.type = eVar_Float;
-			var.columns = 3;
-			var.rows = 1;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
-		}
-		else if(values[1] == GL_FLOAT_MAT4)
-		{
-			var.type = eVar_Float;
-			var.columns = 4;
-			var.rows = 4;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
+			if(hasValue)
+				FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
+												 cblock.variables[i].reg.vec, cblock.variables[i].reg.comp, data, var);
 		}
 		else
 		{
-			continue;
-		}
+			vector<ShaderVariable> elems;
+			for(uint32_t a=0; a < desc.elements; a++)
+			{
+				ShaderVariable el = var;
+				el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
 
-		create_array_uninit(var.name, values[2]+1);
-		gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
-		var.name.count--; // trim off trailing null
+				uint32_t arrayoffs = bufferBacked ? a : a*sizeof(float)*4;
+
+				if(hasValue)
+					FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
+												   cblock.variables[i].reg.vec + arrayoffs, 0, data, el);
+
+				elems.push_back(el);
+			}
+
+			var.members = elems;
+		}
 
 		outvars.push_back(var);
 	}

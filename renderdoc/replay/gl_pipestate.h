@@ -80,6 +80,14 @@ struct GLPipelineState
 	};
 	rdctype::array<Texture> Textures;
 
+	struct Buffer
+	{
+		ResourceId Resource;
+		uint64_t Offset;
+		uint64_t Size;
+	};
+	rdctype::array<Buffer> UniformBuffers;
+
 	struct FrameBuffer
 	{
 		FrameBuffer() : FBO(), Depth(), Stencil() {}

@@ -136,9 +136,11 @@ struct ShaderVariableType
 {
 	struct
 	{
+		VarType       type;
 		uint32_t      rows;
 		uint32_t      cols;
 		uint32_t      elements;
+		bool32        rowMajorStorage;
 		rdctype::str name;
 	} descriptor;
 
@@ -161,6 +163,7 @@ struct ConstantBlock
 	rdctype::str name;
 	rdctype::array<ShaderConstant> variables;
 	int32_t bufferAddress;
+	int32_t bindPoint;
 };
 
 struct ShaderResource
@@ -174,8 +177,8 @@ struct ShaderResource
 
 	rdctype::str    name;
 	ShaderVariableType variableType;
-	uint32_t variableAddress;
-	uint32_t  bindPoint;
+	int32_t variableAddress;
+	int32_t bindPoint;
 };
 
 struct ShaderDebugChunk

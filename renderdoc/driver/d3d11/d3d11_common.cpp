@@ -683,10 +683,28 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
 {
 	ShaderVariableType ret;
 
+	switch(type.descriptor.type)
+	{
+		case VARTYPE_INT:
+			ret.descriptor.type = eVar_Int;
+			break;
+		case VARTYPE_BOOL:
+		case VARTYPE_UINT:
+			ret.descriptor.type = eVar_UInt;
+			break;
+		case VARTYPE_DOUBLE:
+			ret.descriptor.type = eVar_Double;
+			break;
+		case VARTYPE_FLOAT:
+		default:
+			ret.descriptor.type = eVar_Float;
+			break;
+	}
 	ret.descriptor.rows = type.descriptor.rows;
 	ret.descriptor.cols = type.descriptor.cols;
 	ret.descriptor.elements = type.descriptor.elements;
 	ret.descriptor.name = type.descriptor.name;
+	ret.descriptor.rowMajorStorage = (type.descriptor.varClass == CLASS_MATRIX_ROWS);
 	
 	uint32_t o = offset;
 	
@@ -755,6 +773,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		ConstantBlock &cb = ret->ConstantBlocks[i];
 		cb.name = dxbc->m_CBuffers[i].name;
 		cb.bufferAddress = (int32_t)i;
+		cb.bindPoint = (uint32_t)i;
 
 		create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
 		for(size_t v=0; v < dxbc->m_CBuffers[i].variables.size(); v++)
