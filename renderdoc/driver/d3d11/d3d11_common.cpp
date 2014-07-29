@@ -685,17 +685,17 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
 
 	switch(type.descriptor.type)
 	{
-		case VARTYPE_INT:
+		case DXBC::VARTYPE_INT:
 			ret.descriptor.type = eVar_Int;
 			break;
-		case VARTYPE_BOOL:
-		case VARTYPE_UINT:
+		case DXBC::VARTYPE_BOOL:
+		case DXBC::VARTYPE_UINT:
 			ret.descriptor.type = eVar_UInt;
 			break;
-		case VARTYPE_DOUBLE:
+		case DXBC::VARTYPE_DOUBLE:
 			ret.descriptor.type = eVar_Double;
 			break;
-		case VARTYPE_FLOAT:
+		case DXBC::VARTYPE_FLOAT:
 		default:
 			ret.descriptor.type = eVar_Float;
 			break;
@@ -704,7 +704,7 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
 	ret.descriptor.cols = type.descriptor.cols;
 	ret.descriptor.elements = type.descriptor.elements;
 	ret.descriptor.name = type.descriptor.name;
-	ret.descriptor.rowMajorStorage = (type.descriptor.varClass == CLASS_MATRIX_ROWS);
+	ret.descriptor.rowMajorStorage = (type.descriptor.varClass == DXBC::CLASS_MATRIX_ROWS);
 	
 	uint32_t o = offset;
 	
