@@ -315,6 +315,11 @@ void WrappedOpenGL::glGetActiveUniformsiv(GLuint program, GLsizei uniformCount, 
 	m_Real.glGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
 }
 
+void WrappedOpenGL::glGetActiveUniformBlockiv(GLuint program, GLuint uniformBlockIndex, GLenum pname, GLint *params)
+{
+	m_Real.glGetActiveUniformBlockiv(program, uniformBlockIndex, pname, params);
+}
+
 void WrappedOpenGL::glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
 {
 	m_Real.glGetActiveAttrib(program, index, bufSize, length, size, type, name);
@@ -328,6 +333,16 @@ void WrappedOpenGL::glGetUniformfv(GLuint program, GLint location, GLfloat *para
 void WrappedOpenGL::glGetUniformiv(GLuint program, GLint location, GLint *params)
 {
 	m_Real.glGetUniformiv(program, location, params);
+}
+
+void WrappedOpenGL::glGetUniformuiv(GLuint program, GLint location, GLuint *params)
+{
+	m_Real.glGetUniformuiv(program, location, params);
+}
+
+void WrappedOpenGL::glGetUniformdv(GLuint program, GLint location, GLdouble *params)
+{
+	m_Real.glGetUniformdv(program, location, params);
 }
 
 void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)

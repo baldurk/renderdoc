@@ -252,10 +252,13 @@
     HookExtension(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex); \
     HookExtension(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation); \
     HookExtension(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
+    HookExtension(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
     HookExtension(PFNGLGETACTIVEUNIFORMSIVPROC, glGetActiveUniformsiv); \
     HookExtension(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
     HookExtension(PFNGLGETUNIFORMFVPROC, glGetUniformfv); \
     HookExtension(PFNGLGETUNIFORMIVPROC, glGetUniformiv); \
+    HookExtension(PFNGLGETUNIFORMUIVPROC, glGetUniformuiv); \
+    HookExtension(PFNGLGETUNIFORMDVPROC, glGetUniformdv); \
     HookExtension(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
     HookExtension(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv); \
     HookExtension(PFNGLUNIFORM1FPROC, glUniform1f); \
@@ -592,10 +595,13 @@
     HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
     HookWrapper2(GLint, glGetAttribLocation, GLuint, program, const GLchar *, name); \
     HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
     HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
     HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
     HookWrapper3(void, glGetUniformfv, GLuint, program, GLint, location, GLfloat *, params); \
     HookWrapper3(void, glGetUniformiv, GLuint, program, GLint, location, GLint *, params); \
+    HookWrapper3(void, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
+    HookWrapper3(void, glGetUniformdv, GLuint, program, GLint, location, GLdouble *, params); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
     HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper2(void, glUniform1f, GLint, location, GLfloat, v0); \
