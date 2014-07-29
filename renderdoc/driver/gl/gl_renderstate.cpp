@@ -89,16 +89,16 @@ void GLRenderState::FetchState()
 	
 	m_Real->glActiveTexture(ActiveTexture);
 
-	m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING,              (GLint*)&BufferBindings[0]);
-	m_Real->glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING,          (GLint*)&BufferBindings[1]);
-	m_Real->glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING,         (GLint*)&BufferBindings[2]);
-	m_Real->glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,      (GLint*)&BufferBindings[3]);
-	m_Real->glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING,  (GLint*)&BufferBindings[4]);
-	m_Real->glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING,      (GLint*)&BufferBindings[5]);
-	m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING,         (GLint*)&BufferBindings[6]);
-	m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,       (GLint*)&BufferBindings[7]);
-	m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING,              (GLint*)&BufferBindings[8]);
-	m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING,            (GLint*)&BufferBindings[9]);
+	m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Array]);
+	m_Real->glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING,          (GLint*)&BufferBindings[eBufIdx_Copy_Read]);
+	m_Real->glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING,         (GLint*)&BufferBindings[eBufIdx_Copy_Write]);
+	m_Real->glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,      (GLint*)&BufferBindings[eBufIdx_Draw_Indirect]);
+	m_Real->glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING,  (GLint*)&BufferBindings[eBufIdx_Dispatch_Indirect]);
+	m_Real->glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING,      (GLint*)&BufferBindings[eBufIdx_Element_Array]);
+	m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING,         (GLint*)&BufferBindings[eBufIdx_Pixel_Pack]);
+	m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,       (GLint*)&BufferBindings[eBufIdx_Pixel_Unpack]);
+	m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Query]);
+	m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING,            (GLint*)&BufferBindings[eBufIdx_Texture]);
 
 	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum start; GLenum size; } idxBufs[] =
 	{
@@ -254,16 +254,16 @@ void GLRenderState::ApplyState()
 	
 	m_Real->glActiveTexture(ActiveTexture);
 
-	m_Real->glBindBuffer(eGL_ARRAY_BUFFER,              BufferBindings[0]);
-	m_Real->glBindBuffer(eGL_COPY_READ_BUFFER,          BufferBindings[1]);
-	m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER,         BufferBindings[2]);
-	m_Real->glBindBuffer(eGL_DRAW_INDIRECT_BUFFER,      BufferBindings[3]);
-	m_Real->glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER,  BufferBindings[4]);
-	m_Real->glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER,      BufferBindings[5]);
-	m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER,         BufferBindings[6]);
-	m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER,       BufferBindings[7]);
-	m_Real->glBindBuffer(eGL_QUERY_BUFFER,              BufferBindings[8]);
-	m_Real->glBindBuffer(eGL_TEXTURE_BUFFER,            BufferBindings[9]);
+	m_Real->glBindBuffer(eGL_ARRAY_BUFFER,              BufferBindings[eBufIdx_Array]);
+	m_Real->glBindBuffer(eGL_COPY_READ_BUFFER,          BufferBindings[eBufIdx_Copy_Read]);
+	m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER,         BufferBindings[eBufIdx_Copy_Write]);
+	m_Real->glBindBuffer(eGL_DRAW_INDIRECT_BUFFER,      BufferBindings[eBufIdx_Draw_Indirect]);
+	m_Real->glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER,  BufferBindings[eBufIdx_Dispatch_Indirect]);
+	m_Real->glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER,      BufferBindings[eBufIdx_Element_Array]);
+	m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER,         BufferBindings[eBufIdx_Pixel_Pack]);
+	m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER,       BufferBindings[eBufIdx_Pixel_Unpack]);
+	m_Real->glBindBuffer(eGL_QUERY_BUFFER,              BufferBindings[eBufIdx_Query]);
+	m_Real->glBindBuffer(eGL_TEXTURE_BUFFER,            BufferBindings[eBufIdx_Texture]);
 
 	struct { IdxRangeBuffer *bufs; int count; GLenum binding; } idxBufs[] =
 	{

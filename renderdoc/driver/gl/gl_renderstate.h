@@ -79,6 +79,20 @@ struct GLRenderState
 	uint32_t Tex2D[128];
 	GLenum ActiveTexture;
 
+	enum
+	{
+		eBufIdx_Array,
+		eBufIdx_Copy_Read,
+		eBufIdx_Copy_Write,
+		eBufIdx_Draw_Indirect,
+		eBufIdx_Dispatch_Indirect,
+		eBufIdx_Element_Array,
+		eBufIdx_Pixel_Pack,
+		eBufIdx_Pixel_Unpack,
+		eBufIdx_Query,
+		eBufIdx_Texture,
+	};
+
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
 	{
