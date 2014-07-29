@@ -1465,8 +1465,8 @@ void GLReplay::SavePipelineState()
 	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
-void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
-											const vector<byte> &data, ShaderVariable &outVar)
+void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
+											          const vector<byte> &data, ShaderVariable &outVar)
 {
 	const byte *bufdata = data.empty() ? NULL : &data[0];
 
