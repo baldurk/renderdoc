@@ -288,6 +288,9 @@
     <ClInclude Include="driver\gl\gl_renderstate.h">
       <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
+    <ClInclude Include="os\win32\win32_hook.h">
+      <Filter>OS\Win32</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -505,6 +508,9 @@
     </ClCompile>
     <ClCompile Include="driver\gl\wrappers\gl_query_funcs.cpp">
       <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="os\win32\win32_hook.cpp">
+      <Filter>OS\Win32</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

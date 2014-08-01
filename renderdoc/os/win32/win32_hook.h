@@ -22,33 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #pragma once
 
-#include <windows.h>
-#include "data/resource.h"
-
-#define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
-
-#define OS_DEBUG_BREAK() __debugbreak()
-
-#define GetEmbeddedResource(filename) GetEmbeddedResourceWin32( CONCAT(RESOURCE_, filename) )
-string GetEmbeddedResourceWin32(int resource);
-
-namespace OSUtility
-{
-	inline void ForceCrash() { *((int *)NULL) = 0; }
-	inline void DebugBreak() { __debugbreak(); }
-	inline bool DebuggerPresent() { return ::IsDebuggerPresent() == TRUE; }
-	inline void DebugOutputA(const char *str) { OutputDebugStringA(str); }
-};
-
-namespace Threading
-{
-	typedef CriticalSectionTemplate<CRITICAL_SECTION> CriticalSection;
-};
-
-// Hooking configuration
-#define USE_MHOOK 0
-#define USE_IAT_HOOK 1
-
+bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function, void *destination_function_ptr);
+void Win32_IAT_BeginHooks();
+void Win32_IAT_EndHooks();

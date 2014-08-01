@@ -275,6 +275,7 @@
     <ClInclude Include="maths\quat.h" />
     <ClInclude Include="maths\vec.h" />
     <ClInclude Include="os\os_specific.h" />
+    <ClInclude Include="os\win32\win32_hook.h" />
     <ClInclude Include="os\win32_specific.h" />
     <ClInclude Include="replay\basic_types.h" />
     <ClInclude Include="replay\capture_options.h" />
@@ -356,6 +357,7 @@
     <ClCompile Include="maths\matrix.cpp" />
     <ClCompile Include="os\os_specific.cpp" />
     <ClCompile Include="os\win32\win32_callstack.cpp" />
+    <ClCompile Include="os\win32\win32_hook.cpp" />
     <ClCompile Include="os\win32\win32_network.cpp" />
     <ClCompile Include="os\win32\win32_process.cpp" />
     <ClCompile Include="os\win32\win32_shellext.cpp" />

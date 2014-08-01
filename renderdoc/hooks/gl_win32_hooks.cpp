@@ -228,11 +228,13 @@ class OpenGLHook : LibraryHook
 			if(!m_EnabledHooks)
 				return false;
 			
+#if USE_MHOOK
 			if(GetModuleHandleA(DLL_NAME) == NULL)
 			{
 				RDCWARN("Failed to load %s - not inserting OpenGL hooks.", DLL_NAME);
 				return false;
 			}
+#endif
 
 			bool success = SetupHooks(GL);
 
