@@ -40,6 +40,12 @@ namespace renderdocui.Windows
     public partial class PixelHistoryView : DockContent, ILogViewerForm
     {
         Core m_Core;
+        FetchTexture texture;
+        Point pixel;
+        PixelModification[] modifications;
+        bool[] visibleChannels;
+        float rangeMin, rangeMax;
+        int numChannels, channelIdx;
 
         public PixelHistoryView(Core core, FetchTexture tex, Point pt,
                                 float rangemin, float rangemax, bool[] channels,
@@ -49,16 +55,20 @@ namespace renderdocui.Windows
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
-            events.BeginInit();
-            events.BeginUpdate();
-
             m_Core = core;
+
+            texture = tex;
+            pixel = pt;
+            modifications = history;
+            rangeMin = rangemin;
+            rangeMax = rangemax;
+            visibleChannels = channels;
 
             Text = String.Format("Pixel History on {0} for ({1}, {2})", tex.name, pt.X, pt.Y);
 
             string channelStr = "";
-            int numChannels = 0;
-            int channelIdx = 0;
+            numChannels = 0;
+            channelIdx = 0;
 
             if (channels[0])
             {
@@ -95,28 +105,40 @@ namespace renderdocui.Windows
             historyContext.Text = String.Format("Preview colours displayed in visible range {0} - {1} with {2} visible.",
                                                 Formatter.Format(rangemin), Formatter.Format(rangemax), channelStr) + Environment.NewLine;
             historyContext.Text += Environment.NewLine;
+            historyContext.Text += "Double click to jump to an event." + Environment.NewLine;
             historyContext.Text += "Right click to debug an event, or hide failed events.";
 
-            bool uintTex = (tex.format.compType == FormatComponentType.UInt);
-            bool sintTex = (tex.format.compType == FormatComponentType.SInt);
-            bool srgbTex = tex.format.srgbCorrected ||
-                           (tex.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
+            eventsHidden.Text = "";
+
+            UpdateEventList();
+        }
+
+        void UpdateEventList()
+        {
+            events.BeginUpdate();
+
+            events.Nodes.Clear();
+
+            bool uintTex = (texture.format.compType == FormatComponentType.UInt);
+            bool sintTex = (texture.format.compType == FormatComponentType.SInt);
+            bool srgbTex = texture.format.srgbCorrected ||
+                           (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
             bool floatTex = (!uintTex && !sintTex);
 
-            int numComps = (int)tex.format.compCount;
+            int numComps = (int)texture.format.compCount;
 
-            if (tex.format.compType == FormatComponentType.Depth ||
-                (tex.format.special && tex.format.specialFormat == SpecialFormat.D24S8) ||
-                (tex.format.special && tex.format.specialFormat == SpecialFormat.D32S8))
+            if (texture.format.compType == FormatComponentType.Depth ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
                 numComps = 0;
 
-            float rangesize = (rangemax - rangemin);
+            float rangesize = (rangeMax - rangeMin);
 
-            foreach (PixelModification mod in history)
+            foreach (PixelModification mod in modifications)
             {
                 string name = "name";
 
-                var drawcall = core.GetDrawcall(core.CurFrame, mod.eventID);
+                var drawcall = m_Core.GetDrawcall(m_Core.CurFrame, mod.eventID);
 
                 if (drawcall == null) continue;
 
@@ -154,6 +176,9 @@ namespace renderdocui.Windows
                     name += "\nStencil test failed";
                     passed = false;
                 }
+
+                if(!passed && hideFailedEventsToolStripMenuItem.Checked)
+                    continue;
 
                 string preModVal = "";
                 string postModVal = "";
@@ -223,17 +248,17 @@ namespace renderdocui.Windows
                     }
                     else
                     {
-                        if (!channels[0]) r = 0.0f;
-                        if (!channels[1]) g = 0.0f;
-                        if (!channels[2]) b = 0.0f;
+                        if (!visibleChannels[0]) r = 0.0f;
+                        if (!visibleChannels[1]) g = 0.0f;
+                        if (!visibleChannels[2]) b = 0.0f;
                     }
 
-                    r = Helpers.Clamp((r - rangemin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((g - rangemin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((b - rangemin) / rangesize, 0.0f, 1.0f);
+                    r = Helpers.Clamp((r - rangeMin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((g - rangeMin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((b - rangeMin) / rangesize, 0.0f, 1.0f);
 
                     if(numComps == 0)
-                        r = g = b = Helpers.Clamp((mod.preMod.depth - rangemin) / rangesize, 0.0f, 1.0f);
+                        r = g = b = Helpers.Clamp((mod.preMod.depth - rangeMin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {
@@ -254,17 +279,17 @@ namespace renderdocui.Windows
                     }
                     else
                     {
-                        if (!channels[0]) r = 0.0f;
-                        if (!channels[1]) g = 0.0f;
-                        if (!channels[2]) b = 0.0f;
+                        if (!visibleChannels[0]) r = 0.0f;
+                        if (!visibleChannels[1]) g = 0.0f;
+                        if (!visibleChannels[2]) b = 0.0f;
                     }
 
-                    r = Helpers.Clamp((r - rangemin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((g - rangemin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((b - rangemin) / rangesize, 0.0f, 1.0f);
+                    r = Helpers.Clamp((r - rangeMin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((g - rangeMin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((b - rangeMin) / rangesize, 0.0f, 1.0f);
 
                     if (numComps == 0)
-                        r = g = b = Helpers.Clamp((mod.postMod.depth - rangemin) / rangesize, 0.0f, 1.0f);
+                        r = g = b = Helpers.Clamp((mod.postMod.depth - rangeMin) / rangesize, 0.0f, 1.0f);
 
                     if (srgbTex)
                     {
@@ -280,7 +305,6 @@ namespace renderdocui.Windows
             }
 
             events.EndUpdate();
-            events.EndInit();
         }
 
         public void OnLogfileClosed()
@@ -302,6 +326,59 @@ namespace renderdocui.Windows
             {
                 m_Core.SetEventID(this, m_Core.CurFrame, (uint)node.Tag);
             }
+        }
+
+        private void events_MouseClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right)
+            {
+                rightclickMenu.Show(events.PointToScreen(e.Location));
+            }
+        }
+
+        private void debugToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (events.SelectedNode == null) return;
+
+            var node = events.SelectedNode;
+
+            if (node.Tag is uint)
+            {
+                m_Core.SetEventID(this, m_Core.CurFrame, (uint)node.Tag);
+
+                ShaderDebugTrace trace = null;
+
+                ShaderReflection shaderDetails = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+
+                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                {
+                    trace = r.PSGetDebugStates((UInt32)pixel.X, (UInt32)pixel.Y);
+                });
+
+                if (trace == null || trace.states.Length == 0)
+                {
+                    MessageBox.Show("Error debugging pixel.", "Debug Error",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                this.BeginInvoke(new Action(() =>
+                {
+                    ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace);
+
+                    s.Show(this.DockPanel);
+                }));
+            }
+        }
+
+        private void hideFailedEventsToolStripMenuItem_CheckedChanged(object sender, EventArgs e)
+        {
+            if (hideFailedEventsToolStripMenuItem.Checked)
+                eventsHidden.Text = "Failed events are currently hidden";
+            else
+                eventsHidden.Text = "";
+
+            UpdateEventList();
         }
     }
 }

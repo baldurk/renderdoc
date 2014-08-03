@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("EID", "EID")));
             TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Event", "Event")));
             TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Before", "Before")));
@@ -37,8 +38,12 @@
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.historyContext = new System.Windows.Forms.Label();
             this.eventsHidden = new System.Windows.Forms.Label();
+            this.rightclickMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.hideFailedEventsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.debugToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.events = new TreelistView.TreeListView();
             this.tableLayoutPanel1.SuspendLayout();
+            this.rightclickMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.events)).BeginInit();
             this.SuspendLayout();
             // 
@@ -73,10 +78,35 @@
             // eventsHidden
             // 
             this.eventsHidden.AutoSize = true;
+            this.eventsHidden.ForeColor = System.Drawing.Color.Red;
             this.eventsHidden.Location = new System.Drawing.Point(3, 52);
             this.eventsHidden.Name = "eventsHidden";
-            this.eventsHidden.Size = new System.Drawing.Size(0, 13);
+            this.eventsHidden.Size = new System.Drawing.Size(92, 13);
             this.eventsHidden.TabIndex = 3;
+            this.eventsHidden.Text = "events are hidden";
+            // 
+            // rightclickMenu
+            // 
+            this.rightclickMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.hideFailedEventsToolStripMenuItem,
+            this.debugToolStripMenuItem});
+            this.rightclickMenu.Name = "rightclickMenu";
+            this.rightclickMenu.Size = new System.Drawing.Size(161, 48);
+            // 
+            // hideFailedEventsToolStripMenuItem
+            // 
+            this.hideFailedEventsToolStripMenuItem.CheckOnClick = true;
+            this.hideFailedEventsToolStripMenuItem.Name = "hideFailedEventsToolStripMenuItem";
+            this.hideFailedEventsToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.hideFailedEventsToolStripMenuItem.Text = "&Hide failed events";
+            this.hideFailedEventsToolStripMenuItem.CheckedChanged += new System.EventHandler(this.hideFailedEventsToolStripMenuItem_CheckedChanged);
+            // 
+            // debugToolStripMenuItem
+            // 
+            this.debugToolStripMenuItem.Name = "debugToolStripMenuItem";
+            this.debugToolStripMenuItem.Size = new System.Drawing.Size(160, 22);
+            this.debugToolStripMenuItem.Text = "&Debug pixel";
+            this.debugToolStripMenuItem.Click += new System.EventHandler(this.debugToolStripMenuItem_Click);
             // 
             // events
             // 
@@ -104,7 +134,7 @@
             treeListColumn4,
             treeListColumn5,
             treeListColumn6});
-            this.events.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.events.Cursor = System.Windows.Forms.Cursors.VSplit;
             this.events.Dock = System.Windows.Forms.DockStyle.Fill;
             this.events.Location = new System.Drawing.Point(3, 68);
             this.events.MultiSelect = false;
@@ -117,6 +147,7 @@
             this.events.ViewOptions.ShowLine = false;
             this.events.ViewOptions.ShowPlusMinus = false;
             this.events.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.events_NodeDoubleClicked);
+            this.events.MouseClick += new System.Windows.Forms.MouseEventHandler(this.events_MouseClick);
             // 
             // PixelHistoryView
             // 
@@ -130,6 +161,7 @@
             this.Text = "Pixel History";
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
+            this.rightclickMenu.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.events)).EndInit();
             this.ResumeLayout(false);
 
@@ -141,5 +173,8 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.Label historyContext;
         private System.Windows.Forms.Label eventsHidden;
+        private System.Windows.Forms.ContextMenuStrip rightclickMenu;
+        private System.Windows.Forms.ToolStripMenuItem hideFailedEventsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem debugToolStripMenuItem;
     }
 }
