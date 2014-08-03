@@ -41,7 +41,9 @@ namespace renderdocui.Windows
     {
         Core m_Core;
 
-        public PixelHistoryView(Core core, FetchTexture tex, Point pt, float rangemin, float rangemax, PixelModification[] history)
+        public PixelHistoryView(Core core, FetchTexture tex, Point pt,
+                                float rangemin, float rangemax, bool[] channels,
+                                PixelModification[] history)
         {
             InitializeComponent();
 
@@ -52,7 +54,48 @@ namespace renderdocui.Windows
 
             m_Core = core;
 
-            Text += String.Format(" on {0} for ({1}, {2})", tex.name, pt.X, pt.Y);
+            Text = String.Format("Pixel History on {0} for ({1}, {2})", tex.name, pt.X, pt.Y);
+
+            string channelStr = "";
+            int numChannels = 0;
+            int channelIdx = 0;
+
+            if (channels[0])
+            {
+                channelStr += "R";
+                numChannels++;
+                channelIdx = 0;
+            }
+            if (channels[1])
+            {
+                channelStr += "G";
+                numChannels++;
+                channelIdx = 1;
+            }
+            if (channels[2])
+            {
+                channelStr += "B";
+                numChannels++;
+                channelIdx = 2;
+            }
+
+            channelStr += " channel";
+            if (numChannels > 1)
+                channelStr += "s";
+
+            // if alpha channel is enabled it only does anything if the
+            // other channels are all disabled. There is no RGBA preview
+            if (numChannels == 0 && channels[3])
+            {
+                channelStr = "Alpha";
+                numChannels = 1;
+                channelIdx = 3;
+            }
+
+            historyContext.Text = String.Format("Preview colours displayed in visible range {0} - {1} with {2} visible.",
+                                                Formatter.Format(rangemin), Formatter.Format(rangemax), channelStr) + Environment.NewLine;
+            historyContext.Text += Environment.NewLine;
+            historyContext.Text += "Right click to debug an event, or hide failed events.";
 
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
@@ -170,9 +213,24 @@ namespace renderdocui.Windows
 
                 if (floatTex || numComps == 0)
                 {
-                    float r = Helpers.Clamp((mod.preMod.col.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
-                    float g = Helpers.Clamp((mod.preMod.col.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
-                    float b = Helpers.Clamp((mod.preMod.col.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
+                    float r = mod.preMod.col.value.f[0];
+                    float g = mod.preMod.col.value.f[1];
+                    float b = mod.preMod.col.value.f[2];
+
+                    if (numChannels == 1)
+                    {
+                        r = g = b = mod.preMod.col.value.f[channelIdx];
+                    }
+                    else
+                    {
+                        if (!channels[0]) r = 0.0f;
+                        if (!channels[1]) g = 0.0f;
+                        if (!channels[2]) b = 0.0f;
+                    }
+
+                    r = Helpers.Clamp((r - rangemin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((g - rangemin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((b - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if(numComps == 0)
                         r = g = b = Helpers.Clamp((mod.preMod.depth - rangemin) / rangesize, 0.0f, 1.0f);
@@ -186,9 +244,24 @@ namespace renderdocui.Windows
 
                     node.IndexedBackColor[3] = Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
 
-                    r = Helpers.Clamp((mod.postMod.col.value.f[0] - rangemin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((mod.postMod.col.value.f[1] - rangemin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((mod.postMod.col.value.f[2] - rangemin) / rangesize, 0.0f, 1.0f);
+                    r = mod.postMod.col.value.f[0];
+                    g = mod.postMod.col.value.f[1];
+                    b = mod.postMod.col.value.f[2];
+
+                    if (numChannels == 1)
+                    {
+                        r = g = b = mod.postMod.col.value.f[channelIdx];
+                    }
+                    else
+                    {
+                        if (!channels[0]) r = 0.0f;
+                        if (!channels[1]) g = 0.0f;
+                        if (!channels[2]) b = 0.0f;
+                    }
+
+                    r = Helpers.Clamp((r - rangemin) / rangesize, 0.0f, 1.0f);
+                    g = Helpers.Clamp((g - rangemin) / rangesize, 0.0f, 1.0f);
+                    b = Helpers.Clamp((b - rangemin) / rangesize, 0.0f, 1.0f);
 
                     if (numComps == 0)
                         r = g = b = Helpers.Clamp((mod.postMod.depth - rangemin) / rangesize, 0.0f, 1.0f);

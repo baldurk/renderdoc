@@ -34,9 +34,49 @@
             TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("BeforeCol", "")));
             TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("After", "After")));
             TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("AfterCol", "")));
+            this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
+            this.historyContext = new System.Windows.Forms.Label();
+            this.eventsHidden = new System.Windows.Forms.Label();
             this.events = new TreelistView.TreeListView();
+            this.tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.events)).BeginInit();
             this.SuspendLayout();
+            // 
+            // tableLayoutPanel1
+            // 
+            this.tableLayoutPanel1.ColumnCount = 1;
+            this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Controls.Add(this.events, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.historyContext, 0, 0);
+            this.tableLayoutPanel1.Controls.Add(this.eventsHidden, 0, 1);
+            this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
+            this.tableLayoutPanel1.Name = "tableLayoutPanel1";
+            this.tableLayoutPanel1.RowCount = 3;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(386, 478);
+            this.tableLayoutPanel1.TabIndex = 2;
+            // 
+            // historyContext
+            // 
+            this.historyContext.AutoSize = true;
+            this.historyContext.Location = new System.Drawing.Point(3, 0);
+            this.historyContext.Name = "historyContext";
+            this.historyContext.Size = new System.Drawing.Size(378, 52);
+            this.historyContext.TabIndex = 2;
+            this.historyContext.Text = "***code overwritten preview*** Preview colours displayed in visible range {min} -" +
+    " {max} with {red, blue, green} channels.\r\n\r\nRight click to debug an event, or hi" +
+    "de failed events.";
+            // 
+            // eventsHidden
+            // 
+            this.eventsHidden.AutoSize = true;
+            this.eventsHidden.Location = new System.Drawing.Point(3, 52);
+            this.eventsHidden.Name = "eventsHidden";
+            this.eventsHidden.Size = new System.Drawing.Size(0, 13);
+            this.eventsHidden.TabIndex = 3;
             // 
             // events
             // 
@@ -66,12 +106,12 @@
             treeListColumn6});
             this.events.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.events.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.events.Location = new System.Drawing.Point(0, 0);
+            this.events.Location = new System.Drawing.Point(3, 68);
             this.events.MultiSelect = false;
             this.events.Name = "events";
             this.events.RowOptions.ItemHeight = 96;
             this.events.RowOptions.ShowHeader = false;
-            this.events.Size = new System.Drawing.Size(386, 478);
+            this.events.Size = new System.Drawing.Size(380, 407);
             this.events.TabIndex = 1;
             this.events.Text = "History Events";
             this.events.ViewOptions.ShowLine = false;
@@ -83,11 +123,13 @@
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(386, 478);
-            this.Controls.Add(this.events);
+            this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "PixelHistoryView";
             this.ShowHint = WeifenLuo.WinFormsUI.Docking.DockState.DockRight;
             this.Text = "Pixel History";
+            this.tableLayoutPanel1.ResumeLayout(false);
+            this.tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.events)).EndInit();
             this.ResumeLayout(false);
 
@@ -96,5 +138,8 @@
         #endregion
 
         private TreelistView.TreeListView events;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        private System.Windows.Forms.Label historyContext;
+        private System.Windows.Forms.Label eventsHidden;
     }
 }
