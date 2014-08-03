@@ -155,8 +155,8 @@ namespace renderdocui.Windows
 
                 if (mod.preMod.stencil >= 0)
                 {
-                    preModVal += String.Format("\nS: {0:X}", mod.preMod.stencil);
-                    postModVal += String.Format("\nS: {0:X}", mod.postMod.stencil);
+                    preModVal += String.Format("\nS: 0x{0:X2}", mod.preMod.stencil);
+                    postModVal += String.Format("\nS: 0x{0:X2}", mod.postMod.stencil);
                 }
                 else
                 {
