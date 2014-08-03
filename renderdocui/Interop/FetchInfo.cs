@@ -486,6 +486,13 @@ namespace renderdoc
         public bool shaderDiscarded;
         public bool depthTestFailed;
         public bool stencilTestFailed;
+
+        public bool EventPassed()
+        {
+            return !backfaceCulled && !depthClipped && !viewClipped &&
+                !scissorClipped && !shaderDiscarded && !depthTestFailed &&
+                !stencilTestFailed;
+        }
     };
 
     [StructLayout(LayoutKind.Sequential)]

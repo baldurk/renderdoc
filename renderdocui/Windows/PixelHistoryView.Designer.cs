@@ -134,7 +134,7 @@
             treeListColumn4,
             treeListColumn5,
             treeListColumn6});
-            this.events.Cursor = System.Windows.Forms.Cursors.VSplit;
+            this.events.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.events.Dock = System.Windows.Forms.DockStyle.Fill;
             this.events.Location = new System.Drawing.Point(3, 68);
             this.events.MultiSelect = false;
@@ -159,6 +159,9 @@
             this.Name = "PixelHistoryView";
             this.ShowHint = WeifenLuo.WinFormsUI.Docking.DockState.DockRight;
             this.Text = "Pixel History";
+            this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.PixelHistoryView_FormClosed);
+            this.Enter += new System.EventHandler(this.PixelHistoryView_Enter);
+            this.Leave += new System.EventHandler(this.PixelHistoryView_Leave);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
             this.rightclickMenu.ResumeLayout(false);

@@ -124,6 +124,8 @@ namespace renderdocui.Windows
             modifications = history;
 
             UpdateEventList();
+
+            PixelHistoryView_Enter(null, null);
         }
 
         void UpdateEventList()
@@ -159,38 +161,20 @@ namespace renderdocui.Windows
 
                 name = drawcall.name;
 
-                bool passed = true;
+                bool passed = mod.EventPassed();
 
                 if (mod.backfaceCulled)
-                {
                     name += "\nBackface culled";
-                    passed = false;
-                }
                 if (mod.depthClipped)
-                {
                     name += "\nDepth Clipped";
-                    passed = false;
-                }
                 if (mod.scissorClipped)
-                {
                     name += "\nScissor Clipped";
-                    passed = false;
-                }
                 if (mod.shaderDiscarded)
-                {
                     name += "\nShader executed a discard";
-                    passed = false;
-                }
                 if (mod.depthTestFailed)
-                {
                     name += "\nDepth test failed";
-                    passed = false;
-                }
                 if (mod.stencilTestFailed)
-                {
                     name += "\nStencil test failed";
-                    passed = false;
-                }
 
                 if(!passed && hideFailedEventsToolStripMenuItem.Checked)
                     continue;
@@ -394,6 +378,30 @@ namespace renderdocui.Windows
                 eventsHidden.Text = "";
 
             UpdateEventList();
+        }
+
+        private void PixelHistoryView_Enter(object sender, EventArgs e)
+        {
+            var timeline = m_Core.GetTimelineBar();
+
+            if (timeline != null)
+                timeline.HighlightHistory(texture, pixel, modifications);
+        }
+
+        private void PixelHistoryView_Leave(object sender, EventArgs e)
+        {
+            var timeline = m_Core.GetTimelineBar();
+
+            if (timeline != null)
+                timeline.HighlightHistory(null, Point.Empty, null);
+        }
+
+        private void PixelHistoryView_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            var timeline = m_Core.GetTimelineBar();
+
+            if (timeline != null)
+                timeline.HighlightHistory(null, Point.Empty, null);
         }
     }
 }
