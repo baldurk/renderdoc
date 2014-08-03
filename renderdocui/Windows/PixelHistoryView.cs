@@ -48,8 +48,7 @@ namespace renderdocui.Windows
         int numChannels, channelIdx;
 
         public PixelHistoryView(Core core, FetchTexture tex, Point pt,
-                                float rangemin, float rangemax, bool[] channels,
-                                PixelModification[] history)
+                                float rangemin, float rangemax, bool[] channels)
         {
             InitializeComponent();
 
@@ -59,7 +58,6 @@ namespace renderdocui.Windows
 
             texture = tex;
             pixel = pt;
-            modifications = history;
             rangeMin = rangemin;
             rangeMax = rangemax;
             visibleChannels = channels;
@@ -110,11 +108,28 @@ namespace renderdocui.Windows
 
             eventsHidden.Text = "";
 
+            modifications = null;
+
+            events.BeginUpdate();
+
+            events.Nodes.Clear();
+
+            events.Nodes.Add(new object[] { "", "Loading...", "", "", "", "" });
+
+            events.EndUpdate();
+        }
+
+        public void SetHistory(PixelModification[] history)
+        {
+            modifications = history;
+
             UpdateEventList();
         }
 
         void UpdateEventList()
         {
+            if (modifications == null) return;
+
             events.BeginUpdate();
 
             events.Nodes.Clear();

@@ -2582,17 +2582,19 @@ namespace renderdocui.Windows
         {
             PixelModification[] history = null;
 
+            PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint,
+                                                         m_TexDisplay.rangemin, m_TexDisplay.rangemax,
+                                                         new bool[] { m_TexDisplay.Red, m_TexDisplay.Green, m_TexDisplay.Blue, m_TexDisplay.Alpha });
+
+            hist.Show(DockPanel);
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
                 
                 this.BeginInvoke(new Action(() =>
                 {
-                    PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint,
-                                                                 m_TexDisplay.rangemin, m_TexDisplay.rangemax,
-                                                                 new bool[] { m_TexDisplay.Red, m_TexDisplay.Green, m_TexDisplay.Blue, m_TexDisplay.Alpha },
-                                                                 history);
-                    hist.Show(DockPanel);
+                    hist.SetHistory(history);
                 }));
             });
         }
