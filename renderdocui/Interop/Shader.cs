@@ -177,6 +177,15 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderVariable[] outputs;
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IndexableTempArray
+        {
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public ShaderVariable[] temps;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public IndexableTempArray[] indexableTemps;
+
         public UInt32 nextInstruction;
     };
     

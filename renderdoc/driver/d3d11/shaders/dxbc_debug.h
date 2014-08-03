@@ -141,8 +141,6 @@ class State : public ShaderDebugState
 
 		VarType OperationType(const DXBC::OpcodeType &op) const;
 
-		vector< vector<ShaderVariable> > indexableTemps;
-
 		DXBC::DXBCFile *dxbc;
 		const ShaderDebugTrace *trace;
 		WrappedID3D11Device *device;

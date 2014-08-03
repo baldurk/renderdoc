@@ -92,6 +92,8 @@ struct ShaderDebugState
 {
 	rdctype::array<ShaderVariable> registers;
 	rdctype::array<ShaderVariable> outputs;
+	
+	rdctype::array< rdctype::array<ShaderVariable> > indexableTemps;
 
 	uint32_t nextInstruction;
 };
