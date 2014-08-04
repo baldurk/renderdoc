@@ -102,6 +102,12 @@ struct CachedHookData
 
 		PIMAGE_DOS_HEADER dosheader = (PIMAGE_DOS_HEADER)baseAddress;
 
+		if(dosheader->e_magic != 0x5a4d)
+		{
+			RDCDEBUG("Ignoring module %s, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
+			return;
+		}
+
 		char *PE00 = (char *)(baseAddress + dosheader->e_lfanew);
 		PIMAGE_FILE_HEADER fileHeader = (PIMAGE_FILE_HEADER)(PE00+4);
 		PIMAGE_OPTIONAL_HEADER optHeader = (PIMAGE_OPTIONAL_HEADER)((BYTE *)fileHeader+sizeof(IMAGE_FILE_HEADER));
