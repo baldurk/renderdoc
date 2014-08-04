@@ -93,6 +93,13 @@ struct CachedHookData
 	{
 		string name = strlower(string(modName));
 
+		// fraps seems to non-safely modify the assembly around the hook function, if
+		// we modify its import descriptors it leads to a crash as it hooks OUR functions.
+		// instead, skip modifying the import descriptors, it will hook the 'real' d3d functions
+		// and we can call them and have fraps + renderdoc playing nicely together
+		if(name.find("fraps") != string::npos)
+				return;
+
 		// set module pointer if we are hooking exports from this module
 		for(auto it=DllHooks.begin(); it != DllHooks.end(); ++it)
 			if(it->first == name)
