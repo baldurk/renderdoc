@@ -167,6 +167,8 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 				ret.specialFormat = eSpecial_D32S8;
 				ret.special = true;
 				break;
+			default:
+				RDCERR("Unexpected depth or stencil format %x", fmt);
 		}
 	}
 	else
