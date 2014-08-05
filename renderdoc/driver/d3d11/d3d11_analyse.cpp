@@ -235,7 +235,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 							size_t srcoffs = 4*elemByteSize*r;
 							size_t dstoffs = cols*elemByteSize*r;
 							memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
-											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*rows*cols));
 						}
 					}
 				}
@@ -1414,7 +1414,6 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 		texDisplay.HDRMul = -1.0f;
 		texDisplay.linearDisplayAsGamma = true;
-		texDisplay.FlipY = false;
 		texDisplay.mip = mip;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
@@ -2061,7 +2060,6 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
 	TextureDisplay disp;
 	disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
-	disp.FlipY = false;
 	disp.offx = 0.0f;
 	disp.offy = 0.0f;
 	disp.CustomShader = shader;
@@ -3178,7 +3176,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				depthRes->GetType(&dim);
 				
 				D3D11_TEXTURE2D_DESC desc2d;
-				RDCEraseEl(desc2d);
+				ZeroMemory((void*)&desc2d, sizeof(desc2d));
 
 				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
 				{
@@ -3194,10 +3192,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				{
 					ID3D11Texture2D *tex = (ID3D11Texture2D *)depthRes;
 					tex->GetDesc(&desc2d);
-				}
-				else
-				{
-					RDCERR("Unexpected size of depth buffer");
 				}
 
 				D3D11_TEXTURE2D_DESC *copyDesc = NULL;
