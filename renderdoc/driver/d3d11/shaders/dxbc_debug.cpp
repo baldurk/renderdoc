@@ -83,6 +83,10 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_SAMPLE_B:
 		case OPCODE_SAMPLE_C:
 		case OPCODE_SAMPLE_C_LZ:
+		case OPCODE_GATHER4:
+		case OPCODE_GATHER4_C:
+		case OPCODE_GATHER4_PO:
+		case OPCODE_GATHER4_PO_C:
 		case OPCODE_SAMPLE_D:
 		case OPCODE_RESINFO:
 		case OPCODE_BUFINFO:
@@ -2446,11 +2450,24 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		case OPCODE_SAMPLE_C_LZ:
 		case OPCODE_LD:
 		case OPCODE_LD_MS:
+		case OPCODE_GATHER4:
+		case OPCODE_GATHER4_C:
+		case OPCODE_GATHER4_PO:
+		case OPCODE_GATHER4_PO_C:
 		{
 			string sampler = "";
 			string texture = "";
 			string funcRet = "";
 			DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
+
+			if (op.operation == OPCODE_SAMPLE_C ||
+				op.operation == OPCODE_SAMPLE_C_LZ ||
+				op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO_C)
+			{
+				retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				funcRet = "float4";
+			}
 
 			bool useOffsets = true;
 			int texdim = 2;
@@ -2460,7 +2477,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			{
 				ASMDecl &decl = s.dxbc->m_Declarations[i];
 
-				if(decl.declaration == OPCODE_DCL_SAMPLER && decl.operand == op.operands[3])
+				if(decl.declaration == OPCODE_DCL_SAMPLER && decl.operand.indices == op.operands[3].indices)
 				{
 					if(decl.samplerMode == SAMPLER_MODE_DEFAULT)
 						sampler = "SamplerState s";
@@ -2778,8 +2795,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					char buf[64] = {0};
 					StringFormat::snprintf(buf, 63, "%hs4", typeStr[decl.resType[0]]);
 
+					if (retFmt == DXGI_FORMAT_UNKNOWN)
+					{
 					funcRet	= buf;
+
 					retFmt = fmts[decl.resType[0]];
+					}
 
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS || decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
 					{
@@ -2843,7 +2864,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				op.operation == OPCODE_SAMPLE_B ||
 				op.operation == OPCODE_SAMPLE_D ||
 				op.operation == OPCODE_SAMPLE_C ||
-				op.operation == OPCODE_SAMPLE_C_LZ)
+				op.operation == OPCODE_SAMPLE_C_LZ ||
+				op.operation == OPCODE_GATHER4 ||
+				op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO ||
+				op.operation == OPCODE_GATHER4_PO_C)
 			{
 				// all floats
 				texcoordType = ddxType = ddyType = 0;
@@ -2944,6 +2969,29 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					swizzle += elems[op.operands[2].comps[i]];
 			}
 			
+			const char* channel = "";
+			if (op.operation == OPCODE_GATHER4 ||
+				op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO ||
+				op.operation == OPCODE_GATHER4_PO_C)
+			{
+				switch (op.operands[3].comps[0])
+				{
+				case 0:
+					channel = "Red";
+					break;
+				case 1:
+					channel = "Green";
+					break;
+				case 2:
+					channel = "Blue";
+					break;
+				case 3:
+					channel = "Alpha";
+					break;
+				}
+			}
+			
 			string vsProgram = "float4 main(uint id : SV_VertexID) : SV_Position {\n";
 			vsProgram += "return float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
 			vsProgram += "}";
@@ -3032,8 +3080,27 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				sampleProgram += "t.Load(" + texcoords + ", " + sampleIdx + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
 			}
+			else if (op.operation == OPCODE_GATHER4 ||
+				op.operation == OPCODE_GATHER4_PO)
+			{
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+				sampleProgram += "t.Gather" + string(channel) + "(s, " + texcoords + offsets + ")" + swizzle + ";";
+				sampleProgram += "\n}\n";
+			}
+			else if (op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO_C)
+			{
+				// comparison value
+				StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
 
-			ID3D11VertexShader *vs = device->GetDebugManager()->MakeVShader(vsProgram.c_str(), "main", "vs_4_0");
+				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+				sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
+				sampleProgram += "t.GatherCmp" + string(channel) + "(s, " + texcoords + buf + offsets + ")" + swizzle + ";";
+				sampleProgram += "\n}\n";
+			}
+
+			ID3D11VertexShader *vs = device->GetDebugManager()->MakeVShader(vsProgram.c_str(), "main", "vs_5_0");
 			ID3D11PixelShader *ps = device->GetDebugManager()->MakePShader(sampleProgram.c_str(), "main", "ps_5_0");
 
 			ID3D11DeviceContext *context = NULL;
@@ -3070,15 +3137,15 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 				context->VSGetSamplers(sampSlot, 1, &usedSamp);
 			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
-				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+				context->HSGetSamplers(sampSlot, 1, &usedSamp);
 			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
-				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+				context->DSGetSamplers(sampSlot, 1, &usedSamp);
 			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
-				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+				context->GSGetSamplers(sampSlot, 1, &usedSamp);
 			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
-				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+				context->PSGetSamplers(sampSlot, 1, &usedSamp);
 			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
-				context->VSGetSamplers(sampSlot, 1, &usedSamp);
+				context->CSGetSamplers(sampSlot, 1, &usedSamp);
 
 			// set onto PS while we perform the sample
 			context->PSSetShaderResources(0, 1, &usedSRV);
