@@ -131,6 +131,8 @@ class GLReplay : public IReplayDriver
 
 		void SetReplayData(GLWindowingData data);
 	private:
+		void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
+		                      const vector<byte> &data, ShaderVariable &outVar);
 		
 		struct OutputWindow : public GLWindowingData
 		{

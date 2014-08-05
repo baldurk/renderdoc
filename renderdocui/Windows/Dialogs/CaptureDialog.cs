@@ -476,6 +476,12 @@ namespace renderdocui.Windows.Dialogs
         {
             if (workDirHint == false) return;
 
+            if(exePath.Text == "")
+            {
+                workDirPath.Text = "";
+                return;
+            }
+
             try
             {
                 workDirPath.Text = Path.GetDirectoryName(exePath.Text);

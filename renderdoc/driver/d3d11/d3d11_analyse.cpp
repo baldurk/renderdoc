@@ -235,7 +235,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 							size_t srcoffs = 4*elemByteSize*r;
 							size_t dstoffs = cols*elemByteSize*r;
 							memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
-											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*rows*cols));
+											RDCMIN(data.size()-dataOffset + srcoffs, elemByteSize*cols));
 						}
 					}
 				}

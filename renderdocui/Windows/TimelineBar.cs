@@ -107,6 +107,18 @@ namespace renderdocui.Windows
             panel.Invalidate();
         }
 
+        private FetchTexture m_HistoryTex = null;
+        private Point m_HistoryPoint = Point.Empty;
+        private PixelModification[] m_History = null;
+
+        public void HighlightHistory(FetchTexture tex, Point pt, PixelModification[] modif)
+        {
+            m_HistoryTex = tex;
+            m_HistoryPoint = pt;
+            m_History = modif;
+            panel.Invalidate();
+        }
+
         private RectangleF GetSubrect(RectangleF rect, float startSeg, float segWidth)
         {
             var subRect = rect;
@@ -547,7 +559,21 @@ namespace renderdocui.Windows
                     {
                         for (int d = 0; d < s.draws.Count; d++)
                         {
-                            if (m_HighlightUsage != null)
+                            if (m_History != null)
+                            {
+                                foreach (var u in m_History)
+                                {
+                                    if (u.eventID == s.draws[d].eventID)
+                                    {
+                                        var barcol = Color.Black;
+
+                                        int type = 2;
+
+                                        DrawPip(g, barcol, highlightBarRect, type, d, s.draws.Count, start, widths[i], "");
+                                    }
+                                }
+                            }
+                            else if (m_HighlightUsage != null)
                             {
                                 foreach (var u in m_HighlightUsage)
                                 {
@@ -568,7 +594,28 @@ namespace renderdocui.Windows
 
                         for (int d = 0; d < s.draws.Count; d++)
                         {
-                            if (m_HighlightUsage != null)
+                            if (m_History != null)
+                            {
+                                foreach (var u in m_History)
+                                {
+                                    if (u.eventID == s.draws[d].eventID)
+                                    {
+                                        if (u.EventPassed())
+                                        {
+                                            DrawPip(g, Color.Lime, highlightBarRect, 1, d, s.draws.Count, start, widths[i], "");
+                                            MarkWrite(s.draws[d].eventID);
+                                        }
+                                        else
+                                        {
+                                            DrawPip(g, Color.Crimson, highlightBarRect, 1, d, s.draws.Count, start, widths[i], "");
+                                            MarkRead(s.draws[d].eventID);
+                                        }
+
+                                        s.lastUsage[d] = true;
+                                    }
+                                }
+                            }
+                            else if (m_HighlightUsage != null)
                             {
                                 foreach (var u in m_HighlightUsage)
                                 {
@@ -706,7 +753,11 @@ namespace renderdocui.Windows
 
             lastPipX[0] = lastPipX[1] = lastPipX[2] = -100.0f;
 
-            if (m_HighlightResource != ResourceId.Null)
+            if (m_History != null)
+            {
+                g.DrawString("Pixel history for " + m_HistoryTex.name, barFont, Brushes.Black, barRect.X, barRect.Y + 2);
+            }
+            else if (m_HighlightResource != ResourceId.Null)
             {
                 g.DrawString(m_HighlightName + " Reads", barFont, Brushes.Black, barRect.X, barRect.Y + 2);
                 barRect.X += (int)Math.Ceiling(g.MeasureString(m_HighlightName + " Reads", barFont).Width);

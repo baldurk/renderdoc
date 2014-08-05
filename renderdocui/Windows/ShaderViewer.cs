@@ -785,6 +785,13 @@ namespace renderdocui.Windows
                 for (int i = 0; i < state.registers.Length; i++)
                     variableRegs.Nodes.Add("a");
 
+                for (int i = 0; i < state.indexableTemps.Length; i++)
+                {
+                    var node = variableRegs.Nodes.Add(new object[] { String.Format("x{0}", i), "indexable array", "" });
+                    for (int t = 0; t < state.indexableTemps[i].temps.Length; t++)
+                        node.Nodes.Add("a");
+                }
+
                 for (int i = 0; i < state.outputs.Length; i++)
                     variableRegs.Nodes.Add("a");
             }
@@ -796,6 +803,16 @@ namespace renderdocui.Windows
             for (int i = 0; i < state.registers.Length; i++)
             {
                 variableRegs.Nodes[v++].SetData(new object[] { state.registers[i].name, "register", StringRep(state.registers[i], false) });
+            }
+
+            for (int i = 0; i < state.indexableTemps.Length; i++)
+            {
+                var node = variableRegs.Nodes[v++];
+
+                for (int t = 0; t < state.indexableTemps[i].temps.Length; t++)
+                {
+                    node.Nodes[t].SetData(new object[] { state.indexableTemps[i].temps[t].name, "register", StringRep(state.indexableTemps[i].temps[t], false) });
+                }
             }
 
             for (int i = 0; i < state.outputs.Length; i++)
@@ -818,6 +835,14 @@ namespace renderdocui.Windows
 
                 var match = Regex.Match(reg, regexp);
 
+                // try indexable temps
+                if (!match.Success)
+                {
+                    regexp = "^(x[0-9]+)\\[([0-9]+)\\](\\.[xyzwrgba]+)?(,[xfiudb])?$";
+
+                    match = Regex.Match(reg, regexp);
+                }
+
                 if (match.Success)
                 {
                     var regtype = match.Groups[1].Value;
@@ -836,15 +861,34 @@ namespace renderdocui.Windows
                     ShaderVariable[] vars = null;
 
                     if (regtype == "r")
+                    {
                         vars = state.registers;
+                    }
                     else if (regtype == "v")
+                    {
                         vars = m_Trace.inputs;
+                    }
                     else if (regtype == "o")
+                    {
                         vars = state.outputs;
+                    }
+                    else if (regtype[0] == 'x')
+                    {
+                        string tempArrayIndexStr = regtype.Substring(1);
+                        int tempArrayIndex = -1;
+
+                        if (int.TryParse(tempArrayIndexStr, out tempArrayIndex))
+                        {
+                            if (tempArrayIndex >= 0 && tempArrayIndex < state.indexableTemps.Length)
+                            {
+                                vars = state.indexableTemps[tempArrayIndex].temps;
+                            }
+                        }
+                    }
 
                     int regindex = -1;
 
-                    if (int.TryParse(regidx, out regindex))
+                    if (vars != null && int.TryParse(regidx, out regindex))
                     {
                         if (regindex >= 0 && regindex < vars.Length)
                         {
