@@ -339,110 +339,136 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 	// use pixel shader here to get inputs
 	
-	uint32_t maxReg = 0;
+	int32_t maxReg = -1;
 	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
-		maxReg = RDCMAX(maxReg, dxbc->m_InputSig[i].regIndex);
+		maxReg = RDCMAX(maxReg, (int32_t)dxbc->m_InputSig[i].regIndex);
 
-	create_array(trace.inputs, maxReg+1);
-	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
+	bool inputCoverage = false;
+	
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 	{
-		char buf[64] = {0};
-		
-		SigParameter &sig = dxbc->m_InputSig[i];
-
-		StringFormat::snprintf(buf, 63, "v%d", sig.regIndex);
-		
-		ShaderVariable v;
-
-		v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
-		v.rows = 1;
-		v.columns = 
-			sig.regChannelMask & 0x8 ? 4 :
-			sig.regChannelMask & 0x4 ? 3 : 
-			sig.regChannelMask & 0x2 ? 2 :
-			sig.regChannelMask & 0x1 ? 1 :
-			0;
-
-		if(sig.compType == eCompType_UInt)
-			v.type = eVar_UInt;
-		else if(sig.compType == eCompType_SInt)
-			v.type = eVar_Int;
-
-		if(trace.inputs[sig.regIndex].columns == 0)
-			trace.inputs[sig.regIndex] = v;
-		else
-			trace.inputs[sig.regIndex].columns = RDCMAX(trace.inputs[sig.regIndex].columns, v.columns);
+		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_INPUT &&
+			 dxbc->m_Declarations[i].operand.type == TYPE_INPUT_COVERAGE_MASK)
+		{
+			inputCoverage = true;
+			break;
+		}
 	}
 	
+	if(maxReg >= 0 || inputCoverage)
+	{
+		create_array(trace.inputs, maxReg+1 + (inputCoverage?1:0));
+		for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
+		{
+			char buf[64] = {0};
+
+			SigParameter &sig = dxbc->m_InputSig[i];
+
+			StringFormat::snprintf(buf, 63, "v%d", sig.regIndex);
+
+			ShaderVariable v;
+
+			v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
+			v.rows = 1;
+			v.columns = 
+				sig.regChannelMask & 0x8 ? 4 :
+				sig.regChannelMask & 0x4 ? 3 : 
+				sig.regChannelMask & 0x2 ? 2 :
+				sig.regChannelMask & 0x1 ? 1 :
+				0;
+
+			if(sig.compType == eCompType_UInt)
+				v.type = eVar_UInt;
+			else if(sig.compType == eCompType_SInt)
+				v.type = eVar_Int;
+
+			if(trace.inputs[sig.regIndex].columns == 0)
+				trace.inputs[sig.regIndex] = v;
+			else
+				trace.inputs[sig.regIndex].columns = RDCMAX(trace.inputs[sig.regIndex].columns, v.columns);
+		}
+		
+		if(inputCoverage)
+		{
+			trace.inputs[maxReg+1] = ShaderVariable("vCoverage", 0U, 0U, 0U, 0U);
+			trace.inputs[maxReg+1].columns = 1;
+		}
+	}
+
 	uint32_t specialOutputs = 0;
-	maxReg = 0;
+	maxReg = -1;
 	for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
 	{
 		if(dxbc->m_OutputSig[i].regIndex == ~0U)
 			specialOutputs++;
 		else
-			maxReg = RDCMAX(maxReg, dxbc->m_OutputSig[i].regIndex);
-	}
-	
-	create_array(initialState.outputs, maxReg+1 + specialOutputs);
-	for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
-	{
-		SigParameter &sig = dxbc->m_OutputSig[i];
-
-		if(sig.regIndex == ~0U)
-			continue;
-
-		char buf[64] = {0};
-
-		StringFormat::snprintf(buf, 63, "o%d", sig.regIndex);
-		
-		ShaderVariable v;
-		
-		v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
-		v.rows = 1;
-		v.columns = 
-			sig.regChannelMask & 0x8 ? 4 :
-			sig.regChannelMask & 0x4 ? 3 : 
-			sig.regChannelMask & 0x2 ? 2 :
-			sig.regChannelMask & 0x1 ? 1 :
-			0;
-
-		if(initialState.outputs[sig.regIndex].columns == 0)
-			initialState.outputs[sig.regIndex] = v;
-		else
-			initialState.outputs[sig.regIndex].columns = RDCMAX(initialState.outputs[sig.regIndex].columns, v.columns);
+			maxReg = RDCMAX(maxReg, (int32_t)dxbc->m_OutputSig[i].regIndex);
 	}
 
-	for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
+	if(maxReg >= 0 || specialOutputs > 0)
 	{
-		SigParameter &sig = dxbc->m_OutputSig[i];
-
-		if(sig.regIndex != ~0U)
-			continue;
-		
-		ShaderVariable v;
-		
-		     if(sig.systemValue == eAttr_OutputControlPointIndex)			v.name = "vOutputControlPointID";
-		else if(sig.systemValue == eAttr_DepthOutput)						v.name = "oDepth";
-		else if(sig.systemValue == eAttr_DepthOutputLessEqual)				v.name = "oDepthLessEqual";
-		else if(sig.systemValue == eAttr_DepthOutputGreaterEqual)			v.name = "oDepthGreaterEqual";
-		else if(sig.systemValue == eAttr_MSAACoverage)						v.name = "oMask";
-		//if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
-		else
+		create_array(initialState.outputs, maxReg+1 + specialOutputs);
+		for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
 		{
-			RDCERR("Unhandled output: %hs (%d)", sig.semanticName, sig.systemValue);
-			continue;
+			SigParameter &sig = dxbc->m_OutputSig[i];
+
+			if(sig.regIndex == ~0U)
+				continue;
+
+			char buf[64] = {0};
+
+			StringFormat::snprintf(buf, 63, "o%d", sig.regIndex);
+
+			ShaderVariable v;
+
+			v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
+			v.rows = 1;
+			v.columns = 
+				sig.regChannelMask & 0x8 ? 4 :
+				sig.regChannelMask & 0x4 ? 3 : 
+				sig.regChannelMask & 0x2 ? 2 :
+				sig.regChannelMask & 0x1 ? 1 :
+				0;
+
+			if(initialState.outputs[sig.regIndex].columns == 0)
+				initialState.outputs[sig.regIndex] = v;
+			else
+				initialState.outputs[sig.regIndex].columns = RDCMAX(initialState.outputs[sig.regIndex].columns, v.columns);
 		}
 
-		v.rows = 1;
-		v.columns = 
-			sig.regChannelMask & 0x8 ? 4 :
-			sig.regChannelMask & 0x4 ? 3 : 
-			sig.regChannelMask & 0x2 ? 2 :
-			sig.regChannelMask & 0x1 ? 1 :
-			0;
+		int32_t outIdx = maxReg+1;
 
-		initialState.outputs[maxReg+i] = v;
+		for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
+		{
+			SigParameter &sig = dxbc->m_OutputSig[i];
+
+			if(sig.regIndex != ~0U)
+				continue;
+
+			ShaderVariable v;
+
+			if(sig.systemValue == eAttr_OutputControlPointIndex)			v.name = "vOutputControlPointID";
+			else if(sig.systemValue == eAttr_DepthOutput)						v.name = "oDepth";
+			else if(sig.systemValue == eAttr_DepthOutputLessEqual)				v.name = "oDepthLessEqual";
+			else if(sig.systemValue == eAttr_DepthOutputGreaterEqual)			v.name = "oDepthGreaterEqual";
+			else if(sig.systemValue == eAttr_MSAACoverage)						v.name = "oMask";
+			//if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
+			else
+			{
+				RDCERR("Unhandled output: %hs (%d)", sig.semanticName, sig.systemValue);
+				continue;
+			}
+
+			v.rows = 1;
+			v.columns = 
+				sig.regChannelMask & 0x8 ? 4 :
+				sig.regChannelMask & 0x4 ? 3 : 
+				sig.regChannelMask & 0x2 ? 2 :
+				sig.regChannelMask & 0x1 ? 1 :
+				0;
+
+			initialState.outputs[outIdx++] = v;
+		}
 	}
 
 	create_array(trace.cbuffers, dxbc->m_CBuffers.size());
@@ -585,6 +611,7 @@ struct DebugHit
 	float posx; float posy;
 	float depth;
 	uint32_t primitive;
+	uint32_t coverage;
 	uint32_t rawdata; // arbitrary, depending on shader
 };
 
@@ -1007,15 +1034,16 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	uint32_t overdrawLevels = 100; // maximum number of overdraw levels
 
-	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; PSInput IN; float derivValid; PSInput INddx; PSInput INddy; };\n\n";
+	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint covge; PSInput IN; float derivValid; PSInput INddx; PSInput INddy; };\n\n";
 	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
-	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID)\n{\n";
+	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage)\n{\n";
 	extractHlsl += "if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2) {\n";
 	extractHlsl += "uint idx = 0;\n";
 	extractHlsl += "InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n";
 	extractHlsl += "if(idx < " + ToStr::Get(overdrawLevels) + ") {\n";
 	extractHlsl += "PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
 	extractHlsl += "PSInitialBuffer[idx].prim = prim;\n";
+	extractHlsl += "PSInitialBuffer[idx].covge = covge;\n";
 	extractHlsl += "PSInitialBuffer[idx].IN = IN;\n";
 	extractHlsl += "PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
 	extractHlsl += "PSInitialBuffer[idx].INddx = (PSInput)0;\n";
@@ -1030,8 +1058,12 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	ID3D11PixelShader *extract = MakePShader(extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
 
-							// uint hit;	    float3 pos;		 uint prim;        float derivValid;    PSInput IN, INddx, INddy;
-	uint32_t structStride = sizeof(uint32_t) + sizeof(float)*3 + sizeof(uint32_t) + sizeof(float) + structureStride*3;
+	uint32_t structStride = sizeof(uint32_t)    // uint hit;
+	                      + sizeof(float)*3     // float3 pos;
+												+ sizeof(uint32_t)    // uint prim;
+												+ sizeof(uint32_t)    // uint covge;
+												+ sizeof(float)       // float derivValid;
+												+ structureStride*3;  // PSInput IN, INddx, INddy;
 
 	HRESULT hr = S_OK;
 	
@@ -1207,6 +1239,12 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 		DebugHit *hit = winner;
 
 		State initialState = CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
+
+		rdctype::array<ShaderVariable> &ins = traces[destIdx].inputs;
+		if(ins.count > 0 && !strcmp(ins[ins.count-1].name.elems, "vCoverage"))
+			ins[ins.count-1].value.u.x = hit->coverage;
+		
+		initialState.semantics.coverage = hit->coverage;
 
 		uint32_t *data = &hit->rawdata;
 

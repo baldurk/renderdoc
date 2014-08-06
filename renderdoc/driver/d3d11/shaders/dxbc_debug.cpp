@@ -946,6 +946,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 			v = s = ShaderVariable("vThreadIDInGroupFlattened", flattened, flattened, flattened, flattened);
 			break;
 		}
+		case TYPE_INPUT_COVERAGE_MASK:
+		{
+			v = s = ShaderVariable("vCoverage", semantics.coverage, semantics.coverage, semantics.coverage, semantics.coverage);
+			break;
+		}
 		default:
 		{
 			RDCERR("Currently unsupported operand type %d!", oper.type);
