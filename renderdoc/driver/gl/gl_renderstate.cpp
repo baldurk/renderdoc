@@ -286,7 +286,7 @@ void GLRenderState::ApplyState()
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Blends); i++)
 	{
-		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].DestinationRGB, Blends[i].DestinationAlpha);
+		m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB, Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
 		m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);
 		
 		if(Blends[i].Enabled)
