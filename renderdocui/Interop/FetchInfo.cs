@@ -316,7 +316,7 @@ namespace renderdoc
         public DebugMessageCategory category;
         public DebugMessageSeverity severity;
         public UInt32 messageID;
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
         public string description;
     };
 
