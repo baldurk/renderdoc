@@ -1149,7 +1149,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 	}
 	else if(op == OPCODE_DCL_INPUT_SIV || op == OPCODE_DCL_INPUT_SGV ||
 			op == OPCODE_DCL_INPUT_PS_SIV || op == OPCODE_DCL_INPUT_PS_SGV ||
-			op == OPCODE_DCL_OUTPUT_SIV)
+			op == OPCODE_DCL_OUTPUT_SIV || op == OPCODE_DCL_OUTPUT_SGV)
 	{
 		bool ret = ExtractOperand(tokenStream, retDecl.operand);
 		RDCASSERT(ret);
@@ -1503,9 +1503,11 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
 		retDecl.str += retDecl.operand.toString(false);
 	}
-	else if(op == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT)
+	else if(op == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT ||
+					op == OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT ||
+					op == OPCODE_DCL_GS_INSTANCE_COUNT)
 	{
-		retDecl.forkInstanceCount = tokenStream[0];
+		retDecl.instanceCount = tokenStream[0];
 		tokenStream++;
 		
 		retDecl.str += " ";
