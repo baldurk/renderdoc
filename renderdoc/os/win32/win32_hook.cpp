@@ -220,6 +220,9 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 	
 	for(auto it=s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
 	{
+		if(it->second.module == NULL)
+			it->second.module = GetModuleHandleA(it->first.c_str());
+
 		if(mod == it->second.module)
 		{
 			FunctionHook search(func, NULL, NULL);
