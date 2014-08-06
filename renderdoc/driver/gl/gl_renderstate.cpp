@@ -150,6 +150,7 @@ void GLRenderState::FetchState()
 	
 	m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
 	m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
+	m_Real->glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
 		m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
@@ -336,6 +337,7 @@ void GLRenderState::ApplyState()
 	
 	m_Real->glDepthMask(DepthWriteMask);
 	m_Real->glClearDepth(DepthClearValue);
+	m_Real->glDepthFunc(DepthFunc);
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
 	{
@@ -398,6 +400,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(DepthClearValue);
 	RDCEraseEl(DepthRanges);
 	RDCEraseEl(DepthBounds);
+	RDCEraseEl(DepthFunc);
 	RDCEraseEl(StencilFront);
 	RDCEraseEl(StencilBack);
 	RDCEraseEl(ColorMasks);
@@ -496,6 +499,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 	
 	m_pSerialiser->Serialise("GL_DEPTH_WRITEMASK", DepthWriteMask);
 	m_pSerialiser->Serialise("GL_DEPTH_CLEAR_VALUE", DepthClearValue);
+	m_pSerialiser->Serialise("GL_DEPTH_FUNC", DepthFunc);
 	
 	for(size_t i=0; i < ARRAY_COUNT(DepthRanges); i++)
 	{

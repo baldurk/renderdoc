@@ -141,6 +141,7 @@ struct GLRenderState
 
 	uint8_t DepthWriteMask;
 	float DepthClearValue;
+	GLenum DepthFunc;
 	struct
 	{
 		double nearZ, farZ;
