@@ -81,7 +81,7 @@
             this.apiEvents.Name = "apiEvents";
             this.apiEvents.RowOptions.ShowHeader = false;
             this.apiEvents.Size = new System.Drawing.Size(286, 152);
-            this.apiEvents.TabIndex = 2;
+            this.apiEvents.TabIndex = 1;
             this.apiEvents.Text = "API Calls";
             this.apiEvents.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
             this.apiEvents.KeyDown += new System.Windows.Forms.KeyEventHandler(this.apiEvents_KeyDown);
@@ -152,7 +152,7 @@
             this.callstack.Name = "callstack";
             this.callstack.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.callstack.Size = new System.Drawing.Size(292, 95);
-            this.callstack.TabIndex = 0;
+            this.callstack.TabIndex = 2;
             this.callstack.KeyDown += new System.Windows.Forms.KeyEventHandler(this.callstack_KeyDown);
             // 
             // APIInspector

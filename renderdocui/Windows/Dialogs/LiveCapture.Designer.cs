@@ -31,10 +31,12 @@
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.Label label1;
             System.Windows.Forms.GroupBox groupBox1;
+            System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label2;
             System.Windows.Forms.ToolStrip toolStrip1;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LiveCapture));
-            System.Windows.Forms.Label label3;
+            this.queueCap = new System.Windows.Forms.Button();
+            this.captureFrame = new System.Windows.Forms.NumericUpDown();
             this.captureDelay = new System.Windows.Forms.NumericUpDown();
             this.triggerCapture = new System.Windows.Forms.Button();
             this.deleteMenu = new System.Windows.Forms.ToolStripButton();
@@ -54,20 +56,18 @@
             this.saveThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.captureCountdown = new System.Windows.Forms.Timer(this.components);
-            this.captureFrame = new System.Windows.Forms.NumericUpDown();
-            this.queueCap = new System.Windows.Forms.Button();
             label1 = new System.Windows.Forms.Label();
             groupBox1 = new System.Windows.Forms.GroupBox();
+            label3 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
-            label3 = new System.Windows.Forms.Label();
             groupBox1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.captureDelay)).BeginInit();
             toolStrip1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.rightclickContext.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).BeginInit();
             this.SuspendLayout();
             // 
             // label1
@@ -98,6 +98,48 @@
             groupBox1.TabStop = false;
             groupBox1.Text = "Tools";
             // 
+            // queueCap
+            // 
+            this.queueCap.Location = new System.Drawing.Point(222, 44);
+            this.queueCap.Name = "queueCap";
+            this.queueCap.Size = new System.Drawing.Size(92, 23);
+            this.queueCap.TabIndex = 4;
+            this.queueCap.Text = "Queue Capture";
+            this.queueCap.UseVisualStyleBackColor = true;
+            this.queueCap.Click += new System.EventHandler(this.queueCap_Click);
+            // 
+            // captureFrame
+            // 
+            this.captureFrame.Location = new System.Drawing.Point(96, 46);
+            this.captureFrame.Maximum = new decimal(new int[] {
+            10000000,
+            0,
+            0,
+            0});
+            this.captureFrame.Minimum = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            this.captureFrame.Name = "captureFrame";
+            this.captureFrame.Size = new System.Drawing.Size(120, 20);
+            this.captureFrame.TabIndex = 3;
+            this.captureFrame.ThousandsSeparator = true;
+            this.captureFrame.Value = new decimal(new int[] {
+            2,
+            0,
+            0,
+            0});
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new System.Drawing.Point(6, 50);
+            label3.Name = "label3";
+            label3.Size = new System.Drawing.Size(86, 13);
+            label3.TabIndex = 3;
+            label3.Text = "Capture Frame #";
+            // 
             // label2
             // 
             label2.AutoSize = true;
@@ -119,7 +161,7 @@
             this.triggerCapture.Location = new System.Drawing.Point(222, 17);
             this.triggerCapture.Name = "triggerCapture";
             this.triggerCapture.Size = new System.Drawing.Size(92, 23);
-            this.triggerCapture.TabIndex = 0;
+            this.triggerCapture.TabIndex = 2;
             this.triggerCapture.Text = "Trigger Capture";
             this.triggerCapture.UseVisualStyleBackColor = true;
             this.triggerCapture.Click += new System.EventHandler(this.triggerCapture_Click);
@@ -178,14 +220,14 @@
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.openToolStripMenuItem.Text = "In &this instance";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openCapture_Click);
             // 
             // newInstanceToolStripMenuItem
             // 
             this.newInstanceToolStripMenuItem.Name = "newInstanceToolStripMenuItem";
-            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
             this.newInstanceToolStripMenuItem.Text = "In &new instance";
             this.newInstanceToolStripMenuItem.Click += new System.EventHandler(this.openNewWindow_Click);
             // 
@@ -219,7 +261,7 @@
             this.captures.Location = new System.Drawing.Point(3, 147);
             this.captures.Name = "captures";
             this.captures.Size = new System.Drawing.Size(543, 226);
-            this.captures.TabIndex = 0;
+            this.captures.TabIndex = 5;
             this.captures.TileSize = new System.Drawing.Size(300, 100);
             this.captures.UseCompatibleStateImageBehavior = false;
             this.captures.View = System.Windows.Forms.View.Tile;
@@ -310,48 +352,6 @@
             this.captureCountdown.Interval = 1000;
             this.captureCountdown.Tick += new System.EventHandler(this.captureCountdown_Tick);
             // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new System.Drawing.Point(6, 50);
-            label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(86, 13);
-            label3.TabIndex = 3;
-            label3.Text = "Capture Frame #";
-            // 
-            // captureFrame
-            // 
-            this.captureFrame.Location = new System.Drawing.Point(96, 46);
-            this.captureFrame.Maximum = new decimal(new int[] {
-            10000000,
-            0,
-            0,
-            0});
-            this.captureFrame.Minimum = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-            this.captureFrame.Name = "captureFrame";
-            this.captureFrame.Size = new System.Drawing.Size(120, 20);
-            this.captureFrame.TabIndex = 4;
-            this.captureFrame.ThousandsSeparator = true;
-            this.captureFrame.Value = new decimal(new int[] {
-            2,
-            0,
-            0,
-            0});
-            // 
-            // queueCap
-            // 
-            this.queueCap.Location = new System.Drawing.Point(222, 44);
-            this.queueCap.Name = "queueCap";
-            this.queueCap.Size = new System.Drawing.Size(92, 23);
-            this.queueCap.TabIndex = 5;
-            this.queueCap.Text = "Queue Capture";
-            this.queueCap.UseVisualStyleBackColor = true;
-            this.queueCap.Click += new System.EventHandler(this.queueCap_Click);
-            // 
             // LiveCapture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -366,6 +366,7 @@
             this.Shown += new System.EventHandler(this.LiveCapture_Shown);
             groupBox1.ResumeLayout(false);
             groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.captureDelay)).EndInit();
             toolStrip1.ResumeLayout(false);
             toolStrip1.PerformLayout();
@@ -374,7 +375,6 @@
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
             this.rightclickContext.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).EndInit();
             this.ResumeLayout(false);
 
         }

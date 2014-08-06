@@ -33,8 +33,8 @@
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BufferFormatSpecifier));
             this.formatText = new System.Windows.Forms.TextBox();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.apply = new System.Windows.Forms.Button();
             this.errors = new System.Windows.Forms.Label();
+            this.apply = new System.Windows.Forms.Button();
             groupBox1 = new System.Windows.Forms.GroupBox();
             label1 = new System.Windows.Forms.Label();
             groupBox1.SuspendLayout();
@@ -95,18 +95,6 @@
             this.tableLayoutPanel1.Size = new System.Drawing.Size(656, 300);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
-            // apply
-            // 
-            this.apply.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.apply.Location = new System.Drawing.Point(585, 269);
-            this.apply.Margin = new System.Windows.Forms.Padding(8);
-            this.apply.Name = "apply";
-            this.apply.Size = new System.Drawing.Size(63, 23);
-            this.apply.TabIndex = 2;
-            this.apply.Text = "Apply";
-            this.apply.UseVisualStyleBackColor = true;
-            this.apply.Click += new System.EventHandler(this.apply_Click);
-            // 
             // errors
             // 
             this.tableLayoutPanel1.SetColumnSpan(this.errors, 2);
@@ -117,6 +105,18 @@
             this.errors.Name = "errors";
             this.errors.Size = new System.Drawing.Size(650, 46);
             this.errors.TabIndex = 3;
+            // 
+            // apply
+            // 
+            this.apply.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.apply.Location = new System.Drawing.Point(585, 269);
+            this.apply.Margin = new System.Windows.Forms.Padding(8);
+            this.apply.Name = "apply";
+            this.apply.Size = new System.Drawing.Size(63, 23);
+            this.apply.TabIndex = 1;
+            this.apply.Text = "Apply";
+            this.apply.UseVisualStyleBackColor = true;
+            this.apply.Click += new System.EventHandler(this.apply_Click);
             // 
             // BufferFormatSpecifier
             // 

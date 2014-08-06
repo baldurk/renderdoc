@@ -39,6 +39,7 @@
             System.Windows.Forms.Label label5;
             System.Windows.Forms.Label label7;
             System.Windows.Forms.Label label3;
+            System.Windows.Forms.Label label11;
             System.Windows.Forms.GroupBox groupBox2;
             System.Windows.Forms.Label label10;
             System.Windows.Forms.GroupBox groupBox3;
@@ -46,8 +47,10 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
-            System.Windows.Forms.Label label11;
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
+            this.ok = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.Formatter_PosExp = new System.Windows.Forms.NumericUpDown();
@@ -57,6 +60,7 @@
             this.Formatter_MaxFigures = new System.Windows.Forms.NumericUpDown();
             this.Formatter_MinFigures = new System.Windows.Forms.NumericUpDown();
             this.CheckUpdate_AllowChecks = new System.Windows.Forms.CheckBox();
+            this.browseCaptureDirectory = new System.Windows.Forms.Button();
             this.texViewTab = new System.Windows.Forms.TabPage();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.TextureViewer_ResetRange = new System.Windows.Forms.CheckBox();
@@ -68,10 +72,6 @@
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
             this.pagesTree = new TreelistView.TreeListView();
-            this.ok = new System.Windows.Forms.Button();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.browseCaptureDirectory = new System.Windows.Forms.Button();
-            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -82,6 +82,7 @@
             label5 = new System.Windows.Forms.Label();
             label7 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
+            label11 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
             label10 = new System.Windows.Forms.Label();
             groupBox3 = new System.Windows.Forms.GroupBox();
@@ -89,7 +90,6 @@
             groupBox4 = new System.Windows.Forms.GroupBox();
             label8 = new System.Windows.Forms.Label();
             label9 = new System.Windows.Forms.Label();
-            label11 = new System.Windows.Forms.Label();
             tableLayoutPanel1.SuspendLayout();
             this.settingsTabs.SuspendLayout();
             this.generalTab.SuspendLayout();
@@ -127,6 +127,21 @@
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.Size = new System.Drawing.Size(580, 353);
             tableLayoutPanel1.TabIndex = 1;
+            // 
+            // ok
+            // 
+            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ok.Location = new System.Drawing.Point(502, 327);
+            this.ok.Name = "ok";
+            this.ok.Size = new System.Drawing.Size(75, 23);
+            this.ok.TabIndex = 100;
+            this.ok.Text = "OK";
+            this.ok.UseVisualStyleBackColor = true;
+            this.ok.Click += new System.EventHandler(this.ok_Click);
+            // 
+            // browserCaptureDialog
+            // 
+            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // settingsTabs
             // 
@@ -212,7 +227,7 @@
             0});
             this.Formatter_PosExp.Name = "Formatter_PosExp";
             this.Formatter_PosExp.Size = new System.Drawing.Size(90, 20);
-            this.Formatter_PosExp.TabIndex = 11;
+            this.Formatter_PosExp.TabIndex = 6;
             this.toolTip.SetToolTip(this.Formatter_PosExp, "Any numbers larger than this exponent will be displayed in scientific notation.\r\n" +
         "e.g. 1000 * 10 = 1e4");
             this.Formatter_PosExp.Value = new decimal(new int[] {
@@ -232,7 +247,7 @@
             0});
             this.Formatter_NegExp.Name = "Formatter_NegExp";
             this.Formatter_NegExp.Size = new System.Drawing.Size(90, 20);
-            this.Formatter_NegExp.TabIndex = 10;
+            this.Formatter_NegExp.TabIndex = 5;
             this.toolTip.SetToolTip(this.Formatter_NegExp, "Any numbers smaller than this exponent will be displayed in scientific notation.\r" +
         "\nE.g. a value of 3 means 0.005 / 10 = 5E-4");
             this.Formatter_NegExp.Value = new decimal(new int[] {
@@ -319,7 +334,7 @@
             this.capAssoc.Location = new System.Drawing.Point(268, 32);
             this.capAssoc.Name = "capAssoc";
             this.capAssoc.Size = new System.Drawing.Size(90, 23);
-            this.capAssoc.TabIndex = 3;
+            this.capAssoc.TabIndex = 2;
             this.capAssoc.Text = "Associate .cap";
             this.capAssoc.UseVisualStyleBackColor = true;
             this.capAssoc.Click += new System.EventHandler(this.capAssoc_Click);
@@ -371,7 +386,7 @@
             0});
             this.Formatter_MaxFigures.Name = "Formatter_MaxFigures";
             this.Formatter_MaxFigures.Size = new System.Drawing.Size(90, 20);
-            this.Formatter_MaxFigures.TabIndex = 9;
+            this.Formatter_MaxFigures.TabIndex = 4;
             this.toolTip.SetToolTip(this.Formatter_MaxFigures, "No more significant figures than this will be displayed on floats.\r\ne.g. a value " +
         "of 5 means 0.123456789 will display as 0.12345\r\n");
             this.Formatter_MaxFigures.Value = new decimal(new int[] {
@@ -392,7 +407,7 @@
             0});
             this.Formatter_MinFigures.Name = "Formatter_MinFigures";
             this.Formatter_MinFigures.Size = new System.Drawing.Size(90, 20);
-            this.Formatter_MinFigures.TabIndex = 8;
+            this.Formatter_MinFigures.TabIndex = 3;
             this.toolTip.SetToolTip(this.Formatter_MinFigures, "Decimals will display at least this many digits.\r\ne.g. a value of 2 means 0 will " +
         "display as 0.00, 0.5 as 0.50\r\n");
             this.Formatter_MinFigures.Value = new decimal(new int[] {
@@ -425,10 +440,38 @@
             this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(268, 194);
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
-            this.CheckUpdate_AllowChecks.TabIndex = 13;
+            this.CheckUpdate_AllowChecks.TabIndex = 8;
             this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allow periodic update checks");
             this.CheckUpdate_AllowChecks.UseVisualStyleBackColor = true;
             this.CheckUpdate_AllowChecks.CheckedChanged += new System.EventHandler(this.CheckUpdate_AllowChecks_CheckedChanged);
+            // 
+            // label11
+            // 
+            label11.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label11.AutoSize = true;
+            label11.Location = new System.Drawing.Point(3, 162);
+            label11.Name = "label11";
+            label11.Size = new System.Drawing.Size(259, 29);
+            label11.TabIndex = 14;
+            label11.Text = "Directory for temporary capture files";
+            label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label11, "Changes the directory where capture files are saved after being created, until sa" +
+        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            // 
+            // browseCaptureDirectory
+            // 
+            this.browseCaptureDirectory.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.browseCaptureDirectory.Location = new System.Drawing.Point(268, 165);
+            this.browseCaptureDirectory.Name = "browseCaptureDirectory";
+            this.browseCaptureDirectory.Size = new System.Drawing.Size(90, 23);
+            this.browseCaptureDirectory.TabIndex = 7;
+            this.browseCaptureDirectory.Text = "Browse";
+            this.toolTip.SetToolTip(this.browseCaptureDirectory, "Changes the directory where capture files are saved after being created, until sa" +
+        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            this.browseCaptureDirectory.UseVisualStyleBackColor = true;
+            this.browseCaptureDirectory.Click += new System.EventHandler(this.browseCaptureDirectory_Click);
             // 
             // texViewTab
             // 
@@ -476,7 +519,7 @@
             this.TextureViewer_ResetRange.Location = new System.Drawing.Point(291, 3);
             this.TextureViewer_ResetRange.Name = "TextureViewer_ResetRange";
             this.TextureViewer_ResetRange.Size = new System.Drawing.Size(67, 14);
-            this.TextureViewer_ResetRange.TabIndex = 0;
+            this.TextureViewer_ResetRange.TabIndex = 20;
             this.toolTip.SetToolTip(this.TextureViewer_ResetRange, "Reset visible range when changing event or texture");
             this.TextureViewer_ResetRange.UseVisualStyleBackColor = true;
             this.TextureViewer_ResetRange.CheckedChanged += new System.EventHandler(this.TextureViewer_ResetRange_CheckedChanged);
@@ -539,7 +582,7 @@
             this.ShaderViewer_FriendlyNaming.Location = new System.Drawing.Point(291, 3);
             this.ShaderViewer_FriendlyNaming.Name = "ShaderViewer_FriendlyNaming";
             this.ShaderViewer_FriendlyNaming.Size = new System.Drawing.Size(15, 14);
-            this.ShaderViewer_FriendlyNaming.TabIndex = 0;
+            this.ShaderViewer_FriendlyNaming.TabIndex = 40;
             this.toolTip.SetToolTip(this.ShaderViewer_FriendlyNaming, "In disassembly view, rename constant registers to their names from shader reflect" +
         "ion data");
             this.ShaderViewer_FriendlyNaming.UseVisualStyleBackColor = true;
@@ -621,7 +664,7 @@
             this.EventBrowser_TimeUnit.Location = new System.Drawing.Point(291, 3);
             this.EventBrowser_TimeUnit.Name = "EventBrowser_TimeUnit";
             this.EventBrowser_TimeUnit.Size = new System.Drawing.Size(67, 21);
-            this.EventBrowser_TimeUnit.TabIndex = 1;
+            this.EventBrowser_TimeUnit.TabIndex = 50;
             this.toolTip.SetToolTip(this.EventBrowser_TimeUnit, "The time unit to use when displaying the duration column in the event browser");
             this.EventBrowser_TimeUnit.SelectionChangeCommitted += new System.EventHandler(this.EventBrowser_TimeUnit_SelectionChangeCommitted);
             // 
@@ -645,7 +688,7 @@
             this.EventBrowser_HideEmpty.Location = new System.Drawing.Point(291, 30);
             this.EventBrowser_HideEmpty.Name = "EventBrowser_HideEmpty";
             this.EventBrowser_HideEmpty.Size = new System.Drawing.Size(15, 14);
-            this.EventBrowser_HideEmpty.TabIndex = 8;
+            this.EventBrowser_HideEmpty.TabIndex = 51;
             this.toolTip.SetToolTip(this.EventBrowser_HideEmpty, "In the Event Browser and Timeline Bar, marker sections that contain no API calls " +
         "or drawcalls will be completely removed");
             this.EventBrowser_HideEmpty.UseVisualStyleBackColor = true;
@@ -667,54 +710,11 @@
             this.pagesTree.Name = "pagesTree";
             this.pagesTree.RowOptions.ShowHeader = false;
             this.pagesTree.Size = new System.Drawing.Size(168, 318);
-            this.pagesTree.TabIndex = 1;
+            this.pagesTree.TabIndex = 0;
             this.pagesTree.ViewOptions.ShowGridLines = false;
             this.pagesTree.ViewOptions.ShowLine = false;
             this.pagesTree.ViewOptions.ShowPlusMinus = false;
             this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
-            // 
-            // ok
-            // 
-            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ok.Location = new System.Drawing.Point(502, 327);
-            this.ok.Name = "ok";
-            this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 2;
-            this.ok.Text = "OK";
-            this.ok.UseVisualStyleBackColor = true;
-            this.ok.Click += new System.EventHandler(this.ok_Click);
-            // 
-            // label11
-            // 
-            label11.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            label11.AutoSize = true;
-            label11.Location = new System.Drawing.Point(3, 162);
-            label11.Name = "label11";
-            label11.Size = new System.Drawing.Size(259, 29);
-            label11.TabIndex = 14;
-            label11.Text = "Directory for temporary capture files";
-            label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label11, "Changes the directory where capture files are saved after being created, until sa" +
-        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
-            // 
-            // browseCaptureDirectory
-            // 
-            this.browseCaptureDirectory.Anchor = System.Windows.Forms.AnchorStyles.Right;
-            this.browseCaptureDirectory.Location = new System.Drawing.Point(268, 165);
-            this.browseCaptureDirectory.Name = "browseCaptureDirectory";
-            this.browseCaptureDirectory.Size = new System.Drawing.Size(90, 23);
-            this.browseCaptureDirectory.TabIndex = 15;
-            this.browseCaptureDirectory.Text = "Browse";
-            this.toolTip.SetToolTip(this.browseCaptureDirectory, "Changes the directory where capture files are saved after being created, until sa" +
-        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
-            this.browseCaptureDirectory.UseVisualStyleBackColor = true;
-            this.browseCaptureDirectory.Click += new System.EventHandler(this.browseCaptureDirectory_Click);
-            // 
-            // browserCaptureDialog
-            // 
-            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // SettingsDialog
             // 
