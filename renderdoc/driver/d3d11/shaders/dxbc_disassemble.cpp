@@ -1513,7 +1513,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 		retDecl.str += " ";
 
 		char buf[64] = {0};
-		StringFormat::snprintf(buf, 63, "%u", retDecl.forkInstanceCount);
+		StringFormat::snprintf(buf, 63, "%u", retDecl.instanceCount);
 		retDecl.str += buf;
 	}
 	else if(op == OPCODE_DCL_HS_MAX_TESSFACTOR)
