@@ -842,8 +842,8 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 
 			res.variableAddress = values[3];
 
-			create_array_uninit(res.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, res.name.elems);
+			create_array_uninit(res.name, values[2]);
+			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2], NULL, res.name.elems);
 			res.name.count--; // trim off trailing null
 
 			resources.push_back(res);
@@ -955,8 +955,8 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 
 			var.type.descriptor.rowMajorStorage = (values[7] >= 0);
 
-			create_array_uninit(var.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
+			create_array_uninit(var.name, values[2]);
+			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2], NULL, var.name.elems);
 			var.name.count--; // trim off trailing null
 
 			int32_t c = var.name.count;
