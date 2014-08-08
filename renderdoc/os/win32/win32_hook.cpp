@@ -174,14 +174,76 @@ struct CachedHookData
 
 static CachedHookData *s_HookData = NULL;
 
+static void HookAllModules()
+{
+	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
+
+	// up to 10 retries
+	for(int i=0; i < 10; i++)
+	{
+		hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetCurrentProcessId()); 
+
+		if(hModuleSnap == INVALID_HANDLE_VALUE) 
+		{
+			DWORD err = GetLastError();
+
+			RDCWARN("CreateToolhelp32Snapshot() -> 0x%08x", err);
+
+			// retry if error is ERROR_BAD_LENGTH
+			if(err == ERROR_BAD_LENGTH)
+				continue;
+		} 
+
+		// didn't retry, or succeeded
+		break;
+	}
+	
+	if(hModuleSnap == INVALID_HANDLE_VALUE) 
+	{
+		RDCERR("Couldn't create toolhelp dump of modules in process");
+		return;
+	} 
+
+#ifdef UNICODE
+#undef MODULEENTRY32
+#undef Module32First
+#undef Module32Next
+#endif
+ 
+  MODULEENTRY32 me32; 
+	RDCEraseEl(me32);
+  me32.dwSize = sizeof(MODULEENTRY32); 
+ 
+	BOOL success = Module32First(hModuleSnap, &me32);
+
+  if(success == FALSE) 
+  { 
+		DWORD err = GetLastError();
+
+		RDCERR("Couldn't get first module in process: 0x%08x", err);
+    CloseHandle(hModuleSnap);
+		return;
+  }
+
+	uintptr_t ret = 0;
+
+	int numModules = 0;
+ 
+  do
+  {
+		s_HookData->ApplyHooks(me32.szModule, me32.hModule);
+  } while(ret == 0 && Module32Next(hModuleSnap, &me32)); 
+
+  CloseHandle(hModuleSnap); 
+}
+
 HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DWORD flags)
 {
 	// we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
 	// was excluded from IAT patching
 	HMODULE mod = LoadLibraryExA(lpLibFileName, fileHandle, flags);
 
-	if(mod)
-		s_HookData->ApplyHooks(lpLibFileName, mod);
+	HookAllModules();
 
 	return mod;
 }
@@ -192,8 +254,7 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
 	// was excluded from IAT patching
 	HMODULE mod = LoadLibraryExW(lpLibFileName, fileHandle, flags);
 
-	if(mod)
-		s_HookData->ApplyHooks(narrow(wstring(lpLibFileName)).c_str(), mod);
+	HookAllModules();
 
 	return mod;
 }
@@ -271,65 +332,7 @@ void Win32_IAT_EndHooks()
 	for(auto it=s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
 		std::sort(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end());
 
-	HANDLE hModuleSnap = INVALID_HANDLE_VALUE;
-
-	// up to 10 retries
-	for(int i=0; i < 10; i++)
-	{
-		hModuleSnap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetCurrentProcessId()); 
-
-		if(hModuleSnap == INVALID_HANDLE_VALUE) 
-		{
-			DWORD err = GetLastError();
-
-			RDCWARN("CreateToolhelp32Snapshot() -> 0x%08x", err);
-
-			// retry if error is ERROR_BAD_LENGTH
-			if(err == ERROR_BAD_LENGTH)
-				continue;
-		} 
-
-		// didn't retry, or succeeded
-		break;
-	}
-	
-	if(hModuleSnap == INVALID_HANDLE_VALUE) 
-	{
-		RDCERR("Couldn't create toolhelp dump of modules in process");
-		return;
-	} 
-
-#ifdef UNICODE
-#undef MODULEENTRY32
-#undef Module32First
-#undef Module32Next
-#endif
- 
-  MODULEENTRY32 me32; 
-	RDCEraseEl(me32);
-  me32.dwSize = sizeof(MODULEENTRY32); 
- 
-	BOOL success = Module32First(hModuleSnap, &me32);
-
-  if(success == FALSE) 
-  { 
-		DWORD err = GetLastError();
-
-		RDCERR("Couldn't get first module in process: 0x%08x", err);
-    CloseHandle(hModuleSnap);
-		return;
-  }
-
-	uintptr_t ret = 0;
-
-	int numModules = 0;
- 
-  do
-  {
-		s_HookData->ApplyHooks(me32.szModule, me32.hModule);
-  } while(ret == 0 && Module32Next(hModuleSnap, &me32)); 
-
-  CloseHandle(hModuleSnap); 
+	HookAllModules();
 }
 
 bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function, void *destination_function_ptr)
