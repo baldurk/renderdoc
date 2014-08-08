@@ -293,7 +293,14 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 		
 		GLResource res = ProgramRes(GetCtx(), real);
 
-		m_ResourceManager->RegisterResource(res);
+		ResourceId liveId = m_ResourceManager->RegisterResource(res);
+		
+		m_Programs[liveId].linked = true;
+		m_Programs[liveId].shaders.push_back(liveId);
+		m_Shaders[liveId].type = Type;
+		m_Shaders[liveId].sources.swap(src);
+		m_Shaders[liveId].prog = real;
+
 		GetResourceManager()->AddLiveResource(id, res);
 	}
 
@@ -341,7 +348,10 @@ bool WrappedOpenGL::Serialise_glCreateProgram(GLuint program)
 		
 		GLResource res = ProgramRes(GetCtx(), real);
 
-		m_ResourceManager->RegisterResource(res);
+		ResourceId liveId = m_ResourceManager->RegisterResource(res);
+		
+		m_Programs[liveId].linked = false;
+
 		GetResourceManager()->AddLiveResource(id, res);
 	}
 

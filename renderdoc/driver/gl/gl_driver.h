@@ -185,6 +185,7 @@ class WrappedOpenGL
 			GLenum type;
 			vector<string> sources;
 			ShaderReflection reflection;
+			GLuint prog;
 		};
 
 		struct ProgramData
