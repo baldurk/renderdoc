@@ -930,6 +930,14 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 				var.type.descriptor.cols = 4;
 				var.type.descriptor.elements = RDCMAX(1, values[5]);
 			}
+			else if(values[1] == GL_UNSIGNED_INT)
+			{
+				var.type.descriptor.name = "uint";
+				var.type.descriptor.type = eVar_UInt;
+				var.type.descriptor.rows = 1;
+				var.type.descriptor.cols = 1;
+				var.type.descriptor.elements = RDCMAX(1, values[5]);
+			}
 			else
 			{
 				// fill in more uniform types
