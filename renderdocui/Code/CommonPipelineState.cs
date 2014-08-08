@@ -372,13 +372,17 @@ namespace renderdocui.Code
 
                     if(s.ShaderDetails != null && BindPoint < s.ShaderDetails.ConstantBlocks.Length)
                     {
-                        var b = m_GL.UniformBuffers[s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint];
+                        if(s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint >= 0 &&
+                            s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint < m_GL.UniformBuffers.Length)
+                        {
+                            var b = m_GL.UniformBuffers[s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint];
 
-                        buf = b.Resource;
-                        ByteOffset = (uint)b.Offset;
-                        ByteSize = (uint)b.Size;
+                            buf = b.Resource;
+                            ByteOffset = (uint)b.Offset;
+                            ByteSize = (uint)b.Size;
 
-                        return;
+                            return;
+                        }
                     }
                 }
             }
