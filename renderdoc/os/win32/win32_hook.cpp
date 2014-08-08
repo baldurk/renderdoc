@@ -25,6 +25,7 @@
 #include "os/os_specific.h"
 
 #include "common/string_utils.h"
+#include "common/threading.h"
 
 #include <windows.h>
 #include <tlhelp32.h> 
@@ -88,9 +89,12 @@ struct CachedHookData
 {
 	map<string, DllHookset> DllHooks;
 	HMODULE module;
+	Threading::CriticalSection lock;
 
 	void ApplyHooks(const char *modName, HMODULE module)
 	{
+		SCOPED_LOCK(lock);
+
 		string name = strlower(string(modName));
 
 		// fraps seems to non-safely modify the assembly around the hook function, if
