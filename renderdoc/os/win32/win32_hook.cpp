@@ -302,16 +302,13 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 		{
 			FunctionHook search(func, NULL, NULL);
 
-			for(size_t i=0; i < it->second.FunctionHooks.size(); i++)
+			auto found = std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
+			if(found != it->second.FunctionHooks.end() && !(search < *found))
 			{
-				auto found = std::lower_bound(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end(), search);
-				if(found != it->second.FunctionHooks.end() && !(search < *found))
-				{
-					if(found->origptr && *found->origptr == NULL)
-						*found->origptr = (void *)GetProcAddress(mod, func);
+				if(found->origptr && *found->origptr == NULL)
+					*found->origptr = (void *)GetProcAddress(mod, func);
 
-					return (FARPROC)found->hookptr;
-				}
+				return (FARPROC)found->hookptr;
 			}
 		}
 	}
