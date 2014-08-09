@@ -96,8 +96,6 @@ struct CachedHookData
 
 	void ApplyHooks(const char *modName, HMODULE module)
 	{
-		SCOPED_LOCK(lock);
-
 		string name = strlower(string(modName));
 
 		// fraps seems to non-safely modify the assembly around the hook function, if
@@ -167,7 +165,10 @@ struct CachedHookData
 					auto found = std::lower_bound(hookset->FunctionHooks.begin(), hookset->FunctionHooks.end(), search);
 
 					if(found != hookset->FunctionHooks.end() && !(search < *found) && found->excludeModule != module)
+					{
+						SCOPED_LOCK(lock);
 						found->ApplyHook(IATentry);
+					}
 
 					origFirst++;
 					first++;
