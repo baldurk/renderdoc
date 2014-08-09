@@ -105,6 +105,12 @@ struct CachedHookData
 		if(name.find("fraps") != string::npos)
 				return;
 
+		// for safety (and because we don't need to), ignore these modules
+		if(name.find("kernel32.dll") != string::npos ||
+			 name.find("msvcr") == 0 ||
+			 name.find("msvcp") == 0)
+				return;
+
 		// set module pointer if we are hooking exports from this module
 		for(auto it=DllHooks.begin(); it != DllHooks.end(); ++it)
 			if(it->first == name)
