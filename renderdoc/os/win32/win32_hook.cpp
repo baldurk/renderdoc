@@ -50,6 +50,9 @@ struct FunctionHook
 	{
 		DWORD oldProtection = PAGE_EXECUTE;
 
+		if(*IATentry == hookptr)
+			return;
+
 		BOOL success = TRUE;
 
 		success = VirtualProtect(IATentry, sizeof(void*), PAGE_READWRITE, &oldProtection);
@@ -59,7 +62,7 @@ struct FunctionHook
 			return;
 		}
 
-		if(origptr && *origptr == NULL && *IATentry != hookptr) *origptr = *IATentry;
+		if(origptr && *origptr == NULL) *origptr = *IATentry;
 		
 		*IATentry = hookptr;
 
