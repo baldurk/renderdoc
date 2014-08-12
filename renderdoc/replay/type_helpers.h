@@ -36,10 +36,17 @@ namespace rdctype
 template<typename T>
 void create_array(array<T> &ret, size_t count)
 {
-	ret.elems = (T*)ret.allocate(sizeof(T)*count);
 	ret.count = (int32_t)count;
-	for(int32_t i=0; i < ret.count; i++)
-		new (ret.elems+i) T();
+	if(ret.count == 0)
+	{
+		ret.elems = 0;
+	}
+	else
+	{
+		ret.elems = (T*)ret.allocate(sizeof(T)*count);
+		for(int32_t i=0; i < ret.count; i++)
+			new (ret.elems+i) T();
+	}
 }
 
 #pragma warning(pop)
@@ -47,9 +54,16 @@ void create_array(array<T> &ret, size_t count)
 template<typename T>
 void create_array_uninit(array<T> &ret, size_t count)
 {
-	ret.elems = (T*)ret.allocate(sizeof(T)*count);
 	ret.count = (int32_t)count;
-	memset(ret.elems, 0, sizeof(T)*count);
+	if(ret.count == 0)
+	{
+		ret.elems = 0;
+	}
+	else
+	{
+		ret.elems = (T*)ret.allocate(sizeof(T)*count);
+		memset(ret.elems, 0, sizeof(T)*count);
+	}
 }
 
 }; // namespace rdctype

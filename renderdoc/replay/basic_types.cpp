@@ -31,9 +31,16 @@ wstr &wstr::operator =(const std::wstring &in)
 {
 	Delete();
 	count = (int32_t)in.size();
-	elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
-	memcpy(elems, &in[0], sizeof(wchar_t)*in.size());
-	elems[count] = 0;
+	if(count == 0)
+	{
+		elems = L"";
+	}
+	else
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
+		memcpy(elems, &in[0], sizeof(wchar_t)*in.size());
+		elems[count] = 0;
+	}
 	return *this;
 }
 
@@ -41,9 +48,16 @@ str &str::operator =(const std::string &in)
 {
 	Delete();
 	count = (int32_t)in.size();
-	elems = (char*)allocate(sizeof(char)*(count+1));
-	memcpy(elems, &in[0], sizeof(char)*in.size());
-	elems[count] = 0;
+	if(count == 0)
+	{
+		elems = "";
+	}
+	else
+	{
+		elems = (char*)allocate(sizeof(char)*(count+1));
+		memcpy(elems, &in[0], sizeof(char)*in.size());
+		elems[count] = 0;
+	}
 	return *this;
 }
 
@@ -51,9 +65,16 @@ wstr &wstr::operator =(const wchar_t *const in)
 {
 	Delete();
 	count = (int32_t)wcslen(in);
-	elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
-	memcpy(elems, &in[0], sizeof(wchar_t)*count);
-	elems[count] = 0;
+	if(count == 0)
+	{
+		elems = L"";
+	}
+	else
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
+		memcpy(elems, &in[0], sizeof(wchar_t)*count);
+		elems[count] = 0;
+	}
 	return *this;
 }
 
@@ -61,9 +82,16 @@ str &str::operator =(const char *const in)
 {
 	Delete();
 	count = (int32_t)strlen(in);
-	elems = (char*)allocate(sizeof(char)*(count+1));
-	memcpy(elems, &in[0], sizeof(char)*count);
-	elems[count] = 0;
+	if(count == 0)
+	{
+		elems = "";
+	}
+	else
+	{
+		elems = (char*)allocate(sizeof(char)*(count+1));
+		memcpy(elems, &in[0], sizeof(char)*count);
+		elems[count] = 0;
+	}
 	return *this;
 }
 
