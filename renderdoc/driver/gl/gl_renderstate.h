@@ -123,7 +123,6 @@ struct GLRenderState
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Disable/Enable bits
 	// Sampler Bindings
 	// Framebuffer Bindings
 	// Program Bindings + Uniform Values
