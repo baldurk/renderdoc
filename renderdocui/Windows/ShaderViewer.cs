@@ -452,6 +452,8 @@ namespace renderdocui.Windows
                 foreach (var s in m_ShaderDetails.InputSig)
                 {
                     string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName == "") name = s.varName;
+
                     var node = inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                 }
@@ -469,6 +471,7 @@ namespace renderdocui.Windows
                 foreach (var s in m_ShaderDetails.OutputSig)
                 {
                     string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName == "") name = s.varName;
 
                     if(multipleStreams)
                         name = String.Format("Stream {0} : {1}", s.stream, name);
