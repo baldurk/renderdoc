@@ -1573,6 +1573,9 @@ struct DDS_HEADER_DXT10 {
 
 bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring path)
 {
+	if(WrappedID3D11Texture2D::m_TextureList.find(id) == WrappedID3D11Texture2D::m_TextureList.end())
+		return false;
+
 	WrappedID3D11Texture2D *wrapTex = (WrappedID3D11Texture2D *)WrappedID3D11Texture2D::m_TextureList[id].m_Texture;
 
 	if(path.find(L".dds") != wstring::npos)
