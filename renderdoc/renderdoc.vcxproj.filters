@@ -291,6 +291,9 @@
     <ClInclude Include="os\win32\win32_hook.h">
       <Filter>OS\Win32</Filter>
     </ClInclude>
+    <ClInclude Include="driver\gl\gl_shader_refl.h">
+      <Filter>Drivers\OpenGL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -511,6 +514,9 @@
     </ClCompile>
     <ClCompile Include="os\win32\win32_hook.cpp">
       <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="driver\gl\gl_shader_refl.cpp">
+      <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

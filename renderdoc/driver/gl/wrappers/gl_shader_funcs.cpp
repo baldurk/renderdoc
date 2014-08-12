@@ -24,8 +24,9 @@
 
 #include "common/common.h"
 #include "common/string_utils.h"
-#include "../gl_driver.h"
 
+#include "../gl_driver.h"
+#include "../gl_shader_refl.h"
 
 #pragma region Shaders
 
@@ -108,6 +109,9 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 
+		m_Shaders[liveId].sources.clear();
+		m_Shaders[liveId].sources.reserve(Count);
+
 		for(uint32_t i=0; i < Count; i++)
 			m_Shaders[liveId].sources.push_back(strings[i]);
 
@@ -140,6 +144,29 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 	
 	if(m_State == READING)
 	{
+		ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
+		auto &shadDetails = m_Shaders[liveId];
+
+		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources);
+
+		if(sepProg == 0)
+		{
+			RDCERR("Couldn't make separable program for shader via patching - functionality will be broken.");
+		}
+		else
+		{
+			shadDetails.prog = sepProg;
+			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection);
+			
+			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
+			for(size_t i=0; i < shadDetails.sources.size(); i++)
+			{
+				shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
+				shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
+			}
+		}
+
 		m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
 	}
 

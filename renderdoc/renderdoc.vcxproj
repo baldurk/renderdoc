@@ -264,6 +264,7 @@
     <ClInclude Include="driver\gl\gl_renderstate.h" />
     <ClInclude Include="driver\gl\gl_replay.h" />
     <ClInclude Include="driver\gl\gl_resources.h" />
+    <ClInclude Include="driver\gl\gl_shader_refl.h" />
     <ClInclude Include="driver\gl\official\glcorearb.h" />
     <ClInclude Include="driver\gl\official\glext.h" />
     <ClInclude Include="driver\gl\official\wglext.h" />
@@ -335,6 +336,7 @@
     <ClCompile Include="driver\gl\gl_replay.cpp" />
     <ClCompile Include="driver\gl\gl_replay_win32.cpp" />
     <ClCompile Include="driver\gl\gl_resources.cpp" />
+    <ClCompile Include="driver\gl\gl_shader_refl.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_buffer_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_debug_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_draw_funcs.cpp" />
