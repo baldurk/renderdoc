@@ -135,7 +135,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		res.variableType.descriptor.cols = 4;
 		res.variableType.descriptor.elements = 1;
 		res.variableType.descriptor.rowMajorStorage = false;
-		res.bindPoint = 0;
+		res.bindPoint = (int32_t)resources.size();
 
 		// float samplers
 		if(values[0] == GL_SAMPLER_BUFFER)
@@ -380,8 +380,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			continue;
 		}
 
-		res.variableAddress = values[2];
-
 		create_array_uninit(res.name, values[1]);
 		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, res.name.elems);
 		res.name.count--; // trim off trailing null
@@ -549,8 +547,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 				ConstantBlock cblock;
 				cblock.name = uboNames[i];
-				cblock.bufferAddress = i;
-				cblock.bindPoint = -1;
+				cblock.bufferBacked = true;
+				cblock.bindPoint = (int32_t)cbuffers.size();
 				std::sort(ubos[i].begin(), ubos[i].end(), ubo_offset_sort());
 
 				cblock.variables = ubos[i];
@@ -564,8 +562,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	{
 		ConstantBlock globals;
 		globals.name = "$Globals";
-		globals.bufferAddress = -1;
-		globals.bindPoint = -1;
+		globals.bufferBacked = false;
+		globals.bindPoint = (int32_t)cbuffers.size();
 		globals.variables = globalUniforms;
 
 		cbuffers.push_back(globals);

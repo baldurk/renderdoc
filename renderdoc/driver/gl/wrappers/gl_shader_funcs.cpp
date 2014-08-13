@@ -321,12 +321,25 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 		GLResource res = ProgramRes(GetCtx(), real);
 
 		ResourceId liveId = m_ResourceManager->RegisterResource(res);
-		
-		m_Programs[liveId].linked = true;
-		m_Programs[liveId].shaders.push_back(liveId);
-		m_Shaders[liveId].type = Type;
-		m_Shaders[liveId].sources.swap(src);
-		m_Shaders[liveId].prog = real;
+	
+		auto &progDetails = m_Programs[liveId];
+	
+		progDetails.linked = true;
+		progDetails.shaders.push_back(liveId);
+
+		auto &shadDetails = m_Shaders[liveId];
+
+		shadDetails.type = Type;
+		shadDetails.sources.swap(src);
+		shadDetails.prog = real;
+		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection);
+
+		create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
+		for(size_t i=0; i < shadDetails.sources.size(); i++)
+		{
+			shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
+			shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
+		}
 
 		GetResourceManager()->AddLiveResource(id, res);
 	}

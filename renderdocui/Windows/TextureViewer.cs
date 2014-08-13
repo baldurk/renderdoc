@@ -796,6 +796,7 @@ namespace renderdocui.Windows
             ResourceId[] Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
 
             ShaderReflection details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+            ShaderBindpointMapping mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
 
             uint firstuav = uint.MaxValue;
 
@@ -865,7 +866,7 @@ namespace renderdocui.Windows
                     {
                         foreach (var bind in details.Resources)
                         {
-                            if (bind.bindPoint == i && bind.IsUAV)
+                            if (mapping.Resources[bind.bindPoint].bind == i && bind.IsUAV)
                             {
                                 bindName = "<" + bind.name + ">";
                             }
@@ -939,7 +940,7 @@ namespace renderdocui.Windows
                 {
                     foreach (var bind in details.Resources)
                     {
-                        if (bind.bindPoint == i && bind.IsSRV)
+                        if (mapping.Resources[bind.bindPoint].bind == i && bind.IsSRV)
                         {
                             used = true;
                             bindName = "<" + bind.name + ">";

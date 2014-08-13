@@ -772,7 +772,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 	{
 		ConstantBlock &cb = ret->ConstantBlocks[i];
 		cb.name = dxbc->m_CBuffers[i].name;
-		cb.bufferAddress = (int32_t)i;
+		cb.bufferBacked = true;
 		cb.bindPoint = (uint32_t)i;
 
 		create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
@@ -798,7 +798,6 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 			continue;
 
 		ShaderResource res;
-		res.variableAddress = r.bindPoint; // N/A for D3D, bindPoint is address
 		res.bindPoint = r.bindPoint;
 		res.name = r.name;
 

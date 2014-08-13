@@ -486,6 +486,21 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			dst.Shader = rm->GetOriginalID(id);
 			dst.ShaderDetails = NULL;
 
+			// create identity bindpoint mapping
+			create_array_uninit(dst.BindpointMapping.ConstantBlocks, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
+			for(int s=0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
+			{
+				dst.BindpointMapping.ConstantBlocks[s].bind = s;
+				dst.BindpointMapping.ConstantBlocks[s].used = true;
+			}
+
+			create_array_uninit(dst.BindpointMapping.Resources, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
+			for(int32_t s=0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
+			{
+				dst.BindpointMapping.Resources[s].bind = s;
+				dst.BindpointMapping.Resources[s].used = true;
+			}
+
 			create_array_uninit(dst.ConstantBuffers, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
 			for(size_t s=0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
 			{

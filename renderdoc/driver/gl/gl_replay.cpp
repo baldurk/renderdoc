@@ -581,14 +581,11 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		return NULL;
 	}
 
-	// TODO shader reflection struct shouldn't be tied to the current program
-	// This is only really needed to fill the latest sampler uniform values,
-	// which should be saved in a mapping structure
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	auto &refl = shaderDetails.reflection;
+	return &shaderDetails.reflection;
+}
 
+void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
+{
 	// in case of bugs, we readback into this array instead of
 	GLint dummyReadback[32];
 
@@ -597,29 +594,72 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		dummyReadback[i] = 0x6c7b8a9d;
 #endif
 
-	// update with latest uniform values
-	for(int32_t i=0; i < refl.Resources.count; i++)
+	GLenum refEnum[] = {
+		eGL_REFERENCED_BY_VERTEX_SHADER,
+		eGL_REFERENCED_BY_TESS_CONTROL_SHADER,
+		eGL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+		eGL_REFERENCED_BY_GEOMETRY_SHADER,
+		eGL_REFERENCED_BY_FRAGMENT_SHADER,
+		eGL_REFERENCED_BY_COMPUTE_SHADER,
+	};
+	
+	create_array_uninit(mapping.Resources, refl->Resources.count);
+	for(int32_t i=0; i < refl->Resources.count; i++)
 	{
-		if(refl.Resources.elems[i].IsSRV && refl.Resources.elems[i].IsTexture)
+		if(refl->Resources.elems[i].IsSRV && refl->Resources.elems[i].IsTexture)
 		{
-			GLint loc = gl.glGetUniformLocation(curProg, refl.Resources.elems[i].name.elems);
+			GLint loc = gl.glGetUniformLocation(curProg, refl->Resources.elems[i].name.elems);
 			if(loc >= 0)
 			{
 				gl.glGetUniformiv(curProg, loc, dummyReadback);
-				refl.Resources.elems[i].bindPoint = dummyReadback[0];
+				mapping.Resources[i].bind = dummyReadback[0];
 			}
 		}
-	}
-	for(int32_t i=0; i < refl.ConstantBlocks.count; i++)
-	{
-		if(refl.ConstantBlocks.elems[i].bufferAddress >= 0)
+		else
 		{
-			GLint loc = gl.glGetUniformBlockIndex(curProg, refl.ConstantBlocks.elems[i].name.elems);
+			mapping.Resources[i].bind = -1;
+		}
+
+		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
+		if(idx == GL_INVALID_INDEX)
+		{
+			mapping.Resources[i].used = false;
+		}
+		else
+		{
+			GLint used = 0;
+			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+			mapping.Resources[i].used = (used != 0);
+		}
+	}
+	
+	create_array_uninit(mapping.ConstantBlocks, refl->ConstantBlocks.count);
+	for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
+	{
+		if(refl->ConstantBlocks.elems[i].bufferBacked)
+		{
+			GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks.elems[i].name.elems);
 			if(loc >= 0)
 			{
 				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
-				refl.ConstantBlocks.elems[i].bindPoint = dummyReadback[0];
+				mapping.ConstantBlocks[i].bind = dummyReadback[0];
 			}
+		}
+		else
+		{
+			mapping.ConstantBlocks[i].bind = -1;
+		}
+
+		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
+		if(idx == GL_INVALID_INDEX)
+		{
+			mapping.ConstantBlocks[i].used = false;
+		}
+		else
+		{
+			GLint used = 0;
+			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+			mapping.ConstantBlocks[i].used = (used != 0);
 		}
 	}
 
@@ -628,8 +668,6 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 		if(dummyReadback[i] != 0x6c7b8a9d)
 			RDCERR("Invalid uniform readback - data beyond first element modified!");
 #endif
-
-	return &refl;
 }
 
 void GLReplay::SavePipelineState()
@@ -853,7 +891,29 @@ void GLReplay::SavePipelineState()
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
+	GLPipelineState::ShaderStage *stages[6] = {
+		&pipe.m_VS,
+		&pipe.m_TCS,
+		&pipe.m_TES,
+		&pipe.m_GS,
+		&pipe.m_FS,
+		&pipe.m_CS,
+	};
 	ShaderReflection *refls[6] = { NULL };
+	ShaderBindpointMapping *mappings[6] = { NULL };
+	
+	struct
+	{
+		GLenum bit;
+		GLenum type;
+	} shaders[] = {
+		{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
+		{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
+		{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
+		{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
+		{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
+		{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
+	};
 
 	if(curProg == 0)
 	{
@@ -877,46 +937,36 @@ void GLReplay::SavePipelineState()
 
 			RDCASSERT(pipeDetails.programs.size());
 
-			struct
-			{
-				GLenum bit;
-				GLenum type;
-			} shaders[] = {
-				{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
-				{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
-				{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
-				{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
-				{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
-				{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
-			};
+			// TODO: we could pre-flatten this (to list all the shaders in the pipeline)
 
+			// look at the programs in the pipeline
 			for(size_t p=0; p < pipeDetails.programs.size(); p++)
 			{
 				auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
-				
+
 				RDCASSERT(progDetails.shaders.size());
 
-				for(size_t s=0; s < ARRAY_COUNT(shaders); s++)
+				curProg = rm->GetCurrentResource(pipeDetails.programs[p].id).name;
+
+				// look at the shaders in the program
+				for(int s=0; s < ARRAY_COUNT(shaders); s++)
 				{
+					// if this program is being used for a shader stage
 					if(pipeDetails.programs[p].use & shaders[s].bit)
 					{
 						auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
 
+						// find the shader stage that's being used
 						for(size_t i=0; i < progDetails.shaders.size(); i++)
 						{
 							if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
 							{
-								ResourceId shid = rm->GetOriginalID(progDetails.shaders[i]);
-								switch(shaders[s].type)
-								{ 
-									case eGL_VERTEX_SHADER:          pipe.m_VS.Shader  = shid; break;
-									case eGL_FRAGMENT_SHADER:        pipe.m_FS.Shader  = shid; break;
-									case eGL_COMPUTE_SHADER:         pipe.m_CS.Shader  = shid; break;
-									case eGL_GEOMETRY_SHADER:        pipe.m_GS.Shader  = shid; break;
-									case eGL_TESS_CONTROL_SHADER:    pipe.m_TCS.Shader = shid; break;
-									case eGL_TESS_EVALUATION_SHADER: pipe.m_TES.Shader = shid; break;
-								}
+								// set Shader ID and bindpoint mapping directly in the pipe state
+								// store reflection and mapping locally too
+								stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
 								refls[s] = GetShader(progDetails.shaders[i]);
+								GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
+								mappings[s] = &stages[s]->BindpointMapping;
 								break;
 							}
 						}
@@ -931,17 +981,23 @@ void GLReplay::SavePipelineState()
 
 		RDCASSERT(progDetails.shaders.size());
 
+		// look at the shaders in the program
 		for(size_t i=0; i < progDetails.shaders.size(); i++)
 		{
-			if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
-				pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-			else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
-				pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
+			// find the matching stage
+			for(int s=0; s < ARRAY_COUNT(shaders); s++)
+			{
+				if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
+				{
+					// set Shader ID and bindpoint mapping directly in the pipe state
+					// store reflection and mapping locally too
+					stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
+					refls[s] = GetShader(progDetails.shaders[i]); 
+					GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
+					mappings[s] = &stages[s]->BindpointMapping;
+				}
+			}
 		}
-
-		// prefetch uniform values in GetShader()
-		for(size_t s=0; s < progDetails.shaders.size(); s++)
-			refls[s] = GetShader(progDetails.shaders[s]);
 	}
 
 	// GL is ass-backwards in its handling of texture units. When a shader is active
@@ -971,7 +1027,7 @@ void GLReplay::SavePipelineState()
 			for(int32_t r=0; r < refls[s]->Resources.count; r++)
 			{
 				// bindPoint is the uniform value for this sampler
-				if(refls[s]->Resources[r].bindPoint == unit)
+				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
 				{
 					GLenum t = eGL_UNKNOWN_ENUM;
 
@@ -1188,8 +1244,8 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 		RDCEraseEl(var.value);
 
-		bool bufferBacked = (cblock.bindPoint >= 0 && cblock.bufferAddress >= 0 && !data.empty());
-		bool hasValue = bufferBacked || (cblock.bindPoint < 0 && cblock.bufferAddress < 0); // buffer backed (with data), or global uniforms
+		bool bufferBacked = (cblock.bufferBacked && !data.empty());
+		bool hasValue = bufferBacked || !cblock.bufferBacked; // buffer backed (with data), or global uniforms
 
 		if(desc.elements == 1)
 		{

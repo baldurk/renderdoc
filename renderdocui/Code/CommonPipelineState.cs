@@ -109,6 +109,39 @@ namespace renderdocui.Code
 
         // there's a lot of redundancy in these functions
 
+        public ShaderBindpointMapping GetBindpointMapping(ShaderStageType stage)
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D11.m_VS.BindpointMapping;
+                        case ShaderStageType.Domain: return m_D3D11.m_DS.BindpointMapping;
+                        case ShaderStageType.Hull: return m_D3D11.m_HS.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_D3D11.m_GS.BindpointMapping;
+                        case ShaderStageType.Pixel: return m_D3D11.m_PS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_D3D11.m_CS.BindpointMapping;
+                    }
+                }
+                else if (IsLogGL)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_GL.m_VS.BindpointMapping;
+                        case ShaderStageType.Tess_Control: return m_GL.m_TCS.BindpointMapping;
+                        case ShaderStageType.Tess_Eval: return m_GL.m_TES.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_GL.m_GS.BindpointMapping;
+                        case ShaderStageType.Fragment: return m_GL.m_FS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_GL.m_CS.BindpointMapping;
+                    }
+                }
+            }
+
+            return null;
+        }
+
         public ShaderReflection GetShaderReflection(ShaderStageType stage)
         {
             if (LogLoaded)
@@ -329,7 +362,7 @@ namespace renderdocui.Code
             return null;
         }
 
-        public void GetConstantBuffer(ShaderStageType stage, uint BindPoint, out ResourceId buf, out uint ByteOffset, out uint ByteSize)
+        public void GetConstantBuffer(ShaderStageType stage, uint BufIdx, out ResourceId buf, out uint ByteOffset, out uint ByteSize)
         {
             if (LogLoaded)
             {
@@ -347,11 +380,11 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: s = m_D3D11.m_CS; break;
                     }
 
-                    if(BindPoint < s.ConstantBuffers.Length)
+                    if(BufIdx < s.ConstantBuffers.Length)
                     {
-                        buf = s.ConstantBuffers[BindPoint].Buffer;
-                        ByteOffset = s.ConstantBuffers[BindPoint].VecOffset * 4 * sizeof(float);
-                        ByteSize = s.ConstantBuffers[BindPoint].VecCount * 4 * sizeof(float);
+                        buf = s.ConstantBuffers[BufIdx].Buffer;
+                        ByteOffset = s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float);
+                        ByteSize = s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float);
 
                         return;
                     }
@@ -370,18 +403,21 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: s = m_GL.m_CS; break;
                     }
 
-                    if(s.ShaderDetails != null && BindPoint < s.ShaderDetails.ConstantBlocks.Length)
+                    if(s.ShaderDetails != null && BufIdx < s.ShaderDetails.ConstantBlocks.Length)
                     {
-                        if(s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint >= 0 &&
-                            s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint < m_GL.UniformBuffers.Length)
+                        if (s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint >= 0)
                         {
-                            var b = m_GL.UniformBuffers[s.ShaderDetails.ConstantBlocks[BindPoint].bindPoint];
+                            int uboIdx = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint].bind;
+                            if (uboIdx >= 0 && uboIdx < m_GL.UniformBuffers.Length)
+                            {
+                                var b = m_GL.UniformBuffers[uboIdx];
 
-                            buf = b.Resource;
-                            ByteOffset = (uint)b.Offset;
-                            ByteSize = (uint)b.Size;
+                                buf = b.Resource;
+                                ByteOffset = (uint)b.Offset;
+                                ByteSize = (uint)b.Size;
 
-                            return;
+                                return;
+                            }
                         }
                     }
                 }
