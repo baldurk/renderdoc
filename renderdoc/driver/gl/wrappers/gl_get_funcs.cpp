@@ -275,6 +275,11 @@ void WrappedOpenGL::glGetProgramInterfaceiv(GLuint program, GLenum programInterf
 	m_Real.glGetProgramInterfaceiv(program, programInterface, pname, params);
 }
 
+GLuint WrappedOpenGL::glGetProgramResourceIndex(GLuint program, GLenum programInterface, const GLchar *name)
+{
+	return m_Real.glGetProgramResourceIndex(program, programInterface, name);
+}
+
 void WrappedOpenGL::glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index, GLsizei propCount, const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params)
 {
 	m_Real.glGetProgramResourceiv(program, programInterface, index, propCount, props, bufSize, length, params);
