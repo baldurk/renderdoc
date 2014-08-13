@@ -617,7 +617,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 			GLint loc = gl.glGetUniformBlockIndex(curProg, refl.ConstantBlocks.elems[i].name.elems);
 			if(loc >= 0)
 			{
-				gl.glGetActiveUniformBlockiv(curProg, refl.ConstantBlocks.elems[i].bufferAddress, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
 				refl.ConstantBlocks.elems[i].bindPoint = dummyReadback[0];
 			}
 		}
