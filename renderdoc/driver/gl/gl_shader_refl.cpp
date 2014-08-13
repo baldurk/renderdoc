@@ -504,7 +504,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 		var.type.descriptor.rowMajorStorage = (values[6] >= 0);
 
-		create_array_uninit(var.name, values[0]);
+		create_array_uninit(var.name, values[1]);
 		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[0], NULL, var.name.elems);
 		var.name.count--; // trim off trailing null
 
