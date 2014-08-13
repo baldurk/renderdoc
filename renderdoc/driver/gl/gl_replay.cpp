@@ -42,9 +42,9 @@ GLReplay::GLReplay()
 
 void GLReplay::Shutdown()
 {
-	delete m_pDriver;
-
 	CloseReplayContext();
+
+	delete m_pDriver;
 }
 
 #pragma region Implemented
@@ -589,18 +589,45 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	
 	auto &refl = shaderDetails.reflection;
 
+	// in case of bugs, we readback into this array instead of
+	GLint dummyReadback[32];
+
+#if !defined(RELEASE)
+	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		dummyReadback[i] = 0x6c7b8a9d;
+#endif
+
 	// update with latest uniform values
 	for(int32_t i=0; i < refl.Resources.count; i++)
 	{
 		if(refl.Resources.elems[i].IsSRV && refl.Resources.elems[i].IsTexture)
-			gl.glGetUniformiv(curProg, refl.Resources.elems[i].variableAddress, (GLint *)&refl.Resources.elems[i].bindPoint);
+		{
+			GLint loc = gl.glGetUniformLocation(curProg, refl.Resources.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetUniformiv(curProg, loc, dummyReadback);
+				refl.Resources.elems[i].bindPoint = dummyReadback[0];
+			}
+		}
 	}
 	for(int32_t i=0; i < refl.ConstantBlocks.count; i++)
 	{
 		if(refl.ConstantBlocks.elems[i].bufferAddress >= 0)
-			gl.glGetActiveUniformBlockiv(curProg, refl.ConstantBlocks.elems[i].bufferAddress,
-																		eGL_UNIFORM_BLOCK_BINDING, (GLint *)&refl.ConstantBlocks.elems[i].bindPoint);
+		{
+			GLint loc = gl.glGetUniformBlockIndex(curProg, refl.ConstantBlocks.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetActiveUniformBlockiv(curProg, refl.ConstantBlocks.elems[i].bufferAddress, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+				refl.ConstantBlocks.elems[i].bindPoint = dummyReadback[0];
+			}
+		}
 	}
+
+#if !defined(RELEASE)
+	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		if(dummyReadback[i] != 0x6c7b8a9d)
+			RDCERR("Invalid uniform readback - data beyond first element modified!");
+#endif
 
 	return &refl;
 }

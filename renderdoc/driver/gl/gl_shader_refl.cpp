@@ -134,204 +134,245 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		res.variableType.descriptor.rows = 1;
 		res.variableType.descriptor.cols = 4;
 		res.variableType.descriptor.elements = 1;
+		res.variableType.descriptor.rowMajorStorage = false;
+		res.bindPoint = 0;
 
 		// float samplers
 		if(values[0] == GL_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_1D_SHADOW)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1DShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_1D_ARRAY_SHADOW)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArrayShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_SHADOW)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_ARRAY_SHADOW)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArrayShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DRect";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_RECT_SHADOW)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DRectShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_CUBE_SHADOW)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCubeShadow";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
+			res.variableType.descriptor.type = eVar_Float;
 		}
 		// int samplers
 		else if(values[0] == GL_INT_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DRect";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
+			res.variableType.descriptor.type = eVar_Int;
 		}
 		// unsigned int samplers
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DRect";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
+			res.variableType.descriptor.type = eVar_UInt;
 		}
 		else
 		{
