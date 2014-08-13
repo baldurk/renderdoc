@@ -421,66 +421,191 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		
 		ShaderConstant var;
 		
-		if(values[0] == GL_FLOAT_VEC4)
+		var.type.descriptor.elements = RDCMAX(1, values[4]);
+
+		// set type (or bail if it's not a variable - sampler or such)
+		switch(values[0])
 		{
-			var.type.descriptor.name = "vec4";
-			var.type.descriptor.type = eVar_Float;
-			var.type.descriptor.rows = 1;
-			var.type.descriptor.cols = 4;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
+			case GL_FLOAT_VEC4:
+			case GL_FLOAT_VEC3:
+			case GL_FLOAT_VEC2:
+			case GL_FLOAT:
+			case GL_FLOAT_MAT4:
+			case GL_FLOAT_MAT3:
+			case GL_FLOAT_MAT2:
+			case GL_FLOAT_MAT4x2:
+			case GL_FLOAT_MAT4x3:
+			case GL_FLOAT_MAT3x4:
+			case GL_FLOAT_MAT3x2:
+			case GL_FLOAT_MAT2x4:
+			case GL_FLOAT_MAT2x3:
+				var.type.descriptor.type = eVar_Float;
+				break;
+			case GL_DOUBLE_VEC4:
+			case GL_DOUBLE_VEC3:
+			case GL_DOUBLE_VEC2:
+			case GL_DOUBLE:
+			case GL_DOUBLE_MAT4:
+			case GL_DOUBLE_MAT3:
+			case GL_DOUBLE_MAT2:
+			case GL_DOUBLE_MAT4x2:
+			case GL_DOUBLE_MAT4x3:
+			case GL_DOUBLE_MAT3x4:
+			case GL_DOUBLE_MAT3x2:
+			case GL_DOUBLE_MAT2x4:
+			case GL_DOUBLE_MAT2x3:
+				var.type.descriptor.type = eVar_Double;
+				break;
+			case GL_UNSIGNED_INT_VEC4:
+			case GL_UNSIGNED_INT_VEC3:
+			case GL_UNSIGNED_INT_VEC2:
+			case GL_UNSIGNED_INT:
+			case GL_BOOL_VEC4:
+			case GL_BOOL_VEC3:
+			case GL_BOOL_VEC2:
+			case GL_BOOL:
+				var.type.descriptor.type = eVar_UInt;
+				break;
+			case GL_INT_VEC4:
+			case GL_INT_VEC3:
+			case GL_INT_VEC2:
+			case GL_INT:
+				var.type.descriptor.type = eVar_Int;
+				break;
+			default:
+				// not a variable (sampler etc)
+				continue;
 		}
-		else if(values[0] == GL_FLOAT_VEC3)
+		
+		// set # rows if it's a matrix
+		var.type.descriptor.rows = 1;
+
+		switch(values[0])
 		{
-			var.type.descriptor.name = "vec3";
-			var.type.descriptor.type = eVar_Float;
-			var.type.descriptor.rows = 1;
-			var.type.descriptor.cols = 3;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
+			case GL_FLOAT_MAT4:
+			case GL_DOUBLE_MAT4:
+			case GL_FLOAT_MAT2x4:
+			case GL_DOUBLE_MAT2x4:
+			case GL_FLOAT_MAT3x4:
+			case GL_DOUBLE_MAT3x4:
+				var.type.descriptor.rows = 4;
+				break;
+			case GL_FLOAT_MAT3:
+			case GL_DOUBLE_MAT3:
+			case GL_FLOAT_MAT4x3:
+			case GL_DOUBLE_MAT4x3:
+			case GL_FLOAT_MAT2x3:
+			case GL_DOUBLE_MAT2x3:
+				var.type.descriptor.rows = 3;
+				break;
+			case GL_FLOAT_MAT2:
+			case GL_DOUBLE_MAT2:
+			case GL_FLOAT_MAT4x2:
+			case GL_DOUBLE_MAT4x2:
+			case GL_FLOAT_MAT3x2:
+			case GL_DOUBLE_MAT3x2:
+				var.type.descriptor.rows = 2;
+				break;
+			default:
+				break;
 		}
-		else if(values[0] == GL_FLOAT_MAT4)
+
+		// set # columns
+		switch(values[0])
 		{
-			var.type.descriptor.name = "mat4";
-			var.type.descriptor.type = eVar_Float;
-			var.type.descriptor.rows = 4;
-			var.type.descriptor.cols = 4;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
+			case GL_FLOAT_VEC4:
+			case GL_FLOAT_MAT4:
+			case GL_FLOAT_MAT4x2:
+			case GL_FLOAT_MAT4x3:
+			case GL_DOUBLE_VEC4:
+			case GL_DOUBLE_MAT4:
+			case GL_DOUBLE_MAT4x2:
+			case GL_DOUBLE_MAT4x3:
+			case GL_UNSIGNED_INT_VEC4:
+			case GL_BOOL_VEC4:
+			case GL_INT_VEC4:
+				var.type.descriptor.cols = 4;
+				break;
+			case GL_FLOAT_VEC3:
+			case GL_FLOAT_MAT3:
+			case GL_FLOAT_MAT3x4:
+			case GL_FLOAT_MAT3x2:
+			case GL_DOUBLE_VEC3:
+			case GL_DOUBLE_MAT3:
+			case GL_DOUBLE_MAT3x4:
+			case GL_DOUBLE_MAT3x2:
+			case GL_UNSIGNED_INT_VEC3:
+			case GL_BOOL_VEC3:
+			case GL_INT_VEC3:
+				var.type.descriptor.cols = 3;
+				break;
+			case GL_FLOAT_VEC2:
+			case GL_FLOAT_MAT2:
+			case GL_FLOAT_MAT2x4:
+			case GL_FLOAT_MAT2x3:
+			case GL_DOUBLE_VEC2:
+			case GL_DOUBLE_MAT2:
+			case GL_DOUBLE_MAT2x4:
+			case GL_DOUBLE_MAT2x3:
+			case GL_UNSIGNED_INT_VEC2:
+			case GL_BOOL_VEC2:
+			case GL_INT_VEC2:
+				var.type.descriptor.cols = 2;
+				break;
+			case GL_FLOAT:
+			case GL_DOUBLE:
+			case GL_UNSIGNED_INT:
+			case GL_INT:
+			case GL_BOOL:
+				var.type.descriptor.cols = 1;
+				break;
+			default:
+				break;
 		}
-		else if(values[0] == GL_FLOAT_MAT4x2)
+
+		// set name
+		switch(values[0])
 		{
-			var.type.descriptor.name = "mat4x2";
-			var.type.descriptor.type = eVar_Float;
-			var.type.descriptor.rows = 2;
-			var.type.descriptor.cols = 4;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
-		}
-		else if(values[0] == GL_UNSIGNED_INT_VEC4)
-		{
-			var.type.descriptor.name = "uvec4";
-			var.type.descriptor.type = eVar_UInt;
-			var.type.descriptor.rows = 1;
-			var.type.descriptor.cols = 4;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
-		}
-		else if(values[0] == GL_UNSIGNED_INT)
-		{
-			var.type.descriptor.name = "uint";
-			var.type.descriptor.type = eVar_UInt;
-			var.type.descriptor.rows = 1;
-			var.type.descriptor.cols = 1;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
-		}
-		else if(values[0] == GL_FLOAT)
-		{
-			var.type.descriptor.name = "float";
-			var.type.descriptor.type = eVar_Float;
-			var.type.descriptor.rows = 1;
-			var.type.descriptor.cols = 1;
-			var.type.descriptor.elements = RDCMAX(1, values[4]);
-		}
-		else
-		{
-			// fill in more uniform types
-			continue;
+			case GL_FLOAT_VEC4:          var.type.descriptor.name = "vec4"; break;
+			case GL_FLOAT_VEC3:          var.type.descriptor.name = "vec3"; break;
+			case GL_FLOAT_VEC2:          var.type.descriptor.name = "vec2"; break;
+			case GL_FLOAT:               var.type.descriptor.name = "float"; break;
+			case GL_FLOAT_MAT4:          var.type.descriptor.name = "mat4"; break;
+			case GL_FLOAT_MAT3:          var.type.descriptor.name = "mat3"; break;
+			case GL_FLOAT_MAT2:          var.type.descriptor.name = "mat2"; break;
+			case GL_FLOAT_MAT4x2:        var.type.descriptor.name = "mat4x2"; break;
+			case GL_FLOAT_MAT4x3:        var.type.descriptor.name = "mat4x3"; break;
+			case GL_FLOAT_MAT3x4:        var.type.descriptor.name = "mat3x4"; break;
+			case GL_FLOAT_MAT3x2:        var.type.descriptor.name = "mat3x2"; break;
+			case GL_FLOAT_MAT2x4:        var.type.descriptor.name = "mat2x4"; break;
+			case GL_FLOAT_MAT2x3:        var.type.descriptor.name = "mat2x3"; break;
+			case GL_DOUBLE_VEC4:         var.type.descriptor.name = "dvec4"; break;
+			case GL_DOUBLE_VEC3:         var.type.descriptor.name = "dvec3"; break;
+			case GL_DOUBLE_VEC2:         var.type.descriptor.name = "dvec2"; break;
+			case GL_DOUBLE:              var.type.descriptor.name = "double"; break;
+			case GL_DOUBLE_MAT4:         var.type.descriptor.name = "dmat4"; break;
+			case GL_DOUBLE_MAT3:         var.type.descriptor.name = "dmat3"; break;
+			case GL_DOUBLE_MAT2:         var.type.descriptor.name = "dmat2"; break;
+			case GL_DOUBLE_MAT4x2:       var.type.descriptor.name = "dmat4x2"; break;
+			case GL_DOUBLE_MAT4x3:       var.type.descriptor.name = "dmat4x3"; break;
+			case GL_DOUBLE_MAT3x4:       var.type.descriptor.name = "dmat3x4"; break;
+			case GL_DOUBLE_MAT3x2:       var.type.descriptor.name = "dmat3x2"; break;
+			case GL_DOUBLE_MAT2x4:       var.type.descriptor.name = "dmat2x4"; break;
+			case GL_DOUBLE_MAT2x3:       var.type.descriptor.name = "dmat2x3"; break;
+			case GL_UNSIGNED_INT_VEC4:   var.type.descriptor.name = "uvec4"; break;
+			case GL_UNSIGNED_INT_VEC3:   var.type.descriptor.name = "uvec3"; break;
+			case GL_UNSIGNED_INT_VEC2:   var.type.descriptor.name = "uvec2"; break;
+			case GL_UNSIGNED_INT:        var.type.descriptor.name = "uint"; break;
+			case GL_BOOL_VEC4:           var.type.descriptor.name = "bvec4"; break;
+			case GL_BOOL_VEC3:           var.type.descriptor.name = "bvec3"; break;
+			case GL_BOOL_VEC2:           var.type.descriptor.name = "bvec2"; break;
+			case GL_BOOL:                var.type.descriptor.name = "bool"; break;
+			case GL_INT_VEC4:            var.type.descriptor.name = "ivec4"; break;
+			case GL_INT_VEC3:            var.type.descriptor.name = "ivec3"; break;
+			case GL_INT_VEC2:            var.type.descriptor.name = "ivec2"; break;
+			case GL_INT:                 var.type.descriptor.name = "int"; break;
+			default:
+				break;
 		}
 
 		if(values[5] == -1 && values[2] >= 0)

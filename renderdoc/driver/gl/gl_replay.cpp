@@ -561,10 +561,6 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	return ret;
 }
 
-#pragma endregion
-
-#pragma region Mostly Implemented
-
 ShaderReflection *GLReplay::GetShader(ResourceId id)
 {
 	WrappedOpenGL &gl = *m_pDriver;
@@ -583,6 +579,10 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 
 	return &shaderDetails.reflection;
 }
+
+#pragma endregion
+
+#pragma region Mostly Implemented
 
 void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
 {
