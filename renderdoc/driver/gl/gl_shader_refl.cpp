@@ -447,6 +447,14 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			var.type.descriptor.cols = 4;
 			var.type.descriptor.elements = RDCMAX(1, values[4]);
 		}
+		else if(values[0] == GL_FLOAT_MAT4x2)
+		{
+			var.type.descriptor.name = "mat4x2";
+			var.type.descriptor.type = eVar_Float;
+			var.type.descriptor.rows = 2;
+			var.type.descriptor.cols = 4;
+			var.type.descriptor.elements = RDCMAX(1, values[4]);
+		}
 		else if(values[0] == GL_UNSIGNED_INT_VEC4)
 		{
 			var.type.descriptor.name = "uvec4";
@@ -459,6 +467,14 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		{
 			var.type.descriptor.name = "uint";
 			var.type.descriptor.type = eVar_UInt;
+			var.type.descriptor.rows = 1;
+			var.type.descriptor.cols = 1;
+			var.type.descriptor.elements = RDCMAX(1, values[4]);
+		}
+		else if(values[0] == GL_FLOAT)
+		{
+			var.type.descriptor.name = "float";
+			var.type.descriptor.type = eVar_Float;
 			var.type.descriptor.rows = 1;
 			var.type.descriptor.cols = 1;
 			var.type.descriptor.elements = RDCMAX(1, values[4]);
