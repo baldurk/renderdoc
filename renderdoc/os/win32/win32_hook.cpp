@@ -46,12 +46,12 @@ struct FunctionHook
 		return function < h.function;
 	}
 
-	void ApplyHook(void **IATentry)
+	bool ApplyHook(void **IATentry)
 	{
 		DWORD oldProtection = PAGE_EXECUTE;
 
 		if(*IATentry == hookptr)
-			return;
+			return false;
 
 		BOOL success = TRUE;
 
@@ -59,7 +59,7 @@ struct FunctionHook
 		if(!success)
 		{
 			RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
-			return;
+			return false;
 		}
 
 		if(origptr && *origptr == NULL) *origptr = *IATentry;
@@ -70,8 +70,10 @@ struct FunctionHook
 		if(!success)
 		{
 			RDCERR("Failed to restore IAT entry protection 0x%p", IATentry);
-			return;
+			return false;
 		}
+
+		return true;
 	}
 
 	string function;
@@ -93,27 +95,36 @@ struct CachedHookData
 	map<string, DllHookset> DllHooks;
 	HMODULE module;
 	Threading::CriticalSection lock;
+	char lowername[512];
 
 	void ApplyHooks(const char *modName, HMODULE module)
 	{
-		string name = strlower(string(modName));
+		{
+			size_t i=0;
+			while(modName[i])
+			{
+				lowername[i] = (char)tolower(modName[i]);
+				i++;
+			}
+			lowername[i] = 0;
+		}
 
 		// fraps seems to non-safely modify the assembly around the hook function, if
 		// we modify its import descriptors it leads to a crash as it hooks OUR functions.
 		// instead, skip modifying the import descriptors, it will hook the 'real' d3d functions
 		// and we can call them and have fraps + renderdoc playing nicely together
-		if(name.find("fraps") != string::npos)
+		if(strstr(lowername, "fraps"))
 				return;
 
 		// for safety (and because we don't need to), ignore these modules
-		if(name.find("kernel32.dll") != string::npos ||
-			 name.find("msvcr") == 0 ||
-			 name.find("msvcp") == 0)
+		if(!_stricmp(modName, "kernel32.dll") ||
+			 strstr(lowername, "msvcr") == lowername ||
+			 strstr(lowername, "msvcp") == lowername)
 				return;
 
 		// set module pointer if we are hooking exports from this module
 		for(auto it=DllHooks.begin(); it != DllHooks.end(); ++it)
-			if(it->first == name)
+			if(!_stricmp(it->first.c_str(), modName))
 				it->second.module = module;
 
 		byte *baseAddress = (byte *)module;
@@ -137,12 +148,12 @@ struct CachedHookData
 
 		while(iatOffset && importDesc->FirstThunk)
 		{
-			string dllName = strlower(string((const char *)(baseAddress + importDesc->Name)));
+			const char *dllName = (const char *)(baseAddress + importDesc->Name);
 
 			DllHookset *hookset = NULL;
 
 			for(auto it=DllHooks.begin(); it != DllHooks.end(); ++it)
-				if(it->first == dllName)
+				if(!_stricmp(it->first.c_str(), dllName))
 					hookset = &it->second;
 
 			if(hookset)
@@ -166,14 +177,23 @@ struct CachedHookData
 
 					IMAGE_IMPORT_BY_NAME *import = (IMAGE_IMPORT_BY_NAME *)(baseAddress + origFirst->u1.AddressOfData);
 					void **IATentry = (void **)&first->u1.AddressOfData;
+					
+					struct hook_find
+					{
+						bool operator() (const FunctionHook &a, const char *b)
+						{ return strcmp(a.function.c_str(), b) < 0; }
+					};
 
-					FunctionHook search(import->Name, NULL, NULL);
-					auto found = std::lower_bound(hookset->FunctionHooks.begin(), hookset->FunctionHooks.end(), search);
+					const char *importName = (const char *)import->Name;
+					auto found = std::lower_bound(hookset->FunctionHooks.begin(), hookset->FunctionHooks.end(), importName, hook_find());
 
-					if(found != hookset->FunctionHooks.end() && !(search < *found) && found->excludeModule != module)
+					if(found != hookset->FunctionHooks.end() && !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
 					{
 						SCOPED_LOCK(lock);
-						found->ApplyHook(IATentry);
+						bool applied = found->ApplyHook(IATentry);
+
+						if(!applied)
+							return;
 					}
 
 					origFirst++;
