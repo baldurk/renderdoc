@@ -610,7 +610,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 		if(values[5] == -1 && values[2] >= 0)
 		{
-			var.reg.vec = values[3];
+			var.reg.vec = values[2];
 			var.reg.comp = 0;
 		}
 		else if(values[5] >= 0)
