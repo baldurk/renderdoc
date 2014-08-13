@@ -33,7 +33,7 @@ wstr &wstr::operator =(const std::wstring &in)
 	count = (int32_t)in.size();
 	if(count == 0)
 	{
-		elems = (wchar_t*)allocate(1);
+		elems = (wchar_t*)allocate(sizeof(wchar_t));
 		elems[0] = 0;
 	}
 	else
@@ -51,7 +51,7 @@ str &str::operator =(const std::string &in)
 	count = (int32_t)in.size();
 	if(count == 0)
 	{
-		elems = (char*)allocate(1);
+		elems = (char*)allocate(sizeof(char));
 		elems[0] = 0;
 	}
 	else
@@ -69,7 +69,7 @@ wstr &wstr::operator =(const wchar_t *const in)
 	count = (int32_t)wcslen(in);
 	if(count == 0)
 	{
-		elems = (wchar_t*)allocate(1);
+		elems = (wchar_t*)allocate(sizeof(wchar_t));
 		elems[0] = 0;
 	}
 	else
@@ -87,7 +87,7 @@ str &str::operator =(const char *const in)
 	count = (int32_t)strlen(in);
 	if(count == 0)
 	{
-		elems = (char*)allocate(1);
+		elems = (char*)allocate(sizeof(char));
 		elems[0] = 0;
 	}
 	else

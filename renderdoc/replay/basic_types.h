@@ -124,7 +124,7 @@ struct str : public rdctype::array<char>
 		count = o.count;
 		if(count == 0)
 		{
-			elems = (char*)allocate(1);
+			elems = (char*)allocate(sizeof(char));
 			elems[0] = 0;
 		}
 		else
@@ -154,7 +154,7 @@ struct wstr : public rdctype::array<wchar_t>
 		count = o.count;
 		if(count == 0)
 		{
-			elems = (wchar_t*)allocate(1);
+			elems = (wchar_t*)allocate(sizeof(wchar_t));
 			elems[0] = 0;
 		}
 		else
