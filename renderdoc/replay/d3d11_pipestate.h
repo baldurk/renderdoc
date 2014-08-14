@@ -72,6 +72,7 @@ struct D3D11PipelineState
 		ShaderStage() : Shader(), ShaderDetails(NULL) {}
 		ResourceId Shader;
 		ShaderReflection *ShaderDetails;
+		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;
 

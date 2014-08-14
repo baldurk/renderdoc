@@ -342,7 +342,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderConstant[] variables;
 
-        public Int32 bufferAddress;
+        public bool bufferBacked;
         public Int32 bindPoint;
     };
 
@@ -360,7 +360,6 @@ namespace renderdoc
         public string name;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType variableType;
-        public Int32 variableAddress;
         public Int32 bindPoint;
     };
 
@@ -413,5 +412,21 @@ namespace renderdoc
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public Interface[] Interfaces;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class BindpointMap
+    {
+        public Int32 bind;
+        public bool used;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class ShaderBindpointMapping
+    {
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] ConstantBlocks;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] Resources;
     };
 };

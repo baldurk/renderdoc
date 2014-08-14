@@ -71,9 +71,16 @@ struct array
 	{
 		Delete();
 		count = (int32_t)in.size();
-		elems = (T*)allocate(sizeof(T)*count);
-		for(int32_t i=0; i < count; i++)
-			new (elems+i) T(in[i]);
+		if(count == 0)
+		{
+			elems = 0;
+		}
+		else
+		{
+			elems = (T*)allocate(sizeof(T)*count);
+			for(int32_t i=0; i < count; i++)
+				new (elems+i) T(in[i]);
+		}
 		return *this;
 	}
 	
@@ -117,7 +124,8 @@ struct str : public rdctype::array<char>
 		count = o.count;
 		if(count == 0)
 		{
-			elems = NULL;
+			elems = (char*)allocate(sizeof(char));
+			elems[0] = 0;
 		}
 		else
 		{
@@ -146,7 +154,8 @@ struct wstr : public rdctype::array<wchar_t>
 		count = o.count;
 		if(count == 0)
 		{
-			elems = 0;
+			elems = (wchar_t*)allocate(sizeof(wchar_t));
+			elems[0] = 0;
 		}
 		else
 		{

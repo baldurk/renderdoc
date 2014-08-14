@@ -174,7 +174,7 @@ namespace renderdocui.Windows.PipelineState
 
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
-                                    GLPipelineState.ShaderStage stage,
+                                    GLPipelineState state, GLPipelineState.ShaderStage stage,
                                     Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
                                     TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
         {
@@ -196,17 +196,34 @@ namespace renderdocui.Windows.PipelineState
                 UInt32 i = 0;
                 foreach (var shaderCBuf in shaderDetails.ConstantBlocks)
                 {
+                    int bindPoint = stage.BindpointMapping.ConstantBlocks[i].bind;
+
+                    bool filledSlot = !shaderCBuf.bufferBacked ||
+                        (bindPoint >= 0 && bindPoint < state.UniformBuffers.Length && state.UniformBuffers[bindPoint].Resource != ResourceId.Null);
+                    bool usedSlot = stage.BindpointMapping.ConstantBlocks[i].used;
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
                     {
                         string name = shaderCBuf.name;
                         int numvars = shaderCBuf.variables.Length;
 
                         string slotname = i.ToString();
 
-                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, "", "", numvars, "" });
+                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, bindPoint, "", numvars, "" });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
                         node.Tag = i;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
                     }
                     i++;
                 }
@@ -461,35 +478,40 @@ namespace renderdocui.Windows.PipelineState
             iabuffers.NodesSelection.Clear();
             iabuffers.EndUpdate();
 
-            SetShaderState(texs, bufs, state.m_VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            SetShaderState(texs, bufs, state.m_GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            SetShaderState(texs, bufs, state.m_TES, tesShader, tesResources, tesSamplers, tesCBuffers, tesClasses);
-            SetShaderState(texs, bufs, state.m_TCS, tcsShader, tcsResources, tcsSamplers, tcsCBuffers, tcsClasses);
-            SetShaderState(texs, bufs, state.m_FS, fsShader, fsResources, fsSamplers, fsCBuffers, fsClasses);
-            SetShaderState(texs, bufs, state.m_CS, csShader, csResources, csSamplers, csCBuffers, csClasses);
+            SetShaderState(texs, bufs, state, state.m_VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
+            SetShaderState(texs, bufs, state, state.m_GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
+            SetShaderState(texs, bufs, state, state.m_TES, tesShader, tesResources, tesSamplers, tesCBuffers, tesClasses);
+            SetShaderState(texs, bufs, state, state.m_TCS, tcsShader, tcsResources, tcsSamplers, tcsCBuffers, tcsClasses);
+            SetShaderState(texs, bufs, state, state.m_FS, fsShader, fsResources, fsSamplers, fsCBuffers, fsClasses);
+            SetShaderState(texs, bufs, state, state.m_CS, csShader, csResources, csSamplers, csCBuffers, csClasses);
 
             fsResources.BeginUpdate();
             fsResources.Nodes.Clear();
             if (state.Textures != null)
             {
                 var shaderDetails = state.m_FS.ShaderDetails;
+                var mapping = state.m_FS.BindpointMapping;
 
                 int i = 0;
                 foreach (var r in state.Textures)
                 {
                     ShaderResource shaderInput = null;
+                    BindpointMap map = null;
 
                     if (shaderDetails != null)
                     {
                         foreach (var bind in shaderDetails.Resources)
                         {
-                            if (bind.IsSRV && bind.bindPoint == i)
+                            if (bind.IsSRV && mapping.Resources[bind.bindPoint].bind == i)
+                            {
                                 shaderInput = bind;
+                                map = mapping.Resources[bind.bindPoint];
+                            }
                         }
                     }
 
                     bool filledSlot = (r.Resource != ResourceId.Null);
-                    bool usedSlot = (shaderInput != null);
+                    bool usedSlot = (shaderInput != null && map.used);
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not

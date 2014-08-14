@@ -24,46 +24,6 @@
 
 #pragma once
 
-#include "basic_types.h"
-
-#include <vector>
-
-namespace rdctype
-{
-#pragma warning(push)
-#pragma warning(disable: 4345) // behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized
-
-template<typename T>
-void create_array(array<T> &ret, size_t count)
-{
-	ret.count = (int32_t)count;
-	if(ret.count == 0)
-	{
-		ret.elems = 0;
-	}
-	else
-	{
-		ret.elems = (T*)ret.allocate(sizeof(T)*count);
-		for(int32_t i=0; i < ret.count; i++)
-			new (ret.elems+i) T();
-	}
-}
-
-#pragma warning(pop)
-
-template<typename T>
-void create_array_uninit(array<T> &ret, size_t count)
-{
-	ret.count = (int32_t)count;
-	if(ret.count == 0)
-	{
-		ret.elems = 0;
-	}
-	else
-	{
-		ret.elems = (T*)ret.allocate(sizeof(T)*count);
-		memset(ret.elems, 0, sizeof(T)*count);
-	}
-}
-
-}; // namespace rdctype
+bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function, void *destination_function_ptr);
+void Win32_IAT_BeginHooks();
+void Win32_IAT_EndHooks();

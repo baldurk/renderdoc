@@ -114,6 +114,7 @@ class State : public ShaderDebugState
 		{
 			uint32_t GroupID[3];
 			uint32_t ThreadID[3];
+			uint32_t coverage;
 		} semantics;
 
 		void Init();

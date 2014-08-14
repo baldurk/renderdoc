@@ -796,6 +796,7 @@ namespace renderdocui.Windows
             ResourceId[] Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
 
             ShaderReflection details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+            ShaderBindpointMapping mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
 
             uint firstuav = uint.MaxValue;
 
@@ -865,7 +866,7 @@ namespace renderdocui.Windows
                     {
                         foreach (var bind in details.Resources)
                         {
-                            if (bind.bindPoint == i && bind.IsUAV)
+                            if (mapping.Resources[bind.bindPoint].bind == i && bind.IsUAV)
                             {
                                 bindName = "<" + bind.name + ">";
                             }
@@ -939,7 +940,7 @@ namespace renderdocui.Windows
                 {
                     foreach (var bind in details.Resources)
                     {
-                        if (bind.bindPoint == i && bind.IsSRV)
+                        if (mapping.Resources[bind.bindPoint].bind == i && bind.IsSRV)
                         {
                             used = true;
                             bindName = "<" + bind.name + ">";
@@ -2588,15 +2589,23 @@ namespace renderdocui.Windows
 
             hist.Show(DockPanel);
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            // add a short delay so that controls repainting after a new panel appears can get at the
+            // render thread before we insert the long blocking pixel history task
+            var delayedHistory = new BackgroundWorker();
+            delayedHistory.DoWork += delegate
             {
-                history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
-                
-                this.BeginInvoke(new Action(() =>
+                Thread.Sleep(100);
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
-                    hist.SetHistory(history);
-                }));
-            });
+                    history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        hist.SetHistory(history);
+                    }));
+                });
+            };
+            delayedHistory.RunWorkerAsync();
         }
 
         private void debugPixel_Click(object sender, EventArgs e)

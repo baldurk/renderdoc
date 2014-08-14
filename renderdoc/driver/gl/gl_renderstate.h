@@ -123,7 +123,6 @@ struct GLRenderState
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Disable/Enable bits
 	// Sampler Bindings
 	// Framebuffer Bindings
 	// Program Bindings + Uniform Values
@@ -141,6 +140,7 @@ struct GLRenderState
 
 	uint8_t DepthWriteMask;
 	float DepthClearValue;
+	GLenum DepthFunc;
 	struct
 	{
 		double nearZ, farZ;

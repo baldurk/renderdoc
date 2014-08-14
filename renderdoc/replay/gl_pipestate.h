@@ -69,6 +69,7 @@ struct GLPipelineState
 		ShaderStage() : Shader(), ShaderDetails(NULL) {}
 		ResourceId Shader;
 		ShaderReflection *ShaderDetails;
+		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;
 	} m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;

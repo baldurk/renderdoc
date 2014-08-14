@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2014 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,48 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
+#include "gl_hookset.h"
 
-#include "basic_types.h"
+#include "replay/replay_driver.h"
 
-#include <vector>
-
-namespace rdctype
-{
-#pragma warning(push)
-#pragma warning(disable: 4345) // behavior change: an object of POD type constructed with an initializer of the form () will be default-initialized
-
-template<typename T>
-void create_array(array<T> &ret, size_t count)
-{
-	ret.count = (int32_t)count;
-	if(ret.count == 0)
-	{
-		ret.elems = 0;
-	}
-	else
-	{
-		ret.elems = (T*)ret.allocate(sizeof(T)*count);
-		for(int32_t i=0; i < ret.count; i++)
-			new (ret.elems+i) T();
-	}
-}
-
-#pragma warning(pop)
-
-template<typename T>
-void create_array_uninit(array<T> &ret, size_t count)
-{
-	ret.count = (int32_t)count;
-	if(ret.count == 0)
-	{
-		ret.elems = 0;
-	}
-	else
-	{
-		ret.elems = (T*)ret.allocate(sizeof(T)*count);
-		memset(ret.elems, 0, sizeof(T)*count);
-	}
-}
-
-}; // namespace rdctype
+void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl);
+GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, std::vector<std::string> sources);

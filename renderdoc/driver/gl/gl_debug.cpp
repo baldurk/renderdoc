@@ -718,10 +718,22 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 	// TODO: we should probably use glBindVertexBuffer, glVertexAttribFormat, glVertexAttribBinding.
 	// For now just assume things about the format and vbuffer.
 
-	RDCASSERT(attr.Format.compType == eCompType_Float && attr.Format.compByteWidth == 4);
-
 	gl.glBindBuffer(eGL_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetLiveResource(vb.Buffer).name);
-	gl.glVertexAttribPointer(0, attr.Format.compCount, eGL_FLOAT, GL_FALSE, 0, (void *)intptr_t(vb.Offset + attr.RelativeOffset));
+
+	if(attr.Format.compType == eCompType_Float && attr.Format.compByteWidth == 4)
+	{
+		gl.glVertexAttribPointer(0, attr.Format.compCount, eGL_FLOAT, GL_FALSE, 0, (void *)intptr_t(vb.Offset + attr.RelativeOffset));
+	}
+	else if(attr.Format.compType == eCompType_Float && attr.Format.compByteWidth == 2)
+	{
+		gl.glVertexAttribPointer(0, attr.Format.compCount, eGL_HALF_FLOAT, GL_FALSE, 0, (void *)intptr_t(vb.Offset + attr.RelativeOffset));
+	}
+	else
+	{
+		RDCERR("Not handling mesh display of unsupported format");
+		return;
+	}
+
 	gl.glEnableVertexAttribArray(0);
 
 	{

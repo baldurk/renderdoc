@@ -152,7 +152,7 @@ struct FetchDrawcall
 		parent = 0;
 		previous = 0;
 		next = 0;
-		for(int i=0; i < 10; i++)
+		for(int i=0; i < 8; i++)
 			outputs[i] = ResourceId();
 	}
 

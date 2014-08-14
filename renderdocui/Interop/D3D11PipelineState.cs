@@ -106,6 +106,8 @@ namespace renderdoc
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public ShaderBindpointMapping BindpointMapping;
 
             public ShaderStageType stage;
 

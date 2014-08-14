@@ -1548,6 +1548,8 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	{
 		GLint numCols = 8;
 		m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+		
+		RDCEraseEl(draw.outputs);
 
 		for(GLint i=0; i < RDCMIN(numCols, 8); i++)
 		{

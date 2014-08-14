@@ -35,36 +35,64 @@ using std::map;
 
 #if defined(WIN32)
 
-#include "3rdparty/mhook/mhook-lib/mhook.h"
+#define USE_MHOOK 0
+#define USE_IAT_HOOK 1
+
+#if USE_MHOOK
+	#include "3rdparty/mhook/mhook-lib/mhook.h"
+#elif USE_IAT_HOOK
+	#include "os/win32/win32_hook.h"
+#else
+	#error "No hook method enabled"
+#endif
 
 template<typename FuncType>
 class Hook
 {
 	public:
-		Hook() { trampoline = NULL; }
-		~Hook() { Mhook_Unhook(&trampoline); }
+		Hook()
+		{
+			orig_funcptr = NULL;
+		}
+		~Hook()
+		{
+#if USE_MHOOK
+			Mhook_Unhook(&orig_funcptr);
+#endif
+		}
 		
 		FuncType operator()()
 		{
-			return (FuncType)trampoline;
+			return (FuncType)orig_funcptr;
 		}
 
 		bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
 		{
-			trampoline = Process::GetFunctionAddress(module_name, function);
+			orig_funcptr = Process::GetFunctionAddress(module_name, function);
 
-			if(trampoline == NULL)
+#if USE_MHOOK
+			if(orig_funcptr == NULL)
 				return false;
-
-			return Mhook_SetHook(&trampoline, destination_function_ptr);
+			
+			return Mhook_SetHook(&orig_funcptr, destination_function_ptr);
+#elif USE_IAT_HOOK
+			return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
+#else
+			#error "No hook method enabled"
+#endif
 		}
 
 	private:
-		void* trampoline;
+		void *orig_funcptr;
 };
 
-#define HOOKS_BEGIN() Mhook_SuspendOtherThreads()
-#define HOOKS_END() Mhook_ResumeOtherThreads()
+#if USE_MHOOK
+	#define HOOKS_BEGIN() Mhook_SuspendOtherThreads()
+	#define HOOKS_END() Mhook_ResumeOtherThreads()
+#else
+	#define HOOKS_BEGIN() Win32_IAT_BeginHooks()
+	#define HOOKS_END() Win32_IAT_EndHooks()
+#endif
 
 #elif defined(LINUX)
 

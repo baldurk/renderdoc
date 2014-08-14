@@ -946,6 +946,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 			v = s = ShaderVariable("vThreadIDInGroupFlattened", flattened, flattened, flattened, flattened);
 			break;
 		}
+		case TYPE_INPUT_COVERAGE_MASK:
+		{
+			v = s = ShaderVariable("vCoverage", semantics.coverage, semantics.coverage, semantics.coverage, semantics.coverage);
+			break;
+		}
 		default:
 		{
 			RDCERR("Currently unsupported operand type %d!", oper.type);
@@ -2469,6 +2474,15 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				funcRet = "float4";
 			}
 
+			if (op.operation == OPCODE_SAMPLE_C ||
+				op.operation == OPCODE_SAMPLE_C_LZ ||
+				op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO_C)
+			{
+				retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
+				funcRet = "float4";
+			}
+
 			bool useOffsets = true;
 			int texdim = 2;
 			int offsdim = 2; // ddN and offset dimension
@@ -2797,7 +2811,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					if (retFmt == DXGI_FORMAT_UNKNOWN)
 					{
-						funcRet = buf;
+					funcRet	= buf;
+
+					retFmt = fmts[decl.resType[0]];
+					}
 
 						retFmt = fmts[decl.resType[0]];
 					}
@@ -2969,6 +2986,29 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					swizzle += elems[op.operands[2].comps[i]];
 			}
 
+			const char* channel = "";
+			if (op.operation == OPCODE_GATHER4 ||
+				op.operation == OPCODE_GATHER4_C ||
+				op.operation == OPCODE_GATHER4_PO ||
+				op.operation == OPCODE_GATHER4_PO_C)
+			{
+				switch (op.operands[3].comps[0])
+				{
+				case 0:
+					channel = "Red";
+					break;
+				case 1:
+					channel = "Green";
+					break;
+				case 2:
+					channel = "Blue";
+					break;
+				case 3:
+					channel = "Alpha";
+					break;
+				}
+			}
+			
 			const char* channel = "";
 			if (op.operation == OPCODE_GATHER4 ||
 				op.operation == OPCODE_GATHER4_C ||

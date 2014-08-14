@@ -42,9 +42,9 @@ GLReplay::GLReplay()
 
 void GLReplay::Shutdown()
 {
-	delete m_pDriver;
-
 	CloseReplayContext();
+
+	delete m_pDriver;
 }
 
 #pragma region Implemented
@@ -561,491 +561,113 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	return ret;
 }
 
-#pragma endregion
-
-#pragma region Mostly Implemented
-
 ShaderReflection *GLReplay::GetShader(ResourceId id)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 	
-	// TODO this shouldn't be tied to the current program
-	// This is only really needed to fill the latest sampler uniform values,
-	// which could potentially be done instead in SavePipelineState?
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
 	void *ctx = m_ReplayCtx.ctx;
 	
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
-
-	auto &refl = shaderDetails.reflection;
-
-	// initialise reflection data
-	// TODO: do this earlier. In glLinkProgram?
-	if(refl.DebugInfo.files.count == 0)
+	
+	if(shaderDetails.prog == 0)
 	{
-		refl.DebugInfo.entryFunc = "main";
-		refl.DebugInfo.compileFlags = 0;
-		create_array_uninit(refl.DebugInfo.files, shaderDetails.sources.size());
-		for(size_t i=0; i < shaderDetails.sources.size(); i++)
-		{
-			refl.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-			refl.DebugInfo.files[i].second = shaderDetails.sources[i];
-		}
-
-		refl.Disassembly = "";
-
-		vector<ShaderResource> resources;
-
-		GLint numUniforms = 0;
-		gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
-
-		const size_t numProps = 8;
-
-		GLenum resProps[numProps] = {
-			eGL_REFERENCED_BY_VERTEX_SHADER,
-			
-			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE, eGL_OFFSET, eGL_IS_ROW_MAJOR,
-		};
-
-		if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
-		if(shaderDetails.type == eGL_TESS_CONTROL_SHADER)    resProps[0] = eGL_REFERENCED_BY_TESS_CONTROL_SHADER;
-		if(shaderDetails.type == eGL_TESS_EVALUATION_SHADER) resProps[0] = eGL_REFERENCED_BY_TESS_EVALUATION_SHADER;
-		if(shaderDetails.type == eGL_GEOMETRY_SHADER)        resProps[0] = eGL_REFERENCED_BY_GEOMETRY_SHADER;
-		if(shaderDetails.type == eGL_FRAGMENT_SHADER)        resProps[0] = eGL_REFERENCED_BY_FRAGMENT_SHADER;
-		if(shaderDetails.type == eGL_COMPUTE_SHADER)         resProps[0] = eGL_REFERENCED_BY_COMPUTE_SHADER;
-		
-		for(GLint u=0; u < numUniforms; u++)
-		{
-			GLint values[numProps];
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
-
-			// skip if unused by this stage
-			if(values[0] == GL_FALSE)
-				continue;
-			
-			ShaderResource res;
-			res.IsSampler = false; // no separate sampler objects in GL
-			res.IsSRV = true;
-			res.IsTexture = true;
-			res.IsUAV = false;
-			res.variableType.descriptor.rows = 1;
-			res.variableType.descriptor.cols = 4;
-			res.variableType.descriptor.elements = 1;
-
-			// float samplers
-			if(values[1] == GL_SAMPLER_BUFFER)
-			{
-				res.resType = eResType_Buffer;
-				res.variableType.descriptor.name = "samplerBuffer";
-			}
-			else if(values[1] == GL_SAMPLER_1D)
-			{
-				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "sampler1D";
-			}
-			else if(values[1] == GL_SAMPLER_1D_ARRAY)
-			{
-				res.resType = eResType_Texture1DArray;
-				res.variableType.descriptor.name = "sampler1DArray";
-			}
-			else if(values[1] == GL_SAMPLER_1D_SHADOW)
-			{
-				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "sampler1DShadow";
-			}
-			else if(values[1] == GL_SAMPLER_1D_ARRAY_SHADOW)
-			{
-				res.resType = eResType_Texture1DArray;
-				res.variableType.descriptor.name = "sampler1DArrayShadow";
-			}
-			else if(values[1] == GL_SAMPLER_2D)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2D";
-			}
-			else if(values[1] == GL_SAMPLER_2D_ARRAY)
-			{
-				res.resType = eResType_Texture2DArray;
-				res.variableType.descriptor.name = "sampler2DArray";
-			}
-			else if(values[1] == GL_SAMPLER_2D_SHADOW)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2DShadow";
-			}
-			else if(values[1] == GL_SAMPLER_2D_ARRAY_SHADOW)
-			{
-				res.resType = eResType_Texture2DArray;
-				res.variableType.descriptor.name = "sampler2DArrayShadow";
-			}
-			else if(values[1] == GL_SAMPLER_2D_RECT)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2DRect";
-			}
-			else if(values[1] == GL_SAMPLER_2D_RECT_SHADOW)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2DRectShadow";
-			}
-			else if(values[1] == GL_SAMPLER_3D)
-			{
-				res.resType = eResType_Texture3D;
-				res.variableType.descriptor.name = "sampler3D";
-			}
-			else if(values[1] == GL_SAMPLER_CUBE)
-			{
-				res.resType = eResType_TextureCube;
-				res.variableType.descriptor.name = "samplerCube";
-			}
-			else if(values[1] == GL_SAMPLER_CUBE_SHADOW)
-			{
-				res.resType = eResType_TextureCube;
-				res.variableType.descriptor.name = "samplerCubeShadow";
-			}
-			else if(values[1] == GL_SAMPLER_CUBE_MAP_ARRAY)
-			{
-				res.resType = eResType_TextureCubeArray;
-				res.variableType.descriptor.name = "samplerCubeArray";
-			}
-			else if(values[1] == GL_SAMPLER_2D_MULTISAMPLE)
-			{
-				res.resType = eResType_Texture2DMS;
-				res.variableType.descriptor.name = "sampler2DMS";
-			}
-			else if(values[1] == GL_SAMPLER_2D_MULTISAMPLE_ARRAY)
-			{
-				res.resType = eResType_Texture2DMSArray;
-				res.variableType.descriptor.name = "sampler2DMSArray";
-			}
-			// int samplers
-			else if(values[1] == GL_INT_SAMPLER_BUFFER)
-			{
-				res.resType = eResType_Buffer;
-				res.variableType.descriptor.name = "samplerBuffer";
-			}
-			else if(values[1] == GL_INT_SAMPLER_1D)
-			{
-				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "sampler1D";
-			}
-			else if(values[1] == GL_INT_SAMPLER_1D_ARRAY)
-			{
-				res.resType = eResType_Texture1DArray;
-				res.variableType.descriptor.name = "sampler1DArray";
-			}
-			else if(values[1] == GL_INT_SAMPLER_2D)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2D";
-			}
-			else if(values[1] == GL_INT_SAMPLER_2D_ARRAY)
-			{
-				res.resType = eResType_Texture2DArray;
-				res.variableType.descriptor.name = "sampler2DArray";
-			}
-			else if(values[1] == GL_INT_SAMPLER_2D_RECT)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2DRect";
-			}
-			else if(values[1] == GL_INT_SAMPLER_3D)
-			{
-				res.resType = eResType_Texture3D;
-				res.variableType.descriptor.name = "sampler3D";
-			}
-			else if(values[1] == GL_INT_SAMPLER_CUBE)
-			{
-				res.resType = eResType_TextureCube;
-				res.variableType.descriptor.name = "samplerCube";
-			}
-			else if(values[1] == GL_INT_SAMPLER_CUBE_MAP_ARRAY)
-			{
-				res.resType = eResType_TextureCubeArray;
-				res.variableType.descriptor.name = "samplerCubeArray";
-			}
-			else if(values[1] == GL_INT_SAMPLER_2D_MULTISAMPLE)
-			{
-				res.resType = eResType_Texture2DMS;
-				res.variableType.descriptor.name = "sampler2DMS";
-			}
-			else if(values[1] == GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
-			{
-				res.resType = eResType_Texture2DMSArray;
-				res.variableType.descriptor.name = "sampler2DMSArray";
-			}
-			// unsigned int samplers
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_BUFFER)
-			{
-				res.resType = eResType_Buffer;
-				res.variableType.descriptor.name = "samplerBuffer";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_1D)
-			{
-				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "sampler1D";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
-			{
-				res.resType = eResType_Texture1DArray;
-				res.variableType.descriptor.name = "sampler1DArray";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2D";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
-			{
-				res.resType = eResType_Texture2DArray;
-				res.variableType.descriptor.name = "sampler2DArray";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_RECT)
-			{
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2DRect";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_3D)
-			{
-				res.resType = eResType_Texture3D;
-				res.variableType.descriptor.name = "sampler3D";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_CUBE)
-			{
-				res.resType = eResType_TextureCube;
-				res.variableType.descriptor.name = "samplerCube";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
-			{
-				res.resType = eResType_TextureCubeArray;
-				res.variableType.descriptor.name = "samplerCubeArray";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
-			{
-				res.resType = eResType_Texture2DMS;
-				res.variableType.descriptor.name = "sampler2DMS";
-			}
-			else if(values[1] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
-			{
-				res.resType = eResType_Texture2DMSArray;
-				res.variableType.descriptor.name = "sampler2DMSArray";
-			}
-			else
-			{
-				// not a sampler
-				continue;
-			}
-
-			res.variableAddress = values[3];
-
-			create_array_uninit(res.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, res.name.elems);
-			res.name.count--; // trim off trailing null
-
-			resources.push_back(res);
-		}
-
-		refl.Resources = resources;
-
-		vector<ShaderConstant> globalUniforms;
-		
-		GLint numUBOs = 0;
-		vector<string> uboNames;
-		vector<bool> uboUsed;
-		vector<ShaderConstant> *ubos = NULL;
-		
-		{
-			gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
-
-			ubos = new vector<ShaderConstant>[numUBOs];
-			uboNames.resize(numUBOs);
-			uboUsed.resize(numUBOs);
-
-			for(GLint u=0; u < numUBOs; u++)
-			{
-				const size_t propnum = 2;
-				GLenum UBOResProps[propnum] = {
-					resProps[0], eGL_NAME_LENGTH,
-				};
-				GLint UBOValues[propnum];
-				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, u, propnum, UBOResProps, propnum, NULL, UBOValues);
-
-				// skip if unused by this stage
-				if(UBOValues[0] == GL_FALSE)
-					continue;
-
-				char *nm = new char[UBOValues[1]+1];
-				gl.glGetProgramResourceName(curProg, eGL_UNIFORM_BLOCK, u, UBOValues[1]+1, NULL, nm);
-				uboNames[u] = nm;
-				delete[] nm;
-
-				uboUsed[u] = true;
-			}
-		}
-
-		for(GLint u=0; u < numUniforms; u++)
-		{
-			GLint values[numProps];
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
-			
-			// skip if global and unused by this stage, or if a UBO that is unused by this stage
-			if(values[0] == GL_FALSE && (values[4] == -1 || !uboUsed[ values[4] ]))
-				continue;
-
-			ShaderConstant var;
-			
-			if(values[1] == GL_FLOAT_VEC4)
-			{
-				var.type.descriptor.name = "vec4";
-				var.type.descriptor.type = eVar_Float;
-				var.type.descriptor.rows = 1;
-				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = RDCMAX(1, values[5]);
-			}
-			else if(values[1] == GL_FLOAT_VEC3)
-			{
-				var.type.descriptor.name = "vec3";
-				var.type.descriptor.type = eVar_Float;
-				var.type.descriptor.rows = 1;
-				var.type.descriptor.cols = 3;
-				var.type.descriptor.elements = RDCMAX(1, values[5]);
-			}
-			else if(values[1] == GL_FLOAT_MAT4)
-			{
-				var.type.descriptor.name = "mat4";
-				var.type.descriptor.type = eVar_Float;
-				var.type.descriptor.rows = 4;
-				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = RDCMAX(1, values[5]);
-			}
-			else if(values[1] == GL_UNSIGNED_INT_VEC4)
-			{
-				var.type.descriptor.name = "uvec4";
-				var.type.descriptor.type = eVar_UInt;
-				var.type.descriptor.rows = 1;
-				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = RDCMAX(1, values[5]);
-			}
-			else
-			{
-				// fill in more uniform types
-				continue;
-			}
-
-			if(values[6] == -1 && values[3] >= 0)
-			{
-				var.reg.vec = values[3];
-				var.reg.comp = 0;
-			}
-			else if(values[6] >= 0)
-			{
-				var.reg.vec = values[6] / 16;
-				var.reg.comp = (values[6] / 4) % 4;
-
-				RDCASSERT((values[6] % 4) == 0);
-			}
-			else
-			{
-				var.reg.vec = var.reg.comp = ~0U;
-			}
-
-			var.type.descriptor.rowMajorStorage = (values[7] >= 0);
-
-			create_array_uninit(var.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
-			var.name.count--; // trim off trailing null
-
-			int32_t c = var.name.count;
-
-			// trim off trailing [0] if it's an array
-			if(values[5] > 1 && var.name[c-3] == '[' && var.name[c-2] == '0' && var.name[c-1] == ']')
-				var.name.count -= 3;
-
-			if(strchr(var.name.elems, '.'))
-			{
-				GLNOTIMP("Variable contains . - structure not reconstructed");
-			}
-			
-			vector<ShaderConstant> *UBO = &globalUniforms;
-
-			// don't look at block uniforms just yet
-			if(values[4] != -1)
-			{
-				RDCASSERT(values[4] < numUBOs);
-				UBO = &ubos[ values[4] ];
-			}
-			
-			UBO->push_back(var);
-		}
-
-		vector<ConstantBlock> cbuffers;
-		
-		if(ubos)
-		{
-			cbuffers.reserve(numUBOs + (globalUniforms.empty() ? 0 : 1));
-
-			for(int i=0; i < numUBOs; i++)
-			{
-				if(!ubos[i].empty())
-				{
-					struct ubo_offset_sort
-					{
-						bool operator() (const ShaderConstant &a, const ShaderConstant &b)
-						{ if(a.reg.vec == b.reg.vec) return a.reg.comp < b.reg.comp; else return a.reg.vec < b.reg.vec; }
-					};
-
-					ConstantBlock cblock;
-					cblock.name = uboNames[i];
-					cblock.bufferAddress = i;
-					cblock.bindPoint = -1;
-					std::sort(ubos[i].begin(), ubos[i].end(), ubo_offset_sort());
-
-					cblock.variables = ubos[i];
-
-					cbuffers.push_back(cblock);
-				}
-			}
-		}
-
-		if(!globalUniforms.empty())
-		{
-			ConstantBlock globals;
-			globals.name = "$Globals";
-			globals.bufferAddress = -1;
-			globals.bindPoint = -1;
-			globals.variables = globalUniforms;
-
-			cbuffers.push_back(globals);
-		}
-
-		delete[] ubos;
-		
-		// TODO: fill in Interfaces with shader subroutines?
-		// TODO: find a way of generating input/output signature.
-		//       The only way I can think of doing this is to generate separable programs for each
-		//       shader stage, but that requires modifying the glsl to redeclare built-in blocks if necessary.
-
-		refl.ConstantBlocks = cbuffers;
+		RDCERR("Can't get shader details without separable program");
+		return NULL;
 	}
 
-	// update with latest uniform values
-	for(int32_t i=0; i < refl.Resources.count; i++)
+	return &shaderDetails.reflection;
+}
+
+#pragma endregion
+
+#pragma region Mostly Implemented
+
+void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
+{
+	// in case of bugs, we readback into this array instead of
+	GLint dummyReadback[32];
+
+#if !defined(RELEASE)
+	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		dummyReadback[i] = 0x6c7b8a9d;
+#endif
+
+	GLenum refEnum[] = {
+		eGL_REFERENCED_BY_VERTEX_SHADER,
+		eGL_REFERENCED_BY_TESS_CONTROL_SHADER,
+		eGL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+		eGL_REFERENCED_BY_GEOMETRY_SHADER,
+		eGL_REFERENCED_BY_FRAGMENT_SHADER,
+		eGL_REFERENCED_BY_COMPUTE_SHADER,
+	};
+	
+	create_array_uninit(mapping.Resources, refl->Resources.count);
+	for(int32_t i=0; i < refl->Resources.count; i++)
 	{
-		if(refl.Resources.elems[i].IsSRV && refl.Resources.elems[i].IsTexture)
-			gl.glGetUniformiv(curProg, refl.Resources.elems[i].variableAddress, (GLint *)&refl.Resources.elems[i].bindPoint);
+		if(refl->Resources.elems[i].IsSRV && refl->Resources.elems[i].IsTexture)
+		{
+			GLint loc = gl.glGetUniformLocation(curProg, refl->Resources.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetUniformiv(curProg, loc, dummyReadback);
+				mapping.Resources[i].bind = dummyReadback[0];
+			}
+		}
+		else
+		{
+			mapping.Resources[i].bind = -1;
+		}
+
+		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
+		if(idx == GL_INVALID_INDEX)
+		{
+			mapping.Resources[i].used = false;
+		}
+		else
+		{
+			GLint used = 0;
+			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+			mapping.Resources[i].used = (used != 0);
+		}
 	}
-	for(int32_t i=0; i < refl.ConstantBlocks.count; i++)
+	
+	create_array_uninit(mapping.ConstantBlocks, refl->ConstantBlocks.count);
+	for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
 	{
-		if(refl.ConstantBlocks.elems[i].bufferAddress >= 0)
-			gl.glGetActiveUniformBlockiv(curProg, refl.ConstantBlocks.elems[i].bufferAddress,
-																		eGL_UNIFORM_BLOCK_BINDING, (GLint *)&refl.ConstantBlocks.elems[i].bindPoint);
+		if(refl->ConstantBlocks.elems[i].bufferBacked)
+		{
+			GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+				mapping.ConstantBlocks[i].bind = dummyReadback[0];
+			}
+		}
+		else
+		{
+			mapping.ConstantBlocks[i].bind = -1;
+		}
+
+		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
+		if(idx == GL_INVALID_INDEX)
+		{
+			mapping.ConstantBlocks[i].used = false;
+		}
+		else
+		{
+			GLint used = 0;
+			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+			mapping.ConstantBlocks[i].used = (used != 0);
+		}
 	}
 
-	return &refl;
+#if !defined(RELEASE)
+	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		if(dummyReadback[i] != 0x6c7b8a9d)
+			RDCERR("Invalid uniform readback - data beyond first element modified!");
+#endif
 }
 
 void GLReplay::SavePipelineState()
@@ -1269,15 +891,88 @@ void GLReplay::SavePipelineState()
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
+	GLPipelineState::ShaderStage *stages[6] = {
+		&pipe.m_VS,
+		&pipe.m_TCS,
+		&pipe.m_TES,
+		&pipe.m_GS,
+		&pipe.m_FS,
+		&pipe.m_CS,
+	};
+	ShaderReflection *refls[6] = { NULL };
+	ShaderBindpointMapping *mappings[6] = { NULL };
+	
+	struct
+	{
+		GLenum bit;
+		GLenum type;
+	} shaders[] = {
+		{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
+		{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
+		{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
+		{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
+		{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
+		{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
+	};
+
 	if(curProg == 0)
 	{
-		pipe.m_VS.Shader = ResourceId();
-		pipe.m_FS.Shader = ResourceId();
-		
-		for(GLint unit=0; unit < numTexUnits; unit++)
+		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
+	
+		if(curProg == 0)
 		{
-			pipe.Textures[unit].FirstSlice = 0;
-			pipe.Textures[unit].Resource = ResourceId();
+			pipe.m_VS.Shader = ResourceId();
+			pipe.m_FS.Shader = ResourceId();
+
+			for(GLint unit=0; unit < numTexUnits; unit++)
+			{
+				pipe.Textures[unit].FirstSlice = 0;
+				pipe.Textures[unit].Resource = ResourceId();
+			}
+		}
+		else
+		{
+			ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
+			auto &pipeDetails = m_pDriver->m_Pipelines[id];
+
+			RDCASSERT(pipeDetails.programs.size());
+
+			// TODO: we could pre-flatten this (to list all the shaders in the pipeline)
+
+			// look at the programs in the pipeline
+			for(size_t p=0; p < pipeDetails.programs.size(); p++)
+			{
+				auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
+
+				RDCASSERT(progDetails.shaders.size());
+
+				curProg = rm->GetCurrentResource(pipeDetails.programs[p].id).name;
+
+				// look at the shaders in the program
+				for(int s=0; s < ARRAY_COUNT(shaders); s++)
+				{
+					// if this program is being used for a shader stage
+					if(pipeDetails.programs[p].use & shaders[s].bit)
+					{
+						auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
+
+						// find the shader stage that's being used
+						for(size_t i=0; i < progDetails.shaders.size(); i++)
+						{
+							if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
+							{
+								// set Shader ID and bindpoint mapping directly in the pipe state
+								// store reflection and mapping locally too
+								stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
+								refls[s] = GetShader(progDetails.shaders[i]);
+								GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
+								mappings[s] = &stages[s]->BindpointMapping;
+								break;
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 	else
@@ -1286,133 +981,137 @@ void GLReplay::SavePipelineState()
 
 		RDCASSERT(progDetails.shaders.size());
 
+		// look at the shaders in the program
 		for(size_t i=0; i < progDetails.shaders.size(); i++)
 		{
-			if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
-				pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-			else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
-				pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-		}
-
-		// GL is ass-backwards in its handling of texture units. When a shader is active
-		// the types in the glsl samplers inform which targets are used from which texture units
-		//
-		// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
-		// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
-		// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
-		// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
-		// different types). It makes it all rather pointless and needlessly complex.
-		//
-		// What we have to do then, is consider the program, look at the values of the uniforms, and
-		// then get the appropriate current binding based on the uniform type. We can warn/alert the
-		// user if we hit the illegal case of two uniforms with different types but the same value
-		//
-		// Handling is different if no shaders are active, but we don't consider that case.
-
-
-		// prefetch uniform values in GetShader()
-		ShaderReflection *refls[6];
-		for(size_t s=0; s < progDetails.shaders.size(); s++)
-			refls[s] = GetShader(progDetails.shaders[s]);
-
-		for(GLint unit=0; unit < numTexUnits; unit++)
-		{
-			GLenum binding = eGL_UNKNOWN_ENUM;
-			GLenum target = eGL_UNKNOWN_ENUM;
-
-			for(size_t s=0; s < progDetails.shaders.size(); s++)
+			// find the matching stage
+			for(int s=0; s < ARRAY_COUNT(shaders); s++)
 			{
-				if(refls[s] == NULL) continue;
-
-				for(int32_t r=0; r < refls[s]->Resources.count; r++)
+				if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
 				{
-					// bindPoint is the uniform value for this sampler
-					if(refls[s]->Resources[r].bindPoint == unit)
+					// set Shader ID and bindpoint mapping directly in the pipe state
+					// store reflection and mapping locally too
+					stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
+					refls[s] = GetShader(progDetails.shaders[i]); 
+					GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
+					mappings[s] = &stages[s]->BindpointMapping;
+				}
+			}
+		}
+	}
+
+	// GL is ass-backwards in its handling of texture units. When a shader is active
+	// the types in the glsl samplers inform which targets are used from which texture units
+	//
+	// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
+	// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
+	// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
+	// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
+	// different types). It makes it all rather pointless and needlessly complex.
+	//
+	// What we have to do then, is consider the program, look at the values of the uniforms, and
+	// then get the appropriate current binding based on the uniform type. We can warn/alert the
+	// user if we hit the illegal case of two uniforms with different types but the same value
+	//
+	// Handling is different if no shaders are active, but we don't consider that case.
+
+	for(GLint unit=0; unit < numTexUnits; unit++)
+	{
+		GLenum binding = eGL_UNKNOWN_ENUM;
+		GLenum target = eGL_UNKNOWN_ENUM;
+
+		for(size_t s=0; s < ARRAY_COUNT(refls); s++)
+		{
+			if(refls[s] == NULL) continue;
+
+			for(int32_t r=0; r < refls[s]->Resources.count; r++)
+			{
+				// bindPoint is the uniform value for this sampler
+				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
+				{
+					GLenum t = eGL_UNKNOWN_ENUM;
+
+					switch(refls[s]->Resources[r].resType)
 					{
-						GLenum t = eGL_UNKNOWN_ENUM;
+					case eResType_None:
+						t = eGL_UNKNOWN_ENUM;
+						break;
+					case eResType_Buffer:
+						t = eGL_TEXTURE_BINDING_BUFFER;
+						break;
+					case eResType_Texture1D:
+						t = eGL_TEXTURE_BINDING_1D;
+						target = eGL_TEXTURE_1D;
+						break;
+					case eResType_Texture1DArray:
+						t = eGL_TEXTURE_BINDING_1D_ARRAY;
+						target = eGL_TEXTURE_1D_ARRAY;
+						break;
+					case eResType_Texture2D:
+						t = eGL_TEXTURE_BINDING_2D;
+						target = eGL_TEXTURE_2D;
+						break;
+					case eResType_Texture2DArray:
+						t = eGL_TEXTURE_BINDING_2D_ARRAY;
+						target = eGL_TEXTURE_2D_ARRAY;
+						break;
+					case eResType_Texture2DMS:
+						t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
+						target = eGL_TEXTURE_2D_MULTISAMPLE;
+						break;
+					case eResType_Texture2DMSArray:
+						t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
+						target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+						break;
+					case eResType_Texture3D:
+						t = eGL_TEXTURE_BINDING_3D;
+						target = eGL_TEXTURE_3D;
+						break;
+					case eResType_TextureCube:
+						t = eGL_TEXTURE_BINDING_CUBE_MAP;
+						target = eGL_TEXTURE_CUBE_MAP;
+						break;
+					case eResType_TextureCubeArray:
+						t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
+						target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+						break;
+					}
 
-						switch(refls[s]->Resources[r].resType)
-						{
-							case eResType_None:
-								t = eGL_UNKNOWN_ENUM;
-								break;
-							case eResType_Buffer:
-								t = eGL_TEXTURE_BINDING_BUFFER;
-								break;
-							case eResType_Texture1D:
-								t = eGL_TEXTURE_BINDING_1D;
-								target = eGL_TEXTURE_1D;
-								break;
-							case eResType_Texture1DArray:
-								t = eGL_TEXTURE_BINDING_1D_ARRAY;
-								target = eGL_TEXTURE_1D_ARRAY;
-								break;
-							case eResType_Texture2D:
-								t = eGL_TEXTURE_BINDING_2D;
-								target = eGL_TEXTURE_2D;
-								break;
-							case eResType_Texture2DArray:
-								t = eGL_TEXTURE_BINDING_2D_ARRAY;
-								target = eGL_TEXTURE_2D_ARRAY;
-								break;
-							case eResType_Texture2DMS:
-								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
-								target = eGL_TEXTURE_2D_MULTISAMPLE;
-								break;
-							case eResType_Texture2DMSArray:
-								t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
-								target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-								break;
-							case eResType_Texture3D:
-								t = eGL_TEXTURE_BINDING_3D;
-								target = eGL_TEXTURE_3D;
-								break;
-							case eResType_TextureCube:
-								t = eGL_TEXTURE_BINDING_CUBE_MAP;
-								target = eGL_TEXTURE_CUBE_MAP;
-								break;
-							case eResType_TextureCubeArray:
-								t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
-								target = eGL_TEXTURE_CUBE_MAP_ARRAY;
-								break;
-						}
-
-						if(binding == eGL_UNKNOWN_ENUM)
-						{
-							binding = t;
-						}
-						else if(binding == t)
-						{
-							// two uniforms with the same type pointing to the same slot is fine
-							binding = t;
-						}
-						else if(binding != t)
-						{
-							RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
-						}
+					if(binding == eGL_UNKNOWN_ENUM)
+					{
+						binding = t;
+					}
+					else if(binding == t)
+					{
+						// two uniforms with the same type pointing to the same slot is fine
+						binding = t;
+					}
+					else if(binding != t)
+					{
+						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
 					}
 				}
 			}
+		}
 
-			if(binding != eGL_UNKNOWN_ENUM)
-			{
-				gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
+		if(binding != eGL_UNKNOWN_ENUM)
+		{
+			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
 
-				GLuint tex;
-				gl.glGetIntegerv(binding, (GLint *)&tex);
+			GLuint tex;
+			gl.glGetIntegerv(binding, (GLint *)&tex);
 
-				// very bespoke/specific
-				GLint firstSlice = 0;
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+			// very bespoke/specific
+			GLint firstSlice = 0;
+			gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
 
-				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
-				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
-			}
-			else
-			{
-				// what should we do in this case? there could be something bound just not used,
-				// it'd be nice to return that
-			}
+			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
+			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+		}
+		else
+		{
+			// what should we do in this case? there could be something bound just not used,
+			// it'd be nice to return that
 		}
 	}
 
@@ -1545,8 +1244,8 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 		RDCEraseEl(var.value);
 
-		bool bufferBacked = (cblock.bindPoint >= 0 && cblock.bufferAddress >= 0 && !data.empty());
-		bool hasValue = bufferBacked || (cblock.bindPoint < 0 && cblock.bufferAddress < 0); // buffer backed (with data), or global uniforms
+		bool bufferBacked = (cblock.bufferBacked && !data.empty());
+		bool hasValue = bufferBacked || !cblock.bufferBacked; // buffer backed (with data), or global uniforms
 
 		if(desc.elements == 1)
 		{

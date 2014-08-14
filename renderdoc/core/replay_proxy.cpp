@@ -384,7 +384,7 @@ void Serialiser::Serialise(const char *name, ConstantBlock &el)
 {
 	Serialise("", el.name);
 	Serialise("", el.variables);
-	Serialise("", el.bufferAddress);
+	Serialise("", el.bufferBacked);
 	Serialise("", el.bindPoint);
 }
 
@@ -397,7 +397,6 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 	Serialise("", el.IsUAV);
 	Serialise("", el.name);
 	Serialise("", el.variableType);
-	Serialise("", el.variableAddress);
 	Serialise("", el.bindPoint);
 }
 

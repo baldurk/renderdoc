@@ -791,7 +791,9 @@ struct ASMDecl
 	PrimitiveTopology outTopology;
 
 	// OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT
-	uint32_t forkInstanceCount;
+	// OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT
+	// OPCODE_DCL_GS_INSTANCE_COUNT
+	uint32_t instanceCount;
 
 	// OPCODE_DCL_INDEX_RANGE
 	uint32_t indexRange;

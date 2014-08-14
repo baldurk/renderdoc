@@ -40,8 +40,10 @@ public:
 	{
 		bool success = true;
 
+#if USE_MHOOK
 		// require d3d11.dll hooked as well for proper operation
 		if(GetModuleHandleA("d3d11.dll") == NULL) return false;
+#endif
 
 		success &= CreateDXGIFactory.Initialize("CreateDXGIFactory", DLL_NAME, CreateDXGIFactory_hook);
 		success &= CreateDXGIFactory1.Initialize("CreateDXGIFactory1", DLL_NAME, CreateDXGIFactory1_hook);

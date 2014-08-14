@@ -292,6 +292,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	}
 #endif
 
+#if USE_MHOOK
 	// misc
 	InjectDLL(hProcess, L"kernel32.dll");
 
@@ -303,6 +304,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	// OpenGL
 	InjectDLL(hProcess, L"opengl32.dll");
 	InjectDLL(hProcess, L"gdi32.dll");
+#endif
 
 	InjectDLL(hProcess, renderdocPath);
 

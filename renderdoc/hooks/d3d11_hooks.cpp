@@ -39,12 +39,14 @@ public:
 	{
 		bool success = true;
 
+#if USE_MHOOK
 		// require dxgi.dll hooked as well for proper operation
 		if(GetModuleHandleA("dxgi.dll") == NULL)
 		{
 			RDCWARN("Failed to load dxgi.dll - not inserting D3D11 hooks.");
 			return false;
 		}
+#endif
 
 		// also require d3dcompiler_??.dll
 		if(GetD3DCompiler() == NULL)
@@ -58,6 +60,7 @@ public:
 
 		if(!success) return false;
 		
+#if USE_MHOOK
 		// FRAPS compatibility. Save out the first 16 bytes (arbitrary number) of the 'real' function code.
 		// this should be
 		// jmp D3D11CreateDeviceAndSwapChain_hook
@@ -68,6 +71,7 @@ public:
 		void *hooked_func_ptr = GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
 		if(hooked_func_ptr == NULL) return false;
 		memcpy(CreateDeviceAndSwapChain_ident, hooked_func_ptr, 16);
+#endif
 
 		m_HasHooks = true;
 		m_EnabledHooks = true;
@@ -188,6 +192,7 @@ private:
 
 		PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
 		
+#if USE_MHOOK
 		if(createFunc)
 		{
 			byte ident[16];
@@ -211,6 +216,7 @@ private:
 			if(!memcmp(ident, CreateDeviceAndSwapChain_ident, 16) && m_HasHooks)
 				createFunc = CreateDeviceAndSwapChain();
 		}
+#endif
 
 		// shouldn't ever get here, we should either have it from procaddress or the trampoline, but let's be
 		// safe.

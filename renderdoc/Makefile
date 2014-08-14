@@ -41,6 +41,7 @@ driver/gl/gl_manager.o \
 driver/gl/gl_debug.o \
 driver/gl/gl_replay.o \
 driver/gl/gl_replay_linux.o \
+driver/gl/gl_shader_refl.o \
 driver/gl/gl_resources.o \
 driver/gl/gl_renderstate.o \
 driver/gl/wrappers/gl_buffer_funcs.o \

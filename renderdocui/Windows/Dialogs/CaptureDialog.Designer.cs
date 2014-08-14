@@ -161,7 +161,7 @@
             this.queueFrameCap.Location = new System.Drawing.Point(3, 3);
             this.queueFrameCap.Name = "queueFrameCap";
             this.queueFrameCap.Size = new System.Drawing.Size(151, 24);
-            this.queueFrameCap.TabIndex = 1;
+            this.queueFrameCap.TabIndex = 19;
             this.queueFrameCap.Text = "Queue Capture of Frame";
             this.queueFrameCap.UseVisualStyleBackColor = true;
             // 
@@ -181,7 +181,7 @@
             0});
             this.queuedCapFrame.Name = "queuedCapFrame";
             this.queuedCapFrame.Size = new System.Drawing.Size(120, 20);
-            this.queuedCapFrame.TabIndex = 0;
+            this.queuedCapFrame.TabIndex = 20;
             this.queuedCapFrame.ThousandsSeparator = true;
             this.queuedCapFrame.Value = new decimal(new int[] {
             2,
@@ -232,7 +232,7 @@
             this.AllowFullscreen.Location = new System.Drawing.Point(3, 3);
             this.AllowFullscreen.Name = "AllowFullscreen";
             this.AllowFullscreen.Size = new System.Drawing.Size(130, 20);
-            this.AllowFullscreen.TabIndex = 8;
+            this.AllowFullscreen.TabIndex = 7;
             this.AllowFullscreen.Text = "Allow Fullscreen";
             this.toolTip.SetToolTip(this.AllowFullscreen, "Allows the application to switch to full-screen mode");
             this.AllowFullscreen.UseVisualStyleBackColor = true;
@@ -242,7 +242,7 @@
             this.AllowVSync.Location = new System.Drawing.Point(139, 3);
             this.AllowVSync.Name = "AllowVSync";
             this.AllowVSync.Size = new System.Drawing.Size(130, 20);
-            this.AllowVSync.TabIndex = 9;
+            this.AllowVSync.TabIndex = 8;
             this.AllowVSync.Text = "Allow VSync";
             this.toolTip.SetToolTip(this.AllowVSync, "Allows the application to enable v-sync");
             this.AllowVSync.UseVisualStyleBackColor = true;
@@ -265,7 +265,7 @@
             this.DelayForDebugger.Margin = new System.Windows.Forms.Padding(0, 0, 3, 3);
             this.DelayForDebugger.Name = "DelayForDebugger";
             this.DelayForDebugger.Size = new System.Drawing.Size(48, 20);
-            this.DelayForDebugger.TabIndex = 12;
+            this.DelayForDebugger.TabIndex = 9;
             this.toolTip.SetToolTip(this.DelayForDebugger, "Pauses for N seconds after launching the process,\r\nto allow a debugger to attach");
             // 
             // label4
@@ -296,7 +296,7 @@
             this.CaptureCallstacksOnlyDraws.Location = new System.Drawing.Point(3, 29);
             this.CaptureCallstacksOnlyDraws.Name = "CaptureCallstacksOnlyDraws";
             this.CaptureCallstacksOnlyDraws.Size = new System.Drawing.Size(130, 20);
-            this.CaptureCallstacksOnlyDraws.TabIndex = 19;
+            this.CaptureCallstacksOnlyDraws.TabIndex = 11;
             this.CaptureCallstacksOnlyDraws.Text = "Only Drawcall stacks";
             this.toolTip.SetToolTip(this.CaptureCallstacksOnlyDraws, "Only collect callstacks on \'drawcall\' level api calls");
             this.CaptureCallstacksOnlyDraws.UseVisualStyleBackColor = true;
@@ -306,7 +306,7 @@
             this.DebugDeviceMode.Location = new System.Drawing.Point(139, 29);
             this.DebugDeviceMode.Name = "DebugDeviceMode";
             this.DebugDeviceMode.Size = new System.Drawing.Size(130, 20);
-            this.DebugDeviceMode.TabIndex = 9;
+            this.DebugDeviceMode.TabIndex = 12;
             this.DebugDeviceMode.Text = "Create Debug Device";
             this.toolTip.SetToolTip(this.DebugDeviceMode, "D3D11: Create a debug device - allows capturing and reading of D3D errors and war" +
         "nings");
@@ -317,7 +317,7 @@
             this.CacheStateObjects.Location = new System.Drawing.Point(275, 29);
             this.CacheStateObjects.Name = "CacheStateObjects";
             this.CacheStateObjects.Size = new System.Drawing.Size(130, 20);
-            this.CacheStateObjects.TabIndex = 11;
+            this.CacheStateObjects.TabIndex = 13;
             this.CacheStateObjects.Text = "Cache State Objects";
             this.toolTip.SetToolTip(this.CacheStateObjects, "D3D11: Caches state objects so that rapid creation & destruction\r\ndoesn\'t inflate" +
         " memory used and log file size");
@@ -328,7 +328,7 @@
             this.HookIntoChildren.Location = new System.Drawing.Point(411, 29);
             this.HookIntoChildren.Name = "HookIntoChildren";
             this.HookIntoChildren.Size = new System.Drawing.Size(130, 20);
-            this.HookIntoChildren.TabIndex = 16;
+            this.HookIntoChildren.TabIndex = 14;
             this.HookIntoChildren.Text = "Hook Into Children";
             this.toolTip.SetToolTip(this.HookIntoChildren, "Hook into child processes - useful with launchers or similar intermediate process" +
         "es");
@@ -339,7 +339,7 @@
             this.SaveAllInitials.Location = new System.Drawing.Point(3, 55);
             this.SaveAllInitials.Name = "SaveAllInitials";
             this.SaveAllInitials.Size = new System.Drawing.Size(130, 20);
-            this.SaveAllInitials.TabIndex = 17;
+            this.SaveAllInitials.TabIndex = 15;
             this.SaveAllInitials.Text = "Save All Initials";
             this.toolTip.SetToolTip(this.SaveAllInitials, "Save the initial state of all API resources at the start of each captured frame");
             this.SaveAllInitials.UseVisualStyleBackColor = true;
@@ -349,7 +349,7 @@
             this.RefAllResources.Location = new System.Drawing.Point(139, 55);
             this.RefAllResources.Name = "RefAllResources";
             this.RefAllResources.Size = new System.Drawing.Size(130, 20);
-            this.RefAllResources.TabIndex = 18;
+            this.RefAllResources.TabIndex = 16;
             this.RefAllResources.Text = "Ref All Resources";
             this.toolTip.SetToolTip(this.RefAllResources, "Consider all resources to be included, even if unused in the capture frame");
             this.RefAllResources.UseVisualStyleBackColor = true;
@@ -359,7 +359,7 @@
             this.CaptureAllCmdLists.Location = new System.Drawing.Point(275, 55);
             this.CaptureAllCmdLists.Name = "CaptureAllCmdLists";
             this.CaptureAllCmdLists.Size = new System.Drawing.Size(130, 20);
-            this.CaptureAllCmdLists.TabIndex = 21;
+            this.CaptureAllCmdLists.TabIndex = 17;
             this.CaptureAllCmdLists.Text = "Capture All Cmd Lists";
             this.toolTip.SetToolTip(this.CaptureAllCmdLists, "When enabled, all deferred command lists will be saved even while idling.\r\nThis h" +
         "as an overhead but ensures if you hold onto a list it will be captured.");
@@ -370,7 +370,7 @@
             this.AutoStart.Location = new System.Drawing.Point(411, 55);
             this.AutoStart.Name = "AutoStart";
             this.AutoStart.Size = new System.Drawing.Size(130, 20);
-            this.AutoStart.TabIndex = 20;
+            this.AutoStart.TabIndex = 18;
             this.AutoStart.Text = "Auto start";
             this.toolTip.SetToolTip(this.AutoStart, "If these capture settings are saved & run, auto start the capture instantly on lo" +
         "ad");
@@ -395,7 +395,7 @@
             this.load.Location = new System.Drawing.Point(104, 3);
             this.load.Name = "load";
             this.load.Size = new System.Drawing.Size(86, 23);
-            this.load.TabIndex = 8;
+            this.load.TabIndex = 24;
             this.load.Text = "Load Settings";
             this.toolTip.SetToolTip(this.load, "Load a saved set of capture settings");
             this.load.UseVisualStyleBackColor = true;
@@ -407,7 +407,7 @@
             this.save.Location = new System.Drawing.Point(4, 3);
             this.save.Name = "save";
             this.save.Size = new System.Drawing.Size(94, 23);
-            this.save.TabIndex = 7;
+            this.save.TabIndex = 23;
             this.save.Text = "Save Settings";
             this.toolTip.SetToolTip(this.save, "Save these capture settings to file to load later");
             this.save.UseVisualStyleBackColor = true;
@@ -420,7 +420,7 @@
             this.close.Margin = new System.Windows.Forms.Padding(0);
             this.close.Name = "close";
             this.close.Size = new System.Drawing.Size(70, 23);
-            this.close.TabIndex = 6;
+            this.close.TabIndex = 22;
             this.close.Text = "Close";
             this.close.UseVisualStyleBackColor = true;
             this.close.Click += new System.EventHandler(this.close_Click);
@@ -432,7 +432,7 @@
             this.capture.Margin = new System.Windows.Forms.Padding(0);
             this.capture.Name = "capture";
             this.capture.Size = new System.Drawing.Size(70, 23);
-            this.capture.TabIndex = 5;
+            this.capture.TabIndex = 21;
             this.capture.Text = "Capture";
             this.toolTip.SetToolTip(this.capture, "Trigger a capture of the selected program");
             this.capture.UseVisualStyleBackColor = true;
@@ -540,7 +540,7 @@
             this.pidRefresh.Location = new System.Drawing.Point(518, 180);
             this.pidRefresh.Name = "pidRefresh";
             this.pidRefresh.Size = new System.Drawing.Size(75, 23);
-            this.pidRefresh.TabIndex = 1;
+            this.pidRefresh.TabIndex = 6;
             this.pidRefresh.Text = "Refresh";
             this.toolTip.SetToolTip(this.pidRefresh, "Refresh the list of processes");
             this.pidRefresh.UseVisualStyleBackColor = true;
@@ -561,7 +561,7 @@
             this.pidList.MultiSelect = false;
             this.pidList.Name = "pidList";
             this.pidList.Size = new System.Drawing.Size(584, 129);
-            this.pidList.TabIndex = 2;
+            this.pidList.TabIndex = 5;
             this.toolTip.SetToolTip(this.pidList, "Select the process to inject into - must not yet have utilised the target API");
             this.pidList.UseCompatibleStateImageBehavior = false;
             this.pidList.View = System.Windows.Forms.View.Details;

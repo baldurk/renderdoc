@@ -164,7 +164,7 @@ struct ConstantBlock
 {
 	rdctype::str name;
 	rdctype::array<ShaderConstant> variables;
-	int32_t bufferAddress;
+	bool32 bufferBacked;
 	int32_t bindPoint;
 };
 
@@ -179,7 +179,6 @@ struct ShaderResource
 
 	rdctype::str    name;
 	ShaderVariableType variableType;
-	int32_t variableAddress;
 	int32_t bindPoint;
 };
 
@@ -208,4 +207,16 @@ struct ShaderReflection
 	
 	// TODO expand this to encompass shader subroutines.
 	rdctype::array<rdctype::str> Interfaces;
+};
+
+struct BindpointMap
+{
+	int32_t bind;
+	bool32 used;
+};
+
+struct ShaderBindpointMapping
+{
+	rdctype::array<BindpointMap> ConstantBlocks;
+	rdctype::array<BindpointMap> Resources;
 };
