@@ -131,11 +131,11 @@ class GLReplay : public IReplayDriver
 
 		void SetReplayData(GLWindowingData data);
 	private:
-		void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
-		                      size_t &dataoffset, const vector<byte> &data, ShaderVariable &outVar);
-		void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
+		void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t offs, uint32_t matStride,
+		                      const vector<byte> &data, ShaderVariable &outVar);
+		void FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, string prefix,
 								  const rdctype::array<ShaderConstant> &variables, vector<ShaderVariable> &outvars,
-								  size_t &dataoffset, const vector<byte> &data);
+								  const vector<byte> &data);
 
 		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 

@@ -1171,12 +1171,12 @@ void GLReplay::SavePipelineState()
 	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
-void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
-                                size_t &dataoffset, const vector<byte> &data, ShaderVariable &outVar)
+void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
+								uint32_t offs, uint32_t matStride, const vector<byte> &data, ShaderVariable &outVar)
 {
-	const byte *bufdata = data.empty() ? NULL : &data[dataoffset];
-	size_t datasize = data.size() - dataoffset;
-	if(dataoffset > data.size()) datasize = 0;
+	const byte *bufdata = data.empty() ? NULL : &data[offs];
+	size_t datasize = data.size() - offs;
+	if(offs > data.size()) datasize = 0;
 
 	if(bufferBacked)
 	{
@@ -1184,27 +1184,51 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 
 		if(outVar.rows > 1 && outVar.columns > 1)
 		{
-			if(rowMajor) rangelen = outVar.rows*4*sizeof(float);
-			else         rangelen = outVar.columns*4*sizeof(float);
+			uint32_t *dest = &outVar.value.uv[0];
+
+			if(rowMajor)
+			{
+				for(uint32_t r=0; r < outVar.rows; r++)
+				{
+					if(datasize > 0)
+						memcpy((byte *)dest, bufdata, RDCMIN(rangelen, outVar.columns*sizeof(float)));
+
+					datasize -= RDCMIN(datasize, matStride);
+					bufdata += matStride;
+					dest += outVar.columns;
+				}
+			}
+			else
+			{
+				for(uint32_t c=0; c < outVar.columns; c++)
+				{
+					if(datasize > 0)
+						memcpy((byte *)dest, bufdata, RDCMIN(rangelen, outVar.rows*sizeof(float)));
+
+					datasize -= RDCMIN(datasize, matStride);
+					bufdata += matStride;
+					dest += outVar.rows;
+				}
+			}
 		}
-
-		if(datasize > 0)
-			memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
-
-		dataoffset += rangelen;
+		else
+		{
+			if(datasize > 0)
+				memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
+		}
 	}
 	else
 	{
 		switch(outVar.type)
 		{
 			case eVar_Float:
-				gl.glGetUniformfv(prog, locA, outVar.value.fv);
+				gl.glGetUniformfv(prog, offs, outVar.value.fv);
 				break;
 			case eVar_Int:
-				gl.glGetUniformiv(prog, locA, outVar.value.iv);
+				gl.glGetUniformiv(prog, offs, outVar.value.iv);
 				break;
 			case eVar_UInt:
-				gl.glGetUniformuiv(prog, locA, outVar.value.uv);
+				gl.glGetUniformuiv(prog, offs, outVar.value.uv);
 				break;
 			case eVar_Double:
 				RDCUNIMPLEMENTED("Double uniform variables");
@@ -1223,9 +1247,9 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 	}
 }
 
-void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
+void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, string prefix,
                                     const rdctype::array<ShaderConstant> &variables, vector<ShaderVariable> &outvars,
-                                    size_t &dataoffset, const vector<byte> &data)
+                                    const vector<byte> &data)
 {
 	for(int32_t i=0; i < variables.count; i++)
 	{
@@ -1242,7 +1266,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 			if(desc.elements == 1)
 			{
 				vector<ShaderVariable> ov;
-				FillCBufferVariables(gl, prog, bufferBacked, variables[i].type.members, ov, dataoffset, data);
+				FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".", variables[i].type.members, ov, data);
 				var.members = ov;
 			}
 			else
@@ -1254,42 +1278,62 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
 					
 					vector<ShaderVariable> ov;
-					FillCBufferVariables(gl, prog, bufferBacked, variables[i].type.members, ov, dataoffset, data);
+					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
 					arrEl.members = ov;
 					
 					arrelems.push_back(arrEl);
 				}
 				var.members = arrelems;
 			}
-
-			dataoffset = AlignUp16(dataoffset);
 		}
 		else
 		{
 			RDCEraseEl(var.value);
+			
+			// need to query offset and strides as there's no way to know what layout was used
+			// (and if it's not an std layout it's implementation defined :( )
+			string fullname = prefix + var.name.elems;
 
-			if(desc.elements == 1)
+			GLuint idx = gl.glGetProgramResourceIndex(prog, eGL_UNIFORM, fullname.c_str());
+
+			if(idx == GL_INVALID_INDEX)
 			{
-				FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
-				                 variables[i].reg.vec, variables[i].reg.comp, dataoffset, data, var);
+				RDCERR("Can't find program resource index for %hs", fullname.c_str());
 			}
 			else
 			{
-				vector<ShaderVariable> elems;
-				for(uint32_t a=0; a < desc.elements; a++)
+				GLenum props[] = { eGL_OFFSET, eGL_MATRIX_STRIDE, eGL_ARRAY_STRIDE, eGL_LOCATION };
+				GLint values[] = { 0, 0, 0, 0 };
+
+				gl.glGetProgramResourceiv(prog, eGL_UNIFORM, idx, ARRAY_COUNT(props), props, ARRAY_COUNT(props), NULL, values);
+
+				if(!bufferBacked)
 				{
-					ShaderVariable el = var;
-					el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
-
-					uint32_t arrayoffs = bufferBacked ? a : a*sizeof(float)*4;
-
-					FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
-					                 variables[i].reg.vec + arrayoffs, 0, dataoffset, data, el);
-
-					elems.push_back(el);
+					values[0] = values[3];
+					values[2] = 1;
 				}
 
-				var.members = elems;
+				if(desc.elements == 1)
+				{
+					FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+						values[0], values[1], data, var);
+				}
+				else
+				{
+					vector<ShaderVariable> elems;
+					for(uint32_t a=0; a < desc.elements; a++)
+					{
+						ShaderVariable el = var;
+						el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+
+						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+							values[0] + values[2] * a, values[1], data, el);
+
+						elems.push_back(el);
+					}
+
+					var.members = elems;
+				}
 			}
 		}
 
@@ -1316,8 +1360,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
 	
-	size_t offs = 0;
-	FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, cblock.variables, outvars, offs, data);
+	FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables, outvars, data);
 }
 
 #pragma endregion
