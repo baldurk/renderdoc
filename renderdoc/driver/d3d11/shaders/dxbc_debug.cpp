@@ -2464,15 +2464,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			string texture = "";
 			string funcRet = "";
 			DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
-			
-			if (op.operation == OPCODE_SAMPLE_C ||
-				op.operation == OPCODE_SAMPLE_C_LZ ||
-				op.operation == OPCODE_GATHER4_C ||
-				op.operation == OPCODE_GATHER4_PO_C)
-			{
-				retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
-				funcRet = "float4";
-			}
 
 			if (op.operation == OPCODE_SAMPLE_C ||
 				op.operation == OPCODE_SAMPLE_C_LZ ||
@@ -2816,9 +2807,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					retFmt = fmts[decl.resType[0]];
 					}
 
-						retFmt = fmts[decl.resType[0]];
-					}
-
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS || decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
 					{
 						if(decl.sampleCount > 0)
@@ -2984,29 +2972,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					swizzle += "x";
 				else
 					swizzle += elems[op.operands[2].comps[i]];
-			}
-
-			const char* channel = "";
-			if (op.operation == OPCODE_GATHER4 ||
-				op.operation == OPCODE_GATHER4_C ||
-				op.operation == OPCODE_GATHER4_PO ||
-				op.operation == OPCODE_GATHER4_PO_C)
-			{
-				switch (op.operands[3].comps[0])
-				{
-				case 0:
-					channel = "Red";
-					break;
-				case 1:
-					channel = "Green";
-					break;
-				case 2:
-					channel = "Blue";
-					break;
-				case 3:
-					channel = "Alpha";
-					break;
-				}
 			}
 			
 			const char* channel = "";
