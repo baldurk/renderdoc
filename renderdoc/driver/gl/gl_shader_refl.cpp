@@ -26,6 +26,76 @@
 
 #include <algorithm>
 
+// declare versions of ShaderConstant/ShaderVariableType with vectors
+// to more easily build up the members of nested structures
+struct DynShaderConstant;
+
+struct DynShaderVariableType
+{
+	struct
+	{
+		VarType       type;
+		uint32_t      rows;
+		uint32_t      cols;
+		uint32_t      elements;
+		bool32        rowMajorStorage;
+		string        name;
+	} descriptor;
+
+	vector<DynShaderConstant> members;
+};
+
+struct DynShaderConstant
+{
+	string name;
+	struct
+	{
+		uint32_t vec;
+		uint32_t comp;
+	} reg;
+	DynShaderVariableType type;
+};
+
+void sort(vector<DynShaderConstant> &vars)
+{
+	if(vars.empty()) return;
+
+	struct offset_sort
+	{
+		bool operator() (const DynShaderConstant &a, const DynShaderConstant &b)
+		{ if(a.reg.vec == b.reg.vec) return a.reg.comp < b.reg.comp; else return a.reg.vec < b.reg.vec; }
+	};
+
+	std::sort(vars.begin(), vars.end(), offset_sort());
+
+	for(size_t i=0; i < vars.size(); i++)
+		sort(vars[i].type.members);
+}
+
+void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstant> &invars)
+{
+	if(invars.empty())
+	{
+		RDCEraseEl(outvars);
+		return;
+	}
+
+	create_array_uninit(outvars, invars.size());
+	for(size_t i=0; i < invars.size(); i++)
+	{
+		outvars[i].name = invars[i].name;
+		outvars[i].reg.vec = invars[i].reg.vec;
+		outvars[i].reg.comp = invars[i].reg.comp;
+		outvars[i].type.descriptor.type = invars[i].type.descriptor.type;
+		outvars[i].type.descriptor.rows = invars[i].type.descriptor.rows;
+		outvars[i].type.descriptor.cols = invars[i].type.descriptor.cols;
+		outvars[i].type.descriptor.elements = invars[i].type.descriptor.elements;
+		outvars[i].type.descriptor.rowMajorStorage = invars[i].type.descriptor.rowMajorStorage;
+		outvars[i].type.descriptor.name = invars[i].type.descriptor.name;
+		copy(outvars[i].type.members, invars[i].type.members);
+	}
+}
+
 GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources)
 {
 	const string block = "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
@@ -389,16 +459,16 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 	refl.Resources = resources;
 
-	vector<ShaderConstant> globalUniforms;
+	vector<DynShaderConstant> globalUniforms;
 	
 	GLint numUBOs = 0;
 	vector<string> uboNames;
-	vector<ShaderConstant> *ubos = NULL;
+	vector<DynShaderConstant> *ubos = NULL;
 	
 	{
 		gl.glGetProgramInterfaceiv(sepProg, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
 
-		ubos = new vector<ShaderConstant>[numUBOs];
+		ubos = new vector<DynShaderConstant>[numUBOs];
 		uboNames.resize(numUBOs);
 
 		for(GLint u=0; u < numUBOs; u++)
@@ -419,7 +489,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		GLint values[numProps];
 		gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 		
-		ShaderConstant var;
+		DynShaderConstant var;
 		
 		var.type.descriptor.elements = RDCMAX(1, values[4]);
 
@@ -625,33 +695,128 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			var.reg.vec = var.reg.comp = ~0U;
 		}
 
-		var.type.descriptor.rowMajorStorage = (values[6] >= 0);
+		var.type.descriptor.rowMajorStorage = (values[6] > 0);
 
-		create_array_uninit(var.name, values[1]);
-		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[0], NULL, var.name.elems);
-		var.name.count--; // trim off trailing null
+		var.name.resize(values[1]-1);
+		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, &var.name[0]);
 
-		int32_t c = var.name.count;
+		int32_t c = values[1]-1;
 
 		// trim off trailing [0] if it's an array
 		if(values[4] > 1 && var.name[c-3] == '[' && var.name[c-2] == '0' && var.name[c-1] == ']')
-			var.name.count -= 3;
+			var.name.resize(c-3);
 
-		if(strchr(var.name.elems, '.'))
-		{
-			GLNOTIMP("Variable contains . - structure not reconstructed");
-		}
-		
-		vector<ShaderConstant> *UBO = &globalUniforms;
+		vector<DynShaderConstant> *parentmembers = &globalUniforms;
 
-		// don't look at block uniforms just yet
 		if(values[3] != -1)
 		{
 			RDCASSERT(values[3] < numUBOs);
-			UBO = &ubos[ values[3] ];
+			parentmembers = &ubos[ values[3] ];
 		}
+
+		char *nm = &var.name[0];
 		
-		UBO->push_back(var);
+		// reverse figure out structures and structure arrays
+		while(strchr(nm, '.') || strchr(nm, '['))
+		{
+			char *base = nm;
+			while(*nm != '.' && *nm != '[') nm++;
+
+			// determine if we have an array index, and NULL out
+			// what's after the base variable name
+			bool isarray = (*nm == '[');
+			*nm = 0; nm++;
+
+			int arrayIdx = 0;
+
+			// if it's an array, get the index used
+			if(isarray)
+			{
+				// get array index, it's always a decimal number
+				while(*nm >= '0' && *nm <= '9')
+				{
+					arrayIdx *= 10;
+					arrayIdx += int(*nm) - int('0');
+					nm++;
+				}
+
+				RDCASSERT(*nm == ']');
+				*nm = 0; nm++;
+
+				// skip forward to the child name
+				if(*nm == '.')
+				{
+					*nm = 0; nm++;
+				}
+				else
+				{
+					// we strip any trailing [0] above (which is useful for non-structure variables),
+					// so we should not hit this path unless two variables exist like:
+					// structure.member[0]
+					// structure.member[1]
+					// The program introspection should only return the first for a basic type,
+					// and we should not hit this case
+					parentmembers = NULL;
+					RDCWARN("Unexpected naked array as member (expected only one [0], which should be trimmed");
+					break;
+				}
+			}
+
+			// construct a parent variable
+			DynShaderConstant parentVar;
+			RDCEraseEl(parentVar);
+			parentVar.name = base;
+			parentVar.reg.vec = var.reg.vec;
+			parentVar.reg.comp = 0;
+			parentVar.type.descriptor.name = "struct";
+			parentVar.type.descriptor.elements = RDCMAX(1U, uint32_t(arrayIdx+1));
+
+			bool found = false;
+
+			// if we can find the base variable already, we recurse into its members
+			for(size_t i=0; i < parentmembers->size(); i++)
+			{
+				if((*parentmembers)[i].name == base)
+				{
+					// if we find the variable, update the # elements to account for this new array index
+					// and pick the minimum offset of all of our children as the parent offset. This is mostly
+					// just for sorting
+					(*parentmembers)[i].type.descriptor.elements =
+						RDCMAX((*parentmembers)[i].type.descriptor.elements, parentVar.type.descriptor.elements);
+					(*parentmembers)[i].reg.vec = RDCMIN((*parentmembers)[i].reg.vec, parentVar.reg.vec);
+
+					parentmembers = &( (*parentmembers)[i].type.members );
+					found = true;
+
+					break;
+				}
+			}
+
+			// if we didn't find the base variable, add it and recuse inside
+			if(!found)
+			{
+				parentmembers->push_back(parentVar);
+				parentmembers = &( parentmembers->back().type.members );
+			}
+			
+			// the 0th element of each array fills out the actual members, when we
+			// encounter an index above that we only use it to increase the type.descriptor.elements
+			// member (which we've done by this point) and can stop recursing
+			if(arrayIdx > 0)
+			{
+				parentmembers = NULL;
+				break;
+			}
+		}
+
+		if(parentmembers)
+		{
+			// nm points into var.name's storage, so copy out to a temporary
+			string n = nm;
+			var.name = n;
+
+			parentmembers->push_back(var);
+		}
 	}
 
 	vector<ConstantBlock> cbuffers;
@@ -664,19 +829,13 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		{
 			if(!ubos[i].empty())
 			{
-				struct ubo_offset_sort
-				{
-					bool operator() (const ShaderConstant &a, const ShaderConstant &b)
-					{ if(a.reg.vec == b.reg.vec) return a.reg.comp < b.reg.comp; else return a.reg.vec < b.reg.vec; }
-				};
-
 				ConstantBlock cblock;
 				cblock.name = uboNames[i];
 				cblock.bufferBacked = true;
 				cblock.bindPoint = (int32_t)cbuffers.size();
-				std::sort(ubos[i].begin(), ubos[i].end(), ubo_offset_sort());
 
-				cblock.variables = ubos[i];
+				sort(ubos[i]);
+				copy(cblock.variables, ubos[i]);
 
 				cbuffers.push_back(cblock);
 			}
@@ -689,7 +848,9 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		globals.name = "$Globals";
 		globals.bufferBacked = false;
 		globals.bindPoint = (int32_t)cbuffers.size();
-		globals.variables = globalUniforms;
+
+		sort(globalUniforms);
+		copy(globals.variables, globalUniforms);
 
 		cbuffers.push_back(globals);
 	}
