@@ -650,16 +650,23 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 			mapping.ConstantBlocks[i].bind = -1;
 		}
 
-		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
-		if(idx == GL_INVALID_INDEX)
+		if(!refl->ConstantBlocks.elems[i].bufferBacked)
 		{
-			mapping.ConstantBlocks[i].used = false;
+			mapping.ConstantBlocks[i].used = true;
 		}
 		else
 		{
-			GLint used = 0;
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-			mapping.ConstantBlocks[i].used = (used != 0);
+			GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
+			if(idx == GL_INVALID_INDEX)
+			{
+				mapping.ConstantBlocks[i].used = false;
+			}
+			else
+			{
+				GLint used = 0;
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+				mapping.ConstantBlocks[i].used = (used != 0);
+			}
 		}
 	}
 
