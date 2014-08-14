@@ -1172,37 +1172,43 @@ void GLReplay::SavePipelineState()
 }
 
 void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
-											          const vector<byte> &data, ShaderVariable &outVar)
+                                size_t &dataoffset, const vector<byte> &data, ShaderVariable &outVar)
 {
-	const byte *bufdata = data.empty() ? NULL : &data[0];
+	const byte *bufdata = data.empty() ? NULL : &data[dataoffset];
+	size_t datasize = data.size() - dataoffset;
+	if(dataoffset > data.size()) datasize = 0;
 
 	if(bufferBacked)
 	{
-		size_t rangelen = outVar.rows*outVar.columns*4;
-		size_t offs = locA*4*sizeof(float) + (locB&0xf)*sizeof(float);
+		size_t rangelen = outVar.rows*outVar.columns*sizeof(float);
 
-		if(offs < data.size())
+		if(outVar.rows > 1 && outVar.columns > 1)
 		{
-			rangelen = RDCMIN(rangelen, data.size()-offs);
-			memcpy(&outVar.value.uv[0], bufdata + offs, rangelen);
+			if(rowMajor) rangelen = outVar.rows*4*sizeof(float);
+			else         rangelen = outVar.columns*4*sizeof(float);
 		}
+
+		if(datasize > 0)
+			memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
+
+		dataoffset += rangelen;
 	}
 	else
 	{
 		switch(outVar.type)
 		{
-		case eVar_Float:
-			gl.glGetUniformfv(prog, locA, outVar.value.fv);
-			break;
-		case eVar_Int:
-			gl.glGetUniformiv(prog, locA, outVar.value.iv);
-			break;
-		case eVar_UInt:
-			gl.glGetUniformuiv(prog, locA, outVar.value.uv);
-			break;
-		case eVar_Double:
-			RDCUNIMPLEMENTED("Double uniform variables");
-			break;
+			case eVar_Float:
+				gl.glGetUniformfv(prog, locA, outVar.value.fv);
+				break;
+			case eVar_Int:
+				gl.glGetUniformiv(prog, locA, outVar.value.iv);
+				break;
+			case eVar_UInt:
+				gl.glGetUniformuiv(prog, locA, outVar.value.uv);
+				break;
+			case eVar_Double:
+				RDCUNIMPLEMENTED("Double uniform variables");
+				break;
 		}
 	}
 
@@ -1210,10 +1216,84 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 	{
 		uint32_t uv[16];
 		memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
+		
+		for(uint32_t r=0; r < outVar.rows; r++)
+			for(uint32_t c=0; c < outVar.columns; c++)
+				outVar.value.uv[r*outVar.columns+c] = uv[c*outVar.rows+r];
+	}
+}
 
-		for(uint32_t x=0; x < outVar.columns; x++)
-			for(uint32_t y=0; y < outVar.rows; y++)
-				outVar.value.uv[y + x*outVar.rows] = uv[x + y*outVar.columns];
+void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
+                                    const rdctype::array<ShaderConstant> &variables, vector<ShaderVariable> &outvars,
+                                    size_t &dataoffset, const vector<byte> &data)
+{
+	for(int32_t i=0; i < variables.count; i++)
+	{
+		auto desc = variables[i].type.descriptor;
+
+		ShaderVariable var;
+		var.name = variables[i].name.elems;
+		var.rows = desc.rows;
+		var.columns = desc.cols;
+		var.type = desc.type;
+
+		if(variables[i].type.members.count > 0)
+		{
+			if(desc.elements == 1)
+			{
+				vector<ShaderVariable> ov;
+				FillCBufferVariables(gl, prog, bufferBacked, variables[i].type.members, ov, dataoffset, data);
+				var.members = ov;
+			}
+			else
+			{
+				vector<ShaderVariable> arrelems;
+				for(uint32_t a=0; a < desc.elements; a++)
+				{
+					ShaderVariable arrEl = var;
+					arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+					
+					vector<ShaderVariable> ov;
+					FillCBufferVariables(gl, prog, bufferBacked, variables[i].type.members, ov, dataoffset, data);
+					arrEl.members = ov;
+					
+					arrelems.push_back(arrEl);
+				}
+				var.members = arrelems;
+			}
+
+			dataoffset = AlignUp16(dataoffset);
+		}
+		else
+		{
+			RDCEraseEl(var.value);
+
+			if(desc.elements == 1)
+			{
+				FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+				                 variables[i].reg.vec, variables[i].reg.comp, dataoffset, data, var);
+			}
+			else
+			{
+				vector<ShaderVariable> elems;
+				for(uint32_t a=0; a < desc.elements; a++)
+				{
+					ShaderVariable el = var;
+					el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+
+					uint32_t arrayoffs = bufferBacked ? a : a*sizeof(float)*4;
+
+					FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+					                 variables[i].reg.vec + arrayoffs, 0, dataoffset, data, el);
+
+					elems.push_back(el);
+				}
+
+				var.members = elems;
+			}
+		}
+
+		outvars.push_back(var);
 	}
 }
 
@@ -1235,53 +1315,9 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	}
 
 	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
-
-	for(int32_t i=0; i < cblock.variables.count; i++)
-	{
-		auto desc = cblock.variables[i].type.descriptor;
-
-		ShaderVariable var;
-		var.name = cblock.variables[i].name;
-		var.rows = desc.rows;
-		var.columns = desc.cols;
-		var.type = desc.type;
-
-		if(cblock.variables[i].type.members.count > 0)
-			RDCUNIMPLEMENTED("Variables with members");
-
-		RDCEraseEl(var.value);
-
-		bool bufferBacked = (cblock.bufferBacked && !data.empty());
-		bool hasValue = bufferBacked || !cblock.bufferBacked; // buffer backed (with data), or global uniforms
-
-		if(desc.elements == 1)
-		{
-			if(hasValue)
-				FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
-												 cblock.variables[i].reg.vec, cblock.variables[i].reg.comp, data, var);
-		}
-		else
-		{
-			vector<ShaderVariable> elems;
-			for(uint32_t a=0; a < desc.elements; a++)
-			{
-				ShaderVariable el = var;
-				el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
-
-				uint32_t arrayoffs = bufferBacked ? a : a*sizeof(float)*4;
-
-				if(hasValue)
-					FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
-												   cblock.variables[i].reg.vec + arrayoffs, 0, data, el);
-
-				elems.push_back(el);
-			}
-
-			var.members = elems;
-		}
-
-		outvars.push_back(var);
-	}
+	
+	size_t offs = 0;
+	FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, cblock.variables, outvars, offs, data);
 }
 
 #pragma endregion
