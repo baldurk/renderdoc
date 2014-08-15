@@ -1146,7 +1146,10 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
@@ -1191,7 +1194,10 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
@@ -1232,7 +1238,10 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
@@ -1277,7 +1286,10 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
@@ -1321,7 +1333,10 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
@@ -1361,7 +1376,10 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
@@ -1401,7 +1419,10 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+			return;
+		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
 		{
 			SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
