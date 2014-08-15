@@ -1186,6 +1186,160 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 	}
 }
 
+bool WrappedOpenGL::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
+{
+	SERIALISE_ELEMENT(uint32_t, aidx, attribindex);
+	SERIALISE_ELEMENT(uint32_t, bidx, bindingindex);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribBinding(aidx, bidx);
+	}
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
+{
+	m_Real.glVertexAttribBinding(attribindex, bindingindex);
+	
+	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(r);
+
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
+		Serialise_glVertexAttribBinding(attribindex, bindingindex);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			r->RemoveChunk(r->bndchunks[attribindex]);
+			delete r->bndchunks[attribindex];
+			Chunk *newchunk = r->bndchunks[attribindex] = scope.Get();
+			r->AddChunk(newchunk);
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, attribindex);
+	SERIALISE_ELEMENT(int32_t, Size, size);
+	SERIALISE_ELEMENT(bool, Norm, normalized ? true : false);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset)
+{
+	m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+	
+	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(r);
+
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
+		Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			r->RemoveChunk(r->ptrchunks[attribindex]);
+			delete r->ptrchunks[attribindex];
+			Chunk *newchunk = r->ptrchunks[attribindex] = scope.Get();
+			r->AddChunk(newchunk);
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, attribindex);
+	SERIALISE_ELEMENT(int32_t, Size, size);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset)
+{
+	m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+	
+	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(r);
+
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
+		Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			r->RemoveChunk(r->ptrchunks[attribindex]);
+			delete r->ptrchunks[attribindex];
+			Chunk *newchunk = r->ptrchunks[attribindex] = scope.Get();
+			r->AddChunk(newchunk);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 {
 	SERIALISE_ELEMENT(uint32_t, Index, index);

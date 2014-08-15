@@ -109,6 +109,7 @@ struct GLResourceRecord : public ResourceRecord
 	{
 		RDCEraseEl(ShadowPtr);
 		RDCEraseEl(ptrchunks);
+		RDCEraseEl(bndchunks);
 		RDCEraseEl(enabledchunks);
 	}
 
@@ -165,6 +166,7 @@ struct GLResourceRecord : public ResourceRecord
 	}
 
 	Chunk *ptrchunks[12];
+	Chunk *bndchunks[12];
 	Chunk *enabledchunks[12];
 	
 private:

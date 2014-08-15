@@ -179,6 +179,10 @@ const char *GLChunkNames[] =
 	"glVertexAttribIPointer",
 	"glEnableVertexAttribArray",
 	"glDisableVertexAttribArray",
+	"glVertexAttribFormat",
+	"glVertexAttribIFormat",
+	"glVertexAttribBinding",
+	
 	
 	"glObjectLabel",
 	"glPushDebugGroup",
@@ -1338,6 +1342,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DISABLEVERTEXATTRIBARRAY:
 		Serialise_glDisableVertexAttribArray(0);
+		break;
+	case VERTEXATTRIBFORMAT:
+		Serialise_glVertexAttribFormat(0, 0, eGL_UNKNOWN_ENUM, 0, 0);
+		break;
+	case VERTEXATTRIBIFORMAT:
+		Serialise_glVertexAttribIFormat(0, 0, eGL_UNKNOWN_ENUM, 0);
+		break;
+	case VERTEXATTRIBBINDING:
+		Serialise_glVertexAttribBinding(0, 0);
 		break;
 
 	case OBJECT_LABEL:
