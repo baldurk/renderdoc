@@ -120,13 +120,18 @@ struct GLRenderState
 	{
 		int32_t x, y, width, height;
 	} Scissors[16];
-
+	
+	GLuint ReadFBO, DrawFBO;
 	GLenum DrawBuffers[8];
 
 	// TODO:
 	// Framebuffer Bindings
 	// Program Bindings
 	// Vertex Attribs/Buffers/Pointers etc
+	// Image state (GL_IMAGE_BINDING_NAME)
+	// multisampling
+	// provoking vertex
+	// other misc state :)
 	
 	struct
 	{

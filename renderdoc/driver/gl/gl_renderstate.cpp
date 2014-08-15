@@ -141,6 +141,9 @@ void GLRenderState::FetchState()
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
 
+	m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
+	m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&ReadFBO);
+
 	for(size_t i=0; i < ARRAY_COUNT(DrawBuffers); i++)
 		m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
 
@@ -304,6 +307,9 @@ void GLRenderState::ApplyState()
 
 	m_Real->glScissorArrayv(0, ARRAY_COUNT(Scissors), &Scissors[0].x);
 
+	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
+	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+
 	GLenum DBs[8] = { eGL_UNKNOWN_ENUM };
 	uint32_t numDBs = 0;
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
@@ -395,6 +401,10 @@ void GLRenderState::Clear()
 	RDCEraseEl(Viewports);
 	RDCEraseEl(Scissors);
 
+	RDCEraseEl(DrawFBO);
+	RDCEraseEl(ReadFBO);
+	RDCEraseEl(DrawBuffers);
+
 	RDCEraseEl(PatchParams);
 	RDCEraseEl(PolygonMode);
 	RDCEraseEl(PolygonOffset);
@@ -445,6 +455,19 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 		if(state >= WRITING) ID = rm->GetID(BufferRes(ctx, BufferBindings[i]));
 		m_pSerialiser->Serialise("GL_BUFFER_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) BufferBindings[i] = rm->GetLiveResource(ID).name;
+	}
+	
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(FramebufferRes(ctx, DrawFBO));
+		m_pSerialiser->Serialise("GL_DRAW_FRAMEBUFFER_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) DrawFBO = rm->GetLiveResource(ID).name;
+	}
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(FramebufferRes(ctx, ReadFBO));
+		m_pSerialiser->Serialise("GL_READ_FRAMEBUFFER_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) ReadFBO = rm->GetLiveResource(ID).name;
 	}
 	
 	struct { IdxRangeBuffer *bufs; int count; } idxBufs[] =
