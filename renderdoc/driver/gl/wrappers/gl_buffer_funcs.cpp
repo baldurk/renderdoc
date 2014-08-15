@@ -1415,9 +1415,10 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 	m_Real.glDisableVertexAttribArray(index);
 	
 	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
-	RDCASSERT(r);
 	if(m_State >= WRITING)
 	{
+		RDCASSERT(r);
+
 		SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
 		Serialise_glDisableVertexAttribArray(index);
 
