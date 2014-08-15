@@ -808,16 +808,12 @@ void ResourceManager<ResourceType, RecordType>::PrepareInitialContents()
 		Prepare_InitialState(res);
 	}
 
-	// need to save the structure count for unordered access views
-
-	for(auto it=m_WrapperMap.begin(); it != m_WrapperMap.end(); ++it)
+	for(auto it=m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
 	{
 		if(it->second == (ResourceType)RecordType::NullResource) continue;
 
 		if(Force_InitialState(it->second))
 		{
-			RDCDEBUG("UAV %llu - %p", GetID(it->second), it->second);
-
 			Prepare_InitialState(it->second);
 		}
 	}
@@ -861,16 +857,12 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 		fileSerialiser->Insert(scope.Get(true));
 	}
 
-	// need to save the structure count for unordered access views
-
-	for(auto it=m_WrapperMap.begin(); it != m_WrapperMap.end(); ++it)
+	for(auto it=m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
 	{
 		if(it->second == (ResourceType)RecordType::NullResource) continue;
 
 		if(Force_InitialState(it->second))
 		{
-			RDCDEBUG("Referenced UAV %llu - %p", GetID(it->second), it->second);
-
 			ScopedContext scope(chunkSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 			Serialise_InitialState(it->second);
