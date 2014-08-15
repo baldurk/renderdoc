@@ -96,6 +96,15 @@ struct GLRenderState
 		eBufIdx_Query,
 		eBufIdx_Texture,
 	};
+	
+	struct VertexBuffer
+	{
+		GLuint Buffer;
+		uint64_t Stride;
+		uint64_t Offset;
+		uint32_t Divisor;
+	} VertexBuffers[16];
+	GLuint VAO;
 
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
@@ -128,7 +137,6 @@ struct GLRenderState
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Vertex Attribs/Buffers/Pointers etc
 	// Image state (GL_IMAGE_BINDING_NAME)
 	// multisampling
 	// provoking vertex

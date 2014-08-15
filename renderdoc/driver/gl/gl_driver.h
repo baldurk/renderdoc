@@ -490,6 +490,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexArray(GLuint array));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexBindingDivisor(GLuint bindingindex, GLuint divisor));
 		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetUniformLocation(GLuint program, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetUniformIndices(GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames, GLuint *uniformIndices));
 		IMPLEMENT_FUNCTION_SERIALISED(GLuint, glGetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName));

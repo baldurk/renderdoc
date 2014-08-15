@@ -130,6 +130,8 @@ const char *GLChunkNames[] =
 	"glScissor",
 	"glScissorArrayv",
 	"glBindVertexArray",
+	"glBindVertexBuffer",
+	"glVertexBindingDivisor",
 	"glUniformMatrix*",
 	"glUniformVector*",
 	"glDrawArrays",
@@ -1195,6 +1197,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BINDVERTEXARRAY:
 		Serialise_glBindVertexArray(0);
+		break;
+	case BINDVERTEXBUFFER:
+		Serialise_glBindVertexBuffer(0, 0, 0, 0);
+		break;
+	case VERTEXDIVISOR:
+		Serialise_glVertexBindingDivisor(0, 0);
 		break;
 	case UNIFORM_MATRIX:
 		Serialise_glUniformMatrix(0, 0, 0, NULL, UNIFORM_UNKNOWN);

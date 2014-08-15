@@ -90,6 +90,16 @@ void GLRenderState::FetchState()
 	
 	m_Real->glActiveTexture(ActiveTexture);
 	
+	m_Real->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+	{
+		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&VertexBuffers[i].Buffer);
+
+		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&VertexBuffers[i].Stride);
+		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&VertexBuffers[i].Offset);
+		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&VertexBuffers[i].Divisor);
+	}
+	
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
@@ -254,7 +264,7 @@ void GLRenderState::ApplyState()
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
 	}
 
-	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
@@ -262,6 +272,13 @@ void GLRenderState::ApplyState()
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
+
+	m_Real->glBindVertexArray(VAO);
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+	{
+		m_Real->glBindVertexBuffer(i, VertexBuffers[i].Buffer, (GLintptr)VertexBuffers[i].Offset, (GLsizei)VertexBuffers[i].Stride);
+		m_Real->glVertexBindingDivisor(i, VertexBuffers[i].Divisor);
+	}
 
 	m_Real->glUseProgram(Program);
 	m_Real->glBindProgramPipeline(Pipeline);
@@ -397,6 +414,9 @@ void GLRenderState::Clear()
 	RDCEraseEl(Tex2D);
 	RDCEraseEl(Samplers);
 	RDCEraseEl(ActiveTexture);
+
+	RDCEraseEl(VAO);
+	RDCEraseEl(VertexBuffers);
 	
 	RDCEraseEl(Program);
 	RDCEraseEl(Pipeline);
@@ -458,6 +478,23 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 	}
 
 	m_pSerialiser->Serialise("GL_ACTIVE_TEXTURE", ActiveTexture);
+	
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(VertexArrayRes(ctx, VAO));
+		m_pSerialiser->Serialise("GL_VERTEX_ARRAY_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) VAO = rm->GetLiveResource(ID).name;
+	}
+	for(size_t i=0; i < ARRAY_COUNT(VertexBuffers); i++)
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(BufferRes(ctx, VertexBuffers[i].Buffer));
+		m_pSerialiser->Serialise("GL_VERTEX_BINDING_BUFFER", ID);
+		m_pSerialiser->Serialise("GL_VERTEX_BINDING_DIVISOR", VertexBuffers[i].Divisor);
+		m_pSerialiser->Serialise("GL_VERTEX_BINDING_OFFSET", VertexBuffers[i].Offset);
+		m_pSerialiser->Serialise("GL_VERTEX_BINDING_STRIDE", VertexBuffers[i].Stride);
+		if(state < WRITING && ID != ResourceId()) VertexBuffers[i].Buffer = rm->GetLiveResource(ID).name;
+	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{

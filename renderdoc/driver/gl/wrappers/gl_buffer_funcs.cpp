@@ -1376,6 +1376,62 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
+{
+	SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
+	SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId()));
+	SERIALISE_ELEMENT(uint64_t, offs, offset);
+	SERIALISE_ELEMENT(uint64_t, str, stride);
+
+	if(m_State <= EXECUTING)
+	{
+		GLuint live = 0;
+		if(id != ResourceId())
+			live = GetResourceManager()->GetLiveResource(id).name;
+
+		m_Real.glBindVertexBuffer(idx, live, (GLintptr)offs, (GLsizei)str);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
+{
+	m_Real.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BINDVERTEXBUFFER);
+		Serialise_glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
+{
+	SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
+	SERIALISE_ELEMENT(uint32_t, d, divisor);
+
+	if(m_State <= EXECUTING)
+		m_Real.glVertexBindingDivisor(idx, d);
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
+{
+	m_Real.glVertexBindingDivisor(bindingindex, divisor);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(VERTEXDIVISOR);
+		Serialise_glVertexBindingDivisor(bindingindex, divisor);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
 {
 	m_Real.glDeleteBuffers(n, buffers);
