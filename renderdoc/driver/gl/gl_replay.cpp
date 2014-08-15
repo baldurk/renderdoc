@@ -752,6 +752,8 @@ void GLReplay::SavePipelineState()
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&type);
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
 
+		// TODO should check eGL_VERTEX_ATTRIB_ARRAY_INTEGER
+
 		ResourceFormat fmt;
 
 		fmt.special = false;
