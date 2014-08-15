@@ -360,6 +360,8 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_FakeBB_FBO = 0;
 	m_FakeBB_Color = 0;
 	m_FakeBB_DepthStencil = 0;
+
+	GetResourceManager()->SetSerialiser(m_State, m_pSerialiser);
 		
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
@@ -1401,7 +1403,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	default:
 		// ignore system chunks
 		if((int)context == (int)INITIAL_CONTENTS)
-			RDCERR("Initial contents not implemented yet");
+			GetResourceManager()->Serialise_InitialState(GLResource(MakeNullResource));
 		else if((int)context < (int)FIRST_CHUNK_ID)
 			m_pSerialiser->SkipCurrentChunk();
 		else

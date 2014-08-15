@@ -34,7 +34,11 @@ class WrappedOpenGL;
 class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 {
 	public: 
-		GLResourceManager(WrappedOpenGL *gl) : m_GL(gl), m_SyncName(1) {}
+		GLResourceManager(WrappedOpenGL *gl) : m_GL(gl), m_SyncName(1)
+		{
+			m_pSerialiser = NULL;
+			m_State = READING;
+		}
 		~GLResourceManager() {}
 
 		void Shutdown()
@@ -134,17 +138,24 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return m_SyncIDs[sync];
 		}
 
+		void SetSerialiser(LogState state, Serialiser *ser)
+		{
+			m_State = state;
+			m_pSerialiser = ser;
+		}
+
+		bool Serialise_InitialState(GLResource res);
+
 	private:
 		bool SerialisableResource(ResourceId id, GLResourceRecord *record);
 		
 		bool ResourceTypeRelease(GLResource res) { return true; }
 
-		bool Force_InitialState(GLResource res) { return false; }
-		bool Need_InitialStateChunk(GLResource res) { return res.Namespace != eResBuffer; }
+		bool Force_InitialState(GLResource res);
+		bool Need_InitialStateChunk(GLResource res);
 		bool Prepare_InitialState(GLResource res);
-		bool Serialise_InitialState(GLResource res) { return true; }
-		void Create_InitialState(ResourceId id, GLResource live, bool hasData) { }
-		void Apply_InitialState(GLResource live, InitialContentData initial) { }
+		void Create_InitialState(ResourceId id, GLResource live, bool hasData);
+		void Apply_InitialState(GLResource live, InitialContentData initial);
 
 		map<GLResource, GLResourceRecord*> m_GLResourceRecords;
 
@@ -155,6 +166,9 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		map<GLsync, ResourceId> m_SyncIDs;
 		map<GLuint, GLsync> m_CurrentSyncs;
 		volatile int64_t m_SyncName;
+
+		Serialiser *m_pSerialiser;
+		LogState m_State;
 
 		WrappedOpenGL *m_GL;
 };
