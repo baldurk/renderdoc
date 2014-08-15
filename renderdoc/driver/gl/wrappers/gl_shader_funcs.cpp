@@ -436,9 +436,33 @@ bool WrappedOpenGL::Serialise_glLinkProgram(GLuint program)
 	if(m_State == READING)
 	{
 		ResourceId progid = GetResourceManager()->GetLiveID(id);
-
-		m_Programs[progid].linked = true;
 		
+		ProgramData &progDetails = m_Programs[progid];
+
+		progDetails.linked = true;
+		
+		struct
+		{
+			GLenum bit;
+			GLenum type;
+		} shaders[] = {
+			{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
+			{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
+			{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
+			{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
+			{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
+			{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
+		};
+
+		for(size_t s=0; s < ARRAY_COUNT(shaders); s++)
+		{
+			for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+			{
+				if(m_Shaders[ progDetails.shaders[sh] ].type == shaders[s].type)
+					progDetails.stageShaders[s] = progDetails.shaders[sh];
+			}
+		}
+
 		m_Real.glLinkProgram(GetResourceManager()->GetLiveResource(id).name);
 	}
 
@@ -614,7 +638,39 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield sta
 		ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
 		ResourceId liveProgId = GetResourceManager()->GetLiveID(prog);
 
-		m_Pipelines[livePipeId].programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
+		PipelineData &pipeDetails = m_Pipelines[livePipeId];
+		ProgramData &progDetails = m_Programs[liveProgId];
+
+		pipeDetails.programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
+
+		struct
+		{
+			GLenum bit;
+			GLenum type;
+		} shaders[] = {
+			{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
+			{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
+			{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
+			{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
+			{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
+			{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
+		};
+
+		for(size_t s=0; s < ARRAY_COUNT(shaders); s++)
+		{
+			if(Stages & shaders[s].bit)
+			{
+				for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+				{
+					if(m_Shaders[ progDetails.shaders[sh] ].type == shaders[s].type)
+					{
+						pipeDetails.stagePrograms[s] = liveProgId;
+						pipeDetails.stageShaders[s] = progDetails.shaders[sh];
+						break;
+					}
+				}
+			}
+		}
 		
 		m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name,
 															Stages,

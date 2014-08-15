@@ -190,16 +190,24 @@ class WrappedOpenGL
 
 		struct ProgramData
 		{
-			ProgramData() : colOutProg(0), linked(false) {}
+			ProgramData() : colOutProg(0), linked(false)
+			{
+				RDCEraseEl(stageShaders);
+			}
 			vector<ResourceId> shaders;
 
 			GLuint colOutProg;
 			bool linked;
+			ResourceId stageShaders[6];
 		};
 		
 		struct PipelineData
 		{
-			PipelineData() {}
+			PipelineData()
+			{
+				RDCEraseEl(stagePrograms);
+				RDCEraseEl(stageShaders);
+			}
 
 			struct ProgramUse
 			{
@@ -210,6 +218,8 @@ class WrappedOpenGL
 			};
 
 			vector<ProgramUse> programs;
+			ResourceId stagePrograms[6];
+			ResourceId stageShaders[6];
 		};
 
 		map<ResourceId, ShaderData> m_Shaders;

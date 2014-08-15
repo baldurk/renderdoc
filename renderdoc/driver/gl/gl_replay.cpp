@@ -942,42 +942,15 @@ void GLReplay::SavePipelineState()
 			ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
 			auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-			RDCASSERT(pipeDetails.programs.size());
-
-			// TODO: we could pre-flatten this (to list all the shaders in the pipeline)
-
-			// look at the programs in the pipeline
-			for(size_t p=0; p < pipeDetails.programs.size(); p++)
+			for(size_t i=0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
 			{
-				auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
-
-				RDCASSERT(progDetails.shaders.size());
-
-				curProg = rm->GetCurrentResource(pipeDetails.programs[p].id).name;
-
-				// look at the shaders in the program
-				for(int s=0; s < ARRAY_COUNT(shaders); s++)
+				if(pipeDetails.stageShaders[i] != ResourceId())
 				{
-					// if this program is being used for a shader stage
-					if(pipeDetails.programs[p].use & shaders[s].bit)
-					{
-						auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
-
-						// find the shader stage that's being used
-						for(size_t i=0; i < progDetails.shaders.size(); i++)
-						{
-							if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
-							{
-								// set Shader ID and bindpoint mapping directly in the pipe state
-								// store reflection and mapping locally too
-								stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
-								refls[s] = GetShader(progDetails.shaders[i]);
-								GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
-								mappings[s] = &stages[s]->BindpointMapping;
-								break;
-							}
-						}
-					}
+					curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+					stages[i]->Shader = rm->GetOriginalID(pipeDetails.stageShaders[i]);
+					refls[i] = GetShader(pipeDetails.stageShaders[i]);
+					GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+					mappings[i] = &stages[i]->BindpointMapping;
 				}
 			}
 		}
@@ -985,24 +958,15 @@ void GLReplay::SavePipelineState()
 	else
 	{
 		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
-
-		RDCASSERT(progDetails.shaders.size());
-
-		// look at the shaders in the program
-		for(size_t i=0; i < progDetails.shaders.size(); i++)
+		
+		for(size_t i=0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
 		{
-			// find the matching stage
-			for(int s=0; s < ARRAY_COUNT(shaders); s++)
+			if(progDetails.stageShaders[i] != ResourceId())
 			{
-				if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
-				{
-					// set Shader ID and bindpoint mapping directly in the pipe state
-					// store reflection and mapping locally too
-					stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
-					refls[s] = GetShader(progDetails.shaders[i]); 
-					GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
-					mappings[s] = &stages[s]->BindpointMapping;
-				}
+				stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
+				refls[i] = GetShader(progDetails.stageShaders[i]);
+				GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+				mappings[i] = &stages[i]->BindpointMapping;
 			}
 		}
 	}
@@ -1186,29 +1150,23 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 		{
 			uint32_t *dest = &outVar.value.uv[0];
 
+			uint32_t majorsize = outVar.columns;
+			uint32_t minorsize = outVar.rows;
+
 			if(rowMajor)
 			{
-				for(uint32_t r=0; r < outVar.rows; r++)
-				{
-					if(datasize > 0)
-						memcpy((byte *)dest, bufdata, RDCMIN(rangelen, outVar.columns*sizeof(float)));
-
-					datasize -= RDCMIN(datasize, matStride);
-					bufdata += matStride;
-					dest += outVar.columns;
-				}
+				majorsize = outVar.rows;
+				minorsize = outVar.columns;
 			}
-			else
-			{
-				for(uint32_t c=0; c < outVar.columns; c++)
-				{
-					if(datasize > 0)
-						memcpy((byte *)dest, bufdata, RDCMIN(rangelen, outVar.rows*sizeof(float)));
 
-					datasize -= RDCMIN(datasize, matStride);
-					bufdata += matStride;
-					dest += outVar.rows;
-				}
+			for(uint32_t c=0; c < majorsize; c++)
+			{
+				if(datasize > 0)
+					memcpy((byte *)dest, bufdata, RDCMIN(rangelen, minorsize*sizeof(float)));
+
+				datasize -= RDCMIN(datasize, (size_t)matStride);
+				bufdata += matStride;
+				dest += minorsize;
 			}
 		}
 		else
