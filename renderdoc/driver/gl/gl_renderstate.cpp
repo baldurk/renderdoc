@@ -85,6 +85,7 @@ void GLRenderState::FetchState()
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&Tex2D[i]);
+		m_Real->glGetIntegerv(eGL_SAMPLER_BINDING, (GLint*)&Samplers[i]);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
@@ -251,6 +252,7 @@ void GLRenderState::ApplyState()
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
 		m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
+		m_Real->glBindSampler(i, Samplers[i]);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
@@ -381,6 +383,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(Enabled);
 
 	RDCEraseEl(Tex2D);
+	RDCEraseEl(Samplers);
 	RDCEraseEl(ActiveTexture);
 	RDCEraseEl(BufferBindings);
 	RDCEraseEl(AtomicCounter);
@@ -424,6 +427,14 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 		if(state >= WRITING) ID = rm->GetID(TextureRes(ctx, Tex2D[i]));
 		m_pSerialiser->Serialise("GL_TEXTURE_BINDING_2D", ID);
 		if(state < WRITING && ID != ResourceId()) Tex2D[i] = rm->GetLiveResource(ID).name;
+	}
+	
+	for(size_t i=0; i < ARRAY_COUNT(Samplers); i++)
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(SamplerRes(ctx, Samplers[i]));
+		m_pSerialiser->Serialise("GL_SAMPLER_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) Samplers[i] = rm->GetLiveResource(ID).name;
 	}
 
 	m_pSerialiser->Serialise("GL_ACTIVE_TEXTURE", ActiveTexture);

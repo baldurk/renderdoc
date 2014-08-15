@@ -77,6 +77,7 @@ struct GLRenderState
 
 	//
 	uint32_t Tex2D[128];
+	uint32_t Samplers[128];
 	GLenum ActiveTexture;
 
 	enum
@@ -123,9 +124,8 @@ struct GLRenderState
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Sampler Bindings
 	// Framebuffer Bindings
-	// Program Bindings + Uniform Values
+	// Program Bindings
 	// Vertex Attribs/Buffers/Pointers etc
 	
 	struct
