@@ -201,7 +201,7 @@ struct GLRenderState
 	GLenum CullFace;
 	//
 
-	void Serialise(LogState state, void *ctx, GLResourceManager *rm);
+	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 private:
 	Serialiser *m_pSerialiser;
 	const GLHookSet *m_Real;

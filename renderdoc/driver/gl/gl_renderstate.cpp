@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "gl_renderstate.h"
+#include "gl_driver.h"
 
 GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser)
 	: m_Real(funcs)
@@ -455,8 +456,9 @@ void GLRenderState::Clear()
 	RDCEraseEl(CullFace);
 }
 
-void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
+void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 {
+	GLResourceManager *rm = gl->GetResourceManager();
 	// TODO check GL_MAX_*
 
 	m_pSerialiser->Serialise<eEnabled_Count>("GL_ENABLED", Enabled);
@@ -522,12 +524,16 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 		if(state >= WRITING) ID = rm->GetID(FramebufferRes(ctx, DrawFBO));
 		m_pSerialiser->Serialise("GL_DRAW_FRAMEBUFFER_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) DrawFBO = rm->GetLiveResource(ID).name;
+
+		if(DrawFBO == 0) DrawFBO = gl->GetFakeBBFBO();
 	}
 	{
 		ResourceId ID = ResourceId();
 		if(state >= WRITING) ID = rm->GetID(FramebufferRes(ctx, ReadFBO));
 		m_pSerialiser->Serialise("GL_READ_FRAMEBUFFER_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) ReadFBO = rm->GetLiveResource(ID).name;
+
+		if(ReadFBO == 0) ReadFBO = gl->GetFakeBBFBO();
 	}
 	
 	struct { IdxRangeBuffer *bufs; int count; } idxBufs[] =

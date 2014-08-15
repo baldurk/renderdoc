@@ -273,6 +273,8 @@ class WrappedOpenGL
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 		void ReadLogInitialisation();
 
+		GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
+
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
 

@@ -793,7 +793,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 		state.FetchState();
 	}
 
-	state.Serialise(m_State, GetCtx(), GetResourceManager());
+	state.Serialise(m_State, GetCtx(), this);
 
 	if(m_State <= EXECUTING && applyInitialState)
 	{
