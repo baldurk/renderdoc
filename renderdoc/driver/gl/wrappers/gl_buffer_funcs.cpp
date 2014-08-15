@@ -26,6 +26,7 @@
 #include "common/string_utils.h"
 #include "../gl_driver.h"
 
+#pragma region Buffers
 
 bool WrappedOpenGL::Serialise_glGenBuffers(GLsizei n, GLuint* textures)
 {
@@ -642,6 +643,10 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 	m_Real.glBindBufferRange(target, index, buffer, offset, size);
 }
 
+#pragma endregion
+
+#pragma region Mapping
+
 void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 {
 	if(m_State >= WRITING)
@@ -1079,6 +1084,33 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 	return m_Real.glUnmapBuffer(target);
 }
 
+#pragma endregion
+
+#pragma region Vertex Arrays
+
+bool WrappedOpenGL::VertexArrayUpdateCheck()
+{
+	// if no VAO is bound, nothing to check
+	if(m_VertexArrayRecord == NULL) return true;
+
+	// if we've already stopped tracking this VAO, return as such
+	if(m_VertexArrayRecord && m_VertexArrayRecord->UpdateCount > 64)
+		return false;
+
+	// increase update count
+	m_VertexArrayRecord->UpdateCount++;
+
+	// if update count is high, mark as dirty
+	if(m_VertexArrayRecord && m_VertexArrayRecord->UpdateCount > 64)
+	{
+		GetResourceManager()->MarkDirtyResource( m_VertexArrayRecord->GetResourceID() );
+
+		return false;
+	}
+
+	return true;
+}
+
 bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer)
 {
 	SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -1111,24 +1143,16 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 {
 	m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-		Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+		{
+			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+			Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->ptrchunks[index]);
-			delete r->ptrchunks[index];
-			Chunk *newchunk = r->ptrchunks[index] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1164,24 +1188,16 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 {
 	m_Real.glVertexAttribIPointer(index, size, type, stride, pointer);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
-		Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
+		{
+			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
+			Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->ptrchunks[index]);
-			delete r->ptrchunks[index];
-			Chunk *newchunk = r->ptrchunks[index] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1213,24 +1229,16 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 {
 	m_Real.glVertexAttribBinding(attribindex, bindingindex);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
-		Serialise_glVertexAttribBinding(attribindex, bindingindex);
+		{
+			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
+			Serialise_glVertexAttribBinding(attribindex, bindingindex);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->bndchunks[attribindex]);
-			delete r->bndchunks[attribindex];
-			Chunk *newchunk = r->bndchunks[attribindex] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1266,24 +1274,16 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 {
 	m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
-		Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+		{
+			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
+			Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->ptrchunks[attribindex]);
-			delete r->ptrchunks[attribindex];
-			Chunk *newchunk = r->ptrchunks[attribindex] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1318,24 +1318,16 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 {
 	m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
-		Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+		{
+			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
+			Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->ptrchunks[attribindex]);
-			delete r->ptrchunks[attribindex];
-			Chunk *newchunk = r->ptrchunks[attribindex] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1366,24 +1358,16 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 {
 	m_Real.glEnableVertexAttribArray(index);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
-		Serialise_glEnableVertexAttribArray(index);
+		{
+			SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
+			Serialise_glEnableVertexAttribArray(index);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->enabledchunks[index]);
-			delete r->enabledchunks[index];
-			Chunk *newchunk = r->enabledchunks[index] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1414,24 +1398,16 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 {
 	m_Real.glDisableVertexAttribArray(index);
 	
-	GLResourceRecord *r = m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord;
+	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		RDCASSERT(r);
+		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck()) return;
 
-		SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
-		Serialise_glDisableVertexAttribArray(index);
+		{
+			SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
+			Serialise_glDisableVertexAttribArray(index);
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(scope.Get());
-		}
-		else
-		{
-			r->RemoveChunk(r->enabledchunks[index]);
-			delete r->enabledchunks[index];
-			Chunk *newchunk = r->enabledchunks[index] = scope.Get();
-			r->AddChunk(newchunk);
+			r->AddChunk(scope.Get());
 		}
 	}
 }
@@ -1602,3 +1578,5 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 	for(GLsizei i=0; i < n; i++)
 		GetResourceManager()->UnregisterResource(VertexArrayRes(GetCtx(), arrays[i]));
 }
+
+#pragma endregion

@@ -100,6 +100,12 @@ class WrappedOpenGL
 		static void APIENTRY DebugSnoopStatic(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 		{ ((WrappedOpenGL *)userParam)->DebugSnoop(source, type, id, severity, length, message); }
 
+		// checks if the bound VAO object has tons of updates. If so it's probably
+		// in the vein of "one global VAO, updated per-draw as necessary", in which case
+		// we just want to save the state of it at frame start, then track changes while
+		// frame capturing
+		bool VertexArrayUpdateCheck();
+
 		// state
 		GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
 		GLResourceRecord *m_BufferRecord[16];
