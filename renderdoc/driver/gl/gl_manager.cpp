@@ -112,9 +112,6 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 {
 	ResourceId Id = ResourceId();
 
-	Serialiser *m_pSerialiser = NULL;
-	LogState m_State = READING;
-
 	if(m_State >= WRITING)
 	{
 		Id = GetID(res);
