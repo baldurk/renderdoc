@@ -6125,7 +6125,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 			{
 				if(m_pDevice->GetResourceManager()->IsResourceDirty(Resource))
 				{
-					ID3D11DeviceChild *initial = m_pDevice->GetResourceManager()->GetInitialContents(Resource);
+					ID3D11DeviceChild *initial = m_pDevice->GetResourceManager()->GetInitialContents(Resource).resource;
 
 					if(WrappedID3D11Buffer::IsAlloc(pResource))
 					{

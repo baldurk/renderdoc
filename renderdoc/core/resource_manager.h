@@ -267,6 +267,15 @@ class ResourceManager : public ResourceRecordHandler
 
 		void Shutdown();
 
+		struct InitialContentData
+		{
+			InitialContentData(ResourceType r, uint32_t n, byte *b) : resource(r), num(n), blob(b) {}
+			InitialContentData() : resource((ResourceType)RecordType::NullResource), num(0), blob(NULL) {}
+			ResourceType resource;
+			uint32_t num;
+			byte *blob;
+		};
+
 		///////////////////////////////////////////
 		// Capture-side methods
 		
@@ -314,8 +323,8 @@ class ResourceManager : public ResourceRecordHandler
 		// call callbacks to prepare initial contents for dirty resources
 		void PrepareInitialContents();
 		
-		ResourceType GetInitialContents(ResourceId id);
-		void SetInitialContents(ResourceId id, ResourceType res, uint32_t data);
+		InitialContentData GetInitialContents(ResourceId id);
+		void SetInitialContents(ResourceId id, InitialContentData contents);
 
 		// generate chunks for initial contents and insert.
 		void InsertInitialContentsChunks(Serialiser *chunkSer, Serialiser *fileSer);
@@ -378,7 +387,7 @@ class ResourceManager : public ResourceRecordHandler
 		virtual bool Prepare_InitialState(ResourceType res) = 0;
 		virtual bool Serialise_InitialState(ResourceType res) = 0;
 		virtual void Create_InitialState(ResourceId id, ResourceType live, bool hasData) = 0;
-		virtual void Apply_InitialState(ResourceType live, ResourceType initial, uint32_t count) = 0;
+		virtual void Apply_InitialState(ResourceType live, InitialContentData initial) = 0;
 
 	private:
 		bool m_InFrame;
@@ -403,8 +412,7 @@ class ResourceManager : public ResourceRecordHandler
 		set<ResourceId> m_PendingDirtyResources;
 
 		// used during capture or replay - holds initial contents
-		map<ResourceId, ResourceType> m_InitialContents;
-		map<ResourceId, uint32_t> m_InitialCounts;
+		map<ResourceId, InitialContentData> m_InitialContents;
 
 		// used during capture or replay - map of resources currently alive with their real IDs, used in capture and replay.
 		map<ResourceId, ResourceType> m_CurrentResourceMap;
@@ -454,7 +462,8 @@ void ResourceManager<ResourceType, RecordType>::Shutdown()
 	while(!m_InitialContents.empty())
 	{
 		auto it = m_InitialContents.begin();
-		ResourceTypeRelease(it->second);
+		ResourceTypeRelease(it->second.resource);
+		SAFE_DELETE_ARRAY(it->second.blob);
 		if(!m_InitialContents.empty())
 			m_InitialContents.erase(m_InitialContents.begin());
 	}
@@ -598,7 +607,7 @@ void ResourceManager<ResourceType, RecordType>::MarkCleanResource(ResourceId res
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::SetInitialContents(ResourceId id, ResourceType res, uint32_t data)
+void ResourceManager<ResourceType, RecordType>::SetInitialContents(ResourceId id, InitialContentData contents)
 {
 	SCOPED_LOCK(m_Lock);
 
@@ -608,26 +617,26 @@ void ResourceManager<ResourceType, RecordType>::SetInitialContents(ResourceId id
 	
 	if(it != m_InitialContents.end())
 	{
-		ResourceTypeRelease(it->second);
+		ResourceTypeRelease(it->second.resource);
+		SAFE_DELETE_ARRAY(it->second.blob);
 		m_InitialContents.erase(it);
 	}
 	
-	m_InitialContents[id] = res;
-	m_InitialCounts[id] = data;
+	m_InitialContents[id] = contents;
 }
 
 template<typename ResourceType, typename RecordType>
-ResourceType ResourceManager<ResourceType, RecordType>::GetInitialContents(ResourceId id)
+typename ResourceManager<ResourceType, RecordType>::InitialContentData ResourceManager<ResourceType, RecordType>::GetInitialContents(ResourceId id)
 {
 	SCOPED_LOCK(m_Lock);
 
 	if(id == ResourceId())
-		return (ResourceType)RecordType::NullResource;
+		return InitialContentData();
 
 	if(m_InitialContents.find(id) != m_InitialContents.end())
 		return m_InitialContents[id];
 
-	return (ResourceType)RecordType::NullResource;
+	return InitialContentData();
 }
 
 template<typename ResourceType, typename RecordType>
@@ -703,7 +712,8 @@ void ResourceManager<ResourceType, RecordType>::CreateInitialContents(Serialiser
 
 		if(neededInitials.find(id) == neededInitials.end())
 		{
-			ResourceTypeRelease(it->second);
+			ResourceTypeRelease(it->second.resource);
+			SAFE_DELETE_ARRAY(it->second.blob);
 			++it;
 			m_InitialContents.erase(id);
 		}
@@ -726,14 +736,10 @@ void ResourceManager<ResourceType, RecordType>::ApplyInitialContents()
 		if(HasLiveResource(id))
 		{
 			ResourceType live = GetLiveResource(id);
-			ResourceType initial = it->second;
-			uint32_t count = 0;
-			if(m_InitialCounts.find(id) != m_InitialCounts.end())
-				count = m_InitialCounts[id];
 
 			numContents++;
 
-			Apply_InitialState(live, initial, count);
+			Apply_InitialState(live, it->second);
 		}
 	}
 	RDCDEBUG("Applied %d", numContents);

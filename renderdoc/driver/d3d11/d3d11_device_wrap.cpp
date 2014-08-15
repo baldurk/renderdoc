@@ -123,7 +123,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(
 			}
 			else
 			{			
-				m_ResourceManager->SetInitialContents(pBuffer, stage, 0);
+				m_ResourceManager->SetInitialContents(pBuffer, D3D11ResourceManager::InitialContentData(stage, eInitialContents_Copy, NULL));
 			}
 		}
 
@@ -2685,7 +2685,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 				}
 				else
 				{			
-					m_ResourceManager->SetInitialContents(pResource, stage, 0);
+					m_ResourceManager->SetInitialContents(pResource, D3D11ResourceManager::InitialContentData(stage, eInitialContents_Copy, NULL));
 				}
 			}
 

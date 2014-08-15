@@ -1124,7 +1124,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		{
 			ResourceId id = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 
-			if(m_pDevice->GetResourceManager()->GetInitialContents(id) == NULL)
+			if(m_pDevice->GetResourceManager()->GetInitialContents(id).resource == NULL)
 				continue;
 
 			RDCDEBUG("Resource %llu", id);

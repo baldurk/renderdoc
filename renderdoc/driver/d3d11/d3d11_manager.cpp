@@ -109,7 +109,7 @@ void D3D11ResourceManager::Create_InitialState(ResourceId id, ID3D11DeviceChild 
 	m_Device->Create_InitialState(id, live, hasData);
 }
 
-void D3D11ResourceManager::Apply_InitialState(ID3D11DeviceChild *live, ID3D11DeviceChild *initial, uint32_t count)
+void D3D11ResourceManager::Apply_InitialState(ID3D11DeviceChild *live, InitialContentData data)
 {
-	m_Device->Apply_InitialState(live, initial, count);
+	m_Device->Apply_InitialState(live, data);
 }

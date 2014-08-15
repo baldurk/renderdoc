@@ -144,7 +144,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		bool Prepare_InitialState(GLResource res);
 		bool Serialise_InitialState(GLResource res) { return true; }
 		void Create_InitialState(ResourceId id, GLResource live, bool hasData) { }
-		void Apply_InitialState(GLResource live, GLResource initial, uint32_t count) { }
+		void Apply_InitialState(GLResource live, InitialContentData initial) { }
 
 		map<GLResource, GLResourceRecord*> m_GLResourceRecords;
 
