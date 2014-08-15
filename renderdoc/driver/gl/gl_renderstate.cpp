@@ -89,6 +89,9 @@ void GLRenderState::FetchState()
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
+	
+	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
+	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
 	m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Array]);
 	m_Real->glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING,          (GLint*)&BufferBindings[eBufIdx_Copy_Read]);
@@ -260,6 +263,9 @@ void GLRenderState::ApplyState()
 	
 	m_Real->glActiveTexture(ActiveTexture);
 
+	m_Real->glUseProgram(Program);
+	m_Real->glBindProgramPipeline(Pipeline);
+
 	m_Real->glBindBuffer(eGL_ARRAY_BUFFER,              BufferBindings[eBufIdx_Array]);
 	m_Real->glBindBuffer(eGL_COPY_READ_BUFFER,          BufferBindings[eBufIdx_Copy_Read]);
 	m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER,         BufferBindings[eBufIdx_Copy_Write]);
@@ -391,6 +397,10 @@ void GLRenderState::Clear()
 	RDCEraseEl(Tex2D);
 	RDCEraseEl(Samplers);
 	RDCEraseEl(ActiveTexture);
+	
+	RDCEraseEl(Program);
+	RDCEraseEl(Pipeline);
+
 	RDCEraseEl(BufferBindings);
 	RDCEraseEl(AtomicCounter);
 	RDCEraseEl(ShaderStorage);
@@ -457,6 +467,19 @@ void GLRenderState::Serialise(LogState state, void *ctx, GLResourceManager *rm)
 		if(state < WRITING && ID != ResourceId()) BufferBindings[i] = rm->GetLiveResource(ID).name;
 	}
 	
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(ProgramRes(ctx, Program));
+		m_pSerialiser->Serialise("GL_CURRENT_PROGRAM", ID);
+		if(state < WRITING && ID != ResourceId()) Program = rm->GetLiveResource(ID).name;
+	}
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(ProgramPipeRes(ctx, Pipeline));
+		m_pSerialiser->Serialise("GL_PROGRAM_PIPELINE_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) Pipeline = rm->GetLiveResource(ID).name;
+	}
+
 	{
 		ResourceId ID = ResourceId();
 		if(state >= WRITING) ID = rm->GetID(FramebufferRes(ctx, DrawFBO));

@@ -80,6 +80,9 @@ struct GLRenderState
 	uint32_t Samplers[128];
 	GLenum ActiveTexture;
 
+	GLuint Program;
+	GLuint Pipeline;
+
 	enum
 	{
 		eBufIdx_Array,
@@ -125,8 +128,6 @@ struct GLRenderState
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Framebuffer Bindings
-	// Program Bindings
 	// Vertex Attribs/Buffers/Pointers etc
 	// Image state (GL_IMAGE_BINDING_NAME)
 	// multisampling
