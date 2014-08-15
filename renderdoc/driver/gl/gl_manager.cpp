@@ -187,6 +187,11 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 		for(GLuint i=0; i < 16; i++)
 		{
+			if(initialdata[i].enabled)
+				m_GL->glEnableVertexAttribArray(i);
+			else
+				m_GL->glDisableVertexAttribArray(i);
+
 			m_GL->glVertexAttribBinding(i, initialdata[i].vbslot);
 
 			if(initialdata[i].integer == 0)
