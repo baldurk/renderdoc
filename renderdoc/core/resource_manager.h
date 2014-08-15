@@ -373,7 +373,7 @@ class ResourceManager : public ResourceRecordHandler
 		
 		virtual bool ResourceTypeRelease(ResourceType res) = 0;
 
-		virtual bool Need_InitialState(ResourceType res) = 0;
+		virtual bool Force_InitialState(ResourceType res) = 0;
 		virtual bool Need_InitialStateChunk(ResourceType res) = 0;
 		virtual bool Prepare_InitialState(ResourceType res) = 0;
 		virtual bool Serialise_InitialState(ResourceType res) = 0;
@@ -814,7 +814,7 @@ void ResourceManager<ResourceType, RecordType>::PrepareInitialContents()
 	{
 		if(it->second == (ResourceType)RecordType::NullResource) continue;
 
-		if(Need_InitialState(it->second))
+		if(Force_InitialState(it->second))
 		{
 			RDCDEBUG("UAV %llu - %p", GetID(it->second), it->second);
 
@@ -867,7 +867,7 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 	{
 		if(it->second == (ResourceType)RecordType::NullResource) continue;
 
-		if(Need_InitialState(it->second))
+		if(Force_InitialState(it->second))
 		{
 			RDCDEBUG("Referenced UAV %llu - %p", GetID(it->second), it->second);
 

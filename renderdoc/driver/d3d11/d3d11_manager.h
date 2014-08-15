@@ -131,7 +131,7 @@ class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, D3D11Res
 		
 		bool ResourceTypeRelease(ID3D11DeviceChild *res);
 		
-		bool Need_InitialState(ID3D11DeviceChild *res);
+		bool Force_InitialState(ID3D11DeviceChild *res);
 		bool Need_InitialStateChunk(ID3D11DeviceChild *res);
 		bool Prepare_InitialState(ID3D11DeviceChild *res);
 		bool Serialise_InitialState(ID3D11DeviceChild *res);

@@ -139,7 +139,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		
 		bool ResourceTypeRelease(GLResource res) { return true; }
 
-		bool Need_InitialState(GLResource res) { return false; }
+		bool Force_InitialState(GLResource res) { return false; }
 		bool Need_InitialStateChunk(GLResource res) { return res.Namespace != eResBuffer; }
 		bool Prepare_InitialState(GLResource res);
 		bool Serialise_InitialState(GLResource res) { return true; }
