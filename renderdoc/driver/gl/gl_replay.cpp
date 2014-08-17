@@ -500,7 +500,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
-	if(res.curType == eGL_UNKNOWN_ENUM)
+	if(res.curType == eGL_NONE)
 	{
 		ret.byteSize = 0;
 		ret.creationFlags = 0;
@@ -977,8 +977,8 @@ void GLReplay::SavePipelineState()
 
 	for(GLint unit=0; unit < numTexUnits; unit++)
 	{
-		GLenum binding = eGL_UNKNOWN_ENUM;
-		GLenum target = eGL_UNKNOWN_ENUM;
+		GLenum binding = eGL_NONE;
+		GLenum target = eGL_NONE;
 
 		for(size_t s=0; s < ARRAY_COUNT(refls); s++)
 		{
@@ -989,12 +989,12 @@ void GLReplay::SavePipelineState()
 				// bindPoint is the uniform value for this sampler
 				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
 				{
-					GLenum t = eGL_UNKNOWN_ENUM;
+					GLenum t = eGL_NONE;
 
 					switch(refls[s]->Resources[r].resType)
 					{
 					case eResType_None:
-						t = eGL_UNKNOWN_ENUM;
+						t = eGL_NONE;
 						break;
 					case eResType_Buffer:
 						t = eGL_TEXTURE_BINDING_BUFFER;
@@ -1037,7 +1037,7 @@ void GLReplay::SavePipelineState()
 						break;
 					}
 
-					if(binding == eGL_UNKNOWN_ENUM)
+					if(binding == eGL_NONE)
 					{
 						binding = t;
 					}
@@ -1054,7 +1054,7 @@ void GLReplay::SavePipelineState()
 			}
 		}
 
-		if(binding != eGL_UNKNOWN_ENUM)
+		if(binding != eGL_NONE)
 		{
 			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
 

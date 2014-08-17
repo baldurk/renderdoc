@@ -334,7 +334,7 @@ void GLRenderState::ApplyState()
 	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
 	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
 
-	GLenum DBs[8] = { eGL_UNKNOWN_ENUM };
+	GLenum DBs[8] = { eGL_NONE };
 	uint32_t numDBs = 0;
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
 	{

@@ -502,7 +502,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 			{
 				char uniName[1024] = {};
 				GLint uniSize = 0;
-				GLenum uniType = eGL_UNKNOWN_ENUM;
+				GLenum uniType = eGL_NONE;
 				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
 
 				GLint origloc = gl.glGetUniformLocation(curProg, uniName);
@@ -565,7 +565,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 			{
 				char uniName[1024] = {};
 				GLint uniSize = 0;
-				GLenum uniType = eGL_UNKNOWN_ENUM;
+				GLenum uniType = eGL_NONE;
 				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
 
 				GLint origloc = gl.glGetUniformLocation(curProg, uniName);

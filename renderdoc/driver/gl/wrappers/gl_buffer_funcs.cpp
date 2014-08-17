@@ -43,7 +43,7 @@ bool WrappedOpenGL::Serialise_glGenBuffers(GLsizei n, GLuint* textures)
 		GetResourceManager()->AddLiveResource(id, res);
 
 		m_Buffers[live].resource = res;
-		m_Buffers[live].curType = eGL_UNKNOWN_ENUM;
+		m_Buffers[live].curType = eGL_NONE;
 	}
 
 	return true;
