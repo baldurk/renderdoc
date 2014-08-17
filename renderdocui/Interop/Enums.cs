@@ -125,6 +125,8 @@ namespace renderdoc
         ViewportScissor,
         NaN,
         Clipping,
+        QuadOverdrawPass,
+        QuadOverdrawDraw,
     };
 
     public enum SpecialFormat

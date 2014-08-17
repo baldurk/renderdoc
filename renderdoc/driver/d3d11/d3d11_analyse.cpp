@@ -2171,7 +2171,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 	}
 }
 
-ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, false);
 
@@ -2532,6 +2532,171 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
+	}
+	else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
+	{
+		SCOPED_TIMER("Quad Overdraw");
+
+		vector<uint32_t> events = passEvents;
+
+		if(overlay == eTexOverlay_QuadOverdrawDraw)
+		{
+			events.clear();
+			events.push_back(eventID);
+		}
+
+		if(!events.empty())
+		{
+			if(overlay == eTexOverlay_QuadOverdrawPass)
+				m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+
+			D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
+
+			uint32_t width = 1920>>1;
+			uint32_t height = 1080>>1;
+			
+			{
+				ID3D11Resource *res = NULL;
+				if(state->OM.RenderTargets[0])
+				{
+					state->OM.RenderTargets[0]->GetResource(&res);
+				}
+				else if(state->OM.DepthView)
+				{
+					state->OM.DepthView->GetResource(&res);
+				}
+				else
+				{
+					RDCERR("Couldn't get size of existing targets");
+					return m_OverlayResourceId;
+				}
+
+				D3D11_RESOURCE_DIMENSION dim;
+				res->GetType(&dim);
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+				{
+					D3D11_TEXTURE1D_DESC desc;
+					((ID3D11Texture1D *)res)->GetDesc(&desc);
+
+					width = desc.Width>>1;
+					height = 1;
+				}
+				else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					D3D11_TEXTURE2D_DESC desc;
+					((ID3D11Texture2D *)res)->GetDesc(&desc);
+
+					width = desc.Width>>1;
+					height = desc.Height>>1;
+				}
+				else
+				{
+					RDCERR("Trying to show quad overdraw on invalid view");
+					return m_OverlayResourceId;
+				}
+
+				SAFE_RELEASE(res);
+			}
+			
+			D3D11_TEXTURE2D_DESC uavTexDesc = {
+				width, height, 1U, 4U,
+				DXGI_FORMAT_R32_UINT,
+				{ 1, 0 },
+				D3D11_USAGE_DEFAULT,
+				D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE,
+				0,
+				0,
+			};
+
+			ID3D11Texture2D *overdrawTex = NULL;
+			ID3D11ShaderResourceView *overdrawSRV = NULL;
+			ID3D11UnorderedAccessView *overdrawUAV = NULL;
+
+			m_WrappedDevice->CreateTexture2D(&uavTexDesc, NULL, &overdrawTex);
+			m_WrappedDevice->CreateShaderResourceView(overdrawTex, NULL, &overdrawSRV);
+			m_WrappedDevice->CreateUnorderedAccessView(overdrawTex, NULL, &overdrawUAV);
+			
+			UINT val = 0;
+			m_WrappedContext->ClearUnorderedAccessViewUint(overdrawUAV, &val);
+
+			for(size_t i=0; i < events.size(); i++)
+			{
+				D3D11RenderState oldstate = *m_WrappedContext->GetCurrentPipelineState();
+
+				D3D11_DEPTH_STENCIL_DESC dsdesc = {
+					/*DepthEnable =*/ TRUE,
+					/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+					/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+					/*StencilEnable =*/ FALSE,
+					/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+					/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+					/*FrontFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+					/*BackFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+				};
+				ID3D11DepthStencilState *ds = NULL;
+
+				if(state->OM.DepthStencilState)
+					state->OM.DepthStencilState->GetDesc(&dsdesc);
+
+				dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+				dsdesc.StencilWriteMask = 0;
+
+				m_WrappedDevice->CreateDepthStencilState(&dsdesc, &ds);
+
+				m_WrappedContext->OMSetDepthStencilState(ds, oldstate.OM.StencRef);
+
+				SAFE_RELEASE(ds);
+
+				UINT UAVcount = 0;
+				m_WrappedContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, oldstate.OM.DepthView, 0, 1, &overdrawUAV, &UAVcount);
+
+				m_pImmediateContext->PSSetShader(m_DebugRender.QuadOverdrawPS, NULL, 0);
+				
+				m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+				oldstate.ApplyState(m_WrappedContext);
+
+				if(overlay == eTexOverlay_QuadOverdrawPass)
+				{
+					m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+					if(i+1 < events.size())
+						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+				}
+			}
+			
+			// resolve pass
+			{
+				m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+				m_pImmediateContext->PSSetShader(m_DebugRender.QOResolvePS, NULL, 0);
+				
+				ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(Vec4f)*21);
+
+				m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+
+				m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+
+				m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
+				m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+				m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+
+				float clearColour[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+				m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+
+				ID3D11ShaderResourceView *srv = ((WrappedID3D11ShaderResourceView *)overdrawSRV)->GetReal();
+				m_pImmediateContext->PSSetShaderResources(0, 1, &srv);
+
+				m_pImmediateContext->Draw(3, 0);
+			}
+			
+			SAFE_RELEASE(overdrawTex);
+			SAFE_RELEASE(overdrawSRV);
+			SAFE_RELEASE(overdrawUAV);
+			
+			if(overlay == eTexOverlay_QuadOverdrawPass)
+				m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+		}
 	}
 	else if(preDrawDepth)
 	{

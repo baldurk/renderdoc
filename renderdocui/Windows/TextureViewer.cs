@@ -1331,6 +1331,14 @@ namespace renderdocui.Windows
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
 
+            if (m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawPass ||
+                m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawDraw)
+            {
+                dsv = false;
+                uintTex = false;
+                sintTex = true;
+            }
+
             if (m_CurHoverValue != null)
             {
                 if (dsv || uintTex || sintTex)

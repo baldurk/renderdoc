@@ -32,6 +32,32 @@
 #include "matrix.h"
 #include "quat.h"
 
+// colour ramp from http://www.ncl.ucar.edu/Document/Graphics/ColorTables/GMT_wysiwyg.shtml
+const Vec4f overdrawRamp[21] =
+{
+	Vec4f(0.000000f, 0.000000f, 0.000000f, 0.0f),
+	Vec4f(0.250980f, 0.000000f, 0.250980f, 1.0f),
+	Vec4f(0.250980f, 0.000000f, 0.752941f, 1.0f),
+	Vec4f(0.000000f, 0.250980f, 1.000000f, 1.0f),
+	Vec4f(0.000000f, 0.501961f, 1.000000f, 1.0f),
+	Vec4f(0.000000f, 0.627451f, 1.000000f, 1.0f),
+	Vec4f(0.250980f, 0.752941f, 1.000000f, 1.0f),
+	Vec4f(0.250980f, 0.878431f, 1.000000f, 1.0f),
+	Vec4f(0.250980f, 1.000000f, 1.000000f, 1.0f),
+	Vec4f(0.250980f, 1.000000f, 0.752941f, 1.0f),
+	Vec4f(0.250980f, 1.000000f, 0.250980f, 1.0f),
+	Vec4f(0.501961f, 1.000000f, 0.250980f, 1.0f),
+	Vec4f(0.752941f, 1.000000f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 1.000000f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 0.878431f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 0.627451f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 0.376471f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 0.125490f, 0.250980f, 1.0f),
+	Vec4f(1.000000f, 0.376471f, 0.752941f, 1.0f),
+	Vec4f(1.000000f, 0.627451f, 1.000000f, 1.0f),
+	Vec4f(1.000000f, 0.878431f, 1.000000f, 1.0f),
+};
+
 static inline size_t matIdx(const size_t x, const size_t y) { return x+y*4; }
 
 Matrix4f Matrix4f::Mul(const Matrix4f &o) const

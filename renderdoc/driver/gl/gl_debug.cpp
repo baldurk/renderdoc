@@ -399,7 +399,7 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -635,7 +635,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
-void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+void GLReplay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -745,7 +745,7 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 		gl.glDisable(eGL_DEPTH_TEST);
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+		ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 
 		if(depthTest)
 			gl.glEnable(eGL_DEPTH_TEST);

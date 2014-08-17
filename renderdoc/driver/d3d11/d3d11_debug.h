@@ -130,7 +130,7 @@ class D3D11DebugManager
 		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path);
 
 		void RenderText(float x, float y, float size, const char *textfmt, ...);
-		void RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg);
+		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
 
 		ID3D11Buffer *MakeCBuffer(float *data, size_t size);
 		
@@ -158,7 +158,7 @@ class D3D11DebugManager
 		ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
 		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4]);
 			
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip);
 			
 		// don't need to differentiate arrays as we treat everything
@@ -438,6 +438,8 @@ class D3D11DebugManager
 			ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
+
+			ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
 			
 			ID3D11Buffer *tileResultBuff, *resultBuff, *resultStageBuff;
 			ID3D11UnorderedAccessView *tileResultUAV[3], *resultUAV[3];

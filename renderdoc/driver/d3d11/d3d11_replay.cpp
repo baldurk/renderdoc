@@ -1245,9 +1245,9 @@ bool D3D11Replay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
 	return m_pDevice->GetDebugManager()->SaveTexture(tex, saveMip, path);
 }
 
-void D3D11Replay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+void D3D11Replay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
-	return m_pDevice->GetDebugManager()->RenderMesh(frameID, eventID, cfg);
+	return m_pDevice->GetDebugManager()->RenderMesh(frameID, events, cfg);
 }
 
 void D3D11Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
@@ -1316,9 +1316,9 @@ void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
 	m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, pixel);
 }
 
-ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
-	return m_pDevice->GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID);
+	return m_pDevice->GetDebugManager()->RenderOverlay(texid, overlay, frameID, eventID, passEvents);
 }
 
 ResourceId D3D11Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)

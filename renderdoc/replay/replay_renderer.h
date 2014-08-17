@@ -107,6 +107,8 @@ private:
 	uint32_t m_FirstDeferredEvent;
 	uint32_t m_LastDeferredEvent;
 	OutputConfig m_Config;
+	
+	vector<uint32_t> passEvents;
 
 	int32_t m_Width;
 	int32_t m_Height;

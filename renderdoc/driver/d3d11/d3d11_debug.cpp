@@ -780,6 +780,9 @@ bool D3D11DebugManager::InitDebugRendering()
 	m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 	m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
 	m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+
+	m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+	m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
 	
 	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
@@ -4223,7 +4226,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 }
 
-void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
 	DebugVertexCBuffer vertexData;
 
@@ -4299,9 +4302,9 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 		float nearp = 0.1f;
 		float farp = 1000.0f;
 
-		for(size_t i=0; i < eventID.size(); i++)
+		for(size_t i=0; i < events.size(); i++)
 		{
-			PostVSData data = GetPostVSBuffers(frameID, eventID[i]);
+			PostVSData data = GetPostVSBuffers(frameID, events[i]);
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 
 			if(stage.buf && stage.nearPlane != stage.farPlane)
@@ -4339,15 +4342,15 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 		{
 			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
 
-			if(eventID.size() > 1)
+			if(events.size() > 1)
 			{
 				pixelData.WireframeColour = Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
 				FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 			}
 
-			for(size_t i=0; i < eventID.size()-1; i++)
+			for(size_t i=0; i < events.size()-1; i++)
 			{
-				PostVSData data = GetPostVSBuffers(frameID, eventID[i]);
+				PostVSData data = GetPostVSBuffers(frameID, events[i]);
 				const PostVSData::StageData &stage = data.GetStage(cfg.type);
 
 				if(stage.buf)
@@ -4366,7 +4369,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 			pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
-			PostVSData data = GetPostVSBuffers(frameID, eventID.back());
+			PostVSData data = GetPostVSBuffers(frameID, events.back());
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 			if(stage.buf)
 			{
@@ -4544,7 +4547,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 				m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
 			}
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 			
 			if(cfg.solidShadeMode == eShade_Lit)
 				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -4563,7 +4566,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 		}
 	}
 

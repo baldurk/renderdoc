@@ -93,6 +93,8 @@ bool ReplayOutput::SetTextureDisplay(const TextureDisplay &o)
 
 bool ReplayOutput::SetMeshDisplay(const MeshDisplay &o)
 {
+	if(o.thisDrawOnly!= m_RenderData.meshDisplay.thisDrawOnly)
+		m_OverlayDirty = true;
 	m_RenderData.meshDisplay = o;
 	m_MainOutput.dirty = true;
 	return true;
@@ -122,11 +124,40 @@ void ReplayOutput::RefreshOverlay()
 {
 	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 	
+	{
+		passEvents.clear();
+
+		FetchDrawcall *start = draw;
+		while(start && start->previous != 0 && (m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+		{
+			FetchDrawcall *prev = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous);;
+
+			if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
+				break;
+
+			start = prev;
+		}
+
+		while(start)
+		{
+			if(start->flags & eDraw_Drawcall)
+			{
+				passEvents.push_back(start->eventID);
+			}
+
+			if(start == draw)
+				break;
+
+			start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->next);
+		}
+	}
+
 	if(m_Config.m_Type == eOutputType_TexDisplay && m_RenderData.texDisplay.overlay != eTexOverlay_None)
 	{
 		if(draw && m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid))
 		{
-			m_OverlayResourceId = m_pDevice->RenderOverlay(m_pDevice->GetLiveID(m_RenderData.texDisplay.texid), m_RenderData.texDisplay.overlay, m_FrameID, m_EventID);
+			m_OverlayResourceId = m_pDevice->RenderOverlay(m_pDevice->GetLiveID(m_RenderData.texDisplay.texid), m_RenderData.texDisplay.overlay,
+			                                               m_FrameID, m_EventID, passEvents);
 			m_OverlayDirty = false;
 		}
 	}
@@ -142,36 +173,22 @@ void ReplayOutput::RefreshOverlay()
 		{
 			m_pDevice->InitPostVSBuffers(m_FrameID, draw->eventID);
 		}
-		else
+		else if(!passEvents.empty())
 		{
-			FetchDrawcall *start = draw;
-			while(start->previous != 0 && (m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
-				start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous);
-			
-			m_pDevice->ReplayLog(m_FrameID, 0, start->eventID, eReplay_WithoutDraw);
+			uint32_t prev = passEvents[0];
 
-			uint32_t prev = start->eventID;
-
-			while(start)
+			for(size_t i=0; i < passEvents.size(); i++)
 			{
-				if(start->flags & eDraw_Drawcall)
+				if(prev != passEvents[i])
 				{
-					if(prev != start->eventID)
-					{
-						m_pDevice->ReplayLog(m_FrameID, prev, start->eventID, eReplay_WithoutDraw);
+					m_pDevice->ReplayLog(m_FrameID, prev, passEvents[i], eReplay_WithoutDraw);
 
-						prev = start->eventID;
-					}
-
-					m_pDevice->InitPostVSBuffers(m_FrameID, start->eventID);
+					prev = passEvents[i];
 				}
 
-				if(start == draw)
-					break;
-
-				start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->next);
+				m_pDevice->InitPostVSBuffers(m_FrameID, passEvents[i]);
 			}
-			
+
 			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
 		}
 	}
@@ -249,12 +266,38 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 
 	RDCEraseEl(ret->value_f);
 
+	bool decodeRamp = false;
+
 	if(customShader && m_RenderData.texDisplay.CustomShader != ResourceId() && m_CustomShaderResourceId != ResourceId())
 	{
 		tex = m_CustomShaderResourceId;
 	}
+	if((m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawDraw || 
+		  m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawPass) &&
+			m_OverlayResourceId != ResourceId())
+	{
+		decodeRamp = true;
+		tex = m_OverlayResourceId;
+	}
 
 	m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, ret->value_f);
+	
+	if(decodeRamp)
+	{
+		for(size_t c=0; c < ARRAY_COUNT(overdrawRamp); c++)
+		{
+			if(fabs(ret->value_f[0] - overdrawRamp[c].x) < 0.001f &&
+				 fabs(ret->value_f[1] - overdrawRamp[c].y) < 0.001f &&
+				 fabs(ret->value_f[2] - overdrawRamp[c].z) < 0.001f)
+			{
+				ret->value_i[0] = (int32_t)c;
+				ret->value_i[1] = 0;
+				ret->value_i[2] = 0;
+				ret->value_i[3] = 0;
+				break;
+			}
+		}
+	}
 
 	return true;
 }
@@ -294,6 +337,11 @@ void ReplayOutput::DisplayContext()
 
 	if(m_RenderData.texDisplay.CustomShader != ResourceId())
 		disp.texid = m_CustomShaderResourceId;
+	
+	if((m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawDraw || 
+		  m_RenderData.texDisplay.overlay == eTexOverlay_QuadOverdrawPass) &&
+			m_OverlayResourceId != ResourceId())
+		disp.texid = m_OverlayResourceId;
 
 	disp.scale = 8.0f;
 
@@ -490,7 +538,14 @@ void ReplayOutput::DisplayMesh()
 	if(m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) return;
 	if((draw->flags & eDraw_Drawcall) == 0) return;
 
-	vector<int> events;
+	vector<uint32_t> events = passEvents;
+	
+	if(m_RenderData.meshDisplay.type == eMeshDataStage_VSIn ||
+		 m_RenderData.meshDisplay.thisDrawOnly)
+	{
+		events.clear();
+		events.push_back(draw->eventID);
+	}
 
 	if(draw && m_OverlayDirty)
 	{
@@ -499,43 +554,10 @@ void ReplayOutput::DisplayMesh()
 		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_OnlyDraw);
 	}
 	
-	if(m_RenderData.meshDisplay.type != eMeshDataStage_VSIn)
-	{
-		if(m_RenderData.meshDisplay.thisDrawOnly)
-		{
-			events.push_back(draw->eventID);
-		}
-		else
-		{
-			FetchDrawcall *start = draw;
-			while(start->previous != 0 && (m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
-				start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous);
-
-			while(start)
-			{
-				if(start->flags & eDraw_Drawcall)
-				{
-					events.push_back(start->eventID);
-				}
-
-				if(start == draw)
-					break;
-
-				start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->next);
-			}
-		}
-	}
-  
 	m_pDevice->BindOutputWindow(m_MainOutput.outputID, true);
 	m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
 	m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
-
-	if(m_RenderData.meshDisplay.type == eMeshDataStage_VSIn)
-	{
-		events.clear();
-		events.push_back(draw->eventID);
-	}
 
 	RDCASSERT(!events.empty());
 	
