@@ -171,7 +171,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool hasData)
 {
-	RDCUNIMPLEMENTED("Expect all initial states to be created & not skipped, presently");
+	if(live.Namespace != eResBuffer)
+	{
+		RDCUNIMPLEMENTED("Expect all initial states to be created & not skipped, presently");
+	}
 }
 
 void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData initial)
