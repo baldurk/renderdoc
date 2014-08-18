@@ -1231,6 +1231,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					arrelems.push_back(arrEl);
 				}
 				var.members = arrelems;
+				var.rows = var.columns = 0;
 			}
 		}
 		else
@@ -1280,6 +1281,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					}
 
 					var.members = elems;
+					var.rows = var.columns = 0;
 				}
 			}
 		}
