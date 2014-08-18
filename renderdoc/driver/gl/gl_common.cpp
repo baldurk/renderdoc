@@ -43,6 +43,107 @@ namespace TrackedResource
 	}
 };
 
+size_t BufferIdx(GLenum buf)
+{
+	switch(buf)
+	{
+		case eGL_ARRAY_BUFFER:              return 0;
+		case eGL_ATOMIC_COUNTER_BUFFER:     return 1;
+		case eGL_COPY_READ_BUFFER:          return 2;
+		case eGL_COPY_WRITE_BUFFER:         return 3;
+		case eGL_DRAW_INDIRECT_BUFFER:      return 4;
+		case eGL_DISPATCH_INDIRECT_BUFFER:  return 5;
+		case eGL_ELEMENT_ARRAY_BUFFER:      return 6;
+		case eGL_PIXEL_PACK_BUFFER:         return 7;
+		case eGL_PIXEL_UNPACK_BUFFER:       return 8;
+		case eGL_QUERY_BUFFER:              return 9;
+		case eGL_SHADER_STORAGE_BUFFER:     return 10;
+		case eGL_TEXTURE_BUFFER:            return 11;
+		case eGL_TRANSFORM_FEEDBACK_BUFFER: return 12;
+		case eGL_UNIFORM_BUFFER:            return 13;
+		default:
+			RDCERR("Unexpected enum as buffer target: %hs", ToStr::Get(buf).c_str());
+	}
+
+	return 0;
+}
+
+GLenum BufferEnum(size_t idx)
+{
+	GLenum enums[] = {
+		eGL_ARRAY_BUFFER,
+		eGL_ATOMIC_COUNTER_BUFFER,
+		eGL_COPY_READ_BUFFER,
+		eGL_COPY_WRITE_BUFFER,
+		eGL_DRAW_INDIRECT_BUFFER,
+		eGL_DISPATCH_INDIRECT_BUFFER,
+		eGL_ELEMENT_ARRAY_BUFFER,
+		eGL_PIXEL_PACK_BUFFER,
+		eGL_PIXEL_UNPACK_BUFFER,
+		eGL_QUERY_BUFFER,
+		eGL_SHADER_STORAGE_BUFFER,
+		eGL_TEXTURE_BUFFER,
+		eGL_TRANSFORM_FEEDBACK_BUFFER,
+		eGL_UNIFORM_BUFFER,
+	};
+
+	if(idx < ARRAY_COUNT(enums))
+		return enums[idx];
+
+	return eGL_NONE;
+}
+
+size_t ShaderIdx(GLenum buf)
+{
+	switch(buf)
+	{
+		case eGL_VERTEX_SHADER:           return 0;
+		case eGL_TESS_CONTROL_SHADER:     return 1;
+		case eGL_TESS_EVALUATION_SHADER:  return 2;
+		case eGL_GEOMETRY_SHADER:         return 3;
+		case eGL_FRAGMENT_SHADER:         return 4;
+		case eGL_COMPUTE_SHADER:          return 5;
+		default:
+			RDCERR("Unexpected enum as shader enum: %hs", ToStr::Get(buf).c_str());
+	}
+
+	return 0;
+}
+
+GLenum ShaderBit(size_t idx)
+{
+	GLenum enums[] = {
+		eGL_VERTEX_SHADER_BIT,
+		eGL_TESS_CONTROL_SHADER_BIT,
+		eGL_TESS_EVALUATION_SHADER_BIT,
+		eGL_GEOMETRY_SHADER_BIT,
+		eGL_FRAGMENT_SHADER_BIT,
+		eGL_COMPUTE_SHADER_BIT,
+	};
+
+	if(idx < ARRAY_COUNT(enums))
+		return enums[idx];
+
+	return eGL_NONE;
+}
+
+GLenum ShaderEnum(size_t idx)
+{
+	GLenum enums[] = {
+		eGL_VERTEX_SHADER,
+		eGL_TESS_CONTROL_SHADER,
+		eGL_TESS_EVALUATION_SHADER,
+		eGL_GEOMETRY_SHADER,
+		eGL_FRAGMENT_SHADER,
+		eGL_COMPUTE_SHADER,
+	};
+
+	if(idx < ARRAY_COUNT(enums))
+		return enums[idx];
+
+	return eGL_NONE;
+}
+
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 {
 	ResourceFormat ret;

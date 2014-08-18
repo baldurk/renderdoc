@@ -910,20 +910,7 @@ void GLReplay::SavePipelineState()
 	};
 	ShaderReflection *refls[6] = { NULL };
 	ShaderBindpointMapping *mappings[6] = { NULL };
-	
-	struct
-	{
-		GLenum bit;
-		GLenum type;
-	} shaders[] = {
-		{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
-		{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
-		{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
-		{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
-		{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
-		{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
-	};
-
+		
 	if(curProg == 0)
 	{
 		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
@@ -1307,15 +1294,35 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-
 	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
 	if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count)
 	{
 		RDCERR("Requesting invalid constant block");
 		return;
+	}
+	
+	GLuint curProg = 0;
+	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+
+	if(curProg == 0)
+	{
+		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
+	
+		if(curProg == 0)
+		{
+			RDCERR("No program or pipeline bound");
+			return;
+		}
+		else
+		{
+			ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(m_ReplayCtx.ctx, curProg));
+			auto &pipeDetails = m_pDriver->m_Pipelines[id];
+
+			size_t s = ShaderIdx(shaderDetails.type);
+
+			curProg = m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[s]).name;
+		}
 	}
 
 	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];

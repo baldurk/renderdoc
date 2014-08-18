@@ -441,24 +441,11 @@ bool WrappedOpenGL::Serialise_glLinkProgram(GLuint program)
 
 		progDetails.linked = true;
 		
-		struct
-		{
-			GLenum bit;
-			GLenum type;
-		} shaders[] = {
-			{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
-			{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
-			{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
-			{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
-			{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
-			{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
-		};
-
-		for(size_t s=0; s < ARRAY_COUNT(shaders); s++)
+		for(size_t s=0; s < 6; s++)
 		{
 			for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
 			{
-				if(m_Shaders[ progDetails.shaders[sh] ].type == shaders[s].type)
+				if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
 					progDetails.stageShaders[s] = progDetails.shaders[sh];
 			}
 		}
@@ -643,26 +630,13 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield sta
 
 		pipeDetails.programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
 
-		struct
+		for(size_t s=0; s < 6; s++)
 		{
-			GLenum bit;
-			GLenum type;
-		} shaders[] = {
-			{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
-			{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
-			{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
-			{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
-			{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
-			{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
-		};
-
-		for(size_t s=0; s < ARRAY_COUNT(shaders); s++)
-		{
-			if(Stages & shaders[s].bit)
+			if(Stages & ShaderBit(s))
 			{
 				for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
 				{
-					if(m_Shaders[ progDetails.shaders[sh] ].type == shaders[s].type)
+					if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
 					{
 						pipeDetails.stagePrograms[s] = liveProgId;
 						pipeDetails.stageShaders[s] = progDetails.shaders[sh];

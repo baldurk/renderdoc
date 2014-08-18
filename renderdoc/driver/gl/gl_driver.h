@@ -114,8 +114,6 @@ class WrappedOpenGL
 		GLResourceRecord *m_ReadFramebufferRecord;
 		GLint m_TextureUnit;
 
-		size_t BufferIdx(GLenum buf);
-
 		// internals
 		Serialiser *m_pSerialiser;
 		LogState m_State;

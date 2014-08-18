@@ -71,6 +71,13 @@ struct GLWindowingData
 
 class WrappedOpenGL;
 
+size_t BufferIdx(GLenum buf);
+GLenum BufferEnum(size_t idx);
+
+size_t ShaderIdx(GLenum buf);
+GLenum ShaderBit(size_t idx);
+GLenum ShaderEnum(size_t idx);
+
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 
