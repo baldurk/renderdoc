@@ -783,6 +783,9 @@ bool D3D11DebugManager::InitDebugRendering()
 
 	m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
 	m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+
+	m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+	m_DebugRender.PixelHistoryDepthCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyDepthStencil", "cs_5_0");
 	
 	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
@@ -851,6 +854,16 @@ bool D3D11DebugManager::InitDebugRendering()
 	if(FAILED(hr))
 	{
 		RDCERR("Failed to create default blendstate %08x", hr);
+	}
+
+	blendDesc.RenderTarget[0].BlendEnable = FALSE;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+
+	hr = m_pDevice->CreateBlendState(&blendDesc, &m_DebugRender.NopBlendState);
+
+	if(FAILED(hr))
+	{
+		RDCERR("Failed to create nop blendstate %08x", hr);
 	}
 	
 	D3D11_RASTERIZER_DESC rastDesc;
@@ -922,6 +935,28 @@ bool D3D11DebugManager::InitDebugRendering()
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to create less-equal depthstencilstate %08x", hr);
+		}
+
+		desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		desc.StencilEnable = TRUE;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.AllPassDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass depthstencilstate %08x", hr);
+		}
+
+		desc.DepthEnable = FALSE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.StencilReadMask = desc.StencilWriteMask = 0;
+		desc.StencilEnable = FALSE;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.NopDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create nop depthstencilstate %08x", hr);
 		}
 	}
 

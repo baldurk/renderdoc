@@ -3025,44 +3025,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	copyStencilSRVDesc.Texture2D.MipLevels = 1;
 	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
 
-	string unusedDepthHLSL =
-		"cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };\n" \
-		"cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
-		"Texture2D<float2> depth_src : register(t0);\n" \
-		"Texture2D<uint2> stencil_src : register(t1);\n" \
-		"RWTexture2D<float2> depth_out : register(u0);\n" \
-		"\n" \
-		"[numthreads(1, 1, 1)]\n" \
-		"void main()\n";
-	
-	string copyDepthStencilHLSL = unusedDepthHLSL;
-
-	unusedDepthHLSL += "{ depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f); }";
-	copyDepthStencilHLSL +=
-		"{ depth_out[dst_coord.xy].rg = float2(" \
-		"depth_src[src_coord.xy].r, " \
-		"copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f); }";
-
-	ID3D11ComputeShader *unusedDepthCS = MakeCShader(unusedDepthHLSL.c_str(), "main", "cs_5_0");
-	ID3D11ComputeShader *copyDepthStencilCS = MakeCShader(copyDepthStencilHLSL.c_str(), "main", "cs_5_0");
-	ID3D11Buffer *srcxyCBuf = NULL;
-	ID3D11Buffer *storexyCBuf = NULL;
-
 	uint32_t srcxyData[4] = { x, y, 0, 0 };
 
-	D3D11_BUFFER_DESC cbufDesc = {
-		sizeof(uint32_t)*4,
-		D3D11_USAGE_DEFAULT,
-		D3D11_BIND_CONSTANT_BUFFER,
-		0,
-		0,
-		0
-	};
-
 	D3D11_SUBRESOURCE_DATA data = { srcxyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4 };
-
-	m_pDevice->CreateBuffer(&cbufDesc, &data, &srcxyCBuf);
-	m_pDevice->CreateBuffer(&cbufDesc, NULL, &storexyCBuf);
+	
+	ID3D11Buffer *srcxyCBuf = MakeCBuffer((float *)srcxyData, sizeof(srcxyData));
+	ID3D11Buffer *storexyCBuf = MakeCBuffer((float *)srcxyData, sizeof(srcxyData));
 
 	// so we do:
 	// per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy--> pixstoreDepth
@@ -3122,36 +3090,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		m_pDevice->CreateQuery(&occlDesc, &testQueries[i]);
-
-	D3D11_BLEND_DESC nopBlendStateDesc = {0}; // no blending enabled anywhere, 0 write mask
-	ID3D11BlendState *nopBlendState = NULL;
-	m_pDevice->CreateBlendState(&nopBlendStateDesc, &nopBlendState);
-
-	D3D11_DEPTH_STENCIL_DESC nopDSStateDesc = { // no tests enabled, no writing enabled
-		FALSE, // DepthEnable;
-		D3D11_DEPTH_WRITE_MASK_ZERO, // DepthWriteMask;
-		D3D11_COMPARISON_ALWAYS, // DepthFunc;
-		FALSE, // StencilEnable;
-		0, // StencilReadMask;
-		0, // StencilWriteMask;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
-	};
-	ID3D11DepthStencilState *nopDSState = NULL;
-	m_pDevice->CreateDepthStencilState(&nopDSStateDesc, &nopDSState);
-	
-	D3D11_DEPTH_STENCIL_DESC allpassDSStateDesc = { // tests enabled to trivially pass, writing enabled
-		TRUE, // DepthEnable;
-		D3D11_DEPTH_WRITE_MASK_ALL, // DepthWriteMask;
-		D3D11_COMPARISON_ALWAYS, // DepthFunc;
-		TRUE, // StencilEnable;
-		0xff, // StencilReadMask;
-		0xff, // StencilWriteMask;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
-	};
-	ID3D11DepthStencilState *allpassDSState = NULL;
-	m_pDevice->CreateDepthStencilState(&allpassDSStateDesc, &allpassDSState);
 
 	m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
 
@@ -3327,8 +3265,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
-		m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-		m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+		m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NopDepthState, stencilRef);
 
 		for(UINT i=0; i < curNumViews; i++)
 		{
@@ -3501,7 +3439,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
 			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
 
-			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->CSSetShader(depthBound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
 			m_pImmediateContext->Dispatch(1, 1, 1);
 
 			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
@@ -3578,7 +3516,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
 			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
 			
-			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
+			m_pImmediateContext->CSSetShader(depthBound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
 			m_pImmediateContext->Dispatch(1, 1, 1);
 
 			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
@@ -3901,8 +3839,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -3928,8 +3866,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -3955,8 +3893,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
@@ -4007,8 +3945,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
 
@@ -4037,15 +3975,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					dsd.StencilEnable = TRUE;
 					dsd.StencilReadMask = 0xff;
 					dsd.StencilWriteMask = 0xff;
-					dsd.FrontFace = allpassDSStateDesc.FrontFace;
-					dsd.BackFace = allpassDSStateDesc.BackFace;
+					dsd.FrontFace.StencilDepthFailOp = dsd.FrontFace.StencilFailOp = dsd.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+					dsd.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+					dsd.BackFace.StencilDepthFailOp = dsd.BackFace.StencilFailOp = dsd.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+					dsd.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
 					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
 
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
 					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
@@ -4077,7 +4017,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
 					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
@@ -4201,9 +4141,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		SAFE_RELEASE(testQueries[i]);
 
-	SAFE_RELEASE(nopBlendState);
-	SAFE_RELEASE(nopDSState);
-
 	SAFE_RELEASE(pixstore);
 	
 	SAFE_RELEASE(pixstoreDepthReadback);
@@ -4223,11 +4160,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	SAFE_RELEASE(depthCopyD16);
 	SAFE_RELEASE(depthCopyD16_DepthSRV);
-
-	SAFE_RELEASE(unusedDepthCS);
-	SAFE_RELEASE(copyDepthStencilCS);
-	SAFE_RELEASE(srcxyCBuf);
-	SAFE_RELEASE(storexyCBuf);
 
 	return history;
 }

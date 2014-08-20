@@ -359,10 +359,13 @@ class D3D11DebugManager
 				SAFE_RELEASE(OutlineStripVB);
 				SAFE_RELEASE(RastState);
 				SAFE_RELEASE(BlendState);
+				SAFE_RELEASE(NopBlendState);
 				SAFE_RELEASE(PointSampState);
 				SAFE_RELEASE(LinearSampState);
 				SAFE_RELEASE(NoDepthState);
 				SAFE_RELEASE(LEqualDepthState);
+				SAFE_RELEASE(NopDepthState);
+				SAFE_RELEASE(AllPassDepthState);
 
 				SAFE_RELEASE(GenericLayout);
 				SAFE_RELEASE(GenericHomogLayout);
@@ -375,11 +378,24 @@ class D3D11DebugManager
 				SAFE_RELEASE(MeshVS);
 				SAFE_RELEASE(MeshGS);
 				SAFE_RELEASE(MeshPS);
+				SAFE_RELEASE(FullscreenVS);
 				SAFE_RELEASE(WireframeVS);
 				SAFE_RELEASE(WireframeHomogVS);
 				SAFE_RELEASE(WireframePS);
 				SAFE_RELEASE(OverlayPS);
-				
+
+				SAFE_RELEASE(CopyMSToArrayPS);
+				SAFE_RELEASE(CopyArrayToMSPS);
+				SAFE_RELEASE(FloatCopyMSToArrayPS);
+				SAFE_RELEASE(FloatCopyArrayToMSPS);
+				SAFE_RELEASE(DepthCopyMSToArrayPS);
+				SAFE_RELEASE(DepthCopyArrayToMSPS);
+				SAFE_RELEASE(PixelHistoryUnusedCS);
+				SAFE_RELEASE(PixelHistoryDepthCopyCS);
+
+				SAFE_RELEASE(QuadOverdrawPS);
+				SAFE_RELEASE(QOResolvePS);
+
 				SAFE_RELEASE(tileResultBuff);
 				SAFE_RELEASE(resultBuff);
 				SAFE_RELEASE(resultStageBuff);
@@ -424,8 +440,8 @@ class D3D11DebugManager
 			ID3D11Buffer *PosBuffer, *OutlineStripVB;
 			ID3D11RasterizerState *RastState;
 			ID3D11SamplerState *PointSampState, *LinearSampState;
-			ID3D11BlendState *BlendState;
-			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState;
+			ID3D11BlendState *BlendState, *NopBlendState;
+			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState, *AllPassDepthState;
 
 			ID3D11InputLayout *GenericLayout, *GenericHomogLayout;
 			ID3D11Buffer *GenericVSCBuffer;
@@ -438,6 +454,7 @@ class D3D11DebugManager
 			ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
+			ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryDepthCopyCS;
 
 			ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
 			

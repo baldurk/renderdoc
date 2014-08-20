@@ -388,3 +388,23 @@ float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0
 // http://blog.selfshadow.com/2012/11/12/counting-quads/
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
+
+cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };
+cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };
+Texture2D<float2> depth_src : register(t0);
+Texture2D<uint2> stencil_src : register(t1);
+RWTexture2D<float2> depth_out : register(u0);
+
+[numthreads(1, 1, 1)]
+void RENDERDOC_PixelHistoryUnused()
+{
+	depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f);
+}
+
+[numthreads(1, 1, 1)]
+void RENDERDOC_PixelHistoryCopyDepthStencil()
+{
+	depth_out[dst_coord.xy].rg = float2(
+			depth_src[src_coord.xy].r,
+			copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f);
+}
