@@ -472,6 +472,9 @@ namespace renderdoc
     {
         public UInt32 eventID;
 
+        public UInt32 fragIndex;
+        public UInt32 primitiveID;
+
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ModificationValue preMod;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]

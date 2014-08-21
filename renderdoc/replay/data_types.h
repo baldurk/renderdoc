@@ -213,6 +213,9 @@ struct PixelModification
 {
 	uint32_t eventID;
 
+	uint32_t fragIndex;
+	uint32_t primitiveID;
+
 	ModificationValue preMod;
 	ModificationValue shaderOut;
 	ModificationValue postMod;

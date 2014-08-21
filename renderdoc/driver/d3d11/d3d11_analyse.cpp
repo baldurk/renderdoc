@@ -4214,6 +4214,21 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		}
 	}
 	
+	for(size_t h=0; h < history.size(); )
+	{
+		int32_t frags = RDCMAX(1, history[h].shaderOut.col.value_i[0]);
+
+		PixelModification mod = history[h];
+
+		for(int32_t f=1; f < frags; f++)
+			history.insert(history.begin()+h+1, mod);
+
+		for(int32_t f=0; f < frags; f++)
+			history[h+f].fragIndex = f;
+
+		h += frags;
+	}
+	
 	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 	m_pImmediateContext->Unmap(pixstore, 0);
 
