@@ -958,6 +958,20 @@ bool D3D11DebugManager::InitDebugRendering()
 		{
 			RDCERR("Failed to create nop depthstencilstate %08x", hr);
 		}
+		
+		desc.StencilReadMask = desc.StencilWriteMask = 0xff;
+		desc.StencilEnable = TRUE;
+		desc.BackFace.StencilFailOp = desc.BackFace.StencilPassOp = desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR_SAT;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.FrontFace.StencilFailOp = desc.FrontFace.StencilPassOp = desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR_SAT;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.AllPassIncrDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
+		}
 	}
 
 	{

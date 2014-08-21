@@ -321,6 +321,10 @@ class D3D11DebugManager
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
+		void PixelHistoryDepthCopySubresource(bool depthbound, ID3D11Texture2D *uavres, ID3D11UnorderedAccessView *uav, ID3D11Resource *depthres,
+																					ID3D11ShaderResourceView **copyDepthSRV, ID3D11ShaderResourceView **copyStencilSRV,
+																					ID3D11Buffer *srcxyCBuf, ID3D11Buffer *storexyCBuf, uint32_t x, uint32_t y);
+
 		static const int FONT_TEX_WIDTH = 4096;
 		static const int FONT_TEX_HEIGHT = 48;
 		static const int FONT_MAX_CHARS = 256;
@@ -366,6 +370,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(LEqualDepthState);
 				SAFE_RELEASE(NopDepthState);
 				SAFE_RELEASE(AllPassDepthState);
+				SAFE_RELEASE(AllPassIncrDepthState);
 
 				SAFE_RELEASE(GenericLayout);
 				SAFE_RELEASE(GenericHomogLayout);
@@ -441,7 +446,8 @@ class D3D11DebugManager
 			ID3D11RasterizerState *RastState;
 			ID3D11SamplerState *PointSampState, *LinearSampState;
 			ID3D11BlendState *BlendState, *NopBlendState;
-			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState, *AllPassDepthState;
+			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState,
+			                        *AllPassDepthState, *AllPassIncrDepthState;
 
 			ID3D11InputLayout *GenericLayout, *GenericHomogLayout;
 			ID3D11Buffer *GenericVSCBuffer;

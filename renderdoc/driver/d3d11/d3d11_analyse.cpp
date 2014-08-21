@@ -2913,6 +2913,59 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 	return m_OverlayResourceId;
 }
+		
+void D3D11DebugManager::PixelHistoryDepthCopySubresource(bool depthbound, ID3D11Texture2D *uavres, ID3D11UnorderedAccessView *uav, ID3D11Resource *depthres,
+                                                         ID3D11ShaderResourceView **copyDepthSRV, ID3D11ShaderResourceView **copyStencilSRV,
+                                                         ID3D11Buffer *srcxyCBuf, ID3D11Buffer *storexyCBuf, uint32_t x, uint32_t y)
+{
+	if(depthbound && uavres && depthres)
+		m_pImmediateContext->CopySubresourceRegion(uavres, 0, 0, 0, 0, depthres, 0, NULL);
+
+	ID3D11ComputeShader *curCS = NULL;
+	ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+	UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+	ID3D11Buffer *curCSCBuf[2] = {0};
+	ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+	ID3D11UnorderedAccessView *curCSUAV = NULL;
+	UINT initCounts = ~0U;
+
+	m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+	m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+	m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+	m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+	uint32_t storexyData[4] = { x, y, (copyStencilSRV != NULL), 0 };
+
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	m_pImmediateContext->Map(storexyCBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+	memcpy(mapped.pData, storexyData, sizeof(storexyData));
+
+	m_pImmediateContext->Unmap(storexyCBuf, 0);
+
+	m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+	m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initCounts);
+	if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+	if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+
+	m_pImmediateContext->CSSetShader(depthbound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
+	m_pImmediateContext->Dispatch(1, 1, 1);
+
+	m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+	m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+	m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+	SAFE_RELEASE(curCS);
+	for(UINT i=0; i < curCSNumInst; i++)
+		SAFE_RELEASE(curCSInst[i]);
+	SAFE_RELEASE(curCSCBuf[0]);
+	SAFE_RELEASE(curCSCBuf[1]);
+	SAFE_RELEASE(curCSSRVs[0]);
+	SAFE_RELEASE(curCSSRVs[1]);
+	SAFE_RELEASE(curCSUAV);
+}
 
 vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
 {
@@ -2940,9 +2993,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Query *testQueries[6] = {0}; // one query for each test we do per-drawcall
 
-	// reserve 6 pixels per draw on average. Pre/Shaderout/Post required at minimum,
-	// and hopefully overdraw within draws will average to only 2 times.
-	uint32_t pixstoreSlots = (uint32_t)(events.size() * 6);
+	uint32_t pixstoreStride = 3;
+	
+	// reserve 3 pixels per draw (worst case all events). This is used for Pre/Shadout/Post values.
+	uint32_t pixstoreSlots = (uint32_t)(events.size() * pixstoreStride);
 
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
@@ -2960,6 +3014,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Texture2D *pixstore = NULL;
 	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+	
+	// This is used for shader output values.
+	pixstoreDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+	ID3D11Texture2D *shadoutStore = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &shadoutStore);
 
 	// we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil components.
 	// the shader does the upcasting for us when we read from depth or stencil
@@ -2977,6 +3037,41 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11UnorderedAccessView *pixstoreDepthUAV = NULL;
 	m_pDevice->CreateUnorderedAccessView(pixstoreDepth, NULL, &pixstoreDepthUAV);
+	
+	// very wasteful, but we must leave the viewport as is to get correct rasterisation which means
+	// same dimensions of render target.
+	D3D11_TEXTURE2D_DESC shadoutDesc = {
+		details.texWidth,
+		details.texHeight,
+		1U,
+		1U,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		{ 1, 0 },
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_RENDER_TARGET,
+		0,
+		0,
+	};
+	ID3D11Texture2D *shadOutput = NULL;
+	m_pDevice->CreateTexture2D(&shadoutDesc, NULL, &shadOutput);
+
+	ID3D11RenderTargetView *shadOutputRTV = NULL;
+	m_pDevice->CreateRenderTargetView(shadOutput, NULL, &shadOutputRTV);
+
+	shadoutDesc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+	shadoutDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
+	ID3D11Texture2D *shaddepthOutput = NULL;
+	m_pDevice->CreateTexture2D(&shadoutDesc, NULL, &shaddepthOutput);
+
+	ID3D11DepthStencilView *shadOutputDSV = NULL;
+	{
+		D3D11_DEPTH_STENCIL_VIEW_DESC desc;
+		desc.Flags = 0;
+		desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipSlice = 0;
+		m_pDevice->CreateDepthStencilView(shaddepthOutput, &desc, &shadOutputDSV);
+	}
 	
 	// depth texture to copy to, as CopySubresourceRegion can't copy single pixels out of a depth buffer,
 	// and we can't guarantee that the original depth texture is SRV-compatible to allow single-pixel copies
@@ -3024,6 +3119,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	copyStencilSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	copyStencilSRVDesc.Texture2D.MipLevels = 1;
 	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
+	
+	ID3D11ShaderResourceView *shaddepthOutputDepthSRV = NULL, *shaddepthOutputStencilSRV = NULL;
+	copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+	m_pDevice->CreateShaderResourceView(shaddepthOutput, &copyDepthSRVDesc, &shaddepthOutputDepthSRV);
+	copyDepthSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+	m_pDevice->CreateShaderResourceView(shaddepthOutput, &copyDepthSRVDesc, &shaddepthOutputStencilSRV);
 
 	uint32_t srcxyData[4] = { x, y, 0, 0 };
 
@@ -3296,10 +3397,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
 
 		// figure out where this event lies in the pixstore texture
-		UINT storex = UINT(ev % (2048/2));
-		UINT storey = UINT(ev / (2048/2));
+		UINT storex = UINT(ev % (2048/pixstoreStride));
+		UINT storey = UINT(ev / (2048/pixstoreStride));
 
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*2 + 0, storey, 0, targetres, 0, &srcbox);
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*pixstoreStride + 0, storey, 0, targetres, 0, &srcbox);
 		
 		bool depthBound = false;
 		ID3D11Texture2D **copyTex = NULL;
@@ -3413,60 +3514,78 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 		}
 		
-		{
-			if(depthBound)
-				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
-			
-			ID3D11ComputeShader *curCS = NULL;
-			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
-			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
-			ID3D11Buffer *curCSCBuf[2] = {0};
-			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
-			ID3D11UnorderedAccessView *curCSUAV = NULL;
-			UINT initCounts = ~0U;
-
-			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
-			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
-
-			uint32_t storexyData[4] = { storex*2 + 0, storey, (copyStencilSRV != NULL), 0 };
-
-			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
-			
-			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
-			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
-
-			m_pImmediateContext->CSSetShader(depthBound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
-			m_pImmediateContext->Dispatch(1, 1, 1);
-
-			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
-			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
-
-			SAFE_RELEASE(curCS);
-			for(UINT i=0; i < curCSNumInst; i++)
-				SAFE_RELEASE(curCSInst[i]);
-			SAFE_RELEASE(curCSCBuf[0]);
-			SAFE_RELEASE(curCSCBuf[1]);
-			SAFE_RELEASE(curCSSRVs[0]);
-			SAFE_RELEASE(curCSSRVs[1]);
-			SAFE_RELEASE(curCSUAV);
-		}
+		PixelHistoryDepthCopySubresource(depthBound, copyTex ? *copyTex : NULL, pixstoreDepthUAV, depthRes,
+																		 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
+																		 storex*pixstoreStride + 0, storey);
 
 		m_pImmediateContext->Begin(occl[ev]);
 
 		m_WrappedDevice->ReplayLog(frameID, 0, events[ev], eReplay_OnlyDraw);
 
 		m_pImmediateContext->End(occl[ev]);
+		
+		m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+
+		// determine how many fragments returned from the shader
+		{
+			D3D11_RASTERIZER_DESC rdsc = rsDesc;
+
+			rdsc.ScissorEnable = TRUE;
+			// leave depth clip mode as normal
+			// leave backface culling mode as normal
+
+			m_pDevice->CreateRasterizerState(&rdsc, &newRS);
+
+			m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+			m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassIncrDepthState, stencilRef);
+			m_pImmediateContext->RSSetState(newRS);
+
+			ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+			m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, tmpViews, NULL);
+
+			uint32_t UAVStartSlot = 0;
+			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+			{
+				if(tmpViews[i] != NULL)
+				{
+					UAVStartSlot  = i+1;
+					SAFE_RELEASE(tmpViews[i]);
+				}
+			}
+
+			ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+			ID3D11UnorderedAccessView* prevUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+			ID3D11DepthStencilView *prevDSV = NULL;
+			m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
+			                                                               UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs);
+
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			m_pImmediateContext->OMSetRenderTargets(0, NULL, shadOutputDSV);
+
+			m_WrappedDevice->ReplayLog(frameID, 0, events[ev], eReplay_OnlyDraw);
+
+			UINT initCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, };
+			
+			m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, prevDSV, UAVStartSlot,
+			                                                               D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs, initCounts);
+			
+			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+			{
+				SAFE_RELEASE(prevRTVs[i]);
+				SAFE_RELEASE(prevUAVs[i]);
+			}
+			SAFE_RELEASE(prevDSV);
+			
+			PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
+																			 &shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
+																			 storex*pixstoreStride + 2, storey);
+
+			SAFE_RELEASE(newRS);
+		}
 
 		// TODO, if drawcall has side-effects (i.e UAVs bound) replay from start of log here?
 
-		m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
 		m_pImmediateContext->RSSetState(curRS);
 		m_pImmediateContext->RSSetScissorRects(curNumScissors, curScissors);
 		m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
@@ -3488,52 +3607,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		else
 			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
 		
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*2 + 1, storey, 0, targetres, 0, &srcbox);
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*pixstoreStride + 1, storey, 0, targetres, 0, &srcbox);
 		
-		{
-			if(depthBound)
-				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
-			
-			ID3D11ComputeShader *curCS = NULL;
-			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
-			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
-			ID3D11Buffer *curCSCBuf[2] = {0};
-			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
-			ID3D11UnorderedAccessView *curCSUAV = NULL;
-			UINT initCounts = ~0U;
-
-			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
-			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
-
-			uint32_t storexyData[4] = { storex*2 + 1, storey, (copyStencilSRV != NULL), 0 };
-
-			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
-			
-			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
-			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
-			
-			m_pImmediateContext->CSSetShader(depthBound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
-			m_pImmediateContext->Dispatch(1, 1, 1);
-
-			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
-			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
-
-			SAFE_RELEASE(curCS);
-			for(UINT i=0; i < curCSNumInst; i++)
-				SAFE_RELEASE(curCSInst[i]);
-			SAFE_RELEASE(curCSCBuf[0]);
-			SAFE_RELEASE(curCSCBuf[1]);
-			SAFE_RELEASE(curCSSRVs[0]);
-			SAFE_RELEASE(curCSSRVs[1]);
-			SAFE_RELEASE(curCSUAV);
-		}
+		PixelHistoryDepthCopySubresource(depthBound, copyTex ? *copyTex : NULL, pixstoreDepthUAV, depthRes,
+																		 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
+																		 storex*pixstoreStride + 1, storey);
 
 		SAFE_RELEASE(depthRes);
 	}
@@ -3559,18 +3637,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			PixelModification mod;
 			RDCEraseEl(mod);
 
+			uint32_t fragDupes = 1;
+
 			mod.eventID = events[i];
 
-			mod.preMod.col.value_u[0] = (uint32_t)i;
+			mod.shaderOut.col.value_u[0] = (uint32_t)i;
 
-			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a
-			// PixelModification event for all of them.
-			//
-			// Is there any value in doing this anyway for non-blended cases where other fragments are completely discarded?
-			if(flags[i] & Blending_Enabled)
-			{
-			}
-			
 			if((draw->flags & eDraw_Clear) == 0)
 			{
 				if(flags[i] & TestMustFail_DepthTesting)
@@ -3974,18 +4046,18 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	{
 		PixelModification &mod = history[h];
 
-		uint32_t i = mod.preMod.col.value_u[0];
+		uint32_t i = mod.shaderOut.col.value_u[0];
 
 		ResourceFormat fmt = MakeResourceFormat(details.texFmt);
 
 		// figure out where this event lies in the pixstore texture
-		uint32_t storex = uint32_t(i % (2048/2));
-		uint32_t storey = uint32_t(i / (2048/2));
+		uint32_t storex = uint32_t(i % (2048/pixstoreStride));
+		uint32_t storey = uint32_t(i / (2048/pixstoreStride));
 
 		if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
 		{
 			byte *rowdata = pixstoreData + mapped.RowPitch * storey;
-			byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 2;
+			byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * pixstoreStride;
 
 			if(fmt.compType == eCompType_SInt)
 			{
@@ -4010,7 +4082,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 						mod.preMod.col.value_i[c] = d[c];
 				}
 
-				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 2 + 1);
+				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + 1);
 
 				if(fmt.compByteWidth == 1)
 				{
@@ -4036,7 +4108,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				for(uint32_t c=0; c < fmt.compCount; c++)
 					memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
 
-				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 2 + 1);
+				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + 1);
 
 				for(uint32_t c=0; c < fmt.compCount; c++)
 					memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
@@ -4130,21 +4202,16 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		{
 			byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
-			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 2 + 0));
+			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * pixstoreStride + 0));
 
 			mod.preMod.depth = data[0];
 			mod.preMod.stencil = int32_t(data[1]);
 
 			mod.postMod.depth = data[2];
 			mod.postMod.stencil = int32_t(data[3]);
+
+			mod.shaderOut.col.value_i[0] = int32_t(data[5]); // fragments writing to the pixel in this event
 		}
-		
-		mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
-		mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
-		mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
-		mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
-		mod.shaderOut.depth = mod.postMod.depth;
-		mod.shaderOut.stencil = mod.postMod.stencil;
 	}
 	
 	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
@@ -4154,6 +4221,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(testQueries[i]);
 
 	SAFE_RELEASE(pixstore);
+	SAFE_RELEASE(shadoutStore);
+
+	SAFE_RELEASE(shadOutput);
+	SAFE_RELEASE(shadOutputRTV);
+	SAFE_RELEASE(shaddepthOutput);
+	SAFE_RELEASE(shadOutputDSV);
+	SAFE_RELEASE(shaddepthOutputDepthSRV);
+	SAFE_RELEASE(shaddepthOutputStencilSRV);
 	
 	SAFE_RELEASE(pixstoreDepthReadback);
 	SAFE_RELEASE(pixstoreDepth);
