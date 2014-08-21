@@ -3093,8 +3093,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
 
-	D3D11_VIEWPORT viewport = { (float)x, (float)y, 10.0f, 10.0f, 0.0f, 1.0f }; // 1x1 viewport of our destination pixel
-
 	ID3D11RasterizerState *curRS = NULL;
 	ID3D11RasterizerState *newRS = NULL;
 	ID3D11DepthStencilState *newDS = NULL;
@@ -3111,6 +3109,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	UINT curSample = 0;
 	ID3D11DepthStencilState *curDS = NULL;
 	UINT stencilRef = 0;
+
+	////////////////////////////////////////////////////////////////////////
+	// Main loop over each event to determine if it rasterized to this pixel
 
 	for(size_t ev=0; ev < events.size(); ev++)
 	{
@@ -3295,10 +3296,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
 
 		// figure out where this event lies in the pixstore texture
-		UINT storex = UINT(ev % (2048/3));
-		UINT storey = UINT(ev / (2048/3));
+		UINT storex = UINT(ev % (2048/2));
+		UINT storey = UINT(ev / (2048/2));
 
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 0, storey, 0, targetres, 0, &srcbox);
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*2 + 0, storey, 0, targetres, 0, &srcbox);
 		
 		bool depthBound = false;
 		ID3D11Texture2D **copyTex = NULL;
@@ -3429,7 +3430,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
 			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
 
-			uint32_t storexyData[4] = { storex*3 + 0, storey, (copyStencilSRV != NULL), 0 };
+			uint32_t storexyData[4] = { storex*2 + 0, storey, (copyStencilSRV != NULL), 0 };
 
 			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
 			
@@ -3487,7 +3488,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		else
 			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
 		
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 1, storey, 0, targetres, 0, &srcbox);
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*2 + 1, storey, 0, targetres, 0, &srcbox);
 		
 		{
 			if(depthBound)
@@ -3506,7 +3507,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
 			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
 
-			uint32_t storexyData[4] = { storex*3 + 1, storey, (copyStencilSRV != NULL), 0 };
+			uint32_t storexyData[4] = { storex*2 + 1, storey, (copyStencilSRV != NULL), 0 };
 
 			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
 			
@@ -3536,23 +3537,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		SAFE_RELEASE(depthRes);
 	}
-
-	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
-
-	D3D11_MAPPED_SUBRESOURCE mapped = {0};
-	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
-
-	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
-	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
-
-	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
-
-	byte *pixstoreData = (byte *)mapped.pData;
 	
-	bool depthStencilTex = details.texType == eTexType_Depth || 
-		details.texType == eTexType_DepthMS ||
-		details.texType == eTexType_Stencil ||
-		details.texType == eTexType_StencilMS;
+	////////////////////////////////////////////////////////////////////////
+	// Second loop over each event to determine if it the above query returned
+	// true and narrow down which tests (if any) it failed
 
 	for(size_t i=0; i < occl.size(); i++)
 	{
@@ -3573,168 +3561,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			mod.eventID = events[i];
 
-			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
-
-			// figure out where this event lies in the pixstore texture
-			uint32_t storex = uint32_t(i % (2048/3));
-			uint32_t storey = uint32_t(i / (2048/3));
-
-			if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
-			{
-				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
-				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
-
-				if(fmt.compType == eCompType_SInt)
-				{
-					// need to get correct sign, but otherwise just copy
-
-					if(fmt.compByteWidth == 1)
-					{
-						int8_t *d = (int8_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 2)
-					{
-						int16_t *d = (int16_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 4)
-					{
-						int32_t *d = (int32_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-
-					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
-					
-					if(fmt.compByteWidth == 1)
-					{
-						int8_t *d = (int8_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 2)
-					{
-						int16_t *d = (int16_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 4)
-					{
-						int32_t *d = (int32_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-				}
-				else
-				{
-					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
-
-					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
-
-					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
-
-					if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
-							mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
-						}
-					}
-					else if(fmt.compType == eCompType_UNorm)
-					{
-						// only 32bit unorm format is depth, handled separately
-						float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
-
-						RDCASSERT(fmt.compByteWidth < 4);
-
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
-							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
-						}
-					}
-					else if(fmt.compType == eCompType_UNorm_SRGB)
-					{
-						RDCASSERT(fmt.compByteWidth == 1);
-
-						for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
-						{
-							mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
-							mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
-						}
-
-						// alpha is not SRGB'd
-						if(fmt.compCount == 4)
-						{
-							mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
-							mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
-							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -128)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/127.0f;
-
-							d = (int8_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -128)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/127.0f;
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -32768)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
-
-							d = (int16_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -32768)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
-						}
-					}
-				}
-			}
-
-			{
-				byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
-				float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 3 + 0));
-				
-				mod.preMod.depth = data[0];
-				mod.preMod.stencil = int32_t(data[1]);
-
-				mod.postMod.depth = data[2];
-				mod.postMod.stencil = int32_t(data[3]);
-			}
+			mod.preMod.col.value_u[0] = (uint32_t)i;
 
 			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a
 			// PixelModification event for all of them.
@@ -3744,13 +3571,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			{
 			}
 			
-			mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
-			mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
-			mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
-			mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
-			mod.shaderOut.depth = mod.postMod.depth;
-			mod.shaderOut.stencil = mod.postMod.stencil;
-
 			if((draw->flags & eDraw_Clear) == 0)
 			{
 				if(flags[i] & TestMustFail_DepthTesting)
@@ -4135,9 +3955,201 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(occl[i]);
 	}
 
+	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
+
+	D3D11_MAPPED_SUBRESOURCE mapped = {0};
+	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+
+	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
+	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
+
+	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
+
+	byte *pixstoreData = (byte *)mapped.pData;
+	
+	////////////////////////////////////////////////////////////////////////////////
+	// Third loop over each modification event to read back the colour + depth data
+
+	for(size_t h=0; h < history.size(); h++)
+	{
+		PixelModification &mod = history[h];
+
+		uint32_t i = mod.preMod.col.value_u[0];
+
+		ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+
+		// figure out where this event lies in the pixstore texture
+		uint32_t storex = uint32_t(i % (2048/2));
+		uint32_t storey = uint32_t(i / (2048/2));
+
+		if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+		{
+			byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+			byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 2;
+
+			if(fmt.compType == eCompType_SInt)
+			{
+				// need to get correct sign, but otherwise just copy
+
+				if(fmt.compByteWidth == 1)
+				{
+					int8_t *d = (int8_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.preMod.col.value_i[c] = d[c];
+				}
+				else if(fmt.compByteWidth == 2)
+				{
+					int16_t *d = (int16_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.preMod.col.value_i[c] = d[c];
+				}
+				else if(fmt.compByteWidth == 4)
+				{
+					int32_t *d = (int32_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.preMod.col.value_i[c] = d[c];
+				}
+
+				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 2 + 1);
+
+				if(fmt.compByteWidth == 1)
+				{
+					int8_t *d = (int8_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.postMod.col.value_i[c] = d[c];
+				}
+				else if(fmt.compByteWidth == 2)
+				{
+					int16_t *d = (int16_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.postMod.col.value_i[c] = d[c];
+				}
+				else if(fmt.compByteWidth == 4)
+				{
+					int32_t *d = (int32_t*)data;
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						mod.postMod.col.value_i[c] = d[c];
+				}
+			}
+			else
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+					memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+				data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 2 + 1);
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+					memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+
+				if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+					{
+						mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
+						mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
+					}
+				}
+				else if(fmt.compType == eCompType_UNorm)
+				{
+					// only 32bit unorm format is depth, handled separately
+					float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+					RDCASSERT(fmt.compByteWidth < 4);
+
+					for(uint32_t c=0; c < fmt.compCount; c++)
+					{
+						mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+						mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
+					}
+				}
+				else if(fmt.compType == eCompType_UNorm_SRGB)
+				{
+					RDCASSERT(fmt.compByteWidth == 1);
+
+					for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
+					{
+						mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
+						mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
+					}
+
+					// alpha is not SRGB'd
+					if(fmt.compCount == 4)
+					{
+						mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
+						mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
+					}
+				}
+				else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+					{
+						mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
+						mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
+					}
+				}
+				else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+					{
+						int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
+
+						if(*d == -128)
+							mod.preMod.col.value_f[c] = -1.0f;
+						else
+							mod.preMod.col.value_f[c] = float(*d)/127.0f;
+
+						d = (int8_t *)&mod.preMod.col.value_u[c];
+
+						if(*d == -128)
+							mod.preMod.col.value_f[c] = -1.0f;
+						else
+							mod.preMod.col.value_f[c] = float(*d)/127.0f;
+					}
+				}
+				else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+					{
+						int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
+
+						if(*d == -32768)
+							mod.preMod.col.value_f[c] = -1.0f;
+						else
+							mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+
+						d = (int16_t *)&mod.preMod.col.value_u[c];
+
+						if(*d == -32768)
+							mod.preMod.col.value_f[c] = -1.0f;
+						else
+							mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+					}
+				}
+			}
+		}
+
+		{
+			byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
+			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 2 + 0));
+
+			mod.preMod.depth = data[0];
+			mod.preMod.stencil = int32_t(data[1]);
+
+			mod.postMod.depth = data[2];
+			mod.postMod.stencil = int32_t(data[3]);
+		}
+		
+		mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
+		mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
+		mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
+		mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
+		mod.shaderOut.depth = mod.postMod.depth;
+		mod.shaderOut.stencil = mod.postMod.stencil;
+	}
+	
 	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 	m_pImmediateContext->Unmap(pixstore, 0);
-	
+
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		SAFE_RELEASE(testQueries[i]);
 
