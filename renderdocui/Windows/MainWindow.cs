@@ -1292,9 +1292,9 @@ namespace renderdocui.Windows
             m_Core.Config.CheckUpdate_UpdateAvailable = false;
         }
 
-        private void developerForumsToolStripMenuItem_Click(object sender, EventArgs e)
+        private void nightlybuildsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start("http://www.crydev.net/renderdoc");
+            Process.Start("http://renderdoc.org/autobuild");
         }
 
         private void sourceOnGithubToolStripMenuItem_Click(object sender, EventArgs e)

@@ -85,7 +85,7 @@ INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM
 				L"The only other information sent is the version of RenderDoc, C# exception callstack, and any notes you include.\n\n" \
 				L"Any repro steps or notes would be helpful to include with the report. If you'd like to be contacted about the bug " \
 				L"e.g. for updates about its status just include your email & name. Thank you!\n\n" \
-				L"Baldur (renderdoc@crytek.com)");
+				L"Baldur (baldurk@baldurk.org)");
 
 			SetDlgItemTextW(hDlg, IDC_DUMPPATH, dump.c_str());
 			SetDlgItemTextW(hDlg, IDC_LOGPATH, logpath.c_str());
