@@ -5,13 +5,12 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11 develo
 
 Quick Links:
 
-* **Homepage**: http://cryengine.com/renderdoc
-* **Forums**: http://crydev.net/renderdoc
+* **Nightly Builds**: http://renderdoc.org/autobuild
 * **Documentation**: renderdoc.chm in the build, or http://docs.renderdoc.org/
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
-* **Email contact**: renderdoc@crytek.com
+* **Email contact**: baldurk@baldurk.org
 * **IRC channel**: #renderdoc on freenode
-* **Roadmap/future development**: Roadmap on the wiki
+* **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 
 Downloads
 --------------
