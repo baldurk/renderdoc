@@ -3367,6 +3367,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		m_pDevice->CreateRasterizerState(&rd, &newRS);
 		m_pImmediateContext->RSSetState(newRS);
+		SAFE_RELEASE(newRS);
 
 		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
@@ -3540,6 +3541,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
 			m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassIncrDepthState, stencilRef);
 			m_pImmediateContext->RSSetState(newRS);
+			
+			SAFE_RELEASE(newRS);
 
 			ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 			m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, tmpViews, NULL);
@@ -3581,8 +3584,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
 																			 &shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
 																			 storex*pixstoreStride + 2, storey);
-
-			SAFE_RELEASE(newRS);
 		}
 
 		// TODO, if drawcall has side-effects (i.e UAVs bound) replay from start of log here?
@@ -3597,7 +3598,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		SAFE_RELEASE(curPS);
 		SAFE_RELEASE(curRS);
-		SAFE_RELEASE(newRS);
 		SAFE_RELEASE(curBS);
 		SAFE_RELEASE(curDS);
 
@@ -3677,6 +3677,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				};
 				if(curRS)
 					curRS->GetDesc(&rdesc);
+				
+				SAFE_RELEASE(curRS);
 
 				D3D11_DEPTH_STENCIL_DESC dsdesc = {
 					/*DepthEnable =*/ TRUE,
@@ -3691,6 +3693,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 				if(curDS)
 					curDS->GetDesc(&dsdesc);
+
+				SAFE_RELEASE(curDS);
 
 				for(UINT v=0; v < curNumViews; v++)
 				{
@@ -3925,7 +3929,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					SAFE_RELEASE(newDS);
 				}
 
-				SAFE_RELEASE(curRS);
 
 				// we check these in the order defined, as a positive from the backface cull test
 				// will invalidate tests later (as they will also be backface culled)
@@ -4301,6 +4304,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
 
 			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+			
+			for(UINT i=0; i < curNumInst; i++)
+				SAFE_RELEASE(curInst[i]);
+
+			SAFE_RELEASE(curPS);
 			
 			m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
 			shadColSlot++;
