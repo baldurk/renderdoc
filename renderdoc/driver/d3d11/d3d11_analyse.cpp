@@ -4288,6 +4288,23 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 																			 depthSlot%2048, depthSlot/2048);
 			depthSlot++;
 		}
+		
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+		// fetch primitive ID
+		{
+			m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+
+			m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
+			m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
+
+			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+
+			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+			
+			m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
+			shadColSlot++;
+		}
 	}
 
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
@@ -4403,6 +4420,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			shadColSlot++;
 			depthSlot++;
+		}
+		
+		// fetch primitive ID
+		{
+			// shader output is always 4 32bit components, so we can copy straight
+			byte *rowdata = shadoutStoreData + mapped.RowPitch * (shadColSlot/2048);
+			byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
+			
+			memcpy(&history[h].primitiveID, data, sizeof(uint32_t));
+
+			shadColSlot++;
 		}
 	}
 

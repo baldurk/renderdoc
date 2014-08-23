@@ -408,3 +408,8 @@ void RENDERDOC_PixelHistoryCopyDepthStencil()
 			depth_src[src_coord.xy].r,
 			copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f);
 }
+
+float4 RENDERDOC_PrimitiveIDPS(uint prim : SV_PrimitiveID) : SV_Target0
+{
+	return asfloat(prim).xxxx;
+}

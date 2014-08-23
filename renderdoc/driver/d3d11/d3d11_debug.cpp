@@ -786,6 +786,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
 	m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
 	m_DebugRender.PixelHistoryDepthCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyDepthStencil", "cs_5_0");
+	m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
 	
 	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 

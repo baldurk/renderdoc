@@ -398,6 +398,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(DepthCopyArrayToMSPS);
 				SAFE_RELEASE(PixelHistoryUnusedCS);
 				SAFE_RELEASE(PixelHistoryDepthCopyCS);
+				SAFE_RELEASE(PrimitiveIDPS);
 
 				SAFE_RELEASE(QuadOverdrawPS);
 				SAFE_RELEASE(QOResolvePS);
@@ -462,6 +463,7 @@ class D3D11DebugManager
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
 			ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryDepthCopyCS;
+			ID3D11PixelShader *PrimitiveIDPS;
 
 			ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
 			
