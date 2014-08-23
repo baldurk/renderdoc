@@ -4064,7 +4064,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			for(int p=0; p < 2; p++)
 			{
-				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex + p) * pixstoreStride;
+				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + p);
 
 				ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
 
