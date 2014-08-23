@@ -371,6 +371,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(NopDepthState);
 				SAFE_RELEASE(AllPassDepthState);
 				SAFE_RELEASE(AllPassIncrDepthState);
+				SAFE_RELEASE(StencIncrEqDepthState);
 
 				SAFE_RELEASE(GenericLayout);
 				SAFE_RELEASE(GenericHomogLayout);
@@ -447,7 +448,7 @@ class D3D11DebugManager
 			ID3D11SamplerState *PointSampState, *LinearSampState;
 			ID3D11BlendState *BlendState, *NopBlendState;
 			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState,
-			                        *AllPassDepthState, *AllPassIncrDepthState;
+			                        *AllPassDepthState, *AllPassIncrDepthState, *StencIncrEqDepthState;
 
 			ID3D11InputLayout *GenericLayout, *GenericHomogLayout;
 			ID3D11Buffer *GenericVSCBuffer;

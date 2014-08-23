@@ -972,6 +972,18 @@ bool D3D11DebugManager::InitDebugRendering()
 		{
 			RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
 		}
+		
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.StencIncrEqDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
+		}
 	}
 
 	{
