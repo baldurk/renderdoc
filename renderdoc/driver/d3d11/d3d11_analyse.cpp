@@ -3601,19 +3601,18 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(curBS);
 		SAFE_RELEASE(curDS);
 
-		// deliberately include drawcall in this range so that it gets replayed with correct
-		// state (otherwise this draw e.g. wouldn't write depth when it should)
-		if(ev < events.size()-1)
-			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev+1], eReplay_WithoutDraw);
-		else
-			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
+		// replay only draw to get immediately post-modification values
+		m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
 		
 		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*pixstoreStride + 1, storey, 0, targetres, 0, &srcbox);
 		
 		PixelHistoryDepthCopySubresource(depthBound, copyTex ? *copyTex : NULL, pixstoreDepthUAV, depthRes,
-																		 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
-																		 storex*pixstoreStride + 1, storey);
+		                                 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
+		                                 storex*pixstoreStride + 1, storey);
 
+		if(ev < events.size()-1)
+			m_WrappedDevice->ReplayLog(frameID, events[ev]+1, events[ev+1], eReplay_WithoutDraw);
+		
 		SAFE_RELEASE(depthRes);
 	}
 	
