@@ -4057,8 +4057,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		// figure out where this event lies in the pixstore texture
 		uint32_t storex = uint32_t(pre % (2048/pixstoreStride));
 		uint32_t storey = uint32_t(pre / (2048/pixstoreStride));
-		
-		if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+
+		if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
 		{
 			byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 
@@ -4100,7 +4100,43 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		}
 		else
 		{
-			RDCWARN("need to fetch pixel values from special formats");
+			if(fmt.special && (fmt.specialFormat == eSpecial_R10G10B10A2 || fmt.specialFormat == eSpecial_R11G11B10))
+			{
+				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+
+				for(int p=0; p < 2; p++)
+				{
+					byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + p);
+
+					uint32_t *u = (uint32_t *)data;
+					
+					ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
+
+					Vec4f v;
+					if(fmt.specialFormat == eSpecial_R10G10B10A2)
+						v = ConvertFromR10G10B10A2(*u);
+					if(fmt.specialFormat == eSpecial_R11G11B10)
+					{
+						Vec3f v3 = ConvertFromR11G11B10(*u);
+						v = Vec4f(v3.x, v3.y, v3.z);
+					}
+
+					memcpy(&val->col.value_f[0], &v, sizeof(float)*4);
+				}
+			}
+			else
+			{
+				RDCWARN("need to fetch pixel values from special formats");
+			}
+		}
+
+		if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+		{
+			std::swap(mod.preMod.col.value_u[0], mod.preMod.col.value_u[3]);
+			std::swap(mod.preMod.col.value_u[1], mod.preMod.col.value_u[2]);
+
+			std::swap(mod.postMod.col.value_u[0], mod.postMod.col.value_u[3]);
+			std::swap(mod.postMod.col.value_u[1], mod.postMod.col.value_u[2]);
 		}
 
 		{
@@ -4353,7 +4389,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		{
 			// colour
 			{
-				if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
+				if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
 				{
 					byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
 					byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot%2048);
@@ -4389,7 +4425,37 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				}
 				else
 				{
-					RDCWARN("need to fetch pixel values from special formats");
+					if(fmt.special && (fmt.specialFormat == eSpecial_R10G10B10A2 || fmt.specialFormat == eSpecial_R11G11B10))
+					{
+						byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
+						byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot%2048);
+
+						uint32_t *u = (uint32_t *)data;
+
+						Vec4f v;
+						if(fmt.specialFormat == eSpecial_R10G10B10A2)
+							v = ConvertFromR10G10B10A2(*u);
+						if(fmt.specialFormat == eSpecial_R11G11B10)
+						{
+							Vec3f v3 = ConvertFromR11G11B10(*u);
+							v = Vec4f(v3.x, v3.y, v3.z);
+						}
+
+						memcpy(&history[h].postMod.col.value_f[0], &v, sizeof(float)*4);
+					}
+					else
+					{
+						RDCWARN("need to fetch pixel values from special formats");
+					}
+				}
+
+				if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+				{
+					std::swap(history[h].preMod.col.value_u[0], history[h].preMod.col.value_u[3]);
+					std::swap(history[h].preMod.col.value_u[1], history[h].preMod.col.value_u[2]);
+
+					std::swap(history[h].postMod.col.value_u[0], history[h].postMod.col.value_u[3]);
+					std::swap(history[h].postMod.col.value_u[1], history[h].postMod.col.value_u[2]);
 				}
 			}
 
@@ -4451,93 +4517,115 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 	
 	// interpret float/unorm values
+	if(!fmt.special && fmt.compType != eCompType_UInt && fmt.compType != eCompType_SInt)
+	{
+		for(size_t h=0; h < history.size(); h++)
+		{
+			PixelModification &mod = history[h];
+			if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
+					mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
+				}
+			}
+			else if(fmt.compType == eCompType_UNorm)
+			{
+				// only 32bit unorm format is depth, handled separately
+				float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+				RDCASSERT(fmt.compByteWidth < 4);
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
+				}
+			}
+			else if(fmt.compType == eCompType_UNorm_SRGB)
+			{
+				RDCASSERT(fmt.compByteWidth == 1);
+
+				for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
+				{
+					mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
+					mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
+				}
+
+				// alpha is not SRGB'd
+				if(fmt.compCount == 4)
+				{
+					mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
+					mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
+					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
+
+					if(*d == -128)
+						mod.preMod.col.value_f[c] = -1.0f;
+					else
+						mod.preMod.col.value_f[c] = float(*d)/127.0f;
+
+					d = (int8_t *)&mod.postMod.col.value_u[c];
+
+					if(*d == -128)
+						mod.postMod.col.value_f[c] = -1.0f;
+					else
+						mod.postMod.col.value_f[c] = float(*d)/127.0f;
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
+
+					if(*d == -32768)
+						mod.preMod.col.value_f[c] = -1.0f;
+					else
+						mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+
+					d = (int16_t *)&mod.postMod.col.value_u[c];
+
+					if(*d == -32768)
+						mod.postMod.col.value_f[c] = -1.0f;
+					else
+						mod.postMod.col.value_f[c] = float(*d)/32767.0f;
+				}
+			}
+		}
+	}
+
 	for(size_t h=0; h < history.size(); h++)
 	{
-		PixelModification &mod = history[h];
-		if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
-		{
-			for(uint32_t c=0; c < fmt.compCount; c++)
-			{
-				mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
-				mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
-			}
-		}
-		else if(fmt.compType == eCompType_UNorm)
-		{
-			// only 32bit unorm format is depth, handled separately
-			float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+		PixelModification &hs = history[h];
+		RDCLOG("\nHistory %u @ frag %u from prim %u in %u (depth culled %u):\n" \
+			"pre {%f,%f,%f,%f} {%f,%d}\n" \
+			"+ shad {%f,%f,%f,%f} {%f,%d}\n" \
+			"-> post {%f,%f,%f,%f} {%f,%d}",
+			uint32_t(h), hs.fragIndex, hs.primitiveID, hs.eventID, hs.depthTestFailed,
 
-			RDCASSERT(fmt.compByteWidth < 4);
+			hs.preMod.col.value_f[0], hs.preMod.col.value_f[1], hs.preMod.col.value_f[2], hs.preMod.col.value_f[3],
+			  hs.preMod.depth, hs.preMod.stencil,
 
-			for(uint32_t c=0; c < fmt.compCount; c++)
-			{
-				mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
-				mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
-			}
-		}
-		else if(fmt.compType == eCompType_UNorm_SRGB)
-		{
-			RDCASSERT(fmt.compByteWidth == 1);
+			hs.shaderOut.col.value_f[0], hs.shaderOut.col.value_f[1], hs.shaderOut.col.value_f[2], hs.shaderOut.col.value_f[3],
+			  hs.shaderOut.depth, hs.shaderOut.stencil,
 
-			for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
-			{
-				mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
-				mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
-			}
-
-			// alpha is not SRGB'd
-			if(fmt.compCount == 4)
-			{
-				mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
-				mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
-			}
-		}
-		else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-		{
-			for(uint32_t c=0; c < fmt.compCount; c++)
-			{
-				mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
-				mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
-			}
-		}
-		else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
-		{
-			for(uint32_t c=0; c < fmt.compCount; c++)
-			{
-				int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
-
-				if(*d == -128)
-					mod.preMod.col.value_f[c] = -1.0f;
-				else
-					mod.preMod.col.value_f[c] = float(*d)/127.0f;
-
-				d = (int8_t *)&mod.postMod.col.value_u[c];
-
-				if(*d == -128)
-					mod.postMod.col.value_f[c] = -1.0f;
-				else
-					mod.postMod.col.value_f[c] = float(*d)/127.0f;
-			}
-		}
-		else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-		{
-			for(uint32_t c=0; c < fmt.compCount; c++)
-			{
-				int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
-
-				if(*d == -32768)
-					mod.preMod.col.value_f[c] = -1.0f;
-				else
-					mod.preMod.col.value_f[c] = float(*d)/32767.0f;
-
-				d = (int16_t *)&mod.postMod.col.value_u[c];
-
-				if(*d == -32768)
-					mod.postMod.col.value_f[c] = -1.0f;
-				else
-					mod.postMod.col.value_f[c] = float(*d)/32767.0f;
-			}
-		}
+			hs.postMod.col.value_f[0], hs.postMod.col.value_f[1], hs.postMod.col.value_f[2], hs.postMod.col.value_f[3],
+			  hs.postMod.depth, hs.postMod.stencil);
 	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
