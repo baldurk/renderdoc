@@ -1037,24 +1037,24 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint covge; PSInput IN; float derivValid; PSInput INddx; PSInput INddy; };\n\n";
 	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
 	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage)\n{\n";
-	extractHlsl += "if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2) {\n";
-	extractHlsl += "uint idx = 0;\n";
-	extractHlsl += "InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n";
-	extractHlsl += "if(idx < " + ToStr::Get(overdrawLevels) + ") {\n";
-	extractHlsl += "PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
-	extractHlsl += "PSInitialBuffer[idx].prim = prim;\n";
-	extractHlsl += "PSInitialBuffer[idx].covge = covge;\n";
-	extractHlsl += "PSInitialBuffer[idx].IN = IN;\n";
-	extractHlsl += "PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
-	extractHlsl += "PSInitialBuffer[idx].INddx = (PSInput)0;\n";
-	extractHlsl += "PSInitialBuffer[idx].INddy = (PSInput)0;\n";
+	extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
+	extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2)\n";
+	extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
+	extractHlsl += "  idx = min(idx, " + ToStr::Get(overdrawLevels) + ");\n\n";
+	extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
+	extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
+	extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
+	extractHlsl += "  PSInitialBuffer[idx].IN = IN;\n";
+	extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddx = (PSInput)0;\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddy = (PSInput)0;\n";
 	for(size_t i=0; i < floatInputs.size(); i++)
 	{
 		const string &name = floatInputs[i];
-		extractHlsl += "PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
-		extractHlsl += "PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
 	}
-	extractHlsl += "}\n}\n}";
+	extractHlsl += "\n}";
 
 	ID3D11PixelShader *extract = MakePShader(extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
 
@@ -1073,7 +1073,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	bdesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	bdesc.Usage = D3D11_USAGE_DEFAULT;
 	bdesc.StructureByteStride = structStride;
-	bdesc.ByteWidth = bdesc.StructureByteStride * overdrawLevels;
+	bdesc.ByteWidth = bdesc.StructureByteStride * (overdrawLevels+1);
 
 	ID3D11Buffer *initialBuf = NULL;
 	hr = m_pDevice->CreateBuffer(&bdesc, NULL, &initialBuf);
@@ -1103,7 +1103,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	uavdesc.Format = DXGI_FORMAT_UNKNOWN;
 	uavdesc.Buffer.FirstElement = 0;
 	uavdesc.Buffer.Flags = 0;
-	uavdesc.Buffer.NumElements = overdrawLevels;
+	uavdesc.Buffer.NumElements = overdrawLevels+1;
 	uavdesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 
 	ID3D11UnorderedAccessView *initialUAV = NULL;
@@ -1198,7 +1198,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	DebugHit *winner = NULL;
 
-	for(size_t i=0; i < buf[0].numHits; i++)
+	for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
 	{
 		DebugHit *hit = (DebugHit *)(initialData+i*structStride);
 
