@@ -4496,9 +4496,18 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			// D24 and D32 - D16 doesn't have attached stencil, so we wouldn't be able to get correct depth
 			// AND identify each fragment. Instead we just mark this as no data, and the shader output depth
 			// should be sufficient.
-			history[h].postMod.depth = -2.0f;
+			if(history[h].preMod.depth >= 0.0f)
+				history[h].postMod.depth = -2.0f;
+			else
+				history[h].postMod.depth = -1.0f;
+
 			// we can't retrieve stencil value after each fragment, as we use stencil to identify the fragment
-			history[h].postMod.stencil = -2;
+			if(history[h].preMod.stencil >= 0)
+				history[h].postMod.stencil = -2;
+			else
+				history[h].postMod.stencil = -1;
+
+			// in each case we only mark as "unknown" when the depth/stencil isn't already known to be unbound
 
 			postColSlot++;
 		}
@@ -4526,7 +4535,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				float *data = (float *)(rowdata + 2 * sizeof(float) * (depthSlot%2048));
 
 				history[h].shaderOut.depth = data[0];
-				history[h].shaderOut.stencil = -2; // can't retrieve this as we use stencil to identify each fragment
+				if(history[h].postMod.stencil == -1)
+					history[h].shaderOut.stencil = -1;
+				else
+					history[h].shaderOut.stencil = -2; // can't retrieve this as we use stencil to identify each fragment
 			}
 
 			shadColSlot++;
