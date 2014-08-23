@@ -4308,50 +4308,53 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		
 		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-		// fetch shader output value
+		// fetch shader output value & primitive ID
 		{
 			m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
 
 			m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
-			
-			m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
-			
-			m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
-			shadColSlot++;
-			
-			m_pImmediateContext->OMSetRenderTargets(0, NULL, NULL);
-			
-			PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
-																			 &shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
-																			 depthSlot%2048, depthSlot/2048);
-			depthSlot++;
-			
+			// fetch shader output value 
+			{
+				m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+
+				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+
+				m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
+				shadColSlot++;
+
+				m_pImmediateContext->OMSetRenderTargets(0, NULL, NULL);
+
+				PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
+					&shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
+					depthSlot%2048, depthSlot/2048);
+				depthSlot++;
+			}
+
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			// fetch primitive ID
+			{
+				m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+
+				m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
+				m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
+
+				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+
+				m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+
+				for(UINT i=0; i < curNumInst; i++)
+					SAFE_RELEASE(curInst[i]);
+
+				SAFE_RELEASE(curPS);
+
+				m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
+				shadColSlot++;
+			}
+
 			m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
 			SAFE_RELEASE(curBS);
-		}
-		
-		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
-
-		// fetch primitive ID
-		{
-			m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
-
-			m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
-			m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
-
-			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
-
-			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
-			
-			for(UINT i=0; i < curNumInst; i++)
-				SAFE_RELEASE(curInst[i]);
-
-			SAFE_RELEASE(curPS);
-			
-			m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
-			shadColSlot++;
 		}
 	}
 
