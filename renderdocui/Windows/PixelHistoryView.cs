@@ -114,7 +114,7 @@ namespace renderdocui.Windows
 
             events.Nodes.Clear();
 
-            events.Nodes.Add(new object[] { "", "Loading...", "", "", "", "" });
+            events.Nodes.Add(new object[] { "Loading...", "", "", "", "" });
 
             events.EndUpdate();
         }
@@ -128,7 +128,222 @@ namespace renderdocui.Windows
             PixelHistoryView_Enter(null, null);
         }
 
-        void UpdateEventList()
+        private string[] colourLetterPrefix = new string[] { "R: ", "G: ", "B: ", "A: " };
+
+        private string ModificationValueString(ModificationValue val, ResourceFormat fmt, bool depth)
+        {
+            string s = "";
+
+            bool uintTex = (fmt.compType == FormatComponentType.UInt);
+            bool sintTex = (fmt.compType == FormatComponentType.SInt);
+            int numComps = (int)(fmt.compCount);
+
+            if (!depth)
+            {
+                if (uintTex)
+                {
+                    for (int i = 0; i < numComps; i++)
+                        s += colourLetterPrefix[i] + val.col.value.u[i].ToString() + "\n";
+                }
+                else if (sintTex)
+                {
+                    for (int i = 0; i < numComps; i++)
+                        s += colourLetterPrefix[i] + val.col.value.i[i].ToString() + "\n";
+                }
+                else
+                {
+                    for (int i = 0; i < numComps; i++)
+                        s += colourLetterPrefix[i] + Formatter.Format(val.col.value.f[i]) + "\n";
+                }
+            }
+
+            if (val.depth >= 0.0f)
+                s += "\nD: " + Formatter.Format(val.depth);
+            else if (val.depth < -1.5f)
+                s += "\nD: ?";
+            else
+                s += "\nD: -";
+
+            if (val.stencil >= 0)
+                s += String.Format("\nS: 0x{0:X2}", val.stencil);
+            else if (val.stencil == -2)
+                s += "\nS: ?";
+            else
+                s += "\nS: -";
+
+            return s;
+        }
+
+        private Color ModificationValueColor(ModificationValue val, bool srgbTex, bool depth)
+        {
+            float rangesize = (rangeMax - rangeMin);
+
+            float r = val.col.value.f[0];
+            float g = val.col.value.f[1];
+            float b = val.col.value.f[2];
+
+            if (numChannels == 1)
+            {
+                r = g = b = val.col.value.f[channelIdx];
+            }
+            else
+            {
+                if (!visibleChannels[0]) r = 0.0f;
+                if (!visibleChannels[1]) g = 0.0f;
+                if (!visibleChannels[2]) b = 0.0f;
+            }
+
+            r = Helpers.Clamp((r - rangeMin) / rangesize, 0.0f, 1.0f);
+            g = Helpers.Clamp((g - rangeMin) / rangesize, 0.0f, 1.0f);
+            b = Helpers.Clamp((b - rangeMin) / rangesize, 0.0f, 1.0f);
+
+            if (depth)
+                r = g = b = Helpers.Clamp((val.depth - rangeMin) / rangesize, 0.0f, 1.0f);
+
+            if (srgbTex)
+            {
+                r = (float)Math.Pow(r, 1.0f / 2.2f);
+                g = (float)Math.Pow(g, 1.0f / 2.2f);
+                b = (float)Math.Pow(b, 1.0f / 2.2f);
+            }
+
+            return Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
+        }
+
+        private string FailureString(PixelModification mod)
+        {
+            string s = "";
+
+            if (mod.backfaceCulled)
+                s += "\nBackface culled";
+            if (mod.depthClipped)
+                s += "\nDepth Clipped";
+            if (mod.scissorClipped)
+                s += "\nScissor Clipped";
+            if (mod.shaderDiscarded)
+                s += "\nShader executed a discard";
+            if (mod.depthTestFailed)
+                s += "\nDepth test failed";
+            if (mod.stencilTestFailed)
+                s += "\nStencil test failed";
+
+            return s;
+        }
+
+        private TreelistView.Node MakeFragmentNode(PixelModification mod)
+        {
+            bool uintTex = (texture.format.compType == FormatComponentType.UInt);
+            bool sintTex = (texture.format.compType == FormatComponentType.SInt);
+            bool floatTex = (!uintTex && !sintTex);
+
+            bool depth = false;
+
+            if (texture.format.compType == FormatComponentType.Depth ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
+                depth = true;
+
+            string name = String.Format("Primitive {0}\n", mod.primitiveID);
+
+            ResourceFormat fmt = new ResourceFormat(FormatComponentType.Float, 4, 4);
+
+            string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
+            string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
+
+            if (!mod.EventPassed() && hideFailedEventsToolStripMenuItem.Checked)
+                return null;
+
+            var node = new TreelistView.Node(new object[] { name, shadOutVal, "", postModVal, "" });
+
+            node.Tag = mod.eventID;
+
+            bool srgbTex = texture.format.srgbCorrected ||
+                        (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
+
+            if (floatTex || depth)
+            {
+                node.IndexedBackColor[2] = ModificationValueColor(mod.shaderOut, false, depth);
+                node.IndexedBackColor[4] = ModificationValueColor(mod.postMod, srgbTex, depth);
+            }
+
+            return node;
+        }
+
+        private TreelistView.Node MakeEventNode(List<TreelistView.Node> nodes, List<PixelModification> mods)
+        {
+            bool uintTex = (texture.format.compType == FormatComponentType.UInt);
+            bool sintTex = (texture.format.compType == FormatComponentType.SInt);
+            bool floatTex = (!uintTex && !sintTex);
+
+            bool depth = false;
+
+            if (texture.format.compType == FormatComponentType.Depth ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
+                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
+                depth = true;
+
+            var drawcall = m_Core.GetDrawcall(m_Core.CurFrame, mods[0].eventID);
+            if (drawcall == null) return null;
+
+            string name = "";
+            var drawstack = new List<FetchDrawcall>();
+            var parent = drawcall.parent;
+            while (parent != null)
+            {
+                drawstack.Add(parent);
+                parent = parent.parent;
+            }
+
+            drawstack.Reverse();
+
+            if (drawstack.Count > 0)
+            {
+                name += "> " + drawstack[0].name;
+
+                if (drawstack.Count > 3)
+                    name += " ...";
+
+                name += "\n";
+
+                if (drawstack.Count > 2)
+                    name += "> " + drawstack[drawstack.Count - 2].name + "\n";
+                if (drawstack.Count > 1)
+                    name += "> " + drawstack[drawstack.Count - 1].name + "\n";
+
+                name += "\n";
+            }
+
+            name += String.Format("EID {0}\n{1}{2}\n{3} Fragments touching pixel\n", mods[0].eventID, drawcall.name, FailureString(mods[0]), nodes.Count);
+
+            bool passed = mods[0].EventPassed();
+
+            string preModVal = "Tex Before\n\n" + ModificationValueString(mods.First().preMod, texture.format, depth);
+            string postModVal = "Tex After\n\n" + ModificationValueString(mods.Last().postMod, texture.format, depth);
+
+            var node = new TreelistView.Node(new object[] { name, preModVal, "", postModVal, "" });
+
+            node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
+            node.Tag = mods[0].eventID;
+
+            bool srgbTex = texture.format.srgbCorrected ||
+                        (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
+
+            if (floatTex || depth)
+            {
+                node.IndexedBackColor[2] = ModificationValueColor(mods.First().preMod, srgbTex, depth);
+                node.IndexedBackColor[4] = ModificationValueColor(mods.Last().postMod, srgbTex, depth);
+            }
+
+            if ((drawcall.flags & DrawcallFlags.Clear) == 0)
+            {
+                foreach (var child in nodes)
+                    node.Nodes.Add(child);
+            }
+
+            return node;
+        }
+
+        private void UpdateEventList()
         {
             if (modifications == null) return;
 
@@ -136,171 +351,25 @@ namespace renderdocui.Windows
 
             events.Nodes.Clear();
 
-            bool uintTex = (texture.format.compType == FormatComponentType.UInt);
-            bool sintTex = (texture.format.compType == FormatComponentType.SInt);
-            bool srgbTex = texture.format.srgbCorrected ||
-                           (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
-            bool floatTex = (!uintTex && !sintTex);
+            var frags = new List<TreelistView.Node>();
+            var mods = new List<PixelModification>();
 
-            int numComps = (int)texture.format.compCount;
-
-            if (texture.format.compType == FormatComponentType.Depth ||
-                (texture.format.special && texture.format.specialFormat == SpecialFormat.D24S8) ||
-                (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
-                numComps = 0;
-
-            float rangesize = (rangeMax - rangeMin);
-
-            foreach (PixelModification mod in modifications)
+            for(int i=0; i < modifications.Length; i++)
             {
-                string name = "name";
+                var node = MakeFragmentNode(modifications[i]);
+                if (node == null) continue;
 
-                var drawcall = m_Core.GetDrawcall(m_Core.CurFrame, mod.eventID);
+                frags.Add(node);
+                mods.Add(modifications[i]);
 
-                if (drawcall == null) continue;
-
-                name = drawcall.name;
-
-                bool passed = mod.EventPassed();
-
-                if (mod.backfaceCulled)
-                    name += "\nBackface culled";
-                if (mod.depthClipped)
-                    name += "\nDepth Clipped";
-                if (mod.scissorClipped)
-                    name += "\nScissor Clipped";
-                if (mod.shaderDiscarded)
-                    name += "\nShader executed a discard";
-                if (mod.depthTestFailed)
-                    name += "\nDepth test failed";
-                if (mod.stencilTestFailed)
-                    name += "\nStencil test failed";
-
-                if(!passed && hideFailedEventsToolStripMenuItem.Checked)
-                    continue;
-
-                string preModVal = "";
-                string postModVal = "";
-
-                string[] prefix = new string[] { "R: ", "G: ", "B: ", "A: " };
-
-                if (uintTex)
+                if (i + 1 >= modifications.Length || modifications[i + 1].eventID != modifications[i].eventID)
                 {
-                    for (int i = 0; i < numComps; i++)
-                    {
-                        preModVal += prefix[i] + mod.preMod.col.value.u[i].ToString() + "\n";
-                        postModVal += prefix[i] + mod.postMod.col.value.u[i].ToString() + "\n";
-                    }
+                    if(frags.Count > 0)
+                        events.Nodes.Add(MakeEventNode(frags, mods));
+
+                    frags.Clear();
+                    mods.Clear();
                 }
-                else if (sintTex)
-                {
-                    for (int i = 0; i < numComps; i++)
-                    {
-                        preModVal += prefix[i] + mod.preMod.col.value.i[i].ToString() + "\n";
-                        postModVal += prefix[i] + mod.postMod.col.value.i[i].ToString() + "\n";
-                    }
-                }
-                else
-                {
-                    for (int i = 0; i < numComps; i++)
-                    {
-                        preModVal += prefix[i] + Formatter.Format(mod.preMod.col.value.f[i]) + "\n";
-                        postModVal += prefix[i] + Formatter.Format(mod.postMod.col.value.f[i]) + "\n";
-                    }
-                }
-
-                if (mod.preMod.depth >= 0.0f)
-                {
-                    preModVal += "\nD: " + Formatter.Format(mod.preMod.depth);
-                    postModVal += "\nD: " + Formatter.Format(mod.postMod.depth);
-                }
-                else
-                {
-                    preModVal += "\nD: -";
-                    postModVal += "\nD: -";
-                }
-
-                if (mod.preMod.stencil >= 0)
-                {
-                    preModVal += String.Format("\nS: 0x{0:X2}", mod.preMod.stencil);
-                    postModVal += String.Format("\nS: 0x{0:X2}", mod.postMod.stencil);
-                }
-                else
-                {
-                    preModVal += "\nS: -";
-                    postModVal += "\nS: -";
-                }
-
-                var node = events.Nodes.Add(new object[] { mod.eventID, name, preModVal, "", postModVal, "" });
-
-                node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
-
-                if (floatTex || numComps == 0)
-                {
-                    float r = mod.preMod.col.value.f[0];
-                    float g = mod.preMod.col.value.f[1];
-                    float b = mod.preMod.col.value.f[2];
-
-                    if (numChannels == 1)
-                    {
-                        r = g = b = mod.preMod.col.value.f[channelIdx];
-                    }
-                    else
-                    {
-                        if (!visibleChannels[0]) r = 0.0f;
-                        if (!visibleChannels[1]) g = 0.0f;
-                        if (!visibleChannels[2]) b = 0.0f;
-                    }
-
-                    r = Helpers.Clamp((r - rangeMin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((g - rangeMin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((b - rangeMin) / rangesize, 0.0f, 1.0f);
-
-                    if(numComps == 0)
-                        r = g = b = Helpers.Clamp((mod.preMod.depth - rangeMin) / rangesize, 0.0f, 1.0f);
-
-                    if (srgbTex)
-                    {
-                        r = (float)Math.Pow(r, 1.0f / 2.2f);
-                        g = (float)Math.Pow(g, 1.0f / 2.2f);
-                        b = (float)Math.Pow(b, 1.0f / 2.2f);
-                    }
-
-                    node.IndexedBackColor[3] = Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
-
-                    r = mod.postMod.col.value.f[0];
-                    g = mod.postMod.col.value.f[1];
-                    b = mod.postMod.col.value.f[2];
-
-                    if (numChannels == 1)
-                    {
-                        r = g = b = mod.postMod.col.value.f[channelIdx];
-                    }
-                    else
-                    {
-                        if (!visibleChannels[0]) r = 0.0f;
-                        if (!visibleChannels[1]) g = 0.0f;
-                        if (!visibleChannels[2]) b = 0.0f;
-                    }
-
-                    r = Helpers.Clamp((r - rangeMin) / rangesize, 0.0f, 1.0f);
-                    g = Helpers.Clamp((g - rangeMin) / rangesize, 0.0f, 1.0f);
-                    b = Helpers.Clamp((b - rangeMin) / rangesize, 0.0f, 1.0f);
-
-                    if (numComps == 0)
-                        r = g = b = Helpers.Clamp((mod.postMod.depth - rangeMin) / rangesize, 0.0f, 1.0f);
-
-                    if (srgbTex)
-                    {
-                        r = (float)Math.Pow(r, 1.0f / 2.2f);
-                        g = (float)Math.Pow(g, 1.0f / 2.2f);
-                        b = (float)Math.Pow(b, 1.0f / 2.2f);
-                    }
-
-                    node.IndexedBackColor[5] = Color.FromArgb((int)(255.0f * r), (int)(255.0f * g), (int)(255.0f * b));
-                }
-
-                node.Tag = mod.eventID;
             }
 
             events.EndUpdate();
@@ -331,6 +400,17 @@ namespace renderdocui.Windows
         {
             if (e.Button == MouseButtons.Right)
             {
+                debugToolStripMenuItem.Enabled = false;
+
+                debugToolStripMenuItem.Text = "Debug Pixel";
+
+                if (events.SelectedNode != null && events.SelectedNode.Tag != null && events.SelectedNode.Tag is uint)
+                {
+                    debugToolStripMenuItem.Enabled = true;
+                    debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) at Event {2}",
+                                                                    pixel.X, pixel.Y, (uint)events.SelectedNode.Tag);
+                }
+
                 rightclickMenu.Show(events.PointToScreen(e.Location));
             }
         }

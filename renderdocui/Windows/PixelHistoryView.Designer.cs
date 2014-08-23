@@ -29,12 +29,11 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("EID", "EID")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Event", "Event")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Before", "Before")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("BeforeCol", "")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("After", "After")));
-            TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("AfterCol", "")));
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Event", "Event")));
+            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Before", "")));
+            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("BeforeCol", "")));
+            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("After", "")));
+            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("AfterCol", "")));
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             this.historyContext = new System.Windows.Forms.Label();
             this.eventsHidden = new System.Windows.Forms.Label();
@@ -110,42 +109,36 @@
             // 
             // events
             // 
-            treeListColumn1.AutoSizeMinSize = 10;
+            treeListColumn1.AutoSize = true;
+            treeListColumn1.AutoSizeMinSize = 20;
             treeListColumn1.CellFormat.Padding = new System.Windows.Forms.Padding(4);
             treeListColumn1.CellFormat.TextAlignment = System.Drawing.ContentAlignment.TopLeft;
-            treeListColumn1.Width = 50;
-            treeListColumn2.AutoSize = true;
-            treeListColumn2.AutoSizeMinSize = 20;
-            treeListColumn2.CellFormat.Padding = new System.Windows.Forms.Padding(4);
-            treeListColumn2.CellFormat.TextAlignment = System.Drawing.ContentAlignment.TopLeft;
-            treeListColumn2.Width = 100;
-            treeListColumn3.AutoSizeMinSize = 10;
-            treeListColumn3.Width = 60;
+            treeListColumn1.Width = 100;
+            treeListColumn2.AutoSizeMinSize = 10;
+            treeListColumn2.Width = 60;
+            treeListColumn3.AutoSizeMinSize = 20;
+            treeListColumn3.Width = 25;
             treeListColumn4.AutoSizeMinSize = 20;
-            treeListColumn4.Width = 40;
+            treeListColumn4.Width = 60;
             treeListColumn5.AutoSizeMinSize = 20;
-            treeListColumn5.Width = 60;
-            treeListColumn6.AutoSizeMinSize = 20;
-            treeListColumn6.Width = 40;
+            treeListColumn5.Width = 25;
             this.events.Columns.AddRange(new TreelistView.TreeListColumn[] {
             treeListColumn1,
             treeListColumn2,
             treeListColumn3,
             treeListColumn4,
-            treeListColumn5,
-            treeListColumn6});
+            treeListColumn5});
             this.events.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.events.Dock = System.Windows.Forms.DockStyle.Fill;
             this.events.Location = new System.Drawing.Point(3, 68);
             this.events.MultiSelect = false;
             this.events.Name = "events";
-            this.events.RowOptions.ItemHeight = 96;
+            this.events.RowOptions.ItemHeight = 120;
             this.events.RowOptions.ShowHeader = false;
             this.events.Size = new System.Drawing.Size(380, 407);
             this.events.TabIndex = 1;
             this.events.Text = "History Events";
             this.events.ViewOptions.ShowLine = false;
-            this.events.ViewOptions.ShowPlusMinus = false;
             this.events.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.events_NodeDoubleClicked);
             this.events.MouseClick += new System.Windows.Forms.MouseEventHandler(this.events_MouseClick);
             // 
