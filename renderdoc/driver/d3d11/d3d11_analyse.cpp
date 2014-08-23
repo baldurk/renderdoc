@@ -4188,6 +4188,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	uint32_t rtIndex = 100000;
 	ID3D11RenderTargetView* RTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 
+	ID3D11DepthStencilState *ds = NULL;
+
 	for(size_t h=0; h < history.size(); h++)
 	{
 		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
@@ -4244,6 +4246,31 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				curRS->GetDesc(&rdesc);
 
 			SAFE_RELEASE(curRS);
+			
+			m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
+			
+			// make a depth-stencil state object that writes to depth, uses same comparison
+			// as currently set, and tests stencil INCR_SAT / GREATER_EQUAL for fragment selection
+			D3D11_DEPTH_STENCIL_DESC dsdesc = {
+				/*DepthEnable =*/ TRUE,
+				/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+				/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+				/*StencilEnable =*/ TRUE,
+				/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+				/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+				/*FrontFace =*/ { D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL },
+				/*BackFace =*/ { D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL },
+			};
+			if(curDS)
+			{
+				D3D11_DEPTH_STENCIL_DESC stateDesc;
+				curDS->GetDesc(&stateDesc);
+				dsdesc.DepthFunc = stateDesc.DepthFunc;
+			}
+
+			SAFE_RELEASE(curDS);
+			
+			m_pDevice->CreateDepthStencilState(&dsdesc, &ds);
 
 			D3D11_RASTERIZER_DESC rd = rdesc;
 
@@ -4290,9 +4317,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 		}
 		
-		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
 
-		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.StencIncrEqDepthState, history[h].fragIndex);
+		m_pImmediateContext->OMSetDepthStencilState(ds, history[h].fragIndex);
 
 		// if we're not the last modification in our event, need to fetch post fragment value
 		if(h+1 < history.size() && history[h].eventID == history[h+1].eventID)
@@ -4304,8 +4331,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_pImmediateContext->CopySubresourceRegion(pixstore, 0, postColSlot%2048, postColSlot/2048, 0, targetres, 0, &srcbox);
 			postColSlot++;
 		}
+
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.StencIncrEqDepthState, history[h].fragIndex);
 		
-		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
 
 		// fetch shader output value & primitive ID
 		{
@@ -4330,7 +4359,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				depthSlot++;
 			}
 
-			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
 
 			// fetch primitive ID
 			{
@@ -4356,6 +4385,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			SAFE_RELEASE(curBS);
 		}
 	}
+
+	SAFE_RELEASE(ds);
 
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 		SAFE_RELEASE(RTVs[i]);
