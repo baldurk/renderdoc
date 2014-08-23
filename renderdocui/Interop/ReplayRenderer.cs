@@ -386,7 +386,7 @@ namespace renderdoc
 
             foreach (var d in draws)
             {
-                map.Add((Int64)d.drawcallID, d);
+                map.Add((Int64)d.eventID, d);
                 PopulateDraws(ref map, d.children);
             }
         }

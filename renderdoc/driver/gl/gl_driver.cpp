@@ -1583,8 +1583,11 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
 		draw.depthOut = GetResourceManager()->GetID(TextureRes(GetCtx(), curDepth));
 	}
+	
+	// markers don't increment drawcall ID
+	if((draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
+		m_CurDrawcallID++;
 
-	m_CurDrawcallID++;
 	if(hasEvents)
 	{
 		vector<FetchAPIEvent> evs;

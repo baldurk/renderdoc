@@ -144,36 +144,14 @@ bool ReplayRenderer::GetFrameInfo(rdctype::array<FetchFrameInfo> *arr)
 	return true;
 }
 
-struct drawcall_eventID : public std::unary_function<std::string, bool>
-{
-  drawcall_eventID(const uint32_t e) : evID(e) {}
-  bool operator() (const FetchDrawcall *arg) { return arg ? arg->eventID == evID : false; }
-  uint32_t evID;
-};
-
-FetchDrawcall *ReplayRenderer::GetDrawcallByDrawID(uint32_t drawID)
-{
-	if(drawID < m_Drawcalls.size())
-		return m_Drawcalls[drawID];
-
-	return NULL;
-}
-
 FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID, uint32_t defEventID)
 {
-	FetchDrawcall *ret = NULL;
+	uint32_t ev = defEventID > 0 ? defEventID : eventID;
 
-	FetchDrawcall ev;
-	ev.eventID = defEventID > 0 ? defEventID : eventID;
+	if(ev >= m_Drawcalls.size())
+		return NULL;
 
-	// can't guarantee ordering for std::upper_bound, since deferred contexts can
-	// break ordering
-	auto it = std::find_if(m_Drawcalls.begin(), m_Drawcalls.end(), drawcall_eventID(ev.eventID));
-
-	if(it != m_Drawcalls.end())
-		ret = *it;
-
-	return ret;
+	return m_Drawcalls[ev];
 }
 
 bool ReplayRenderer::GetDrawcalls(uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws)
@@ -643,7 +621,7 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 	{
 		FetchDrawcall *draw = &draws[i];
 
-		draw->parent = parent ? parent->drawcallID : 0;
+		draw->parent = parent ? parent->eventID : 0;
 
 		if(draw->children.count > 0)
 		{
@@ -656,12 +634,12 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 		else
 		{
 			if(previous != NULL)
-				previous->next = draw->drawcallID;
-			draw->previous = previous ? previous->drawcallID : 0;
+				previous->next = draw->eventID;
+			draw->previous = previous ? previous->eventID : 0;
 
 			RDCASSERT(m_Drawcalls.empty() || draw->eventID > m_Drawcalls.back()->eventID || draw->context != frame.immContextId);
-			m_Drawcalls.resize(RDCMAX(m_Drawcalls.size(), size_t(draw->drawcallID+1)));
-			m_Drawcalls[draw->drawcallID] = draw;
+			m_Drawcalls.resize(RDCMAX(m_Drawcalls.size(), size_t(draw->eventID+1)));
+			m_Drawcalls[draw->eventID] = draw;
 
 			ret = previous = draw;
 		}

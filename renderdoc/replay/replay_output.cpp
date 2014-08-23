@@ -128,9 +128,9 @@ void ReplayOutput::RefreshOverlay()
 		passEvents.clear();
 
 		FetchDrawcall *start = draw;
-		while(start && start->previous != 0 && (m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+		while(start && start->previous != 0 && (m_pRenderer->GetDrawcallByEID((uint32_t)start->previous, 0)->flags & eDraw_Clear) == 0)
 		{
-			FetchDrawcall *prev = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->previous);;
+			FetchDrawcall *prev = m_pRenderer->GetDrawcallByEID((uint32_t)start->previous, 0);
 
 			if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) || start->depthOut != prev->depthOut)
 				break;
@@ -148,7 +148,7 @@ void ReplayOutput::RefreshOverlay()
 			if(start == draw)
 				break;
 
-			start = m_pRenderer->GetDrawcallByDrawID((uint32_t)start->next);
+			start = m_pRenderer->GetDrawcallByEID((uint32_t)start->next, 0);
 		}
 	}
 
