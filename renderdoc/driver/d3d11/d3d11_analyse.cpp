@@ -4274,7 +4274,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		// fetch shader output value
 		{
-			blendFactor[0] = blendFactor[1] = blendFactor[2] = blendFactor[3] = 1.0f;
+			m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
+
 			m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
 			
 			m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
@@ -4290,6 +4291,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 																			 &shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
 																			 depthSlot%2048, depthSlot/2048);
 			depthSlot++;
+			
+			m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
+			SAFE_RELEASE(curBS);
 		}
 		
 		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
