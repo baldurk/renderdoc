@@ -244,7 +244,7 @@ namespace renderdocui.Windows
 
             string name = String.Format("Primitive {0}\n", mod.primitiveID);
 
-            ResourceFormat fmt = new ResourceFormat(FormatComponentType.Float, 4, 4);
+            ResourceFormat fmt = new ResourceFormat(floatTex ? FormatComponentType.Float : texture.format.compType, 4, 4);
 
             string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
             string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
