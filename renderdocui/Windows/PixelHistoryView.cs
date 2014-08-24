@@ -174,7 +174,7 @@ namespace renderdocui.Windows
             return s;
         }
 
-        private Color ModificationValueColor(ModificationValue val, bool srgbTex, bool depth)
+        private Color ModificationValueColor(ModificationValue val, bool depth)
         {
             float rangesize = (rangeMax - rangeMin);
 
@@ -200,7 +200,6 @@ namespace renderdocui.Windows
             if (depth)
                 r = g = b = Helpers.Clamp((val.depth - rangeMin) / rangesize, 0.0f, 1.0f);
 
-            if (srgbTex)
             {
                 r = (float)Math.Pow(r, 1.0f / 2.2f);
                 g = (float)Math.Pow(g, 1.0f / 2.2f);
@@ -257,13 +256,10 @@ namespace renderdocui.Windows
 
             node.Tag = mod.eventID;
 
-            bool srgbTex = texture.format.srgbCorrected ||
-                        (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
-
             if (floatTex || depth)
             {
-                node.IndexedBackColor[2] = ModificationValueColor(mod.shaderOut, false, depth);
-                node.IndexedBackColor[4] = ModificationValueColor(mod.postMod, srgbTex, depth);
+                node.IndexedBackColor[2] = ModificationValueColor(mod.shaderOut, depth);
+                node.IndexedBackColor[4] = ModificationValueColor(mod.postMod, depth);
             }
 
             return node;
@@ -325,13 +321,10 @@ namespace renderdocui.Windows
             node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
             node.Tag = mods[0].eventID;
 
-            bool srgbTex = texture.format.srgbCorrected ||
-                        (texture.creationFlags & TextureCreationFlags.SwapBuffer) > 0;
-
             if (floatTex || depth)
             {
-                node.IndexedBackColor[2] = ModificationValueColor(mods.First().preMod, srgbTex, depth);
-                node.IndexedBackColor[4] = ModificationValueColor(mods.Last().postMod, srgbTex, depth);
+                node.IndexedBackColor[2] = ModificationValueColor(mods.First().preMod, depth);
+                node.IndexedBackColor[4] = ModificationValueColor(mods.Last().postMod, depth);
             }
 
             if ((drawcall.flags & DrawcallFlags.Clear) == 0)
