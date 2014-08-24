@@ -4053,6 +4053,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		uint32_t pre = mod.preMod.col.value_u[0];
 
+		mod.preMod.col.value_u[0] = 0;
+
 		// figure out where this event lies in the pixstore texture
 		uint32_t storex = uint32_t(pre % (2048/pixstoreStride));
 		uint32_t storey = uint32_t(pre / (2048/pixstoreStride));
