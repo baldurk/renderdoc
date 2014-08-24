@@ -3709,10 +3709,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					}
 					else
 					{
-						newScissors[i].left = LONG(x);
-						newScissors[i].top = LONG(y);
-						newScissors[i].right = newScissors[i].left+1;
-						newScissors[i].bottom = newScissors[i].top+1;
+						newScissors[v].left = LONG(x);
+						newScissors[v].top = LONG(y);
+						newScissors[v].right = newScissors[v].left+1;
+						newScissors[v].bottom = newScissors[v].top+1;
 					}
 				}
 
@@ -3826,13 +3826,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					for(UINT s=0; s < curNumScissors; s++)
 					{
-						if(curScissors[i].left > newScissors[i].left ||
-							curScissors[i].right < newScissors[i].right ||
-							curScissors[i].top > newScissors[i].top ||
-							curScissors[i].bottom < newScissors[i].bottom)
+						if(curScissors[s].left > newScissors[s].left ||
+							curScissors[s].right < newScissors[s].right ||
+							curScissors[s].top > newScissors[s].top ||
+							curScissors[s].bottom < newScissors[s].bottom)
 						{
 							// scissor region from the log doesn't touch our target pixel, make empty.
-							intersectScissors[i].left = intersectScissors[i].right = intersectScissors[i].top = intersectScissors[i].bottom = 0;
+							intersectScissors[s].left = intersectScissors[s].right = intersectScissors[s].top = intersectScissors[s].bottom = 0;
 						}
 					}
 
