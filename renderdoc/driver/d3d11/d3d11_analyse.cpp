@@ -4045,7 +4045,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	// Third loop over each modification event to read back the pre-draw colour + depth data
 	// as well as the # fragments to use in the next step
 	
-	ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+	ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(details.texFmt));
 		
 	for(size_t h=0; h < history.size(); h++)
 	{
