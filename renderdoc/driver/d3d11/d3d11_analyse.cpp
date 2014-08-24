@@ -4105,7 +4105,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 				for(int p=0; p < 2; p++)
 				{
-					byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + p);
+					byte *data = rowdata + sizeof(uint32_t) * (storex * pixstoreStride + p);
 
 					uint32_t *u = (uint32_t *)data;
 					
@@ -4461,7 +4461,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					if(fmt.special && (fmt.specialFormat == eSpecial_R10G10B10A2 || fmt.specialFormat == eSpecial_R11G11B10))
 					{
 						byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
-						byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot%2048);
+						byte *data = rowdata + sizeof(uint32_t) * (postColSlot%2048);
 
 						uint32_t *u = (uint32_t *)data;
 
