@@ -3318,10 +3318,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			for(UINT i=0; i < curNumScissors && i < curNumViews; i++)
 			{
-				if(xf >= curViewports[i].TopLeftX + float(curScissors[i].left) &&
-					 yf >= curViewports[i].TopLeftY + float(curScissors[i].top) &&
-					 xf < curViewports[i].TopLeftX + RDCMIN(curViewports[i].Width, float(curScissors[i].right)) &&
-					 yf < curViewports[i].TopLeftY + RDCMIN(curViewports[i].Height, float(curScissors[i].bottom))
+				if(xf >= float(curScissors[i].left) &&
+					 yf >= float(curScissors[i].top) &&
+					 xf < float(curScissors[i].right) &&
+					 yf < float(curScissors[i].bottom)
 					)
 				{
 					inRegion = true;
@@ -3388,8 +3388,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 			else
 			{
-				newScissors[i].left = LONG(xf - curViewports[i].TopLeftX);
-				newScissors[i].top = LONG(yf - curViewports[i].TopLeftY);
+				newScissors[i].left = LONG(x);
+				newScissors[i].top = LONG(y);
 				newScissors[i].right = newScissors[i].left+1;
 				newScissors[i].bottom = newScissors[i].top+1;
 			}
@@ -3709,10 +3709,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					}
 					else
 					{
-						newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
-						newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
-						newScissors[v].right = newScissors[v].left+1;
-						newScissors[v].bottom = newScissors[v].top+1;
+						newScissors[i].left = LONG(x);
+						newScissors[i].top = LONG(y);
+						newScissors[i].right = newScissors[i].left+1;
+						newScissors[i].bottom = newScissors[i].top+1;
 					}
 				}
 
@@ -4219,8 +4219,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				}
 				else
 				{
-					newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
-					newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
+					newScissors[v].left = LONG(x);
+					newScissors[v].top = LONG(y);
 					newScissors[v].right = newScissors[v].left+1;
 					newScissors[v].bottom = newScissors[v].top+1;
 				}
