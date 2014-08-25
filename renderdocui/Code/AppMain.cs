@@ -136,6 +136,7 @@ namespace renderdocui.Code
         {
             // we log out this string, which is matched against in renderdoccmd to pull out the callstack
             // from the log even in the case where the user chooses not to submit the error log
+            StaticExports.LogText("\n\n");
             StaticExports.LogText("--- Begin C# Exception Data ---");
             if (ex != null)
             {
