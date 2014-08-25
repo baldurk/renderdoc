@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
   <Product Name='RenderDoc' Id='*' UpgradeCode='D320753C-4B18-4905-A752-E68959943E7D'
-    Language='1033' Codepage='1252' Version='0.19.0' Manufacturer='Crytek'>
+    Language='1033' Codepage='1252' Version='0.21.0' Manufacturer='Crytek'>
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
 			Comments='RenderDoc Homepage is http://renderdoc.org/' Platform="x64" Manufacturer='Crytek'
@@ -15,7 +15,7 @@
 			<UpgradeVersion Minimum="0.18.0"
 											IncludeMinimum="yes"
 											IncludeMaximum="yes"
-											Maximum="0.19.0"
+											Maximum="0.21.0"
 											Property="OLDERVERSIONBEINGUPGRADED" />
 		</Upgrade>
 
