@@ -95,7 +95,15 @@ namespace renderdocui.Windows
         {
             get
             {
-                return InformationalVersion.Replace("-official", "");
+                return InformationalVersion.Replace("-official", "").Replace("-beta", "");
+            }
+        }
+
+        private bool BetaVersion
+        {
+            get
+            {
+                return InformationalVersion.Contains("-beta");
             }
         }
 
@@ -152,7 +160,7 @@ namespace renderdocui.Windows
 
             CheckUpdates();
 
-            sendErrorReportToolStripMenuItem.Enabled = OfficialVersion;
+            sendErrorReportToolStripMenuItem.Enabled = OfficialVersion || BetaVersion;
 
             // create default layout if layout failed to load
             if (!loaded)
@@ -488,7 +496,13 @@ namespace renderdocui.Windows
                 prefix += " - ";
             }
 
-            Text = prefix + "RenderDoc " + String.Format(OfficialVersion ? "{0}" : "Unofficial release ({0} - {1})", VersionString, GitCommitHash);
+            Text = prefix + "RenderDoc ";
+            if(OfficialVersion)
+                Text += VersionString;
+            else if(BetaVersion)
+                Text += String.Format("{0}-beta - {1}", VersionString, GitCommitHash);
+            else
+                Text += String.Format("Unofficial release ({0} - {1})", VersionString, GitCommitHash);
         }
 
         #endregion
