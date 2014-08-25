@@ -36,7 +36,7 @@
 
 #define HookInit(function) \
 	bool CONCAT(function, _success) = CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
-	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %s", STRINGIZE(function)); \
+	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %hs", STRINGIZE(function)); \
 	success &= CONCAT(function, _success); \
 	GL.function = CONCAT(function, _hook)();
 
@@ -231,7 +231,7 @@ class OpenGLHook : LibraryHook
 #if USE_MHOOK
 			if(GetModuleHandleA(DLL_NAME) == NULL)
 			{
-				RDCWARN("Failed to load %s - not inserting OpenGL hooks.", DLL_NAME);
+				RDCWARN("Failed to load %hs - not inserting OpenGL hooks.", DLL_NAME);
 				return false;
 			}
 #endif

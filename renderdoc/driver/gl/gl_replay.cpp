@@ -1048,7 +1048,7 @@ void GLReplay::SavePipelineState()
 					}
 					else if(binding != t)
 					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						RDCWARN("Two uniforms pointing to texture unit %d with types %hs and %hs", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
 					}
 				}
 			}
@@ -1222,7 +1222,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 				for(uint32_t a=0; a < desc.elements; a++)
 				{
 					ShaderVariable arrEl = var;
-					arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+					arrEl.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
 					
 					vector<ShaderVariable> ov;
 					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
@@ -1272,7 +1272,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					for(uint32_t a=0; a < desc.elements; a++)
 					{
 						ShaderVariable el = var;
-						el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+						el.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
 
 						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
 							values[0] + values[2] * a, values[1], data, el);

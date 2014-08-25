@@ -133,7 +133,7 @@ struct CachedHookData
 
 		if(dosheader->e_magic != 0x5a4d)
 		{
-			RDCDEBUG("Ignoring module %s, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
+			RDCDEBUG("Ignoring module %hs, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
 			return;
 		}
 

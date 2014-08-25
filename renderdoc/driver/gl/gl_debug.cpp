@@ -535,7 +535,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 					}
 					else
 					{
-						RDCERR("Uniform type '%s' not being copied to new program", ToStr::Get(uniType).c_str());
+						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
 					}
 				}
 			}
@@ -598,7 +598,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 					}
 					else
 					{
-						RDCERR("Uniform type '%s' not being copied to new program", ToStr::Get(uniType).c_str());
+						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
 					}
 				}
 			}
