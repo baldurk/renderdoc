@@ -204,10 +204,11 @@ class GLReplay : public IReplayDriver
 			GLint overlayTexWidth, overlayTexHeight;
 
 			GLuint UBOs[2];
-			static const size_t UBOSize = 64 * sizeof(Vec4f);
 
 			GLuint emptyVAO;
 		} DebugData;
+		
+		static const size_t Debug_UBOSize = 64 * sizeof(Vec4f);
 
 		void InitDebugData();
 		

@@ -150,7 +150,7 @@ void GLReplay::InitDebugData()
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
 		gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-		gl.glBufferData(eGL_UNIFORM_BUFFER, DebugData.UBOSize, NULL, eGL_DYNAMIC_DRAW);
+		gl.glBufferData(eGL_UNIFORM_BUFFER, Debug_UBOSize, NULL, eGL_DYNAMIC_DRAW);
 	}
 
 	DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
@@ -262,7 +262,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	uboData *ubo = (uboData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uboData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-	RDCCOMPILE_ASSERT(sizeof(uboData) <= DebugData.UBOSize, "UBO data is too big");
+	RDCCOMPILE_ASSERT(sizeof(uboData) <= Debug_UBOSize, "UBO data is too big");
 	
 	float x = cfg.offx;
 	float y = cfg.offy;

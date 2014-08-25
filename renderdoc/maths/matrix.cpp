@@ -242,8 +242,8 @@ Matrix4f Matrix4f::Orthographic(const float near, const float far)
 	float T = 10.0f;
 	float B = -10.0f;
 
-	float N = -abs(far-near)*0.5f;
-	float F = abs(far-near)*0.5f;
+	float N = -fabs(far-near)*0.5f;
+	float F = fabs(far-near)*0.5f;
 
 	if(far < near)
 	{
