@@ -4,7 +4,7 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
-			 -DRENDERDOC_VERSION_STRING='"0.20"'
+			 -DRENDERDOC_VERSION_STRING='"0.21"'
 CFLAGS=-c -Wall -Werror -Wno-error=format -fPIC $(MACROS) -I.
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
