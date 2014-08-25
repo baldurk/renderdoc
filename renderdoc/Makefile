@@ -14,7 +14,6 @@ replay/entry_points.o \
 replay/basic_types.o \
 hooks/hooks.o \
 hooks/gl_linux_hooks.o \
-hooks/linux_libentry.o \
 serialise/serialiser.o \
 common/common.o \
 core/remote_access.o \
@@ -59,7 +58,8 @@ os/linux/linux_callstack.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
 os/linux/linux_stringio.o \
-os/linux/linux_threading.o
+os/linux/linux_threading.o \
+hooks/linux_libentry.o
 
 all: librenderdoc.so
 
