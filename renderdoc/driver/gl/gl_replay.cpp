@@ -590,7 +590,7 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 	GLint dummyReadback[32];
 
 #if !defined(RELEASE)
-	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
 		dummyReadback[i] = 0x6c7b8a9d;
 #endif
 
@@ -671,7 +671,7 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 	}
 
 #if !defined(RELEASE)
-	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
 		if(dummyReadback[i] != 0x6c7b8a9d)
 			RDCERR("Invalid uniform readback - data beyond first element modified!");
 #endif
