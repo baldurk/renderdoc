@@ -32,13 +32,11 @@ cp -R dist/Release32/{renderdoc.dll,renderdoccmd.exe,pdblocate} dist/Release64/x
 mkdir -p dist/ReleasePDBs64/x86
 cp -R dist/ReleasePDBs32/{renderdoc.dll,renderdoc.pdb,renderdoccmd.exe,renderdoccmd.pdb,pdblocate} dist/ReleasePDBs64/x86/
 
-if [[ $AUTOBUILD -eq 1 ]]; then
-	exit;
+if [[ $AUTOBUILD -eq 0 ]]; then
+	echo "Ready to make installer MSIs - make sure to bump version numbers on package."
+
+	read;
 fi
-
-echo "Ready to make installer MSIs - make sure to bump version numbers on package."
-
-read;
 
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/candle.exe -o dist/Installer32.wixobj installer/Installer32.wxs
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -o dist/Installer32.msi dist/Installer32.wixobj
