@@ -14,18 +14,31 @@ if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	read;
 fi
 
+# clean any old files lying around and make new structure
 rm -rf dist
 mkdir -p dist/Release{32,64}
+
+# Copy files from release build in
 cp -R x64/Release/* dist/Release64/
 cp -R Win32/Release/* dist/Release32/
+
+# Copy associated files that should be included with the distribution
 cp LICENSE.md Documentation/*.chm dist/Release64/
 cp LICENSE.md Documentation/*.chm dist/Release32/
+
+# Make a copy of the main distribution folder that has PDBs
 cp -R dist/Release64 dist/ReleasePDBs64
 cp -R dist/Release32 dist/ReleasePDBs32
-find dist/Release32/ -iname '*.pdb' -exec rm '{}' \;
-find dist/Release64/ -iname '*.pdb' -exec rm '{}' \;
-rm dist/Release32/*.{exp,lib,metagen,xml} dist/Release32/*.vshost.*
-rm dist/Release64/*.{exp,lib,metagen,xml} dist/Release64/*.vshost.*
+
+# Remove all pdbs except renderdocui.pdb (which we keep so we can get callstack crashes)
+find dist/Release{32,64}/ -iname '*.pdb' -exec rm '{}' \;
+cp dist/ReleasePDBs32/renderdocui.pdb dist/Release32/
+cp dist/ReleasePDBs64/renderdocui.pdb dist/Release64/
+
+# Remove any build associated files that might have gotten dumped in the folders
+rm -f dist/Release{32,64}/*.{exp,lib,metagen,xml} dist/Release{32,64}/*.vshost.*
+
+# In the 64bit release folder, make an x86 subfolder and copy in renderdoc 32bit
 mkdir -p dist/Release64/x86
 rm -rf dist/Release32/pdblocate/x64 dist/ReleasePDBs32/pdblocate/x64
 cp -R dist/Release32/{renderdoc.dll,renderdoccmd.exe,pdblocate} dist/Release64/x86/
