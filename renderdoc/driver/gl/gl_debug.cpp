@@ -178,7 +178,7 @@ void GLReplay::InitDebugData()
 	gl.glBindVertexArray(DebugData.meshVAO);
 }
 
-void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -201,6 +201,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 		texDisplay.HDRMul = -1.0f;
 		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.mip = mip;
+		texDisplay.sampleIdx = sample;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
 		texDisplay.rangemin = 0.0f;

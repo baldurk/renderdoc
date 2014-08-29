@@ -170,23 +170,23 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 				return m_Proxy->RenderHighlightBox(w, h, scale);
 		}
 		
-		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texid, sliceFace, mip);
-				return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, minval, maxval);
+				return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval);
 			}
 
 			return false;
 		}
 
-		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texid, sliceFace, mip);
-				return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, minval, maxval, channels, histogram);
+				return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval, channels, histogram);
 			}
 
 			return false;
@@ -215,12 +215,12 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 			return false;
 		}
 
-		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texture, sliceFace, mip);
-				m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, pixel);
+				m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, pixel);
 			}
 		}
 			

@@ -53,17 +53,17 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 	if(uintTex)
 	{
 		ucol = SampleTextureUInt4(OutputDisplayFormat & TEXDISPLAY_TYPEMASK,
-								  uvTex, Slice, MipLevel, TextureResolutionPS);
+								  uvTex, Slice, MipLevel, SampleIdx, TextureResolutionPS);
 	}
 	else if(sintTex)
 	{
 		scol = SampleTextureInt4 (OutputDisplayFormat & TEXDISPLAY_TYPEMASK,
-								  uvTex, Slice, MipLevel, TextureResolutionPS);
+								  uvTex, Slice, MipLevel, SampleIdx, TextureResolutionPS);
 	}
 	else
 	{
 		col = SampleTextureFloat4(OutputDisplayFormat & TEXDISPLAY_TYPEMASK, (ScalePS < 1 && MipLevel == 0),
-								  uvTex, Slice, MipLevel, TextureResolutionPS);
+								  uvTex, Slice, MipLevel, SampleIdx, TextureResolutionPS);
 	}
 	
 	if(RawOutput)

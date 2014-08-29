@@ -239,6 +239,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 			TextureDisplay d;
 			d.texid = texs[i].ID;
 			d.mip = 0;
+			d.sampleIdx = ~0U;
 			d.overlay = eTexOverlay_None;
 			d.CustomShader = ResourceId();
 			d.HDRMul = -1.0f;

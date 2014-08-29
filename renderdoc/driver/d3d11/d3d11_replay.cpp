@@ -1200,14 +1200,14 @@ ResourceId D3D11Replay::GetLiveID(ResourceId id)
 	return m_pDevice->GetResourceManager()->GetLiveID(id);
 }
 		
-bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+bool D3D11Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
-	return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, minval, maxval);
+	return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, minval, maxval);
 }
 
-bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
-	return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, minval, maxval, channels, histogram);
+	return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, minval, maxval, channels, histogram);
 }
 
 PostVSMeshData D3D11Replay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
@@ -1311,9 +1311,9 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t frameID, uint32_t eventID, ui
 	return m_pDevice->GetDebugManager()->DebugThread(frameID, eventID, groupid, threadid);
 }
 
-void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
-	m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, pixel);
+	m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, pixel);
 }
 
 ResourceId D3D11Replay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)

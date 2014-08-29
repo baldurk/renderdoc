@@ -122,8 +122,8 @@ class IReplayDriver : public IRemoteDriver
 		virtual bool IsOutputWindowVisible(uint64_t id) = 0;
 		virtual void FlipOutputWindow(uint64_t id) = 0;
 
-		virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval) = 0;
-		virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram) = 0;
+		virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval) = 0;
+		virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram) = 0;
 
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
@@ -141,5 +141,5 @@ class IReplayDriver : public IRemoteDriver
 
 		virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 		
-		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4]) = 0;
+		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]) = 0;
 };

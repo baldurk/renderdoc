@@ -260,7 +260,7 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 	return true;
 }
 
-bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, PixelValue *ret)
+bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *ret)
 {
 	if(ret == NULL || tex == ResourceId()) return false;
 
@@ -280,7 +280,7 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 		tex = m_OverlayResourceId;
 	}
 
-	m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, ret->value_f);
+	m_pDevice->PickPixel(m_pDevice->GetLiveID(tex), x, y, sliceFace, mip, sample, ret->value_f);
 	
 	if(decodeRamp)
 	{
@@ -412,6 +412,7 @@ bool ReplayOutput::Display()
 		disp.linearDisplayAsGamma = true;
 		disp.FlipY = false;
 		disp.mip = 0;
+		disp.sampleIdx = ~0U;
 		disp.CustomShader = ResourceId();
 		disp.texid = m_pDevice->GetLiveID(m_Thumbnails[i].texture);
 		disp.scale = -1.0f;
@@ -590,5 +591,5 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(Repl
 { output->DisablePixelContext(); }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool customShader,
-														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, PixelValue *val)
-{ return output->PickPixel(texID, customShader, x, y, sliceFace, mip, val); }
+														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
+{ return output->PickPixel(texID, customShader, x, y, sliceFace, mip, sample, val); }

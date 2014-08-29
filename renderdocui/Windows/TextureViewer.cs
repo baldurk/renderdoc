@@ -1089,14 +1089,34 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
 
-            for (int i = 0; i < tex.mips; i++)
-                mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
+            if (tex.msSamp > 1)
+            {
+                for (int i = 0; i < tex.msSamp; i++)
+                    mipLevel.Items.Add(String.Format("Sample {0}", i));
+
+                // add an option to display unweighted average resolved value,
+                // to get an idea of how the samples average
+                if(tex.format.compType != FormatComponentType.UInt &&
+                    tex.format.compType != FormatComponentType.SInt &&
+                    tex.format.compType != FormatComponentType.Depth &&
+                    (tex.creationFlags & TextureCreationFlags.DSV) == 0)
+                    mipLevel.Items.Add("Average val");
+
+                mipLevelLabel.Text = "Sample";
+            }
+            else
+            {
+                for (int i = 0; i < tex.mips; i++)
+                    mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
+
+                mipLevelLabel.Text = "Mip";
+            }
 
             mipLevel.SelectedIndex = 0;
             m_TexDisplay.mip = 0;
             m_TexDisplay.sliceFace = 0;
 
-            if (tex.mips == 1)
+            if (tex.mips == 1 && tex.msSamp <= 1)
             {
                 mipLevel.Enabled = false;
             }
@@ -1924,11 +1944,11 @@ namespace renderdocui.Windows
                 y = (int)tex.height - y;
 
             var pickValue = m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
             PixelValue realValue = null;
             if (m_TexDisplay.CustomShader != ResourceId.Null)
                 realValue = m_Output.PickPixel(m_TexDisplay.texid, false, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 
             RT_UpdatePixelColour(pickValue, realValue, false);
         }
@@ -2060,7 +2080,7 @@ namespace renderdocui.Windows
                             if (m_TexDisplay.FlipY)
                                 y = tex.height - y;
                             RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, y,
-                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip));
+                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx));
                         }
                     });
                 }
@@ -2265,10 +2285,33 @@ namespace renderdocui.Windows
         }
         private void mipLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
-            m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+            if (CurrentTexture == null) return;
+
+            if (CurrentTexture.mips > 1)
+            {
+                m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+                m_TexDisplay.sampleIdx = 0;
+            }
+            else
+            {
+                m_TexDisplay.mip = 0;
+                m_TexDisplay.sampleIdx = (UInt32)mipLevel.SelectedIndex;
+                if (mipLevel.SelectedIndex == CurrentTexture.msSamp)
+                    m_TexDisplay.sampleIdx = ~0U;
+            }
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
-            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
         }
 
         private void overlay_SelectedIndexChanged(object sender, EventArgs e)
@@ -2285,8 +2328,18 @@ namespace renderdocui.Windows
         {
             m_TexDisplay.sliceFace = (UInt32)sliceFace.SelectedIndex;
 
-            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
         private void updateChannelsHandler(object sender, EventArgs e)
@@ -2392,7 +2445,7 @@ namespace renderdocui.Windows
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
-                bool success = r.GetMinMax(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, out min, out max);
+                bool success = r.GetMinMax(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx, out min, out max);
 
                 if (success)
                 {
@@ -2483,7 +2536,7 @@ namespace renderdocui.Windows
             bool success = true;
 
             uint[] histogram;
-            success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip,
+            success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
                                      rangeHistogram.BlackPoint, rangeHistogram.WhitePoint,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,

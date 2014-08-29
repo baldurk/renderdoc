@@ -92,7 +92,7 @@ namespace renderdoc
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_PickPixel(IntPtr real, ResourceId texID, bool customShader,
-                                                                UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, IntPtr outval);
+                                                                UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outval);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -138,11 +138,11 @@ namespace renderdoc
             ReplayOutput_DisablePixelContext(m_Real);
         }
 
-        public PixelValue PickPixel(ResourceId texID, bool customShader, UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip)
+        public PixelValue PickPixel(ResourceId texID, bool customShader, UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(PixelValue));
 
-            bool success = ReplayOutput_PickPixel(m_Real, texID, customShader, x, y, sliceFace, mip, mem);
+            bool success = ReplayOutput_PickPixel(m_Real, texID, customShader, x, y, sliceFace, mip, sample, mem);
 
             PixelValue ret = null;
             
@@ -232,9 +232,9 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, MeshDataStage stage, IntPtr outdata);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, IntPtr outminval, IntPtr outmaxval);
+        private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outminval, IntPtr outmaxval);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, float minval, float maxval, bool[] channels, IntPtr outhistogram);
+        private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, float minval, float maxval, bool[] channels, IntPtr outhistogram);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt32 offset, UInt32 len, IntPtr outdata);
@@ -605,12 +605,12 @@ namespace renderdoc
             return ret;
         }
 
-        public bool GetMinMax(ResourceId tex, UInt32 sliceFace, UInt32 mip, out PixelValue minval, out PixelValue maxval)
+        public bool GetMinMax(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, out PixelValue minval, out PixelValue maxval)
         {
             IntPtr mem1 = CustomMarshal.Alloc(typeof(PixelValue));
             IntPtr mem2 = CustomMarshal.Alloc(typeof(PixelValue));
 
-            bool success = ReplayRenderer_GetMinMax(m_Real, tex, sliceFace, mip, mem1, mem2);
+            bool success = ReplayRenderer_GetMinMax(m_Real, tex, sliceFace, mip, sample, mem1, mem2);
 
             if (success)
             {
@@ -629,7 +629,7 @@ namespace renderdoc
             return success;
         }
 
-        public bool GetHistogram(ResourceId tex, UInt32 sliceFace, UInt32 mip, float minval, float maxval,
+        public bool GetHistogram(ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, float minval, float maxval,
                                  bool Red, bool Green, bool Blue, bool Alpha,
                                  out UInt32[] histogram)
         {
@@ -637,7 +637,7 @@ namespace renderdoc
 
             bool[] channels = new bool[] { Red, Green, Blue, Alpha };
 
-            bool success = ReplayRenderer_GetHistogram(m_Real, tex, sliceFace, mip, minval, maxval, channels, mem);
+            bool success = ReplayRenderer_GetHistogram(m_Real, tex, sliceFace, mip, sample, minval, maxval, channels, mem);
 
             histogram = null;
 

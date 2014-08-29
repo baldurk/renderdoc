@@ -56,7 +56,7 @@ public:
 	void DisablePixelContext();
 
 	bool PickPixel(ResourceId texID, bool customShader, 
-					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
+					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample,
 					PixelValue *val);
 private:
 	ReplayOutput(ReplayRenderer *parent, void *w);
@@ -167,8 +167,8 @@ struct ReplayRenderer
 
 		bool GetPostVSData(MeshDataStage stage, PostVSMeshData *data);
 		
-		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, PixelValue *minval, PixelValue *maxval);
-		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
+		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
+		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
 		
 		bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 		

@@ -835,6 +835,7 @@ bool D3D11DebugManager::InitDebugRendering()
 	RDCCOMPILE_ASSERT(eTexType_Stencil == RESTYPE_DEPTH_STENCIL, "Tex type enum doesn't match shader defines");
 	RDCCOMPILE_ASSERT(eTexType_DepthMS == RESTYPE_DEPTH_MS, "Tex type enum doesn't match shader defines");
 	RDCCOMPILE_ASSERT(eTexType_StencilMS == RESTYPE_DEPTH_STENCIL_MS, "Tex type enum doesn't match shader defines");
+	RDCCOMPILE_ASSERT(eTexType_2DMS == RESTYPE_TEX2D_MS, "Tex type enum doesn't match shader defines");
 
 	D3D11_BLEND_DESC blendDesc;
 	RDCEraseEl(blendDesc);
@@ -1920,7 +1921,7 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 	return ret;
 }
 
-bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
 	if(minval >= maxval) return false;
 	
@@ -1937,6 +1938,8 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 	cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth>>mip, 1U);
 	cdata.HistogramSlice = (float)sliceFace;
 	cdata.HistogramMip = mip;
+	cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount-1);
+	if(sample == ~0U) cdata.HistogramSample = -int(details.sampleCount);
 	cdata.HistogramMin = minval;
 	cdata.HistogramMax = maxval;
 	cdata.HistogramChannels = 0;
@@ -2014,7 +2017,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 	return true;
 }
 		
-bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, true);
 
@@ -2029,6 +2032,8 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth>>mip, 1U);
 	cdata.HistogramSlice = (float)sliceFace;
 	cdata.HistogramMip = mip;
+	cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount-1);
+	if(sample == ~0U) cdata.HistogramSample = -int(details.sampleCount);
 	cdata.HistogramMin = 0.0f;
 	cdata.HistogramMax = 1.0f;
 	cdata.HistogramChannels = 0xf;
@@ -2902,8 +2907,13 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 		details.texDepth = 1;
 		details.texArraySize = desc2d.ArraySize;
 		details.texMips = desc2d.MipLevels;
-		details.sampleCount = desc2d.SampleDesc.Count;
+		details.sampleCount = RDCMAX(1U, desc2d.SampleDesc.Count);
 		details.sampleQuality = desc2d.SampleDesc.Quality;
+
+		if(desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0)
+		{
+			details.texType = eTexType_2DMS;
+		}
 		
 		if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt))
 		{
@@ -2952,9 +2962,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 			else
 			{
 				desc.Format = srvFormat;
-
-				desc.SampleDesc.Count = 1;
-				desc.SampleDesc.Quality = 0;
 			}
 
 			if(!cache.created)
@@ -2972,23 +2979,10 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
 			details.previewCopy = cache.srvResource;
 
-			if(desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0)
-			{
-				if(mode == TEXDISPLAY_DEPTH_TARGET)
-				{
+			if((desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0) && mode == TEXDISPLAY_DEPTH_TARGET)
 					msaaDepth = true;
-					m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
-				}
-				else
-				{
-					for(UINT sub=0; sub < desc.MipLevels*desc.ArraySize; sub++)
-						m_pImmediateContext->ResolveSubresource(details.previewCopy, sub, details.srvResource, sub, srvFormat);
-				}
-			}
-			else
-			{
-				m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
-			}
+
+			m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
 
 			details.srvResource = details.previewCopy;
 		}
@@ -3066,6 +3060,10 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 	srvDesc[eTexType_2D].Texture2DArray.FirstArraySlice = 0;
 	srvDesc[eTexType_2D].Texture2DArray.MipLevels = details.texMips;
 	srvDesc[eTexType_2D].Texture2DArray.MostDetailedMip = 0;
+	
+	srvDesc[eTexType_2DMS].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+	srvDesc[eTexType_2DMS].Texture2DMSArray.ArraySize = details.texArraySize;
+	srvDesc[eTexType_2DMS].Texture2DMSArray.FirstArraySlice = 0;
 
 	srvDesc[eTexType_Stencil] = srvDesc[eTexType_Depth] = srvDesc[eTexType_2D];
 
@@ -3128,9 +3126,8 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
 	if(msaaDepth)
 	{
-		srvDesc[eTexType_Stencil].ViewDimension = 
-			srvDesc[eTexType_Depth].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
-
+		srvDesc[eTexType_Stencil].ViewDimension = srvDesc[eTexType_Depth].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+		
 		srvDesc[eTexType_Depth].Texture2DMSArray.ArraySize = srvDesc[eTexType_2D].Texture2DArray.ArraySize;
 		srvDesc[eTexType_Stencil].Texture2DMSArray.ArraySize = srvDesc[eTexType_2D].Texture2DArray.ArraySize;
 		srvDesc[eTexType_Depth].Texture2DMSArray.FirstArraySlice = srvDesc[eTexType_2D].Texture2DArray.FirstArraySlice;
@@ -3340,6 +3337,14 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 	pixelData.FlipY = cfg.FlipY ? 1 : 0;
 	
 	TextureShaderDetails details = GetShaderDetails(cfg.texid, cfg.rawoutput ? true : false);
+
+	static int sampIdx = 0;
+	
+	pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount-1);
+
+	// hacky resolve
+	if(cfg.sampleIdx == ~0U)
+		pixelData.SampleIdx = -int(details.sampleCount);
 	
 	if(details.texFmt == DXGI_FORMAT_UNKNOWN)
 		return false;
@@ -3512,6 +3517,10 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 	else if(details.texType == eTexType_StencilMS)
 	{
 		pixelData.OutputDisplayFormat = RESTYPE_DEPTH_STENCIL_MS;
+	}
+	else if(details.texType == eTexType_2DMS)
+	{
+		pixelData.OutputDisplayFormat = RESTYPE_TEX2D_MS;
 	}
 	
 	if(cfg.overlay == eTexOverlay_NaN)

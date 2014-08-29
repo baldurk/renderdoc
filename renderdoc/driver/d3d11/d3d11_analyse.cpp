@@ -1424,7 +1424,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	return ret;
 }
 
-void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
 	m_pImmediateContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
 	
@@ -1454,6 +1454,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.FlipY = false;
 		texDisplay.mip = mip;
+		texDisplay.sampleIdx = sample;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
 		texDisplay.rangemin = 0.0f;
@@ -2111,6 +2112,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 	disp.HDRMul = -1.0f;
 	disp.linearDisplayAsGamma = true;
 	disp.mip = mip;
+	disp.sampleIdx = 0;
 	disp.overlay = eTexOverlay_None;
 	disp.rangemin = 0.0f;
 	disp.rangemax = 1.0f;

@@ -85,7 +85,8 @@ cbuffer DebugPixelCBufferData REG(b0)
 
 	float Slice;
 	float ScalePS;
-	float2 Padding;
+	int SampleIdx;
+	int Padding;
 
 	int RawOutput;
 	float3 TextureResolutionPS;
@@ -100,7 +101,8 @@ cbuffer HistogramCBufferData REG(b0)
 	
 	float HistogramSlice;
 	uint HistogramMip;
-	float2 Padding2;
+	int HistogramSample;
+	uint Padding2;
 
 	float3 HistogramTextureResolution;
 	float Padding3;
@@ -121,6 +123,8 @@ cbuffer HistogramCBufferData REG(b0)
 #define RESTYPE_DEPTH_STENCIL    0x5
 #define RESTYPE_DEPTH_MS         0x6
 #define RESTYPE_DEPTH_STENCIL_MS 0x7
+#define RESTYPE_CUBE             0x8
+#define RESTYPE_TEX2D_MS         0x9
 
 #define MESHDISPLAY_SOLID        0x1
 #define MESHDISPLAY_FACELIT      0x2
