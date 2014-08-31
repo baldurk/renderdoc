@@ -273,7 +273,44 @@ enum OpcodeType
     OPCODE_EVAL_CENTROID,
 
     OPCODE_DCL_GS_INSTANCE_COUNT,
-
+    
+    OPCODE_ABORT,
+    OPCODE_DEBUGBREAK,
+    
+    OPCODE_RESERVED2,
+    
+    OPCODE_DDIV,
+    OPCODE_DFMA,
+    OPCODE_DRCP,
+    
+    OPCODE_MSAD,
+    
+    OPCODE_DTOI,
+    OPCODE_DTOU,
+    OPCODE_ITOD,
+    OPCODE_UTOD,
+    
+    OPCODE_RESERVED3,
+    
+    OPCODE_GATHER4_FEEDBACK,
+    OPCODE_GATHER4_C_FEEDBACK,
+    OPCODE_GATHER4_PO_FEEDBACK,
+    OPCODE_GATHER4_PO_C_FEEDBACK,
+    OPCODE_LD_FEEDBACK,
+    OPCODE_LD_MS_FEEDBACK,
+    OPCODE_LD_UAV_TYPED_FEEDBACK,
+    OPCODE_LD_RAW_FEEDBACK,
+    OPCODE_LD_STRUCTURED_FEEDBACK,
+    OPCODE_SAMPLE_L_FEEDBACK,
+    OPCODE_SAMPLE_C_LZ_FEEDBACK,
+    
+    OPCODE_SAMPLE_CLAMP_FEEDBACK,
+    OPCODE_SAMPLE_B_CLAMP_FEEDBACK,
+    OPCODE_SAMPLE_D_CLAMP_FEEDBACK,
+    OPCODE_SAMPLE_C_CLAMP_FEEDBACK,
+    
+    OPCODE_CHECK_ACCESS_FULLY_MAPPED,
+    
     NUM_OPCODES,
 };
 
@@ -283,6 +320,8 @@ enum CustomDataClass
     CUSTOMDATA_DEBUGINFO,
     CUSTOMDATA_OPAQUE,
     CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER,
+    CUSTOMDATA_SHADER_MESSAGE,
+    CUSTOMDATA_SHADER_CLIP_PLANE_CONSTANT_BUFFER_MAPPINGS,
 
 	NUM_CUSTOMDATA_CLASSES,
 };
@@ -399,6 +438,17 @@ enum OperandModifier
     OPERAND_MODIFIER_ABSNEG,
 
 	NUM_MODIFIERS,
+};
+
+enum MinimumPrecision
+{
+	PRECISION_DEFAULT,
+	PRECISION_FLOAT16,
+	PRECISION_FLOAT10,
+	PRECISION_SINT16,
+	PRECISION_UINT16,
+
+	NUM_PRECISIONS,
 };
 
 enum SamplerMode
@@ -610,7 +660,9 @@ struct ASMOperand
 		type = NUM_OPERAND_TYPES;
 		numComponents = MAX_COMPONENTS;
 		comps[0] = comps[1] = comps[2] = comps[3] = 0xff;
+		values[0] = values[1] = values[2] = values[3] = 0;
 		modifier = OPERAND_MODIFIER_NONE;
+		precision = PRECISION_DEFAULT;
 	}
 
 	bool operator ==(const ASMOperand &o) const;
@@ -636,9 +688,10 @@ struct ASMOperand
 												// 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the cbuffer member
 												// 3 is rare but follows the above pattern
 
-	vector<int64_t> values;						// if this operand is immediate, the values are here
+	uint32_t values[4];						// if this operand is immediate, the values are here
 
 	OperandModifier modifier;					// modifier, neg, abs(), -abs() etc. Could potentially be multiple modifiers in future
+	MinimumPrecision precision;
 
 	uint32_t funcNum;								// interface this operand refers to
 };
@@ -737,6 +790,10 @@ struct ASMDecl
 	bool doublePrecisionFloats;
 	bool forceEarlyDepthStencil;
 	bool enableRawAndStructuredBuffers;
+	bool skipOptimisation;
+	bool enableMinPrecision;
+	bool enableD3D11_1DoubleExtensions;
+	bool enableD3D11_1ShaderExtensions;
 
 	// OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
 	uint32_t stride;

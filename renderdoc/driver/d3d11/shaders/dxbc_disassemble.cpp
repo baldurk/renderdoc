@@ -136,6 +136,10 @@ namespace Declaration
 	static MaskedElement<bool,								0x00001000> DoubleFloatOps;
 	static MaskedElement<bool,								0x00002000> ForceEarlyDepthStencil;
 	static MaskedElement<bool,								0x00004000> EnableRawStructuredBufs;
+	static MaskedElement<bool,								0x00008000> SkipOptimisation;
+	static MaskedElement<bool,								0x00010000> EnableMinPrecision;
+	static MaskedElement<bool,								0x00020000> EnableD3D11_1DoubleExtensions;
+	static MaskedElement<bool,								0x00040000> EnableD3D11_1ShaderExtensions;
 
 	// OPCODE_DCL_CONSTANT_BUFFER
 	static MaskedElement<CBufferAccessPattern,				0x00000800> AccessPattern;
@@ -193,7 +197,8 @@ namespace ExtendedOpcode
 	static MaskedElement<int,								0x001E0000> TexelOffsetW;
 
 	// OPCODE_EX_RESOURCE_DIM
-	static MaskedElement<ResourceDimension,					0x000007C0> ResourceDim;
+	static MaskedElement<ResourceDimension,        0x000007C0> ResourceDim;
+	static MaskedElement<uint32_t,                 0x007FF800> BufferStride;
 
 	// OPCODE_EX_RESOURCE_RETURN_TYPE
 	static MaskedElement<ResourceRetType,					0x000003C0> ReturnTypeX;
@@ -239,9 +244,10 @@ namespace ExtendedOperand
 
 	// EXTENDED_OPERAND_MODIFIER
 	static MaskedElement<OperandModifier,					0x00003FC0> Modifier;
+	static MaskedElement<MinimumPrecision,        0x0001C000> MinPrecision;
 };
 
-string toString(vector<int64_t> values);
+string toString(const uint32_t values[], uint32_t numComps);
 char *toString(OpcodeType op);
 char *toString(ResourceDimension dim);
 char *toString(ResourceRetType type);
@@ -257,12 +263,11 @@ bool ASMOperand::operator ==(const ASMOperand &o) const
 	if(modifier != o.modifier) return false;
 
 	if(indices.size() != o.indices.size()) return false;
-	if(values.size() != o.values.size()) return false;
 
 	for(size_t i=0; i < indices.size(); i++)
 		if(indices[i] != o.indices[i]) return false;
 
-	for(size_t i=0; i < values.size(); i++)
+	for(size_t i=0; i < 4; i++)
 		if(values[i] != o.values[i]) return false;
 
 	return true;
@@ -694,6 +699,7 @@ bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ASMOperand &retOper)
 		if(type == EXTENDED_OPERAND_MODIFIER)
 		{
 			retOper.modifier = ExtendedOperand::Modifier.Get(OperandTokenN);
+			retOper.precision = ExtendedOperand::MinPrecision.Get(OperandTokenN);
 		}
 		else
 		{
@@ -712,26 +718,19 @@ bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ASMOperand &retOper)
 	{
 		RDCASSERT(retOper.indices.empty());
 
+		uint32_t numRead = 1;
+
 		if(retOper.numComponents == NUMCOMPS_1)
-			retOper.values.resize(1);
+			numRead = 1;
 		else if(retOper.numComponents == NUMCOMPS_4)
-			retOper.values.resize(4);
+			numRead = 4;
 		else
 			RDCERR("N-wide vectors not supported.");
 
-		for(size_t i=0; i < retOper.values.size(); i++)
+		for(uint32_t i=0; i < numRead; i++)
 		{
-			uint64_t val = tokenStream[0];
+			retOper.values[i] = tokenStream[0];
 			tokenStream++;
-
-			if(retOper.type == INDEX_IMMEDIATE64)
-			{
-				val <<= 32;
-				val |= tokenStream[0];
-				tokenStream++;
-			}
-
-			retOper.values[i] = val;
 		}
 	}
 
@@ -888,24 +887,16 @@ string ASMOperand::toString(bool swizzle) const
 	}
 	else if(type == TYPE_IMMEDIATE32)
 	{
-		RDCASSERT(indices.size() == 0 && values.size() > 0);
+		RDCASSERT(indices.size() == 0);
 
-		str = "l(" + DXBC::toString(values) + ")";
+		str = "l(" + DXBC::toString(values, numComponents == NUMCOMPS_1 ? 1U : 4U) + ")";
 	}
 	else if(type == TYPE_IMMEDIATE64)
 	{
-		RDCASSERT(values.size() > 0);
-
-		if(values.empty())
-		{
-			str += "l(err)";
-		}
-		else
-		{
-			char buf[64] = {0};
-			StringFormat::snprintf(buf, 63, "l(%llx)", values[0]);
-			str += buf;
-		}
+		double *dv = (double *)values;
+		char buf[64] = {0};
+		StringFormat::snprintf(buf, 63, "d(%lfl, %lfl)", dv[0], dv[1]);
+		str += buf;
 	}
 	else if(type == TYPE_RASTERIZER)							str = "rasterizer";
 	else if(type == TYPE_OUTPUT_CONTROL_POINT_ID)				str = "vOutputControlPointID";
@@ -932,6 +923,20 @@ string ASMOperand::toString(bool swizzle) const
 	if(swizzle)
 		str += swiz;
 	
+	if(precision != PRECISION_DEFAULT)
+	{
+		str += " {";
+		if(precision == PRECISION_FLOAT10)
+			str += "min2_8f as def32";
+		if(precision == PRECISION_FLOAT16)
+			str += "min16f as def32";
+		if(precision == PRECISION_UINT16)
+			str += "min16u";
+		if(precision == PRECISION_SINT16)
+			str += "min16i";
+		str += "}";
+	}
+
 	if(modifier == OPERAND_MODIFIER_NEG)
 		str = "-" + str;
 	if(modifier == OPERAND_MODIFIER_ABS)
@@ -969,6 +974,12 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
 		switch(customClass)
 		{
+			case CUSTOMDATA_SHADER_MESSAGE:
+			{
+				// handle as opcode
+				tokenStream = begin;
+				return false;
+			}
 			case CUSTOMDATA_DCL_IMMEDIATE_CONSTANT_BUFFER:
 			{
 				retDecl.str = "dcl_immediateConstantBuffer {";
@@ -984,9 +995,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
 					m_Immediate.push_back(tokenStream[0]);
 
-					vector<int64_t> values; values.push_back(tokenStream[0]);
-
-					retDecl.str += toString(values);
+					retDecl.str += toString(tokenStream, 1);
 
 					tokenStream++;
 
@@ -1036,6 +1045,10 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 		retDecl.doublePrecisionFloats = Declaration::DoubleFloatOps.Get(OpcodeToken0);
 		retDecl.forceEarlyDepthStencil = Declaration::ForceEarlyDepthStencil.Get(OpcodeToken0);
 		retDecl.enableRawAndStructuredBuffers = Declaration::EnableRawStructuredBufs.Get(OpcodeToken0);
+		retDecl.skipOptimisation = Declaration::SkipOptimisation.Get(OpcodeToken0);
+		retDecl.enableMinPrecision = Declaration::EnableMinPrecision.Get(OpcodeToken0);
+		retDecl.enableD3D11_1DoubleExtensions = Declaration::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
+		retDecl.enableD3D11_1ShaderExtensions = Declaration::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
 
 		retDecl.str += " ";
 
@@ -1626,7 +1639,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 	
 	RDCASSERT(op < NUM_OPCODES);
 
-	if(IsDeclaration(op))
+	if(IsDeclaration(op) && op != OPCODE_CUSTOMDATA)
 		return false;
 
 	// possibly only set these when applicable
@@ -1640,6 +1653,63 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 	
 	bool extended = Opcode::Extended.Get(OpcodeToken0) == 1;
 	
+	if(op == OPCODE_CUSTOMDATA)
+	{
+		CustomDataClass customClass = Opcode::CustomClass.Get(OpcodeToken0);
+		
+		tokenStream++;
+		// DWORD length including OpcodeToken0 and this length token
+		uint32_t customDataLength = tokenStream[0];
+		tokenStream++;
+
+		RDCASSERT(customDataLength >= 2);
+
+		switch(customClass)
+		{
+			case CUSTOMDATA_SHADER_MESSAGE:
+			{
+				uint32_t *end = tokenStream + customDataLength - 2;
+
+				uint32_t infoQueueMsgId = tokenStream[0];
+				uint32_t messageFormat = tokenStream[1]; // enum. 0 == text only, 1 == printf
+				uint32_t formatStringLen = tokenStream[2]; // length NOT including null terminator
+				retOp.operands.resize(tokenStream[3]);
+				uint32_t operandDwordLen = tokenStream[4];
+
+				tokenStream += 5;
+				
+				for(uint32_t i=0; i < retOp.operands.size(); i++)
+				{
+					bool ret = ExtractOperand(tokenStream, retOp.operands[i]);
+					RDCASSERT(ret);
+				}
+
+				string formatString = (char *)&tokenStream[0];
+				
+				retOp.str = "errorf \"" + formatString + "\"";
+
+				for(uint32_t i=0; i < retOp.operands.size(); i++)
+				{
+					retOp.str += ", ";
+					retOp.str += retOp.operands[i].toString();
+				}
+
+				tokenStream = end;
+
+				break;
+			}
+
+			default:
+			{
+				// handle as declaration
+				tokenStream = begin;
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	tokenStream++;
 	
 	retOp.str = toString(op);
@@ -1676,7 +1746,13 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 			{
 				retOp.str += "_indexable(";
 				retOp.str += toString(retOp.resDim);
-				retOp.str += "<STRIDE>";
+
+				uint32_t stride = ExtendedOpcode::BufferStride.Get(OpcodeTokenN);
+
+				char buf[64] = {0};
+				StringFormat::snprintf(buf, 63, ", stride=%u", stride);
+				retOp.str += buf;
+
 				retOp.str += ")";
 			}
 			else
@@ -1750,13 +1826,6 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 		RDCASSERT(ret);
 	}
 	
-	if(op == OPCODE_SAMPLE_POS)
-	{
-		// no idea what this is. I've always seen it be '8'.
-		uint32_t unknown = tokenStream[0];
-		tokenStream++;
-	}
-	
 	if(op == OPCODE_INTERFACE_CALL)
 	{
 		retOp.operands[0].funcNum = func;
@@ -1784,49 +1853,6 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 		else
 			retOp.str += ", ";
 		retOp.str += retOp.operands[i].toString();
-	}
-
-	// fixup
-	size_t strideLoc = retOp.str.find("<STRIDE>");
-	if(strideLoc != string::npos && op == OPCODE_LD_STRUCTURED)
-	{
-		string a = retOp.str.substr(0, strideLoc);
-		string b = retOp.str.substr(strideLoc+8);
-
-		uint32_t stride = 0;
-
-		RDCASSERT(retOp.operands[3].type == TYPE_UNORDERED_ACCESS_VIEW ||
-				retOp.operands[3].type == TYPE_RESOURCE);
-
-		RDCASSERT(retOp.operands[3].indices.size() > 0);
-
-		for(size_t i=0; i < m_Declarations.size(); i++)
-		{
-			if(
-				(m_Declarations[i].declaration == OPCODE_DCL_RESOURCE_STRUCTURED && retOp.operands[3].type == TYPE_RESOURCE) ||
-				(m_Declarations[i].declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED && retOp.operands[3].type == TYPE_UNORDERED_ACCESS_VIEW)
-			  )
-			{
-				if(m_Declarations[i].operand.indices[0] == retOp.operands[3].indices[0])
-				{
-					stride = m_Declarations[i].stride;
-					break;
-				}
-			}
-		}
-		// get index out of retOp.operands[3].indices
-		// look up in declarations
-
-		if(stride > 0)
-		{
-			char buf[64] = {0};
-			StringFormat::snprintf(buf, 63, "%u", stride);
-			retOp.str = a + ", stride=" + buf + b;
-		}
-		else
-		{
-			retOp.str = a + b;
-		}
 	}
 	
 #if !defined(RELEASE)
@@ -1886,6 +1912,8 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 		case OPCODE_NOP:
 		case OPCODE_RET:
 		case OPCODE_SYNC:
+		case OPCODE_ABORT:
+		case OPCODE_DEBUGBREAK:
 
 		case OPCODE_HS_CONTROL_POINT_PHASE:
 		case OPCODE_HS_FORK_PHASE:
@@ -1945,6 +1973,12 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 		case OPCODE_SQRT:
 		case OPCODE_UTOF:
 		case OPCODE_EVAL_CENTROID:
+		case OPCODE_DRCP:
+		case OPCODE_DTOI:
+		case OPCODE_DTOU:
+		case OPCODE_ITOD:
+		case OPCODE_UTOD:
+		case OPCODE_CHECK_ACCESS_FULLY_MAPPED:
 			return 2;
 		case OPCODE_AND:
 		case OPCODE_ADD:
@@ -2001,6 +2035,7 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 		case OPCODE_XOR:
 		case OPCODE_EVAL_SNAPPED:
 		case OPCODE_EVAL_SAMPLE_INDEX:
+		case OPCODE_DDIV:
 			return 3;
 		case OPCODE_ATOMIC_CMP_STORE:
 		case OPCODE_DMOVC:
@@ -2030,6 +2065,11 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 		case OPCODE_UMAD:
 		case OPCODE_UMUL:
 		case OPCODE_USUBB:
+		case OPCODE_DFMA:
+		case OPCODE_MSAD:
+		case OPCODE_LD_FEEDBACK:
+		case OPCODE_LD_RAW_FEEDBACK:
+		case OPCODE_LD_UAV_TYPED_FEEDBACK:
 			return 4;
 		case OPCODE_BFI:
 		case OPCODE_GATHER4_C:
@@ -2040,10 +2080,23 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 		case OPCODE_SAMPLE_L:
 		case OPCODE_SAMPLE_B:
 		case OPCODE_SWAPC:
+		case OPCODE_GATHER4_FEEDBACK:
+		case OPCODE_LD_MS_FEEDBACK:
+		case OPCODE_LD_STRUCTURED_FEEDBACK:
 			return 5;
 		case OPCODE_GATHER4_PO_C:
 		case OPCODE_SAMPLE_D:
+		case OPCODE_SAMPLE_CLAMP_FEEDBACK:
+		case OPCODE_SAMPLE_C_CLAMP_FEEDBACK:
+		case OPCODE_SAMPLE_C_LZ_FEEDBACK:
+		case OPCODE_SAMPLE_L_FEEDBACK:
+		case OPCODE_SAMPLE_B_CLAMP_FEEDBACK:
+		case OPCODE_GATHER4_C_FEEDBACK:
+		case OPCODE_GATHER4_PO_FEEDBACK:
 			return 6;
+		case OPCODE_SAMPLE_D_CLAMP_FEEDBACK:
+		case OPCODE_GATHER4_PO_C_FEEDBACK:
+			return 7;
 
 		// custom data doesn't have particular operands
 		case OPCODE_CUSTOMDATA:
@@ -2055,7 +2108,7 @@ size_t DXBCFile::NumOperands(OpcodeType op)
 	return 0xffffffff;
 }
 
-string toString(vector<int64_t> values)
+string toString(const uint32_t values[], uint32_t numComps)
 {
 	string str = "";
 
@@ -2077,7 +2130,7 @@ string toString(vector<int64_t> values)
 
 	bool floatOutput = false;
 
-	for(size_t i=0; i < values.size(); i++)
+	for(uint32_t i=0; i < numComps; i++)
 	{
 		float *vf = (float*)&values[i];
 		int32_t *vi = (int32_t*)&values[i];
@@ -2088,7 +2141,7 @@ string toString(vector<int64_t> values)
 			floatOutput = true;
 	}
 
-	for(size_t i=0; i < values.size(); i++)
+	for(uint32_t i=0; i < numComps; i++)
 	{
 		float *vf = (float*)&values[i];
 		int32_t *vi = (int32_t*)&values[i];
@@ -2108,7 +2161,7 @@ string toString(vector<int64_t> values)
 
 		str += buf;
 
-		if(i+1 < values.size())
+		if(i+1 < numComps)
 			str += ", ";
 	}
 
@@ -2324,6 +2377,39 @@ char *toString(OpcodeType op)
 		case OPCODE_EVAL_SAMPLE_INDEX:                             return "eval_sample_index";
 		case OPCODE_EVAL_CENTROID:                                 return "eval_centroid";
 		case OPCODE_DCL_GS_INSTANCE_COUNT:                         return "dcl_gs_instance_count";
+		case OPCODE_ABORT:                                         return "abort";
+		case OPCODE_DEBUGBREAK:																		 return "debugbreak";
+
+		case OPCODE_DDIV:																					 return "ddiv";
+		case OPCODE_DFMA:																					 return "dfma";
+		case OPCODE_DRCP:																					 return "drcp";
+
+		case OPCODE_MSAD:																					 return "msad";
+
+		case OPCODE_DTOI:																					 return "dtoi";
+		case OPCODE_DTOU:																					 return "dtou";
+		case OPCODE_ITOD:																					 return "itod";
+		case OPCODE_UTOD:																					 return "utod";
+
+    case OPCODE_GATHER4_FEEDBACK:															 return "gather4_statusk";
+    case OPCODE_GATHER4_C_FEEDBACK:														 return "gather4_c_status";
+    case OPCODE_GATHER4_PO_FEEDBACK:													 return "gather4_po_statusk";
+    case OPCODE_GATHER4_PO_C_FEEDBACK:												 return "gather4_po_c_status";
+    case OPCODE_LD_FEEDBACK:																	 return "ld";
+    case OPCODE_LD_MS_FEEDBACK:																 return "ld_ms_status";
+    case OPCODE_LD_UAV_TYPED_FEEDBACK:												 return "ld_uav_typed_status";
+    case OPCODE_LD_RAW_FEEDBACK:															 return "ld_raw_status";
+    case OPCODE_LD_STRUCTURED_FEEDBACK:												 return "ld_structured_status";
+    case OPCODE_SAMPLE_L_FEEDBACK:														 return "sample_l_status";
+    case OPCODE_SAMPLE_C_LZ_FEEDBACK:													 return "sample_c_lz_status";
+
+    case OPCODE_SAMPLE_CLAMP_FEEDBACK:												 return "sample_status";
+    case OPCODE_SAMPLE_B_CLAMP_FEEDBACK:											 return "sample_b_status";
+    case OPCODE_SAMPLE_D_CLAMP_FEEDBACK:											 return "sample_d_status";
+    case OPCODE_SAMPLE_C_CLAMP_FEEDBACK:											 return "sample_c_status";
+
+    case OPCODE_CHECK_ACCESS_FULLY_MAPPED:										 return "check_access_fully_mapped";
+
 		default:
 			break;
 	}
