@@ -85,6 +85,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector
 }
 
 extern "C" RENDERDOC_API
+int RENDERDOC_CC RENDERDOC_GetAPIVersion()
+{
+	return RENDERDOC_API_VERSION;
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text)
 {
 	RDCLOG("%ls", text);

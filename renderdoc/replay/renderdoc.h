@@ -210,6 +210,11 @@ typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateReplayRenderer)(const
 // Takes the filename of the log. Returns NULL in the case of any error.
 //////////////////////////////////////////////////////////////////////////
 
+#define RENDERDOC_API_VERSION 1
+
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPIVersion();
+typedef int (RENDERDOC_CC *pRENDERDOC_GetAPIVersion)();
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const wchar_t *logfile);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
 
