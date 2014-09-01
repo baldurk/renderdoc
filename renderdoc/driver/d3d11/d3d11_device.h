@@ -129,6 +129,7 @@ class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
 class WrappedID3D11Device :
+	public IFrameCapturer,
 #if defined(INCLUDE_D3D_11_1)
 	public ID3D11Device1
 #else
@@ -177,6 +178,7 @@ private:
 	Serialiser *m_pSerialiser;
 	Serialiser *m_pDebugSerialiser;
 	LogState m_State;
+	bool m_AppControlledCapture;
 	
 	set<ID3D11DeviceChild *> m_CachedStateObjects;
 	set<WrappedID3D11DeviceContext *> m_DeferredContexts;
@@ -244,6 +246,10 @@ public:
 	void ReleaseSwapchainResources(IDXGISwapChain *swap);
 	
 	void Serialise_CaptureScope(uint64_t offset);
+
+	void StartFrameCapture(void *wnd);
+	void SetActiveWindow(void *wnd);
+	bool EndFrameCapture(void *wnd);
 
 	////////////////////////////////////////////////////////////////
 	// log replaying

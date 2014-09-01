@@ -55,6 +55,13 @@ struct ICrashHandler
 	virtual void UnregisterMemoryRegion(void *mem) = 0;
 };
 
+struct IFrameCapturer
+{
+	virtual void StartFrameCapture(void *wnd) = 0;
+	virtual void SetActiveWindow(void *wnd) = 0;
+	virtual bool EndFrameCapture(void *wnd) = 0;
+};
+
 enum LogState
 {
 	READING = 0,
@@ -95,6 +102,18 @@ enum RDCDriver
 	RDC_Custom7,
 	RDC_Custom8,
 	RDC_Custom9,
+};
+
+enum InAppOverlay
+{
+	eOverlay_Enabled = 0x1,
+	eOverlay_FrameRate = 0x2,
+	eOverlay_FrameNumber = 0x4,
+	eOverlay_CaptureList = 0x8,
+
+	eOverlay_Default = (eOverlay_Enabled|eOverlay_FrameRate|eOverlay_FrameNumber|eOverlay_CaptureList),
+	eOverlay_All = ~0U,
+	eOverlay_None = 0,
 };
 
 namespace DXBC { class DXBCFile; }
@@ -201,8 +220,18 @@ class RenderDoc
 
 		void Tick();
 
+		void AddFrameCapturer(void *wnd, IFrameCapturer *cap) { if(wnd != NULL && cap != NULL) m_WindowFrameCapturers[wnd] = cap; }
+		void RemoveFrameCapturer(void *wnd) { m_WindowFrameCapturers.erase(wnd); }
+		
+		void StartFrameCapture(void *wnd);
+		void SetActiveWindow(void *wnd);
+		bool EndFrameCapture(void *wnd);
+
 		void FocusToggle() { m_Focus = true; m_Cap = false; }
 		void TriggerCapture() { m_Cap = true; }
+
+		uint32_t GetOverlayBits() { return m_Overlay; }
+		void MaskOverlayBits(uint32_t and, uint32_t or) { m_Overlay = (m_Overlay & and) | or; }
 
 		void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
 
@@ -223,6 +252,7 @@ class RenderDoc
 		wstring m_LogFile;
 		wstring m_CurrentLogFile;
 		CaptureOptions m_Options;
+		uint32_t m_Overlay;
 
 		set<uint32_t> m_QueuedFrameCaptures;
 
@@ -242,6 +272,8 @@ class RenderDoc
 		map<RDCDriver, wstring> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
 		map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
+
+		map<void*, IFrameCapturer*> m_WindowFrameCapturers;
 
 		volatile bool m_RemoteServerThreadShutdown;
 		volatile bool m_RemoteClientThreadShutdown;

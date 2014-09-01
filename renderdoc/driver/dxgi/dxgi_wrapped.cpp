@@ -146,12 +146,18 @@ WrappedIDXGISwapChain::WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11
 
 	m_bFullscreen = desc.Windowed == FALSE;
 
+	RenderDoc::Inst().AddFrameCapturer(desc.OutputWindow, m_pDevice);
+
 	SAFE_ADDREF(m_pDevice);
 }
 
 WrappedIDXGISwapChain::~WrappedIDXGISwapChain()
 {
 	m_pDevice->ReleaseSwapchainResources(this);
+	
+	DXGI_SWAP_CHAIN_DESC desc;
+	m_pReal->GetDesc(&desc);
+	RenderDoc::Inst().RemoveFrameCapturer(desc.OutputWindow);
 
 	SAFE_RELEASE(m_pReal);
 	for(int i=0; i < MAX_NUM_BACKBUFFERS; i++)
