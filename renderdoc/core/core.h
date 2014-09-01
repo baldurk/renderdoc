@@ -80,7 +80,7 @@ enum RDCDriver
 	RDC_Unknown = 0,
 	RDC_D3D11 = 1,
 	RDC_OpenGL = 2,
-	RDC_Reserved1 = 3,
+	RDC_Mantle = 3,
 	RDC_Reserved2 = 4,
 	RDC_D3D10 = 5,
 	RDC_D3D9 = 6,
