@@ -2776,35 +2776,33 @@ namespace renderdocui.Windows
 
         #region Thumbnail strip
 
-        private void AddResourceUsageEntry(uint start, uint end, ResourceUsage usage)
+        private void AddResourceUsageEntry(List<ToolStripItem> items, uint start, uint end, ResourceUsage usage)
         {
             ToolStripItem item = null;
 
             if (start == end)
-                item = rightclickMenu.Items.Add("EID " + start + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + ": " + usage.Str());
             else
-                item = rightclickMenu.Items.Add("EID " + start + "-" + end + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str());
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
+
+            items.Add(item);
         }
 
         private void OpenResourceContextMenu(ResourceId id, bool thumbStripMenu, Control c, Point p)
         {
+            var menuItems = new List<ToolStripItem>();
+
             int i = 0;
             for (i = 0; i < rightclickMenu.Items.Count; i++)
-                if (rightclickMenu.Items[i] == usedStartLabel)
-                    break;
-
-            while (i != rightclickMenu.Items.Count - 1)
-                rightclickMenu.Items.RemoveAt(i + 1);
-
-            for (i = 0; i < rightclickMenu.Items.Count; i++)
             {
+                menuItems.Add(rightclickMenu.Items[i]);
                 if (rightclickMenu.Items[i] == usedStartLabel)
                     break;
 
-                rightclickMenu.Items[i].Visible = thumbStripMenu;
+                menuItems[i].Visible = thumbStripMenu;
             }
 
             if (id != ResourceId.Null)
@@ -2815,7 +2813,7 @@ namespace renderdocui.Windows
 
                 openNewTab.Tag = id;
 
-                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
                     EventUsage[] usage = r.GetUsage(id);
 
@@ -2838,7 +2836,7 @@ namespace renderdocui.Windows
 
                             if (u.usage != us || curDraw.previous == null || curDraw.previous.eventID != end)
                             {
-                                AddResourceUsageEntry(start, end, us);
+                                AddResourceUsageEntry(menuItems, start, end, us);
                                 start = end = u.eventID;
                                 us = u.usage;
                             }
@@ -2847,7 +2845,10 @@ namespace renderdocui.Windows
                         }
 
                         if (start != 0)
-                            AddResourceUsageEntry(start, end, us);
+                            AddResourceUsageEntry(menuItems, start, end, us);
+
+                        rightclickMenu.Items.Clear();
+                        rightclickMenu.Items.AddRange(menuItems.ToArray());
 
                         rightclickMenu.Show(c, p);
                     }));
