@@ -110,7 +110,7 @@ namespace renderdoc
 
             if (rendPtr == IntPtr.Zero)
             {
-                var e = new System.ApplicationException("Failed to load log for local replay");
+                var e = new System.ApplicationException("Failed to open remote access connection");
                 e.Data.Add("status", ReplayCreateStatus.UnknownError);
                 throw e;
             }
