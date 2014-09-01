@@ -156,7 +156,7 @@ struct CachedHookData
 				if(!_stricmp(it->first.c_str(), dllName))
 					hookset = &it->second;
 
-			if(hookset)
+			if(hookset && importDesc->OriginalFirstThunk > 0 && importDesc->FirstThunk > 0)
 			{
 				IMAGE_THUNK_DATA *origFirst = (IMAGE_THUNK_DATA *)(baseAddress + importDesc->OriginalFirstThunk);
 				IMAGE_THUNK_DATA *first = (IMAGE_THUNK_DATA *)(baseAddress + importDesc->FirstThunk);
