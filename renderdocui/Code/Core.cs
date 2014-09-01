@@ -146,13 +146,13 @@ namespace renderdocui.Code
 
         #region Init and Shutdown
 
-        public Core(string paramFilename, bool temp, PersistantConfig config)
+        public Core(string paramFilename, string remoteHost, uint remoteIdent, bool temp, PersistantConfig config)
         {
             if (!Directory.Exists(ConfigDirectory))
                 Directory.CreateDirectory(ConfigDirectory);
 
             m_Config = config;
-            m_MainWindow = new MainWindow(this, paramFilename, temp);
+            m_MainWindow = new MainWindow(this, paramFilename, remoteHost, remoteIdent, temp);
         }
 
         public void Shutdown()

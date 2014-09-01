@@ -66,6 +66,8 @@ namespace renderdocui.Windows
 
         private Core m_Core;
         private string m_InitFilename;
+        private string m_InitRemoteHost;
+        private uint m_InitRemoteIdent;
 
         private List<LiveCapture> m_LiveCaptures = new List<LiveCapture>();
 
@@ -123,7 +125,7 @@ namespace renderdocui.Windows
             }
         }
 
-        public MainWindow(Core core, string initFilename, bool temp)
+        public MainWindow(Core core, string initFilename, string remoteHost, uint remoteIdent, bool temp)
         {
             InitializeComponent();
 
@@ -141,6 +143,8 @@ namespace renderdocui.Windows
 
             m_Core = core;
             m_InitFilename = initFilename;
+            m_InitRemoteHost = remoteHost;
+            m_InitRemoteIdent = remoteIdent;
             OwnTemporaryLog = temp;
 
             logStatisticsToolStripMenuItem.Enabled = false;
@@ -189,6 +193,12 @@ namespace renderdocui.Windows
 
             PopulateRecentFiles();
             PopulateRecentCaptures();
+
+            if (m_InitRemoteIdent != 0)
+            {
+                var live = new LiveCapture(m_Core, m_InitRemoteHost, m_InitRemoteIdent, this);
+                ShowLiveCapture(live);
+            }
 
             if (m_InitFilename != "")
             {

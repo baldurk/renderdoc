@@ -29,6 +29,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using renderdoc;
 
 namespace renderdocui.Code
@@ -74,6 +75,32 @@ namespace renderdocui.Code
                     temp = true;
             }
 
+            string remoteHost = "";
+            uint remoteIdent = 0;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (args[i].ToLowerInvariant() == "--remoteaccess" && i + 1 < args.Length)
+                {
+                    var regexp = @"^([a-zA-Z0-9_-]+:)?([0-9]+)$";
+
+                    var match = Regex.Match(args[i+1], regexp);
+
+                    if (match.Success)
+                    {
+                        var host = match.Groups[1].Value;
+                        if (host != "" && host[host.Length - 1] == ':')
+                            host = host.Substring(0, host.Length - 1);
+                        uint ident = 0;
+                        if (uint.TryParse(match.Groups[2].Value, out ident))
+                        {
+                            remoteHost = host;
+                            remoteIdent = ident;
+                        }
+                    }
+                }
+            }
+
             if (args.Length > 0 && File.Exists(args[args.Length - 1]))
             {
                 filename = args[args.Length - 1];
@@ -107,7 +134,7 @@ namespace renderdocui.Code
 
             Application.CurrentCulture = new System.Globalization.CultureInfo("en-GB");
 
-            var core = new Core(filename, temp, cfg);
+            var core = new Core(filename, remoteHost, remoteIdent, temp, cfg);
 
             try
             {
