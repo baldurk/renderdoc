@@ -144,8 +144,6 @@ WrappedIDXGISwapChain::WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11
 		}
 	}
 
-	m_bFullscreen = desc.Windowed == FALSE;
-
 	RenderDoc::Inst().AddFrameCapturer(desc.OutputWindow, m_pDevice);
 
 	SAFE_ADDREF(m_pDevice);
@@ -232,26 +230,17 @@ HRESULT WrappedIDXGISwapChain::SetFullscreenState(
 	/* [in] */ BOOL Fullscreen,
 	/* [in] */ IDXGIOutput *pTarget)
 {
-	m_bFullscreen = Fullscreen == TRUE;
-
 	if(RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
 		return m_pReal->SetFullscreenState(Fullscreen, pTarget);
 
-	return S_OK;
+	return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
 }
 
 HRESULT WrappedIDXGISwapChain::GetFullscreenState( 
 	/* [out] */ BOOL *pFullscreen,
 	/* [out] */ IDXGIOutput **ppTarget)
 {
-	if(RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
-		return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
-
-	if(!pFullscreen)
-		return E_INVALIDARG;
-
-	*pFullscreen = m_bFullscreen == true ? TRUE : FALSE;
-	return S_OK;
+	return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
 }
 
 HRESULT WrappedIDXGISwapChain::GetBuffer( 
