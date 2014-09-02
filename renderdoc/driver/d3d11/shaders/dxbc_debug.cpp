@@ -92,6 +92,7 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_BUFINFO:
 		case OPCODE_SAMPLE_INFO:
 		case OPCODE_SAMPLE_POS:
+		case OPCODE_LOD:
 		case OPCODE_LD:
 		case OPCODE_LD_MS:
 			return eVar_Float;
@@ -2697,6 +2698,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		case OPCODE_GATHER4_C:
 		case OPCODE_GATHER4_PO:
 		case OPCODE_GATHER4_PO_C:
+		case OPCODE_LOD:
 		{
 			string sampler = "";
 			string texture = "";
@@ -2706,7 +2708,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if (op.operation == OPCODE_SAMPLE_C ||
 				op.operation == OPCODE_SAMPLE_C_LZ ||
 				op.operation == OPCODE_GATHER4_C ||
-				op.operation == OPCODE_GATHER4_PO_C)
+				op.operation == OPCODE_GATHER4_PO_C ||
+				op.operation == OPCODE_LOD)
 			{
 				retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
 				funcRet = "float4";
@@ -2715,6 +2718,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			bool useOffsets = true;
 			int texdim = 2;
 			int offsdim = 2; // ddN and offset dimension
+
+			DXBC::ResourceDimension resourceDim = DXBC::RESOURCE_DIMENSION_UNKNOWN;
 			
 			for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 			{
@@ -2733,6 +2738,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
 					decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
 				{
+					resourceDim = decl.dim;
+
 					uint32_t resIndex = (uint32_t)decl.operand.indices[0].index;
 
 					byte *data = &global.srvs[resIndex].data[0];
@@ -2933,6 +2940,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					decl.operand.type == TYPE_RESOURCE &&
 					decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
 				{
+					resourceDim = decl.dim;
+
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE1D)
 					{
 						texture = "Texture1D";
@@ -3040,9 +3049,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					if (retFmt == DXGI_FORMAT_UNKNOWN)
 					{
-					funcRet	= buf;
+						funcRet	= buf;
 
-					retFmt = fmts[decl.resType[0]];
+						retFmt = fmts[decl.resType[0]];
 					}
 
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS || decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
@@ -3057,6 +3066,22 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				}
 			}
 
+			// for lod operation, it's only defined for certain resources - otherwise just returns 0
+			if(op.operation == OPCODE_LOD &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE1D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE1DARRAY &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE2D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE2DARRAY &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE3D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURECUBE
+				)
+			{
+				ShaderVariable invalidResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+
+				s.SetDst(op.operands[0], op, invalidResult);
+				break;
+			}
+
 			string sampleProgram;
 
 			char buf[256] = {0};
@@ -3069,7 +3094,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			// these ops need DDX/DDY
 			if(op.operation == OPCODE_SAMPLE ||
 				op.operation == OPCODE_SAMPLE_B ||
-				op.operation == OPCODE_SAMPLE_C)
+				op.operation == OPCODE_SAMPLE_C ||
+				op.operation == OPCODE_LOD)
 			{
 				if(quad == NULL)
 				{
@@ -3111,7 +3137,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				op.operation == OPCODE_GATHER4 ||
 				op.operation == OPCODE_GATHER4_C ||
 				op.operation == OPCODE_GATHER4_PO ||
-				op.operation == OPCODE_GATHER4_PO_C)
+				op.operation == OPCODE_GATHER4_PO_C ||
+				op.operation == OPCODE_LOD)
 			{
 				// all floats
 				texcoordType = ddxType = ddyType = 0;
@@ -3261,8 +3288,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				sampleProgram += "t.SampleLevel(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
 			}
-			else if(op.operation == OPCODE_SAMPLE_C)
+			else if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_LOD)
 			{
+				// these operations need derivatives but have no hlsl function to call to provide them, so we fake it in the vertex shader
+
 				string uvDim = "1";
 				uvDim[0] += char(texdim+texdimOffs-1);
 
@@ -3291,13 +3320,23 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
 				vsProgram += "}";
 			
-				// comparison value
-				StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
+				if(op.operation == OPCODE_SAMPLE_C)
+				{
+					// comparison value
+					StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
-				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-				sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
-				sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
-				sampleProgram += "\n}\n";
+					sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+					sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
+					sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
+					sampleProgram += "\n}\n";
+				}
+				else if(op.operation == OPCODE_LOD)
+				{
+					sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+					sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
+					sampleProgram += "return float4(t.CalculateLevelOfDetail(s, uv), t.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);";
+					sampleProgram += "\n}\n";
+				}
 			}
 			else if(op.operation == OPCODE_SAMPLE_C_LZ)
 			{
