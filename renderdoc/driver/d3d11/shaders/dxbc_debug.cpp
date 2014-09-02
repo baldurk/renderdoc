@@ -90,6 +90,8 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_SAMPLE_D:
 		case OPCODE_RESINFO:
 		case OPCODE_BUFINFO:
+		case OPCODE_SAMPLE_INFO:
+		case OPCODE_SAMPLE_POS:
 		case OPCODE_LD:
 		case OPCODE_LD_MS:
 			return eVar_Float;
@@ -823,6 +825,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		case TYPE_SAMPLER:
 		case TYPE_UNORDERED_ACCESS_VIEW:
 		case TYPE_NULL:
+		case TYPE_RASTERIZER:
 		{
 			// should be handled specially by instructions that expect these types of
 			// argument but let's be sane and include the index
@@ -1892,6 +1895,235 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			break;
 		}
 
+		case OPCODE_SAMPLE_INFO:
+		case OPCODE_SAMPLE_POS:
+		{
+			ID3D11DeviceContext *context = NULL;
+			device->GetReal()->GetImmediateContext(&context);
+			
+			ShaderVariable result("", 0U, 0U, 0U, 0U);
+				
+			ID3D11Resource *res = NULL;
+
+			if(op.operands[1].type == TYPE_RASTERIZER)
+			{
+				ID3D11RenderTargetView *rtv = NULL;
+				ID3D11DepthStencilView *dsv = NULL;
+
+				context->OMGetRenderTargets(1, &rtv, &dsv);
+
+				// try depth first - both should match sample count though to be valid
+				if(dsv)
+					dsv->GetResource(&res);
+				else if(rtv)
+					rtv->GetResource(&res);
+				else
+					RDCWARN("No targets bound for sampleinfo on rasterizer");
+
+				SAFE_RELEASE(rtv);
+				SAFE_RELEASE(dsv);
+			}
+			else if(op.operands[1].type == TYPE_RESOURCE &&
+							op.operands[1].indices.size() == 1 &&
+							op.operands[1].indices[0].absolute &&
+							!op.operands[1].indices[0].relative)
+			{
+				UINT slot = (UINT)(op.operands[1].indices[0].index&0xffffffff);
+
+				ID3D11ShaderResourceView *srv = NULL;
+				if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+					context->VSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+					context->HSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+					context->DSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+					context->GSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+					context->PSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					context->CSGetShaderResources(slot, 1, &srv);
+
+				if(srv)
+					srv->GetResource(&res);
+				else
+					RDCWARN("SRV is NULL being queried by sampleinfo");
+
+				SAFE_RELEASE(srv);
+			}
+			else
+			{
+				RDCWARN("unexpected operand type to sample_info");
+			}
+			
+			if(res)
+			{
+				D3D11_RESOURCE_DIMENSION dim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
+				res->GetType(&dim);
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					D3D11_TEXTURE2D_DESC desc;
+					((ID3D11Texture2D *)res)->GetDesc(&desc);
+
+					// only returns a value for resources that are actually multisampled
+					if(desc.SampleDesc.Count > 1)
+						result.value.u.x = desc.SampleDesc.Count;
+				}
+
+				SAFE_RELEASE(res);
+			}
+			else
+			{
+				RDCWARN("Non multisampled resource provided to sample_info");
+			}
+
+			// "If there is no resource bound to the specified slot, 0 is returned."
+
+			// lookup sample pos if we got a count from above
+			if(op.operation == OPCODE_SAMPLE_POS && result.value.u.x > 0 && op.operands[2].type == TYPE_IMMEDIATE32)
+			{
+				// assume standard sample pattern - this might not hold in all cases
+				// http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
+
+				uint32_t sampleIndex = op.operands[2].values[0];
+				uint32_t sampleCount = result.value.u.x;
+
+				if(sampleIndex >= sampleCount)
+				{
+					RDCWARN("sample index %u is out of bounds on resource bound to sample_pos (%u samples)", sampleIndex, sampleCount);
+				}
+				else
+				{
+					const float *sample_pattern = NULL;
+
+					// co-ordinates are given as (i,j) in 16ths of a pixel
+#define _SMP(c) ((c)/16.0f)
+
+					if(sampleCount == 1)
+					{
+						RDCWARN("Non-multisampled texture being passed to sample_pos");
+						
+						sample_pattern = NULL;
+					}
+					else if(sampleCount == 2)
+					{
+						static const float pattern_2x[] = {
+							_SMP( 4.0f), _SMP( 4.0f),
+							_SMP(-4.0f), _SMP(-4.0f),
+						};
+
+						sample_pattern = &pattern_2x[0];
+					}
+					else if(sampleCount == 4)
+					{
+						static const float pattern_4x[] = {
+							_SMP(-2.0f), _SMP(-6.0f),
+							_SMP( 6.0f), _SMP(-2.0f),
+							_SMP(-6.0f), _SMP( 2.0f),
+							_SMP( 2.0f), _SMP( 6.0f),
+						};
+
+						sample_pattern = &pattern_4x[0];
+					}
+					else if(sampleCount == 8)
+					{
+						static const float pattern_8x[] = {
+							_SMP( 1.0f), _SMP(-3.0f),
+							_SMP(-1.0f), _SMP( 3.0f),
+							_SMP( 5.0f), _SMP( 1.0f),
+							_SMP(-3.0f), _SMP(-5.0f),
+							_SMP(-5.0f), _SMP( 5.0f),
+							_SMP(-7.0f), _SMP(-1.0f),
+							_SMP( 3.0f), _SMP( 7.0f),
+							_SMP( 7.0f), _SMP(-7.0f),
+						};
+
+						sample_pattern = &pattern_8x[0];
+					}
+					else if(sampleCount == 16)
+					{
+						static const float pattern_16x[] = {
+							_SMP( 1.0f), _SMP( 1.0f),
+							_SMP(-1.0f), _SMP(-3.0f),
+							_SMP(-3.0f), _SMP( 2.0f),
+							_SMP( 4.0f), _SMP(-1.0f),
+							_SMP(-5.0f), _SMP(-2.0f),
+							_SMP( 2.0f), _SMP( 5.0f),
+							_SMP( 5.0f), _SMP( 3.0f),
+							_SMP( 3.0f), _SMP(-5.0f),
+							_SMP(-2.0f), _SMP( 6.0f),
+							_SMP( 0.0f), _SMP(-7.0f),
+							_SMP(-4.0f), _SMP(-6.0f),
+							_SMP(-6.0f), _SMP( 4.0f),
+							_SMP(-8.0f), _SMP( 0.0f),
+							_SMP( 7.0f), _SMP(-4.0f),
+							_SMP( 6.0f), _SMP( 7.0f),
+							_SMP(-7.0f), _SMP(-8.0f),
+						};
+
+						sample_pattern = &pattern_16x[0];
+					}
+					else // unsupported sample count
+					{
+						RDCERR("Unsupported sample count on resource for sample_pos: %u", result.value.u.x);
+
+						sample_pattern = NULL;
+					}
+
+					if(sample_pattern == NULL)
+					{
+						result.value.f.x = 0.0f;
+						result.value.f.y = 0.0f;
+					}
+					else
+					{
+						result.value.f.x = sample_pattern[sampleIndex * 2 + 0];
+						result.value.f.y = sample_pattern[sampleIndex * 2 + 1];
+					}
+				}
+
+#undef _SMP
+			}
+
+			// apply swizzle
+			ShaderVariable swizzled("", 0.0f, 0.0f, 0.0f, 0.0f);
+
+			for(int i=0; i < 4; i++)
+			{
+				if(op.operands[1].comps[i] == 0xff)
+					swizzled.value.uv[i] = result.value.uv[0];
+				else
+					swizzled.value.uv[i] = result.value.uv[op.operands[1].comps[i]];
+			}
+
+			// apply ret type
+			if(op.operation == OPCODE_SAMPLE_POS)
+			{
+				result = swizzled;
+				result.type = eVar_Float;
+			}
+			else if(op.resinfoRetType == RETTYPE_FLOAT)
+			{
+				result.value.f.x = (float)swizzled.value.u.x;
+				result.value.f.y = (float)swizzled.value.u.y;
+				result.value.f.z = (float)swizzled.value.u.z;
+				result.value.f.w = (float)swizzled.value.u.w;
+				result.type = eVar_Float;
+			}
+			else
+			{
+				result = swizzled;
+				result.type = eVar_UInt;
+			}
+
+			s.SetDst(op.operands[0], op, result);
+			
+			SAFE_RELEASE(context);
+
+			break;
+		}
+
 		case OPCODE_BUFINFO:
 		{
 			ID3D11DeviceContext *context = NULL;
@@ -1999,6 +2231,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = (float)swizzled.value.u.y;
 					result.value.f.z = (float)swizzled.value.u.z;
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
 				{
@@ -2006,10 +2239,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = 1.0f/(float)swizzled.value.u.y;
 					result.value.f.z = 1.0f/(float)swizzled.value.u.z;
 					result.value.f.w = 1.0f/(float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_UINT)
 				{
 					result = swizzled;
+					result.type = eVar_UInt;
 				}
 	
 				s.SetDst(op.operands[0], op, result);
@@ -2403,6 +2638,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = (float)swizzled.value.u.y;
 					result.value.f.z = (float)swizzled.value.u.z;
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
 				{
@@ -2424,10 +2660,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						result.value.f.z = (float)swizzled.value.u.z;
 
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_UINT)
 				{
 					result = swizzled;
+					result.type = eVar_UInt;
 				}
 
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
