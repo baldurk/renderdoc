@@ -67,9 +67,11 @@ enum
 // whether to include file and line on log lines
 #define INCLUDE_LOCATION_IN_LOG
 
+#if !defined(WIN32)
 // logs go to stdout/stderr
 #define OUTPUT_LOG_TO_STDOUT
 //#define OUTPUT_LOG_TO_STDERR
+#endif
 
 // logs go to debug output (visual studio output window)
 #define OUTPUT_LOG_TO_DEBUG_OUT
