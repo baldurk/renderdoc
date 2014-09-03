@@ -581,7 +581,7 @@ namespace renderdocui.Windows
 
             string word = scintilla1.GetWordFromPosition(scintilla1.CurrentPos);
 
-            var match = Regex.Match(word, "^[rvo][0-9]+$");
+            var match = Regex.Match(word, "^[rvog][0-9]+$");
 
             foreach (ScintillaNET.Range r in m_PrevRanges)
             {
