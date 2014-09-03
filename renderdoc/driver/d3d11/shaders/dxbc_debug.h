@@ -83,6 +83,17 @@ struct GlobalState
 
 			ViewFmt format;
 		} srvs[128];
+
+		struct groupsharedMem
+		{
+			bool structured;
+			uint32_t bytestride;
+			uint32_t count; // of structures (above stride), or uint32s (raw)
+
+			vector<byte> data;
+		};
+
+		vector<groupsharedMem> groupshared;
 };
 
 class State : public ShaderDebugState

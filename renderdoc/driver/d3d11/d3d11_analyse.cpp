@@ -492,7 +492,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 	return initialState;
 }
 
-void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
+void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
 {
 	for(int i=0; UAVs != NULL && i+UAVStartSlot < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
 	{
@@ -589,6 +589,32 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			}
 
 			SAFE_RELEASE(res);
+		}
+	}
+
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
+	{
+		if(dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+		   dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+		{
+			uint32_t slot = (uint32_t)dxbc->m_Declarations[i].operand.indices[0].index;
+
+			if(global.groupshared.size() <= slot)
+			{
+				global.groupshared.resize(slot+1);
+
+				ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
+
+				mem.structured = (dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+
+				mem.count = dxbc->m_Declarations[i].count;
+				if(mem.structured)
+					mem.bytestride= dxbc->m_Declarations[i].stride;
+				else
+					mem.bytestride= 4; // raw groupshared is implicitly uint32s
+
+				mem.data.resize(mem.bytestride*mem.count);
+			}
 		}
 	}
 }
@@ -691,7 +717,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, 0, NULL, rs->VS.SRVs);
+	CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
 	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
 	for(int32_t i=0; i < ret.inputs.count; i++)
@@ -1233,7 +1259,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	ShaderDebugTrace traces[4];
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
+	CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
 
 	{
 		DebugHit *hit = winner;
@@ -1396,7 +1422,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 		
 	GlobalState global;
-	CreateShaderGlobalState(global, 0, rs->CS.UAVs, rs->CS.SRVs);
+	CreateShaderGlobalState(global, dxbc, 0, rs->CS.UAVs, rs->CS.SRVs);
 	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 	
 	for(int i=0; i < 3; i++)
