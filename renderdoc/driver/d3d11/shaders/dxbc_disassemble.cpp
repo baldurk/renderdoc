@@ -339,22 +339,25 @@ void DXBCFile::DisassembleHexDump()
 
 void DXBCFile::MakeDisassembly()
 {
+	uint32_t *hash = (uint32_t *)&m_ShaderBlob[4]; // hash is 4 uints, starting after the FOURCC of 'DXBC'
+
+	m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n",
+	                                  hash[0], hash[1], hash[2], hash[3]);
+
 	if(m_HexDump.empty())
 	{
 		m_Disassembly = "No bytecode in this blob";
 		return;
 	}
 
-	m_Disassembly = "";
-
 	switch(m_Type)
 	{
-		case D3D11_SHVER_PIXEL_SHADER:		m_Disassembly = "ps_"; break;
-		case D3D11_SHVER_VERTEX_SHADER:		m_Disassembly = "vs_"; break;
-		case D3D11_SHVER_GEOMETRY_SHADER:	m_Disassembly = "gs_"; break;
-		case D3D11_SHVER_HULL_SHADER:		m_Disassembly = "hs_"; break;
-		case D3D11_SHVER_DOMAIN_SHADER:		m_Disassembly = "ds_"; break;
-		case D3D11_SHVER_COMPUTE_SHADER:	m_Disassembly = "cs_"; break;
+		case D3D11_SHVER_PIXEL_SHADER:		m_Disassembly += "ps_"; break;
+		case D3D11_SHVER_VERTEX_SHADER:		m_Disassembly += "vs_"; break;
+		case D3D11_SHVER_GEOMETRY_SHADER:	m_Disassembly += "gs_"; break;
+		case D3D11_SHVER_HULL_SHADER:		m_Disassembly += "hs_"; break;
+		case D3D11_SHVER_DOMAIN_SHADER:		m_Disassembly += "ds_"; break;
+		case D3D11_SHVER_COMPUTE_SHADER:	m_Disassembly += "cs_"; break;
 		default: RDCERR("Unknown shader type: %u", m_Type); break;
 	}
 
@@ -1310,7 +1313,6 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 		char buf[64] = {0};
 		StringFormat::snprintf(buf, 63, "%u", retDecl.count);
 		retDecl.str += buf;
-		retDecl.str += ", ";
 	}
 	else if(op == OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
 	{
