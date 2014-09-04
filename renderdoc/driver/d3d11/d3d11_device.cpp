@@ -954,6 +954,8 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 		if(context == CAPTURE_SCOPE)
 		{
+			GetResourceManager()->ApplyInitialContents();
+
 			m_pImmediateContext->ReplayLog(READING, 0, 0, false);
 		}
 
