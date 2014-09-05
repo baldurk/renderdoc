@@ -1749,10 +1749,10 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 				retOp.str += "_indexable(";
 				retOp.str += toString(retOp.resDim);
 
-				uint32_t stride = ExtendedOpcode::BufferStride.Get(OpcodeTokenN);
+				retOp.stride = ExtendedOpcode::BufferStride.Get(OpcodeTokenN);
 
 				char buf[64] = {0};
-				StringFormat::snprintf(buf, 63, ", stride=%u", stride);
+				StringFormat::snprintf(buf, 63, ", stride=%u", retOp.stride);
 				retOp.str += buf;
 
 				retOp.str += ")";

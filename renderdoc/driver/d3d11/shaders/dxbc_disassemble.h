@@ -879,6 +879,7 @@ struct ASMOperation
 	{
 		offset = 0;
 		length = 0;
+		stride = 0;
 		operation = NUM_OPCODES;
 		nonzero = false;
 		saturate = false;
@@ -907,6 +908,7 @@ struct ASMOperation
 	int texelOffset[3];					// U,V,W texel offset
 	ResourceDimension resDim;			// resource dimension (tex2d etc)
 	ResourceRetType resType[4];			// return type (e.g. for a sample operation)
+	uint32_t stride;
 
 	vector<ASMOperand> operands;
 };

@@ -158,6 +158,28 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_ITOF:
 			return eVar_Int;
 			
+		case OPCODE_ATOMIC_IADD:
+		case OPCODE_ATOMIC_IMAX:
+		case OPCODE_ATOMIC_IMIN:
+		case OPCODE_IMM_ATOMIC_IADD:
+		case OPCODE_IMM_ATOMIC_IMAX:
+		case OPCODE_IMM_ATOMIC_IMIN:
+			return eVar_Int;
+		case OPCODE_ATOMIC_AND:
+		case OPCODE_ATOMIC_OR:
+		case OPCODE_ATOMIC_XOR:
+		case OPCODE_ATOMIC_CMP_STORE:
+		case OPCODE_ATOMIC_UMAX:
+		case OPCODE_ATOMIC_UMIN:
+		case OPCODE_IMM_ATOMIC_AND:
+		case OPCODE_IMM_ATOMIC_OR:
+		case OPCODE_IMM_ATOMIC_XOR:
+		case OPCODE_IMM_ATOMIC_EXCH:
+		case OPCODE_IMM_ATOMIC_CMP_EXCH:
+		case OPCODE_IMM_ATOMIC_UMAX:
+		case OPCODE_IMM_ATOMIC_UMIN:
+			return eVar_UInt;
+			
 		case OPCODE_BFREV:
 		case OPCODE_COUNTBITS:
 		case OPCODE_FIRSTBIT_HI:
@@ -822,6 +844,12 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 
 			break;
 		}
+	
+		// instructions referencing group shared memory handle it specially (the operand
+		// itself just names the groupshared memory region, there's a separate dst address
+		// operand).
+		case TYPE_THREAD_GROUP_SHARED_MEMORY:
+
 		case TYPE_RESOURCE:
 		case TYPE_SAMPLER:
 		case TYPE_UNORDERED_ACCESS_VIEW:
@@ -1534,13 +1562,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Misc
 			
-		case OPCODE_STORE_UAV_TYPED:
-		case OPCODE_STORE_RAW:
-		case OPCODE_STORE_STRUCTURED:
-			// should really implement this but assume threads/pixels are independent for now.
-			// for threads that sync or pixels (in a quad) it's not valid to assume no other thread
-			// has run far enough to interfere with stores/loads
-
 		case OPCODE_NOP:
 		case OPCODE_CUSTOMDATA:
 		case OPCODE_SYNC: // might never need to implement this. Who knows!
@@ -1803,8 +1824,207 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			break;
 			
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		// Buffer/Texture sampling
+		// Buffer/Texture load and store
+		
+		// handle atomic operations all together
+		case OPCODE_ATOMIC_IADD:
+		case OPCODE_ATOMIC_IMAX:
+		case OPCODE_ATOMIC_IMIN:
+		case OPCODE_ATOMIC_AND:
+		case OPCODE_ATOMIC_OR:
+		case OPCODE_ATOMIC_XOR:
+		case OPCODE_ATOMIC_CMP_STORE:
+		case OPCODE_ATOMIC_UMAX:
+		case OPCODE_ATOMIC_UMIN:
+		case OPCODE_IMM_ATOMIC_IADD:
+		case OPCODE_IMM_ATOMIC_IMAX:
+		case OPCODE_IMM_ATOMIC_IMIN:
+		case OPCODE_IMM_ATOMIC_AND:
+		case OPCODE_IMM_ATOMIC_OR:
+		case OPCODE_IMM_ATOMIC_XOR:
+		case OPCODE_IMM_ATOMIC_EXCH:
+		case OPCODE_IMM_ATOMIC_CMP_EXCH:
+		case OPCODE_IMM_ATOMIC_UMAX:
+		case OPCODE_IMM_ATOMIC_UMIN:
+		{
+			ASMOperand beforeResult;
+			uint32_t resIndex = 0;
+			ShaderVariable *dstAddress = NULL;
+			ShaderVariable *src0 = NULL;
+			ShaderVariable *src1 = NULL;
+			bool gsm = false;
+
+			if(    op.operation == OPCODE_IMM_ATOMIC_IADD
+					|| op.operation == OPCODE_IMM_ATOMIC_IMAX
+					|| op.operation == OPCODE_IMM_ATOMIC_IMIN
+					|| op.operation == OPCODE_IMM_ATOMIC_AND
+					|| op.operation == OPCODE_IMM_ATOMIC_OR
+					|| op.operation == OPCODE_IMM_ATOMIC_XOR
+					|| op.operation == OPCODE_IMM_ATOMIC_EXCH
+					|| op.operation == OPCODE_IMM_ATOMIC_CMP_EXCH
+					|| op.operation == OPCODE_IMM_ATOMIC_UMAX
+					|| op.operation == OPCODE_IMM_ATOMIC_UMIN)
+			{
+				beforeResult = op.operands[0];
+				resIndex = (uint32_t)op.operands[1].indices[0].index;
+				gsm = (op.operands[1].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				dstAddress = &srcOpers[1];
+				src0 = &srcOpers[2];
+				if(srcOpers.size() > 3)
+					src1 = &srcOpers[3];
+			}
+			else
+			{
+				beforeResult.type = TYPE_NULL;
+				resIndex = (uint32_t)op.operands[0].indices[0].index;
+				gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				dstAddress = &srcOpers[0];
+				src0 = &srcOpers[1];
+				if(srcOpers.size() > 2)
+					src1 = &srcOpers[2];
+			}
 			
+			uint32_t stride = 4;
+			uint32_t offset = 0;
+			uint32_t numElems = 0;
+			bool structured = false;
+			
+			byte *data = NULL;
+
+			if(gsm)
+			{
+				offset = 0;
+				if(resIndex > global.groupshared.size())
+				{
+					numElems = 0;
+					stride = 4;
+					data = NULL;
+				}
+				else
+				{
+					numElems = global.groupshared[resIndex].count;
+					stride = global.groupshared[resIndex].bytestride;
+					data = &global.groupshared[resIndex].data[0];
+					structured = global.groupshared[resIndex].structured;
+				}
+			}
+			else
+			{
+				offset = global.uavs[resIndex].firstElement;
+				numElems = global.uavs[resIndex].numElements;
+				data = &global.uavs[resIndex].data[0];
+
+				for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
+				{
+					ASMDecl &decl = s.dxbc->m_Declarations[i];
+
+					if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+						 decl.operand.indices[0].index == resIndex)
+					{
+						if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
+						{
+							stride = 4;
+							structured = false;
+							break;
+						}
+						else if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+						{
+							stride = decl.stride;
+							structured = true;
+							break;
+						}
+					}
+				}
+			}
+
+			RDCASSERT(data);
+
+			// seems like .x is element index, and .y is byte address, in the dstAddress operand
+			//
+			// "Out of bounds addressing on u# causes nothing to be written to memory, except if the
+			//  u# is structured, and byte offset into the struct (second component of the address) is
+			//  causing the out of bounds access, then the entire contents of the UAV become undefined."
+			//
+			// "The number of components taken from the address is determined by the dimensionality of dst u# or g#."
+
+			if(data)
+			{
+				data += (offset + dstAddress->value.u.x)*stride;
+				if(structured)
+					data += dstAddress->value.u.y;
+			}
+
+			// if out of bounds, undefined result is returned to dst0 for immediate operands,
+			// so we only need to care about the in-bounds case
+			if(data && offset + dstAddress->value.u.x < numElems)
+			{
+				uint32_t *udst = (uint32_t *)data;
+				int32_t *idst = (int32_t *)data;
+
+				if(beforeResult.type != TYPE_NULL)
+				{
+					s.SetDst(beforeResult, op, ShaderVariable("", *udst, *udst, *udst, *udst));
+				}
+
+				// not verified below since by definition the operations that expect usrc1 will have it
+				uint32_t *usrc0 = src0 ? src0->value.uv : NULL;
+				uint32_t *usrc1 = src1 ? src1->value.uv : NULL;
+				
+				int32_t *isrc0 = src0 ? src0->value.iv : NULL;
+				int32_t *isrc1 = src1 ? src1->value.iv : NULL;
+
+				switch(op.operation)
+				{
+					case OPCODE_IMM_ATOMIC_IADD:
+					case OPCODE_ATOMIC_IADD:
+						*udst = *udst + *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_IMAX:
+					case OPCODE_ATOMIC_IMAX:
+						*idst = max(*idst, *isrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_IMIN:
+					case OPCODE_ATOMIC_IMIN:
+						*idst = min(*idst, *isrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_AND:
+					case OPCODE_ATOMIC_AND:
+						*udst = *udst & *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_OR:
+					case OPCODE_ATOMIC_OR:
+						*udst = *udst | *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_XOR:
+					case OPCODE_ATOMIC_XOR:
+						*udst = *udst ^ *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_EXCH:
+						*udst = *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_CMP_EXCH:
+					case OPCODE_ATOMIC_CMP_STORE:
+						if(*udst == *usrc1) *udst = *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_UMAX:
+					case OPCODE_ATOMIC_UMAX:
+						*udst = max(*udst, *usrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_UMIN:
+					case OPCODE_ATOMIC_UMIN:
+						*udst = min(*udst, *usrc0);
+						break;
+				}
+			}
+			
+			break;
+		}
+
+		// store and load paths are mostly identical
+		case OPCODE_STORE_UAV_TYPED:
+		case OPCODE_STORE_RAW:
+		case OPCODE_STORE_STRUCTURED:
+
 		case OPCODE_LD_RAW:
 		case OPCODE_LD_UAV_TYPED:
 		case OPCODE_LD_STRUCTURED:
@@ -1812,85 +2032,183 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			uint32_t resIndex = 0;
 			uint32_t elemOffset = 0;
 			uint32_t elemIdx = 0;
+
+			uint32_t texCoords[3] = { 0, 0, 0 };
 			
 			uint32_t stride = 0;
 			
 			bool srv = true;
-			
-			if(op.operation == OPCODE_LD_STRUCTURED)
+			bool gsm = false;
+
+			bool load = true;
+
+			if(op.operation == OPCODE_STORE_UAV_TYPED ||
+			   op.operation == OPCODE_STORE_RAW ||
+			   op.operation == OPCODE_STORE_STRUCTURED)
 			{
-				resIndex = srcOpers[2].value.u.x;
-				elemOffset = srcOpers[1].value.u.x;
-				elemIdx = srcOpers[0].value.u.x;
-
-				for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
+				load = false;
+			}
+			
+			if(op.operation == OPCODE_LD_STRUCTURED || op.operation == OPCODE_STORE_STRUCTURED)
+			{
+				if(load)
 				{
-					ASMDecl &decl = s.dxbc->m_Declarations[i];
+					resIndex = (uint32_t)op.operands[3].indices[0].index;
+					srv = (op.operands[3].type == TYPE_RESOURCE);
+					gsm = (op.operands[3].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+					
+					stride = op.stride;
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					srv = false;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
 
-					if(decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[3].indices[0])
+				if(stride == 0)
+				{
+					if(gsm && resIndex < global.groupshared.size())
 					{
-						if(decl.declaration == OPCODE_DCL_RESOURCE_STRUCTURED && decl.operand.type == TYPE_RESOURCE)
+						stride = global.groupshared[resIndex].bytestride;
+					}
+					else if(!gsm)
+					{
+						for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 						{
-							stride = decl.stride;
-							srv = true;
-						}
-						if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED && decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW)
-						{
-							stride = decl.stride;
-							srv = false;
+							ASMDecl &decl = s.dxbc->m_Declarations[i];
+
+							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+								decl.operand.indices[0].index == resIndex &&
+								decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+							{
+								stride = decl.stride;
+								break;
+							}
 						}
 					}
 				}
-			}
-			else if(op.operation == OPCODE_LD_UAV_TYPED)
-			{
-				resIndex = (uint32_t)op.operands[2].indices[0].index;
+
+				elemOffset = srcOpers[1].value.u.x;
 				elemIdx = srcOpers[0].value.u.x;
+			}
+			else if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
+			{
+				if(load)
+				{
+					resIndex = (uint32_t)op.operands[2].indices[0].index;
+					gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+
+				elemIdx = srcOpers[0].value.u.x;
+
+				// could be a tex load
+				texCoords[0] = srcOpers[0].value.u.x;
+				texCoords[1] = srcOpers[0].value.u.y;
+				texCoords[2] = srcOpers[0].value.u.z;
+
 				stride = 4;
 				srv = false;
 			}
-			else if(op.operation == OPCODE_LD_RAW)
+			else if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
 			{
-				resIndex = (uint32_t)op.operands[2].indices[0].index;
+				if(load)
+				{
+					resIndex = (uint32_t)op.operands[2].indices[0].index;
+					srv = (op.operands[2].type == TYPE_RESOURCE);
+					gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					srv = false;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+
 				elemIdx = srcOpers[0].value.u.x;
 				stride = 1;
-
-				if(op.operands[2].type == TYPE_UNORDERED_ACCESS_VIEW)
-					srv = false;
 			}
 
 			RDCASSERT(stride != 0);
 
 			uint32_t offset = srv ? global.srvs[resIndex].firstElement : global.uavs[resIndex].firstElement;
 			uint32_t numElems = srv ? global.srvs[resIndex].numElements : global.uavs[resIndex].numElements;
+			GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
 
 			byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
 
+			if(gsm)
+			{
+				offset = 0;
+				if(resIndex > global.groupshared.size())
+				{
+					numElems = 0;
+					stride = 4;
+					data = NULL;
+				}
+				else
+				{
+					numElems = global.groupshared[resIndex].count;
+					stride = global.groupshared[resIndex].bytestride;
+					data = &global.groupshared[resIndex].data[0];
+					fmt.fmt = eCompType_UInt;
+					fmt.byteWidth = 4;
+					fmt.numComps = global.groupshared[resIndex].bytestride/4;
+					fmt.reversed = false;
+				}
+			}
+
 			RDCASSERT(data);
 
-			data += (offset + elemIdx)*stride;
-			data += elemOffset;
-			
-			if(offset + elemIdx >= numElems)
+			if(!data || offset + elemIdx >= numElems)
 			{
-				s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
+				if(load)
+					s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
 			}
 			else
 			{
-				uint32_t *srcData = (uint32_t *)data;
+				data += (offset + elemIdx)*stride;
+				data += elemOffset;
 
-				ShaderVariable fetch("", 0U, 0U, 0U, 0U);
+				uint32_t *datau32 = (uint32_t *)data;
 
-				for(int i=0; i < 4; i++)
+				uint32_t srcIdx = 1;
+				if(op.operation == OPCODE_STORE_STRUCTURED ||
+					 op.operation == OPCODE_LD_STRUCTURED)
+					srcIdx = 2;
+
+				if(load)
 				{
-					uint8_t comp = op.operands[3].comps[i];
-					if(op.operands[3].comps[i] == 0xff)
-						comp = 0;
+					ShaderVariable fetch("", 0U, 0U, 0U, 0U);
 
-					fetch.value.uv[i] = srcData[comp];
+					for(int i=0; i < 4; i++)
+					{
+						uint8_t comp = op.operands[srcIdx+1].comps[i];
+						if(op.operands[srcIdx+1].comps[i] == 0xff || i >= fmt.numComps)
+							comp = 0;
+
+						fetch.value.uv[i] = datau32[comp];
+					}
+
+					s.SetDst(op.operands[0], op, fetch);
 				}
+				else
+				{
+					for(int i=0; i < 4; i++)
+					{
+						uint8_t comp = op.operands[0].comps[i];
+						// masks must be contiguous from x, if we reach the 'end' we're done
+						if(comp == 0xff || i >= fmt.numComps)
+							break;
 
-				s.SetDst(op.operands[0], op, fetch);
+						datau32[i] = srcOpers[srcIdx].value.uv[i];
+					}
+				}
 			}
 
 			break;
