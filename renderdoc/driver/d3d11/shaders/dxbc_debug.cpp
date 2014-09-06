@@ -592,7 +592,7 @@ void State::Init()
 	}
 }
 
-bool State::Finished()
+bool State::Finished() const
 {
 	return dxbc && (done || nextInstruction >= (int)dxbc->m_Instructions.size());
 }
@@ -1028,7 +1028,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 {
 	State s = *this;
 
-	if(s.Finished())
+	if(s.nextInstruction >= s.dxbc->m_Instructions.size())
 		return s;
 
 	ASMOperation &op = s.dxbc->m_Instructions[s.nextInstruction];
@@ -2022,8 +2022,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			}
 
 			// if out of bounds, undefined result is returned to dst0 for immediate operands,
-			// so we only need to care about the in-bounds case
-			if(data && offset + dstAddress->value.u.x < numElems)
+			// so we only need to care about the in-bounds case.
+			// Also helper/inactive pixels are not allowed to modify UAVs
+			if(data && offset + dstAddress->value.u.x < numElems && !Finished())
 			{
 				uint32_t *udst = (uint32_t *)data;
 				int32_t *idst = (int32_t *)data;
@@ -2286,7 +2287,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					s.SetDst(op.operands[0], op, fetch);
 				}
-				else
+				else if(!Finished()) // helper/inactive pixels can't modify UAVs
 				{
 					for(int i=0; i < 4; i++)
 					{

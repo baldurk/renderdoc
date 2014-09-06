@@ -1444,7 +1444,9 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			if(i != destIdx)
 				traces[i] = traces[destIdx];
 			quad[i] = initialState;
-			quad[i].SetTrace(&traces[i]);
+			quad[i].SetTrace(i, &traces[i]);
+			if(i != destIdx)
+				quad[i].SetHelper();
 		}
 
 		float *ddx = (float *)data;
@@ -1517,19 +1519,26 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	states.push_back((State)quad[destIdx]);
 	
+	// ping pong between so that we can have 'current' quad to update into new one
+	State quad2[4];
+
+	State *curquad = quad;
+	State *newquad = quad2;
+
 	// simulate lockstep until all threads are finished
 	bool finished = true;
 	do
 	{
 		for(size_t i = 0; i < 4; i++)
-		{
-			if(!quad[i].Finished())
-				quad[i] = quad[i].GetNext(global, quad);
-		}
-		
-		states.push_back((State)quad[destIdx]);
+			newquad[i] = curquad[i].GetNext(global, curquad);
 
-		finished = quad[destIdx].Finished();
+		State *a = curquad;
+		curquad = newquad;
+		newquad = a;
+		
+		states.push_back((State)curquad[destIdx]);
+
+		finished = curquad[destIdx].Finished();
 	}
 	while(!finished);
 

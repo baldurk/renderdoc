@@ -123,9 +123,15 @@ class State : public ShaderDebugState
 			device = d;
 		}
 
-		void SetTrace(const ShaderDebugTrace *t)
+		void SetTrace(int quadIdx, const ShaderDebugTrace *t)
 		{
+			quadIndex = quadIdx;
 			trace = t;
+		}
+
+		void SetHelper()
+		{
+			done = true;
 		}
 
 		struct
@@ -136,7 +142,7 @@ class State : public ShaderDebugState
 		} semantics;
 
 		void Init();
-		bool Finished();
+		bool Finished() const;
 		
 		State GetNext(GlobalState &global, State quad[4]) const;
 
