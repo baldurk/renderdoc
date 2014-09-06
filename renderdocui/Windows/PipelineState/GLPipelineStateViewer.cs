@@ -932,7 +932,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (stage.Shader == ResourceId.Null) return;
 
-            ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, stage.stage, null);
+            ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, stage.stage, null, "");
 
             s.Show(m_DockContent.DockPanel);
         }

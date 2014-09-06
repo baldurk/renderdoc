@@ -283,7 +283,7 @@ namespace renderdocui.Windows
             }
         }
 
-        public ShaderViewer(Core core, ShaderReflection shader, ShaderStageType stage, ShaderDebugTrace trace)
+        public ShaderViewer(Core core, ShaderReflection shader, ShaderStageType stage, ShaderDebugTrace trace, string debugContext)
         {
             InitializeComponent();
 
@@ -306,6 +306,11 @@ namespace renderdocui.Windows
                 case ShaderStageType.Pixel: m_Stage = m_Core.CurD3D11PipelineState.m_PS; break;
                 case ShaderStageType.Compute: m_Stage = m_Core.CurD3D11PipelineState.m_CS; break;
             }
+
+            if (trace != null)
+                Text = String.Format("Debug Shader {0} - {1}", m_Core.CurPipelineState.GetShader(stage), debugContext);
+            else
+                Text = String.Format("Shader {0}", m_Core.CurPipelineState.GetShader(stage));
 
             var disasm = shader.Disassembly;
 
@@ -395,7 +400,10 @@ namespace renderdocui.Windows
 
             if (shader.DebugInfo.entryFunc != "" && shader.DebugInfo.files.Length > 0)
             {
-                Text = shader.DebugInfo.entryFunc+ "()";
+                if(trace != null)
+                    Text = String.Format("Debug {0}() - {1}", shader.DebugInfo.entryFunc, debugContext);
+                else
+                    Text = String.Format("{0}()", shader.DebugInfo.entryFunc);
 
                 DockContent sel = null;
                 foreach (var f in shader.DebugInfo.files)

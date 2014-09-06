@@ -2692,7 +2692,9 @@ namespace renderdocui.Windows
 
             this.BeginInvoke(new Action(() =>
             {
-                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace);
+                string debugContext = String.Format("Pixel {0},{1}", m_PickedPoint.X, m_PickedPoint.Y);
+
+                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace, debugContext);
 
                 s.Show(this.DockPanel);
             }));

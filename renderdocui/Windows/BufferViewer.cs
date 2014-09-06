@@ -2476,7 +2476,11 @@ namespace renderdocui.Windows
 
             this.BeginInvoke(new Action(() =>
             {
-                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Vertex, trace);
+                string debugContext = String.Format("Vertex {0}", row);
+                if (draw.numInstances > 1)
+                    debugContext += String.Format(", Instance {0}", m_CurInst);
+
+                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Vertex, trace, debugContext);
 
                 s.Show(this.DockPanel);
             }));
