@@ -156,6 +156,7 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_BREAKC:
 		case OPCODE_IF:
 		case OPCODE_ITOF:
+		case OPCODE_DTOI:
 			return eVar_Int;
 			
 		case OPCODE_ATOMIC_IADD:
@@ -205,6 +206,7 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_LD_RAW:
 		case OPCODE_LD_UAV_TYPED:
 		case OPCODE_LD_STRUCTURED:
+		case OPCODE_DTOU:
 			return eVar_UInt;
 
 		case OPCODE_DADD:
@@ -218,6 +220,11 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_DMOV:
 		case OPCODE_DMOVC:
 		case OPCODE_DTOF:
+		case OPCODE_DDIV:
+		case OPCODE_DFMA:
+		case OPCODE_DRCP:
+		case OPCODE_ITOD:
+		case OPCODE_UTOD:
 			return eVar_Double;
 
 		default:
@@ -1044,11 +1051,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Math operations
 		
+		
 		case OPCODE_DADD:
 		case OPCODE_IADD:
 		case OPCODE_ADD:
 			s.SetDst(op.operands[0], op, add(srcOpers[0], srcOpers[1], optype));
 			break;
+		case OPCODE_DDIV:
 		case OPCODE_DIV:
 			s.SetDst(op.operands[0], op, div(srcOpers[0], srcOpers[1], optype));
 			break;
@@ -1237,6 +1246,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		case OPCODE_IMAD:
 		case OPCODE_UMAD:
 		case OPCODE_MAD:
+		case OPCODE_DFMA:
 			s.SetDst(op.operands[0], op, add(mul(srcOpers[0], srcOpers[1], optype), srcOpers[2], optype));
 			break;
 		case OPCODE_DP2:
@@ -1389,6 +1399,19 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 													  1.0f/srcOpers[0].value.f.z,
 													  1.0f/srcOpers[0].value.f.w ));
 			break;
+		case OPCODE_DRCP:
+		{
+			double ds[2] = { 0.0, 0.0 };
+			DoubleGet(srcOpers[0], ds);
+			ds[0] = 1.0f/ds[0];
+			ds[1] = 1.0f/ds[1];
+			
+			ShaderVariable r("", 0U, 0U, 0U, 0U);
+			DoubleSet(r, ds);
+
+			s.SetDst(op.operands[0], op, r);
+			break;
+		}
 		case OPCODE_RSQ:
 			s.SetDst(op.operands[0], op, ShaderVariable("", 1.0f/sqrtf(srcOpers[0].value.f.x),
 													  1.0f/sqrtf(srcOpers[0].value.f.y),
@@ -1617,12 +1640,27 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 													  (uint32_t)srcOpers[0].value.f.z,
 													  (uint32_t)srcOpers[0].value.f.w ));
 			break;
+		case OPCODE_ITOD:
+		case OPCODE_UTOD:
 		case OPCODE_FTOD:
 		{
 			double res[2];
 
-			res[0] = (double)srcOpers[0].value.f.x;
-			res[1] = (double)srcOpers[0].value.f.y;
+			if(op.operation == OPCODE_ITOD)
+			{
+				res[0] = (double)srcOpers[0].value.i.x;
+				res[1] = (double)srcOpers[0].value.i.y;
+			}
+			else if(op.operation == OPCODE_UTOD)
+			{
+				res[0] = (double)srcOpers[0].value.u.x;
+				res[1] = (double)srcOpers[0].value.u.y;
+			}
+			else if(op.operation == OPCODE_FTOD)
+			{
+				res[0] = (double)srcOpers[0].value.f.x;
+				res[1] = (double)srcOpers[0].value.f.y;
+			}
 
 			// if we only did a 1-wide double op, copy .xy into .zw so we can then
 			// swizzle into .xy or .zw freely on the destination operand.
@@ -1636,25 +1674,54 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			s.SetDst(op.operands[0], op, r);
 			break;
 		}
+		case OPCODE_DTOI:
+		case OPCODE_DTOU:
 		case OPCODE_DTOF:
 		{
 			double src[2];
 			DoubleGet(srcOpers[0], src);
 
-			// special behaviour for dest mask. if it's .xz then first comparison goes into .x, second into .z.
-			// if the mask is .y then the first comparison goes into .y and second goes nowhere.
-			// so we need to check the dest mask and put the comparison results into the right place
+			// special behaviour for dest mask. if it's .xz then first goes into .x, second into .z.
+			// if the mask is .y then the first goes into .y and second goes nowhere.
+			// so we need to check the dest mask and put the results into the right place
 
 			ShaderVariable r("", 0U, 0U, 0U, 0U);
-
-			if(op.operands[0].comps[1] == 0xff) // only one mask
+			
+			if(op.operation == OPCODE_DTOU)
 			{
-				r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.uv[ op.operands[0].comps[0] ] = uint32_t(src[0]);
+				}
+				else
+				{
+					r.value.uv[ op.operands[0].comps[0] ] = uint32_t(src[0]);
+					r.value.uv[ op.operands[0].comps[1] ] = uint32_t(src[1]);
+				}
 			}
-			else
+			else if(op.operation == OPCODE_DTOI)
 			{
-				r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
-				r.value.fv[ op.operands[0].comps[1] ] = float(src[1]);
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.iv[ op.operands[0].comps[0] ] = int32_t(src[0]);
+				}
+				else
+				{
+					r.value.iv[ op.operands[0].comps[0] ] = int32_t(src[0]);
+					r.value.iv[ op.operands[0].comps[1] ] = int32_t(src[1]);
+				}
+			}
+			else if(op.operation == OPCODE_DTOF)
+			{
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+				}
+				else
+				{
+					r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+					r.value.fv[ op.operands[0].comps[1] ] = float(src[1]);
+				}
 			}
 
 			s.SetDst(op.operands[0], op, r);
