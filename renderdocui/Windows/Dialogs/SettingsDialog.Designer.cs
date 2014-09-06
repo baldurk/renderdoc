@@ -47,10 +47,7 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
-            this.ok = new System.Windows.Forms.Button();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
+            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.Formatter_PosExp = new System.Windows.Forms.NumericUpDown();
@@ -72,6 +69,9 @@
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
             this.pagesTree = new TreelistView.TreeListView();
+            this.ok = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -127,21 +127,6 @@
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.Size = new System.Drawing.Size(580, 353);
             tableLayoutPanel1.TabIndex = 1;
-            // 
-            // ok
-            // 
-            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ok.Location = new System.Drawing.Point(502, 327);
-            this.ok.Name = "ok";
-            this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 100;
-            this.ok.Text = "OK";
-            this.ok.UseVisualStyleBackColor = true;
-            this.ok.Click += new System.EventHandler(this.ok_Click);
-            // 
-            // browserCaptureDialog
-            // 
-            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // settingsTabs
             // 
@@ -716,6 +701,21 @@
             this.pagesTree.ViewOptions.ShowPlusMinus = false;
             this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
             // 
+            // ok
+            // 
+            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ok.Location = new System.Drawing.Point(502, 327);
+            this.ok.Name = "ok";
+            this.ok.Size = new System.Drawing.Size(75, 23);
+            this.ok.TabIndex = 100;
+            this.ok.Text = "OK";
+            this.ok.UseVisualStyleBackColor = true;
+            this.ok.Click += new System.EventHandler(this.ok_Click);
+            // 
+            // browserCaptureDialog
+            // 
+            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
+            // 
             // SettingsDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -725,7 +725,7 @@
             this.MinimumSize = new System.Drawing.Size(500, 300);
             this.Name = "SettingsDialog";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "SettingsForm";
+            this.Text = "Settings";
             tableLayoutPanel1.ResumeLayout(false);
             this.settingsTabs.ResumeLayout(false);
             this.generalTab.ResumeLayout(false);
