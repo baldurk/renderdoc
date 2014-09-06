@@ -41,7 +41,11 @@ struct GlobalState
 		GlobalState()
 		{
 			for(int i=0; i < 8; i++)
+			{
 				uavs[i].firstElement = uavs[i].numElements = uavs[i].hiddenCounter = 0;
+				uavs[i].rowPitch = uavs[i].depthPitch = 0;
+				uavs[i].tex = false;
+			}
 
 			for(int i=0; i < 128; i++)
 				srvs[i].firstElement = srvs[i].numElements = 0;
@@ -69,6 +73,9 @@ struct GlobalState
 			vector<byte> data;
 			uint32_t firstElement;
 			uint32_t numElements;
+
+			bool tex;
+			uint32_t rowPitch, depthPitch;
 
 			ViewFmt format;
 

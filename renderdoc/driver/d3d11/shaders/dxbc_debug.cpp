@@ -2208,6 +2208,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
 
 			byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
+			bool texData = srv ? false : global.uavs[resIndex].tex;
+			uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
+			uint32_t depthPitch = srv ? 0 : global.uavs[resIndex].depthPitch;
 
 			if(gsm)
 			{
@@ -2232,15 +2235,34 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			RDCASSERT(data);
 
-			if(!data || offset + elemIdx >= numElems)
+			size_t texOffset = 0;
+
+			if(texData)
+			{
+					texOffset += texCoords[0] * fmt.byteWidth * fmt.numComps;
+					texOffset += texCoords[1] * rowPitch;
+					texOffset += texCoords[2] * depthPitch;
+			}
+
+			if(!data ||
+				 (!texData && offset + elemIdx >= numElems) ||
+				 (texData && texOffset >= global.uavs[resIndex].data.size())
+				)
 			{
 				if(load)
 					s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
 			}
 			else
 			{
-				data += (offset + elemIdx)*stride;
-				data += elemOffset;
+				if(gsm || !texData)
+				{
+					data += (offset + elemIdx)*stride;
+					data += elemOffset;
+				}
+				else
+				{
+					data += texOffset;
+				}
 
 				uint32_t *datau32 = (uint32_t *)data;
 

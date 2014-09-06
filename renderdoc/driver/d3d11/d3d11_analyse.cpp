@@ -507,9 +507,33 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
 			UAVs[i]->GetDesc(&udesc);
 
+			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+
 			if(udesc.Format != DXGI_FORMAT_UNKNOWN)
+				format = udesc.Format;
+
+			if(format == DXGI_FORMAT_UNKNOWN)
 			{
-				ResourceFormat fmt = MakeResourceFormat(udesc.Format);
+				if(WrappedID3D11Texture1D::IsAlloc(res))
+				{
+					D3D11_TEXTURE1D_DESC desc = ((WrappedID3D11Texture1D *)res)->GetDescDirect();
+					format = desc.Format;
+				}
+				else if(WrappedID3D11Texture2D::IsAlloc(res))
+				{
+					D3D11_TEXTURE2D_DESC desc = ((WrappedID3D11Texture2D *)res)->GetDescDirect();
+					format = desc.Format;
+				}
+				else if(WrappedID3D11Texture3D::IsAlloc(res))
+				{
+					D3D11_TEXTURE3D_DESC desc = ((WrappedID3D11Texture3D *)res)->GetDescDirect();
+					format = desc.Format;
+				}
+			}
+
+			if(format != DXGI_FORMAT_UNKNOWN)
+			{
+				ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(udesc.Format));
 
 				global.uavs[dsti].format.byteWidth = fmt.compByteWidth;
 				global.uavs[dsti].format.numComps = fmt.compCount;
@@ -535,7 +559,134 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 				}
 				else
 				{
-					RDCERR("UAVs of textures currently not supported in shader debugging");
+					global.uavs[dsti].tex = true;
+
+					uint32_t &rowPitch = global.uavs[dsti].rowPitch;
+					uint32_t &depthPitch = global.uavs[dsti].depthPitch;
+
+					vector<byte> &data = global.uavs[dsti].data;
+
+					if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D ||
+					   udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
+					{
+						D3D11_TEXTURE1D_DESC desc = ((WrappedID3D11Texture1D *)res)->GetDescDirect();
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+
+						ID3D11Texture1D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture1D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture1D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+
+						rowPitch = 0;
+						depthPitch = 0;
+						size_t datasize = GetByteSize(desc.Width, 1, 1, desc.Format, udesc.Texture1D.MipSlice);
+						
+						uint32_t numSlices = 1;
+
+						byte *srcdata = (byte *)mapped.pData;
+						if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
+						{
+							rowPitch = mapped.RowPitch;
+							srcdata += udesc.Texture1DArray.FirstArraySlice * rowPitch;
+							numSlices = udesc.Texture1DArray.ArraySize;
+							datasize = numSlices * rowPitch;
+						}
+
+						data.resize(datasize);
+
+						// copy with all padding etc intact
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture1D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D ||
+					        udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+					{
+						D3D11_TEXTURE2D_DESC desc = ((WrappedID3D11Texture2D *)res)->GetDescDirect();
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+						
+						ID3D11Texture2D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture2D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+
+						// MipSlice in union is shared between Texture2D and Texture2DArray unions, so safe to use either
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture2D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+
+						rowPitch = mapped.RowPitch;
+						depthPitch = 0;
+						size_t datasize = rowPitch * desc.Height;
+						
+						uint32_t numSlices = 1;
+
+						byte *srcdata = (byte *)mapped.pData;
+						if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+						{
+							depthPitch = mapped.DepthPitch;
+							srcdata += udesc.Texture2DArray.FirstArraySlice * depthPitch;
+							numSlices = udesc.Texture2DArray.ArraySize;
+							datasize = numSlices * depthPitch;
+						}
+						
+						// copy with all padding etc intact
+						data.resize(datasize);
+						
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture2D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
+					{
+						D3D11_TEXTURE3D_DESC desc = ((WrappedID3D11Texture3D *)res)->GetDescDirect();
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+						
+						ID3D11Texture3D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture3D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+						
+						// MipSlice in union is shared between Texture2D and Texture2DArray unions, so safe to use either
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture3D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+						
+						rowPitch = mapped.RowPitch;
+						depthPitch = mapped.DepthPitch;
+
+						byte *srcdata = (byte *)mapped.pData;
+						srcdata += udesc.Texture3D.FirstWSlice * mapped.DepthPitch;
+						uint32_t numSlices = udesc.Texture3D.WSize;
+						size_t datasize = depthPitch * numSlices;
+
+						data.resize(datasize);
+						
+						// copy with all padding etc intact
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture3D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+
 				}
 			}
 
