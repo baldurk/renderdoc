@@ -4465,6 +4465,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				dsdesc.DepthFunc = stateDesc.DepthFunc;
 			}
 
+			if(history[h].preMod.depth < 0.0f)
+				dsdesc.DepthEnable = FALSE;
+
 			SAFE_RELEASE(curDS);
 			
 			m_pDevice->CreateDepthStencilState(&dsdesc, &ds);
@@ -4513,8 +4516,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				RDCWARN("Couldn't find target RT bound at this event");
 			}
 		}
+
+		float cleardepth = RDCCLAMP(history[h].preMod.depth, 0.0f, 1.0f);
 		
-		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
 
 		m_pImmediateContext->OMSetDepthStencilState(ds, history[h].fragIndex);
 
@@ -4531,7 +4536,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.StencIncrEqDepthState, history[h].fragIndex);
 		
-		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
 
 		// fetch shader output value & primitive ID
 		{
@@ -4556,7 +4561,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				depthSlot++;
 			}
 
-			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, history[h].preMod.depth, 0);
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
 
 			// fetch primitive ID
 			{
