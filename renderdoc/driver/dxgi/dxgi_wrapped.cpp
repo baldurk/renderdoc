@@ -233,7 +233,7 @@ HRESULT WrappedIDXGISwapChain::SetFullscreenState(
 	if(RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
 		return m_pReal->SetFullscreenState(Fullscreen, pTarget);
 
-	return DXGI_ERROR_NOT_CURRENTLY_AVAILABLE;
+	return S_OK;
 }
 
 HRESULT WrappedIDXGISwapChain::GetFullscreenState( 
