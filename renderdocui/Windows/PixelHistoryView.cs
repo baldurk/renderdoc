@@ -242,17 +242,39 @@ namespace renderdocui.Windows
                 (texture.format.special && texture.format.specialFormat == SpecialFormat.D32S8))
                 depth = true;
 
-            string name = String.Format("Primitive {0}\n", mod.primitiveID);
+            TreelistView.Node node = null;
 
-            ResourceFormat fmt = new ResourceFormat(floatTex ? FormatComponentType.Float : texture.format.compType, 4, 4);
+            if (mod.uavWrite)
+            {
+                string name = "Potential UAV write";
 
-            string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
-            string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
+                string preModVal = "Tex Before\n\n" + ModificationValueString(mod.preMod, texture.format, depth);
+                string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
 
-            if (!mod.EventPassed() && hideFailedEventsToolStripMenuItem.Checked)
-                return null;
+                if (mod.preMod.col.value.u[0] == mod.postMod.col.value.u[0] &&
+                    mod.preMod.col.value.u[1] == mod.postMod.col.value.u[1] &&
+                    mod.preMod.col.value.u[2] == mod.postMod.col.value.u[2] &&
+                    mod.preMod.col.value.u[3] == mod.postMod.col.value.u[3])
+                {
+                    name += "\nNo change in tex value";
+                }
 
-            var node = new TreelistView.Node(new object[] { name, shadOutVal, "", postModVal, "" });
+                node = new TreelistView.Node(new object[] { name, preModVal, "", postModVal, "" });
+            }
+            else
+            {
+                string name = String.Format("Primitive {0}\n", mod.primitiveID);
+
+                ResourceFormat fmt = new ResourceFormat(floatTex ? FormatComponentType.Float : texture.format.compType, 4, 4);
+
+                string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
+                string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
+
+                if (!mod.EventPassed() && hideFailedEventsToolStripMenuItem.Checked)
+                    return null;
+
+                node = new TreelistView.Node(new object[] { name, shadOutVal, "", postModVal, "" });
+            }
 
             node.Tag = mod.eventID;
 
@@ -309,9 +331,28 @@ namespace renderdocui.Windows
                 name += "\n";
             }
 
-            name += String.Format("EID {0}\n{1}{2}\n{3} Fragments touching pixel\n", mods[0].eventID, drawcall.name, FailureString(mods[0]), nodes.Count);
+            bool passed = true;
+            bool uavnowrite = false;
 
-            bool passed = mods[0].EventPassed();
+            if (mods[0].uavWrite)
+            {
+                name += String.Format("EID {0}\n{1}\nBound as UAV - potential modification", mods[0].eventID, drawcall.name);
+
+                if (mods[0].preMod.col.value.u[0] == mods[0].postMod.col.value.u[0] &&
+                    mods[0].preMod.col.value.u[1] == mods[0].postMod.col.value.u[1] &&
+                    mods[0].preMod.col.value.u[2] == mods[0].postMod.col.value.u[2] &&
+                    mods[0].preMod.col.value.u[3] == mods[0].postMod.col.value.u[3])
+                {
+                    name += "\nNo change in tex value";
+                    uavnowrite = true;
+                }
+            }
+            else
+            {
+                name += String.Format("EID {0}\n{1}{2}\n{3} Fragments touching pixel\n", mods[0].eventID, drawcall.name, FailureString(mods[0]), nodes.Count);
+
+                passed = mods[0].EventPassed();
+            }
 
             string preModVal = "Tex Before\n\n" + ModificationValueString(mods.First().preMod, texture.format, depth);
             string postModVal = "Tex After\n\n" + ModificationValueString(mods.Last().postMod, texture.format, depth);
@@ -320,6 +361,9 @@ namespace renderdocui.Windows
 
             node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
             node.Tag = mods[0].eventID;
+
+            if (uavnowrite)
+                node.DefaultBackColor = Color.FromArgb(235, 235, 235);
 
             if (floatTex || depth)
             {

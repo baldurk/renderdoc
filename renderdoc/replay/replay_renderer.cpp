@@ -326,7 +326,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 
 	auto usage = m_pDevice->GetUsage(m_pDevice->GetLiveID(target));
 
-	vector<uint32_t> events;
+	vector<EventUsage> events;
 
 	for(size_t i=0; i < usage.size(); i++)
 	{
@@ -363,7 +363,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 				break;
 		}
 
-		events.push_back(usage[i].eventID);
+		events.push_back(usage[i]);
 	}
 	
 	if(events.empty())

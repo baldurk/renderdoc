@@ -787,7 +787,7 @@ bool ProxySerialiser::Tick()
 			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0, vector<uint32_t>());
 			break;
 		case eCommand_PixelHistory:
-			PixelHistory(0, vector<uint32_t>(), ResourceId(), 0, 0);
+			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0);
 			break;
 		case eCommand_DebugVertex:
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
@@ -1480,7 +1480,7 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 	}
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
 {
 	vector<PixelModification> ret;
 	

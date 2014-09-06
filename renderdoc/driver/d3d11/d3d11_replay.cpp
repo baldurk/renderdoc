@@ -1291,7 +1291,7 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vec
 	return;
 }
 
-vector<PixelModification> D3D11Replay::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> D3D11Replay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
 {
 	return m_pDevice->GetDebugManager()->PixelHistory(frameID, events, target, x, y);
 }
