@@ -516,17 +516,20 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			{
 				if(WrappedID3D11Texture1D::IsAlloc(res))
 				{
-					D3D11_TEXTURE1D_DESC desc = ((WrappedID3D11Texture1D *)res)->GetDescDirect();
+					D3D11_TEXTURE1D_DESC desc;
+					((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
 					format = desc.Format;
 				}
 				else if(WrappedID3D11Texture2D::IsAlloc(res))
 				{
-					D3D11_TEXTURE2D_DESC desc = ((WrappedID3D11Texture2D *)res)->GetDescDirect();
+					D3D11_TEXTURE2D_DESC desc;
+					((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
 					format = desc.Format;
 				}
 				else if(WrappedID3D11Texture3D::IsAlloc(res))
 				{
-					D3D11_TEXTURE3D_DESC desc = ((WrappedID3D11Texture3D *)res)->GetDescDirect();
+					D3D11_TEXTURE3D_DESC desc;
+					((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
 					format = desc.Format;
 				}
 			}
@@ -569,7 +572,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 					if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D ||
 					   udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
 					{
-						D3D11_TEXTURE1D_DESC desc = ((WrappedID3D11Texture1D *)res)->GetDescDirect();
+						D3D11_TEXTURE1D_DESC desc;
+						((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
 
 						desc.MiscFlags = 0;
 						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
@@ -611,7 +615,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D ||
 					        udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
 					{
-						D3D11_TEXTURE2D_DESC desc = ((WrappedID3D11Texture2D *)res)->GetDescDirect();
+						D3D11_TEXTURE2D_DESC desc;
+						((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
 
 						desc.MiscFlags = 0;
 						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
@@ -653,7 +658,8 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 					}
 					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
 					{
-						D3D11_TEXTURE3D_DESC desc = ((WrappedID3D11Texture3D *)res)->GetDescDirect();
+						D3D11_TEXTURE3D_DESC desc;
+						((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
 
 						desc.MiscFlags = 0;
 						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;

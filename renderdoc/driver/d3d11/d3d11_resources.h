@@ -650,10 +650,6 @@ protected:
 	}
 
 public:
-#if !defined(RELEASE)
-	DescType& GetDescDirect() { return m_Desc; }
-#endif
-	
 	void ViewAddRef()
 	{
 		InterlockedIncrement(&m_ViewRefcount);
