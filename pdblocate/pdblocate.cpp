@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define USE_DIA 1
 
 #include <windows.h>
 #include <string>
@@ -34,14 +35,20 @@
 #include <assert.h>
 
 #include <dbghelp.h>
-#include <dia2.h>
-#include <atlconv.h>
-
 #include <shlobj.h>
 
 #include <vector>
 using std::vector;
 using std::wstring;
+
+#if USE_DIA
+// if you don't have dia2.h (only included with VS pro and above)
+// set USE_DIA to 1. Everything will compile but symbol resolution
+// for callstacks will not work.
+// If you need this, you could always drop in a pre-compiled pdblocate
+// from a normal build as this file/project changes very rarely.
+#include <dia2.h>
+#include <atlconv.h>
 
 // must match definition in callstack.h
 struct AddrInfo
@@ -476,3 +483,9 @@ int WINAPI wWinMain( __in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance,
 	CloseHandle(pipe);
 	return 0;
 }
+#else
+int WINAPI wWinMain(__in HINSTANCE hInstance, __in_opt HINSTANCE hPrevInstance, __in LPWSTR lpCmdLine, __in int nShowCmd)
+{
+	return 2;
+}
+#endif

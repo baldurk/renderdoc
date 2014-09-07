@@ -433,6 +433,8 @@ void Win32CallstackResolver::OpenPdblocateHandle()
 
 void *Win32CallstackResolver::SendRecvPipeMessage(wstring message)
 {
+	if(pdblocatePipe == NULL) return NULL;
+
 	DWORD written = 0;
 	DWORD msgLen = (DWORD)message.length()*sizeof(wchar_t);
 	BOOL success = WriteFile(pdblocatePipe, message.c_str(), msgLen, &written, NULL);
@@ -540,6 +542,9 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, ws
 	pdblocatePipe = NULL;
 
 	OpenPdblocateHandle();
+
+	if(pdblocatePipe == NULL)
+		return;
 
 	// loop over all our modules
 	for(char *end = moduleDB + DBSize;
