@@ -1831,6 +1831,8 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 
 		header.dwCaps2 = desc.ArraySize > 1 ? DDSCAPS2_VOLUME : 0;
 
+		bool dx10Header = false;
+
 		headerDXT10.dxgiFormat = GetTypedFormat(desc.Format);
 		headerDXT10.resourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE2D;
 		headerDXT10.arraySize = desc.ArraySize;
@@ -1838,8 +1840,10 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 		if(desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
 		{
 			header.dwCaps2 = DDSCAPS2_CUBEMAP;
-			headerDXT10.arraySize /= 6;
 		}
+
+		if(headerDXT10.arraySize > 1)
+			dx10Header = true; // need to specify dx10 header to give array size
 
 		if(IsBlockFormat(desc.Format))
 		{
@@ -1855,9 +1859,6 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 		{
 			header.dwPitchOrLinearSize = (desc.Width * GetFormatBPP(desc.Format) + 7) / 8;
 		}
-
-
-		bool dx10Header = false;
 
 		// special case a couple of formats to write out non-DX10 style, for
 		// backwards compatibility
@@ -1931,12 +1932,15 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 			default:
 			{
 				// just write out DX10 header
-				header.ddspf.dwFlags = DDPF_FOURCC;
-				header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', '1', '0');
-
 				dx10Header = true;
 				break;
 			}
+		}
+
+		if(dx10Header)
+		{
+			header.ddspf.dwFlags = DDPF_FOURCC;
+			header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', '1', '0');
 		}
 		
 		FILE *f = FileIO::fopen(path.c_str(), L"wb");
