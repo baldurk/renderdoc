@@ -76,6 +76,9 @@
     <Filter Include="Drivers\OpenGL\Function Wrappers">
       <UniqueIdentifier>{5e7e0e62-aba4-4256-b0ec-a1a7fbcba715}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\stb">
+      <UniqueIdentifier>{f22a6629-346c-400d-9706-7f999d539f6b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -293,6 +296,12 @@
     </ClInclude>
     <ClInclude Include="driver\gl\gl_shader_refl.h">
       <Filter>Drivers\OpenGL</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_image.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_image_write.h">
+      <Filter>3rdparty\stb</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -517,6 +526,9 @@
     </ClCompile>
     <ClCompile Include="driver\gl\gl_shader_refl.cpp">
       <Filter>Drivers\OpenGL</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\stb\stb_impl.cpp">
+      <Filter>3rdparty\stb</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

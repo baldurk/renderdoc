@@ -228,6 +228,8 @@
     <ClInclude Include="3rdparty\mhook\disasm-lib\disasm_x86_tables.h" />
     <ClInclude Include="3rdparty\mhook\disasm-lib\misc.h" />
     <ClInclude Include="3rdparty\mhook\mhook-lib\mhook.h" />
+    <ClInclude Include="3rdparty\stb\stb_image.h" />
+    <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\globalconfig.h" />
     <ClInclude Include="common\string_utils.h" />
@@ -301,6 +303,7 @@
     <ClCompile Include="3rdparty\mhook\disasm-lib\disasm_x86.c" />
     <ClCompile Include="3rdparty\mhook\disasm-lib\misc.c" />
     <ClCompile Include="3rdparty\mhook\mhook-lib\mhook.cpp" />
+    <ClCompile Include="3rdparty\stb\stb_impl.cpp" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\remote_access.cpp">
