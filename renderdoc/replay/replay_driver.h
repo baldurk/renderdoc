@@ -93,12 +93,12 @@ class IRemoteDriver
 		
 		virtual void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 
-		virtual vector<PixelModification> PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y) = 0;
+		virtual vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y) = 0;
 		virtual ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
 		virtual ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y) = 0;
 		virtual ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]) = 0;
 
-		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID) = 0;
+		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
 			
 		virtual bool IsRenderOutput(ResourceId id) = 0;
 	
@@ -122,15 +122,15 @@ class IReplayDriver : public IRemoteDriver
 		virtual bool IsOutputWindowVisible(uint64_t id) = 0;
 		virtual void FlipOutputWindow(uint64_t id) = 0;
 
-		virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval) = 0;
-		virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram) = 0;
+		virtual bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval) = 0;
+		virtual bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram) = 0;
 
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
 
 		virtual bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path) = 0;
 
-		virtual void RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg) = 0;
+		virtual void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
 		virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;
@@ -141,5 +141,5 @@ class IReplayDriver : public IRemoteDriver
 
 		virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 		
-		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4]) = 0;
+		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]) = 0;
 };

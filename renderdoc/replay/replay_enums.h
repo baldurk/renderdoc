@@ -123,6 +123,8 @@ enum TextureDisplayOverlay
 	eTexOverlay_ViewportScissor,
 	eTexOverlay_NaN,
 	eTexOverlay_Clipping,
+	eTexOverlay_QuadOverdrawPass,
+	eTexOverlay_QuadOverdrawDraw,
 };
 
 enum SpecialFormat

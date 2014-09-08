@@ -71,6 +71,13 @@ struct GLWindowingData
 
 class WrappedOpenGL;
 
+size_t BufferIdx(GLenum buf);
+GLenum BufferEnum(size_t idx);
+
+size_t ShaderIdx(GLenum buf);
+GLenum ShaderBit(size_t idx);
+GLenum ShaderEnum(size_t idx);
+
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 
@@ -173,6 +180,8 @@ enum GLChunkType
 	SCISSOR,
 	SCISSOR_ARRAY,
 	BINDVERTEXARRAY,
+	BINDVERTEXBUFFER,
+	VERTEXDIVISOR,
 	UNIFORM_MATRIX,
 	UNIFORM_VECTOR,
 	DRAWARRAYS,
@@ -220,6 +229,9 @@ enum GLChunkType
 	VERTEXATTRIBIPOINTER,
 	ENABLEVERTEXATTRIBARRAY,
 	DISABLEVERTEXATTRIBARRAY,
+	VERTEXATTRIBFORMAT,
+	VERTEXATTRIBIFORMAT,
+	VERTEXATTRIBBINDING,
 	
 	OBJECT_LABEL,
 	BEGIN_EVENT,

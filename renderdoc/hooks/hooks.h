@@ -35,9 +35,6 @@ using std::map;
 
 #if defined(WIN32)
 
-#define USE_MHOOK 0
-#define USE_IAT_HOOK 1
-
 #if USE_MHOOK
 	#include "3rdparty/mhook/mhook-lib/mhook.h"
 #elif USE_IAT_HOOK

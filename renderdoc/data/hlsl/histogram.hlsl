@@ -55,7 +55,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				uint4 data = SampleTextureUInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -85,7 +85,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				int4 data = SampleTextureInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -115,7 +115,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-													HistogramSlice, HistogramMip, texDim);
+													HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -228,7 +228,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #if UINT_TEX
 			{
 				uint4 data = SampleTextureUInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				uint sum = 0;
@@ -268,7 +268,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #elif SINT_TEX
 			{
 				int4 data = SampleTextureInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				int sum = 0;
@@ -308,7 +308,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #else
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-					HistogramSlice, HistogramMip, texDim);
+					HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				float sum = 0.0f;

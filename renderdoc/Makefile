@@ -4,7 +4,7 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
-			 -DRENDERDOC_VERSION_STRING='"0.20"'
+			 -DRENDERDOC_VERSION_STRING='"0.21"'
 CFLAGS=-c -Wall -Werror -Wno-error=format -fPIC $(MACROS) -I.
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
@@ -14,7 +14,6 @@ replay/entry_points.o \
 replay/basic_types.o \
 hooks/hooks.o \
 hooks/gl_linux_hooks.o \
-hooks/linux_libentry.o \
 serialise/serialiser.o \
 common/common.o \
 core/remote_access.o \
@@ -59,7 +58,8 @@ os/linux/linux_callstack.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
 os/linux/linux_stringio.o \
-os/linux/linux_threading.o
+os/linux/linux_threading.o \
+hooks/linux_libentry.o
 
 all: librenderdoc.so
 

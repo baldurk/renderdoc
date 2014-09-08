@@ -103,6 +103,9 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
 	u_long enable = 0;
 	ioctlsocket(socket, FIONBIO, &enable);
+	
+	DWORD timeout = 3000;
+	setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout, sizeof(timeout));
 
 	while(sent < length)
 	{
@@ -130,6 +133,9 @@ bool Socket::SendDataBlocking(const void *buf, uint32_t length)
 
 	enable = 1;
 	ioctlsocket(socket, FIONBIO, &enable);
+
+	timeout = 600000;
+	setsockopt(socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&timeout, sizeof(timeout));
 
 	RDCASSERT(sent == length);
 
@@ -175,6 +181,9 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 	
 	u_long enable = 0;
 	ioctlsocket(socket, FIONBIO, &enable);
+	
+	DWORD timeout = 3000;
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout));
 
 	while(received < length)
 	{
@@ -207,6 +216,9 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 	
 	enable = 1;
 	ioctlsocket(socket, FIONBIO, &enable);
+	
+	timeout = 600000;
+	setsockopt(socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout));
 
 	RDCASSERT(received == length);
 

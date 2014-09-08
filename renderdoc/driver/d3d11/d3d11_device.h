@@ -129,6 +129,7 @@ class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
 class WrappedID3D11Device :
+	public IFrameCapturer,
 #if defined(INCLUDE_D3D_11_1)
 	public ID3D11Device1
 #else
@@ -140,6 +141,12 @@ private:
 	// large-scale init until some point that we know we're the real device
 	void LazyInit();
 
+	enum {
+		eInitialContents_Copy = 0,
+		eInitialContents_ClearRTV = 1,
+		eInitialContents_ClearDSV = 2,
+	};
+		
 	D3D11Replay m_Replay;
 
 	DummyID3D11InfoQueue m_DummyInfo;
@@ -171,6 +178,7 @@ private:
 	Serialiser *m_pSerialiser;
 	Serialiser *m_pDebugSerialiser;
 	LogState m_State;
+	bool m_AppControlledCapture;
 	
 	set<ID3D11DeviceChild *> m_CachedStateObjects;
 	set<WrappedID3D11DeviceContext *> m_DeferredContexts;
@@ -239,13 +247,17 @@ public:
 	
 	void Serialise_CaptureScope(uint64_t offset);
 
+	void StartFrameCapture(void *wnd);
+	void SetActiveWindow(void *wnd);
+	bool EndFrameCapture(void *wnd);
+
 	////////////////////////////////////////////////////////////////
 	// log replaying
 	
 	bool Prepare_InitialState(ID3D11DeviceChild *res);
 	bool Serialise_InitialState(ID3D11DeviceChild *res);
 	void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
-	void Apply_InitialState(ID3D11DeviceChild *live, ID3D11DeviceChild *initial, uint32_t count);
+	void Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial);
 
 	void ReadLogInitialisation();
 	void ProcessChunk(uint64_t offset, D3D11ChunkType context);

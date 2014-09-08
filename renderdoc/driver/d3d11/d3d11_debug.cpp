@@ -780,6 +780,13 @@ bool D3D11DebugManager::InitDebugRendering()
 	m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 	m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
 	m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+
+	m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+	m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+
+	m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+	m_DebugRender.PixelHistoryDepthCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyDepthStencil", "cs_5_0");
+	m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
 	
 	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
 
@@ -828,6 +835,7 @@ bool D3D11DebugManager::InitDebugRendering()
 	RDCCOMPILE_ASSERT(eTexType_Stencil == RESTYPE_DEPTH_STENCIL, "Tex type enum doesn't match shader defines");
 	RDCCOMPILE_ASSERT(eTexType_DepthMS == RESTYPE_DEPTH_MS, "Tex type enum doesn't match shader defines");
 	RDCCOMPILE_ASSERT(eTexType_StencilMS == RESTYPE_DEPTH_STENCIL_MS, "Tex type enum doesn't match shader defines");
+	RDCCOMPILE_ASSERT(eTexType_2DMS == RESTYPE_TEX2D_MS, "Tex type enum doesn't match shader defines");
 
 	D3D11_BLEND_DESC blendDesc;
 	RDCEraseEl(blendDesc);
@@ -848,6 +856,16 @@ bool D3D11DebugManager::InitDebugRendering()
 	if(FAILED(hr))
 	{
 		RDCERR("Failed to create default blendstate %08x", hr);
+	}
+
+	blendDesc.RenderTarget[0].BlendEnable = FALSE;
+	blendDesc.RenderTarget[0].RenderTargetWriteMask = 0;
+
+	hr = m_pDevice->CreateBlendState(&blendDesc, &m_DebugRender.NopBlendState);
+
+	if(FAILED(hr))
+	{
+		RDCERR("Failed to create nop blendstate %08x", hr);
 	}
 	
 	D3D11_RASTERIZER_DESC rastDesc;
@@ -919,6 +937,54 @@ bool D3D11DebugManager::InitDebugRendering()
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to create less-equal depthstencilstate %08x", hr);
+		}
+
+		desc.DepthFunc = D3D11_COMPARISON_ALWAYS;
+		desc.StencilEnable = TRUE;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.AllPassDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass depthstencilstate %08x", hr);
+		}
+
+		desc.DepthEnable = FALSE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+		desc.StencilReadMask = desc.StencilWriteMask = 0;
+		desc.StencilEnable = FALSE;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.NopDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create nop depthstencilstate %08x", hr);
+		}
+		
+		desc.StencilReadMask = desc.StencilWriteMask = 0xff;
+		desc.StencilEnable = TRUE;
+		desc.BackFace.StencilFailOp = desc.BackFace.StencilPassOp = desc.BackFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR_SAT;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		desc.FrontFace.StencilFailOp = desc.FrontFace.StencilPassOp = desc.FrontFace.StencilDepthFailOp = D3D11_STENCIL_OP_INCR_SAT;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.AllPassIncrDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
+		}
+		
+		desc.DepthEnable = TRUE;
+		desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+		desc.BackFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+		desc.FrontFace.StencilFunc = D3D11_COMPARISON_EQUAL;
+		
+		hr = m_pDevice->CreateDepthStencilState(&desc, &m_DebugRender.StencIncrEqDepthState);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create always pass stencil increment depthstencilstate %08x", hr);
 		}
 	}
 
@@ -1855,7 +1921,7 @@ uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)
 	return ret;
 }
 
-bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
 	if(minval >= maxval) return false;
 	
@@ -1872,6 +1938,8 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 	cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth>>mip, 1U);
 	cdata.HistogramSlice = (float)sliceFace;
 	cdata.HistogramMip = mip;
+	cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount-1);
+	if(sample == ~0U) cdata.HistogramSample = -int(details.sampleCount);
 	cdata.HistogramMin = minval;
 	cdata.HistogramMax = maxval;
 	cdata.HistogramChannels = 0;
@@ -1949,7 +2017,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 	return true;
 }
 		
-bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, true);
 
@@ -1964,6 +2032,8 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	cdata.HistogramTextureResolution.z = (float)RDCMAX(details.texDepth>>mip, 1U);
 	cdata.HistogramSlice = (float)sliceFace;
 	cdata.HistogramMip = mip;
+	cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, details.sampleCount-1);
+	if(sample == ~0U) cdata.HistogramSample = -int(details.sampleCount);
 	cdata.HistogramMin = 0.0f;
 	cdata.HistogramMax = 1.0f;
 	cdata.HistogramChannels = 0xf;
@@ -2837,8 +2907,13 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 		details.texDepth = 1;
 		details.texArraySize = desc2d.ArraySize;
 		details.texMips = desc2d.MipLevels;
-		details.sampleCount = desc2d.SampleDesc.Count;
+		details.sampleCount = RDCMAX(1U, desc2d.SampleDesc.Count);
 		details.sampleQuality = desc2d.SampleDesc.Quality;
+
+		if(desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0)
+		{
+			details.texType = eTexType_2DMS;
+		}
 		
 		if(mode == TEXDISPLAY_DEPTH_TARGET || IsDepthFormat(details.texFmt))
 		{
@@ -2887,9 +2962,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 			else
 			{
 				desc.Format = srvFormat;
-
-				desc.SampleDesc.Count = 1;
-				desc.SampleDesc.Quality = 0;
 			}
 
 			if(!cache.created)
@@ -2907,23 +2979,10 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
 			details.previewCopy = cache.srvResource;
 
-			if(desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0)
-			{
-				if(mode == TEXDISPLAY_DEPTH_TARGET)
-				{
+			if((desc2d.SampleDesc.Count > 1 || desc2d.SampleDesc.Quality > 0) && mode == TEXDISPLAY_DEPTH_TARGET)
 					msaaDepth = true;
-					m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
-				}
-				else
-				{
-					for(UINT sub=0; sub < desc.MipLevels*desc.ArraySize; sub++)
-						m_pImmediateContext->ResolveSubresource(details.previewCopy, sub, details.srvResource, sub, srvFormat);
-				}
-			}
-			else
-			{
-				m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
-			}
+
+			m_pImmediateContext->CopyResource(details.previewCopy, details.srvResource);
 
 			details.srvResource = details.previewCopy;
 		}
@@ -3001,6 +3060,10 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 	srvDesc[eTexType_2D].Texture2DArray.FirstArraySlice = 0;
 	srvDesc[eTexType_2D].Texture2DArray.MipLevels = details.texMips;
 	srvDesc[eTexType_2D].Texture2DArray.MostDetailedMip = 0;
+	
+	srvDesc[eTexType_2DMS].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+	srvDesc[eTexType_2DMS].Texture2DMSArray.ArraySize = details.texArraySize;
+	srvDesc[eTexType_2DMS].Texture2DMSArray.FirstArraySlice = 0;
 
 	srvDesc[eTexType_Stencil] = srvDesc[eTexType_Depth] = srvDesc[eTexType_2D];
 
@@ -3063,9 +3126,8 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 
 	if(msaaDepth)
 	{
-		srvDesc[eTexType_Stencil].ViewDimension = 
-			srvDesc[eTexType_Depth].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
-
+		srvDesc[eTexType_Stencil].ViewDimension = srvDesc[eTexType_Depth].ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2DMSARRAY;
+		
 		srvDesc[eTexType_Depth].Texture2DMSArray.ArraySize = srvDesc[eTexType_2D].Texture2DArray.ArraySize;
 		srvDesc[eTexType_Stencil].Texture2DMSArray.ArraySize = srvDesc[eTexType_2D].Texture2DArray.ArraySize;
 		srvDesc[eTexType_Depth].Texture2DMSArray.FirstArraySlice = srvDesc[eTexType_2D].Texture2DArray.FirstArraySlice;
@@ -3275,6 +3337,14 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 	pixelData.FlipY = cfg.FlipY ? 1 : 0;
 	
 	TextureShaderDetails details = GetShaderDetails(cfg.texid, cfg.rawoutput ? true : false);
+
+	static int sampIdx = 0;
+	
+	pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount-1);
+
+	// hacky resolve
+	if(cfg.sampleIdx == ~0U)
+		pixelData.SampleIdx = -int(details.sampleCount);
 	
 	if(details.texFmt == DXGI_FORMAT_UNKNOWN)
 		return false;
@@ -3447,6 +3517,10 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 	else if(details.texType == eTexType_StencilMS)
 	{
 		pixelData.OutputDisplayFormat = RESTYPE_DEPTH_STENCIL_MS;
+	}
+	else if(details.texType == eTexType_2DMS)
+	{
+		pixelData.OutputDisplayFormat = RESTYPE_TEX2D_MS;
 	}
 	
 	if(cfg.overlay == eTexOverlay_NaN)
@@ -4223,7 +4297,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 }
 
-void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
 	DebugVertexCBuffer vertexData;
 
@@ -4299,9 +4373,9 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 		float nearp = 0.1f;
 		float farp = 1000.0f;
 
-		for(size_t i=0; i < eventID.size(); i++)
+		for(size_t i=0; i < events.size(); i++)
 		{
-			PostVSData data = GetPostVSBuffers(frameID, eventID[i]);
+			PostVSData data = GetPostVSBuffers(frameID, events[i]);
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 
 			if(stage.buf && stage.nearPlane != stage.farPlane)
@@ -4339,15 +4413,15 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 		{
 			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
 
-			if(eventID.size() > 1)
+			if(events.size() > 1)
 			{
 				pixelData.WireframeColour = Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
 				FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 			}
 
-			for(size_t i=0; i < eventID.size()-1; i++)
+			for(size_t i=0; i < events.size()-1; i++)
 			{
-				PostVSData data = GetPostVSBuffers(frameID, eventID[i]);
+				PostVSData data = GetPostVSBuffers(frameID, events[i]);
 				const PostVSData::StageData &stage = data.GetStage(cfg.type);
 
 				if(stage.buf)
@@ -4366,7 +4440,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 			pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
-			PostVSData data = GetPostVSBuffers(frameID, eventID.back());
+			PostVSData data = GetPostVSBuffers(frameID, events.back());
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 			if(stage.buf)
 			{
@@ -4544,7 +4618,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 				m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
 			}
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 			
 			if(cfg.solidShadeMode == eShade_Lit)
 				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -4563,7 +4637,7 @@ void D3D11DebugManager::RenderMesh(int frameID, vector<int> eventID, MeshDisplay
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-			m_WrappedDevice->ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 		}
 	}
 

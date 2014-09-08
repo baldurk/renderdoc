@@ -107,8 +107,6 @@ class WrappedIDXGISwapChain : public IDXGISwapChain, public RefCountDXGIObject
   static const int MAX_NUM_BACKBUFFERS = 4;
 
   ID3D11Resource *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
-
-	bool m_bFullscreen;
 public:
 	WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11Device *device);
 	virtual ~WrappedIDXGISwapChain();

@@ -784,10 +784,10 @@ bool ProxySerialiser::Tick()
 			RemoveReplacement(ResourceId());
 			break;
 		case eCommand_RenderOverlay:
-			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0);
+			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0, vector<uint32_t>());
 			break;
 		case eCommand_PixelHistory:
-			PixelHistory(0, vector<uint32_t>(), ResourceId(), 0, 0);
+			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0);
 			break;
 		case eCommand_DebugVertex:
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
@@ -1270,18 +1270,21 @@ PostVSMeshData ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t even
 	return ret;
 }
 
-ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	ResourceId ret;
-	
+
+	vector<uint32_t> events = passEvents;
+
 	m_ToReplaySerialiser->Serialise("", texid);
 	m_ToReplaySerialiser->Serialise("", overlay);
 	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
+	m_ToReplaySerialiser->Serialise("", events);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->RenderOverlay(texid, overlay, frameID, eventID);
+		ret = m_Remote->RenderOverlay(texid, overlay, frameID, eventID, events);
 	}
 	else
 	{
@@ -1477,7 +1480,7 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 	}
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
 {
 	vector<PixelModification> ret;
 	

@@ -492,7 +492,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 	return initialState;
 }
 
-void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
+void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
 {
 	for(int i=0; UAVs != NULL && i+UAVStartSlot < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
 	{
@@ -507,9 +507,36 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			D3D11_UNORDERED_ACCESS_VIEW_DESC udesc;
 			UAVs[i]->GetDesc(&udesc);
 
+			DXGI_FORMAT format = DXGI_FORMAT_UNKNOWN;
+
 			if(udesc.Format != DXGI_FORMAT_UNKNOWN)
+				format = udesc.Format;
+
+			if(format == DXGI_FORMAT_UNKNOWN)
 			{
-				ResourceFormat fmt = MakeResourceFormat(udesc.Format);
+				if(WrappedID3D11Texture1D::IsAlloc(res))
+				{
+					D3D11_TEXTURE1D_DESC desc;
+					((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
+					format = desc.Format;
+				}
+				else if(WrappedID3D11Texture2D::IsAlloc(res))
+				{
+					D3D11_TEXTURE2D_DESC desc;
+					((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
+					format = desc.Format;
+				}
+				else if(WrappedID3D11Texture3D::IsAlloc(res))
+				{
+					D3D11_TEXTURE3D_DESC desc;
+					((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
+					format = desc.Format;
+				}
+			}
+
+			if(format != DXGI_FORMAT_UNKNOWN)
+			{
+				ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(udesc.Format));
 
 				global.uavs[dsti].format.byteWidth = fmt.compByteWidth;
 				global.uavs[dsti].format.numComps = fmt.compCount;
@@ -535,7 +562,137 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 				}
 				else
 				{
-					RDCERR("UAVs of textures currently not supported in shader debugging");
+					global.uavs[dsti].tex = true;
+
+					uint32_t &rowPitch = global.uavs[dsti].rowPitch;
+					uint32_t &depthPitch = global.uavs[dsti].depthPitch;
+
+					vector<byte> &data = global.uavs[dsti].data;
+
+					if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D ||
+					   udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
+					{
+						D3D11_TEXTURE1D_DESC desc;
+						((WrappedID3D11Texture1D *)res)->GetDesc(&desc);
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+
+						ID3D11Texture1D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture1D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture1D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+
+						rowPitch = 0;
+						depthPitch = 0;
+						size_t datasize = GetByteSize(desc.Width, 1, 1, desc.Format, udesc.Texture1D.MipSlice);
+						
+						uint32_t numSlices = 1;
+
+						byte *srcdata = (byte *)mapped.pData;
+						if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
+						{
+							rowPitch = mapped.RowPitch;
+							srcdata += udesc.Texture1DArray.FirstArraySlice * rowPitch;
+							numSlices = udesc.Texture1DArray.ArraySize;
+							datasize = numSlices * rowPitch;
+						}
+
+						data.resize(datasize);
+
+						// copy with all padding etc intact
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture1D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D ||
+					        udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+					{
+						D3D11_TEXTURE2D_DESC desc;
+						((WrappedID3D11Texture2D *)res)->GetDesc(&desc);
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+						
+						ID3D11Texture2D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture2D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+
+						// MipSlice in union is shared between Texture2D and Texture2DArray unions, so safe to use either
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture2D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+
+						rowPitch = mapped.RowPitch;
+						depthPitch = 0;
+						size_t datasize = rowPitch * desc.Height;
+						
+						uint32_t numSlices = 1;
+
+						byte *srcdata = (byte *)mapped.pData;
+						if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
+						{
+							depthPitch = mapped.DepthPitch;
+							srcdata += udesc.Texture2DArray.FirstArraySlice * depthPitch;
+							numSlices = udesc.Texture2DArray.ArraySize;
+							datasize = numSlices * depthPitch;
+						}
+						
+						// copy with all padding etc intact
+						data.resize(datasize);
+						
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture2D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+					else if(udesc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
+					{
+						D3D11_TEXTURE3D_DESC desc;
+						((WrappedID3D11Texture3D *)res)->GetDesc(&desc);
+
+						desc.MiscFlags = 0;
+						desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ|D3D11_CPU_ACCESS_WRITE;
+						desc.BindFlags = 0;
+						desc.Usage = D3D11_USAGE_STAGING;
+						
+						ID3D11Texture3D *stagingTex = NULL;
+						m_WrappedDevice->CreateTexture3D(&desc, NULL, &stagingTex);
+
+						m_WrappedContext->CopyResource(stagingTex, res);
+						
+						// MipSlice in union is shared between Texture2D and Texture2DArray unions, so safe to use either
+						D3D11_MAPPED_SUBRESOURCE mapped;
+						m_WrappedContext->Map(stagingTex, udesc.Texture3D.MipSlice, D3D11_MAP_READ, 0, &mapped);
+						
+						rowPitch = mapped.RowPitch;
+						depthPitch = mapped.DepthPitch;
+
+						byte *srcdata = (byte *)mapped.pData;
+						srcdata += udesc.Texture3D.FirstWSlice * mapped.DepthPitch;
+						uint32_t numSlices = udesc.Texture3D.WSize;
+						size_t datasize = depthPitch * numSlices;
+
+						data.resize(datasize);
+						
+						// copy with all padding etc intact
+						memcpy(&data[0], srcdata, datasize);
+
+						m_WrappedContext->Unmap(stagingTex, udesc.Texture3D.MipSlice);
+
+						SAFE_RELEASE(stagingTex);
+					}
+
 				}
 			}
 
@@ -589,6 +746,32 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			}
 
 			SAFE_RELEASE(res);
+		}
+	}
+
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
+	{
+		if(dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+		   dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+		{
+			uint32_t slot = (uint32_t)dxbc->m_Declarations[i].operand.indices[0].index;
+
+			if(global.groupshared.size() <= slot)
+			{
+				global.groupshared.resize(slot+1);
+
+				ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
+
+				mem.structured = (dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+
+				mem.count = dxbc->m_Declarations[i].count;
+				if(mem.structured)
+					mem.bytestride= dxbc->m_Declarations[i].stride;
+				else
+					mem.bytestride= 4; // raw groupshared is implicitly uint32s
+
+				mem.data.resize(mem.bytestride*mem.count);
+			}
 		}
 	}
 }
@@ -691,7 +874,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, 0, NULL, rs->VS.SRVs);
+	CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
 	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
 	for(int32_t i=0; i < ret.inputs.count; i++)
@@ -1037,24 +1220,24 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint covge; PSInput IN; float derivValid; PSInput INddx; PSInput INddy; };\n\n";
 	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
 	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage)\n{\n";
-	extractHlsl += "if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2) {\n";
-	extractHlsl += "uint idx = 0;\n";
-	extractHlsl += "InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n";
-	extractHlsl += "if(idx < " + ToStr::Get(overdrawLevels) + ") {\n";
-	extractHlsl += "PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
-	extractHlsl += "PSInitialBuffer[idx].prim = prim;\n";
-	extractHlsl += "PSInitialBuffer[idx].covge = covge;\n";
-	extractHlsl += "PSInitialBuffer[idx].IN = IN;\n";
-	extractHlsl += "PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
-	extractHlsl += "PSInitialBuffer[idx].INddx = (PSInput)0;\n";
-	extractHlsl += "PSInitialBuffer[idx].INddy = (PSInput)0;\n";
+	extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
+	extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2)\n";
+	extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
+	extractHlsl += "  idx = min(idx, " + ToStr::Get(overdrawLevels) + ");\n\n";
+	extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
+	extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
+	extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
+	extractHlsl += "  PSInitialBuffer[idx].IN = IN;\n";
+	extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddx = (PSInput)0;\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddy = (PSInput)0;\n";
 	for(size_t i=0; i < floatInputs.size(); i++)
 	{
 		const string &name = floatInputs[i];
-		extractHlsl += "PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
-		extractHlsl += "PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
 	}
-	extractHlsl += "}\n}\n}";
+	extractHlsl += "\n}";
 
 	ID3D11PixelShader *extract = MakePShader(extractHlsl.c_str(), "ExtractInputsPS", "ps_5_0");
 
@@ -1073,7 +1256,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	bdesc.MiscFlags = D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
 	bdesc.Usage = D3D11_USAGE_DEFAULT;
 	bdesc.StructureByteStride = structStride;
-	bdesc.ByteWidth = bdesc.StructureByteStride * overdrawLevels;
+	bdesc.ByteWidth = bdesc.StructureByteStride * (overdrawLevels+1);
 
 	ID3D11Buffer *initialBuf = NULL;
 	hr = m_pDevice->CreateBuffer(&bdesc, NULL, &initialBuf);
@@ -1103,7 +1286,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	uavdesc.Format = DXGI_FORMAT_UNKNOWN;
 	uavdesc.Buffer.FirstElement = 0;
 	uavdesc.Buffer.Flags = 0;
-	uavdesc.Buffer.NumElements = overdrawLevels;
+	uavdesc.Buffer.NumElements = overdrawLevels+1;
 	uavdesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
 
 	ID3D11UnorderedAccessView *initialUAV = NULL;
@@ -1198,7 +1381,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	DebugHit *winner = NULL;
 
-	for(size_t i=0; i < buf[0].numHits; i++)
+	for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
 	{
 		DebugHit *hit = (DebugHit *)(initialData+i*structStride);
 
@@ -1233,7 +1416,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	ShaderDebugTrace traces[4];
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
+	CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
 
 	{
 		DebugHit *hit = winner;
@@ -1267,7 +1450,9 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			if(i != destIdx)
 				traces[i] = traces[destIdx];
 			quad[i] = initialState;
-			quad[i].SetTrace(&traces[i]);
+			quad[i].SetTrace(i, &traces[i]);
+			if(i != destIdx)
+				quad[i].SetHelper();
 		}
 
 		float *ddx = (float *)data;
@@ -1340,19 +1525,26 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	states.push_back((State)quad[destIdx]);
 	
+	// ping pong between so that we can have 'current' quad to update into new one
+	State quad2[4];
+
+	State *curquad = quad;
+	State *newquad = quad2;
+
 	// simulate lockstep until all threads are finished
 	bool finished = true;
 	do
 	{
 		for(size_t i = 0; i < 4; i++)
-		{
-			if(!quad[i].Finished())
-				quad[i] = quad[i].GetNext(global, quad);
-		}
-		
-		states.push_back((State)quad[destIdx]);
+			newquad[i] = curquad[i].GetNext(global, curquad);
 
-		finished = quad[destIdx].Finished();
+		State *a = curquad;
+		curquad = newquad;
+		newquad = a;
+		
+		states.push_back((State)curquad[destIdx]);
+
+		finished = curquad[destIdx].Finished();
 	}
 	while(!finished);
 
@@ -1396,7 +1588,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 		
 	GlobalState global;
-	CreateShaderGlobalState(global, 0, rs->CS.UAVs, rs->CS.SRVs);
+	CreateShaderGlobalState(global, dxbc, 0, rs->CS.UAVs, rs->CS.SRVs);
 	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 	
 	for(int i=0; i < 3; i++)
@@ -1424,7 +1616,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	return ret;
 }
 
-void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
 	m_pImmediateContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
 	
@@ -1454,6 +1646,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.FlipY = false;
 		texDisplay.mip = mip;
+		texDisplay.sampleIdx = sample;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
 		texDisplay.rangemin = 0.0f;
@@ -1638,6 +1831,8 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 
 		header.dwCaps2 = desc.ArraySize > 1 ? DDSCAPS2_VOLUME : 0;
 
+		bool dx10Header = false;
+
 		headerDXT10.dxgiFormat = GetTypedFormat(desc.Format);
 		headerDXT10.resourceDimension = D3D10_RESOURCE_DIMENSION_TEXTURE2D;
 		headerDXT10.arraySize = desc.ArraySize;
@@ -1645,8 +1840,10 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 		if(desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
 		{
 			header.dwCaps2 = DDSCAPS2_CUBEMAP;
-			headerDXT10.arraySize /= 6;
 		}
+
+		if(headerDXT10.arraySize > 1)
+			dx10Header = true; // need to specify dx10 header to give array size
 
 		if(IsBlockFormat(desc.Format))
 		{
@@ -1662,9 +1859,6 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 		{
 			header.dwPitchOrLinearSize = (desc.Width * GetFormatBPP(desc.Format) + 7) / 8;
 		}
-
-
-		bool dx10Header = false;
 
 		// special case a couple of formats to write out non-DX10 style, for
 		// backwards compatibility
@@ -1738,12 +1932,15 @@ bool D3D11DebugManager::SaveTexture(ResourceId id, uint32_t saveMip, wstring pat
 			default:
 			{
 				// just write out DX10 header
-				header.ddspf.dwFlags = DDPF_FOURCC;
-				header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', '1', '0');
-
 				dx10Header = true;
 				break;
 			}
+		}
+
+		if(dx10Header)
+		{
+			header.ddspf.dwFlags = DDPF_FOURCC;
+			header.ddspf.dwFourCC = MAKE_FOURCC('D', 'X', '1', '0');
 		}
 		
 		FILE *f = FileIO::fopen(path.c_str(), L"wb");
@@ -2111,6 +2308,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 	disp.HDRMul = -1.0f;
 	disp.linearDisplayAsGamma = true;
 	disp.mip = mip;
+	disp.sampleIdx = 0;
 	disp.overlay = eTexOverlay_None;
 	disp.rangemin = 0.0f;
 	disp.rangemax = 1.0f;
@@ -2171,7 +2369,7 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
 	}
 }
 
-ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	TextureShaderDetails details = GetShaderDetails(texid, false);
 
@@ -2533,6 +2731,171 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
 	}
+	else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
+	{
+		SCOPED_TIMER("Quad Overdraw");
+
+		vector<uint32_t> events = passEvents;
+
+		if(overlay == eTexOverlay_QuadOverdrawDraw)
+		{
+			events.clear();
+			events.push_back(eventID);
+		}
+
+		if(!events.empty())
+		{
+			if(overlay == eTexOverlay_QuadOverdrawPass)
+				m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+
+			D3D11RenderState *state = m_WrappedContext->GetCurrentPipelineState();
+
+			uint32_t width = 1920>>1;
+			uint32_t height = 1080>>1;
+			
+			{
+				ID3D11Resource *res = NULL;
+				if(state->OM.RenderTargets[0])
+				{
+					state->OM.RenderTargets[0]->GetResource(&res);
+				}
+				else if(state->OM.DepthView)
+				{
+					state->OM.DepthView->GetResource(&res);
+				}
+				else
+				{
+					RDCERR("Couldn't get size of existing targets");
+					return m_OverlayResourceId;
+				}
+
+				D3D11_RESOURCE_DIMENSION dim;
+				res->GetType(&dim);
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
+				{
+					D3D11_TEXTURE1D_DESC desc;
+					((ID3D11Texture1D *)res)->GetDesc(&desc);
+
+					width = desc.Width>>1;
+					height = 1;
+				}
+				else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					D3D11_TEXTURE2D_DESC desc;
+					((ID3D11Texture2D *)res)->GetDesc(&desc);
+
+					width = desc.Width>>1;
+					height = desc.Height>>1;
+				}
+				else
+				{
+					RDCERR("Trying to show quad overdraw on invalid view");
+					return m_OverlayResourceId;
+				}
+
+				SAFE_RELEASE(res);
+			}
+			
+			D3D11_TEXTURE2D_DESC uavTexDesc = {
+				width, height, 1U, 4U,
+				DXGI_FORMAT_R32_UINT,
+				{ 1, 0 },
+				D3D11_USAGE_DEFAULT,
+				D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE,
+				0,
+				0,
+			};
+
+			ID3D11Texture2D *overdrawTex = NULL;
+			ID3D11ShaderResourceView *overdrawSRV = NULL;
+			ID3D11UnorderedAccessView *overdrawUAV = NULL;
+
+			m_WrappedDevice->CreateTexture2D(&uavTexDesc, NULL, &overdrawTex);
+			m_WrappedDevice->CreateShaderResourceView(overdrawTex, NULL, &overdrawSRV);
+			m_WrappedDevice->CreateUnorderedAccessView(overdrawTex, NULL, &overdrawUAV);
+			
+			UINT val = 0;
+			m_WrappedContext->ClearUnorderedAccessViewUint(overdrawUAV, &val);
+
+			for(size_t i=0; i < events.size(); i++)
+			{
+				D3D11RenderState oldstate = *m_WrappedContext->GetCurrentPipelineState();
+
+				D3D11_DEPTH_STENCIL_DESC dsdesc = {
+					/*DepthEnable =*/ TRUE,
+					/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+					/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+					/*StencilEnable =*/ FALSE,
+					/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+					/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+					/*FrontFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+					/*BackFace =*/ { D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS },
+				};
+				ID3D11DepthStencilState *ds = NULL;
+
+				if(state->OM.DepthStencilState)
+					state->OM.DepthStencilState->GetDesc(&dsdesc);
+
+				dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+				dsdesc.StencilWriteMask = 0;
+
+				m_WrappedDevice->CreateDepthStencilState(&dsdesc, &ds);
+
+				m_WrappedContext->OMSetDepthStencilState(ds, oldstate.OM.StencRef);
+
+				SAFE_RELEASE(ds);
+
+				UINT UAVcount = 0;
+				m_WrappedContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, oldstate.OM.DepthView, 0, 1, &overdrawUAV, &UAVcount);
+
+				m_pImmediateContext->PSSetShader(m_DebugRender.QuadOverdrawPS, NULL, 0);
+				
+				m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+				oldstate.ApplyState(m_WrappedContext);
+
+				if(overlay == eTexOverlay_QuadOverdrawPass)
+				{
+					m_WrappedDevice->ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+					if(i+1 < events.size())
+						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+				}
+			}
+			
+			// resolve pass
+			{
+				m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+				m_pImmediateContext->PSSetShader(m_DebugRender.QOResolvePS, NULL, 0);
+				
+				ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(Vec4f)*21);
+
+				m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
+
+				m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+
+				m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
+				m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+				m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+
+				float clearColour[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+				m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+
+				ID3D11ShaderResourceView *srv = ((WrappedID3D11ShaderResourceView *)overdrawSRV)->GetReal();
+				m_pImmediateContext->PSSetShaderResources(0, 1, &srv);
+
+				m_pImmediateContext->Draw(3, 0);
+			}
+			
+			SAFE_RELEASE(overdrawTex);
+			SAFE_RELEASE(overdrawSRV);
+			SAFE_RELEASE(overdrawUAV);
+			
+			if(overlay == eTexOverlay_QuadOverdrawPass)
+				m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+		}
+	}
 	else if(preDrawDepth)
 	{
 		D3D11_DEPTH_STENCIL_DESC cur = {0};
@@ -2748,8 +3111,61 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 	return m_OverlayResourceId;
 }
+		
+void D3D11DebugManager::PixelHistoryDepthCopySubresource(bool depthbound, ID3D11Texture2D *uavres, ID3D11UnorderedAccessView *uav, ID3D11Resource *depthres,
+                                                         ID3D11ShaderResourceView **copyDepthSRV, ID3D11ShaderResourceView **copyStencilSRV,
+                                                         ID3D11Buffer *srcxyCBuf, ID3D11Buffer *storexyCBuf, uint32_t x, uint32_t y)
+{
+	if(depthbound && uavres && depthres)
+		m_pImmediateContext->CopySubresourceRegion(uavres, 0, 0, 0, 0, depthres, 0, NULL);
 
-vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+	ID3D11ComputeShader *curCS = NULL;
+	ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
+	UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
+	ID3D11Buffer *curCSCBuf[2] = {0};
+	ID3D11ShaderResourceView *curCSSRVs[2] = {0};
+	ID3D11UnorderedAccessView *curCSUAV = NULL;
+	UINT initCounts = ~0U;
+
+	m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
+	m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
+	m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
+	m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
+
+	uint32_t storexyData[4] = { x, y, (copyStencilSRV != NULL), 0 };
+
+	D3D11_MAPPED_SUBRESOURCE mapped;
+	m_pImmediateContext->Map(storexyCBuf, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+	memcpy(mapped.pData, storexyData, sizeof(storexyData));
+
+	m_pImmediateContext->Unmap(storexyCBuf, 0);
+
+	m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
+	m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initCounts);
+	if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
+	if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
+
+	m_pImmediateContext->CSSetShader(depthbound ? m_DebugRender.PixelHistoryDepthCopyCS : m_DebugRender.PixelHistoryUnusedCS, NULL, 0);
+	m_pImmediateContext->Dispatch(1, 1, 1);
+
+	m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
+	m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
+	m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
+
+	SAFE_RELEASE(curCS);
+	for(UINT i=0; i < curCSNumInst; i++)
+		SAFE_RELEASE(curCSInst[i]);
+	SAFE_RELEASE(curCSCBuf[0]);
+	SAFE_RELEASE(curCSCBuf[1]);
+	SAFE_RELEASE(curCSSRVs[0]);
+	SAFE_RELEASE(curCSSRVs[1]);
+	SAFE_RELEASE(curCSUAV);
+}
+
+vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
 {
 	vector<PixelModification> history;
 
@@ -2775,9 +3191,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Query *testQueries[6] = {0}; // one query for each test we do per-drawcall
 
-	// reserve 6 pixels per draw on average. Pre/Shaderout/Post required at minimum,
-	// and hopefully overdraw within draws will average to only 2 times.
-	uint32_t pixstoreSlots = (uint32_t)(events.size() * 6);
+	uint32_t pixstoreStride = 3;
+	
+	// reserve 3 pixels per draw (worst case all events). This is used for Pre value, Post value and
+	// # frag overdraw. It's reused later to retrieve per-fragment post values.
+	uint32_t pixstoreSlots = (uint32_t)(events.size() * pixstoreStride);
 
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
@@ -2795,6 +3213,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Texture2D *pixstore = NULL;
 	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &pixstore);
+	
+	// This is used for shader output values.
+	pixstoreDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+	ID3D11Texture2D *shadoutStore = NULL;
+	m_pDevice->CreateTexture2D(&pixstoreDesc, NULL, &shadoutStore);
 
 	// we use R32G32 so that we can bind this buffer as UAV and write to both depth and stencil components.
 	// the shader does the upcasting for us when we read from depth or stencil
@@ -2812,6 +3236,41 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11UnorderedAccessView *pixstoreDepthUAV = NULL;
 	m_pDevice->CreateUnorderedAccessView(pixstoreDepth, NULL, &pixstoreDepthUAV);
+	
+	// very wasteful, but we must leave the viewport as is to get correct rasterisation which means
+	// same dimensions of render target.
+	D3D11_TEXTURE2D_DESC shadoutDesc = {
+		details.texWidth,
+		details.texHeight,
+		1U,
+		1U,
+		DXGI_FORMAT_R32G32B32A32_FLOAT,
+		{ 1, 0 },
+		D3D11_USAGE_DEFAULT,
+		D3D11_BIND_RENDER_TARGET,
+		0,
+		0,
+	};
+	ID3D11Texture2D *shadOutput = NULL;
+	m_pDevice->CreateTexture2D(&shadoutDesc, NULL, &shadOutput);
+
+	ID3D11RenderTargetView *shadOutputRTV = NULL;
+	m_pDevice->CreateRenderTargetView(shadOutput, NULL, &shadOutputRTV);
+
+	shadoutDesc.Format = DXGI_FORMAT_R32G8X24_TYPELESS;
+	shadoutDesc.BindFlags = D3D11_BIND_DEPTH_STENCIL|D3D11_BIND_SHADER_RESOURCE;
+	ID3D11Texture2D *shaddepthOutput = NULL;
+	m_pDevice->CreateTexture2D(&shadoutDesc, NULL, &shaddepthOutput);
+
+	ID3D11DepthStencilView *shadOutputDSV = NULL;
+	{
+		D3D11_DEPTH_STENCIL_VIEW_DESC desc;
+		desc.Flags = 0;
+		desc.Format = DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
+		desc.ViewDimension = D3D11_DSV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipSlice = 0;
+		m_pDevice->CreateDepthStencilView(shaddepthOutput, &desc, &shadOutputDSV);
+	}
 	
 	// depth texture to copy to, as CopySubresourceRegion can't copy single pixels out of a depth buffer,
 	// and we can't guarantee that the original depth texture is SRV-compatible to allow single-pixel copies
@@ -2859,45 +3318,19 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	copyStencilSRVDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	copyStencilSRVDesc.Texture2D.MipLevels = 1;
 	copyStencilSRVDesc.Texture2D.MostDetailedMip = 0;
-
-	string unusedDepthHLSL =
-		"cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };\n" \
-		"cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };\n" \
-		"Texture2D<float2> depth_src : register(t0);\n" \
-		"Texture2D<uint2> stencil_src : register(t1);\n" \
-		"RWTexture2D<float2> depth_out : register(u0);\n" \
-		"\n" \
-		"[numthreads(1, 1, 1)]\n" \
-		"void main()\n";
 	
-	string copyDepthStencilHLSL = unusedDepthHLSL;
-
-	unusedDepthHLSL += "{ depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f); }";
-	copyDepthStencilHLSL +=
-		"{ depth_out[dst_coord.xy].rg = float2(" \
-		"depth_src[src_coord.xy].r, " \
-		"copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f); }";
-
-	ID3D11ComputeShader *unusedDepthCS = MakeCShader(unusedDepthHLSL.c_str(), "main", "cs_5_0");
-	ID3D11ComputeShader *copyDepthStencilCS = MakeCShader(copyDepthStencilHLSL.c_str(), "main", "cs_5_0");
-	ID3D11Buffer *srcxyCBuf = NULL;
-	ID3D11Buffer *storexyCBuf = NULL;
+	ID3D11ShaderResourceView *shaddepthOutputDepthSRV = NULL, *shaddepthOutputStencilSRV = NULL;
+	copyDepthSRVDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+	m_pDevice->CreateShaderResourceView(shaddepthOutput, &copyDepthSRVDesc, &shaddepthOutputDepthSRV);
+	copyDepthSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+	m_pDevice->CreateShaderResourceView(shaddepthOutput, &copyDepthSRVDesc, &shaddepthOutputStencilSRV);
 
 	uint32_t srcxyData[4] = { x, y, 0, 0 };
 
-	D3D11_BUFFER_DESC cbufDesc = {
-		sizeof(uint32_t)*4,
-		D3D11_USAGE_DEFAULT,
-		D3D11_BIND_CONSTANT_BUFFER,
-		0,
-		0,
-		0
-	};
-
 	D3D11_SUBRESOURCE_DATA data = { srcxyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4 };
-
-	m_pDevice->CreateBuffer(&cbufDesc, &data, &srcxyCBuf);
-	m_pDevice->CreateBuffer(&cbufDesc, NULL, &storexyCBuf);
+	
+	ID3D11Buffer *srcxyCBuf = MakeCBuffer((float *)srcxyData, sizeof(srcxyData));
+	ID3D11Buffer *storexyCBuf = MakeCBuffer((float *)srcxyData, sizeof(srcxyData));
 
 	// so we do:
 	// per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy--> pixstoreDepth
@@ -2958,39 +3391,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		m_pDevice->CreateQuery(&occlDesc, &testQueries[i]);
 
-	D3D11_BLEND_DESC nopBlendStateDesc = {0}; // no blending enabled anywhere, 0 write mask
-	ID3D11BlendState *nopBlendState = NULL;
-	m_pDevice->CreateBlendState(&nopBlendStateDesc, &nopBlendState);
-
-	D3D11_DEPTH_STENCIL_DESC nopDSStateDesc = { // no tests enabled, no writing enabled
-		FALSE, // DepthEnable;
-		D3D11_DEPTH_WRITE_MASK_ZERO, // DepthWriteMask;
-		D3D11_COMPARISON_ALWAYS, // DepthFunc;
-		FALSE, // StencilEnable;
-		0, // StencilReadMask;
-		0, // StencilWriteMask;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
-	};
-	ID3D11DepthStencilState *nopDSState = NULL;
-	m_pDevice->CreateDepthStencilState(&nopDSStateDesc, &nopDSState);
-	
-	D3D11_DEPTH_STENCIL_DESC allpassDSStateDesc = { // tests enabled to trivially pass, writing enabled
-		TRUE, // DepthEnable;
-		D3D11_DEPTH_WRITE_MASK_ALL, // DepthWriteMask;
-		D3D11_COMPARISON_ALWAYS, // DepthFunc;
-		TRUE, // StencilEnable;
-		0xff, // StencilReadMask;
-		0xff, // StencilWriteMask;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // FrontFace;
-		{ D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_COMPARISON_ALWAYS }, // BackFace;
-	};
-	ID3D11DepthStencilState *allpassDSState = NULL;
-	m_pDevice->CreateDepthStencilState(&allpassDSStateDesc, &allpassDSState);
-
-	m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
-
-	D3D11_VIEWPORT viewport = { (float)x, (float)y, 10.0f, 10.0f, 0.0f, 1.0f }; // 1x1 viewport of our destination pixel
+	m_WrappedDevice->ReplayLog(frameID, 0, events[0].eventID, eReplay_WithoutDraw);
 
 	ID3D11RasterizerState *curRS = NULL;
 	ID3D11RasterizerState *newRS = NULL;
@@ -3008,11 +3409,18 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	UINT curSample = 0;
 	ID3D11DepthStencilState *curDS = NULL;
 	UINT stencilRef = 0;
+	
+	D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
+
+	////////////////////////////////////////////////////////////////////////
+	// Main loop over each event to determine if it rasterized to this pixel
 
 	for(size_t ev=0; ev < events.size(); ev++)
 	{
 		curNumInst = D3D11_SHADER_MAX_INTERFACES;
 		curNumScissors = curNumViews = 16;
+
+		bool uavOutput = (events[ev].usage == eUsage_CS_UAV || events[ev].usage == eUsage_PS_UAV);
 
 		m_pImmediateContext->RSGetState(&curRS);
 		m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
@@ -3110,10 +3518,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			for(UINT i=0; i < curNumScissors && i < curNumViews; i++)
 			{
-				if(xf >= curViewports[i].TopLeftX + float(curScissors[i].left) &&
-					 yf >= curViewports[i].TopLeftY + float(curScissors[i].top) &&
-					 xf < curViewports[i].TopLeftX + RDCMIN(curViewports[i].Width, float(curScissors[i].right)) &&
-					 yf < curViewports[i].TopLeftY + RDCMIN(curViewports[i].Height, float(curScissors[i].bottom))
+				if(xf >= float(curScissors[i].left) &&
+					 yf >= float(curScissors[i].top) &&
+					 xf < float(curScissors[i].right) &&
+					 yf < float(curScissors[i].bottom)
 					)
 				{
 					inRegion = true;
@@ -3159,11 +3567,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		m_pDevice->CreateRasterizerState(&rd, &newRS);
 		m_pImmediateContext->RSSetState(newRS);
+		SAFE_RELEASE(newRS);
 
 		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
-		m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-		m_pImmediateContext->OMSetDepthStencilState(nopDSState, stencilRef);
+		m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NopDepthState, stencilRef);
 
 		for(UINT i=0; i < curNumViews; i++)
 		{
@@ -3179,8 +3588,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 			else
 			{
-				newScissors[i].left = LONG(xf - curViewports[i].TopLeftX);
-				newScissors[i].top = LONG(yf - curViewports[i].TopLeftY);
+				newScissors[i].left = LONG(x);
+				newScissors[i].top = LONG(y);
 				newScissors[i].right = newScissors[i].left+1;
 				newScissors[i].bottom = newScissors[i].top+1;
 			}
@@ -3189,14 +3598,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		// scissor every viewport
 		m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
-		D3D11_BOX srcbox = { x, y, 0, x+1, y+1, 1 };
-
 		// figure out where this event lies in the pixstore texture
-		UINT storex = UINT(ev % (2048/3));
-		UINT storey = UINT(ev / (2048/3));
+		UINT storex = UINT(ev % (2048/pixstoreStride));
+		UINT storey = UINT(ev / (2048/pixstoreStride));
 
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 0, storey, 0, targetres, 0, &srcbox);
-		
 		bool depthBound = false;
 		ID3D11Texture2D **copyTex = NULL;
 		ID3D11ShaderResourceView **copyDepthSRV = NULL;
@@ -3309,60 +3714,81 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 		}
 		
-		{
-			if(depthBound)
-				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
-			
-			ID3D11ComputeShader *curCS = NULL;
-			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
-			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
-			ID3D11Buffer *curCSCBuf[2] = {0};
-			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
-			ID3D11UnorderedAccessView *curCSUAV = NULL;
-			UINT initCounts = ~0U;
-
-			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
-			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
-
-			uint32_t storexyData[4] = { storex*3 + 0, storey, (copyStencilSRV != NULL), 0 };
-
-			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
-			
-			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
-			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
-
-			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
-			m_pImmediateContext->Dispatch(1, 1, 1);
-
-			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
-			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
-
-			SAFE_RELEASE(curCS);
-			for(UINT i=0; i < curCSNumInst; i++)
-				SAFE_RELEASE(curCSInst[i]);
-			SAFE_RELEASE(curCSCBuf[0]);
-			SAFE_RELEASE(curCSCBuf[1]);
-			SAFE_RELEASE(curCSSRVs[0]);
-			SAFE_RELEASE(curCSSRVs[1]);
-			SAFE_RELEASE(curCSUAV);
-		}
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*pixstoreStride + 0, storey, 0, targetres, 0, &srcbox);
+		
+		PixelHistoryDepthCopySubresource(depthBound, copyTex ? *copyTex : NULL, pixstoreDepthUAV, depthRes,
+																		 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
+																		 storex*pixstoreStride + 0, storey);
 
 		m_pImmediateContext->Begin(occl[ev]);
 
-		m_WrappedDevice->ReplayLog(frameID, 0, events[ev], eReplay_OnlyDraw);
+		// For UAV output we only want to replay once in pristine conditions (only fetching before/after values)
+		if(!uavOutput)
+			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
 
 		m_pImmediateContext->End(occl[ev]);
-
-		// TODO, if drawcall has side-effects (i.e UAVs bound) replay from start of log here?
-
+		
 		m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+
+		// determine how many fragments returned from the shader
+		if(!uavOutput)
+		{
+			D3D11_RASTERIZER_DESC rdsc = rsDesc;
+
+			rdsc.ScissorEnable = TRUE;
+			// leave depth clip mode as normal
+			// leave backface culling mode as normal
+
+			m_pDevice->CreateRasterizerState(&rdsc, &newRS);
+
+			m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+			m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassIncrDepthState, stencilRef);
+			m_pImmediateContext->RSSetState(newRS);
+			
+			SAFE_RELEASE(newRS);
+
+			ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+			m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, tmpViews, NULL);
+
+			uint32_t UAVStartSlot = 0;
+			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+			{
+				if(tmpViews[i] != NULL)
+				{
+					UAVStartSlot  = i+1;
+					SAFE_RELEASE(tmpViews[i]);
+				}
+			}
+
+			ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+			ID3D11UnorderedAccessView* prevUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+			ID3D11DepthStencilView *prevDSV = NULL;
+			m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
+			                                                               UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs);
+
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			m_pImmediateContext->OMSetRenderTargets(0, NULL, shadOutputDSV);
+
+			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+
+			UINT initCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, };
+			
+			m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, prevDSV, UAVStartSlot,
+			                                                               D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs, initCounts);
+			
+			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+			{
+				SAFE_RELEASE(prevRTVs[i]);
+				SAFE_RELEASE(prevUAVs[i]);
+			}
+			SAFE_RELEASE(prevDSV);
+			
+			PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
+																			 &shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
+																			 storex*pixstoreStride + 2, storey);
+		}
+
 		m_pImmediateContext->RSSetState(curRS);
 		m_pImmediateContext->RSSetScissorRects(curNumScissors, curScissors);
 		m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
@@ -3373,83 +3799,27 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		SAFE_RELEASE(curPS);
 		SAFE_RELEASE(curRS);
-		SAFE_RELEASE(newRS);
 		SAFE_RELEASE(curBS);
 		SAFE_RELEASE(curDS);
 
-		// deliberately include drawcall in this range so that it gets replayed with correct
-		// state (otherwise this draw e.g. wouldn't write depth when it should)
+		// replay only draw to get immediately post-modification values
+		m_WrappedDevice->ReplayLog(frameID, events[ev].eventID, events[ev].eventID, eReplay_OnlyDraw);
+		
+		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*pixstoreStride + 1, storey, 0, targetres, 0, &srcbox);
+		
+		PixelHistoryDepthCopySubresource(depthBound, copyTex ? *copyTex : NULL, pixstoreDepthUAV, depthRes,
+		                                 copyDepthSRV, copyStencilSRV, srcxyCBuf, storexyCBuf,
+		                                 storex*pixstoreStride + 1, storey);
+
 		if(ev < events.size()-1)
-			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev+1], eReplay_WithoutDraw);
-		else
-			m_WrappedDevice->ReplayLog(frameID, events[ev], events[ev], eReplay_OnlyDraw);
+			m_WrappedDevice->ReplayLog(frameID, events[ev].eventID+1, events[ev+1].eventID, eReplay_WithoutDraw);
 		
-		m_pImmediateContext->CopySubresourceRegion(pixstore, 0, storex*3 + 1, storey, 0, targetres, 0, &srcbox);
-		
-		{
-			if(depthBound)
-				m_pImmediateContext->CopySubresourceRegion(*copyTex, 0, 0, 0, 0, depthRes, 0, NULL);
-			
-			ID3D11ComputeShader *curCS = NULL;
-			ID3D11ClassInstance *curCSInst[D3D11_SHADER_MAX_INTERFACES] = { NULL };
-			UINT curCSNumInst = D3D11_SHADER_MAX_INTERFACES;
-			ID3D11Buffer *curCSCBuf[2] = {0};
-			ID3D11ShaderResourceView *curCSSRVs[2] = {0};
-			ID3D11UnorderedAccessView *curCSUAV = NULL;
-			UINT initCounts = ~0U;
-
-			m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
-			m_pImmediateContext->CSGetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSGetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSGetUnorderedAccessViews(0, 1, &curCSUAV);
-
-			uint32_t storexyData[4] = { storex*3 + 1, storey, (copyStencilSRV != NULL), 0 };
-
-			m_pImmediateContext->UpdateSubresource(storexyCBuf, 0, NULL, storexyData, sizeof(uint32_t)*4, sizeof(uint32_t)*4);
-			
-			m_pImmediateContext->CSSetConstantBuffers(0, 1, &srcxyCBuf);
-			m_pImmediateContext->CSSetConstantBuffers(1, 1, &storexyCBuf);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &pixstoreDepthUAV, &initCounts);
-			if(copyDepthSRV) m_pImmediateContext->CSSetShaderResources(0, 1, copyDepthSRV);
-			if(copyStencilSRV) m_pImmediateContext->CSSetShaderResources(1, 1, copyStencilSRV);
-			
-			m_pImmediateContext->CSSetShader(depthBound ? copyDepthStencilCS : unusedDepthCS, NULL, 0);
-			m_pImmediateContext->Dispatch(1, 1, 1);
-
-			m_pImmediateContext->CSSetShader(curCS, curCSInst, curCSNumInst);
-			m_pImmediateContext->CSSetConstantBuffers(0, 2, curCSCBuf);
-			m_pImmediateContext->CSSetShaderResources(0, 2, curCSSRVs);
-			m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &curCSUAV, &initCounts);
-
-			SAFE_RELEASE(curCS);
-			for(UINT i=0; i < curCSNumInst; i++)
-				SAFE_RELEASE(curCSInst[i]);
-			SAFE_RELEASE(curCSCBuf[0]);
-			SAFE_RELEASE(curCSCBuf[1]);
-			SAFE_RELEASE(curCSSRVs[0]);
-			SAFE_RELEASE(curCSSRVs[1]);
-			SAFE_RELEASE(curCSUAV);
-		}
-
 		SAFE_RELEASE(depthRes);
 	}
-
-	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
-
-	D3D11_MAPPED_SUBRESOURCE mapped = {0};
-	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
-
-	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
-	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
-
-	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
-
-	byte *pixstoreData = (byte *)mapped.pData;
 	
-	bool depthStencilTex = details.texType == eTexType_Depth || 
-		details.texType == eTexType_DepthMS ||
-		details.texType == eTexType_Stencil ||
-		details.texType == eTexType_StencilMS;
+	////////////////////////////////////////////////////////////////////////
+	// Second loop over each event to determine if it the above query returned
+	// true and narrow down which tests (if any) it failed
 
 	for(size_t i=0; i < occl.size(); i++)
 	{
@@ -3459,196 +3829,26 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		} while(hr == S_FALSE);
 		RDCASSERT(hr == S_OK);
 
-		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i]);
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, events[i].eventID);
 
 		bool clear = (draw->flags & eDraw_Clear);
 
-		if(occlData > 0 || clear)
+		if(occlData > 0 || clear || events[i].usage == eUsage_PS_UAV || events[i].usage == eUsage_CS_UAV)
 		{
 			PixelModification mod;
 			RDCEraseEl(mod);
 
-			mod.eventID = events[i];
+			uint32_t fragDupes = 1;
 
-			ResourceFormat fmt = MakeResourceFormat(details.texFmt);
+			mod.eventID = events[i].eventID;
 
-			// figure out where this event lies in the pixstore texture
-			uint32_t storex = uint32_t(i % (2048/3));
-			uint32_t storey = uint32_t(i / (2048/3));
+			mod.uavWrite = (events[i].usage == eUsage_PS_UAV || events[i].usage == eUsage_CS_UAV);
 
-			if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
-			{
-				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
-				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * storex * 3;
+			mod.preMod.col.value_u[0] = (uint32_t)i;
 
-				if(fmt.compType == eCompType_SInt)
-				{
-					// need to get correct sign, but otherwise just copy
-
-					if(fmt.compByteWidth == 1)
-					{
-						int8_t *d = (int8_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 2)
-					{
-						int16_t *d = (int16_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 4)
-					{
-						int32_t *d = (int32_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.preMod.col.value_i[c] = d[c];
-					}
-
-					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
-					
-					if(fmt.compByteWidth == 1)
-					{
-						int8_t *d = (int8_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 2)
-					{
-						int16_t *d = (int16_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-					else if(fmt.compByteWidth == 4)
-					{
-						int32_t *d = (int32_t*)data;
-						for(uint32_t c=0; c < fmt.compCount; c++)
-							mod.postMod.col.value_i[c] = d[c];
-					}
-				}
-				else
-				{
-					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.preMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
-
-					data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * 3 + 1);
-
-					for(uint32_t c=0; c < fmt.compCount; c++)
-						memcpy(&mod.postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
-
-					if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
-							mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
-						}
-					}
-					else if(fmt.compType == eCompType_UNorm)
-					{
-						// only 32bit unorm format is depth, handled separately
-						float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
-
-						RDCASSERT(fmt.compByteWidth < 4);
-
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
-							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
-						}
-					}
-					else if(fmt.compType == eCompType_UNorm_SRGB)
-					{
-						RDCASSERT(fmt.compByteWidth == 1);
-
-						for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
-						{
-							mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
-							mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
-						}
-
-						// alpha is not SRGB'd
-						if(fmt.compCount == 4)
-						{
-							mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
-							mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
-							mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -128)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/127.0f;
-
-							d = (int8_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -128)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/127.0f;
-						}
-					}
-					else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
-					{
-						for(uint32_t c=0; c < fmt.compCount; c++)
-						{
-							int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -32768)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
-
-							d = (int16_t *)&mod.preMod.col.value_u[c];
-
-							if(*d == -32768)
-								mod.preMod.col.value_f[c] = -1.0f;
-							else
-								mod.preMod.col.value_f[c] = float(*d)/32767.0f;
-						}
-					}
-				}
-			}
-
-			{
-				byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
-				float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * 3 + 0));
-				
-				mod.preMod.depth = data[0];
-				mod.preMod.stencil = int32_t(data[1]);
-
-				mod.postMod.depth = data[2];
-				mod.postMod.stencil = int32_t(data[3]);
-			}
-
-			// complex case - need to determine how many fragments from this draw wrote to the pixel and generate a
-			// PixelModification event for all of them.
-			//
-			// Is there any value in doing this anyway for non-blended cases where other fragments are completely discarded?
-			if(flags[i] & Blending_Enabled)
-			{
-			}
-			
-			mod.shaderOut.col.value_f[0] = mod.postMod.col.value_f[0];
-			mod.shaderOut.col.value_f[1] = mod.postMod.col.value_f[1];
-			mod.shaderOut.col.value_f[2] = mod.postMod.col.value_f[2];
-			mod.shaderOut.col.value_f[3] = mod.postMod.col.value_f[3];
-			mod.shaderOut.depth = mod.postMod.depth;
-			mod.shaderOut.stencil = mod.postMod.stencil;
-
-			if((draw->flags & eDraw_Clear) == 0)
+			if((draw->flags & eDraw_Clear) == 0 &&
+				 events[i].usage != eUsage_PS_UAV &&
+				 events[i].usage != eUsage_CS_UAV)
 			{
 				if(flags[i] & TestMustFail_DepthTesting)
 					mod.depthTestFailed = true;
@@ -3657,7 +3857,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				if(flags[i] & TestMustFail_Scissor)
 					mod.scissorClipped = true;
 
-				m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+				m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 				curNumScissors = curNumViews = 16;
 				m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
@@ -3681,6 +3881,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				};
 				if(curRS)
 					curRS->GetDesc(&rdesc);
+				
+				SAFE_RELEASE(curRS);
 
 				D3D11_DEPTH_STENCIL_DESC dsdesc = {
 					/*DepthEnable =*/ TRUE,
@@ -3696,6 +3898,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				if(curDS)
 					curDS->GetDesc(&dsdesc);
 
+				SAFE_RELEASE(curDS);
+
 				for(UINT v=0; v < curNumViews; v++)
 				{
 					// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
@@ -3710,8 +3914,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					}
 					else
 					{
-						newScissors[v].left = LONG(xf - curViewports[v].TopLeftX);
-						newScissors[v].top = LONG(yf - curViewports[v].TopLeftY);
+						newScissors[v].left = LONG(x);
+						newScissors[v].top = LONG(y);
 						newScissors[v].right = newScissors[v].left+1;
 						newScissors[v].bottom = newScissors[v].top+1;
 					}
@@ -3734,16 +3938,16 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
 					m_pImmediateContext->Begin(testQueries[3]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[3]);
 
@@ -3760,17 +3964,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
 					m_pImmediateContext->Begin(testQueries[0]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[0]);
 
@@ -3787,17 +3991,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
 					m_pImmediateContext->Begin(testQueries[1]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[1]);
 
@@ -3827,29 +4031,29 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 					for(UINT s=0; s < curNumScissors; s++)
 					{
-						if(curScissors[i].left > newScissors[i].left ||
-							curScissors[i].right < newScissors[i].right ||
-							curScissors[i].top > newScissors[i].top ||
-							curScissors[i].bottom < newScissors[i].bottom)
+						if(curScissors[s].left > newScissors[s].left ||
+							curScissors[s].right < newScissors[s].right ||
+							curScissors[s].top > newScissors[s].top ||
+							curScissors[s].bottom < newScissors[s].bottom)
 						{
 							// scissor region from the log doesn't touch our target pixel, make empty.
-							intersectScissors[i].left = intersectScissors[i].right = intersectScissors[i].top = intersectScissors[i].bottom = 0;
+							intersectScissors[s].left = intersectScissors[s].right = intersectScissors[s].top = intersectScissors[s].bottom = 0;
 						}
 					}
 
 					m_pDevice->CreateRasterizerState(&rd, &newRS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
-					m_pImmediateContext->OMSetDepthStencilState(allpassDSState, stencilRef);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumScissors, intersectScissors);
 
 					m_pImmediateContext->Begin(testQueries[2]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[2]);
 
@@ -3872,22 +4076,24 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					dsd.StencilEnable = TRUE;
 					dsd.StencilReadMask = 0xff;
 					dsd.StencilWriteMask = 0xff;
-					dsd.FrontFace = allpassDSStateDesc.FrontFace;
-					dsd.BackFace = allpassDSStateDesc.BackFace;
+					dsd.FrontFace.StencilDepthFailOp = dsd.FrontFace.StencilFailOp = dsd.FrontFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+					dsd.FrontFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
+					dsd.BackFace.StencilDepthFailOp = dsd.BackFace.StencilFailOp = dsd.BackFace.StencilPassOp = D3D11_STENCIL_OP_KEEP;
+					dsd.BackFace.StencilFunc = D3D11_COMPARISON_ALWAYS;
 
 					m_pDevice->CreateDepthStencilState(&dsd, &newDS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
 					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
 					m_pImmediateContext->Begin(testQueries[4]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[4]);
 
@@ -3909,17 +4115,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					// stencil isn't run
 					m_pDevice->CreateDepthStencilState(&dsdesc, &newDS);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_WithoutDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
 
 					m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
-					m_pImmediateContext->OMSetBlendState(nopBlendState, blendFactor, curSample);
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, curSample);
 					m_pImmediateContext->OMSetDepthStencilState(newDS, stencilRef);
 					m_pImmediateContext->RSSetState(newRS);
 					m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
 
 					m_pImmediateContext->Begin(testQueries[5]);
 
-					m_WrappedDevice->ReplayLog(frameID, 0, events[i], eReplay_OnlyDraw);
+					m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_OnlyDraw);
 
 					m_pImmediateContext->End(testQueries[5]);
 
@@ -3927,7 +4133,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					SAFE_RELEASE(newDS);
 				}
 
-				SAFE_RELEASE(curRS);
 
 				// we check these in the order defined, as a positive from the backface cull test
 				// will invalidate tests later (as they will also be backface culled)
@@ -4022,24 +4227,676 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			
 			history.push_back(mod);
 
-			RDCDEBUG("Event %u is visible", events[i]);
+			RDCDEBUG("Event %u is visible", events[i].eventID);
 			if(sizeof(occlData) == sizeof(UINT64)) // if we've changed from OCCLUSION_PREDICATE to OCCLUSION for debugging
 				RDCDEBUG("   %llu samples visible", occlData);
 		}
 
 		SAFE_RELEASE(occl[i]);
 	}
+	
+	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
 
+	D3D11_MAPPED_SUBRESOURCE mapped = {0};
+	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+
+	D3D11_MAPPED_SUBRESOURCE mappedDepth = {0};
+	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
+	
+	byte *pixstoreDepthData = (byte *)mappedDepth.pData;
+	byte *pixstoreData = (byte *)mapped.pData;
+	
+	////////////////////////////////////////////////////////////////////////////////////////
+	// Third loop over each modification event to read back the pre-draw colour + depth data
+	// as well as the # fragments to use in the next step
+	
+	ResourceFormat fmt = MakeResourceFormat(GetTypedFormat(details.texFmt));
+		
+	for(size_t h=0; h < history.size(); h++)
+	{
+		PixelModification &mod = history[h];
+
+		uint32_t pre = mod.preMod.col.value_u[0];
+
+		mod.preMod.col.value_u[0] = 0;
+
+		// figure out where this event lies in the pixstore texture
+		uint32_t storex = uint32_t(pre % (2048/pixstoreStride));
+		uint32_t storey = uint32_t(pre / (2048/pixstoreStride));
+
+		if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
+		{
+			byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+
+			for(int p=0; p < 2; p++)
+			{
+				byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (storex * pixstoreStride + p);
+
+				ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
+
+				if(fmt.compType == eCompType_SInt)
+				{
+					// need to get correct sign, but otherwise just copy
+
+					if(fmt.compByteWidth == 1)
+					{
+						int8_t *d = (int8_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							val->col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 2)
+					{
+						int16_t *d = (int16_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							val->col.value_i[c] = d[c];
+					}
+					else if(fmt.compByteWidth == 4)
+					{
+						int32_t *d = (int32_t*)data;
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							val->col.value_i[c] = d[c];
+					}
+				}
+				else
+				{
+					for(uint32_t c=0; c < fmt.compCount; c++)
+						memcpy(&val->col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+				}
+			}			
+		}
+		else
+		{
+			if(fmt.special && (fmt.specialFormat == eSpecial_R10G10B10A2 || fmt.specialFormat == eSpecial_R11G11B10))
+			{
+				byte *rowdata = pixstoreData + mapped.RowPitch * storey;
+
+				for(int p=0; p < 2; p++)
+				{
+					byte *data = rowdata + sizeof(uint32_t) * (storex * pixstoreStride + p);
+
+					uint32_t *u = (uint32_t *)data;
+					
+					ModificationValue *val = (p == 0 ? &mod.preMod : &mod.postMod);
+
+					Vec4f v;
+					if(fmt.specialFormat == eSpecial_R10G10B10A2)
+						v = ConvertFromR10G10B10A2(*u);
+					if(fmt.specialFormat == eSpecial_R11G11B10)
+					{
+						Vec3f v3 = ConvertFromR11G11B10(*u);
+						v = Vec4f(v3.x, v3.y, v3.z);
+					}
+
+					memcpy(&val->col.value_f[0], &v, sizeof(float)*4);
+				}
+			}
+			else
+			{
+				RDCWARN("need to fetch pixel values from special formats");
+			}
+		}
+
+		if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+		{
+			std::swap(mod.preMod.col.value_u[0], mod.preMod.col.value_u[3]);
+			std::swap(mod.preMod.col.value_u[1], mod.preMod.col.value_u[2]);
+
+			std::swap(mod.postMod.col.value_u[0], mod.postMod.col.value_u[3]);
+			std::swap(mod.postMod.col.value_u[1], mod.postMod.col.value_u[2]);
+		}
+
+		{
+			byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
+			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * pixstoreStride + 0));
+
+			mod.preMod.depth = data[0];
+			mod.preMod.stencil = int32_t(data[1]);
+
+			mod.postMod.depth = data[2];
+			mod.postMod.stencil = int32_t(data[3]);
+			
+			// data[4] unused
+			mod.shaderOut.col.value_i[0] = int32_t(data[5]); // fragments writing to the pixel in this event
+		}
+	}
+	
 	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
 	m_pImmediateContext->Unmap(pixstore, 0);
+
+	/////////////////////////////////////////////////////////////////////////
+	// simple loop to expand out the history events by number of fragments,
+	// duplicatinug and setting fragIndex in each
+	
+	for(size_t h=0; h < history.size(); )
+	{
+		int32_t frags = RDCMAX(1, history[h].shaderOut.col.value_i[0]);
+
+		PixelModification mod = history[h];
+
+		for(int32_t f=1; f < frags; f++)
+			history.insert(history.begin()+h+1, mod);
+
+		for(int32_t f=0; f < frags; f++)
+			history[h+f].fragIndex = f;
+
+		h += frags;
+	}
+
+	uint32_t prev = 0;
+	
+	/////////////////////////////////////////////////////////////////////////
+	// loop for each fragment, for non-final fragments fetch the post-output
+	// buffer value, and for each fetch the shader output value
+
+	uint32_t postColSlot = 0;
+	uint32_t shadColSlot = 0;
+	uint32_t depthSlot = 0;
+	
+	uint32_t rtIndex = 100000;
+	ID3D11RenderTargetView* RTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+
+	ID3D11DepthStencilState *ds = NULL;
+
+	for(size_t h=0; h < history.size(); h++)
+	{
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
+
+		if(draw->flags & eDraw_Clear)
+			continue;
+		
+		if(prev != history[h].eventID)
+		{
+			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_WithoutDraw);
+			prev = history[h].eventID;
+
+			curNumScissors = curNumViews = 16;
+			m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);
+
+			for(UINT v=0; v < curNumViews; v++)
+			{
+				// calculate scissor, relative to this viewport, that encloses only (x,y) pixel
+
+				// if (x,y) pixel isn't in viewport, make empty rect)
+				if(xf < curViewports[v].TopLeftX ||
+					yf < curViewports[v].TopLeftY ||
+					xf >= curViewports[v].TopLeftX + curViewports[v].Width ||
+					yf >= curViewports[v].TopLeftY + curViewports[v].Height)
+				{
+					newScissors[v].left = newScissors[v].top = newScissors[v].bottom = newScissors[v].right = 0;
+				}
+				else
+				{
+					newScissors[v].left = LONG(x);
+					newScissors[v].top = LONG(y);
+					newScissors[v].right = newScissors[v].left+1;
+					newScissors[v].bottom = newScissors[v].top+1;
+				}
+			}
+			
+			m_pImmediateContext->RSSetScissorRects(curNumViews, newScissors);
+			
+			m_pImmediateContext->RSGetState(&curRS);
+
+			D3D11_RASTERIZER_DESC rdesc = {
+				/*FillMode =*/ D3D11_FILL_SOLID,
+				/*CullMode =*/ D3D11_CULL_BACK,
+				/*FrontCounterClockwise =*/ FALSE,
+				/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
+				/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+				/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+				/*DepthClipEnable =*/ TRUE,
+				/*ScissorEnable =*/ FALSE,
+				/*MultisampleEnable =*/ FALSE,
+				/*AntialiasedLineEnable =*/ FALSE,
+			};
+			if(curRS)
+				curRS->GetDesc(&rdesc);
+
+			SAFE_RELEASE(curRS);
+			
+			m_pImmediateContext->OMGetDepthStencilState(&curDS, &stencilRef);
+			
+			// make a depth-stencil state object that writes to depth, uses same comparison
+			// as currently set, and tests stencil INCR_SAT / GREATER_EQUAL for fragment selection
+			D3D11_DEPTH_STENCIL_DESC dsdesc = {
+				/*DepthEnable =*/ TRUE,
+				/*DepthWriteMask =*/ D3D11_DEPTH_WRITE_MASK_ALL,
+				/*DepthFunc =*/ D3D11_COMPARISON_LESS,
+				/*StencilEnable =*/ TRUE,
+				/*StencilReadMask =*/ D3D11_DEFAULT_STENCIL_READ_MASK,
+				/*StencilWriteMask =*/ D3D11_DEFAULT_STENCIL_WRITE_MASK,
+				/*FrontFace =*/ { D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL },
+				/*BackFace =*/ { D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_STENCIL_OP_INCR_SAT, D3D11_COMPARISON_GREATER_EQUAL },
+			};
+			if(curDS)
+			{
+				D3D11_DEPTH_STENCIL_DESC stateDesc;
+				curDS->GetDesc(&stateDesc);
+				dsdesc.DepthFunc = stateDesc.DepthFunc;
+			}
+
+			if(history[h].preMod.depth < 0.0f)
+				dsdesc.DepthEnable = FALSE;
+
+			SAFE_RELEASE(curDS);
+			
+			m_pDevice->CreateDepthStencilState(&dsdesc, &ds);
+
+			D3D11_RASTERIZER_DESC rd = rdesc;
+
+			rd.ScissorEnable = TRUE;
+			// leave depth clip mode as normal
+			// leave backface culling mode as normal
+
+			m_pDevice->CreateRasterizerState(&rd, &newRS);
+			m_pImmediateContext->RSSetState(newRS);
+			SAFE_RELEASE(newRS);
+
+			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+				SAFE_RELEASE(RTVs[i]);
+			
+			m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, RTVs, NULL);
+
+			rtIndex = 100000;
+			
+			for(uint32_t i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+			{
+				if(RTVs[i])
+				{
+					if(rtIndex == 100000)
+					{
+						ID3D11Resource *res = NULL;
+						RTVs[i]->GetResource(&res);
+
+						if(res == targetres)
+							rtIndex = i;
+
+						SAFE_RELEASE(res);
+					}
+
+					// leave the target RTV in the array
+					if(rtIndex != i)
+						SAFE_RELEASE(RTVs[i]);
+				}
+			}
+
+			if(rtIndex == 100000)
+			{
+				rtIndex = 0;
+				RDCWARN("Couldn't find target RT bound at this event");
+			}
+		}
+
+		float cleardepth = RDCCLAMP(history[h].preMod.depth, 0.0f, 1.0f);
+		
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
+
+		m_pImmediateContext->OMSetDepthStencilState(ds, history[h].fragIndex);
+
+		// if we're not the last modification in our event, need to fetch post fragment value
+		if(h+1 < history.size() && history[h].eventID == history[h+1].eventID)
+		{
+			m_pImmediateContext->OMSetRenderTargets(rtIndex+1, RTVs, shadOutputDSV);
+
+			m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+			
+			m_pImmediateContext->CopySubresourceRegion(pixstore, 0, postColSlot%2048, postColSlot/2048, 0, targetres, 0, &srcbox);
+			postColSlot++;
+		}
+
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.StencIncrEqDepthState, history[h].fragIndex);
+		
+		m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
+
+		// fetch shader output value & primitive ID
+		{
+			m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
+
+			m_pImmediateContext->OMSetBlendState(NULL, blendFactor, ~0U);
+
+			// fetch shader output value 
+			{
+				m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+
+				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+
+				m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
+				shadColSlot++;
+
+				m_pImmediateContext->OMSetRenderTargets(0, NULL, NULL);
+
+				PixelHistoryDepthCopySubresource(true, NULL, pixstoreDepthUAV, shaddepthOutput,
+					&shaddepthOutputDepthSRV, &shaddepthOutputStencilSRV, srcxyCBuf, storexyCBuf,
+					depthSlot%2048, depthSlot/2048);
+				depthSlot++;
+			}
+
+			m_pImmediateContext->ClearDepthStencilView(shadOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, cleardepth, 0);
+
+			// fetch primitive ID
+			{
+				m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+
+				m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);
+				m_pImmediateContext->PSSetShader(m_DebugRender.PrimitiveIDPS, NULL, 0);
+
+				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
+
+				m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+
+				for(UINT i=0; i < curNumInst; i++)
+					SAFE_RELEASE(curInst[i]);
+
+				SAFE_RELEASE(curPS);
+
+				m_pImmediateContext->CopySubresourceRegion(shadoutStore, 0, shadColSlot%2048, shadColSlot/2048, 0, shadOutput, 0, &srcbox);
+				shadColSlot++;
+			}
+
+			m_pImmediateContext->OMSetBlendState(curBS, blendFactor, curSample);
+			SAFE_RELEASE(curBS);
+		}
+	}
+
+	SAFE_RELEASE(ds);
+
+	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+		SAFE_RELEASE(RTVs[i]);
+
+	m_pImmediateContext->CopyResource(pixstoreDepthReadback, pixstoreDepth);
+
+	m_pImmediateContext->Map(pixstore, 0, D3D11_MAP_READ, 0, &mapped);
+	m_pImmediateContext->Map(pixstoreDepthReadback, 0, D3D11_MAP_READ, 0, &mappedDepth);
+	
+	D3D11_MAPPED_SUBRESOURCE mappedShadout = {0};
+	m_pImmediateContext->Map(shadoutStore, 0, D3D11_MAP_READ, 0, &mappedShadout);
+
+	byte *shadoutStoreData = (byte *)mappedShadout.pData;
+	pixstoreData = (byte *)mapped.pData;
+	pixstoreDepthData = (byte *)mappedDepth.pData;
+	
+	/////////////////////////////////////////////////////////////////////////
+	// final loop to fetch the values from above into the modification events
+	
+	postColSlot = 0;
+	shadColSlot = 0;
+	depthSlot = 0;
+
+	for(size_t h=0; h < history.size(); h++)
+	{
+		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
+
+		if(draw->flags & eDraw_Clear)
+			continue;
+
+		// if we're not the last modification in our event, need to fetch post fragment value
+		if(h+1 < history.size() && history[h].eventID == history[h+1].eventID)
+		{
+			// colour
+			{
+				if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
+				{
+					byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
+					byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot%2048);
+
+					if(fmt.compType == eCompType_SInt)
+					{
+						// need to get correct sign, but otherwise just copy
+
+						if(fmt.compByteWidth == 1)
+						{
+							int8_t *d = (int8_t*)data;
+							for(uint32_t c=0; c < fmt.compCount; c++)
+								history[h].postMod.col.value_i[c] = d[c];
+						}
+						else if(fmt.compByteWidth == 2)
+						{
+							int16_t *d = (int16_t*)data;
+							for(uint32_t c=0; c < fmt.compCount; c++)
+								history[h].postMod.col.value_i[c] = d[c];
+						}
+						else if(fmt.compByteWidth == 4)
+						{
+							int32_t *d = (int32_t*)data;
+							for(uint32_t c=0; c < fmt.compCount; c++)
+								history[h].postMod.col.value_i[c] = d[c];
+						}
+					}
+					else
+					{
+						for(uint32_t c=0; c < fmt.compCount; c++)
+							memcpy(&history[h].postMod.col.value_u[c], data + fmt.compByteWidth * c, fmt.compByteWidth);
+					}
+				}
+				else
+				{
+					if(fmt.special && (fmt.specialFormat == eSpecial_R10G10B10A2 || fmt.specialFormat == eSpecial_R11G11B10))
+					{
+						byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
+						byte *data = rowdata + sizeof(uint32_t) * (postColSlot%2048);
+
+						uint32_t *u = (uint32_t *)data;
+
+						Vec4f v;
+						if(fmt.specialFormat == eSpecial_R10G10B10A2)
+							v = ConvertFromR10G10B10A2(*u);
+						if(fmt.specialFormat == eSpecial_R11G11B10)
+						{
+							Vec3f v3 = ConvertFromR11G11B10(*u);
+							v = Vec4f(v3.x, v3.y, v3.z);
+						}
+
+						memcpy(&history[h].postMod.col.value_f[0], &v, sizeof(float)*4);
+					}
+					else
+					{
+						RDCWARN("need to fetch pixel values from special formats");
+					}
+				}
+
+				if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+				{
+					std::swap(history[h].preMod.col.value_u[0], history[h].preMod.col.value_u[3]);
+					std::swap(history[h].preMod.col.value_u[1], history[h].preMod.col.value_u[2]);
+
+					std::swap(history[h].postMod.col.value_u[0], history[h].postMod.col.value_u[3]);
+					std::swap(history[h].postMod.col.value_u[1], history[h].postMod.col.value_u[2]);
+				}
+			}
+
+			// we don't retrieve the correct-precision depth value post-fragment. This is only possible for
+			// D24 and D32 - D16 doesn't have attached stencil, so we wouldn't be able to get correct depth
+			// AND identify each fragment. Instead we just mark this as no data, and the shader output depth
+			// should be sufficient.
+			if(history[h].preMod.depth >= 0.0f)
+				history[h].postMod.depth = -2.0f;
+			else
+				history[h].postMod.depth = -1.0f;
+
+			// we can't retrieve stencil value after each fragment, as we use stencil to identify the fragment
+			if(history[h].preMod.stencil >= 0)
+				history[h].postMod.stencil = -2;
+			else
+				history[h].postMod.stencil = -1;
+
+			// in each case we only mark as "unknown" when the depth/stencil isn't already known to be unbound
+
+			postColSlot++;
+		}
+		
+		// if we're not the first modification in our event, set our preMod to the previous postMod
+		if(h > 0 && history[h].eventID == history[h-1].eventID)
+		{
+			history[h].preMod = history[h-1].postMod;
+		}
+		
+		// fetch shader output value
+		{
+			// colour
+			{
+				// shader output is always 4 32bit components, so we can copy straight
+				byte *rowdata = shadoutStoreData + mapped.RowPitch * (shadColSlot/2048);
+				byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
+
+				memcpy(&history[h].shaderOut.col.value_u[0], data, 4*sizeof(float));
+			}
+
+			// depth
+			{
+				byte *rowdata = pixstoreDepthData + mapped.RowPitch * (depthSlot/2048);
+				float *data = (float *)(rowdata + 2 * sizeof(float) * (depthSlot%2048));
+
+				history[h].shaderOut.depth = data[0];
+				if(history[h].postMod.stencil == -1)
+					history[h].shaderOut.stencil = -1;
+				else
+					history[h].shaderOut.stencil = -2; // can't retrieve this as we use stencil to identify each fragment
+			}
+
+			shadColSlot++;
+			depthSlot++;
+		}
+		
+		// fetch primitive ID
+		{
+			// shader output is always 4 32bit components, so we can copy straight
+			byte *rowdata = shadoutStoreData + mapped.RowPitch * (shadColSlot/2048);
+			byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
+			
+			memcpy(&history[h].primitiveID, data, sizeof(uint32_t));
+
+			shadColSlot++;
+		}
+	}
+
+	m_pImmediateContext->Unmap(shadoutStore, 0);
+	m_pImmediateContext->Unmap(pixstore, 0);
+	m_pImmediateContext->Unmap(pixstoreDepthReadback, 0);
+	
+	// interpret float/unorm values
+	if(!fmt.special && fmt.compType != eCompType_UInt && fmt.compType != eCompType_SInt)
+	{
+		for(size_t h=0; h < history.size(); h++)
+		{
+			PixelModification &mod = history[h];
+			if(fmt.compType == eCompType_Float && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = ConvertFromHalf(uint16_t(mod.preMod.col.value_u[c]));
+					mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
+				}
+			}
+			else if(fmt.compType == eCompType_UNorm)
+			{
+				// only 32bit unorm format is depth, handled separately
+				float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+				RDCASSERT(fmt.compByteWidth < 4);
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
+				}
+			}
+			else if(fmt.compType == eCompType_UNorm_SRGB)
+			{
+				RDCASSERT(fmt.compByteWidth == 1);
+
+				for(uint32_t c=0; c < RDCMIN(fmt.compCount, 3U); c++)
+				{
+					mod.preMod.col.value_f[c]  = ConvertFromSRGB8(mod.preMod.col.value_u[c]&0xff);
+					mod.postMod.col.value_f[c] = ConvertFromSRGB8(mod.postMod.col.value_u[c]&0xff);
+				}
+
+				// alpha is not SRGB'd
+				if(fmt.compCount == 4)
+				{
+					mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
+					mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c]);
+					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c]);
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 1)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					int8_t *d = (int8_t *)&mod.preMod.col.value_u[c];
+
+					if(*d == -128)
+						mod.preMod.col.value_f[c] = -1.0f;
+					else
+						mod.preMod.col.value_f[c] = float(*d)/127.0f;
+
+					d = (int8_t *)&mod.postMod.col.value_u[c];
+
+					if(*d == -128)
+						mod.postMod.col.value_f[c] = -1.0f;
+					else
+						mod.postMod.col.value_f[c] = float(*d)/127.0f;
+				}
+			}
+			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
+			{
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					int16_t *d = (int16_t *)&mod.preMod.col.value_u[c];
+
+					if(*d == -32768)
+						mod.preMod.col.value_f[c] = -1.0f;
+					else
+						mod.preMod.col.value_f[c] = float(*d)/32767.0f;
+
+					d = (int16_t *)&mod.postMod.col.value_u[c];
+
+					if(*d == -32768)
+						mod.postMod.col.value_f[c] = -1.0f;
+					else
+						mod.postMod.col.value_f[c] = float(*d)/32767.0f;
+				}
+			}
+		}
+	}
+
+	for(size_t h=0; h < history.size(); h++)
+	{
+		PixelModification &hs = history[h];
+		RDCLOG("\nHistory %u @ frag %u from prim %u in %u (depth culled %u):\n" \
+			"pre {%f,%f,%f,%f} {%f,%d}\n" \
+			"+ shad {%f,%f,%f,%f} {%f,%d}\n" \
+			"-> post {%f,%f,%f,%f} {%f,%d}",
+			uint32_t(h), hs.fragIndex, hs.primitiveID, hs.eventID, hs.depthTestFailed,
+
+			hs.preMod.col.value_f[0], hs.preMod.col.value_f[1], hs.preMod.col.value_f[2], hs.preMod.col.value_f[3],
+			  hs.preMod.depth, hs.preMod.stencil,
+
+			hs.shaderOut.col.value_f[0], hs.shaderOut.col.value_f[1], hs.shaderOut.col.value_f[2], hs.shaderOut.col.value_f[3],
+			  hs.shaderOut.depth, hs.shaderOut.stencil,
+
+			hs.postMod.col.value_f[0], hs.postMod.col.value_f[1], hs.postMod.col.value_f[2], hs.postMod.col.value_f[3],
+			  hs.postMod.depth, hs.postMod.stencil);
+	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		SAFE_RELEASE(testQueries[i]);
 
-	SAFE_RELEASE(nopBlendState);
-	SAFE_RELEASE(nopDSState);
-
 	SAFE_RELEASE(pixstore);
+	SAFE_RELEASE(shadoutStore);
+
+	SAFE_RELEASE(shadOutput);
+	SAFE_RELEASE(shadOutputRTV);
+	SAFE_RELEASE(shaddepthOutput);
+	SAFE_RELEASE(shadOutputDSV);
+	SAFE_RELEASE(shaddepthOutputDepthSRV);
+	SAFE_RELEASE(shaddepthOutputStencilSRV);
 	
 	SAFE_RELEASE(pixstoreDepthReadback);
 	SAFE_RELEASE(pixstoreDepth);
@@ -4058,11 +4915,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	SAFE_RELEASE(depthCopyD16);
 	SAFE_RELEASE(depthCopyD16_DepthSRV);
-
-	SAFE_RELEASE(unusedDepthCS);
-	SAFE_RELEASE(copyDepthStencilCS);
-	SAFE_RELEASE(srcxyCBuf);
-	SAFE_RELEASE(storexyCBuf);
 
 	return history;
 }

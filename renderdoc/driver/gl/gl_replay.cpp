@@ -500,7 +500,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
-	if(res.curType == eGL_UNKNOWN_ENUM)
+	if(res.curType == eGL_NONE)
 	{
 		ret.byteSize = 0;
 		ret.creationFlags = 0;
@@ -590,7 +590,7 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 	GLint dummyReadback[32];
 
 #if !defined(RELEASE)
-	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
 		dummyReadback[i] = 0x6c7b8a9d;
 #endif
 
@@ -650,21 +650,28 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 			mapping.ConstantBlocks[i].bind = -1;
 		}
 
-		GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
-		if(idx == GL_INVALID_INDEX)
+		if(!refl->ConstantBlocks.elems[i].bufferBacked)
 		{
-			mapping.ConstantBlocks[i].used = false;
+			mapping.ConstantBlocks[i].used = true;
 		}
 		else
 		{
-			GLint used = 0;
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-			mapping.ConstantBlocks[i].used = (used != 0);
+			GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
+			if(idx == GL_INVALID_INDEX)
+			{
+				mapping.ConstantBlocks[i].used = false;
+			}
+			else
+			{
+				GLint used = 0;
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+				mapping.ConstantBlocks[i].used = (used != 0);
+			}
 		}
 	}
 
 #if !defined(RELEASE)
-	for(int i=1; i < ARRAY_COUNT(dummyReadback); i++)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
 		if(dummyReadback[i] != 0x6c7b8a9d)
 			RDCERR("Invalid uniform readback - data beyond first element modified!");
 #endif
@@ -744,6 +751,8 @@ void GLReplay::SavePipelineState()
 		
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&type);
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+
+		// TODO should check eGL_VERTEX_ATTRIB_ARRAY_INTEGER
 
 		ResourceFormat fmt;
 
@@ -901,20 +910,7 @@ void GLReplay::SavePipelineState()
 	};
 	ShaderReflection *refls[6] = { NULL };
 	ShaderBindpointMapping *mappings[6] = { NULL };
-	
-	struct
-	{
-		GLenum bit;
-		GLenum type;
-	} shaders[] = {
-		{ eGL_VERTEX_SHADER_BIT, eGL_VERTEX_SHADER },
-		{ eGL_TESS_CONTROL_SHADER_BIT, eGL_TESS_CONTROL_SHADER },
-		{ eGL_TESS_EVALUATION_SHADER_BIT, eGL_TESS_EVALUATION_SHADER },
-		{ eGL_GEOMETRY_SHADER_BIT, eGL_GEOMETRY_SHADER },
-		{ eGL_FRAGMENT_SHADER_BIT, eGL_FRAGMENT_SHADER },
-		{ eGL_COMPUTE_SHADER_BIT, eGL_COMPUTE_SHADER },
-	};
-
+		
 	if(curProg == 0)
 	{
 		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
@@ -935,42 +931,15 @@ void GLReplay::SavePipelineState()
 			ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
 			auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-			RDCASSERT(pipeDetails.programs.size());
-
-			// TODO: we could pre-flatten this (to list all the shaders in the pipeline)
-
-			// look at the programs in the pipeline
-			for(size_t p=0; p < pipeDetails.programs.size(); p++)
+			for(size_t i=0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
 			{
-				auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
-
-				RDCASSERT(progDetails.shaders.size());
-
-				curProg = rm->GetCurrentResource(pipeDetails.programs[p].id).name;
-
-				// look at the shaders in the program
-				for(int s=0; s < ARRAY_COUNT(shaders); s++)
+				if(pipeDetails.stageShaders[i] != ResourceId())
 				{
-					// if this program is being used for a shader stage
-					if(pipeDetails.programs[p].use & shaders[s].bit)
-					{
-						auto &progDetails = m_pDriver->m_Programs[pipeDetails.programs[p].id];
-
-						// find the shader stage that's being used
-						for(size_t i=0; i < progDetails.shaders.size(); i++)
-						{
-							if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
-							{
-								// set Shader ID and bindpoint mapping directly in the pipe state
-								// store reflection and mapping locally too
-								stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
-								refls[s] = GetShader(progDetails.shaders[i]);
-								GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
-								mappings[s] = &stages[s]->BindpointMapping;
-								break;
-							}
-						}
-					}
+					curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+					stages[i]->Shader = rm->GetOriginalID(pipeDetails.stageShaders[i]);
+					refls[i] = GetShader(pipeDetails.stageShaders[i]);
+					GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+					mappings[i] = &stages[i]->BindpointMapping;
 				}
 			}
 		}
@@ -978,24 +947,15 @@ void GLReplay::SavePipelineState()
 	else
 	{
 		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
-
-		RDCASSERT(progDetails.shaders.size());
-
-		// look at the shaders in the program
-		for(size_t i=0; i < progDetails.shaders.size(); i++)
+		
+		for(size_t i=0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
 		{
-			// find the matching stage
-			for(int s=0; s < ARRAY_COUNT(shaders); s++)
+			if(progDetails.stageShaders[i] != ResourceId())
 			{
-				if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == shaders[s].type)
-				{
-					// set Shader ID and bindpoint mapping directly in the pipe state
-					// store reflection and mapping locally too
-					stages[s]->Shader = rm->GetOriginalID(progDetails.shaders[i]);
-					refls[s] = GetShader(progDetails.shaders[i]); 
-					GetMapping(gl, curProg, s, refls[s], stages[s]->BindpointMapping);
-					mappings[s] = &stages[s]->BindpointMapping;
-				}
+				stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
+				refls[i] = GetShader(progDetails.stageShaders[i]);
+				GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+				mappings[i] = &stages[i]->BindpointMapping;
 			}
 		}
 	}
@@ -1017,8 +977,8 @@ void GLReplay::SavePipelineState()
 
 	for(GLint unit=0; unit < numTexUnits; unit++)
 	{
-		GLenum binding = eGL_UNKNOWN_ENUM;
-		GLenum target = eGL_UNKNOWN_ENUM;
+		GLenum binding = eGL_NONE;
+		GLenum target = eGL_NONE;
 
 		for(size_t s=0; s < ARRAY_COUNT(refls); s++)
 		{
@@ -1029,12 +989,12 @@ void GLReplay::SavePipelineState()
 				// bindPoint is the uniform value for this sampler
 				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
 				{
-					GLenum t = eGL_UNKNOWN_ENUM;
+					GLenum t = eGL_NONE;
 
 					switch(refls[s]->Resources[r].resType)
 					{
 					case eResType_None:
-						t = eGL_UNKNOWN_ENUM;
+						t = eGL_NONE;
 						break;
 					case eResType_Buffer:
 						t = eGL_TEXTURE_BINDING_BUFFER;
@@ -1077,7 +1037,7 @@ void GLReplay::SavePipelineState()
 						break;
 					}
 
-					if(binding == eGL_UNKNOWN_ENUM)
+					if(binding == eGL_NONE)
 					{
 						binding = t;
 					}
@@ -1088,13 +1048,13 @@ void GLReplay::SavePipelineState()
 					}
 					else if(binding != t)
 					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						RDCWARN("Two uniforms pointing to texture unit %d with types %hs and %hs", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
 					}
 				}
 			}
 		}
 
-		if(binding != eGL_UNKNOWN_ENUM)
+		if(binding != eGL_NONE)
 		{
 			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
 
@@ -1164,38 +1124,62 @@ void GLReplay::SavePipelineState()
 	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
 }
 
-void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t locA, uint32_t locB,
-											          const vector<byte> &data, ShaderVariable &outVar)
+void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
+								uint32_t offs, uint32_t matStride, const vector<byte> &data, ShaderVariable &outVar)
 {
-	const byte *bufdata = data.empty() ? NULL : &data[0];
+	const byte *bufdata = data.empty() ? NULL : &data[offs];
+	size_t datasize = data.size() - offs;
+	if(offs > data.size()) datasize = 0;
 
 	if(bufferBacked)
 	{
-		size_t rangelen = outVar.rows*outVar.columns*4;
-		size_t offs = locA*4*sizeof(float) + (locB&0xf)*sizeof(float);
+		size_t rangelen = outVar.rows*outVar.columns*sizeof(float);
 
-		if(offs < data.size())
+		if(outVar.rows > 1 && outVar.columns > 1)
 		{
-			rangelen = RDCMIN(rangelen, data.size()-offs);
-			memcpy(&outVar.value.uv[0], bufdata + offs, rangelen);
+			uint32_t *dest = &outVar.value.uv[0];
+
+			uint32_t majorsize = outVar.columns;
+			uint32_t minorsize = outVar.rows;
+
+			if(rowMajor)
+			{
+				majorsize = outVar.rows;
+				minorsize = outVar.columns;
+			}
+
+			for(uint32_t c=0; c < majorsize; c++)
+			{
+				if(datasize > 0)
+					memcpy((byte *)dest, bufdata, RDCMIN(rangelen, minorsize*sizeof(float)));
+
+				datasize -= RDCMIN(datasize, (size_t)matStride);
+				bufdata += matStride;
+				dest += minorsize;
+			}
+		}
+		else
+		{
+			if(datasize > 0)
+				memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
 		}
 	}
 	else
 	{
 		switch(outVar.type)
 		{
-		case eVar_Float:
-			gl.glGetUniformfv(prog, locA, outVar.value.fv);
-			break;
-		case eVar_Int:
-			gl.glGetUniformiv(prog, locA, outVar.value.iv);
-			break;
-		case eVar_UInt:
-			gl.glGetUniformuiv(prog, locA, outVar.value.uv);
-			break;
-		case eVar_Double:
-			RDCUNIMPLEMENTED("Double uniform variables");
-			break;
+			case eVar_Float:
+				gl.glGetUniformfv(prog, offs, outVar.value.fv);
+				break;
+			case eVar_Int:
+				gl.glGetUniformiv(prog, offs, outVar.value.iv);
+				break;
+			case eVar_UInt:
+				gl.glGetUniformuiv(prog, offs, outVar.value.uv);
+				break;
+			case eVar_Double:
+				RDCUNIMPLEMENTED("Double uniform variables");
+				break;
 		}
 	}
 
@@ -1203,10 +1187,106 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 	{
 		uint32_t uv[16];
 		memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
+		
+		for(uint32_t r=0; r < outVar.rows; r++)
+			for(uint32_t c=0; c < outVar.columns; c++)
+				outVar.value.uv[r*outVar.columns+c] = uv[c*outVar.rows+r];
+	}
+}
 
-		for(uint32_t x=0; x < outVar.columns; x++)
-			for(uint32_t y=0; y < outVar.rows; y++)
-				outVar.value.uv[y + x*outVar.rows] = uv[x + y*outVar.columns];
+void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, string prefix,
+                                    const rdctype::array<ShaderConstant> &variables, vector<ShaderVariable> &outvars,
+                                    const vector<byte> &data)
+{
+	for(int32_t i=0; i < variables.count; i++)
+	{
+		auto desc = variables[i].type.descriptor;
+
+		ShaderVariable var;
+		var.name = variables[i].name.elems;
+		var.rows = desc.rows;
+		var.columns = desc.cols;
+		var.type = desc.type;
+
+		if(variables[i].type.members.count > 0)
+		{
+			if(desc.elements == 1)
+			{
+				vector<ShaderVariable> ov;
+				FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".", variables[i].type.members, ov, data);
+				var.members = ov;
+			}
+			else
+			{
+				vector<ShaderVariable> arrelems;
+				for(uint32_t a=0; a < desc.elements; a++)
+				{
+					ShaderVariable arrEl = var;
+					arrEl.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
+					
+					vector<ShaderVariable> ov;
+					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
+					arrEl.members = ov;
+					
+					arrelems.push_back(arrEl);
+				}
+				var.members = arrelems;
+				var.rows = var.columns = 0;
+			}
+		}
+		else
+		{
+			RDCEraseEl(var.value);
+			
+			// need to query offset and strides as there's no way to know what layout was used
+			// (and if it's not an std layout it's implementation defined :( )
+			string fullname = prefix + var.name.elems;
+
+			GLuint idx = gl.glGetProgramResourceIndex(prog, eGL_UNIFORM, fullname.c_str());
+
+			if(idx == GL_INVALID_INDEX)
+			{
+				RDCERR("Can't find program resource index for %hs", fullname.c_str());
+			}
+			else
+			{
+				GLenum props[] = { eGL_OFFSET, eGL_MATRIX_STRIDE, eGL_ARRAY_STRIDE, eGL_LOCATION };
+				GLint values[] = { 0, 0, 0, 0 };
+
+				gl.glGetProgramResourceiv(prog, eGL_UNIFORM, idx, ARRAY_COUNT(props), props, ARRAY_COUNT(props), NULL, values);
+
+				if(!bufferBacked)
+				{
+					values[0] = values[3];
+					values[2] = 1;
+				}
+
+				if(desc.elements == 1)
+				{
+					FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+						values[0], values[1], data, var);
+				}
+				else
+				{
+					vector<ShaderVariable> elems;
+					for(uint32_t a=0; a < desc.elements; a++)
+					{
+						ShaderVariable el = var;
+						el.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
+
+						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+							values[0] + values[2] * a, values[1], data, el);
+
+						elems.push_back(el);
+					}
+
+					var.members = elems;
+					var.rows = var.columns = 0;
+				}
+			}
+		}
+
+		outvars.push_back(var);
 	}
 }
 
@@ -1216,9 +1296,6 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-
 	auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
 	if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count)
@@ -1226,66 +1303,44 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 		RDCERR("Requesting invalid constant block");
 		return;
 	}
+	
+	GLuint curProg = 0;
+	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 
-	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
-
-	for(int32_t i=0; i < cblock.variables.count; i++)
+	if(curProg == 0)
 	{
-		auto desc = cblock.variables[i].type.descriptor;
-
-		ShaderVariable var;
-		var.name = cblock.variables[i].name;
-		var.rows = desc.rows;
-		var.columns = desc.cols;
-		var.type = desc.type;
-
-		if(cblock.variables[i].type.members.count > 0)
-			RDCUNIMPLEMENTED("Variables with members");
-
-		RDCEraseEl(var.value);
-
-		bool bufferBacked = (cblock.bufferBacked && !data.empty());
-		bool hasValue = bufferBacked || !cblock.bufferBacked; // buffer backed (with data), or global uniforms
-
-		if(desc.elements == 1)
+		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
+	
+		if(curProg == 0)
 		{
-			if(hasValue)
-				FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
-												 cblock.variables[i].reg.vec, cblock.variables[i].reg.comp, data, var);
+			RDCERR("No program or pipeline bound");
+			return;
 		}
 		else
 		{
-			vector<ShaderVariable> elems;
-			for(uint32_t a=0; a < desc.elements; a++)
-			{
-				ShaderVariable el = var;
-				el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+			ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(m_ReplayCtx.ctx, curProg));
+			auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-				uint32_t arrayoffs = bufferBacked ? a : a*sizeof(float)*4;
+			size_t s = ShaderIdx(shaderDetails.type);
 
-				if(hasValue)
-					FillCBufferValue(gl, curProg, bufferBacked, desc.rowMajorStorage ? true : false,
-												   cblock.variables[i].reg.vec + arrayoffs, 0, data, el);
-
-				elems.push_back(el);
-			}
-
-			var.members = elems;
+			curProg = m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[s]).name;
 		}
-
-		outvars.push_back(var);
 	}
+
+	auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
+	
+	FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables, outvars, data);
 }
 
 #pragma endregion
 
-bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 {
 	RDCUNIMPLEMENTED("GetMinMax");
 	return false;
 }
 
-bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
 	RDCUNIMPLEMENTED("GetHistogram");
 	return false;
@@ -1364,7 +1419,7 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
 	RDCUNIMPLEMENTED("BuildCustomShader");
 }
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
 {
 	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
 	return vector<PixelModification>();

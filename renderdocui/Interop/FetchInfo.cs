@@ -419,6 +419,7 @@ namespace renderdoc
         public ResourceId CustomShader = ResourceId.Null;
         public UInt32 mip = 0;
         public UInt32 sliceFace = 0;
+        public UInt32 sampleIdx = 0;
         public bool rawoutput = false;
 
         public float offx = 0.0f, offy = 0.0f;
@@ -471,6 +472,11 @@ namespace renderdoc
     public class PixelModification
     {
         public UInt32 eventID;
+
+        public bool uavWrite;
+
+        public UInt32 fragIndex;
+        public UInt32 primitiveID;
 
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ModificationValue preMod;

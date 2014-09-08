@@ -56,7 +56,7 @@ public:
 	void DisablePixelContext();
 
 	bool PickPixel(ResourceId texID, bool customShader, 
-					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
+					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample,
 					PixelValue *val);
 private:
 	ReplayOutput(ReplayRenderer *parent, void *w);
@@ -107,6 +107,8 @@ private:
 	uint32_t m_FirstDeferredEvent;
 	uint32_t m_LastDeferredEvent;
 	OutputConfig m_Config;
+	
+	vector<uint32_t> passEvents;
 
 	int32_t m_Width;
 	int32_t m_Height;
@@ -165,8 +167,8 @@ struct ReplayRenderer
 
 		bool GetPostVSData(MeshDataStage stage, PostVSMeshData *data);
 		
-		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, PixelValue *minval, PixelValue *maxval);
-		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
+		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
+		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
 		
 		bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 		
@@ -181,7 +183,6 @@ struct ReplayRenderer
 		ReplayCreateStatus PostCreateInit(IReplayDriver *device);
 		
 		FetchDrawcall *GetDrawcallByEID(uint32_t eventID, uint32_t defEventID);
-		FetchDrawcall *GetDrawcallByDrawID(uint32_t drawID);
 		FetchDrawcall *SetupDrawcallPointers(FetchFrameInfo frame, rdctype::array<FetchDrawcall> &draws, FetchDrawcall *parent, FetchDrawcall *previous);
 	
 		IReplayDriver *GetDevice() { return m_pDevice; }

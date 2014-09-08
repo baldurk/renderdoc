@@ -554,7 +554,9 @@
             "Stencil Test",
             "Viewport/Scissor Region",
             "NaN/INF/-ve Display",
-            "Clipping"});
+            "Clipping",
+            "Quad Overdraw (Pass)",
+            "Quad Overdraw (Draw)"});
             this.overlay.Name = "overlay";
             this.overlay.Size = new System.Drawing.Size(121, 25);
             this.overlay.SelectedIndexChanged += new System.EventHandler(this.overlay_SelectedIndexChanged);

@@ -212,6 +212,11 @@ struct ModificationValue
 struct PixelModification
 {
 	uint32_t eventID;
+	
+	bool32 uavWrite;
+
+	uint32_t fragIndex;
+	uint32_t primitiveID;
 
 	ModificationValue preMod;
 	ModificationValue shaderOut;

@@ -77,7 +77,11 @@ struct GLRenderState
 
 	//
 	uint32_t Tex2D[128];
+	uint32_t Samplers[128];
 	GLenum ActiveTexture;
+
+	GLuint Program;
+	GLuint Pipeline;
 
 	enum
 	{
@@ -92,6 +96,15 @@ struct GLRenderState
 		eBufIdx_Query,
 		eBufIdx_Texture,
 	};
+	
+	struct VertexBuffer
+	{
+		GLuint Buffer;
+		uint64_t Stride;
+		uint64_t Offset;
+		uint32_t Divisor;
+	} VertexBuffers[16];
+	GLuint VAO;
 
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
@@ -119,14 +132,15 @@ struct GLRenderState
 	{
 		int32_t x, y, width, height;
 	} Scissors[16];
-
+	
+	GLuint ReadFBO, DrawFBO;
 	GLenum DrawBuffers[8];
 
 	// TODO:
-	// Sampler Bindings
-	// Framebuffer Bindings
-	// Program Bindings + Uniform Values
-	// Vertex Attribs/Buffers/Pointers etc
+	// Image state (GL_IMAGE_BINDING_NAME)
+	// multisampling
+	// provoking vertex
+	// other misc state :)
 	
 	struct
 	{
@@ -187,7 +201,7 @@ struct GLRenderState
 	GLenum CullFace;
 	//
 
-	void Serialise(LogState state, void *ctx, GLResourceManager *rm);
+	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 private:
 	Serialiser *m_pSerialiser;
 	const GLHookSet *m_Real;

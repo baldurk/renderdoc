@@ -41,7 +41,7 @@ bool WrappedOpenGL::Serialise_glGenTextures(GLsizei n, GLuint* textures)
 		GetResourceManager()->AddLiveResource(id, res);
 
 		m_Textures[live].resource = res;
-		m_Textures[live].curType = eGL_UNKNOWN_ENUM;
+		m_Textures[live].curType = eGL_NONE;
 	}
 
 	return true;
@@ -76,7 +76,7 @@ void WrappedOpenGL::glGenTextures(GLsizei n, GLuint* textures)
 		{
 			GetResourceManager()->AddLiveResource(id, res);
 			m_Textures[id].resource = res;
-			m_Textures[id].curType = eGL_UNKNOWN_ENUM;
+			m_Textures[id].curType = eGL_NONE;
 		}
 	}
 }
@@ -219,7 +219,7 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 		record->AddParent(origrecord);
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
@@ -776,7 +776,7 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
@@ -856,7 +856,7 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
@@ -887,7 +887,7 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
@@ -943,7 +943,7 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);
@@ -974,7 +974,7 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_UNKNOWN_ENUM)
+		if(record->datatype == eGL_NONE)
 			record->datatype = target;
 		else
 			RDCASSERT(record->datatype == target);

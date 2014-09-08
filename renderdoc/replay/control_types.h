@@ -65,6 +65,7 @@ struct TextureDisplay
 	ResourceId CustomShader;
 	uint32_t mip;
 	uint32_t sliceFace;
+	uint32_t sampleIdx;
 	bool32 rawoutput;
 
 	float offx, offy;

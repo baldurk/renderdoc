@@ -45,14 +45,19 @@ namespace renderdocui.Code
         }
 
         private int m_Rate;
-        private UpdateMethod m_Update;
+        private UpdateMethod m_Update = null;
         private System.Threading.Timer m_CameraTick = null;
 
         private static void TickCB(object state)
         {
+            if (!(state is TimedUpdate)) return;
+
             var me = (TimedUpdate)state;
-            me.m_Update();
-            me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
+
+            if (me == null) return;
+
+            if (me.m_Update != null) me.m_Update();
+            if (me.m_CameraTick != null) me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
         }
     }
 

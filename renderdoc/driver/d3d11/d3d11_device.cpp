@@ -265,6 +265,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 
 	m_FrameTimer.Restart();
 
+	m_AppControlledCapture = false;
+
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
 	m_CurFileSize = 0;
@@ -924,8 +926,9 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 	struct chunkinfo
 	{
-		chunkinfo() : count(0), total(0.0) {}
+		chunkinfo() : count(0), totalsize(0), total(0.0) {}
 		int count;
+		uint64_t totalsize;
 		double total;
 	};
 
@@ -951,14 +954,22 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 		if(context == CAPTURE_SCOPE)
 		{
-			m_pImmediateContext->ReplayLog(READING, 0, 0, false);
+			GetResourceManager()->ApplyInitialContents();
 
+			m_pImmediateContext->ReplayLog(READING, 0, 0, false);
+		}
+
+		uint64_t offset2 = m_pSerialiser->GetOffset();
+
+		chunkInfos[context].total += timer.GetMilliseconds();
+		chunkInfos[context].totalsize += offset2 - offset;
+		chunkInfos[context].count++;
+
+		if(context == CAPTURE_SCOPE)
+		{
 			if(m_pSerialiser->GetOffset() > lastFrame)
 				break;
 		}
-
-		chunkInfos[context].total += timer.GetMilliseconds();
-		chunkInfos[context].count++;
 
 		if(m_pSerialiser->AtEnd())
 		{
@@ -968,9 +979,15 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
-		RDCDEBUG("%hs: %.3f total time in %d chunks - %.3f average",
-				GetChunkName(it->first), it->second.total, it->second.count,
-				it->second.total/double(it->second.count));
+		double dcount = double(it->second.count);
+
+		RDCDEBUG("% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %hs (%u)",
+				it->second.count,
+				it->second.total, it->second.total/dcount,
+				double(it->second.totalsize)/(1024.0*1024.0),
+				double(it->second.totalsize)/(dcount*1024.0*1024.0),
+				GetChunkName(it->first), uint32_t(it->first)
+				);
 	}
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
@@ -1038,7 +1055,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 			{
 				m_pImmediateContext->GetReal()->CopyStructureCount(stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView, uav));
 
-				m_ResourceManager->SetInitialContents(Id, stage, 0);
+				m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 			}
 		}
 	}
@@ -1066,7 +1083,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 		{
 			m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Buffer, buf));
 
-			m_ResourceManager->SetInitialContents(Id, stage, 0);
+			m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 		}
 	}
 	else if(type == Resource_Texture1D)
@@ -1097,7 +1114,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 		{
 			m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture1D, tex1D));
 
-			m_ResourceManager->SetInitialContents(Id, stage, 0);
+			m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 		}
 	}
 	else if(type == Resource_Texture2D)
@@ -1173,7 +1190,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 				SAFE_RELEASE(mutex);
 			}
 
-			m_ResourceManager->SetInitialContents(Id, stage, 0);
+			m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 		}
 	}
 	else if(type == Resource_Texture3D)
@@ -1204,7 +1221,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 		{
 			m_pImmediateContext->GetReal()->CopyResource(stage, UNWRAP(WrappedID3D11Texture3D, tex3D));
 
-			m_ResourceManager->SetInitialContents(Id, stage, 0);
+			m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(stage, 0, NULL));
 		}
 	}
 
@@ -1280,7 +1297,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 		{
 			if(m_State >= WRITING)
 			{
-				ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id);
+				ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
 
 				D3D11_MAPPED_SUBRESOURCE mapped;
 				HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
@@ -1304,7 +1321,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			{
 				SERIALISE_ELEMENT(uint32_t, initCount, 0);
 
-				m_ResourceManager->SetInitialContents(Id, NULL, initCount);
+				m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(NULL, initCount, NULL));
 			}
 		}
 		else
@@ -1325,7 +1342,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			desc.MiscFlags = 0;
 			desc.StructureByteStride = 0;
 
-			ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id);
+			ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
 
 			D3D11_MAPPED_SUBRESOURCE mapped;
 			HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
@@ -1365,7 +1382,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 		{
 			if(m_State < WRITING)
 			{
-				ID3D11Texture1D *contents = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id);
+				ID3D11Texture1D *contents = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 				RDCASSERT(!contents);
 			}
@@ -1382,7 +1399,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
 
-			ID3D11Texture1D *stage = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id);
+			ID3D11Texture1D *stage = (ID3D11Texture1D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
@@ -1448,7 +1465,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				}
 				else
 				{
-					m_ResourceManager->SetInitialContents(Id, contents, 0);
+					m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
 				}
 
 				for(UINT sub = 0; sub < numSubresources; sub++)
@@ -1500,7 +1517,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 		{
 			if(m_State < WRITING)
 			{
-				ID3D11Texture2D *contents = (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id);
+				ID3D11Texture2D *contents = (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 				RDCASSERT(!contents);
 			}
@@ -1517,7 +1534,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
 
-			ID3D11Texture2D *stage = (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id);
+			ID3D11Texture2D *stage = (ID3D11Texture2D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
@@ -1634,7 +1651,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 						contents = contentsMS;
 					}
 
-					m_ResourceManager->SetInitialContents(Id, contents, 0);
+					m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
 				}
 				
 				for(UINT sub = 0; sub < numSubresources; sub++)
@@ -1661,7 +1678,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 		{
 			if(m_State < WRITING)
 			{
-				ID3D11Texture3D *contents = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id);
+				ID3D11Texture3D *contents = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 				RDCASSERT(!contents);
 			}
@@ -1678,7 +1695,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
 
-			ID3D11Texture3D *stage = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id);
+			ID3D11Texture3D *stage = (ID3D11Texture3D *)m_ResourceManager->GetInitialContents(Id).resource;
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
@@ -1760,7 +1777,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				}
 				else
 				{
-					m_ResourceManager->SetInitialContents(Id, contents, 0);
+					m_ResourceManager->SetInitialContents(Id, D3D11ResourceManager::InitialContentData(contents, eInitialContents_Copy, NULL));
 				}
 				
 				for(UINT sub = 0; sub < numSubresources; sub++)
@@ -1848,7 +1865,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 					m_pImmediateContext->GetReal()->Unmap(stage, 0);
 				}
 
-				m_ResourceManager->SetInitialContents(id, NULL, countData);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(NULL, countData, NULL));
 
 				SAFE_RELEASE(stage);
 			}
@@ -1878,7 +1895,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 			else
 			{
-				m_ResourceManager->SetInitialContents(id, initContents, 1);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_ClearRTV, NULL));
 			}
 		}
 		else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -1899,7 +1916,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 			else
 			{
-				m_ResourceManager->SetInitialContents(id, initContents, 2);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_ClearDSV, NULL));
 			}
 		}
 		else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -1923,7 +1940,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			{
 				m_pImmediateContext->GetReal()->CopyResource(initContents, UNWRAP(WrappedID3D11Texture1D, tex1D));
 
-				m_ResourceManager->SetInitialContents(id, initContents, 0);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
 			}
 		}
 	}
@@ -1955,7 +1972,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 			else
 			{
-				m_ResourceManager->SetInitialContents(id, initContents, 1);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_ClearRTV, NULL));
 			}
 		}
 		else if(!hasData && desc.MipLevels == 1 && (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL))
@@ -1978,7 +1995,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 			else
 			{
-				m_ResourceManager->SetInitialContents(id, initContents, 2);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_ClearDSV, NULL));
 			}
 		}
 		else if(desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -2002,7 +2019,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			{
 				m_pImmediateContext->GetReal()->CopyResource(initContents, UNWRAP(WrappedID3D11Texture2D, tex2D));
 
-				m_ResourceManager->SetInitialContents(id, initContents, 0);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
 			}
 		}
 	}
@@ -2032,7 +2049,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			}
 			else
 			{
-				m_ResourceManager->SetInitialContents(id, initContents, 1);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_ClearRTV, NULL));
 			}
 		}
 		else if(!hasData && desc.Usage != D3D11_USAGE_IMMUTABLE)
@@ -2054,13 +2071,13 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 			{
 				m_pImmediateContext->GetReal()->CopyResource(initContents, UNWRAP(WrappedID3D11Texture3D, tex3D));
 
-				m_ResourceManager->SetInitialContents(id, initContents, 0);
+				m_ResourceManager->SetInitialContents(id, D3D11ResourceManager::InitialContentData(initContents, eInitialContents_Copy, NULL));
 			}
 		}
 	}
 }
 
-void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, ID3D11DeviceChild *initial, uint32_t count)
+void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, D3D11ResourceManager::InitialContentData initial)
 {
 	ResourceType type = IdentifyTypeByPtr(live);
 
@@ -2068,25 +2085,29 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live, ID3D11Devi
 	{
 		ID3D11UnorderedAccessView *uav = (ID3D11UnorderedAccessView *)live;
 
-		m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &count);
+		m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &uav, &initial.num);
 	}
 	else
 	{
-		if(count == 1)
+		if(initial.num == eInitialContents_ClearRTV)
 		{
 			float emptyCol[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			m_pImmediateContext->GetReal()->ClearRenderTargetView((ID3D11RenderTargetView *)initial, emptyCol);
+			m_pImmediateContext->GetReal()->ClearRenderTargetView((ID3D11RenderTargetView *)initial.resource, emptyCol);
 		}
-		else if(count == 2)
+		else if(initial.num == eInitialContents_ClearDSV)
 		{
-			m_pImmediateContext->GetReal()->ClearDepthStencilView((ID3D11DepthStencilView *)initial, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
+			m_pImmediateContext->GetReal()->ClearDepthStencilView((ID3D11DepthStencilView *)initial.resource, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 1.0f, 0);
+		}
+		else if(initial.num == eInitialContents_Copy)
+		{
+			ID3D11Resource *liveResource = (ID3D11Resource *)m_ResourceManager->UnwrapResource(live);
+			ID3D11Resource *initialResource = (ID3D11Resource *)initial.resource;
+
+			m_pImmediateContext->GetReal()->CopyResource(liveResource, initialResource);
 		}
 		else
 		{
-			ID3D11Resource *liveResource = (ID3D11Resource *)m_ResourceManager->UnwrapResource(live);
-			ID3D11Resource *initialResource = (ID3D11Resource *)initial;
-
-			m_pImmediateContext->GetReal()->CopyResource(liveResource, initialResource);
+			RDCERR("Unexpected initial contents type");
 		}
 	}
 }
@@ -2332,6 +2353,495 @@ int WrappedID3D11Device::EndEvent()
 	return m_pCurrentWrappedDevice->m_pImmediateContext->ThreadSafe_EndEvent();
 }
 
+void WrappedID3D11Device::StartFrameCapture(void *wnd)
+{
+	if(m_State != WRITING_IDLE) return;
+
+	SCOPED_LOCK(m_D3DLock);
+
+	m_State = WRITING_CAPFRAME;
+
+	m_AppControlledCapture = true;
+
+	m_Failures = 0;
+	m_FailedFrame = 0;
+	m_FailedReason = CaptureSucceeded;
+
+	FetchFrameRecord record;
+	record.frameInfo.frameNumber = m_FrameCounter+1;
+	m_FrameRecord.push_back(record);
+
+	GetResourceManager()->ClearReferencedResources();
+
+	GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
+
+	m_pImmediateContext->AttemptCapture();
+	m_pImmediateContext->BeginCaptureFrame();
+
+	for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+	{
+		WrappedID3D11DeviceContext *context = *it;
+
+		if(context)
+		{
+			context->AttemptCapture();
+		}
+		else
+		{
+			RDCERR("NULL deferred context in resource record!");
+		}
+	}
+
+	GetResourceManager()->PrepareInitialContents();
+
+	if(m_pInfoQueue)
+		m_pInfoQueue->ClearStoredMessages();
+
+	RDCLOG("Starting capture, frame %u", m_FrameCounter);
+}
+
+void WrappedID3D11Device::SetActiveWindow(void *wnd)
+{
+	for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
+	{
+		DXGI_SWAP_CHAIN_DESC swapDesc;
+		it->first->GetDesc(&swapDesc);
+
+		if(swapDesc.OutputWindow == wnd)
+		{
+			m_SwapChain = it->first;
+			return;
+		}
+	}
+
+	RDCERR("Output window %p provided for active window corresponds with no known swap chain", wnd);
+}
+
+bool WrappedID3D11Device::EndFrameCapture(void *wnd)
+{
+	if(m_State != WRITING_CAPFRAME) return true;
+
+	CaptureFailReason reason;
+
+	IDXGISwapChain *swap = NULL;
+	
+	for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
+	{
+		DXGI_SWAP_CHAIN_DESC swapDesc;
+		it->first->GetDesc(&swapDesc);
+
+		if(swapDesc.OutputWindow == wnd)
+		{
+			swap = it->first;
+			break;
+		}
+	}
+
+	if(swap == NULL)
+	{
+		RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+		return false;
+	}
+
+	if(m_pImmediateContext->HasSuccessfulCapture(reason))
+	{
+		SCOPED_LOCK(m_D3DLock);
+
+		RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+		m_Failures = 0;
+		m_FailedFrame = 0;
+		m_FailedReason = CaptureSucceeded;
+
+		m_pImmediateContext->EndCaptureFrame();
+		m_pImmediateContext->FinishCapture();
+
+		for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+		{
+			WrappedID3D11DeviceContext *context = *it;
+
+			if(context)
+			{
+				context->FinishCapture();
+			}
+			else
+			{
+				RDCERR("NULL deferred context in resource record!");
+			}
+		}
+
+		const uint32_t maxSize = 1024;
+
+		byte *thpixels = NULL;
+		uint32_t thwidth = 0;
+		uint32_t thheight = 0;
+
+		{
+			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
+
+			ID3D11Resource *res = NULL;
+
+			rtv->GetResource(&res); res->Release();
+
+			ID3D11Texture2D *tex = (ID3D11Texture2D *)res;
+
+			D3D11_TEXTURE2D_DESC desc;
+			tex->GetDesc(&desc);
+
+			desc.BindFlags = 0;
+			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			desc.MiscFlags = 0;
+			desc.Usage = D3D11_USAGE_STAGING;
+
+			bool msaa = (desc.SampleDesc.Count > 1) || (desc.SampleDesc.Quality > 0);
+
+			desc.SampleDesc.Count = 1;
+			desc.SampleDesc.Quality = 0;
+
+			ID3D11Texture2D *stagingTex = NULL;
+
+			HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &stagingTex);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create staging texture to create thumbnail. %08x", hr);
+			}
+			else
+			{
+				if(msaa)
+				{
+					desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					desc.CPUAccessFlags = 0;
+					desc.Usage = D3D11_USAGE_DEFAULT;
+
+					ID3D11Texture2D *resolveTex = NULL;
+
+					HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &resolveTex);
+
+					if(FAILED(hr))
+					{
+						RDCERR("Couldn't create resolve texture to create thumbnail. %08x", hr);
+						tex = NULL;
+					}
+					else
+					{
+						m_pImmediateContext->GetReal()->ResolveSubresource(resolveTex, 0, tex, 0, desc.Format);
+						m_pImmediateContext->GetReal()->CopyResource(stagingTex, resolveTex);
+						resolveTex->Release();
+					}
+				}
+				else
+				{
+					m_pImmediateContext->GetReal()->CopyResource(stagingTex, tex);
+				}
+
+				if(tex)
+				{
+					ResourceFormat fmt = MakeResourceFormat(desc.Format);
+
+					D3D11_MAPPED_SUBRESOURCE mapped;
+					hr = m_pImmediateContext->GetReal()->Map(stagingTex, 0, D3D11_MAP_READ, 0, &mapped);
+
+					if(FAILED(hr))
+					{
+						RDCERR("Couldn't map staging texture to create thumbnail. %08x", hr);
+					}
+					else
+					{
+						byte *data = (byte *)mapped.pData;
+
+						float aspect = float(desc.Width)/float(desc.Height);
+
+						thwidth = RDCMIN(maxSize, desc.Width);
+						thwidth &= ~0x7; // align down to multiple of 8
+						thheight = uint32_t(float(thwidth)/aspect);
+
+						thpixels = new byte[3*thwidth*thheight];
+
+						float widthf = float(desc.Width);
+						float heightf = float(desc.Height);
+
+						uint32_t stride = fmt.compByteWidth*fmt.compCount;
+
+						bool buf1010102 = false;
+						bool bufBGRA = false;
+
+						if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+						{
+							stride = 4;
+							buf1010102 = true;
+						}
+						if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
+						{
+							stride = 4;
+							bufBGRA = true;
+						}
+
+						byte *dst = thpixels;
+
+						for(uint32_t y=0; y < thheight; y++)
+						{
+							for(uint32_t x=0; x < thwidth; x++)
+							{
+								float xf = float(x)/float(thwidth);
+								float yf = float(y)/float(thheight);
+
+								byte *src = &data[ stride*uint32_t(xf*widthf) + mapped.RowPitch*uint32_t(yf*heightf) ];
+
+								if(buf1010102)
+								{
+									uint32_t *src1010102 = (uint32_t *)src;
+									Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
+									dst[0] = (byte)(unorm.x*255.0f);
+									dst[1] = (byte)(unorm.y*255.0f);
+									dst[2] = (byte)(unorm.z*255.0f);
+								}
+								else if(bufBGRA)
+								{
+									dst[0] = src[2];
+									dst[1] = src[1];
+									dst[2] = src[0];
+								}
+								else
+								{
+									dst[0] = src[0];
+									dst[1] = src[1];
+									dst[2] = src[2];
+								}
+
+								dst += 3;
+							}
+						}
+
+						m_pImmediateContext->GetReal()->Unmap(stagingTex, 0);
+					}
+				}
+
+				stagingTex->Release();
+			}
+
+		}
+
+		byte *jpgbuf = NULL;
+		int len = thwidth*thheight;
+
+		{
+			jpgbuf = new byte[len];
+
+			jpge::params p;
+
+			p.m_quality = 40;
+
+			bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+			if(!success)
+			{
+				RDCERR("Failed to compress to jpg");
+				SAFE_DELETE_ARRAY(jpgbuf);
+				thwidth = 0;
+				thheight = 0;
+			}
+		}
+
+		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, m_InitParams, jpgbuf, len, thwidth, thheight);
+
+		SAFE_DELETE_ARRAY(jpgbuf);
+		SAFE_DELETE(thpixels);
+
+		{
+			SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+
+			SERIALISE_ELEMENT(ResourceId, immContextId, m_pImmediateContext->GetResourceID());
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		RDCDEBUG("Inserting Resource Serialisers");	
+
+		GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+
+		GetResourceManager()->InsertInitialContentsChunks(m_pSerialiser, m_pFileSerialiser);
+
+		RDCDEBUG("Creating Capture Scope");	
+
+		{
+			SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
+
+			Serialise_CaptureScope(0);
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		{
+			RDCDEBUG("Getting Resource Record");	
+
+			D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(m_pImmediateContext->GetResourceID());
+
+			RDCDEBUG("Accumulating context resource list");	
+
+			map<int32_t, Chunk *> recordlist;
+			record->Insert(recordlist);
+
+			RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
+
+			for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+				m_pFileSerialiser->Insert(it->second);
+
+			RDCDEBUG("Done");	
+		}
+
+		m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+
+		SAFE_DELETE(m_pFileSerialiser);
+
+		RenderDoc::Inst().SuccessfullyWrittenLog();
+
+		m_State = WRITING_IDLE;
+
+		m_pImmediateContext->CleanupCapture();
+
+		m_pImmediateContext->FreeCaptureData();
+
+		for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+		{
+			WrappedID3D11DeviceContext *context = *it;
+
+			if(context)
+				context->CleanupCapture();
+			else
+				RDCERR("NULL deferred context in resource record!");
+		}
+
+		GetResourceManager()->MarkUnwrittenResources();
+
+		GetResourceManager()->ClearReferencedResources();
+
+		return true;
+	}
+	else
+	{
+		RDCLOG("Failed to capture, frame %u", m_FrameCounter);
+
+		m_Failures++;
+
+		if(RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled)
+		{
+			D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
+
+			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
+
+			if(rtv)
+			{
+				m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
+
+				int w = GetDebugManager()->GetWidth();
+				int h = GetDebugManager()->GetHeight();
+
+				DXGI_SWAP_CHAIN_DESC swapDesc = {0};
+				swap->GetDesc(&swapDesc);
+				GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+
+				const char *reasonString = "Unknown reason";
+				switch(reason)
+				{
+					case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
+					case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+					default: break;
+				}
+
+				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
+
+				GetDebugManager()->SetOutputDimensions(w, h);
+			}
+
+			old.ApplyState(m_pImmediateContext);
+		}
+
+		m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;
+
+		m_pImmediateContext->CleanupCapture();
+
+		for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+		{
+			WrappedID3D11DeviceContext *context = *it;
+
+			if(context)
+				context->CleanupCapture();
+			else
+				RDCERR("NULL deferred context in resource record!");
+		}
+
+		GetResourceManager()->ClearReferencedResources();
+
+		if(m_Failures > 5) // failed too many times
+		{
+			m_pImmediateContext->FinishCapture();
+
+			m_FrameRecord.pop_back();
+
+			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+			{
+				WrappedID3D11DeviceContext *context = *it;
+
+				if(context)
+				{
+					context->FinishCapture();
+				}
+				else
+				{
+					RDCERR("NULL deferred context in resource record!");
+				}
+			}
+
+			m_pImmediateContext->FreeCaptureData();
+
+			m_FailedFrame = m_FrameCounter;
+			m_FailedReason = reason;
+
+			m_State = WRITING_IDLE;
+
+			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+			{
+				WrappedID3D11DeviceContext *context = *it;
+
+				if(context)
+					context->CleanupCapture();
+				else
+					RDCERR("NULL deferred context in resource record!");
+			}
+
+			GetResourceManager()->MarkUnwrittenResources();
+		}
+		else
+		{
+			GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
+			GetResourceManager()->PrepareInitialContents();
+
+			m_pImmediateContext->AttemptCapture();
+			m_pImmediateContext->BeginCaptureFrame();
+
+			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
+			{
+				WrappedID3D11DeviceContext *context = *it;
+
+				if(context)
+				{
+					context->AttemptCapture();
+				}
+				else
+				{
+					RDCERR("NULL deferred context in resource record!");
+				}
+			}
+		}
+
+		if(m_pInfoQueue)
+			m_pInfoQueue->ClearStoredMessages();
+
+		return false;
+	}
+}
+
 HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UINT Flags)
 {
 	if((Flags & DXGI_PRESENT_TEST) != 0)
@@ -2379,52 +2889,69 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 			m_FrameTimes.clear();
 		}
+		
+		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-		ID3D11RenderTargetView *rtv = m_SwapChains[swap];
-
-		m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
-
-		int w = GetDebugManager()->GetWidth();
-		int h = GetDebugManager()->GetHeight();
-
-		DXGI_SWAP_CHAIN_DESC swapDesc = {0};
-		swap->GetDesc(&swapDesc);
-		GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
-
-		if(swap == m_SwapChain)
+		if(overlay & eOverlay_Enabled)
 		{
-			GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Frame: %d. F12/PrtScr to capture. %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
-				m_FrameCounter, m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
-			size_t i=0;
-			for(i=0; i < m_FrameRecord.size(); i++)
-				GetDebugManager()->RenderText(0.0f, (float)(i+1)*18.0f, 1.0f, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
 
-			if(m_FailedFrame > 0)
+			m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
+
+			int w = GetDebugManager()->GetWidth();
+			int h = GetDebugManager()->GetHeight();
+
+			DXGI_SWAP_CHAIN_DESC swapDesc = {0};
+			swap->GetDesc(&swapDesc);
+			GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+
+			if(swap == m_SwapChain)
 			{
-				const char *reasonString = "Unknown reason";
-				switch(m_FailedReason)
+				string overlayText = "F12/PrtScr to capture.";
+
+				if(overlay & eOverlay_FrameNumber)
+					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
+				if(overlay & eOverlay_FrameRate)
+					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+
+				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
+
+				size_t i=0;
+
+				if(overlay & eOverlay_CaptureList)
 				{
+					for(i=0; i < m_FrameRecord.size(); i++)
+						GetDebugManager()->RenderText(0.0f, (float)(i+1)*18.0f, 1.0f, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+				}
+
+				if(m_FailedFrame > 0)
+				{
+					const char *reasonString = "Unknown reason";
+					switch(m_FailedReason)
+					{
 					case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
 					case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
 					default: break;
+					}
+
+					GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "Failed capture at frame %d:\n", m_FailedFrame);
+					GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "    %hs\n", reasonString);
 				}
 
-				GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "Failed capture at frame %d:\n", m_FailedFrame);
-				GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "    %hs\n", reasonString);
+#if !defined(RELEASE)
+				GetDebugManager()->RenderText(0.0f, float(++i)*18.0f, 1.0f, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+#endif
+			}
+			else
+			{
+				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Inactive swapchain, F11 to cycle");
 			}
 
-#if !defined(RELEASE)
-			GetDebugManager()->RenderText(0.0f, float(++i)*18.0f, 1.0f, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
-#endif
-		}
-		else
-		{
-			GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Inactive swapchain, F11 to cycle");
-		}
-		
-		GetDebugManager()->SetOutputDimensions(w, h);
+			GetDebugManager()->SetOutputDimensions(w, h);
 
-		old.ApplyState(m_pImmediateContext);
+			old.ApplyState(m_pImmediateContext);
+		}
 
 		if(RenderDoc::Inst().ShouldFocusToggle())
 		{
@@ -2453,451 +2980,21 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 		}
 	}
 
-	if(swap != m_SwapChain)
-	{
+	if(swap != m_SwapChain || m_SwapChain == NULL)
 		return S_OK;
-	}
 	
-	// kill any current capture
-	if(m_State == WRITING_CAPFRAME)
-	{
-		CaptureFailReason reason;
-
-		if(m_pImmediateContext->HasSuccessfulCapture(reason))
-		{
-			SCOPED_LOCK(m_D3DLock);
-
-			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
-
-			m_Failures = 0;
-			m_FailedFrame = 0;
-			m_FailedReason = CaptureSucceeded;
-
-			m_pImmediateContext->EndCaptureFrame();
-			m_pImmediateContext->FinishCapture();
-
-			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-			{
-				WrappedID3D11DeviceContext *context = *it;
-
-				if(context)
-				{
-					context->FinishCapture();
-				}
-				else
-				{
-					RDCERR("NULL deferred context in resource record!");
-				}
-			}
-
-			const uint32_t maxSize = 1024;
-
-			byte *thpixels = NULL;
-			uint32_t thwidth = 0;
-			uint32_t thheight = 0;
-
-			{
-				ID3D11RenderTargetView *rtv = m_SwapChains[swap];
-
-				ID3D11Resource *res = NULL;
-
-				rtv->GetResource(&res); res->Release();
-
-				ID3D11Texture2D *tex = (ID3D11Texture2D *)res;
-
-				D3D11_TEXTURE2D_DESC desc;
-				tex->GetDesc(&desc);
-
-				desc.BindFlags = 0;
-				desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-				desc.MiscFlags = 0;
-				desc.Usage = D3D11_USAGE_STAGING;
-
-				bool msaa = (desc.SampleDesc.Count > 1) || (desc.SampleDesc.Quality > 0);
-
-				desc.SampleDesc.Count = 1;
-				desc.SampleDesc.Quality = 0;
-
-				ID3D11Texture2D *stagingTex = NULL;
-
-				HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &stagingTex);
-
-				if(FAILED(hr))
-				{
-					RDCERR("Couldn't create staging texture to create thumbnail. %08x", hr);
-				}
-				else
-				{
-					if(msaa)
-					{
-						desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-						desc.CPUAccessFlags = 0;
-						desc.Usage = D3D11_USAGE_DEFAULT;
-						
-						ID3D11Texture2D *resolveTex = NULL;
-
-						HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &resolveTex);
-
-						if(FAILED(hr))
-						{
-							RDCERR("Couldn't create resolve texture to create thumbnail. %08x", hr);
-							tex = NULL;
-						}
-						else
-						{
-							m_pImmediateContext->GetReal()->ResolveSubresource(resolveTex, 0, tex, 0, desc.Format);
-							m_pImmediateContext->GetReal()->CopyResource(stagingTex, resolveTex);
-							resolveTex->Release();
-						}
-					}
-					else
-					{
-						m_pImmediateContext->GetReal()->CopyResource(stagingTex, tex);
-					}
-
-					if(tex)
-					{
-						ResourceFormat fmt = MakeResourceFormat(desc.Format);
-
-						D3D11_MAPPED_SUBRESOURCE mapped;
-						hr = m_pImmediateContext->GetReal()->Map(stagingTex, 0, D3D11_MAP_READ, 0, &mapped);
-
-						if(FAILED(hr))
-						{
-							RDCERR("Couldn't map staging texture to create thumbnail. %08x", hr);
-						}
-						else
-						{
-							byte *data = (byte *)mapped.pData;
-
-							float aspect = float(desc.Width)/float(desc.Height);
-
-							thwidth = RDCMIN(maxSize, desc.Width);
-							thwidth &= ~0x7; // align down to multiple of 8
-							thheight = uint32_t(float(thwidth)/aspect);
-
-							thpixels = new byte[3*thwidth*thheight];
-
-							float widthf = float(desc.Width);
-							float heightf = float(desc.Height);
-
-							uint32_t stride = fmt.compByteWidth*fmt.compCount;
-
-							bool buf1010102 = false;
-							bool bufBGRA = false;
-
-							if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
-							{
-								stride = 4;
-								buf1010102 = true;
-							}
-							if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
-							{
-								stride = 4;
-								bufBGRA = true;
-							}
-
-							byte *dst = thpixels;
-
-							for(uint32_t y=0; y < thheight; y++)
-							{
-								for(uint32_t x=0; x < thwidth; x++)
-								{
-									float xf = float(x)/float(thwidth);
-									float yf = float(y)/float(thheight);
-
-									byte *src = &data[ stride*uint32_t(xf*widthf) + mapped.RowPitch*uint32_t(yf*heightf) ];
-
-									if(buf1010102)
-									{
-										uint32_t *src1010102 = (uint32_t *)src;
-										Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
-										dst[0] = (byte)(unorm.x*255.0f);
-										dst[1] = (byte)(unorm.y*255.0f);
-										dst[2] = (byte)(unorm.z*255.0f);
-									}
-									else if(bufBGRA)
-									{
-										dst[0] = src[2];
-										dst[1] = src[1];
-										dst[2] = src[0];
-									}
-									else
-									{
-										dst[0] = src[0];
-										dst[1] = src[1];
-										dst[2] = src[2];
-									}
-
-									dst += 3;
-								}
-							}
-
-							m_pImmediateContext->GetReal()->Unmap(stagingTex, 0);
-						}
-					}
-
-					stagingTex->Release();
-				}
-
-			}
-
-			byte *jpgbuf = NULL;
-			int len = thwidth*thheight;
-
-			{
-				jpgbuf = new byte[len];
-
-				jpge::params p;
-
-				p.m_quality = 40;
-
-				bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
-
-				if(!success)
-				{
-					RDCERR("Failed to compress to jpg");
-					SAFE_DELETE_ARRAY(jpgbuf);
-					thwidth = 0;
-					thheight = 0;
-				}
-			}
-
-			Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, m_InitParams, jpgbuf, len, thwidth, thheight);
-			
-			SAFE_DELETE_ARRAY(jpgbuf);
-			SAFE_DELETE(thpixels);
-
-			{
-				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
-
-				SERIALISE_ELEMENT(ResourceId, immContextId, m_pImmediateContext->GetResourceID());
-
-				m_pFileSerialiser->Insert(scope.Get(true));
-			}
-
-			RDCDEBUG("Inserting Resource Serialisers");	
-
-			GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
-			
-			GetResourceManager()->InsertInitialContentsChunks(m_pSerialiser, m_pFileSerialiser);
-
-			RDCDEBUG("Creating Capture Scope");	
-
-			{
-				SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
-
-				Serialise_CaptureScope(0);
-
-				m_pFileSerialiser->Insert(scope.Get(true));
-			}
-
-			{
-				RDCDEBUG("Getting Resource Record");	
-
-				D3D11ResourceRecord *record = m_ResourceManager->GetResourceRecord(m_pImmediateContext->GetResourceID());
-
-				RDCDEBUG("Accumulating context resource list");	
-
-				map<int32_t, Chunk *> recordlist;
-				record->Insert(recordlist);
-
-				RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
-
-				for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-					m_pFileSerialiser->Insert(it->second);
-
-				RDCDEBUG("Done");	
-			}
-
-			m_CurFileSize += m_pFileSerialiser->FlushToDisk();
-
-			SAFE_DELETE(m_pFileSerialiser);
-
-			RenderDoc::Inst().SuccessfullyWrittenLog();
-
-			m_State = WRITING_IDLE;
-
-			m_pImmediateContext->CleanupCapture();
-
-			m_pImmediateContext->FreeCaptureData();
-
-			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-			{
-				WrappedID3D11DeviceContext *context = *it;
-
-				if(context)
-					context->CleanupCapture();
-				else
-					RDCERR("NULL deferred context in resource record!");
-			}
-
-			GetResourceManager()->MarkUnwrittenResources();
-
-			GetResourceManager()->ClearReferencedResources();
-		}
-		else
-		{
-			RDCLOG("Failed to capture, frame %u", m_FrameCounter);
-
-			m_Failures++;
-			
-			{
-				D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
-
-				ID3D11RenderTargetView *rtv = m_SwapChains[swap];
-
-				if(rtv)
-				{
-					m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
-
-					int w = GetDebugManager()->GetWidth();
-					int h = GetDebugManager()->GetHeight();
-
-					DXGI_SWAP_CHAIN_DESC swapDesc = {0};
-					swap->GetDesc(&swapDesc);
-					GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
-
-					const char *reasonString = "Unknown reason";
-					switch(reason)
-					{
-						case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
-						case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
-						default: break;
-					}
-
-					GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
-
-					GetDebugManager()->SetOutputDimensions(w, h);
-				}
-
-				old.ApplyState(m_pImmediateContext);
-			}
-
-			m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;
-			
-			m_pImmediateContext->CleanupCapture();
-
-			for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-			{
-				WrappedID3D11DeviceContext *context = *it;
-
-				if(context)
-					context->CleanupCapture();
-				else
-					RDCERR("NULL deferred context in resource record!");
-			}
-
-			GetResourceManager()->ClearReferencedResources();
-			
-			if(m_Failures > 5) // failed too many times
-			{
-				m_pImmediateContext->FinishCapture();
-
-				m_FrameRecord.pop_back();
-
-				for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-				{
-					WrappedID3D11DeviceContext *context = *it;
-
-					if(context)
-					{
-						context->FinishCapture();
-					}
-					else
-					{
-						RDCERR("NULL deferred context in resource record!");
-					}
-				}
-
-				m_pImmediateContext->FreeCaptureData();
-
-				m_FailedFrame = m_FrameCounter;
-				m_FailedReason = reason;
-
-				m_State = WRITING_IDLE;
-
-				for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-				{
-					WrappedID3D11DeviceContext *context = *it;
-
-					if(context)
-						context->CleanupCapture();
-					else
-						RDCERR("NULL deferred context in resource record!");
-				}
-
-				GetResourceManager()->MarkUnwrittenResources();
-			}
-			else
-			{			
-				GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
-				GetResourceManager()->PrepareInitialContents();
-
-				m_pImmediateContext->AttemptCapture();
-				m_pImmediateContext->BeginCaptureFrame();
-
-				for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-				{
-					WrappedID3D11DeviceContext *context = *it;
-
-					if(context)
-					{
-						context->AttemptCapture();
-					}
-					else
-					{
-						RDCERR("NULL deferred context in resource record!");
-					}
-				}
-			}
-
-			if(m_pInfoQueue)
-				m_pInfoQueue->ClearStoredMessages();
-		}
-	}
+	DXGI_SWAP_CHAIN_DESC swapDesc = {0};
+	m_SwapChain->GetDesc(&swapDesc);
+
+	// kill any current capture that isn't application defined
+	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+		EndFrameCapture(swapDesc.OutputWindow);
 
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		SCOPED_LOCK(m_D3DLock);
+		StartFrameCapture(swapDesc.OutputWindow);
 
-		m_State = WRITING_CAPFRAME;
-
-		m_Failures = 0;
-		m_FailedFrame = 0;
-		m_FailedReason = CaptureSucceeded;
-
-		FetchFrameRecord record;
-		record.frameInfo.frameNumber = m_FrameCounter+1;
-		m_FrameRecord.push_back(record);
-
-		GetResourceManager()->ClearReferencedResources();
-
-		GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
-
-		m_pImmediateContext->AttemptCapture();
-		m_pImmediateContext->BeginCaptureFrame();
-
-		for(auto it = m_DeferredContexts.begin(); it != m_DeferredContexts.end(); ++it)
-		{
-			WrappedID3D11DeviceContext *context = *it;
-
-			if(context)
-			{
-				context->AttemptCapture();
-			}
-			else
-			{
-				RDCERR("NULL deferred context in resource record!");
-			}
-		}
-		
-		GetResourceManager()->PrepareInitialContents();
-
-		if(m_pInfoQueue)
-			m_pInfoQueue->ClearStoredMessages();
-
-		RDCLOG("Starting capture, frame %u", m_FrameCounter);
+		m_AppControlledCapture = false;
 	}
 
 	return S_OK;

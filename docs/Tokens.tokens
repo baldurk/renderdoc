@@ -3,6 +3,6 @@
   <item id="Baldur Contact"><ddue:externalLink xmlns:ddue="http://ddue.schemas.microsoft.com/authoring/2003/5">
    <ddue:linkText>RenderDoc Contact</ddue:linkText>
    <ddue:linkAlternateText>RenderDoc @ Crytek</ddue:linkAlternateText>
-   <ddue:linkUri>mailto:renderdoc@crytek.com?subject=RenderDoc%20feedback</ddue:linkUri>
+   <ddue:linkUri>mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback</ddue:linkUri>
    </ddue:externalLink></item>
 </content>

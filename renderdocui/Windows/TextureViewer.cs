@@ -1089,14 +1089,34 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
 
-            for (int i = 0; i < tex.mips; i++)
-                mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
+            if (tex.msSamp > 1)
+            {
+                for (int i = 0; i < tex.msSamp; i++)
+                    mipLevel.Items.Add(String.Format("Sample {0}", i));
+
+                // add an option to display unweighted average resolved value,
+                // to get an idea of how the samples average
+                if(tex.format.compType != FormatComponentType.UInt &&
+                    tex.format.compType != FormatComponentType.SInt &&
+                    tex.format.compType != FormatComponentType.Depth &&
+                    (tex.creationFlags & TextureCreationFlags.DSV) == 0)
+                    mipLevel.Items.Add("Average val");
+
+                mipLevelLabel.Text = "Sample";
+            }
+            else
+            {
+                for (int i = 0; i < tex.mips; i++)
+                    mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
+
+                mipLevelLabel.Text = "Mip";
+            }
 
             mipLevel.SelectedIndex = 0;
             m_TexDisplay.mip = 0;
             m_TexDisplay.sliceFace = 0;
 
-            if (tex.mips == 1)
+            if (tex.mips == 1 && tex.msSamp <= 1)
             {
                 mipLevel.Enabled = false;
             }
@@ -1330,6 +1350,14 @@ namespace renderdocui.Windows
             bool dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0);
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
+
+            if (m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawPass ||
+                m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawDraw)
+            {
+                dsv = false;
+                uintTex = false;
+                sintTex = true;
+            }
 
             if (m_CurHoverValue != null)
             {
@@ -1916,11 +1944,11 @@ namespace renderdocui.Windows
                 y = (int)tex.height - y;
 
             var pickValue = m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
             PixelValue realValue = null;
             if (m_TexDisplay.CustomShader != ResourceId.Null)
                 realValue = m_Output.PickPixel(m_TexDisplay.texid, false, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 
             RT_UpdatePixelColour(pickValue, realValue, false);
         }
@@ -2052,7 +2080,7 @@ namespace renderdocui.Windows
                             if (m_TexDisplay.FlipY)
                                 y = tex.height - y;
                             RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, y,
-                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip));
+                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx));
                         }
                     });
                 }
@@ -2257,10 +2285,33 @@ namespace renderdocui.Windows
         }
         private void mipLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
-            m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+            if (CurrentTexture == null) return;
+
+            if (CurrentTexture.mips > 1)
+            {
+                m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+                m_TexDisplay.sampleIdx = 0;
+            }
+            else
+            {
+                m_TexDisplay.mip = 0;
+                m_TexDisplay.sampleIdx = (UInt32)mipLevel.SelectedIndex;
+                if (mipLevel.SelectedIndex == CurrentTexture.msSamp)
+                    m_TexDisplay.sampleIdx = ~0U;
+            }
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
-            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
         }
 
         private void overlay_SelectedIndexChanged(object sender, EventArgs e)
@@ -2277,8 +2328,18 @@ namespace renderdocui.Windows
         {
             m_TexDisplay.sliceFace = (UInt32)sliceFace.SelectedIndex;
 
-            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
         private void updateChannelsHandler(object sender, EventArgs e)
@@ -2384,7 +2445,7 @@ namespace renderdocui.Windows
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
-                bool success = r.GetMinMax(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, out min, out max);
+                bool success = r.GetMinMax(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx, out min, out max);
 
                 if (success)
                 {
@@ -2475,7 +2536,7 @@ namespace renderdocui.Windows
             bool success = true;
 
             uint[] histogram;
-            success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip,
+            success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
                                      rangeHistogram.BlackPoint, rangeHistogram.WhitePoint,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,
@@ -2631,7 +2692,9 @@ namespace renderdocui.Windows
 
             this.BeginInvoke(new Action(() =>
             {
-                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace);
+                string debugContext = String.Format("Pixel {0},{1}", m_PickedPoint.X, m_PickedPoint.Y);
+
+                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace, debugContext);
 
                 s.Show(this.DockPanel);
             }));
@@ -2715,35 +2778,33 @@ namespace renderdocui.Windows
 
         #region Thumbnail strip
 
-        private void AddResourceUsageEntry(uint start, uint end, ResourceUsage usage)
+        private void AddResourceUsageEntry(List<ToolStripItem> items, uint start, uint end, ResourceUsage usage)
         {
             ToolStripItem item = null;
 
             if (start == end)
-                item = rightclickMenu.Items.Add("EID " + start + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + ": " + usage.Str());
             else
-                item = rightclickMenu.Items.Add("EID " + start + "-" + end + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str());
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
+
+            items.Add(item);
         }
 
         private void OpenResourceContextMenu(ResourceId id, bool thumbStripMenu, Control c, Point p)
         {
+            var menuItems = new List<ToolStripItem>();
+
             int i = 0;
             for (i = 0; i < rightclickMenu.Items.Count; i++)
-                if (rightclickMenu.Items[i] == usedStartLabel)
-                    break;
-
-            while (i != rightclickMenu.Items.Count - 1)
-                rightclickMenu.Items.RemoveAt(i + 1);
-
-            for (i = 0; i < rightclickMenu.Items.Count; i++)
             {
+                menuItems.Add(rightclickMenu.Items[i]);
                 if (rightclickMenu.Items[i] == usedStartLabel)
                     break;
 
-                rightclickMenu.Items[i].Visible = thumbStripMenu;
+                menuItems[i].Visible = thumbStripMenu;
             }
 
             if (id != ResourceId.Null)
@@ -2754,7 +2815,7 @@ namespace renderdocui.Windows
 
                 openNewTab.Tag = id;
 
-                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
                     EventUsage[] usage = r.GetUsage(id);
 
@@ -2777,7 +2838,7 @@ namespace renderdocui.Windows
 
                             if (u.usage != us || curDraw.previous == null || curDraw.previous.eventID != end)
                             {
-                                AddResourceUsageEntry(start, end, us);
+                                AddResourceUsageEntry(menuItems, start, end, us);
                                 start = end = u.eventID;
                                 us = u.usage;
                             }
@@ -2786,7 +2847,10 @@ namespace renderdocui.Windows
                         }
 
                         if (start != 0)
-                            AddResourceUsageEntry(start, end, us);
+                            AddResourceUsageEntry(menuItems, start, end, us);
+
+                        rightclickMenu.Items.Clear();
+                        rightclickMenu.Items.AddRange(menuItems.ToArray());
 
                         rightclickMenu.Show(c, p);
                     }));

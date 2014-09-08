@@ -477,7 +477,7 @@ protected:
 
 		bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, real);
 		if(!ret)
-			RDCERR("Error adding wrapper for type %s", ToStr::Get(__uuidof(NestedType)).c_str());
+			RDCERR("Error adding wrapper for type %hs", ToStr::Get(__uuidof(NestedType)).c_str());
 
 		m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
 	}
@@ -650,10 +650,6 @@ protected:
 	}
 
 public:
-#if !defined(RELEASE)
-	DescType& GetDescDirect() { return m_Desc; }
-#endif
-	
 	void ViewAddRef()
 	{
 		InterlockedIncrement(&m_ViewRefcount);

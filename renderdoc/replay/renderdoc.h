@@ -86,7 +86,7 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetPixelContextLocation(
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output);
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool customShader,
-														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, PixelValue *val);
+														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val);
 
 #ifdef RENDERDOC_EXPORTS
 struct ReplayRenderer;
@@ -136,8 +136,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRend
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, PostVSMeshData *data);
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, PixelValue *minval, PixelValue *maxval);
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
 
@@ -210,6 +210,11 @@ typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateReplayRenderer)(const
 // Takes the filename of the log. Returns NULL in the case of any error.
 //////////////////////////////////////////////////////////////////////////
 
+#define RENDERDOC_API_VERSION 1
+
+extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPIVersion();
+typedef int (RENDERDOC_CC *pRENDERDOC_GetAPIVersion)();
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const wchar_t *logfile);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
 
@@ -224,8 +229,23 @@ typedef uint32_t (RENDERDOC_CC *pRENDERDOC_ExecuteAndInject)(const wchar_t *app,
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_InjectIntoProcess)(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *wndHandle);
+typedef void (RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(void *wndHandle);
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerCapture();
 typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle);
+typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *wndHandle);
+
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle);
+typedef bool (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t and, uint32_t or);
+typedef void (RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t and, uint32_t or);
 
 //////////////////////////////////////////////////////////////////////////
 // Remote access and control

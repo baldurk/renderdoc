@@ -41,7 +41,11 @@ struct GlobalState
 		GlobalState()
 		{
 			for(int i=0; i < 8; i++)
+			{
 				uavs[i].firstElement = uavs[i].numElements = uavs[i].hiddenCounter = 0;
+				uavs[i].rowPitch = uavs[i].depthPitch = 0;
+				uavs[i].tex = false;
+			}
 
 			for(int i=0; i < 128; i++)
 				srvs[i].firstElement = srvs[i].numElements = 0;
@@ -70,6 +74,9 @@ struct GlobalState
 			uint32_t firstElement;
 			uint32_t numElements;
 
+			bool tex;
+			uint32_t rowPitch, depthPitch;
+
 			ViewFmt format;
 
 			uint32_t hiddenCounter;
@@ -83,6 +90,17 @@ struct GlobalState
 
 			ViewFmt format;
 		} srvs[128];
+
+		struct groupsharedMem
+		{
+			bool structured;
+			uint32_t bytestride;
+			uint32_t count; // of structures (above stride), or uint32s (raw)
+
+			vector<byte> data;
+		};
+
+		vector<groupsharedMem> groupshared;
 };
 
 class State : public ShaderDebugState
@@ -105,9 +123,15 @@ class State : public ShaderDebugState
 			device = d;
 		}
 
-		void SetTrace(const ShaderDebugTrace *t)
+		void SetTrace(int quadIdx, const ShaderDebugTrace *t)
 		{
+			quadIndex = quadIdx;
 			trace = t;
+		}
+
+		void SetHelper()
+		{
+			done = true;
 		}
 
 		struct
@@ -118,7 +142,7 @@ class State : public ShaderDebugState
 		} semantics;
 
 		void Init();
-		bool Finished();
+		bool Finished() const;
 		
 		State GetNext(GlobalState &global, State quad[4]) const;
 

@@ -104,12 +104,10 @@ struct GLResourceRecord : public ResourceRecord
 
 	GLResourceRecord(ResourceId id) :
 	ResourceRecord(id, true),
-		datatype(eGL_UNKNOWN_ENUM),
-		usage(eGL_UNKNOWN_ENUM)
+		datatype(eGL_NONE),
+		usage(eGL_NONE)
 	{
 		RDCEraseEl(ShadowPtr);
-		RDCEraseEl(ptrchunks);
-		RDCEraseEl(enabledchunks);
 	}
 
 	~GLResourceRecord()
@@ -164,9 +162,6 @@ struct GLResourceRecord : public ResourceRecord
 		return ShadowPtr[p];
 	}
 
-	Chunk *ptrchunks[12];
-	Chunk *enabledchunks[12];
-	
 private:
 	byte *ShadowPtr[2];
 };

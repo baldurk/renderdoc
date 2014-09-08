@@ -58,9 +58,13 @@ namespace renderdocui.Windows.Dialogs
         {
             InjectMode = settings.Inject;
 
+            workDirPath_Enter(null, null);
+
             exePath.Text = settings.Executable;
             workDirPath.Text = settings.WorkingDir;
             cmdline.Text = settings.CmdLine;
+
+            workDirPath_Leave(null, null);
 
             AllowFullscreen.Checked = settings.Options.AllowFullscreen;
             AllowVSync.Checked = settings.Options.AllowVSync;
@@ -73,8 +77,6 @@ namespace renderdocui.Windows.Dialogs
             SaveAllInitials.Checked = settings.Options.SaveAllInitials;
             DelayForDebugger.Value = settings.Options.DelayForDebugger;
             AutoStart.Checked = settings.AutoStart;
-
-            UpdateWorkDirHint();
 
             if (settings.AutoStart)
             {

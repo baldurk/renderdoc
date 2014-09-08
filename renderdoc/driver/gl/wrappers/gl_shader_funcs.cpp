@@ -436,9 +436,20 @@ bool WrappedOpenGL::Serialise_glLinkProgram(GLuint program)
 	if(m_State == READING)
 	{
 		ResourceId progid = GetResourceManager()->GetLiveID(id);
-
-		m_Programs[progid].linked = true;
 		
+		ProgramData &progDetails = m_Programs[progid];
+
+		progDetails.linked = true;
+		
+		for(size_t s=0; s < 6; s++)
+		{
+			for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+			{
+				if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
+					progDetails.stageShaders[s] = progDetails.shaders[sh];
+			}
+		}
+
 		m_Real.glLinkProgram(GetResourceManager()->GetLiveResource(id).name);
 	}
 
@@ -614,7 +625,26 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield sta
 		ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
 		ResourceId liveProgId = GetResourceManager()->GetLiveID(prog);
 
-		m_Pipelines[livePipeId].programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
+		PipelineData &pipeDetails = m_Pipelines[livePipeId];
+		ProgramData &progDetails = m_Programs[liveProgId];
+
+		pipeDetails.programs.push_back(PipelineData::ProgramUse(liveProgId, Stages));
+
+		for(size_t s=0; s < 6; s++)
+		{
+			if(Stages & ShaderBit(s))
+			{
+				for(size_t sh=0; sh < progDetails.shaders.size(); sh++)
+				{
+					if(m_Shaders[ progDetails.shaders[sh] ].type == ShaderEnum(s))
+					{
+						pipeDetails.stagePrograms[s] = liveProgId;
+						pipeDetails.stageShaders[s] = progDetails.shaders[sh];
+						break;
+					}
+				}
+			}
+		}
 		
 		m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name,
 															Stages,

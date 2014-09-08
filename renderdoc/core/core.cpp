@@ -88,6 +88,8 @@ RenderDoc::RenderDoc()
 	m_ProgressPtr = NULL;
 	
 	m_ExHandler = NULL;
+
+	m_Overlay = eOverlay_Default;
 	
 	m_RemoteServerThreadShutdown = false;
 	m_RemoteClientThreadShutdown = false;
@@ -201,6 +203,42 @@ RenderDoc::~RenderDoc()
 	Network::Shutdown();
 
 	RDCLOGDELETE();
+}
+
+void RenderDoc::StartFrameCapture(void *wnd)
+{
+	auto it = m_WindowFrameCapturers.find(wnd);
+	if(it == m_WindowFrameCapturers.end())
+	{
+		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		return;
+	}
+
+	it->second->StartFrameCapture(wnd);
+}
+
+void RenderDoc::SetActiveWindow(void *wnd)
+{
+	auto it = m_WindowFrameCapturers.find(wnd);
+	if(it == m_WindowFrameCapturers.end())
+	{
+		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		return;
+	}
+
+	it->second->SetActiveWindow(wnd);
+}
+
+bool RenderDoc::EndFrameCapture(void *wnd)
+{
+	auto it = m_WindowFrameCapturers.find(wnd);
+	if(it == m_WindowFrameCapturers.end())
+	{
+		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		return false;
+	}
+
+	return it->second->EndFrameCapture(wnd);
 }
 
 void RenderDoc::Tick()

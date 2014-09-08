@@ -131,12 +131,12 @@ class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, D3D11Res
 		
 		bool ResourceTypeRelease(ID3D11DeviceChild *res);
 		
-		bool Need_InitialState(ID3D11DeviceChild *res);
+		bool Force_InitialState(ID3D11DeviceChild *res);
 		bool Need_InitialStateChunk(ID3D11DeviceChild *res);
 		bool Prepare_InitialState(ID3D11DeviceChild *res);
 		bool Serialise_InitialState(ID3D11DeviceChild *res);
 		void Create_InitialState(ResourceId id, ID3D11DeviceChild *live, bool hasData);
-		void Apply_InitialState(ID3D11DeviceChild *live, ID3D11DeviceChild *initial, uint32_t count);
+		void Apply_InitialState(ID3D11DeviceChild *live, InitialContentData data);
 
 		WrappedID3D11Device *m_Device;
 };

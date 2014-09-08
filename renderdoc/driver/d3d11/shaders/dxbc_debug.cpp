@@ -90,6 +90,9 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_SAMPLE_D:
 		case OPCODE_RESINFO:
 		case OPCODE_BUFINFO:
+		case OPCODE_SAMPLE_INFO:
+		case OPCODE_SAMPLE_POS:
+		case OPCODE_LOD:
 		case OPCODE_LD:
 		case OPCODE_LD_MS:
 			return eVar_Float;
@@ -153,7 +156,30 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_BREAKC:
 		case OPCODE_IF:
 		case OPCODE_ITOF:
+		case OPCODE_DTOI:
 			return eVar_Int;
+			
+		case OPCODE_ATOMIC_IADD:
+		case OPCODE_ATOMIC_IMAX:
+		case OPCODE_ATOMIC_IMIN:
+		case OPCODE_IMM_ATOMIC_IADD:
+		case OPCODE_IMM_ATOMIC_IMAX:
+		case OPCODE_IMM_ATOMIC_IMIN:
+			return eVar_Int;
+		case OPCODE_ATOMIC_AND:
+		case OPCODE_ATOMIC_OR:
+		case OPCODE_ATOMIC_XOR:
+		case OPCODE_ATOMIC_CMP_STORE:
+		case OPCODE_ATOMIC_UMAX:
+		case OPCODE_ATOMIC_UMIN:
+		case OPCODE_IMM_ATOMIC_AND:
+		case OPCODE_IMM_ATOMIC_OR:
+		case OPCODE_IMM_ATOMIC_XOR:
+		case OPCODE_IMM_ATOMIC_EXCH:
+		case OPCODE_IMM_ATOMIC_CMP_EXCH:
+		case OPCODE_IMM_ATOMIC_UMAX:
+		case OPCODE_IMM_ATOMIC_UMIN:
+			return eVar_UInt;
 			
 		case OPCODE_BFREV:
 		case OPCODE_COUNTBITS:
@@ -180,6 +206,7 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_LD_RAW:
 		case OPCODE_LD_UAV_TYPED:
 		case OPCODE_LD_STRUCTURED:
+		case OPCODE_DTOU:
 			return eVar_UInt;
 
 		case OPCODE_DADD:
@@ -193,6 +220,11 @@ VarType State::OperationType(const OpcodeType &op) const
 		case OPCODE_DMOV:
 		case OPCODE_DMOVC:
 		case OPCODE_DTOF:
+		case OPCODE_DDIV:
+		case OPCODE_DFMA:
+		case OPCODE_DRCP:
+		case OPCODE_ITOD:
+		case OPCODE_UTOD:
 			return eVar_Double;
 
 		default:
@@ -560,7 +592,7 @@ void State::Init()
 	}
 }
 
-bool State::Finished()
+bool State::Finished() const
 {
 	return dxbc && (done || nextInstruction >= (int)dxbc->m_Instructions.size());
 }
@@ -819,10 +851,17 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 
 			break;
 		}
+	
+		// instructions referencing group shared memory handle it specially (the operand
+		// itself just names the groupshared memory region, there's a separate dst address
+		// operand).
+		case TYPE_THREAD_GROUP_SHARED_MEMORY:
+
 		case TYPE_RESOURCE:
 		case TYPE_SAMPLER:
 		case TYPE_UNORDERED_ACCESS_VIEW:
 		case TYPE_NULL:
+		case TYPE_RASTERIZER:
 		{
 			// should be handled specially by instructions that expect these types of
 			// argument but let's be sane and include the index
@@ -989,7 +1028,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 {
 	State s = *this;
 
-	if(s.Finished())
+	if(s.nextInstruction >= s.dxbc->m_Instructions.size())
 		return s;
 
 	ASMOperation &op = s.dxbc->m_Instructions[s.nextInstruction];
@@ -1012,11 +1051,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Math operations
 		
+		
 		case OPCODE_DADD:
 		case OPCODE_IADD:
 		case OPCODE_ADD:
 			s.SetDst(op.operands[0], op, add(srcOpers[0], srcOpers[1], optype));
 			break;
+		case OPCODE_DDIV:
 		case OPCODE_DIV:
 			s.SetDst(op.operands[0], op, div(srcOpers[0], srcOpers[1], optype));
 			break;
@@ -1205,6 +1246,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		case OPCODE_IMAD:
 		case OPCODE_UMAD:
 		case OPCODE_MAD:
+		case OPCODE_DFMA:
 			s.SetDst(op.operands[0], op, add(mul(srcOpers[0], srcOpers[1], optype), srcOpers[2], optype));
 			break;
 		case OPCODE_DP2:
@@ -1357,6 +1399,19 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 													  1.0f/srcOpers[0].value.f.z,
 													  1.0f/srcOpers[0].value.f.w ));
 			break;
+		case OPCODE_DRCP:
+		{
+			double ds[2] = { 0.0, 0.0 };
+			DoubleGet(srcOpers[0], ds);
+			ds[0] = 1.0f/ds[0];
+			ds[1] = 1.0f/ds[1];
+			
+			ShaderVariable r("", 0U, 0U, 0U, 0U);
+			DoubleSet(r, ds);
+
+			s.SetDst(op.operands[0], op, r);
+			break;
+		}
 		case OPCODE_RSQ:
 			s.SetDst(op.operands[0], op, ShaderVariable("", 1.0f/sqrtf(srcOpers[0].value.f.x),
 													  1.0f/sqrtf(srcOpers[0].value.f.y),
@@ -1530,13 +1585,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
 		// Misc
 			
-		case OPCODE_STORE_UAV_TYPED:
-		case OPCODE_STORE_RAW:
-		case OPCODE_STORE_STRUCTURED:
-			// should really implement this but assume threads/pixels are independent for now.
-			// for threads that sync or pixels (in a quad) it's not valid to assume no other thread
-			// has run far enough to interfere with stores/loads
-
 		case OPCODE_NOP:
 		case OPCODE_CUSTOMDATA:
 		case OPCODE_SYNC: // might never need to implement this. Who knows!
@@ -1592,12 +1640,27 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 													  (uint32_t)srcOpers[0].value.f.z,
 													  (uint32_t)srcOpers[0].value.f.w ));
 			break;
+		case OPCODE_ITOD:
+		case OPCODE_UTOD:
 		case OPCODE_FTOD:
 		{
 			double res[2];
 
-			res[0] = (double)srcOpers[0].value.f.x;
-			res[1] = (double)srcOpers[0].value.f.y;
+			if(op.operation == OPCODE_ITOD)
+			{
+				res[0] = (double)srcOpers[0].value.i.x;
+				res[1] = (double)srcOpers[0].value.i.y;
+			}
+			else if(op.operation == OPCODE_UTOD)
+			{
+				res[0] = (double)srcOpers[0].value.u.x;
+				res[1] = (double)srcOpers[0].value.u.y;
+			}
+			else if(op.operation == OPCODE_FTOD)
+			{
+				res[0] = (double)srcOpers[0].value.f.x;
+				res[1] = (double)srcOpers[0].value.f.y;
+			}
 
 			// if we only did a 1-wide double op, copy .xy into .zw so we can then
 			// swizzle into .xy or .zw freely on the destination operand.
@@ -1611,25 +1674,54 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			s.SetDst(op.operands[0], op, r);
 			break;
 		}
+		case OPCODE_DTOI:
+		case OPCODE_DTOU:
 		case OPCODE_DTOF:
 		{
 			double src[2];
 			DoubleGet(srcOpers[0], src);
 
-			// special behaviour for dest mask. if it's .xz then first comparison goes into .x, second into .z.
-			// if the mask is .y then the first comparison goes into .y and second goes nowhere.
-			// so we need to check the dest mask and put the comparison results into the right place
+			// special behaviour for dest mask. if it's .xz then first goes into .x, second into .z.
+			// if the mask is .y then the first goes into .y and second goes nowhere.
+			// so we need to check the dest mask and put the results into the right place
 
 			ShaderVariable r("", 0U, 0U, 0U, 0U);
-
-			if(op.operands[0].comps[1] == 0xff) // only one mask
+			
+			if(op.operation == OPCODE_DTOU)
 			{
-				r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.uv[ op.operands[0].comps[0] ] = uint32_t(src[0]);
+				}
+				else
+				{
+					r.value.uv[ op.operands[0].comps[0] ] = uint32_t(src[0]);
+					r.value.uv[ op.operands[0].comps[1] ] = uint32_t(src[1]);
+				}
 			}
-			else
+			else if(op.operation == OPCODE_DTOI)
 			{
-				r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
-				r.value.fv[ op.operands[0].comps[1] ] = float(src[1]);
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.iv[ op.operands[0].comps[0] ] = int32_t(src[0]);
+				}
+				else
+				{
+					r.value.iv[ op.operands[0].comps[0] ] = int32_t(src[0]);
+					r.value.iv[ op.operands[0].comps[1] ] = int32_t(src[1]);
+				}
+			}
+			else if(op.operation == OPCODE_DTOF)
+			{
+				if(op.operands[0].comps[1] == 0xff) // only one mask
+				{
+					r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+				}
+				else
+				{
+					r.value.fv[ op.operands[0].comps[0] ] = float(src[0]);
+					r.value.fv[ op.operands[0].comps[1] ] = float(src[1]);
+				}
 			}
 
 			s.SetDst(op.operands[0], op, r);
@@ -1799,8 +1891,208 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			break;
 			
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
-		// Buffer/Texture sampling
+		// Buffer/Texture load and store
+		
+		// handle atomic operations all together
+		case OPCODE_ATOMIC_IADD:
+		case OPCODE_ATOMIC_IMAX:
+		case OPCODE_ATOMIC_IMIN:
+		case OPCODE_ATOMIC_AND:
+		case OPCODE_ATOMIC_OR:
+		case OPCODE_ATOMIC_XOR:
+		case OPCODE_ATOMIC_CMP_STORE:
+		case OPCODE_ATOMIC_UMAX:
+		case OPCODE_ATOMIC_UMIN:
+		case OPCODE_IMM_ATOMIC_IADD:
+		case OPCODE_IMM_ATOMIC_IMAX:
+		case OPCODE_IMM_ATOMIC_IMIN:
+		case OPCODE_IMM_ATOMIC_AND:
+		case OPCODE_IMM_ATOMIC_OR:
+		case OPCODE_IMM_ATOMIC_XOR:
+		case OPCODE_IMM_ATOMIC_EXCH:
+		case OPCODE_IMM_ATOMIC_CMP_EXCH:
+		case OPCODE_IMM_ATOMIC_UMAX:
+		case OPCODE_IMM_ATOMIC_UMIN:
+		{
+			ASMOperand beforeResult;
+			uint32_t resIndex = 0;
+			ShaderVariable *dstAddress = NULL;
+			ShaderVariable *src0 = NULL;
+			ShaderVariable *src1 = NULL;
+			bool gsm = false;
+
+			if(    op.operation == OPCODE_IMM_ATOMIC_IADD
+					|| op.operation == OPCODE_IMM_ATOMIC_IMAX
+					|| op.operation == OPCODE_IMM_ATOMIC_IMIN
+					|| op.operation == OPCODE_IMM_ATOMIC_AND
+					|| op.operation == OPCODE_IMM_ATOMIC_OR
+					|| op.operation == OPCODE_IMM_ATOMIC_XOR
+					|| op.operation == OPCODE_IMM_ATOMIC_EXCH
+					|| op.operation == OPCODE_IMM_ATOMIC_CMP_EXCH
+					|| op.operation == OPCODE_IMM_ATOMIC_UMAX
+					|| op.operation == OPCODE_IMM_ATOMIC_UMIN)
+			{
+				beforeResult = op.operands[0];
+				resIndex = (uint32_t)op.operands[1].indices[0].index;
+				gsm = (op.operands[1].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				dstAddress = &srcOpers[1];
+				src0 = &srcOpers[2];
+				if(srcOpers.size() > 3)
+					src1 = &srcOpers[3];
+			}
+			else
+			{
+				beforeResult.type = TYPE_NULL;
+				resIndex = (uint32_t)op.operands[0].indices[0].index;
+				gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				dstAddress = &srcOpers[0];
+				src0 = &srcOpers[1];
+				if(srcOpers.size() > 2)
+					src1 = &srcOpers[2];
+			}
 			
+			uint32_t stride = 4;
+			uint32_t offset = 0;
+			uint32_t numElems = 0;
+			bool structured = false;
+			
+			byte *data = NULL;
+
+			if(gsm)
+			{
+				offset = 0;
+				if(resIndex > global.groupshared.size())
+				{
+					numElems = 0;
+					stride = 4;
+					data = NULL;
+				}
+				else
+				{
+					numElems = global.groupshared[resIndex].count;
+					stride = global.groupshared[resIndex].bytestride;
+					data = &global.groupshared[resIndex].data[0];
+					structured = global.groupshared[resIndex].structured;
+				}
+			}
+			else
+			{
+				offset = global.uavs[resIndex].firstElement;
+				numElems = global.uavs[resIndex].numElements;
+				data = &global.uavs[resIndex].data[0];
+
+				for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
+				{
+					ASMDecl &decl = s.dxbc->m_Declarations[i];
+
+					if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+						 decl.operand.indices[0].index == resIndex)
+					{
+						if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW)
+						{
+							stride = 4;
+							structured = false;
+							break;
+						}
+						else if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+						{
+							stride = decl.stride;
+							structured = true;
+							break;
+						}
+					}
+				}
+			}
+
+			RDCASSERT(data);
+
+			// seems like .x is element index, and .y is byte address, in the dstAddress operand
+			//
+			// "Out of bounds addressing on u# causes nothing to be written to memory, except if the
+			//  u# is structured, and byte offset into the struct (second component of the address) is
+			//  causing the out of bounds access, then the entire contents of the UAV become undefined."
+			//
+			// "The number of components taken from the address is determined by the dimensionality of dst u# or g#."
+
+			if(data)
+			{
+				data += (offset + dstAddress->value.u.x)*stride;
+				if(structured)
+					data += dstAddress->value.u.y;
+			}
+
+			// if out of bounds, undefined result is returned to dst0 for immediate operands,
+			// so we only need to care about the in-bounds case.
+			// Also helper/inactive pixels are not allowed to modify UAVs
+			if(data && offset + dstAddress->value.u.x < numElems && !Finished())
+			{
+				uint32_t *udst = (uint32_t *)data;
+				int32_t *idst = (int32_t *)data;
+
+				if(beforeResult.type != TYPE_NULL)
+				{
+					s.SetDst(beforeResult, op, ShaderVariable("", *udst, *udst, *udst, *udst));
+				}
+
+				// not verified below since by definition the operations that expect usrc1 will have it
+				uint32_t *usrc0 = src0 ? src0->value.uv : NULL;
+				uint32_t *usrc1 = src1 ? src1->value.uv : NULL;
+				
+				int32_t *isrc0 = src0 ? src0->value.iv : NULL;
+				int32_t *isrc1 = src1 ? src1->value.iv : NULL;
+
+				switch(op.operation)
+				{
+					case OPCODE_IMM_ATOMIC_IADD:
+					case OPCODE_ATOMIC_IADD:
+						*udst = *udst + *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_IMAX:
+					case OPCODE_ATOMIC_IMAX:
+						*idst = max(*idst, *isrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_IMIN:
+					case OPCODE_ATOMIC_IMIN:
+						*idst = min(*idst, *isrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_AND:
+					case OPCODE_ATOMIC_AND:
+						*udst = *udst & *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_OR:
+					case OPCODE_ATOMIC_OR:
+						*udst = *udst | *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_XOR:
+					case OPCODE_ATOMIC_XOR:
+						*udst = *udst ^ *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_EXCH:
+						*udst = *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_CMP_EXCH:
+					case OPCODE_ATOMIC_CMP_STORE:
+						if(*udst == *usrc1) *udst = *usrc0;
+						break;
+					case OPCODE_IMM_ATOMIC_UMAX:
+					case OPCODE_ATOMIC_UMAX:
+						*udst = max(*udst, *usrc0);
+						break;
+					case OPCODE_IMM_ATOMIC_UMIN:
+					case OPCODE_ATOMIC_UMIN:
+						*udst = min(*udst, *usrc0);
+						break;
+				}
+			}
+			
+			break;
+		}
+
+		// store and load paths are mostly identical
+		case OPCODE_STORE_UAV_TYPED:
+		case OPCODE_STORE_RAW:
+		case OPCODE_STORE_STRUCTURED:
+
 		case OPCODE_LD_RAW:
 		case OPCODE_LD_UAV_TYPED:
 		case OPCODE_LD_STRUCTURED:
@@ -1808,86 +2100,435 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			uint32_t resIndex = 0;
 			uint32_t elemOffset = 0;
 			uint32_t elemIdx = 0;
+
+			uint32_t texCoords[3] = { 0, 0, 0 };
 			
 			uint32_t stride = 0;
 			
 			bool srv = true;
-			
-			if(op.operation == OPCODE_LD_STRUCTURED)
+			bool gsm = false;
+
+			bool load = true;
+
+			if(op.operation == OPCODE_STORE_UAV_TYPED ||
+			   op.operation == OPCODE_STORE_RAW ||
+			   op.operation == OPCODE_STORE_STRUCTURED)
 			{
-				resIndex = srcOpers[2].value.u.x;
-				elemOffset = srcOpers[1].value.u.x;
-				elemIdx = srcOpers[0].value.u.x;
-
-				for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
+				load = false;
+			}
+			
+			if(op.operation == OPCODE_LD_STRUCTURED || op.operation == OPCODE_STORE_STRUCTURED)
+			{
+				if(load)
 				{
-					ASMDecl &decl = s.dxbc->m_Declarations[i];
+					resIndex = (uint32_t)op.operands[3].indices[0].index;
+					srv = (op.operands[3].type == TYPE_RESOURCE);
+					gsm = (op.operands[3].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+					
+					stride = op.stride;
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					srv = false;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
 
-					if(decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[3].indices[0])
+				if(stride == 0)
+				{
+					if(gsm && resIndex < global.groupshared.size())
 					{
-						if(decl.declaration == OPCODE_DCL_RESOURCE_STRUCTURED && decl.operand.type == TYPE_RESOURCE)
+						stride = global.groupshared[resIndex].bytestride;
+					}
+					else if(!gsm)
+					{
+						for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 						{
-							stride = decl.stride;
-							srv = true;
-						}
-						if(decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED && decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW)
-						{
-							stride = decl.stride;
-							srv = false;
+							ASMDecl &decl = s.dxbc->m_Declarations[i];
+
+							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+								decl.operand.indices[0].index == resIndex &&
+								decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+							{
+								stride = decl.stride;
+								break;
+							}
 						}
 					}
 				}
-			}
-			else if(op.operation == OPCODE_LD_UAV_TYPED)
-			{
-				resIndex = (uint32_t)op.operands[2].indices[0].index;
+
+				elemOffset = srcOpers[1].value.u.x;
 				elemIdx = srcOpers[0].value.u.x;
+			}
+			else if(op.operation == OPCODE_LD_UAV_TYPED || op.operation == OPCODE_STORE_UAV_TYPED)
+			{
+				if(load)
+				{
+					resIndex = (uint32_t)op.operands[2].indices[0].index;
+					gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+
+				elemIdx = srcOpers[0].value.u.x;
+
+				// could be a tex load
+				texCoords[0] = srcOpers[0].value.u.x;
+				texCoords[1] = srcOpers[0].value.u.y;
+				texCoords[2] = srcOpers[0].value.u.z;
+
 				stride = 4;
 				srv = false;
 			}
-			else if(op.operation == OPCODE_LD_RAW)
+			else if(op.operation == OPCODE_LD_RAW || op.operation == OPCODE_STORE_RAW)
 			{
-				resIndex = (uint32_t)op.operands[2].indices[0].index;
+				if(load)
+				{
+					resIndex = (uint32_t)op.operands[2].indices[0].index;
+					srv = (op.operands[2].type == TYPE_RESOURCE);
+					gsm = (op.operands[2].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+				else
+				{
+					resIndex = (uint32_t)op.operands[0].indices[0].index;
+					srv = false;
+					gsm = (op.operands[0].type == TYPE_THREAD_GROUP_SHARED_MEMORY);
+				}
+
 				elemIdx = srcOpers[0].value.u.x;
 				stride = 1;
-
-				if(op.operands[2].type == TYPE_UNORDERED_ACCESS_VIEW)
-					srv = false;
 			}
 
 			RDCASSERT(stride != 0);
 
 			uint32_t offset = srv ? global.srvs[resIndex].firstElement : global.uavs[resIndex].firstElement;
 			uint32_t numElems = srv ? global.srvs[resIndex].numElements : global.uavs[resIndex].numElements;
+			GlobalState::ViewFmt fmt = srv ? global.srvs[resIndex].format : global.uavs[resIndex].format;
 
 			byte *data = srv ? &global.srvs[resIndex].data[0] : &global.uavs[resIndex].data[0];
+			bool texData = srv ? false : global.uavs[resIndex].tex;
+			uint32_t rowPitch = srv ? 0 : global.uavs[resIndex].rowPitch;
+			uint32_t depthPitch = srv ? 0 : global.uavs[resIndex].depthPitch;
+
+			if(gsm)
+			{
+				offset = 0;
+				if(resIndex > global.groupshared.size())
+				{
+					numElems = 0;
+					stride = 4;
+					data = NULL;
+				}
+				else
+				{
+					numElems = global.groupshared[resIndex].count;
+					stride = global.groupshared[resIndex].bytestride;
+					data = &global.groupshared[resIndex].data[0];
+					fmt.fmt = eCompType_UInt;
+					fmt.byteWidth = 4;
+					fmt.numComps = global.groupshared[resIndex].bytestride/4;
+					fmt.reversed = false;
+				}
+			}
 
 			RDCASSERT(data);
 
-			data += (offset + elemIdx)*stride;
-			data += elemOffset;
-			
-			if(offset + elemIdx >= numElems)
+			size_t texOffset = 0;
+
+			if(texData)
 			{
-				s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
+					texOffset += texCoords[0] * fmt.byteWidth * fmt.numComps;
+					texOffset += texCoords[1] * rowPitch;
+					texOffset += texCoords[2] * depthPitch;
+			}
+
+			if(!data ||
+				 (!texData && offset + elemIdx >= numElems) ||
+				 (texData && texOffset >= global.uavs[resIndex].data.size())
+				)
+			{
+				if(load)
+					s.SetDst(op.operands[0], op, ShaderVariable("", 0U, 0U, 0U, 0U));
 			}
 			else
 			{
-				uint32_t *srcData = (uint32_t *)data;
-
-				ShaderVariable fetch("", 0U, 0U, 0U, 0U);
-
-				for(int i=0; i < 4; i++)
+				if(gsm || !texData)
 				{
-					uint8_t comp = op.operands[3].comps[i];
-					if(op.operands[3].comps[i] == 0xff)
-						comp = 0;
-
-					fetch.value.uv[i] = srcData[comp];
+					data += (offset + elemIdx)*stride;
+					data += elemOffset;
+				}
+				else
+				{
+					data += texOffset;
 				}
 
-				s.SetDst(op.operands[0], op, fetch);
+				uint32_t *datau32 = (uint32_t *)data;
+
+				uint32_t srcIdx = 1;
+				if(op.operation == OPCODE_STORE_STRUCTURED ||
+					 op.operation == OPCODE_LD_STRUCTURED)
+					srcIdx = 2;
+
+				if(load)
+				{
+					ShaderVariable fetch("", 0U, 0U, 0U, 0U);
+
+					for(int i=0; i < 4; i++)
+					{
+						uint8_t comp = op.operands[srcIdx+1].comps[i];
+						if(op.operands[srcIdx+1].comps[i] == 0xff || i >= fmt.numComps)
+							comp = 0;
+
+						fetch.value.uv[i] = datau32[comp];
+					}
+
+					s.SetDst(op.operands[0], op, fetch);
+				}
+				else if(!Finished()) // helper/inactive pixels can't modify UAVs
+				{
+					for(int i=0; i < 4; i++)
+					{
+						uint8_t comp = op.operands[0].comps[i];
+						// masks must be contiguous from x, if we reach the 'end' we're done
+						if(comp == 0xff || i >= fmt.numComps)
+							break;
+
+						datau32[i] = srcOpers[srcIdx].value.uv[i];
+					}
+				}
 			}
+
+			break;
+		}
+
+		case OPCODE_SAMPLE_INFO:
+		case OPCODE_SAMPLE_POS:
+		{
+			ID3D11DeviceContext *context = NULL;
+			device->GetReal()->GetImmediateContext(&context);
+			
+			ShaderVariable result("", 0U, 0U, 0U, 0U);
+				
+			ID3D11Resource *res = NULL;
+
+			if(op.operands[1].type == TYPE_RASTERIZER)
+			{
+				ID3D11RenderTargetView *rtv = NULL;
+				ID3D11DepthStencilView *dsv = NULL;
+
+				context->OMGetRenderTargets(1, &rtv, &dsv);
+
+				// try depth first - both should match sample count though to be valid
+				if(dsv)
+					dsv->GetResource(&res);
+				else if(rtv)
+					rtv->GetResource(&res);
+				else
+					RDCWARN("No targets bound for sampleinfo on rasterizer");
+
+				SAFE_RELEASE(rtv);
+				SAFE_RELEASE(dsv);
+			}
+			else if(op.operands[1].type == TYPE_RESOURCE &&
+							op.operands[1].indices.size() == 1 &&
+							op.operands[1].indices[0].absolute &&
+							!op.operands[1].indices[0].relative)
+			{
+				UINT slot = (UINT)(op.operands[1].indices[0].index&0xffffffff);
+
+				ID3D11ShaderResourceView *srv = NULL;
+				if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
+					context->VSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
+					context->HSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
+					context->DSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
+					context->GSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
+					context->PSGetShaderResources(slot, 1, &srv);
+				else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
+					context->CSGetShaderResources(slot, 1, &srv);
+
+				if(srv)
+					srv->GetResource(&res);
+				else
+					RDCWARN("SRV is NULL being queried by sampleinfo");
+
+				SAFE_RELEASE(srv);
+			}
+			else
+			{
+				RDCWARN("unexpected operand type to sample_info");
+			}
+			
+			if(res)
+			{
+				D3D11_RESOURCE_DIMENSION dim = D3D11_RESOURCE_DIMENSION_UNKNOWN;
+				res->GetType(&dim);
+
+				if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
+				{
+					D3D11_TEXTURE2D_DESC desc;
+					((ID3D11Texture2D *)res)->GetDesc(&desc);
+
+					// only returns a value for resources that are actually multisampled
+					if(desc.SampleDesc.Count > 1)
+						result.value.u.x = desc.SampleDesc.Count;
+				}
+
+				SAFE_RELEASE(res);
+			}
+			else
+			{
+				RDCWARN("Non multisampled resource provided to sample_info");
+			}
+
+			// "If there is no resource bound to the specified slot, 0 is returned."
+
+			// lookup sample pos if we got a count from above
+			if(op.operation == OPCODE_SAMPLE_POS && result.value.u.x > 0 && op.operands[2].type == TYPE_IMMEDIATE32)
+			{
+				// assume standard sample pattern - this might not hold in all cases
+				// http://msdn.microsoft.com/en-us/library/windows/desktop/ff476218(v=vs.85).aspx
+
+				uint32_t sampleIndex = op.operands[2].values[0];
+				uint32_t sampleCount = result.value.u.x;
+
+				if(sampleIndex >= sampleCount)
+				{
+					RDCWARN("sample index %u is out of bounds on resource bound to sample_pos (%u samples)", sampleIndex, sampleCount);
+				}
+				else
+				{
+					const float *sample_pattern = NULL;
+
+					// co-ordinates are given as (i,j) in 16ths of a pixel
+#define _SMP(c) ((c)/16.0f)
+
+					if(sampleCount == 1)
+					{
+						RDCWARN("Non-multisampled texture being passed to sample_pos");
+						
+						sample_pattern = NULL;
+					}
+					else if(sampleCount == 2)
+					{
+						static const float pattern_2x[] = {
+							_SMP( 4.0f), _SMP( 4.0f),
+							_SMP(-4.0f), _SMP(-4.0f),
+						};
+
+						sample_pattern = &pattern_2x[0];
+					}
+					else if(sampleCount == 4)
+					{
+						static const float pattern_4x[] = {
+							_SMP(-2.0f), _SMP(-6.0f),
+							_SMP( 6.0f), _SMP(-2.0f),
+							_SMP(-6.0f), _SMP( 2.0f),
+							_SMP( 2.0f), _SMP( 6.0f),
+						};
+
+						sample_pattern = &pattern_4x[0];
+					}
+					else if(sampleCount == 8)
+					{
+						static const float pattern_8x[] = {
+							_SMP( 1.0f), _SMP(-3.0f),
+							_SMP(-1.0f), _SMP( 3.0f),
+							_SMP( 5.0f), _SMP( 1.0f),
+							_SMP(-3.0f), _SMP(-5.0f),
+							_SMP(-5.0f), _SMP( 5.0f),
+							_SMP(-7.0f), _SMP(-1.0f),
+							_SMP( 3.0f), _SMP( 7.0f),
+							_SMP( 7.0f), _SMP(-7.0f),
+						};
+
+						sample_pattern = &pattern_8x[0];
+					}
+					else if(sampleCount == 16)
+					{
+						static const float pattern_16x[] = {
+							_SMP( 1.0f), _SMP( 1.0f),
+							_SMP(-1.0f), _SMP(-3.0f),
+							_SMP(-3.0f), _SMP( 2.0f),
+							_SMP( 4.0f), _SMP(-1.0f),
+							_SMP(-5.0f), _SMP(-2.0f),
+							_SMP( 2.0f), _SMP( 5.0f),
+							_SMP( 5.0f), _SMP( 3.0f),
+							_SMP( 3.0f), _SMP(-5.0f),
+							_SMP(-2.0f), _SMP( 6.0f),
+							_SMP( 0.0f), _SMP(-7.0f),
+							_SMP(-4.0f), _SMP(-6.0f),
+							_SMP(-6.0f), _SMP( 4.0f),
+							_SMP(-8.0f), _SMP( 0.0f),
+							_SMP( 7.0f), _SMP(-4.0f),
+							_SMP( 6.0f), _SMP( 7.0f),
+							_SMP(-7.0f), _SMP(-8.0f),
+						};
+
+						sample_pattern = &pattern_16x[0];
+					}
+					else // unsupported sample count
+					{
+						RDCERR("Unsupported sample count on resource for sample_pos: %u", result.value.u.x);
+
+						sample_pattern = NULL;
+					}
+
+					if(sample_pattern == NULL)
+					{
+						result.value.f.x = 0.0f;
+						result.value.f.y = 0.0f;
+					}
+					else
+					{
+						result.value.f.x = sample_pattern[sampleIndex * 2 + 0];
+						result.value.f.y = sample_pattern[sampleIndex * 2 + 1];
+					}
+				}
+
+#undef _SMP
+			}
+
+			// apply swizzle
+			ShaderVariable swizzled("", 0.0f, 0.0f, 0.0f, 0.0f);
+
+			for(int i=0; i < 4; i++)
+			{
+				if(op.operands[1].comps[i] == 0xff)
+					swizzled.value.uv[i] = result.value.uv[0];
+				else
+					swizzled.value.uv[i] = result.value.uv[op.operands[1].comps[i]];
+			}
+
+			// apply ret type
+			if(op.operation == OPCODE_SAMPLE_POS)
+			{
+				result = swizzled;
+				result.type = eVar_Float;
+			}
+			else if(op.resinfoRetType == RETTYPE_FLOAT)
+			{
+				result.value.f.x = (float)swizzled.value.u.x;
+				result.value.f.y = (float)swizzled.value.u.y;
+				result.value.f.z = (float)swizzled.value.u.z;
+				result.value.f.w = (float)swizzled.value.u.w;
+				result.type = eVar_Float;
+			}
+			else
+			{
+				result = swizzled;
+				result.type = eVar_UInt;
+			}
+
+			s.SetDst(op.operands[0], op, result);
+			
+			SAFE_RELEASE(context);
 
 			break;
 		}
@@ -1999,6 +2640,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = (float)swizzled.value.u.y;
 					result.value.f.z = (float)swizzled.value.u.z;
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
 				{
@@ -2006,10 +2648,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = 1.0f/(float)swizzled.value.u.y;
 					result.value.f.z = 1.0f/(float)swizzled.value.u.z;
 					result.value.f.w = 1.0f/(float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_UINT)
 				{
 					result = swizzled;
+					result.type = eVar_UInt;
 				}
 	
 				s.SetDst(op.operands[0], op, result);
@@ -2403,6 +3047,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.value.f.y = (float)swizzled.value.u.y;
 					result.value.f.z = (float)swizzled.value.u.z;
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_RCPFLOAT)
 				{
@@ -2424,10 +3069,12 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						result.value.f.z = (float)swizzled.value.u.z;
 
 					result.value.f.w = (float)swizzled.value.u.w;
+					result.type = eVar_Float;
 				}
 				else if(op.resinfoRetType == RETTYPE_UINT)
 				{
 					result = swizzled;
+					result.type = eVar_UInt;
 				}
 
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
@@ -2459,6 +3106,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 		case OPCODE_GATHER4_C:
 		case OPCODE_GATHER4_PO:
 		case OPCODE_GATHER4_PO_C:
+		case OPCODE_LOD:
 		{
 			string sampler = "";
 			string texture = "";
@@ -2468,7 +3116,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if (op.operation == OPCODE_SAMPLE_C ||
 				op.operation == OPCODE_SAMPLE_C_LZ ||
 				op.operation == OPCODE_GATHER4_C ||
-				op.operation == OPCODE_GATHER4_PO_C)
+				op.operation == OPCODE_GATHER4_PO_C ||
+				op.operation == OPCODE_LOD)
 			{
 				retFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
 				funcRet = "float4";
@@ -2477,6 +3126,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			bool useOffsets = true;
 			int texdim = 2;
 			int offsdim = 2; // ddN and offset dimension
+
+			DXBC::ResourceDimension resourceDim = DXBC::RESOURCE_DIMENSION_UNKNOWN;
 			
 			for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 			{
@@ -2495,6 +3146,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
 					decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
 				{
+					resourceDim = decl.dim;
+
 					uint32_t resIndex = (uint32_t)decl.operand.indices[0].index;
 
 					byte *data = &global.srvs[resIndex].data[0];
@@ -2695,6 +3348,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					decl.operand.type == TYPE_RESOURCE &&
 					decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
 				{
+					resourceDim = decl.dim;
+
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE1D)
 					{
 						texture = "Texture1D";
@@ -2802,9 +3457,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					if (retFmt == DXGI_FORMAT_UNKNOWN)
 					{
-					funcRet	= buf;
+						funcRet	= buf;
 
-					retFmt = fmts[decl.resType[0]];
+						retFmt = fmts[decl.resType[0]];
 					}
 
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS || decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
@@ -2819,6 +3474,22 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				}
 			}
 
+			// for lod operation, it's only defined for certain resources - otherwise just returns 0
+			if(op.operation == OPCODE_LOD &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE1D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE1DARRAY &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE2D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE2DARRAY &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURE3D &&
+				 resourceDim != RESOURCE_DIMENSION_TEXTURECUBE
+				)
+			{
+				ShaderVariable invalidResult("tex", 0.0f, 0.0f, 0.0f, 0.0f);
+
+				s.SetDst(op.operands[0], op, invalidResult);
+				break;
+			}
+
 			string sampleProgram;
 
 			char buf[256] = {0};
@@ -2831,7 +3502,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			// these ops need DDX/DDY
 			if(op.operation == OPCODE_SAMPLE ||
 				op.operation == OPCODE_SAMPLE_B ||
-				op.operation == OPCODE_SAMPLE_C)
+				op.operation == OPCODE_SAMPLE_C ||
+				op.operation == OPCODE_LOD)
 			{
 				if(quad == NULL)
 				{
@@ -2873,7 +3545,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				op.operation == OPCODE_GATHER4 ||
 				op.operation == OPCODE_GATHER4_C ||
 				op.operation == OPCODE_GATHER4_PO ||
-				op.operation == OPCODE_GATHER4_PO_C)
+				op.operation == OPCODE_GATHER4_PO_C ||
+				op.operation == OPCODE_LOD)
 			{
 				// all floats
 				texcoordType = ddxType = ddyType = 0;
@@ -3023,8 +3696,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				sampleProgram += "t.SampleLevel(s, " + texcoords + ", " + buf + offsets + ")" + swizzle + ";";
 				sampleProgram += "\n}\n";
 			}
-			else if(op.operation == OPCODE_SAMPLE_C)
+			else if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_LOD)
 			{
+				// these operations need derivatives but have no hlsl function to call to provide them, so we fake it in the vertex shader
+
 				string uvDim = "1";
 				uvDim[0] += char(texdim+texdimOffs-1);
 
@@ -3053,13 +3728,23 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				vsProgram += "pos = float4((id == 2) ? 3.0f : -1.0f, (id == 0) ? -3.0f : 1.0f, 0.5, 1.0);\n";
 				vsProgram += "}";
 			
-				// comparison value
-				StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
+				if(op.operation == OPCODE_SAMPLE_C)
+				{
+					// comparison value
+					StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
-				sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
-				sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
-				sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
-				sampleProgram += "\n}\n";
+					sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+					sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
+					sampleProgram += "return t.SampleCmpLevelZero(s, uv, " + string(buf) + offsets + ").xxxx;";
+					sampleProgram += "\n}\n";
+				}
+				else if(op.operation == OPCODE_LOD)
+				{
+					sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
+					sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim + " uv : uvs) : SV_Target0\n{\n";
+					sampleProgram += "return float4(t.CalculateLevelOfDetail(s, uv), t.CalculateLevelOfDetailUnclamped(s, uv), 0.0f, 0.0f);";
+					sampleProgram += "\n}\n";
+				}
 			}
 			else if(op.operation == OPCODE_SAMPLE_C_LZ)
 			{

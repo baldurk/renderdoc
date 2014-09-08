@@ -133,7 +133,7 @@ struct CachedHookData
 
 		if(dosheader->e_magic != 0x5a4d)
 		{
-			RDCDEBUG("Ignoring module %s, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
+			RDCDEBUG("Ignoring module %hs, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
 			return;
 		}
 
@@ -156,7 +156,7 @@ struct CachedHookData
 				if(!_stricmp(it->first.c_str(), dllName))
 					hookset = &it->second;
 
-			if(hookset)
+			if(hookset && importDesc->OriginalFirstThunk > 0 && importDesc->FirstThunk > 0)
 			{
 				IMAGE_THUNK_DATA *origFirst = (IMAGE_THUNK_DATA *)(baseAddress + importDesc->OriginalFirstThunk);
 				IMAGE_THUNK_DATA *first = (IMAGE_THUNK_DATA *)(baseAddress + importDesc->FirstThunk);

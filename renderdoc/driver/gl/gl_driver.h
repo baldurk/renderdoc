@@ -100,6 +100,12 @@ class WrappedOpenGL
 		static void APIENTRY DebugSnoopStatic(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 		{ ((WrappedOpenGL *)userParam)->DebugSnoop(source, type, id, severity, length, message); }
 
+		// checks if the bound VAO object has tons of updates. If so it's probably
+		// in the vein of "one global VAO, updated per-draw as necessary", in which case
+		// we just want to save the state of it at frame start, then track changes while
+		// frame capturing
+		bool VertexArrayUpdateCheck();
+
 		// state
 		GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
 		GLResourceRecord *m_BufferRecord[16];
@@ -107,8 +113,6 @@ class WrappedOpenGL
 		GLResourceRecord *m_DrawFramebufferRecord;
 		GLResourceRecord *m_ReadFramebufferRecord;
 		GLint m_TextureUnit;
-
-		size_t BufferIdx(GLenum buf);
 
 		// internals
 		Serialiser *m_pSerialiser;
@@ -190,16 +194,24 @@ class WrappedOpenGL
 
 		struct ProgramData
 		{
-			ProgramData() : colOutProg(0), linked(false) {}
+			ProgramData() : colOutProg(0), linked(false)
+			{
+				RDCEraseEl(stageShaders);
+			}
 			vector<ResourceId> shaders;
 
 			GLuint colOutProg;
 			bool linked;
+			ResourceId stageShaders[6];
 		};
 		
 		struct PipelineData
 		{
-			PipelineData() {}
+			PipelineData()
+			{
+				RDCEraseEl(stagePrograms);
+				RDCEraseEl(stageShaders);
+			}
 
 			struct ProgramUse
 			{
@@ -210,6 +222,8 @@ class WrappedOpenGL
 			};
 
 			vector<ProgramUse> programs;
+			ResourceId stagePrograms[6];
+			ResourceId stageShaders[6];
 		};
 
 		map<ResourceId, ShaderData> m_Shaders;
@@ -262,6 +276,8 @@ class WrappedOpenGL
 		void Initialise(GLInitParams &params);
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 		void ReadLogInitialisation();
+
+		GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
 
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
@@ -474,12 +490,17 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribBinding(GLuint attribindex, GLuint bindingindex));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnableVertexAttribArray(GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDisableVertexAttribArray(GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexArray(GLuint array));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexBindingDivisor(GLuint bindingindex, GLuint divisor));
 		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetUniformLocation(GLuint program, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetUniformIndices(GLuint program, GLsizei uniformCount, const GLchar *const*uniformNames, GLuint *uniformIndices));
 		IMPLEMENT_FUNCTION_SERIALISED(GLuint, glGetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName));

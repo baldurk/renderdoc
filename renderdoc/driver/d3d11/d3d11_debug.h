@@ -119,8 +119,8 @@ class D3D11DebugManager
 		void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars, vector<ShaderVariable> &outvars,
 								  bool flattenVec4s, const vector<byte> &data);
 
-		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval);
-		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram);
+		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval);
+		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram);
 
 		void CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray);
 		void CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS);
@@ -130,7 +130,7 @@ class D3D11DebugManager
 		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path);
 
 		void RenderText(float x, float y, float size, const char *textfmt, ...);
-		void RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg);
+		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
 
 		ID3D11Buffer *MakeCBuffer(float *data, size_t size);
 		
@@ -152,13 +152,13 @@ class D3D11DebugManager
 
 		void RenderHighlightBox(float w, float h, float scale);
 		
-		vector<PixelModification> PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y);
+		vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y);
 		ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
 		ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
 		ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);
-		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4]);
+		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]);
 			
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip);
 			
 		// don't need to differentiate arrays as we treat everything
@@ -173,6 +173,7 @@ class D3D11DebugManager
 			eTexType_DepthMS,
 			eTexType_StencilMS,
 			eTexType_Cube,
+			eTexType_2DMS,
 			eTexType_Max
 		};
 
@@ -321,6 +322,10 @@ class D3D11DebugManager
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
+		void PixelHistoryDepthCopySubresource(bool depthbound, ID3D11Texture2D *uavres, ID3D11UnorderedAccessView *uav, ID3D11Resource *depthres,
+																					ID3D11ShaderResourceView **copyDepthSRV, ID3D11ShaderResourceView **copyStencilSRV,
+																					ID3D11Buffer *srcxyCBuf, ID3D11Buffer *storexyCBuf, uint32_t x, uint32_t y);
+
 		static const int FONT_TEX_WIDTH = 4096;
 		static const int FONT_TEX_HEIGHT = 48;
 		static const int FONT_MAX_CHARS = 256;
@@ -359,10 +364,15 @@ class D3D11DebugManager
 				SAFE_RELEASE(OutlineStripVB);
 				SAFE_RELEASE(RastState);
 				SAFE_RELEASE(BlendState);
+				SAFE_RELEASE(NopBlendState);
 				SAFE_RELEASE(PointSampState);
 				SAFE_RELEASE(LinearSampState);
 				SAFE_RELEASE(NoDepthState);
 				SAFE_RELEASE(LEqualDepthState);
+				SAFE_RELEASE(NopDepthState);
+				SAFE_RELEASE(AllPassDepthState);
+				SAFE_RELEASE(AllPassIncrDepthState);
+				SAFE_RELEASE(StencIncrEqDepthState);
 
 				SAFE_RELEASE(GenericLayout);
 				SAFE_RELEASE(GenericHomogLayout);
@@ -375,11 +385,25 @@ class D3D11DebugManager
 				SAFE_RELEASE(MeshVS);
 				SAFE_RELEASE(MeshGS);
 				SAFE_RELEASE(MeshPS);
+				SAFE_RELEASE(FullscreenVS);
 				SAFE_RELEASE(WireframeVS);
 				SAFE_RELEASE(WireframeHomogVS);
 				SAFE_RELEASE(WireframePS);
 				SAFE_RELEASE(OverlayPS);
-				
+
+				SAFE_RELEASE(CopyMSToArrayPS);
+				SAFE_RELEASE(CopyArrayToMSPS);
+				SAFE_RELEASE(FloatCopyMSToArrayPS);
+				SAFE_RELEASE(FloatCopyArrayToMSPS);
+				SAFE_RELEASE(DepthCopyMSToArrayPS);
+				SAFE_RELEASE(DepthCopyArrayToMSPS);
+				SAFE_RELEASE(PixelHistoryUnusedCS);
+				SAFE_RELEASE(PixelHistoryDepthCopyCS);
+				SAFE_RELEASE(PrimitiveIDPS);
+
+				SAFE_RELEASE(QuadOverdrawPS);
+				SAFE_RELEASE(QOResolvePS);
+
 				SAFE_RELEASE(tileResultBuff);
 				SAFE_RELEASE(resultBuff);
 				SAFE_RELEASE(resultStageBuff);
@@ -424,8 +448,9 @@ class D3D11DebugManager
 			ID3D11Buffer *PosBuffer, *OutlineStripVB;
 			ID3D11RasterizerState *RastState;
 			ID3D11SamplerState *PointSampState, *LinearSampState;
-			ID3D11BlendState *BlendState;
-			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState;
+			ID3D11BlendState *BlendState, *NopBlendState;
+			ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState,
+			                        *AllPassDepthState, *AllPassIncrDepthState, *StencIncrEqDepthState;
 
 			ID3D11InputLayout *GenericLayout, *GenericHomogLayout;
 			ID3D11Buffer *GenericVSCBuffer;
@@ -438,6 +463,10 @@ class D3D11DebugManager
 			ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
+			ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryDepthCopyCS;
+			ID3D11PixelShader *PrimitiveIDPS;
+
+			ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
 			
 			ID3D11Buffer *tileResultBuff, *resultBuff, *resultStageBuff;
 			ID3D11UnorderedAccessView *tileResultUAV[3], *resultUAV[3];
@@ -460,7 +489,7 @@ class D3D11DebugManager
 		bool InitDebugRendering();
 
 		ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx, DXBC::DXBCFile *dxbc, vector<byte> *cbufData);
-		void CreateShaderGlobalState(ShaderDebug::GlobalState &global, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs);
+		void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs);
 		void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
 								  const vector<DXBC::CBufferVariable> &invars, vector<ShaderVariable> &outvars,
 								  const vector<byte> &data);

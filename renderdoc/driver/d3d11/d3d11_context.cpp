@@ -913,7 +913,12 @@ void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
 	// assign new drawcall IDs
 	for(size_t i=0; i < node.children.size(); i++)
 	{
-		node.children[i].draw.drawcallID = m_CurDrawcallID++;
+		node.children[i].draw.drawcallID = m_CurDrawcallID;
+		
+		// markers don't increment drawcall ID
+		if((node.children[i].draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
+			m_CurDrawcallID++;
+
 		RefreshDrawcallIDs(node.children[i]);
 	}
 }
@@ -951,7 +956,10 @@ void WrappedID3D11DeviceContext::AddDrawcall(FetchDrawcall d, bool hasEvents)
 			draw.depthOut = ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID();
 	}
 
-	m_CurDrawcallID++;
+	// markers don't increment drawcall ID
+	if((draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
+		m_CurDrawcallID++;
+
 	if(hasEvents)
 	{
 		vector<FetchAPIEvent> evs;
@@ -1124,7 +1132,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		{
 			ResourceId id = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 
-			if(m_pDevice->GetResourceManager()->GetInitialContents(id) == NULL)
+			if(m_pDevice->GetResourceManager()->GetInitialContents(id).resource == NULL)
 				continue;
 
 			RDCDEBUG("Resource %llu", id);

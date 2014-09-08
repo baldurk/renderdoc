@@ -144,36 +144,14 @@ bool ReplayRenderer::GetFrameInfo(rdctype::array<FetchFrameInfo> *arr)
 	return true;
 }
 
-struct drawcall_eventID : public std::unary_function<std::string, bool>
-{
-  drawcall_eventID(const uint32_t e) : evID(e) {}
-  bool operator() (const FetchDrawcall *arg) { return arg ? arg->eventID == evID : false; }
-  uint32_t evID;
-};
-
-FetchDrawcall *ReplayRenderer::GetDrawcallByDrawID(uint32_t drawID)
-{
-	if(drawID < m_Drawcalls.size())
-		return m_Drawcalls[drawID];
-
-	return NULL;
-}
-
 FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID, uint32_t defEventID)
 {
-	FetchDrawcall *ret = NULL;
+	uint32_t ev = defEventID > 0 ? defEventID : eventID;
 
-	FetchDrawcall ev;
-	ev.eventID = defEventID > 0 ? defEventID : eventID;
+	if(ev >= m_Drawcalls.size())
+		return NULL;
 
-	// can't guarantee ordering for std::upper_bound, since deferred contexts can
-	// break ordering
-	auto it = std::find_if(m_Drawcalls.begin(), m_Drawcalls.end(), drawcall_eventID(ev.eventID));
-
-	if(it != m_Drawcalls.end())
-		ret = *it;
-
-	return ret;
+	return m_Drawcalls[ev];
 }
 
 bool ReplayRenderer::GetDrawcalls(uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws)
@@ -285,7 +263,7 @@ bool ReplayRenderer::GetPostVSData(MeshDataStage stage, PostVSMeshData *data)
 	return true;
 }
 
-bool ReplayRenderer::GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, PixelValue *minval, PixelValue *maxval)
+bool ReplayRenderer::GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval)
 {
 	PixelValue *a = minval;
 	PixelValue *b = maxval;
@@ -295,16 +273,16 @@ bool ReplayRenderer::GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip,
 	if(a == NULL) a = &dummy;
 	if(b == NULL) b = &dummy;
 
-	return m_pDevice->GetMinMax(m_pDevice->GetLiveID(tex), sliceFace, mip, &a->value_f[0], &b->value_f[0]);
+	return m_pDevice->GetMinMax(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, &a->value_f[0], &b->value_f[0]);
 }
 
-bool ReplayRenderer::GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram)
+bool ReplayRenderer::GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram)
 {
 	if(histogram == NULL) return false;
 
 	vector<uint32_t> hist;
 
-	bool ret = m_pDevice->GetHistogram(m_pDevice->GetLiveID(tex), sliceFace, mip, minval, maxval, channels, hist);
+	bool ret = m_pDevice->GetHistogram(m_pDevice->GetLiveID(tex), sliceFace, mip, sample, minval, maxval, channels, hist);
 
 	if(ret)
 		*histogram = hist;
@@ -348,7 +326,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 
 	auto usage = m_pDevice->GetUsage(m_pDevice->GetLiveID(target));
 
-	vector<uint32_t> events;
+	vector<EventUsage> events;
 
 	for(size_t i=0; i < usage.size(); i++)
 	{
@@ -385,7 +363,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 				break;
 		}
 
-		events.push_back(usage[i].eventID);
+		events.push_back(usage[i]);
 	}
 	
 	if(events.empty())
@@ -643,7 +621,7 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 	{
 		FetchDrawcall *draw = &draws[i];
 
-		draw->parent = parent ? parent->drawcallID : 0;
+		draw->parent = parent ? parent->eventID : 0;
 
 		if(draw->children.count > 0)
 		{
@@ -656,12 +634,12 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 		else
 		{
 			if(previous != NULL)
-				previous->next = draw->drawcallID;
-			draw->previous = previous ? previous->drawcallID : 0;
+				previous->next = draw->eventID;
+			draw->previous = previous ? previous->eventID : 0;
 
 			RDCASSERT(m_Drawcalls.empty() || draw->eventID > m_Drawcalls.back()->eventID || draw->context != frame.immContextId);
-			m_Drawcalls.resize(RDCMAX(m_Drawcalls.size(), size_t(draw->drawcallID+1)));
-			m_Drawcalls[draw->drawcallID] = draw;
+			m_Drawcalls.resize(RDCMAX(m_Drawcalls.size(), size_t(draw->eventID+1)));
+			m_Drawcalls[draw->eventID] = draw;
 
 			ret = previous = draw;
 		}
@@ -792,10 +770,10 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRend
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, PostVSMeshData *data)
 { return rend->GetPostVSData(stage, data); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, PixelValue *minval, PixelValue *maxval)
-{ return rend->GetMinMax(tex, sliceFace, mip, minval, maxval); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram)
-{ return rend->GetHistogram(tex, sliceFace, mip, minval, maxval, channels, histogram); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval)
+{ return rend->GetMinMax(tex, sliceFace, mip, sample, minval, maxval); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram)
+{ return rend->GetHistogram(tex, sliceFace, mip, sample, minval, maxval, channels, histogram); }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data)
 { return rend->GetBufferData(buff, offset, len, data); }

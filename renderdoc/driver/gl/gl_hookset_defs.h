@@ -221,11 +221,16 @@
     HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
     HookExtension(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer); \
     HookExtension(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
+    HookExtension(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
+    HookExtension(PFNGLVERTEXATTRIBFORMATPROC, glVertexAttribFormat); \
+    HookExtension(PFNGLVERTEXATTRIBIFORMATPROC, glVertexAttribIFormat); \
     HookExtension(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
     HookExtension(PFNGLGETVERTEXATTRIBIVPROC, glGetVertexAttribiv); \
     HookExtension(PFNGLGETVERTEXATTRIBPOINTERVPROC, glGetVertexAttribPointerv); \
+    HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
+    HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HookExtension(PFNGLGETCOMPRESSEDTEXIMAGEPROC, glGetCompressedTexImage); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
@@ -565,11 +570,16 @@
     HookWrapper2(void, glDeleteVertexArrays, GLsizei, n, const GLuint *, arrays); \
     HookWrapper6(void, glVertexAttribPointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
     HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+    HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
+    HookWrapper5(void, glVertexAttribFormat, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
+    HookWrapper4(void, glVertexAttribIFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \
     HookWrapper3(void, glGetVertexAttribiv, GLuint, index, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetVertexAttribPointerv, GLuint, index, GLenum, pname, void **, pointer); \
+    HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
+    HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper3(void, glGetCompressedTexImage, GLenum, target, GLint, level, void *, img); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \

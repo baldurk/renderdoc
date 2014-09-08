@@ -1581,7 +1581,7 @@ namespace renderdocui.Windows.PipelineState
                 if(m_Core.CurD3D11PipelineState != null &&
                     m_Core.CurD3D11PipelineState.m_IA.Bytecode != null)
                 {
-                    (new ShaderViewer(m_Core, m_Core.CurD3D11PipelineState.m_IA.Bytecode, ShaderStageType.Vertex, null))
+                    (new ShaderViewer(m_Core, m_Core.CurD3D11PipelineState.m_IA.Bytecode, ShaderStageType.Vertex, null, ""))
                         .Show(m_DockContent.DockPanel);
                 }
 
@@ -1596,7 +1596,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (stage.Shader == ResourceId.Null) return;
 
-            ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, stage.stage, null);
+            ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, stage.stage, null, "");
 
             s.Show(m_DockContent.DockPanel);
         }
@@ -2045,7 +2045,9 @@ namespace renderdocui.Windows.PipelineState
 
                 this.BeginInvoke(new Action(() =>
                 {
-                    ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Compute, trace);
+                    string debugContext = String.Format("Group [{0},{1},{2}] Thread [{3},{4},{5}]", gx, gy, gz, tx, ty, tz);
+
+                    ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Compute, trace, debugContext);
 
                     s.Show(m_DockContent.DockPanel);
                 }));

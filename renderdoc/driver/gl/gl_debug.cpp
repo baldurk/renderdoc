@@ -150,7 +150,7 @@ void GLReplay::InitDebugData()
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
 		gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-		gl.glBufferData(eGL_UNIFORM_BUFFER, DebugData.UBOSize, NULL, eGL_DYNAMIC_DRAW);
+		gl.glBufferData(eGL_UNIFORM_BUFFER, Debug_UBOSize, NULL, eGL_DYNAMIC_DRAW);
 	}
 
 	DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
@@ -178,7 +178,7 @@ void GLReplay::InitDebugData()
 	gl.glBindVertexArray(DebugData.meshVAO);
 }
 
-void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -201,6 +201,7 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 		texDisplay.HDRMul = -1.0f;
 		texDisplay.linearDisplayAsGamma = true;
 		texDisplay.mip = mip;
+		texDisplay.sampleIdx = sample;
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.sliceFace = sliceFace;
 		texDisplay.rangemin = 0.0f;
@@ -262,7 +263,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	uboData *ubo = (uboData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uboData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-	RDCCOMPILE_ASSERT(sizeof(uboData) <= DebugData.UBOSize, "UBO data is too big");
+	RDCCOMPILE_ASSERT(sizeof(uboData) <= Debug_UBOSize, "UBO data is too big");
 	
 	float x = cfg.offx;
 	float y = cfg.offy;
@@ -399,7 +400,7 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID)
+ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -502,7 +503,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 			{
 				char uniName[1024] = {};
 				GLint uniSize = 0;
-				GLenum uniType = eGL_UNKNOWN_ENUM;
+				GLenum uniType = eGL_NONE;
 				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
 
 				GLint origloc = gl.glGetUniformLocation(curProg, uniName);
@@ -535,7 +536,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 					}
 					else
 					{
-						RDCERR("Uniform type '%s' not being copied to new program", ToStr::Get(uniType).c_str());
+						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
 					}
 				}
 			}
@@ -565,7 +566,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 			{
 				char uniName[1024] = {};
 				GLint uniSize = 0;
-				GLenum uniType = eGL_UNKNOWN_ENUM;
+				GLenum uniType = eGL_NONE;
 				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
 
 				GLint origloc = gl.glGetUniformLocation(curProg, uniName);
@@ -598,7 +599,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 					}
 					else
 					{
-						RDCERR("Uniform type '%s' not being copied to new program", ToStr::Get(uniType).c_str());
+						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
 					}
 				}
 			}
@@ -635,7 +636,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
-void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+void GLReplay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -745,7 +746,7 @@ void GLReplay::RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
 		gl.glDisable(eGL_DEPTH_TEST);
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		ReplayLog(frameID, 0, eventID[0], eReplay_OnlyDraw);
+		ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 
 		if(depthTest)
 			gl.glEnable(eGL_DEPTH_TEST);

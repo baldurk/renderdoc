@@ -100,7 +100,8 @@
             this.toolStripSeparator9 = new System.Windows.Forms.ToolStripSeparator();
             this.updateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator8 = new System.Windows.Forms.ToolStripSeparator();
-            this.developerForumsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.sourceOnGithubToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.nightlybuildsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openDialog = new System.Windows.Forms.OpenFileDialog();
             this.toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
@@ -109,7 +110,6 @@
             this.statusProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
-            this.sourceOnGithubToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -533,7 +533,7 @@
             this.updateToolStripMenuItem,
             this.toolStripSeparator8,
             this.sourceOnGithubToolStripMenuItem,
-            this.developerForumsToolStripMenuItem,
+            this.nightlybuildsToolStripMenuItem,
             this.aboutToolStripMenuItem});
             this.helpToolStripMenuItem.Name = "helpToolStripMenuItem";
             this.helpToolStripMenuItem.Size = new System.Drawing.Size(40, 20);
@@ -583,12 +583,19 @@
             this.toolStripSeparator8.Name = "toolStripSeparator8";
             this.toolStripSeparator8.Size = new System.Drawing.Size(187, 6);
             // 
-            // developerForumsToolStripMenuItem
+            // sourceOnGithubToolStripMenuItem
             // 
-            this.developerForumsToolStripMenuItem.Name = "developerForumsToolStripMenuItem";
-            this.developerForumsToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
-            this.developerForumsToolStripMenuItem.Text = "Developer Forums";
-            this.developerForumsToolStripMenuItem.Click += new System.EventHandler(this.developerForumsToolStripMenuItem_Click);
+            this.sourceOnGithubToolStripMenuItem.Name = "sourceOnGithubToolStripMenuItem";
+            this.sourceOnGithubToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.sourceOnGithubToolStripMenuItem.Text = "Source on github";
+            this.sourceOnGithubToolStripMenuItem.Click += new System.EventHandler(this.sourceOnGithubToolStripMenuItem_Click);
+            // 
+            // nightlybuildsToolStripMenuItem
+            // 
+            this.nightlybuildsToolStripMenuItem.Name = "nightlybuildsToolStripMenuItem";
+            this.nightlybuildsToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.nightlybuildsToolStripMenuItem.Text = "Nightly Builds";
+            this.nightlybuildsToolStripMenuItem.Click += new System.EventHandler(this.nightlybuildsToolStripMenuItem_Click);
             // 
             // aboutToolStripMenuItem
             // 
@@ -718,13 +725,6 @@
             this.saveDialog.Filter = "Log Files (*.rdc)|*.rdc";
             this.saveDialog.Title = "Save Log As";
             // 
-            // sourceOnGithubToolStripMenuItem
-            // 
-            this.sourceOnGithubToolStripMenuItem.Name = "sourceOnGithubToolStripMenuItem";
-            this.sourceOnGithubToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
-            this.sourceOnGithubToolStripMenuItem.Text = "Source on github";
-            this.sourceOnGithubToolStripMenuItem.Click += new System.EventHandler(this.sourceOnGithubToolStripMenuItem_Click);
-            // 
             // MainWindow
             // 
             this.AllowDrop = true;
@@ -824,7 +824,7 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator10;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator11;
         private System.Windows.Forms.ToolStripMenuItem viewLogFileToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem developerForumsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem nightlybuildsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sourceOnGithubToolStripMenuItem;
 
     }

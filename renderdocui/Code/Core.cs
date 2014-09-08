@@ -146,13 +146,13 @@ namespace renderdocui.Code
 
         #region Init and Shutdown
 
-        public Core(string paramFilename, bool temp, PersistantConfig config)
+        public Core(string paramFilename, string remoteHost, uint remoteIdent, bool temp, PersistantConfig config)
         {
             if (!Directory.Exists(ConfigDirectory))
                 Directory.CreateDirectory(ConfigDirectory);
 
             m_Config = config;
-            m_MainWindow = new MainWindow(this, paramFilename, temp);
+            m_MainWindow = new MainWindow(this, paramFilename, remoteHost, remoteIdent, temp);
         }
 
         public void Shutdown()
@@ -184,6 +184,10 @@ namespace renderdocui.Code
 
             // don't group draws and compute executes
             if ((a.flags & DrawcallFlags.Dispatch) != (b.flags & DrawcallFlags.Dispatch))
+                return false;
+
+            // don't group present with anything
+            if ((a.flags & DrawcallFlags.Present) != (b.flags & DrawcallFlags.Present))
                 return false;
 
             // don't group things run on different multithreaded contexts
@@ -281,13 +285,10 @@ namespace renderdocui.Code
 
             for (int i = 1; i < draws.Length; i++)
             {
-                if (PassEquivalent(draws[i], draws[start]) && i+1 < draws.Length)
+                if (PassEquivalent(draws[i], draws[start]))
                     continue;
 
-                int end = i - 1;
-
-                if (i == draws.Length - 1)
-                    end = i;
+                int end = i-1;
 
                 if (end - start < 2 ||
                     draws[i].children.Length > 0 || draws[start].children.Length > 0 ||
@@ -329,6 +330,7 @@ namespace renderdocui.Code
 
                 mark.name = "Guessed Pass";
 
+
                 if((draws[end].flags & DrawcallFlags.Dispatch) != 0)
                     mark.name = String.Format("Compute Pass #{0}", computepassID++);
                 else if (maxOutCount == 0)
@@ -351,6 +353,9 @@ namespace renderdocui.Code
                 start = i;
                 counter++;
             }
+
+            if (start < draws.Length)
+                ret.Add(draws[start]);
 
             return ret.ToArray();
         }

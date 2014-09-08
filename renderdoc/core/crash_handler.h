@@ -108,6 +108,7 @@ class CrashHandler : public ICrashHandler
 			static google_breakpad::CustomInfoEntry breakpadCustomInfo[] = {
 				google_breakpad::CustomInfoEntry(L"version", RENDERDOC_VERSION_STRING_W),
 				google_breakpad::CustomInfoEntry(L"logpath", RDCGETLOGFILE()),
+				google_breakpad::CustomInfoEntry(L"gitcommit", WIDEN(GIT_COMMIT_HASH)),
 			};
 
 			breakpadCustomInfo[1].set_value(RDCGETLOGFILE());

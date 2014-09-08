@@ -123,7 +123,7 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(
 			}
 			else
 			{			
-				m_ResourceManager->SetInitialContents(pBuffer, stage, 0);
+				m_ResourceManager->SetInitialContents(pBuffer, D3D11ResourceManager::InitialContentData(stage, eInitialContents_Copy, NULL));
 			}
 		}
 
@@ -655,6 +655,17 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 			backbufferTypedDesc.Texture2D.MostDetailedMip = 0;
 			pDesc = &backbufferTypedDesc;
 		}
+		
+		// if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
+		// the texture's format. But as above, we fudge around the typeless backbuffer so we
+		// have to set the correct typed format
+		//
+		// This behaviour is documented only for render targets, but seems to be used & work for
+		// SRVs, so apply it here too.
+		if(pDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+		{
+			pDesc->Format = tex2d->m_RealDescriptor->Format;
+		}
 
 		HRESULT hr = m_pDevice->CreateShaderResourceView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
 
@@ -886,7 +897,7 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 		// if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
 		// the texture's format. But as above, we fudge around the typeless backbuffer so we
 		// have to set the correct typed format
-		if(HasDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && tex2d->m_RealDescriptor)
+		if(pDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
 		{
 			pDesc->Format = tex2d->m_RealDescriptor->Format;
 		}
@@ -2685,7 +2696,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 				}
 				else
 				{			
-					m_ResourceManager->SetInitialContents(pResource, stage, 0);
+					m_ResourceManager->SetInitialContents(pResource, D3D11ResourceManager::InitialContentData(stage, eInitialContents_Copy, NULL));
 				}
 			}
 

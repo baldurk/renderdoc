@@ -85,6 +85,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector
 }
 
 extern "C" RENDERDOC_API
+int RENDERDOC_CC RENDERDOC_GetAPIVersion()
+{
+	return RENDERDOC_API_VERSION;
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text)
 {
 	RDCLOG("%ls", text);
@@ -195,9 +201,39 @@ uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *l
 }
 
 extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *wndHandle)
+{
+	RenderDoc::Inst().SetActiveWindow(wndHandle);
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_TriggerCapture()
 {
 	RenderDoc::Inst().TriggerCapture();
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle)
+{
+	RenderDoc::Inst().StartFrameCapture(wndHandle);
+}
+
+extern "C" RENDERDOC_API
+bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
+{
+	return RenderDoc::Inst().EndFrameCapture(wndHandle);
+}
+
+extern "C" RENDERDOC_API
+uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits()
+{
+	return RenderDoc::Inst().GetOverlayBits();
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t and, uint32_t or)
+{
+	RenderDoc::Inst().MaskOverlayBits(and, or);
 }
 
 extern "C" RENDERDOC_API

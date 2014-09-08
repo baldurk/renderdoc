@@ -170,23 +170,23 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 				return m_Proxy->RenderHighlightBox(w, h, scale);
 		}
 		
-		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texid, sliceFace, mip);
-				return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, minval, maxval);
+				return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval);
 			}
 
 			return false;
 		}
 
-		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texid, sliceFace, mip);
-				return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, minval, maxval, channels, histogram);
+				return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval, channels, histogram);
 			}
 
 			return false;
@@ -215,16 +215,16 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 			return false;
 		}
 
-		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, float pixel[4])
+		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 		{
 			if(m_Proxy)
 			{
 				EnsureCached(texture, sliceFace, mip);
-				m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, pixel);
+				m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, pixel);
 			}
 		}
 			
-		void RenderMesh(int frameID, vector<int> eventID, MeshDisplay cfg)
+		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 		{
 			if(m_Proxy)
 				m_Proxy->RenderCheckerboard(Vec3f(0.7f, 0.3f, 0.3f), Vec3f(0.3f, 0.3f, 0.7f));
@@ -298,7 +298,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
 		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 		
-		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID);
+		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 
 		ShaderReflection *GetShader(ResourceId id);
 		
@@ -310,7 +310,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		void FreeTargetResource(ResourceId id);
 			
-		vector<PixelModification> PixelHistory(uint32_t frameID, vector<uint32_t> events, ResourceId target, uint32_t x, uint32_t y);
+		vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y);
 		ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset);
 		ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
 		ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]);

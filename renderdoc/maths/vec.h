@@ -75,6 +75,8 @@ struct Vec4f
 	float x, y, z, w;
 };
 
+extern const Vec4f overdrawRamp[21];
+
 inline Vec3f operator *(const Vec3f &a, const float b)
 {
 	return Vec3f(a.x*b, a.y*b, a.z*b);
