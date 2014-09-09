@@ -30,10 +30,7 @@
 
 #include <time.h>
 
-#ifdef WIN32
-#include "data/resource.h"
-#endif
-
+#include "data/version.h"
 #include "crash_handler.h"
 
 template<>

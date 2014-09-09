@@ -303,6 +303,9 @@
     <ClInclude Include="3rdparty\stb\stb_image_write.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="data\version.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

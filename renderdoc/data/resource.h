@@ -24,12 +24,8 @@
 #define STRINGIZE(a) STRINGIZE2(a)
 #endif
 
-#define RENDERDOC_VERSION_MAJOR			0
-#define RENDERDOC_VERSION_MINOR			21
 #define GIT_COMMIT_HASH							"NO_GIT_COMMIT_HASH_DEFINED"
 //#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
-#define RENDERDOC_VERSION_STRING		STRINGIZE(RENDERDOC_VERSION_MAJOR) "." STRINGIZE(RENDERDOC_VERSION_MINOR)
-#define RENDERDOC_VERSION_STRING_W		WIDEN(STRINGIZE(RENDERDOC_VERSION_MAJOR)) L"." WIDEN(STRINGIZE(RENDERDOC_VERSION_MINOR))
 
 // Next default values for new objects
 // 
@@ -41,3 +37,5 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+
+#include "version.h"

@@ -243,6 +243,7 @@
     <ClInclude Include="core\socket_helpers.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
+    <ClInclude Include="data\version.h" />
     <ClInclude Include="driver\d3d11\d3d11_common.h" />
     <ClInclude Include="driver\d3d11\d3d11_context.h" />
     <ClInclude Include="driver\d3d11\d3d11_debug.h" />
