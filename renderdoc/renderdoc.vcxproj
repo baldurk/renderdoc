@@ -303,7 +303,7 @@
     <ClCompile Include="3rdparty\mhook\disasm-lib\disasm_x86.c" />
     <ClCompile Include="3rdparty\mhook\disasm-lib\misc.c" />
     <ClCompile Include="3rdparty\mhook\mhook-lib\mhook.cpp" />
-    <ClCompile Include="3rdparty\stb\stb_impl.cpp" />
+    <ClCompile Include="3rdparty\stb\stb_impl.c" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\remote_access.cpp">
