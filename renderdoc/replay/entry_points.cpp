@@ -231,9 +231,9 @@ uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits()
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t and, uint32_t or)
+void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or)
 {
-	RenderDoc::Inst().MaskOverlayBits(and, or);
+	RenderDoc::Inst().MaskOverlayBits(And, Or);
 }
 
 extern "C" RENDERDOC_API

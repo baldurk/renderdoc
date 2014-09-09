@@ -244,8 +244,8 @@ typedef bool (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t and, uint32_t or);
-typedef void (RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t and, uint32_t or);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or);
+typedef void (RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t And, uint32_t Or);
 
 //////////////////////////////////////////////////////////////////////////
 // Remote access and control

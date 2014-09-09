@@ -231,7 +231,7 @@ class RenderDoc
 		void TriggerCapture() { m_Cap = true; }
 
 		uint32_t GetOverlayBits() { return m_Overlay; }
-		void MaskOverlayBits(uint32_t and, uint32_t or) { m_Overlay = (m_Overlay & and) | or; }
+		void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
 
 		void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
 
