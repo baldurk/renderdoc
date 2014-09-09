@@ -51,6 +51,10 @@ if [[ $AUTOBUILD -eq 0 ]]; then
 	read;
 fi
 
+VERSION=`egrep "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/data/version.h | tr -dc '[0-9\n]' | tr '\n' '.' | egrep -o '[0-9]+\.[0-9]+'`
+
+export RENDERDOC_VERSION="${VERSION}.0"
+
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/candle.exe -o dist/Installer32.wixobj installer/Installer32.wxs
 /c/Program\ Files\ \(x86\)/WiX\ Toolset\ v3.8/bin/light.exe -ext WixUIExtension -sw1076 -o dist/Installer32.msi dist/Installer32.wixobj
 
