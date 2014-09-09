@@ -5,7 +5,7 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
 			 -DRENDERDOC_VERSION_STRING='"0.21"'
-CFLAGS=-c -Wall -Werror -Wno-error=format -fPIC $(MACROS) -I.
+CFLAGS=-c -Wall -Werror -Wno-unknown-pragmas -Wno-error=format -fPIC $(MACROS) -I.
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
 OBJECTS=replay/replay_output.o \
@@ -34,6 +34,7 @@ os/os_specific.o \
 3rdparty/jpeg-compressor/jpgd.o \
 3rdparty/jpeg-compressor/jpge.o \
 3rdparty/lz4/lz4.o \
+3rdparty/stb/stb_impl.o \
 driver/gl/gl_common.o \
 driver/gl/gl_driver.o \
 driver/gl/gl_manager.o \
