@@ -474,6 +474,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		D3D11PipelineState::ShaderStage *dstArr = &ret.m_VS;
 		const D3D11RenderState::shader *srcArr = &rs->VS;
 
+		const char *stageNames[] = { "Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute" };
+
 		for(size_t i=0; i < 6; i++)
 		{
 			D3D11PipelineState::ShaderStage &dst = dstArr[i];
@@ -485,6 +487,17 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 			dst.Shader = rm->GetOriginalID(id);
 			dst.ShaderDetails = NULL;
+
+			string str = GetDebugName(src.Shader);
+			dst.customName = true;
+
+			if(str == "" && dst.Shader != ResourceId())
+			{
+				dst.customName = false;
+				str = StringFormat::Fmt("%hs Shader %llu", stageNames[i], dst.Shader);
+			}
+
+			dst.ShaderName = widen(str);
 
 			// create identity bindpoint mapping
 			create_array_uninit(dst.BindpointMapping.ConstantBlocks, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);

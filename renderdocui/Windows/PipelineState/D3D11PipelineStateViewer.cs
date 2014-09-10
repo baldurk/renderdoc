@@ -192,7 +192,7 @@ namespace renderdocui.Windows.PipelineState
             if (stage.Shader == ResourceId.Null)
                 shader.Text = "Unbound";
             else
-                shader.Text = "Shader " + stage.Shader.ToString();
+                shader.Text = stage.ShaderName;
 
             if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc != "" && shaderDetails.DebugInfo.files.Length > 0)
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 

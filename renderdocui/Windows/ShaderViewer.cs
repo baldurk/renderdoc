@@ -308,9 +308,9 @@ namespace renderdocui.Windows
             }
 
             if (trace != null)
-                Text = String.Format("Debug Shader {0} - {1}", m_Core.CurPipelineState.GetShader(stage), debugContext);
+                Text = String.Format("Debugging {0} - {1}", m_Core.CurPipelineState.GetShaderName(stage), debugContext);
             else
-                Text = String.Format("Shader {0}", m_Core.CurPipelineState.GetShader(stage));
+                Text = m_Core.CurPipelineState.GetShaderName(stage);
 
             var disasm = shader.Disassembly;
 

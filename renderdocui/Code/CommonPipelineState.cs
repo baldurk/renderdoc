@@ -208,6 +208,39 @@ namespace renderdocui.Code
             return ResourceId.Null;
         }
 
+        public string GetShaderName(ShaderStageType stage)
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D11.m_VS.ShaderName;
+                        case ShaderStageType.Domain: return m_D3D11.m_DS.ShaderName;
+                        case ShaderStageType.Hull: return m_D3D11.m_HS.ShaderName;
+                        case ShaderStageType.Geometry: return m_D3D11.m_GS.ShaderName;
+                        case ShaderStageType.Pixel: return m_D3D11.m_PS.ShaderName;
+                        case ShaderStageType.Compute: return m_D3D11.m_CS.ShaderName;
+                    }
+                }
+                else if (IsLogGL)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return String.Format("Shader {0}", m_GL.m_VS.Shader);
+                        case ShaderStageType.Tess_Control: return String.Format("Shader {0}", m_GL.m_TCS.Shader);
+                        case ShaderStageType.Tess_Eval: return String.Format("Shader {0}", m_GL.m_TES.Shader);
+                        case ShaderStageType.Geometry: return String.Format("Shader {0}", m_GL.m_GS.Shader);
+                        case ShaderStageType.Fragment: return String.Format("Shader {0}", m_GL.m_FS.Shader);
+                        case ShaderStageType.Compute: return String.Format("Shader {0}", m_GL.m_CS.Shader);
+                    }
+                }
+            }
+
+            return "";
+        }
+
         public void GetIBuffer(out ResourceId buf, out uint ByteOffset, out ResourceFormat IndexFormat)
         {
             if (LogLoaded)
