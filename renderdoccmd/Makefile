@@ -8,22 +8,28 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
 LDFLAGS=-L../renderdoc -lrenderdoc -lGL
+OBJDIR=.obj
 OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
+.PHONY: all
 all: bin/renderdoccmd
 
-%.o: %.cpp
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
 
-%.o: %.c
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
 
-../renderdoc/librenderdoc.so:
+OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(SHADERS) $(OBJECTS))
 
-bin/renderdoccmd: $(OBJECTS) $(SOURCES) ../renderdoc/librenderdoc.so
+bin/renderdoccmd: $(OBJDIR_OBJECTS) ../renderdoc/librenderdoc.so
 	mkdir -p bin/
-	g++ -o bin/renderdoccmd $(OBJECTS) $(LDFLAGS)
+	g++ -o bin/renderdoccmd $(OBJDIR_OBJECTS) $(LDFLAGS)
 
+.PHONY: clean
 clean:
-	find -type f -iname \*.o -exec rm '{}' \;
-	rm -f bin/renderdoccmd
+	rm -rf bin/renderdoccmd $(OBJDIR)

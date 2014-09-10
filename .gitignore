@@ -12,11 +12,9 @@ Resources/*.png
 *.user
 bin/
 obj/
+.obj/
 *.opensdf
 *.pdb
-*.o
-*.verto
-*.frago
 *.so
 *.a
 *.exp

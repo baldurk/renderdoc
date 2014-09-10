@@ -8,6 +8,7 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -Wno-unknown-pragmas -Wno-error=format -fPIC $(MACROS) -I.
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
+OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
 replay/entry_points.o \
@@ -21,13 +22,6 @@ core/replay_proxy.o \
 core/remote_replay.o \
 core/resource_manager.o \
 core/core.o \
-data/glsl/blit.frago \
-data/glsl/blit.verto \
-data/glsl/texdisplay.frago \
-data/glsl/checkerboard.frago \
-data/glsl/generic.frago \
-data/glsl/generic.verto \
-data/glsl/mesh.verto \
 maths/camera.o \
 maths/matrix.o \
 os/os_specific.o \
@@ -61,24 +55,42 @@ os/linux/linux_process.o \
 os/linux/linux_stringio.o \
 os/linux/linux_threading.o \
 hooks/linux_libentry.o
+SHADERS=data/glsl/blit.frago \
+data/glsl/blit.verto \
+data/glsl/texdisplay.frago \
+data/glsl/checkerboard.frago \
+data/glsl/generic.frago \
+data/glsl/generic.verto \
+data/glsl/mesh.verto
 
+.PHONY: all
 all: librenderdoc.so
 
-%.o: %.cpp
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
 
-%.o: %.c
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
 
-%.verto: %.vert
-	cd $$(dirname $@) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+# objcopy needs to be run in with paths in current directory
+# to produce the right symbol names
+$(OBJDIR)/%.verto: %.vert
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
 
-%.frago: %.frag
-	cd $$(dirname $@) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+$(OBJDIR)/%.frago: %.frag
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
 
-librenderdoc.so: $(OBJECTS) $(SOURCES)
-	g++ -o librenderdoc.so $(OBJECTS) $(LDFLAGS)
+librenderdoc.so: $(addprefix $(OBJDIR)/, $(SHADERS) $(OBJECTS))
+	g++ -o librenderdoc.so $^ $(LDFLAGS)
 
+.PHONY: clean
 clean:
-	find -type f -iname \*.o -exec rm '{}' \;
-	rm -f librenderdoc.so
+	rm -rf librenderdoc.so $(OBJDIR)
