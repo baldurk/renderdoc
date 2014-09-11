@@ -986,10 +986,7 @@ namespace renderdocui.Windows.PipelineState
 
             var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot);
 
-            var dock = Helpers.WrapDockContent(m_DockContent.DockPanel, prev);
-            dock.DockState = DockState.DockRight;
-            dock.DockAreas |= DockAreas.Float;
-            ConstantBufferPreviewer.ShowDock(dock, m_DockContent.Pane, DockAlignment.Right, 0.3);
+            prev.ShowDock(m_DockContent.Pane, DockAlignment.Right, 0.3);
         }
 
         private void cbuffers_NodeDoubleClicked(TreelistView.Node node)

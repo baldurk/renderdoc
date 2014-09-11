@@ -169,7 +169,7 @@ namespace renderdoc
 		public string Row(int row, VarType t)
 		{
 			if(t == VarType.Double)
-				return RowValuesToString((int)columns, value.dv[row*columns+0], value.dv[row*columns+1]);
+                return RowValuesToString((int)columns, value.dv[row * columns + 0], value.dv[row * columns + 1]);
 			else if(t == VarType.Int)
                 return RowValuesToString((int)columns, value.iv[row * columns + 0], value.iv[row * columns + 1], value.iv[row * columns + 2], value.iv[row * columns + 3]);
 			else if(t == VarType.UInt)

@@ -31,7 +31,6 @@ using System.IO;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
@@ -56,7 +55,7 @@ namespace renderdocui.Windows
     // explicitly myself but the UI interaction makes that murky, so bear in mind that you need to be able to
     // handle changing events while a thread is still going and about to populate some data etc, and be able
     // to abort that and start anew without anything breaking or racing.
-    public partial class BufferViewer : DockContent, ILogViewerForm
+    public partial class BufferViewer : DockContent, ILogViewerForm, IBufferFormatProcessor
     {
         #region Data Privates
 
@@ -628,227 +627,17 @@ namespace renderdocui.Windows
                 }
             }
 
-            var elems = new List<FormatElement>();
-
-            var formatReader = new StringReader(formatString);
-
-            // regex doesn't account for trailing or preceeding whitespace, or comments
-
-            var regExpr = @"^(row_major\s+)?" + // row_major matrix
-                          @"(" +
-                          @"uintten|unormten" +
-                          @"|unormh|unormb" +
-                          @"|snormh|snormb" +
-                          @"|bool" + // bool is stored as 4-byte int in hlsl
-                          @"|byte|short|int" + // signed ints
-                          @"|ubyte|ushort|uint" + // unsigned ints
-                          @"|xbyte|xshort|xint" + // hex ints
-                          @"|half|float|double" + // float types
-                          @")" +
-                          @"([1-9])?" + // might be a vector
-                          @"(x[1-9])?" + // or a matrix
-                          @"(\s+[A-Za-z_][A-Za-z0-9_]*)?" + // get identifier name
-                          @"(\[[0-9]+\])?" + // optional array dimension
-                          @"(\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?" + // optional semantic
-                          @"$";
-
-            Regex regParser = new Regex(regExpr, RegexOptions.Compiled);
-
-            bool success = true;
-            string errors = "";
-
             Input input = new Input();
 
-            input.Strides = new uint[] { 0 };
+            string errors = "";
 
-            var text = formatReader.ReadToEnd();
+            FormatElement[] elems = FormatElement.ParseFormatString(formatString, true, out errors);
 
-            text = text.Replace("{", "").Replace("}", "");
-
-            Regex c_comments = new Regex(@"/\*[^*]*\*+(?:[^*/][^*]*\*+)*/", RegexOptions.Compiled);
-            text = c_comments.Replace(text, "");
-
-            Regex cpp_comments = new Regex(@"//.*", RegexOptions.Compiled);
-            text = cpp_comments.Replace(text, "");
-
-            // get each line and parse it to determine the format the user wanted
-            foreach (var l in text.Split(';'))
-            {
-                var line = l;
-                line = line.Trim();
-
-                if (line == "") continue;
-
-                var match = regParser.Match(line);
-
-                if (!match.Success)
-                {
-                    errors = "Couldn't parse line:\n" + line;
-                    success = false;
-                    break;
-                }
-
-                var basetype = match.Groups[2].Value;
-                bool row_major = match.Groups[1].Success;
-                var vectorDim = match.Groups[3].Success ? match.Groups[3].Value : "1";
-                var matrixDim = match.Groups[4].Success ? match.Groups[4].Value.Substring(1) : "1";
-                var name = match.Groups[5].Success ? match.Groups[5].Value.Trim() : "data";
-                var arrayDim = match.Groups[6].Success ? match.Groups[6].Value.Trim() : "[1]";
-                arrayDim = arrayDim.Substring(1, arrayDim.Length - 2);
-
-                if(match.Groups[4].Success)
-                {
-                    var a = vectorDim;
-                    vectorDim = matrixDim;
-                    matrixDim = a;
-                }
-
-                ResourceFormat fmt = new ResourceFormat(FormatComponentType.None, 0, 0);
-
-                bool hex = false;
-
-                FormatComponentType type = FormatComponentType.Float;
-                uint count = 0;
-                uint arrayCount = 1;
-                uint matrixCount = 0;
-                uint width = 0;
-
-                // calculate format
-                {
-                    if (!uint.TryParse(vectorDim, out count))
-                    {
-                        errors = "Invalid vector dimension on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-                    if (!uint.TryParse(arrayDim, out arrayCount))
-                    {
-                        arrayCount = 1;
-                    }
-                    arrayCount = Math.Max(0, arrayCount);
-                    if (!uint.TryParse(matrixDim, out matrixCount))
-                    {
-                        errors = "Invalid matrix second dimension on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-
-                    if (basetype == "bool")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 4;
-                    }
-                    else if (basetype == "byte")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 1;
-                    }
-                    else if (basetype == "ubyte" || basetype == "xbyte")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 1;
-                    }
-                    else if (basetype == "short")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 2;
-                    }
-                    else if (basetype == "ushort" || basetype == "xshort")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 2;
-                    }
-                    else if (basetype == "int")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 4;
-                    }
-                    else if (basetype == "uint" || basetype == "xint")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 4;
-                    }
-                    else if (basetype == "half")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 2;
-                    }
-                    else if (basetype == "float")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 4;
-                    }
-                    else if (basetype == "double")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 8;
-                    }
-                    else if (basetype == "unormh")
-                    {
-                        type = FormatComponentType.UNorm;
-                        width = 2;
-                    }
-                    else if (basetype == "unormb")
-                    {
-                        type = FormatComponentType.UNorm;
-                        width = 1;
-                    }
-                    else if (basetype == "snormh")
-                    {
-                        type = FormatComponentType.SNorm;
-                        width = 2;
-                    }
-                    else if (basetype == "snormb")
-                    {
-                        type = FormatComponentType.SNorm;
-                        width = 1;
-                    }
-                    else if (basetype == "uintten")
-                    {
-                        fmt = new ResourceFormat(FormatComponentType.UInt, 4 * count, 1);
-                        fmt.special = true;
-                        fmt.specialFormat = SpecialFormat.R10G10B10A2;
-                    }
-                    else if (basetype == "unormten")
-                    {
-                        fmt = new ResourceFormat(FormatComponentType.UNorm, 4 * count, 1);
-                        fmt.special = true;
-                        fmt.specialFormat = SpecialFormat.R10G10B10A2;
-                    }
-                    else
-                    {
-                        errors = "Unrecognised basic type on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-                }
-
-                if (basetype == "xint" || basetype == "xshort" || basetype == "xbyte")
-                    hex = true;
-
-                if(fmt.compType == FormatComponentType.None)
-                    fmt = new ResourceFormat(type, count * arrayCount, width);
-
-                FormatElement elem = new FormatElement(name, 0, input.Strides[0], false, row_major, matrixCount, fmt, hex);
-
-                elems.Add(elem);
-                input.Strides[0] += elem.ByteSize;
-            }
-
-            if (!success || elems.Count == 0)
-            {
-                elems.Clear();
-
-                var fmt = new ResourceFormat(FormatComponentType.UInt, 4, 4);
-
-                elems.Add(new FormatElement("data", 0, input.Strides[0], false, false, 1, fmt, true));
-                input.Strides[0] = elems.Last().ByteSize;
-            }
-
+            input.Strides = new uint[] { elems.Last().offset + elems.Last().ByteSize };
             input.Buffers = new ResourceId[] { buff };
             input.Offsets = new uint[] { 0 };
             input.IndexBuffer = ResourceId.Null;
-            input.BufferFormats = elems.ToArray();
+            input.BufferFormats = elems;
             input.IndexOffset = 0;
 
             m_VSIn.m_Input = input;
@@ -1545,6 +1334,30 @@ namespace renderdocui.Windows
             }
         }
 
+        private string ElementString(FormatElement el, object o)
+        {
+            if (o is float)
+            {
+                return Formatter.Format((float)o);
+            }
+            else if (o is uint)
+            {
+                uint u = (uint)o;
+
+                if (el.format.compByteWidth == 4) String.Format(el.hex ? "{0:X8}" : "{0}", u);
+                if (el.format.compByteWidth == 2) String.Format(el.hex ? "{0:X4}" : "{0}", u);
+                if (el.format.compByteWidth == 1) String.Format(el.hex ? "{0:X2}" : "{0}", u);
+
+                return String.Format("{0}", (uint)o);
+            }
+            else if (o is int)
+            {
+                return String.Format("{0}", (int)o);
+            }
+
+            return o.ToString();
+        }
+
         private void UI_CacheRow(UIState state, int rowIdx)
         {
             if (state.m_Rows[rowIdx] != null || SuppressCaching)
@@ -1660,158 +1473,31 @@ namespace renderdocui.Windows
                                 strm.Seek(offs, SeekOrigin.Begin);
                             }
 
-                            string elname = bufferFormats[el].name.ToLowerInvariant();
-                            var fmt = bufferFormats[el].format;
+                            object[] elements = bufferFormats[el].GetObjects(read);
 
-                            if (fmt.special && fmt.specialFormat == SpecialFormat.B8G8R8A8)
+                            if (bufferFormats[el].matrixdim == 1)
                             {
-                                byte b = read.ReadByte();
-                                byte g = read.ReadByte();
-                                byte r = read.ReadByte();
-                                byte a = read.ReadByte();
-
-                                rowdata[x + 0] = fmt.Interpret(r, false);
-                                rowdata[x + 1] = fmt.Interpret(g, false);
-                                rowdata[x + 2] = fmt.Interpret(b, false);
-                                rowdata[x + 3] = fmt.Interpret(a, false);
-                                x += 4;
+                                for (int i = 0; i < elements.Length; i++)
+                                    rowdata[x + i] = ElementString(bufferFormats[el], elements[i]);
+                                x += elements.Length;
                             }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B5G5R5A1)
+                            else
                             {
-                                ushort packed = read.ReadUInt16();
-
-                                rowdata[x + 2] = (float)((packed >> 0) & 0x1f) / 31.0f;
-                                rowdata[x + 1] = (float)((packed >> 5) & 0x1f) / 31.0f;
-                                rowdata[x + 0] = (float)((packed >> 10) & 0x1f) / 31.0f;
-                                rowdata[x + 3] = ((packed & 0x8000) > 0) ? 1.0f : 0.0f;
-                                x += 4;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B5G6R5)
-                            {
-                                ushort packed = read.ReadUInt16();
-                                
-                                rowdata[x + 2] = (float)((packed >> 0) & 0x1f) / 31.0f;
-                                rowdata[x + 1] = (float)((packed >> 5) & 0x3f) / 63.0f;
-                                rowdata[x + 0] = (float)((packed >> 11) & 0x1f) / 31.0f;
-                                x += 3;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B4G4R4A4)
-                            {
-                                ushort packed = read.ReadUInt16();
-
-                                rowdata[x + 2] = (float)((packed >> 0) & 0xf) / 15.0f;
-                                rowdata[x + 1] = (float)((packed >> 4) & 0xf) / 15.0f;
-                                rowdata[x + 0] = (float)((packed >> 8) & 0xf) / 15.0f;
-                                rowdata[x + 3] = (float)((packed >> 12) & 0xf) / 15.0f;
-                                x += 4;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.R10G10B10A2)
-                            {
-                                // allow for vectors of this format - for raw buffer viewer
-                                for (int i = 0; i < (fmt.compCount / 4); i++)
-                                {
-                                    uint packed = read.ReadUInt32();
-
-                                    uint r = (packed >> 0) & 0x3ff;
-                                    uint g = (packed >> 10) & 0x3ff;
-                                    uint b = (packed >> 20) & 0x3ff;
-                                    uint a = (packed >> 30) & 0x003;
-
-                                    if (fmt.compType == FormatComponentType.UInt)
-                                    {
-                                        rowdata[x + 0] = r;
-                                        rowdata[x + 1] = g;
-                                        rowdata[x + 2] = b;
-                                        rowdata[x + 3] = a;
-                                    }
-                                    else
-                                    {
-                                        rowdata[x + 0] = (float)r / 1023.0f;
-                                        rowdata[x + 1] = (float)g / 1023.0f;
-                                        rowdata[x + 2] = (float)b / 1023.0f;
-                                        rowdata[x + 3] = (float)a / 3.0f;
-                                    }
-
-                                    x += 4;
-                                }
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.R11G11B10)
-                            {
-                                uint packed = read.ReadUInt32();
-
-                                uint xMantissa = ((packed >> 0) & 0x3f);
-                                uint xExponent = ((packed >> 6) & 0x1f);
-                                uint yMantissa = ((packed >> 11) & 0x3f);
-                                uint yExponent = ((packed >> 17) & 0x1f);
-                                uint zMantissa = ((packed >> 22) & 0x1f);
-                                uint zExponent = ((packed >> 27) & 0x1f);
-
-                                rowdata[x + 0] = ((float)(xMantissa) / 64.0f) * Math.Pow(2.0f, (float)xExponent - 15.0f);
-                                rowdata[x + 1] = ((float)(yMantissa) / 32.0f) * Math.Pow(2.0f, (float)yExponent - 15.0f);
-                                rowdata[x + 2] = ((float)(zMantissa) / 32.0f) * Math.Pow(2.0f, (float)zExponent - 15.0f);
-
-                                x += 3;
-                            }
-                            else if(bufferFormats[el].matrixdim > 1)
-                            {
-                                object[] arr = new object[bufferFormats[el].matrixdim * fmt.compCount];
-                                for (int i = 0; i < bufferFormats[el].matrixdim * fmt.compCount; i++)
-                                {
-                                    if (fmt.compType == FormatComponentType.Float)
-                                    {
-                                        if (fmt.compByteWidth == 4)
-                                            arr[i] = read.ReadSingle();
-                                        else if (fmt.compByteWidth == 2)
-                                            arr[i] = fmt.ConvertFromHalf(read.ReadUInt16());
-                                    }
-                                    else
-                                    {
-                                        if (fmt.compByteWidth == 4)
-                                            arr[i] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
-                                        else if (fmt.compByteWidth == 2)
-                                            arr[i] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
-                                        else if (fmt.compByteWidth == 1)
-                                            arr[i] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
-                                    }
-                                }
-
-                                int cols = (int)fmt.compCount;
+                                int cols = (int)bufferFormats[el].format.compCount;
                                 int rows = (int)bufferFormats[el].matrixdim;
 
                                 for (int col = 0; col < cols; col++)
                                 {
-                                    object[] colarr = new object[rows];
+                                    string[] colarr = new string[rows];
                                     for (int row = 0; row < rows; row++)
                                     {
                                         if (!bufferFormats[el].rowmajor)
-                                            colarr[row] = arr[col * rows + row];
+                                            colarr[row] = ElementString(bufferFormats[el], elements[col * rows + row]);
                                         else
-                                            colarr[row] = arr[row * cols + col];
+                                            colarr[row] = ElementString(bufferFormats[el], elements[row * cols + col]);
                                     }
 
                                     rowdata[x++] = colarr;
-                                }
-                            }
-                            else if (fmt.compType == FormatComponentType.Float)
-                            {
-                                for (int i = 0; i < fmt.compCount; i++, x++)
-                                {
-                                    if (fmt.compByteWidth == 4)
-                                        rowdata[x] = read.ReadSingle();
-                                    else if (fmt.compByteWidth == 2)
-                                        rowdata[x] = fmt.ConvertFromHalf(read.ReadUInt16());
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < fmt.compCount; i++, x++)
-                                {
-                                    if (fmt.compByteWidth == 4)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
-                                    else if (fmt.compByteWidth == 2)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
-                                    else if (fmt.compByteWidth == 1)
-                                        rowdata[x] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
                                 }
                             }
                         }
@@ -2433,14 +2119,25 @@ namespace renderdocui.Windows
             ShowFormatSpecifier();
         }
 
+        public void ProcessBufferFormat(string formatText)
+        {
+            ViewRawBuffer(GetUIState(MeshDataStage.VSIn).m_Input.Buffers[0], formatText);
+        }
+
         private void ShowFormatSpecifier()
         {
             UIState ui = GetUIState(MeshDataStage.VSIn);
 
-            if (m_FormatSpecifier == null)
-                m_FormatSpecifier = new BufferFormatSpecifier(this, ui.m_Input.Buffers[0], m_FormatText);
+			if (m_FormatSpecifier == null)
+			{
+				m_FormatSpecifier = new BufferFormatSpecifier(this, m_FormatText);
 
-            m_FormatSpecifier.Show(dockPanel, DockState.DockBottom);
+				var dock = Helpers.WrapDockContent(dockPanel, m_FormatSpecifier, m_FormatSpecifier.Text);
+				dock.CloseButton = false;
+				dock.CloseButtonVisible = false;
+			}
+
+            (m_FormatSpecifier.Parent as DockContent).Show(dockPanel, DockState.DockBottom);
         }
 
         private void debugVertex_Click(object sender, EventArgs e)
@@ -2756,49 +2453,4 @@ namespace renderdocui.Windows
             }
         }
     }
-
-    public class FormatElement
-    {
-        public FormatElement()
-        {
-            name = "";
-            buffer = 0;
-            offset = 0;
-            perinstance = false;
-            rowmajor = false;
-            matrixdim = 0;
-            format = new ResourceFormat();
-            hex = false;
-        }
-
-        public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat fmt, bool h)
-        {
-            name = Name;
-            buffer = buf;
-            offset = offs;
-            format = fmt;
-            perinstance = pi;
-            rowmajor = rowMat;
-            matrixdim = matDim;
-            hex = h;
-        }
-
-        public uint ByteSize
-        {
-            get
-            {
-                return format.compByteWidth * format.compCount * matrixdim;
-            }
-        }
-
-        public string name;
-        public int buffer;
-        public uint offset;
-        public bool perinstance;
-        public bool rowmajor;
-        public uint matrixdim;
-        public ResourceFormat format;
-        public bool hex;
-    }
-
 }

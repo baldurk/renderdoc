@@ -32,12 +32,14 @@ using System.Linq;
 using System.Text;
 using System.Windows.Forms;
 using renderdocui.Code;
+using renderdocui.Windows.Dialogs;
 using renderdoc;
 using WeifenLuo.WinFormsUI.Docking;
+using System.IO;
 
 namespace renderdocui.Controls
 {
-    public partial class ConstantBufferPreviewer : UserControl, ILogViewerForm
+	public partial class ConstantBufferPreviewer : DockContent, ILogViewerForm, IBufferFormatProcessor
     {
         private Core m_Core;
 
@@ -63,37 +65,34 @@ namespace renderdocui.Controls
             m_Core.AddLogViewer(this);
         }
 
-        private static List<DockContent> m_Docks = new List<DockContent>();
+        private static List<ConstantBufferPreviewer> m_Docks = new List<ConstantBufferPreviewer>();
 
         public static DockContent Has(ShaderStageType stage, UInt32 slot)
         {
-            foreach (var d in m_Docks)
+            foreach (var cb in m_Docks)
             {
-                ConstantBufferPreviewer cb = d.Controls[0] as ConstantBufferPreviewer;
-
                 if(cb.Stage == stage && cb.Slot == slot)
-                    return cb.Parent as DockContent;
+                    return cb as DockContent;
             }
 
             return null;
         }
 
-        public static void ShowDock(DockContent dock, DockPane pane, DockAlignment align, double proportion)
+        public void ShowDock(DockPane pane, DockAlignment align, double proportion)
         {
-            dock.FormClosed += new FormClosedEventHandler(dock_FormClosed);
+            FormClosed += new FormClosedEventHandler(dock_FormClosed);
             
             if (m_Docks.Count > 0)
-                dock.Show(m_Docks[0].Pane, m_Docks[0]);
+                Show(m_Docks[0].Pane, m_Docks[0]);
             else
-                dock.Show(pane, align, proportion);
+                Show(pane, align, proportion);
 
-            m_Docks.Add(dock);
+            m_Docks.Add(this);
         }
 
         static void dock_FormClosed(object sender, FormClosedEventArgs e)
         {
-            DockContent p = sender as DockContent;
-            m_Docks.Remove(p);
+            m_Docks.Remove(sender as ConstantBufferPreviewer);
         }
 
         /// <summary> 
@@ -185,10 +184,20 @@ namespace renderdocui.Controls
                 return;
             }
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-            {
-                SetVariables(r.GetCBufferVariableContents(shader, Slot, cbuffer, offs));
-            });
+			if (m_FormatOverride != null)
+			{
+				m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+				{
+					SetVariables(ApplyFormatOverride(r.GetBufferData(cbuffer, offs, size)));
+				});
+			}
+			else
+			{
+				m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+				{
+					SetVariables(r.GetCBufferVariableContents(shader, Slot, cbuffer, offs));
+				});
+			}
         }
 
         private string BufferName = "";
@@ -266,5 +275,71 @@ namespace renderdocui.Controls
                 Clipboard.SetText(text);
             }
         }
+
+		private BufferFormatSpecifier m_FormatSpecifier = null;
+		private FormatElement[] m_FormatOverride = null;
+
+		ShaderVariable[] ApplyFormatOverride(byte[] data)
+		{
+			if(m_FormatOverride == null || m_FormatOverride.Length == 0) return null;
+
+			var stream = new MemoryStream(data);
+			var reader = new BinaryReader(stream);
+
+			ShaderVariable[] ret = new ShaderVariable[m_FormatOverride.Length];
+
+			for (int i = 0; i < m_FormatOverride.Length; i++)
+			{
+				stream.Seek(m_FormatOverride[i].offset, SeekOrigin.Begin);
+				ret[i] = m_FormatOverride[i].GetShaderVar(reader);
+			}
+
+			reader.Dispose();
+			stream.Dispose();
+
+			return ret;
+		}
+
+		public void ProcessBufferFormat(string formatText)
+		{
+			if (formatText == "")
+			{
+				m_FormatOverride = null;
+				if (m_FormatSpecifier != null)
+					m_FormatSpecifier.SetErrors("");
+			}
+			else
+			{
+				string errors = "";
+
+				m_FormatOverride = FormatElement.ParseFormatString(formatText, false, out errors);
+
+				if (m_FormatSpecifier != null)
+					m_FormatSpecifier.SetErrors(errors);
+			}
+
+			OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+		}
+
+		private void setFormat_CheckedChanged(object sender, EventArgs e)
+		{
+			if (!setFormat.Checked)
+			{
+				split.Panel2.Controls.Remove(m_FormatSpecifier);
+				split.Panel2Collapsed = true;
+				
+				ProcessBufferFormat("");
+
+				return;
+			}
+
+			if (m_FormatSpecifier == null)
+				m_FormatSpecifier = new BufferFormatSpecifier(this, "");
+
+			split.Panel2.Controls.Add(m_FormatSpecifier);
+			m_FormatSpecifier.Dock = DockStyle.Fill;
+			split.Panel2Collapsed = false;
+			split.SplitterDistance = split.ClientRectangle.Height / 2;
+		}
     }
 }

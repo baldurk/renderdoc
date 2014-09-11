@@ -36,26 +36,26 @@ using renderdoc;
 
 namespace renderdocui.Windows.Dialogs
 {
-    public partial class BufferFormatSpecifier : DockContent
+    public partial class BufferFormatSpecifier : UserControl
     {
-        BufferViewer m_Viewer = null;
-        ResourceId m_Buffer = ResourceId.Null;
+        IBufferFormatProcessor m_Viewer = null;
 
-        public BufferFormatSpecifier(BufferViewer viewer, ResourceId buff, string format)
+        public BufferFormatSpecifier(IBufferFormatProcessor viewer, string format)
         {
             InitializeComponent();
 
             // WHY THE HELL do you require \r\n in text boxes?
             formatText.Text = format.Replace("\r\n", "\n").Replace("\n", Environment.NewLine);
 
+			errors.Visible = false;
+
             m_Viewer = viewer;
-            m_Buffer = buff;
         }
 
         private void apply_Click(object sender, EventArgs e)
         {
             SetErrors("");
-            m_Viewer.ViewRawBuffer(m_Buffer, formatText.Text);
+            m_Viewer.ProcessBufferFormat(formatText.Text);
         }
 
         public void SetErrors(string err)
@@ -75,5 +75,15 @@ namespace renderdocui.Windows.Dialogs
                 formatText.SelectAll();
             }
         }
+
+		private void hideHelp_Click(object sender, EventArgs e)
+		{
+			helpText.Visible = !helpText.Visible;
+		}
+    }
+
+    public interface IBufferFormatProcessor
+    {
+        void ProcessBufferFormat(string formatText);
     }
 }

@@ -95,6 +95,7 @@
     <Compile Include="Code\AppMain.cs" />
     <Compile Include="Code\Cameras.cs" />
     <Compile Include="Code\CommonPipelineState.cs" />
+    <Compile Include="Code\FormatElement.cs" />
     <Compile Include="Interop\Camera.cs" />
     <Compile Include="Interop\Formatter.cs" />
     <Compile Include="Code\Helpers.cs" />
@@ -120,10 +121,10 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Code\Win32PInvoke.cs" />
-    <Compile Include="Controls\ConstantBufferPreviewer.cs">
-      <SubType>UserControl</SubType>
+    <Compile Include="Windows\Dialogs\ConstantBufferPreviewer.cs">
+      <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Controls\ConstantBufferPreviewer.Designer.cs">
+    <Compile Include="Windows\Dialogs\ConstantBufferPreviewer.Designer.cs">
       <DependentUpon>ConstantBufferPreviewer.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\PipelineFlowchart.cs">
@@ -193,10 +194,10 @@
     <Compile Include="Windows\Dialogs\AboutDialog.Designer.cs">
       <DependentUpon>AboutDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\BufferFormatSpecifier.cs">
-      <SubType>Form</SubType>
+    <Compile Include="Controls\BufferFormatSpecifier.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\BufferFormatSpecifier.Designer.cs">
+    <Compile Include="Controls\BufferFormatSpecifier.Designer.cs">
       <DependentUpon>BufferFormatSpecifier.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\CaptureDialog.cs">
@@ -298,7 +299,7 @@
     <Compile Include="Windows\TimelineBar.Designer.cs">
       <DependentUpon>TimelineBar.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="Controls\ConstantBufferPreviewer.resx">
+    <EmbeddedResource Include="Windows\Dialogs\ConstantBufferPreviewer.resx">
       <DependentUpon>ConstantBufferPreviewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\PipelineFlowchart.resx">
@@ -325,7 +326,7 @@
     <EmbeddedResource Include="Windows\Dialogs\AboutDialog.resx">
       <DependentUpon>AboutDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\BufferFormatSpecifier.resx">
+    <EmbeddedResource Include="Controls\BufferFormatSpecifier.resx">
       <DependentUpon>BufferFormatSpecifier.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\CaptureDialog.resx">
