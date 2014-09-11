@@ -79,6 +79,20 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, BindpointMap &el)
+{
+	Serialise("", el.bind);
+	Serialise("", el.used);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderBindpointMapping &el)
+{
+	Serialise("", el.ConstantBlocks);
+	Serialise("", el.Resources);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler::LayoutInput &el)
 {
 	Serialise("", el.SemanticName);
@@ -146,9 +160,13 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage &el
 {
 	Serialise("", el.Shader);
 	Serialise("", el.stage);
+	Serialise("", el.ShaderName);
+	Serialise("", el.customName);
 
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
+
+	Serialise("", el.BindpointMapping);
 	
 	Serialise("", el.SRVs);
 	Serialise("", el.UAVs);
@@ -539,6 +557,10 @@ template<>
 void Serialiser::Serialise(const char *name, PixelModification &el)
 {
 	Serialise("", el.eventID);
+	
+	Serialise("", el.uavWrite);
+	Serialise("", el.fragIndex);
+	Serialise("", el.primitiveID);
 
 	Serialise<4>("", el.preMod.col.value_u);
 	Serialise("", el.preMod.depth);
@@ -565,6 +587,16 @@ void Serialiser::Serialise(const char *name, ShaderDebugState &el)
 	Serialise("", el.registers);
 	Serialise("", el.outputs);
 	Serialise("", el.nextInstruction);
+	
+	vector< vector<ShaderVariable> > indexableTemps;
+	
+	int32_t numidxtemps = el.indexableTemps.count;
+	Serialise("", numidxtemps);
+
+	if(m_Mode == READING) create_array_uninit(el.indexableTemps, numidxtemps);
+
+	for(int32_t i=0; i < numidxtemps; i++)
+		Serialise("", el.indexableTemps[i]);
 }
 
 template<>
@@ -1198,7 +1230,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 	{
 		byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, dataSize);
 
-		byte *compressed = new byte[dataSize+64];
+		byte *compressed = new byte[dataSize+512];
 		
 		size_t compressedSize = (size_t)LZ4_compress((const char *)data, (char *)compressed, (int)dataSize);
 	
@@ -1219,7 +1251,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 		m_FromReplaySerialiser->Serialise("", dataSize);
 		m_FromReplaySerialiser->Serialise("", compressedSize);
 
-		byte *ret = new byte[dataSize+64];
+		byte *ret = new byte[dataSize+512];
 
 		byte *compressed = (byte *)m_FromReplaySerialiser->RawReadBytes(compressedSize);
 
