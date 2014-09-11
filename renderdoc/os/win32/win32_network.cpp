@@ -231,13 +231,13 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 
 	if(s == INVALID_SOCKET)
 		return NULL;
-	
-    sockaddr_in addr;
+
+	sockaddr_in addr;
 	RDCEraseEl(addr);
-	
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = inet_addr(bindaddr);
-    addr.sin_port = htons(port);
+
+	addr.sin_family = AF_INET;
+	inet_pton(AF_INET, bindaddr, &addr.sin_addr);
+	addr.sin_port = htons(port);
 
 	int result = bind(s, (SOCKADDR *)&addr, sizeof(addr));
 	if(result == SOCKET_ERROR)
