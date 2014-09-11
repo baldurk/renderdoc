@@ -34,7 +34,7 @@ Building RenderDoc is fairly straight forward.
 
 ### Windows ###
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade. You will also need to rebuild breakpad, just build `Release|Win32` and `Release|x64` in [breakpad.sln](breakpad/breakpad.sln).
+The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012 and VS2013 without issues.
 
 The only external dependency should be the Windows 8.1 SDK. The 8.0 SDK should also work fine, but [the vcxproj](renderdoc/renderdoc.vcxproj) is set up to look in `$(ProgramFiles)\Windows Kits\8.1\` for the necessary paths. If your SDK is installed elsewhere you'll also need to change these locally. You can also compile only against the June 2010 DirectX SDK if you undefine `INCLUDE_D3D_11_1` in `d3d11_common.h`.
 
