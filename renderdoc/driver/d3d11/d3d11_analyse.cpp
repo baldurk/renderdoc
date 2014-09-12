@@ -4556,7 +4556,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			// fetch shader output value 
 			{
-				m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shadOutputDSV);
+				ID3D11RenderTargetView *sparseRTVs[8] = { 0 };
+				sparseRTVs[rtIndex] = shadOutputRTV;
+				m_pImmediateContext->OMSetRenderTargets(rtIndex+1, sparseRTVs, shadOutputDSV);
 
 				m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_OnlyDraw);
 
