@@ -42,7 +42,7 @@ uint64_t Timing::GetTick()
 
 uint64_t Timing::GetUnixTimestamp()
 {
-	return (uint64_t)time();
+	return (uint64_t)time(NULL);
 }
 
 namespace Atomic
