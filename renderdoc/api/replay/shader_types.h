@@ -85,6 +85,8 @@ struct ShaderVariable
 		uint32_t uv[16];
 	} value;
 
+	bool32 isStruct;
+
 	rdctype::array<ShaderVariable> members;
 };
 

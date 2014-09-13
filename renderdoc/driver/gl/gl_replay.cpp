@@ -1214,6 +1214,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 			{
 				vector<ShaderVariable> ov;
 				FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".", variables[i].type.members, ov, data);
+				var.isStruct = true;
 				var.members = ov;
 			}
 			else
@@ -1227,10 +1228,13 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					vector<ShaderVariable> ov;
 					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
 					arrEl.members = ov;
+
+					arrEl.isStruct = true;
 					
 					arrelems.push_back(arrEl);
 				}
 				var.members = arrelems;
+				var.isStruct = false;
 				var.rows = var.columns = 0;
 			}
 		}
@@ -1277,10 +1281,13 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
 							values[0] + values[2] * a, values[1], data, el);
 
+						el.isStruct = false;
+
 						elems.push_back(el);
 					}
 
 					var.members = elems;
+					var.isStruct = false;
 					var.rows = var.columns = 0;
 				}
 			}

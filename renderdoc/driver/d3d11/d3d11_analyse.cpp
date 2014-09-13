@@ -92,14 +92,20 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 
 						FillCBufferVariables("", vec, flatten, invars[v].type.members, mems, data);
 
+						vr.isStruct = true;
+
 						vr.members = mems;
 
 						varmembers.push_back(vr);
 					}
 				}
+
+				var.isStruct = false;
 			}
 			else
 			{
+				var.isStruct = true;
+
 				if(flatten)
 					FillCBufferVariables(basename + ".", vec, flatten, invars[v].type.members, outvars, data);
 				else
@@ -168,6 +174,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 			combinedName += ", " + basename;
 			outvars[outIdx].name = combinedName;
 			outvars[outIdx].rows = 1;
+			outvars[outIdx].isStruct = false;
 			outvars[outIdx].columns += cols;
 
 			if(dataOffset < data.size())
@@ -182,6 +189,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 			outvars[outIdx].name = basename;
 			outvars[outIdx].rows = 1;
 			outvars[outIdx].type = type;
+			outvars[outIdx].isStruct = false;
 			outvars[outIdx].columns = cols;
 
 			ShaderVariable &var = outvars[outIdx];
@@ -289,6 +297,7 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 					(*out)[outIdx+r].name = base + buf;
 					(*out)[outIdx+r].rows = (uint32_t)rowCopy;
 					(*out)[outIdx+r].type = type;
+					(*out)[outIdx+r].isStruct = false;
 					(*out)[outIdx+r].columns = regLen;
 					
 					size_t dataOffset = (vec+r*rowCopy)*16;
@@ -311,7 +320,10 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 				}
 
 				if(!flatten)
+				{
+					var.isStruct = false;
 					var.members = varmembers;
+				}
 			}
 		}
 	}

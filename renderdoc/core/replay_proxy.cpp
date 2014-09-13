@@ -542,6 +542,8 @@ void Serialiser::Serialise(const char *name, ShaderVariable &el)
 
 	Serialise<16>("", el.value.uv);
 	
+	Serialise("", el.isStruct);
+	
 	Serialise("", el.members);
 }
 
