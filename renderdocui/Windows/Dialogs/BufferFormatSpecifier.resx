@@ -133,6 +133,6 @@ Hex-formatted integer types: xbyte, xshort, xint
 
 Additionally special formats: unorm[hb] (half, byte) and snorm[hb], and uintten/unormten (10:10:10:2 packing)
 
-Vectors (e.g. float4) and matrices ([rowmajor] half3x4) are supported. Arrays (float[16]) are not supported.</value>
+Vectors (e.g. float4), matrices ([rowmajor] half3x4) and arrays (float[16]) are supported.</value>
   </data>
 </root>
