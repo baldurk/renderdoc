@@ -25,6 +25,8 @@
 
 #include "os/os_specific.h"
 
+#include <time.h>
+
 double Timing::GetTickFrequency()
 {
 	LARGE_INTEGER li;
@@ -38,6 +40,11 @@ uint64_t Timing::GetTick()
 	QueryPerformanceCounter(&li);
 
 	return li.QuadPart;
+}
+
+uint64_t Timing::GetUnixTimestamp()
+{
+	return (uint64_t)time(NULL);
 }
 
 namespace Atomic

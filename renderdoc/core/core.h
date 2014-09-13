@@ -125,6 +125,15 @@ struct RDCInitParams
 	Serialiser *m_pDebugSerialiser;
 };
 
+struct CaptureData
+{
+	CaptureData(wstring p, uint64_t t) : path(p), timestamp(t), retrieved(false) {}
+
+	wstring path;
+	uint64_t timestamp;
+	bool retrieved;
+};
+
 enum LoadProgressSection
 {
 	DebugManagerInit,
@@ -172,18 +181,18 @@ class RenderDoc
 		Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels, size_t thlen, uint32_t thwidth, uint32_t thheight);
 		void SuccessfullyWrittenLog();
 
-		vector<wstring> GetCaptures()
+		vector<CaptureData> GetCaptures()
 		{
 			SCOPED_LOCK(m_CaptureLock);
-			return m_CapturePaths;
+			return m_Captures;
 		}
 
 		void MarkCaptureRetrieved(uint32_t idx)
 		{
 			SCOPED_LOCK(m_CaptureLock);
-			if(idx < m_CapturePaths.size())
+			if(idx < m_Captures.size())
 			{
-				m_CaptureRetrieved[idx] = true;
+				m_Captures[idx].retrieved = true;
 			}
 		}
 
@@ -254,8 +263,7 @@ class RenderDoc
 		float *m_ProgressPtr;
 
 		Threading::CriticalSection m_CaptureLock;
-		vector<wstring> m_CapturePaths;
-		vector<bool> m_CaptureRetrieved;
+		vector<CaptureData> m_Captures;
 
 		map<RDCDriver, wstring> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;

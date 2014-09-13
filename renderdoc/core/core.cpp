@@ -179,16 +179,16 @@ RenderDoc::~RenderDoc()
 		SAFE_DELETE(m_ExHandler);
 	}
 
-	for(size_t i=0; i < m_CapturePaths.size(); i++)
+	for(size_t i=0; i < m_Captures.size(); i++)
 	{
-		if(m_CaptureRetrieved[i])
+		if(m_Captures[i].retrieved)
 		{
-			RDCLOG("Removing remotely retrieved capture %ls", m_CapturePaths[i].c_str());
-			FileIO::UnlinkFileW(m_CapturePaths[i].c_str());
+			RDCLOG("Removing remotely retrieved capture %ls", m_Captures[i].path.c_str());
+			FileIO::UnlinkFileW(m_Captures[i].path.c_str());
 		}
 		else
 		{
-			RDCLOG("'Leaking' unretrieved capture %ls", m_CapturePaths[i].c_str());
+			RDCLOG("'Leaking' unretrieved capture %ls", m_Captures[i].path.c_str());
 		}
 	}
 
@@ -555,9 +555,9 @@ void RenderDoc::SuccessfullyWrittenLog()
 {
 	RDCLOG("Written to disk: %ls", m_CurrentLogFile.c_str());	
 
+	CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp());
 	{
 		SCOPED_LOCK(m_CaptureLock);
-		m_CapturePaths.push_back(m_CurrentLogFile);
-		m_CaptureRetrieved.push_back(false);
+		m_Captures.push_back(cap);
 	}
 }

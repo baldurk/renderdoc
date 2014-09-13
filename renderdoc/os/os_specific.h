@@ -57,6 +57,7 @@ namespace Timing
 {
 	double GetTickFrequency();
 	uint64_t GetTick();
+	uint64_t GetUnixTimestamp();
 };
 
 namespace Threading

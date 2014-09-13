@@ -40,6 +40,11 @@ uint64_t Timing::GetTick()
 	return uint64_t(ts.tv_sec)*1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
 }
 
+uint64_t Timing::GetUnixTimestamp()
+{
+	return (uint64_t)time();
+}
+
 namespace Atomic
 {
 	int32_t Inc32(volatile int32_t *i)

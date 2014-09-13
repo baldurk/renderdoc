@@ -103,6 +103,31 @@ const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile()
 }
 
 extern "C" RENDERDOC_API
+bool RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp)
+{
+	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+
+	if(idx >= (uint32_t)caps.size())
+	{
+		if(logfile) logfile[0] = 0;
+		if(pathlength) *pathlength = 0;
+		if(timestamp) *timestamp = 0;
+		return false;
+	}
+
+	CaptureData &c = caps[idx];
+
+	if(logfile)
+		memcpy(logfile, c.path.c_str(), sizeof(wchar_t)*(c.path.size()+1));
+	if(pathlength)
+		*pathlength = uint32_t(c.path.size()+1);
+	if(timestamp)
+		*timestamp = c.timestamp;
+
+	return true;
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool crashed)
 {
 	if(RenderDoc::Inst().GetCrashHandler() == NULL)

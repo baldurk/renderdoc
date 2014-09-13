@@ -74,7 +74,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 	const int ticktime = 10; // tick every 10ms
 	int curtime = 0;
 
-	vector<wstring> captures;
+	vector<CaptureData> captures;
 
 	while(client)
 	{
@@ -104,7 +104,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 		}
 		else
 		{
-			vector<wstring> caps = RenderDoc::Inst().GetCaptures();
+			vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
 			if(caps.size() != captures.size())
 			{
@@ -114,15 +114,13 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 				packetType = ePacket_NewCapture;
 
-				uint64_t timestamp = FileIO::GetModifiedTimestamp(captures.back().c_str());
 				ser.Serialise("", idx);
-				ser.Serialise("", timestamp);
-
-				ser.Serialise("", captures.back());
+				ser.Serialise("", captures.back().timestamp);
+				ser.Serialise("", captures.back().path);
 
 				uint32_t len = 128*1024;
 				byte *thumb = new byte[len];
-				RENDERDOC_GetThumbnail(captures.back().c_str(), thumb, len);
+				RENDERDOC_GetThumbnail(captures.back().path.c_str(), thumb, len);
 
 				size_t l = len;
 				ser.Serialise("", len);
@@ -159,7 +157,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 				}
 				else if(type == ePacket_CopyCapture)
 				{
-					vector<wstring> caps = RenderDoc::Inst().GetCaptures();
+					vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
 					uint32_t id = 0;
 					recvser->Serialise("", id);
@@ -176,7 +174,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 						ser.Rewind();
 
-						if(!SendChunkedFile(client, ePacket_CopyCapture, caps[id].c_str(), ser, NULL))
+						if(!SendChunkedFile(client, ePacket_CopyCapture, caps[id].path.c_str(), ser, NULL))
 						{
 							SAFE_DELETE(client);
 							continue;
