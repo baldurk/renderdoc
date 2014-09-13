@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "replay/replay_renderer.h"
 #include "core/core.h"
 #include "os/os_specific.h"

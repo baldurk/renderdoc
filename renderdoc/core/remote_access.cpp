@@ -23,8 +23,8 @@
  ******************************************************************************/
 
 
+#include "api/replay/renderdoc_replay.h"
 #include "replay/type_helpers.h"
-#include "replay/renderdoc.h"
 #include "core/core.h"
 #include "os/os_specific.h"
 #include "serialise/serialiser.h"

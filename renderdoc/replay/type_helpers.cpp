@@ -24,6 +24,8 @@
 
 #include "type_helpers.h"
 
+#include "api/replay/renderdoc_replay.h"
+
 #include <vector>
 #include <string>
 #include "serialise/serialiser.h"
@@ -40,3 +42,90 @@ string ToStrHelper<false, rdctype::wstr>::Get(const rdctype::wstr &el)
 {
 	return narrow(wstring(el.elems, el.elems+el.count));
 }
+
+template<>
+string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
+{
+	char tostrBuf[256] = {0};
+
+	StringFormat::snprintf(tostrBuf, 255, "Resource ID %llu", el.id);
+
+	return tostrBuf;
+}
+
+namespace rdctype
+{
+
+wstr &wstr::operator =(const std::wstring &in)
+{
+	Delete();
+	count = (int32_t)in.size();
+	if(count == 0)
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t));
+		elems[0] = 0;
+	}
+	else
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
+		memcpy(elems, &in[0], sizeof(wchar_t)*in.size());
+		elems[count] = 0;
+	}
+	return *this;
+}
+
+str &str::operator =(const std::string &in)
+{
+	Delete();
+	count = (int32_t)in.size();
+	if(count == 0)
+	{
+		elems = (char*)allocate(sizeof(char));
+		elems[0] = 0;
+	}
+	else
+	{
+		elems = (char*)allocate(sizeof(char)*(count+1));
+		memcpy(elems, &in[0], sizeof(char)*in.size());
+		elems[count] = 0;
+	}
+	return *this;
+}
+
+wstr &wstr::operator =(const wchar_t *const in)
+{
+	Delete();
+	count = (int32_t)wcslen(in);
+	if(count == 0)
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t));
+		elems[0] = 0;
+	}
+	else
+	{
+		elems = (wchar_t*)allocate(sizeof(wchar_t)*(count+1));
+		memcpy(elems, &in[0], sizeof(wchar_t)*count);
+		elems[count] = 0;
+	}
+	return *this;
+}
+
+str &str::operator =(const char *const in)
+{
+	Delete();
+	count = (int32_t)strlen(in);
+	if(count == 0)
+	{
+		elems = (char*)allocate(sizeof(char));
+		elems[0] = 0;
+	}
+	else
+	{
+		elems = (char*)allocate(sizeof(char)*(count+1));
+		memcpy(elems, &in[0], sizeof(char)*count);
+		elems[count] = 0;
+	}
+	return *this;
+}
+
+}; // namespace rdctype

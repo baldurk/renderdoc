@@ -33,7 +33,7 @@
 #include <dxgi.h>
 #include <d3d11.h>
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 
 class WrappedID3D11Device;

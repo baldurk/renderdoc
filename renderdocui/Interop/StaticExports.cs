@@ -62,7 +62,7 @@ namespace renderdoc
         private static extern void RENDERDOC_LogText(string text);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RENDERDOC_GetLogFilename();
+        private static extern IntPtr RENDERDOC_GetLogFile();
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool RENDERDOC_GetThumbnail(string filename, byte[] outmem, ref UInt32 len);
@@ -165,7 +165,7 @@ namespace renderdoc
 
         public static string GetLogFilename()
         {
-            return Marshal.PtrToStringUni(RENDERDOC_GetLogFilename());
+            return Marshal.PtrToStringUni(RENDERDOC_GetLogFile());
         }
 
         public static byte[] GetThumbnail(string filename)

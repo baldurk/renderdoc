@@ -29,7 +29,7 @@
 
 using std::pair;
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "driver/d3d11/shaders/dxbc_debug.h"
 

@@ -27,6 +27,8 @@
 
 #include "core/core.h"
 
+#include "api/replay/renderdoc_replay.h"
+
 #include "os/os_specific.h"
 
 #include "serialise/serialiser.h"

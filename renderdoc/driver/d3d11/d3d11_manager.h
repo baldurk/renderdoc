@@ -33,7 +33,7 @@
 #include "driver/d3d11/d3d11_common.h"
 
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "serialise/serialiser.h"
 #include "common/wrapped_pool.h"

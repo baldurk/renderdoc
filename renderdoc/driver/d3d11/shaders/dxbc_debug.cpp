@@ -34,7 +34,7 @@
 #include "dxbc_debug.h"
 #include "dxbc_inspect.h"
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 using namespace DXBC;
 

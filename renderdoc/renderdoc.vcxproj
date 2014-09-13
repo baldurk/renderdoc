@@ -230,6 +230,16 @@
     <ClInclude Include="3rdparty\mhook\mhook-lib\mhook.h" />
     <ClInclude Include="3rdparty\stb\stb_image.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
+    <ClInclude Include="api\app\renderdoc_app.h" />
+    <ClInclude Include="api\replay\basic_types.h" />
+    <ClInclude Include="api\replay\capture_options.h" />
+    <ClInclude Include="api\replay\control_types.h" />
+    <ClInclude Include="api\replay\d3d11_pipestate.h" />
+    <ClInclude Include="api\replay\data_types.h" />
+    <ClInclude Include="api\replay\gl_pipestate.h" />
+    <ClInclude Include="api\replay\renderdoc_replay.h" />
+    <ClInclude Include="api\replay\replay_enums.h" />
+    <ClInclude Include="api\replay\shader_types.h" />
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\globalconfig.h" />
     <ClInclude Include="common\string_utils.h" />
@@ -281,17 +291,8 @@
     <ClInclude Include="os\os_specific.h" />
     <ClInclude Include="os\win32\win32_hook.h" />
     <ClInclude Include="os\win32_specific.h" />
-    <ClInclude Include="replay\basic_types.h" />
-    <ClInclude Include="replay\capture_options.h" />
-    <ClInclude Include="replay\control_types.h" />
-    <ClInclude Include="replay\d3d11_pipestate.h" />
-    <ClInclude Include="replay\data_types.h" />
-    <ClInclude Include="replay\gl_pipestate.h" />
-    <ClInclude Include="replay\renderdoc.h" />
     <ClInclude Include="replay\replay_driver.h" />
-    <ClInclude Include="replay\replay_enums.h" />
     <ClInclude Include="replay\replay_renderer.h" />
-    <ClInclude Include="replay\shader_types.h" />
     <ClInclude Include="replay\type_helpers.h" />
     <ClInclude Include="serialise\serialiser.h" />
   </ItemGroup>
@@ -369,7 +370,6 @@
     <ClCompile Include="os\win32\win32_shellext.cpp" />
     <ClCompile Include="os\win32\win32_stringio.cpp" />
     <ClCompile Include="os\win32\win32_threading.cpp" />
-    <ClCompile Include="replay\basic_types.cpp" />
     <ClCompile Include="replay\entry_points.cpp" />
     <ClCompile Include="replay\replay_output.cpp" />
     <ClCompile Include="replay\replay_renderer.cpp" />

@@ -26,7 +26,7 @@
 #pragma once
 
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>

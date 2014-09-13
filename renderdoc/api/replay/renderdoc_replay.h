@@ -26,7 +26,9 @@
 #pragma once
 
 #include <stdint.h>
-#include <math.h>
+
+typedef uint8_t byte;
+typedef uint32_t bool32;
 
 #include "basic_types.h"
 
@@ -55,7 +57,34 @@
 
 #endif
 
-#include "capture_options.h"
+// We give every resource a globally unique ID so that we can differentiate
+// between two textures allocated in the same memory (after the first is freed)
+//
+// it's a struct around a uint64_t to aid in template selection
+struct ResourceId
+{
+	uint64_t id;
+
+#ifdef __cplusplus
+	ResourceId() : id() {}
+	ResourceId(uint64_t val, bool) { id = val; }
+
+	bool operator ==(const ResourceId u) const
+	{
+		return id == u.id;
+	}
+
+	bool operator !=(const ResourceId u) const
+	{
+		return id != u.id;
+	}
+
+	bool operator <(const ResourceId u) const
+	{
+		return id < u.id;
+	}
+#endif
+};
 
 #include "replay_enums.h"
 
@@ -195,59 +224,6 @@ extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayR
 typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateReplayRenderer)(const wchar_t *logfile, float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
-// Injection/voluntary capture functions.
-//
-// InjectAndExecute takes an exe path, destination filename and capture options.
-// It will launch the exe and then call...
-//
-// InjectIntoProcess will inject RenderDoc and its dependent dlls into the target process
-// if it's able to, and pass in the given options. NOTE: RenderDoc automatically hooks
-// any app the dll is loaded into, except where explicitly disallowed or disabled.
-//
-// SetLogfile and SetCaptureOptions will set the destination filename of any capture
-// and the configuration options, respectively.
-//
-// Takes the filename of the log. Returns NULL in the case of any error.
-//////////////////////////////////////////////////////////////////////////
-
-#define RENDERDOC_API_VERSION 1
-
-extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPIVersion();
-typedef int (RENDERDOC_CC *pRENDERDOC_GetAPIVersion)();
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const wchar_t *logfile);
-typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
-typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
-
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-																	const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_ExecuteAndInject)(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-														 const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
-     
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_InjectIntoProcess)(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *wndHandle);
-typedef void (RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(void *wndHandle);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerCapture();
-typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle);
-typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *wndHandle);
-
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle);
-typedef bool (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
-
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or);
-typedef void (RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t And, uint32_t Or);
-
-//////////////////////////////////////////////////////////////////////////
 // Remote access and control
 //////////////////////////////////////////////////////////////////////////
 
@@ -275,9 +251,6 @@ typedef void (RENDERDOC_CC *pRENDERDOC_TriggerExceptionHandler)(void *exceptionP
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text);
 typedef void (RENDERDOC_CC *pRENDERDOC_LogText)(const wchar_t *text);
-
-extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFilename();
-typedef const wchar_t* (RENDERDOC_CC *pRENDERDOC_GetLogFilename)();
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len);
 typedef bool (RENDERDOC_CC *pRENDERDOC_GetThumbnail)(const wchar_t *filename, byte *buf, uint32_t &len);

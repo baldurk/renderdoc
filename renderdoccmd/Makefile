@@ -5,9 +5,9 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
-CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
+CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/api/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
-LDFLAGS=-L../renderdoc -lrenderdoc -lGL
+LDFLAGS=-L../renderdoc/ -lrenderdoc -lGL
 OBJDIR=.obj
 OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
@@ -24,7 +24,9 @@ $(OBJDIR)/%.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<
 	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
 
-OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(SHADERS) $(OBJECTS))
+OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
+
+-include $(OBJDIR_OBJECTS:.o=.d)
 
 bin/renderdoccmd: $(OBJDIR_OBJECTS) ../renderdoc/librenderdoc.so
 	mkdir -p bin/

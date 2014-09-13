@@ -28,7 +28,7 @@
 #include "serialise/serialiser.h"
 #include "core/core.h"
 #include "replay/replay_renderer.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half)
 {
@@ -97,7 +97,7 @@ void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text)
 }
 
 extern "C" RENDERDOC_API
-const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFilename()
+const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile()
 {
 	return RDCGETLOGFILE();
 }

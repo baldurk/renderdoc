@@ -1053,16 +1053,6 @@ string ToStrHelper<false, void *>::Get(void* const &el)
 }
 
 template<>
-string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
-{
-	char tostrBuf[256] = {0};
-
-	StringFormat::snprintf(tostrBuf, 255, "Resource ID %llu", el.id);
-
-	return tostrBuf;
-}
-
-template<>
 string ToStrHelper<false, uint64_t>::Get(const uint64_t &el)
 {
 	char tostrBuf[256] = {0};

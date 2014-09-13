@@ -64,9 +64,6 @@
     <Filter Include="3rdparty\lz4">
       <UniqueIdentifier>{911d2076-eaea-4783-b0c3-789e5b6eff1f}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Replay\external interface">
-      <UniqueIdentifier>{e2f5b1f2-ae41-4e3c-999e-5ade627a91d1}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Resources\hlsl">
       <UniqueIdentifier>{0ecdcd74-a30b-457e-8b22-92bd58405c56}</UniqueIdentifier>
     </Filter>
@@ -78,6 +75,15 @@
     </Filter>
     <Filter Include="3rdparty\stb">
       <UniqueIdentifier>{f22a6629-346c-400d-9706-7f999d539f6b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{7d6b0f22-1180-4767-b284-cc87f54ec012}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Replay">
+      <UniqueIdentifier>{4e047f61-a78b-4a09-abbb-6c839a4fe177}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\In-App">
+      <UniqueIdentifier>{188b97fd-b9d4-47a6-a51a-48bc00e6fc5c}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -234,29 +240,8 @@
     <ClInclude Include="driver\gl\gl_enum.h">
       <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
-    <ClInclude Include="replay\capture_options.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\replay_enums.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\basic_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
     <ClInclude Include="replay\type_helpers.h">
       <Filter>Replay</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\control_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\data_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\shader_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\d3d11_pipestate.h">
-      <Filter>Replay\external interface</Filter>
     </ClInclude>
     <ClInclude Include="replay\replay_driver.h">
       <Filter>Replay</Filter>
@@ -273,9 +258,6 @@
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="replay\renderdoc.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
     <ClInclude Include="common\string_utils.h">
       <Filter>Common</Filter>
     </ClInclude>
@@ -284,9 +266,6 @@
     </ClInclude>
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\gl_pipestate.h">
-      <Filter>Replay\external interface</Filter>
     </ClInclude>
     <ClInclude Include="driver\gl\gl_renderstate.h">
       <Filter>Drivers\OpenGL</Filter>
@@ -305,6 +284,36 @@
     </ClInclude>
     <ClInclude Include="data\version.h">
       <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\basic_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\capture_options.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\control_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\d3d11_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\data_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\gl_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\replay_enums.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\shader_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\app\renderdoc_app.h">
+      <Filter>API\In-App</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\renderdoc_replay.h">
+      <Filter>API\Replay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -456,9 +465,6 @@
       <Filter>3rdparty\lz4</Filter>
     </ClCompile>
     <ClCompile Include="replay\type_helpers.cpp">
-      <Filter>Replay</Filter>
-    </ClCompile>
-    <ClCompile Include="replay\basic_types.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
     <ClCompile Include="replay\entry_points.cpp">

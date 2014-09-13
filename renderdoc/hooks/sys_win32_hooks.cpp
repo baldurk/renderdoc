@@ -24,7 +24,7 @@
 
 
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "hooks.h"
 

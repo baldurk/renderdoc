@@ -39,8 +39,8 @@ using std::set;
 class Serialiser;
 class Chunk;
 
-#include "replay/capture_options.h"
-#include "replay/replay_enums.h"
+#include "api/app/renderdoc_app.h"
+#include "api/replay/replay_enums.h"
 #include "os/os_specific.h"
 #include "common/threading.h"
 
@@ -102,18 +102,6 @@ enum RDCDriver
 	RDC_Custom7,
 	RDC_Custom8,
 	RDC_Custom9,
-};
-
-enum InAppOverlay
-{
-	eOverlay_Enabled = 0x1,
-	eOverlay_FrameRate = 0x2,
-	eOverlay_FrameNumber = 0x4,
-	eOverlay_CaptureList = 0x8,
-
-	eOverlay_Default = (eOverlay_Enabled|eOverlay_FrameRate|eOverlay_FrameNumber|eOverlay_CaptureList),
-	eOverlay_All = ~0U,
-	eOverlay_None = 0,
 };
 
 namespace DXBC { class DXBCFile; }

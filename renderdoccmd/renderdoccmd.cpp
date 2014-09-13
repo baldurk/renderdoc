@@ -24,7 +24,8 @@
 
 #include <string>
 
-#include <replay/renderdoc.h>
+#include <replay/renderdoc_replay.h>
+#include <app/renderdoc_app.h>
 
 using std::string;
 using std::wstring;

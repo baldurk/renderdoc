@@ -12,7 +12,7 @@ OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
 replay/entry_points.o \
-replay/basic_types.o \
+replay/type_helpers.o \
 hooks/hooks.o \
 hooks/gl_linux_hooks.o \
 serialise/serialiser.o \
@@ -88,7 +88,12 @@ $(OBJDIR)/%.frago: %.frag
 	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
 	@mv $$(dirname $<)/$$(basename $@) $@
 
-librenderdoc.so: $(addprefix $(OBJDIR)/, $(SHADERS) $(OBJECTS))
+OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
+OBJDIR_SHADERS=$(addprefix $(OBJDIR)/, $(SHADERS))
+
+-include $(OBJDIR_OBJECTS:.o=.d)
+
+librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_SHADERS)
 	g++ -o librenderdoc.so $^ $(LDFLAGS)
 
 .PHONY: clean
