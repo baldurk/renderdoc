@@ -2074,6 +2074,17 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		desc.MiscFlags = 0;
 		desc.Usage = D3D11_USAGE_STAGING;
 
+		bool wasms = false;
+
+		if(desc.SampleDesc.Count > 1)
+		{
+			desc.ArraySize *= desc.SampleDesc.Count;
+			desc.SampleDesc.Count = 1;
+			desc.SampleDesc.Quality = 0;
+
+			wasms = true;
+		}
+
 		ID3D11Texture2D *d = NULL;
 		
 		mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
@@ -2094,7 +2105,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		
 		bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
 
-		m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+		if(wasms)
+			CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+		else
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
 	}
 	else if(WrappedID3D11Texture3D::m_TextureList.find(id) != WrappedID3D11Texture3D::m_TextureList.end())
 	{
