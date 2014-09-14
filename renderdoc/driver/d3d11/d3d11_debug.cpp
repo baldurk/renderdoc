@@ -2325,6 +2325,10 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 		m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
 		SAFE_RELEASE(dsState);
 	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
+	}
 
 	ID3D11DepthStencilView *dsvMS = NULL;
 	ID3D11RenderTargetView *rtvMS = NULL;
@@ -2570,6 +2574,11 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 	
 	m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 	m_pImmediateContext->PSSetShader(depth ? m_DebugRender.DepthCopyMSToArrayPS : m_DebugRender.CopyMSToArrayPS, NULL, 0);
+	
+	D3D11_VIEWPORT view = { 0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f };
+
+	m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+	m_pImmediateContext->RSSetViewports(1, &view);
 
 	m_pImmediateContext->IASetInputLayout(NULL);
 	float blendFactor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -2595,6 +2604,10 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 		m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
 		m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
 		SAFE_RELEASE(dsState);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
 	}
 
 	ID3D11RenderTargetView *rtvArray = NULL;
