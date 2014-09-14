@@ -164,10 +164,6 @@ namespace renderdoc
             {
                 return (float)comp / (float)UInt16.MaxValue;
             }
-            else if (compType == FormatComponentType.UNorm_SRGB)
-            {
-                return (float)comp / (float)UInt16.MaxValue;
-            }
             else if (compType == FormatComponentType.SNorm)
             {
                 Int16 cast = (Int16)comp;
@@ -198,10 +194,6 @@ namespace renderdoc
                 return comp;
             }
             else if (compType == FormatComponentType.UNorm)
-            {
-                return ((float)comp) / 255.0f;
-            }
-            else if (compType == FormatComponentType.UNorm_SRGB)
             {
                 return ((float)comp) / 255.0f;
             }

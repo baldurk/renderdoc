@@ -174,7 +174,7 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
 		ret = GetFloatTypedFormat(ret);
 	else if(fmt.compType == eCompType_Depth)
 		ret = GetDepthTypedFormat(ret);
-	else if(fmt.compType == eCompType_UNorm || fmt.compType == eCompType_UNorm_SRGB)
+	else if(fmt.compType == eCompType_UNorm)
 		ret = GetUnormTypedFormat(ret);
 	else if(fmt.compType == eCompType_SNorm)
 		ret = GetSnormTypedFormat(ret);
@@ -441,8 +441,6 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 			ret.compType = eCompType_Float;
 			break;
 	    case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
-			ret.compType = eCompType_UNorm_SRGB;
-			break;
 	    case DXGI_FORMAT_R8G8B8A8_UNORM:
 	    case DXGI_FORMAT_R16G16B16A16_UNORM:
 	    case DXGI_FORMAT_R16G16_UNORM:
@@ -534,6 +532,8 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_B5G5R5A1_UNORM:
 		case DXGI_FORMAT_B8G8R8A8_UNORM:
 		case DXGI_FORMAT_B8G8R8X8_UNORM:
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+		case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
 		case DXGI_FORMAT_R1_UNORM:
 		case DXGI_FORMAT_BC1_UNORM:
 		case DXGI_FORMAT_BC2_UNORM:
@@ -542,17 +542,11 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 		case DXGI_FORMAT_BC5_UNORM:
 		case DXGI_FORMAT_BC6H_UF16:
 		case DXGI_FORMAT_BC7_UNORM:
-			ret.compType = eCompType_UNorm;
-			break;
-
-		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
-		case DXGI_FORMAT_B8G8R8X8_UNORM_SRGB:
-			
 		case DXGI_FORMAT_BC1_UNORM_SRGB:
 		case DXGI_FORMAT_BC2_UNORM_SRGB:
 		case DXGI_FORMAT_BC3_UNORM_SRGB:
 		case DXGI_FORMAT_BC7_UNORM_SRGB:
-			ret.compType = eCompType_UNorm_SRGB;
+			ret.compType = eCompType_UNorm;
 			break;
 
 		case DXGI_FORMAT_UNKNOWN:

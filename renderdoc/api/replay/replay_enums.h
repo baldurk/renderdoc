@@ -39,7 +39,6 @@ enum FormatComponentType
 	eCompType_None = 0,
 	eCompType_Float,
 	eCompType_UNorm,
-	eCompType_UNorm_SRGB,
 	eCompType_SNorm,
 	eCompType_UInt,
 	eCompType_SInt,

@@ -236,9 +236,6 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 
 		gl.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
 		ret.srgbCorrected = (edata[0] == eGL_SRGB);
-
-		if(ret.compType == eCompType_UNorm && ret.srgbCorrected)
-			ret.compType = eCompType_UNorm_SRGB;
 	}
 	else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
 	{

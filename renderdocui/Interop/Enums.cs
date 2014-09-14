@@ -41,7 +41,6 @@ namespace renderdoc
         None = 0,
         Float,
         UNorm,
-        UNorm_SRGB,
         SNorm,
         UInt,
         SInt,

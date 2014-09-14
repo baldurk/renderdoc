@@ -4801,20 +4801,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					mod.postMod.col.value_f[c] = ConvertFromHalf(uint16_t(mod.postMod.col.value_u[c]));
 				}
 			}
-			else if(fmt.compType == eCompType_UNorm)
-			{
-				// only 32bit unorm format is depth, handled separately
-				float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
-
-				RDCASSERT(fmt.compByteWidth < 4);
-
-				for(uint32_t c=0; c < fmt.compCount; c++)
-				{
-					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
-					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
-				}
-			}
-			else if(fmt.compType == eCompType_UNorm_SRGB)
+			else if(fmt.compType == eCompType_UNorm && fmt.compByteWidth == 1 && fmt.srgbCorrected)
 			{
 				RDCASSERT(fmt.compByteWidth == 1);
 
@@ -4829,6 +4816,19 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 				{
 					mod.preMod.col.value_f[3] = float(mod.preMod.col.value_u[3]&0xff)/255.0f;
 					mod.postMod.col.value_f[3] = float(mod.postMod.col.value_u[3]&0xff)/255.0f;
+				}
+			}
+			else if(fmt.compType == eCompType_UNorm)
+			{
+				// only 32bit unorm format is depth, handled separately
+				float maxVal = fmt.compByteWidth == 2 ? 65535.0f : 255.0f;
+
+				RDCASSERT(fmt.compByteWidth < 4);
+
+				for(uint32_t c=0; c < fmt.compCount; c++)
+				{
+					mod.preMod.col.value_f[c]  = float(mod.preMod.col.value_u[c])/maxVal;
+					mod.postMod.col.value_f[c] = float(mod.postMod.col.value_u[c])/maxVal;
 				}
 			}
 			else if(fmt.compType == eCompType_SNorm && fmt.compByteWidth == 2)
