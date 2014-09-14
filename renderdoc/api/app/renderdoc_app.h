@@ -125,6 +125,48 @@ struct CaptureOptions
 #endif
 };
 
+enum KeyButton
+{
+	eKey_0 = 0x30, // '0'
+	// ...
+	eKey_9 = 0x39, // '9'
+	eKey_A = 0x41, // 'A'
+	// ...
+	eKey_Z = 0x5A, // 'Z'
+
+	eKey_Divide,
+	eKey_Multiply,
+	eKey_Subtract,
+	eKey_Plus,
+
+	eKey_F1,
+	eKey_F2,
+	eKey_F3,
+	eKey_F4,
+	eKey_F5,
+	eKey_F6,
+	eKey_F7,
+	eKey_F8,
+	eKey_F9,
+	eKey_F10,
+	eKey_F11,
+	eKey_F12,
+
+	eKey_Home,
+	eKey_End,
+	eKey_Insert,
+	eKey_Delete,
+	eKey_PageUp,
+	eKey_PageDn,
+
+	eKey_Backspace,
+	eKey_Tab,
+	eKey_PrtScrn,
+	eKey_Pause,
+
+	eKey_Max,
+};
+
 enum InAppOverlay
 {
 	eOverlay_Enabled = 0x1,
@@ -175,6 +217,12 @@ typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or);
 typedef void (RENDERDOC_CC *pRENDERDOC_MaskOverlayBits)(uint32_t And, uint32_t Or);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetFocusToggleKeys(KeyButton *keys, int num);
+typedef void (RENDERDOC_CC *pRENDERDOC_SetFocusToggleKeys)(KeyButton *keys, int num);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureKeys(KeyButton *keys, int num);
+typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureKeys)(KeyButton *keys, int num);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.

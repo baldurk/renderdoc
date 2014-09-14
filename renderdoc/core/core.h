@@ -232,6 +232,22 @@ class RenderDoc
 
 		void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
 
+		void SetFocusKeys(KeyButton *keys, int num)
+		{
+			m_FocusKeys.resize(num);
+			if(keys && num > 0)
+				memcpy(&m_FocusKeys[0], keys, num*sizeof(KeyButton));
+		}
+		void SetCaptureKeys(KeyButton *keys, int num)
+		{
+			m_CaptureKeys.resize(num);
+			if(keys && num > 0)
+				memcpy(&m_CaptureKeys[0], keys, num*sizeof(KeyButton));
+		}
+
+		const vector<KeyButton> &GetFocusKeys() { return m_FocusKeys; }
+		const vector<KeyButton> &GetCaptureKeys() { return m_CaptureKeys; }
+
 		bool ShouldFocusToggle() { bool ret = m_Focus; m_Focus = false; return ret; }
 		bool ShouldTriggerCapture(uint32_t frameNumber);
 	private:
@@ -244,6 +260,9 @@ class RenderDoc
 
 		bool m_Focus;
 		bool m_Cap;
+
+		vector<KeyButton> m_FocusKeys;
+		vector<KeyButton> m_CaptureKeys;
 
 		wstring m_Target;
 		wstring m_LogFile;

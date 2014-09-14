@@ -262,6 +262,18 @@ void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or)
 }
 
 extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetFocusToggleKeys(KeyButton *keys, int num)
+{
+	RenderDoc::Inst().SetFocusKeys(keys, num);
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetCaptureKeys(KeyButton *keys, int num)
+{
+	RenderDoc::Inst().SetCaptureKeys(keys, num);
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_QueueCapture(uint32_t frameNumber)
 {
 	RenderDoc::Inst().QueueCapture(frameNumber);

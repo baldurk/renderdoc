@@ -63,15 +63,44 @@ namespace Keyboard
 		KeySym ks = 0;
 		
 		if(CurrentXDisplay == NULL) return false;
+
+		if(key >= eKey_A && key <= eKey_Z) ks = (int)key;
+		if(key >= eKey_0 && key <= eKey_9) ks = (int)key;
 		
 		switch(key)
 		{
-			case eKey_F11:     ks = XK_F11; break;
-			case eKey_F12:     ks = XK_F12; break;
-			case eKey_PrtScrn: ks = XK_Print; break;
+			case eKey_Divide:    ks = XK_KP_Divide; break;
+			case eKey_Multiply:  ks = XK_KP_Multiply; break;
+			case eKey_Subtract:  ks = XK_KP_Subtract; break;
+			case eKey_Plus:      ks = XK_KP_Add; break;
+			case eKey_F1:        ks = XK_F1; break;
+			case eKey_F2:        ks = XK_F2; break;
+			case eKey_F3:        ks = XK_F3; break;
+			case eKey_F4:        ks = XK_F4; break;
+			case eKey_F5:        ks = XK_F5; break;
+			case eKey_F6:        ks = XK_F6; break;
+			case eKey_F7:        ks = XK_F7; break;
+			case eKey_F8:        ks = XK_F8; break;
+			case eKey_F9:        ks = XK_F9; break;
+			case eKey_F10:       ks = XK_F10; break;
+			case eKey_F11:       ks = XK_F11; break;
+			case eKey_F12:       ks = XK_F12; break;
+			case eKey_Home:      ks = XK_Home; break;
+			case eKey_End:       ks = XK_End; break;
+			case eKey_Insert:    ks = XK_Insert; break;
+			case eKey_Delete:    ks = XK_Delete; break;
+			case eKey_PageUp:    ks = XK_Prior; break;
+			case eKey_PageDn:    ks = XK_Next; break;
+			case eKey_Backspace: ks = XK_BackSpace; break;
+			case eKey_Tab:       ks = XK_Tab; break;
+			case eKey_PrtScrn:   ks = XK_Print; break;
+			case eKey_Pause:     ks = XK_Pause; break;
 			default:
-				return false;
+				break;
 		}
+
+		if(ks == 0)
+			return false;
 		
 		KeyCode kc = XKeysymToKeycode(CurrentXDisplay, ks);
 		

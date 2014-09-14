@@ -2907,15 +2907,35 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 			if(swap == m_SwapChain)
 			{
-				string overlayText = "F12/PrtScr to capture.";
+				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
+
+				string overlayText = "";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i > 0)
+						overlayText += ", ";
+
+					overlayText += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					overlayText += " to capture.";
 
 				if(overlay & eOverlay_FrameNumber)
-					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("Frame: %d.", m_FrameCounter);
+				}
 				if(overlay & eOverlay_FrameRate)
-					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("%.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
 																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+				}
 
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
+				if(!overlayText.empty())
+					GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
 
 				size_t i=0;
 
@@ -2945,7 +2965,24 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			}
 			else
 			{
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Inactive swapchain, F11 to cycle");
+				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
+
+				string str = "Inactive swapchain.";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i == 0)
+						str += " ";
+					else
+						str += ", ";
+
+					str += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					str += " to cycle between swapchains";
+
+				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, str.c_str());
 			}
 
 			GetDebugManager()->SetOutputDimensions(w, h);

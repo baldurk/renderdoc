@@ -188,24 +188,10 @@ namespace FileIO
 	int fclose(FILE *f);
 };
 
+enum KeyButton;
+
 namespace Keyboard
 {
-	enum KeyButton
-	{
-		eKey_0 = 0x30, // '0'
-		// ...
-		eKey_1 = 0x39, // '9'
-		eKey_A = 0x41, // 'A'
-		// ...
-		eKey_Z = 0x5A, // 'Z'
-
-		eKey_F11,
-		eKey_F12,
-		eKey_PrtScrn,
-
-		eKey_Max,
-	};
-
 	void Init();
 	void AddInputWindow(void *wnd);
 	void RemoveInputWindow(void *wnd);
