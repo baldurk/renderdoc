@@ -1233,9 +1233,9 @@ vector<byte> D3D11Replay::GetBufferData(ResourceId buff, uint32_t offset, uint32
 	return m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
 {
-	return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, dataSize);
+	return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1251,11 +1251,6 @@ void D3D11Replay::RemoveReplacement(ResourceId id)
 void D3D11Replay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 {
 	return m_pDevice->GetDebugManager()->TimeDrawcalls(arr);
-}
-
-bool D3D11Replay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
-{
-	return m_pDevice->GetDebugManager()->SaveTexture(tex, saveMip, path);
 }
 
 void D3D11Replay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)

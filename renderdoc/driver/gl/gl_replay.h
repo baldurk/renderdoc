@@ -88,14 +88,12 @@ class GLReplay : public IReplayDriver
 		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 		
 		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len);
-		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize);
+		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
 
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
-
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path);
 
 		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
 		

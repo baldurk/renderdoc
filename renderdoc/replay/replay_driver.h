@@ -82,7 +82,7 @@ class IRemoteDriver
 		virtual PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage) = 0;
 		
 		virtual vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len) = 0;
-		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize) = 0;
+		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize) = 0;
 		
 		virtual void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;
 		virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
@@ -127,8 +127,6 @@ class IReplayDriver : public IRemoteDriver
 
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
-
-		virtual bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path) = 0;
 
 		virtual void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;

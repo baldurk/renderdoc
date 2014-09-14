@@ -2702,13 +2702,46 @@ namespace renderdocui.Windows
 
         private void saveTex_Click(object sender, EventArgs e)
         {
-            if (saveTextureDialog.ShowDialog() == DialogResult.OK)
+            //if (saveTextureDialog.ShowDialog() == DialogResult.OK)
             {
+                TextureSave sd = new TextureSave();
+
+                sd.destType = FileType.DDS;
+                saveTextureDialog.FileName = "T:/tmp/a.dds";
+
+                sd.id = m_TexDisplay.texid;
+
+                sd.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
+                if (sd.destType == FileType.DDS)
+                    sd.slice.sliceIndex = -1;
+
+                sd.mip = (int)m_TexDisplay.mip;
+                if (sd.destType == FileType.DDS)
+                    sd.mip = -1;
+
+                if (sd.destType == FileType.DDS)
+                {
+                    sd.sample.mapToArray = true;
+                }
+                else
+                {
+                    sd.sample.mapToArray = false;
+                    sd.sample.sampleIndex = m_TexDisplay.sampleIdx;
+                }
+
+                sd.comp.blackPoint = m_TexDisplay.rangemin;
+                sd.comp.whitePoint = m_TexDisplay.rangemax;
+
+                sd.alphaCol = m_TexDisplay.lightBackgroundColour;
+                sd.alphaColSecondary = m_TexDisplay.darkBackgroundColour;
+
+                sd.alpha = m_TexDisplay.Alpha ? AlphaMapping.BlendToCheckerboard : AlphaMapping.Discard;
+
                 bool ret = false;
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
-                    ret = r.SaveTexture(m_TexDisplay.texid, m_TexDisplay.mip, saveTextureDialog.FileName);
+                    ret = r.SaveTexture(sd, saveTextureDialog.FileName);
                 });
 
                 if(!ret)

@@ -88,15 +88,13 @@ class D3D11Replay : public IReplayDriver
 		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 		
 		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len);
-		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize);
+		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
 
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
-
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path);
 
 		ResourceId CreateProxyTexture(FetchTexture templateTex);
 		void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize);

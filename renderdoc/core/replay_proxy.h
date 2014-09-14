@@ -191,17 +191,6 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 
 			return false;
 		}
-		
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
-		{
-			if(m_Proxy)
-			{
-				EnsureCached(tex, 0, saveMip);
-				return m_Proxy->SaveTexture(m_ProxyTextureIds[tex], saveMip, path);
-			}
-
-			return false;
-		}
 
 		bool RenderTexture(TextureDisplay cfg)
 		{
@@ -293,7 +282,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
 		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len);
-		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize);
+		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
 		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);

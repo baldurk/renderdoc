@@ -174,7 +174,7 @@ struct ReplayRenderer
 		
 		bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
 		
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, const wchar_t *path);
+		bool SaveTexture(const TextureSave &saveData, const wchar_t *path);
 
 		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
 	

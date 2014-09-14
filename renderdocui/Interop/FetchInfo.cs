@@ -400,6 +400,55 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public class TextureSave
+    {
+        public ResourceId id = ResourceId.Null;
+
+        public FileType destType = FileType.DDS;
+
+        public Int32 mip = -1;
+
+        public struct ComponentMapping
+        {
+            public float blackPoint;
+            public float whitePoint;
+        };
+
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ComponentMapping comp = new ComponentMapping();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SampleMapping
+        {
+            public bool mapToArray;
+
+            public UInt32 sampleIndex;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public SampleMapping sample = new SampleMapping();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SliceMapping
+        {
+            public Int32 sliceIndex;
+
+            public bool slicesAsGrid;
+
+            public Int32 sliceGridWidth;
+
+            public bool cubeCruciform;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public SliceMapping slice = new SliceMapping();
+
+        public AlphaMapping alpha = AlphaMapping.Discard;
+        public FloatVector alphaCol = new FloatVector();
+        public FloatVector alphaColSecondary = new FloatVector();
+
+        public int jpegQuality = 90;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class APIProperties
     {
         public APIPipelineStateType pipelineType;

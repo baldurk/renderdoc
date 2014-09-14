@@ -128,6 +128,23 @@ namespace renderdoc
         QuadOverdrawDraw,
     };
 
+    public enum FileType
+    {
+        DDS,
+        PNG,
+        JPG,
+        BMP,
+        TGA,
+        HDR,
+    };
+
+    public enum AlphaMapping
+    {
+        Discard,
+        BlendToColour,
+        BlendToCheckerboard,
+    };
+
     public enum SpecialFormat
     {
         Unknown = 0,

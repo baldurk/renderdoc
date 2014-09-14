@@ -1715,7 +1715,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 	m_pImmediateContext->Unmap(m_DebugRender.PickPixelStageTex, 0);
 }
 
-byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm,
+                                        float blackPoint, float whitePoint, size_t &dataSize)
 {
 	ID3D11Resource *dummyTex = NULL;
 
@@ -1742,6 +1743,12 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
 
 		if(mip >= mips || arrayIdx >= desc.ArraySize) return NULL;
+		
+		if(forceRGBA8unorm)
+		{
+			desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.ArraySize = 1;
+		}
 
 		subresource = arrayIdx*mips + mip;
 
@@ -1757,7 +1764,85 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		
 		bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
 
-		m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture1D, d), wrapTex->GetReal());
+		if(forceRGBA8unorm)
+		{
+			subresource = mip;
+
+			desc.CPUAccessFlags = 0;
+			desc.Usage = D3D11_USAGE_DEFAULT;
+			desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+			
+			ID3D11Texture1D *rtTex = NULL;
+
+			hr = m_WrappedDevice->CreateTexture1D(&desc, NULL, &rtTex);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+				SAFE_RELEASE(d);
+				return NULL;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE1D;
+			rtvDesc.Format = desc.Format;
+			rtvDesc.Texture1D.MipSlice = mip;
+
+			ID3D11RenderTargetView *wrappedrtv = NULL;
+			hr = m_WrappedDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+				SAFE_RELEASE(d);
+				SAFE_RELEASE(rtTex);
+				return NULL;
+			}
+
+			ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+
+			m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+			float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+			m_pImmediateContext->ClearRenderTargetView(rtv, color);
+
+			D3D11_VIEWPORT viewport = { 0, 0, (float)(desc.Width>>mip), 1.0f, 0.0f, 1.0f };
+
+			int oldW = GetWidth(), oldH = GetHeight();
+			SetOutputDimensions(desc.Width, 1);
+			m_pImmediateContext->RSSetViewports(1, &viewport);
+
+			{
+				TextureDisplay texDisplay;
+
+				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+				texDisplay.HDRMul = -1.0f;
+				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.FlipY = false;
+				texDisplay.mip = mip;
+				texDisplay.sampleIdx = 0;
+				texDisplay.CustomShader = ResourceId();
+				texDisplay.sliceFace = arrayIdx;
+				texDisplay.rangemin = blackPoint;
+				texDisplay.rangemax = whitePoint;
+				texDisplay.scale = 1.0f;
+				texDisplay.texid = id;
+				texDisplay.rawoutput = true;
+				texDisplay.offx = 0;
+				texDisplay.offy = 0;
+
+				RenderTexture(texDisplay);
+			}
+			
+			SetOutputDimensions(oldW, oldH);
+			
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture1D, d), UNWRAP(WrappedID3D11Texture1D, rtTex));
+			SAFE_RELEASE(rtTex);
+
+			SAFE_RELEASE(wrappedrtv);
+		}
+		else
+		{
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture1D, d), wrapTex->GetReal());
+		}
 	}
 	else if(WrappedID3D11Texture2D::m_TextureList.find(id) != WrappedID3D11Texture2D::m_TextureList.end())
 	{
@@ -1787,6 +1872,12 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
 
 		if(mip >= mips || arrayIdx >= desc.ArraySize) return NULL;
+		
+		if(forceRGBA8unorm)
+		{
+			desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+			desc.ArraySize = 1;
+		}
 
 		subresource = arrayIdx*mips + mip;
 
@@ -1801,11 +1892,111 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		}
 		
 		bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+		
+		if(forceRGBA8unorm)
+		{
+			subresource = mip;
 
-		if(wasms)
+			desc.CPUAccessFlags = 0;
+			desc.Usage = D3D11_USAGE_DEFAULT;
+			desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+			
+			ID3D11Texture2D *rtTex = NULL;
+
+			hr = m_WrappedDevice->CreateTexture2D(&desc, NULL, &rtTex);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+				SAFE_RELEASE(d);
+				return NULL;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+			rtvDesc.Format = desc.Format;
+			rtvDesc.Texture2D.MipSlice = mip;
+
+			ID3D11RenderTargetView *wrappedrtv = NULL;
+			hr = m_WrappedDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+				SAFE_RELEASE(d);
+				SAFE_RELEASE(rtTex);
+				return NULL;
+			}
+
+			ID3D11RenderTargetView *rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+
+			m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+			float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+			m_pImmediateContext->ClearRenderTargetView(rtv, color);
+			
+			D3D11_VIEWPORT viewport = { 0, 0, (float)(desc.Width>>mip), (float)(desc.Height>>mip), 0.0f, 1.0f };
+
+			int oldW = GetWidth(), oldH = GetHeight();
+			SetOutputDimensions(desc.Width, desc.Height);
+			m_pImmediateContext->RSSetViewports(1, &viewport);
+
+			{
+				TextureDisplay texDisplay;
+
+				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+				texDisplay.HDRMul = -1.0f;
+				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.FlipY = false;
+				texDisplay.mip = mip;
+				texDisplay.sampleIdx = 0;
+				texDisplay.CustomShader = ResourceId();
+				texDisplay.sliceFace = arrayIdx;
+				texDisplay.rangemin = blackPoint;
+				texDisplay.rangemax = whitePoint;
+				texDisplay.scale = 1.0f;
+				texDisplay.texid = id;
+				texDisplay.rawoutput = true;
+				texDisplay.offx = 0;
+				texDisplay.offy = 0;
+
+				RenderTexture(texDisplay);
+			}
+			
+			SetOutputDimensions(oldW, oldH);
+			
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), UNWRAP(WrappedID3D11Texture2D, rtTex));
+			SAFE_RELEASE(rtTex);
+
+			SAFE_RELEASE(wrappedrtv);
+		}
+		else if(wasms && resolve)
+		{
+			desc.Usage = D3D11_USAGE_DEFAULT;
+			desc.CPUAccessFlags = 0;
+
+			ID3D11Texture2D *resolveTex = NULL;
+
+			hr = m_WrappedDevice->CreateTexture2D(&desc, NULL, &resolveTex);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target texture to resolve texture. %08x", hr);
+				SAFE_RELEASE(d);
+				return NULL;
+			}
+
+			m_pImmediateContext->ResolveSubresource(UNWRAP(WrappedID3D11Texture2D, resolveTex), arrayIdx, wrapTex->GetReal(), arrayIdx, desc.Format);
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), UNWRAP(WrappedID3D11Texture2D, resolveTex));
+
+			SAFE_RELEASE(resolveTex);
+		}
+		else if(wasms)
+		{
 			CopyTex2DMSToArray(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+		}
 		else
+		{
 			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D, d), wrapTex->GetReal());
+		}
 	}
 	else if(WrappedID3D11Texture3D::m_TextureList.find(id) != WrappedID3D11Texture3D::m_TextureList.end())
 	{
@@ -1824,6 +2015,9 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
 		if(mip >= mips) return NULL;
+		
+		if(forceRGBA8unorm)
+			desc.Format = IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
 
 		subresource = mip;
 
@@ -1838,8 +2032,92 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 		}
 		
 		bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip);
+		
+		if(forceRGBA8unorm)
+		{
+			subresource = mip;
 
-		m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d), wrapTex->GetReal());
+			desc.CPUAccessFlags = 0;
+			desc.Usage = D3D11_USAGE_DEFAULT;
+			desc.BindFlags = D3D11_BIND_RENDER_TARGET;
+			
+			ID3D11Texture3D *rtTex = NULL;
+
+			hr = m_WrappedDevice->CreateTexture3D(&desc, NULL, &rtTex);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Couldn't create target texture to downcast texture. %08x", hr);
+				SAFE_RELEASE(d);
+				return NULL;
+			}
+
+			D3D11_RENDER_TARGET_VIEW_DESC rtvDesc;
+			rtvDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE3D;
+			rtvDesc.Format = desc.Format;
+			rtvDesc.Texture3D.MipSlice = mip;
+			rtvDesc.Texture3D.FirstWSlice = 0;
+			rtvDesc.Texture3D.WSize = 1;
+			ID3D11RenderTargetView *wrappedrtv = NULL;
+			ID3D11RenderTargetView *rtv = NULL;
+
+			D3D11_VIEWPORT viewport = { 0, 0, (float)(desc.Width>>mip), (float)(desc.Height>>mip), 0.0f, 1.0f };
+
+			int oldW = GetWidth(), oldH = GetHeight();
+
+			for(UINT i=0; i < desc.Depth; i++)
+			{
+				rtvDesc.Texture3D.FirstWSlice = i;
+				hr = m_WrappedDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
+				if(FAILED(hr))
+				{
+					RDCERR("Couldn't create target rtv to downcast texture. %08x", hr);
+					SAFE_RELEASE(d);
+					SAFE_RELEASE(rtTex);
+					return NULL;
+				}
+
+				rtv = UNWRAP(WrappedID3D11RenderTargetView, wrappedrtv);
+
+				m_pImmediateContext->OMSetRenderTargets(1, &rtv, NULL);
+				float color[4] = {0.0f, 0.5f, 0.0f, 0.0f};
+				m_pImmediateContext->ClearRenderTargetView(rtv, color);
+				
+				SetOutputDimensions(desc.Width, desc.Height);
+				m_pImmediateContext->RSSetViewports(1, &viewport);
+
+				TextureDisplay texDisplay;
+
+				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+				texDisplay.HDRMul = -1.0f;
+				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.FlipY = false;
+				texDisplay.mip = mip;
+				texDisplay.sampleIdx = 0;
+				texDisplay.CustomShader = ResourceId();
+				texDisplay.sliceFace = i;
+				texDisplay.rangemin = blackPoint;
+				texDisplay.rangemax = whitePoint;
+				texDisplay.scale = 1.0f;
+				texDisplay.texid = id;
+				texDisplay.rawoutput = true;
+				texDisplay.offx = 0;
+				texDisplay.offy = 0;
+
+				RenderTexture(texDisplay);
+
+				SAFE_RELEASE(wrappedrtv);
+			}
+			
+			SetOutputDimensions(oldW, oldH);
+			
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d), UNWRAP(WrappedID3D11Texture3D, rtTex));
+			SAFE_RELEASE(rtTex);
+		}
+		else
+		{
+			m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture3D, d), wrapTex->GetReal());
+		}
 	}
 
 	MapIntercept intercept;

@@ -226,7 +226,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt32 offs, IntPtr outvars);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SaveTexture(IntPtr real, ResourceId texID, UInt32 mip, string path);
+        private static extern bool ReplayRenderer_SaveTexture(IntPtr real, TextureSave saveData, string path);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, MeshDataStage stage, IntPtr outdata);
@@ -586,8 +586,8 @@ namespace renderdoc
             return ret;
         }
 
-        public bool SaveTexture(ResourceId texID, UInt32 mip, string path)
-        { return ReplayRenderer_SaveTexture(m_Real, texID, mip, path); }
+        public bool SaveTexture(TextureSave saveData, string path)
+        { return ReplayRenderer_SaveTexture(m_Real, saveData, path); }
 
         public PostVSMeshData GetPostVSData(MeshDataStage stage)
         {

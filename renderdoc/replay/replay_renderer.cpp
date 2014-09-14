@@ -29,6 +29,7 @@
 #include <time.h>
 
 #include "common/string_utils.h"
+#include "maths/formatpacking.h"
 #include "os/os_specific.h"
 
 #include "serialise/serialiser.h"
@@ -38,6 +39,97 @@
 #include "3rdparty/stb/stb_image.h"
 #include "3rdparty/stb/stb_image_write.h"
 #include "common/dds_readwrite.h"
+
+static inline float ConvertComponent(ResourceFormat fmt, byte *data)
+{
+	if(fmt.compByteWidth == 4)
+	{
+		uint32_t *u32 = (uint32_t *)data;
+		int32_t *i32 = (int32_t *)data;
+
+		if(fmt.compType == eCompType_Float)
+		{
+			return *(float *)u32;
+		}
+		else if(fmt.compType == eCompType_UInt)
+		{
+			return float(*u32);
+		}
+		else if(fmt.compType == eCompType_SInt)
+		{
+			return float(*i32);
+		}
+	}
+	else if(fmt.compByteWidth == 2)
+	{
+		uint16_t *u16 = (uint16_t *)data;
+		int16_t *i16 = (int16_t *)data;
+
+		if(fmt.compType == eCompType_Float)
+		{
+			return ConvertFromHalf(*u16);
+		}
+		else if(fmt.compType == eCompType_UInt)
+		{
+			return float(*u16);
+		}
+		else if(fmt.compType == eCompType_SInt)
+		{
+			return float(*i16);
+		}
+		else if(fmt.compType == eCompType_UNorm)
+		{
+			return float(*u16)/65535.0f;
+		}
+		else if(fmt.compType == eCompType_SNorm)
+		{
+			float f = -1.0f;
+
+			if(*i16 == -32768)
+				f = -1.0f;
+			else
+				f = ((float)*i16) / 32767.0f;
+
+			return f;
+		}
+	}
+	else if(fmt.compByteWidth == 1)
+	{
+		uint8_t *u8 = (uint8_t *)data;
+		int8_t *i8 = (int8_t *)data;
+		
+		if(fmt.compType == eCompType_UInt)
+		{
+			return float(*u8);
+		}
+		else if(fmt.compType == eCompType_SInt)
+		{
+			return float(*i8);
+		}
+		else if(fmt.compType == eCompType_UNorm)
+		{
+			if(fmt.srgbCorrected)
+				return SRGB8_lookuptable[*u8];
+			else
+				return float(*u8)/255.0f;
+		}
+		else if(fmt.compType == eCompType_SNorm)
+		{
+			float f = -1.0f;
+
+			if(*i8 == -128)
+				f = -1.0f;
+			else
+				f = ((float)*i8) / 127.0f;
+
+			return f;
+		}
+	}
+
+	RDCERR("Unexpected format to convert from");
+
+	return 0.0f;
+}
 
 ReplayRenderer::ReplayRenderer()
 {
@@ -305,9 +397,622 @@ bool ReplayRenderer::GetBufferData(ResourceId buff, uint32_t offset, uint32_t le
 	return true;
 }
 
-bool ReplayRenderer::SaveTexture(ResourceId tex, uint32_t saveMip, const wchar_t *path)
+bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *path)
 {
-	return m_pDevice->SaveTexture(m_pDevice->GetLiveID(tex), saveMip, path);
+	TextureSave sd = saveData; // mutable copy
+	ResourceId liveid = m_pDevice->GetLiveID(sd.id);
+	FetchTexture td = m_pDevice->GetTexture(liveid);
+
+	bool success = false;
+	
+	// clamp sample/mip/slice indices
+	if(td.msSamp == 1)
+	{
+		sd.sample.sampleIndex = 0;
+		sd.sample.mapToArray = false;
+	}
+	else
+	{
+		if(sd.sample.sampleIndex != ~0U)
+			sd.sample.sampleIndex = RDCCLAMP(sd.sample.sampleIndex, 0U, td.msSamp);
+	}
+
+	// don't support cube cruciform for non cubemaps, or
+	// cubemap arrays
+	if(!td.cubemap || td.arraysize != 6 || td.msSamp != 1)
+		sd.slice.cubeCruciform = false;
+
+	if(sd.mip != -1)
+		sd.mip = RDCCLAMP(sd.mip, 0, (int32_t)td.mips);
+	if(sd.slice.sliceIndex != -1)
+		sd.slice.sliceIndex = RDCCLAMP(sd.slice.sliceIndex, 0, int32_t(td.arraysize*td.depth));
+
+	if(td.arraysize*td.depth*td.msSamp == 1)
+	{
+		sd.slice.sliceIndex = 0;
+		sd.slice.slicesAsGrid = false;
+	}
+
+	sd.slice.sliceGridWidth = RDCMAX(sd.slice.sliceGridWidth, 1);
+
+	// store sample count so we know how many 'slices' is one real slice
+	// multisampled textures cannot have mips, subresource layout is same as would be for mips:
+	// [slice0 sample0], [slice0 sample1], [slice1 sample0], [slice1 sample1]
+	uint32_t sampleCount = td.msSamp;
+	bool multisampled = td.msSamp > 1;
+	
+	bool resolveSamples = (sd.sample.sampleIndex == ~0U);
+
+	if(resolveSamples)
+	{
+		td.msSamp = 1;
+		sd.sample.mapToArray = false;
+		sd.sample.sampleIndex = 0;
+	}
+
+	// treat any multisampled texture as if it were an array
+	// of <sample count> dimension (on top of potential existing array
+	// dimension). GetTextureData() uses the same convention.
+	if(td.msSamp > 1)
+	{
+		td.arraysize *= td.msSamp;
+		td.msSamp = 1;
+	}
+	
+	if(sd.destType != eFileType_DDS && sd.sample.mapToArray && !sd.slice.slicesAsGrid && sd.slice.sliceIndex == -1)
+	{
+		sd.sample.mapToArray = false;
+		sd.sample.sampleIndex = 0;
+	}
+
+	// only DDS supports writing multiple mips, fall back to mip 0 if 'all mips' was specified
+	if(sd.destType != eFileType_DDS && sd.mip == -1)
+		sd.mip = 0;
+
+	// only DDS supports writing multiple slices, fall back to slice 0 if 'all slices' was specified
+	if(sd.destType != eFileType_DDS && sd.slice.sliceIndex == -1 && !sd.slice.slicesAsGrid && !sd.slice.cubeCruciform)
+		sd.slice.sliceIndex = 0;
+
+	// fetch source data subresources (typically only one, possibly more
+	// if we're writing to DDS (so writing multiple mips/slices) or resolving
+	// down a multisampled texture for writing as a single 'image' elsewhere)
+	uint32_t sliceOffset = 0;
+	uint32_t sliceStride = 1;
+	uint32_t numSlices = td.arraysize*td.depth;
+
+	uint32_t mipOffset = 0;
+	uint32_t numMips = td.mips;
+
+	bool singleSlice = (sd.slice.sliceIndex != -1);
+
+	// set which slices/mips we need
+	if(multisampled)
+	{
+		bool singleSample = !sd.sample.mapToArray;
+		
+		// multisampled images have no mips
+		mipOffset = 0;
+		numMips = 1;
+
+		if(singleSlice)
+		{
+			if(singleSample)
+			{
+				// we want a specific sample in a specific real slice
+				sliceOffset = sd.slice.sliceIndex * sampleCount + sd.sample.sampleIndex;
+				numSlices = 1;
+			}
+			else
+			{
+				// we want all the samples (now mapped to slices) in a specific real slice
+				sliceOffset = sd.slice.sliceIndex;
+				numSlices = sampleCount;
+			}
+		}
+		else
+		{
+			if(singleSample)
+			{
+				// we want one sample in every slice, so we have to set the stride to sampleCount
+				// to skip every other sample (mapped to slices), starting from the sample we want
+				// in the first real slice
+				sliceOffset = sd.sample.sampleIndex;
+				sliceStride = sampleCount;
+				numSlices = td.arraysize / sampleCount;
+			}
+			else
+			{
+				// we want all slices, all samples
+				sliceOffset = 0;
+				numSlices = td.arraysize;
+			}
+		}
+	}
+	else
+	{
+		if(singleSlice)
+		{
+			numSlices = 1;
+			sliceOffset = sd.slice.sliceIndex;
+		}
+		// otherwise take all slices, as by default
+
+		if(sd.mip != -1)
+		{
+			mipOffset = sd.mip;
+			numMips = 1;
+		}
+		// otherwise take all mips, as by default
+	}
+	
+	vector<byte *> subdata;
+	
+	bool downcast = false;
+
+	// don't support slice mappings for DDS - it supports slices natively
+	if(sd.destType == eFileType_DDS)
+	{
+		sd.slice.cubeCruciform = false;
+		sd.slice.slicesAsGrid = false;
+	}
+
+	// force downcast to be able to do grid mappings
+	if(sd.slice.cubeCruciform || sd.slice.slicesAsGrid)
+		downcast = true;
+
+	// for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
+	// for HDR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
+	if((sd.destType != eFileType_DDS && sd.destType != eFileType_HDR && 
+		    (td.format.compByteWidth != 1 || td.format.compType != eCompType_UNorm)
+		 ) ||
+		 downcast ||
+		 (sd.destType != eFileType_DDS && td.format.special &&
+			   td.format.specialFormat != eSpecial_R10G10B10A2 &&
+				 td.format.specialFormat != eSpecial_R11G11B10)
+		)
+	{
+		downcast = true;
+		td.format.compByteWidth = 1;
+		td.format.compCount = 4;
+		td.format.compType = eCompType_UNorm;
+		td.format.special = false;
+		td.format.specialFormat = eSpecial_Unknown;
+	}
+
+	uint32_t rowPitch = 0;
+	uint32_t slicePitch = 0;
+
+	bool blockformat = false;
+	int blockSize = 0;
+	uint32_t bytesPerPixel = 1;
+	
+	td.width = RDCMAX(1U, td.width >> mipOffset);
+	td.height = RDCMAX(1U, td.height >> mipOffset);
+	td.depth = RDCMAX(1U, td.depth >> mipOffset);
+
+	if(td.format.specialFormat == eSpecial_BC1 ||
+		 td.format.specialFormat == eSpecial_BC2 ||
+		 td.format.specialFormat == eSpecial_BC3 ||
+		 td.format.specialFormat == eSpecial_BC4 ||
+		 td.format.specialFormat == eSpecial_BC5 ||
+		 td.format.specialFormat == eSpecial_BC6 ||
+		 td.format.specialFormat == eSpecial_BC7)
+	{
+		blockSize = (td.format.specialFormat == eSpecial_BC1 || td.format.specialFormat == eSpecial_BC4) ? 8 : 16;
+		rowPitch = RDCMAX(1U, ((td.width+3)/4)) * blockSize;
+		slicePitch = rowPitch * RDCMAX(1U, td.height/4);
+		blockformat = true;
+	}
+	else
+	{
+		switch(td.format.specialFormat)
+		{
+			case eSpecial_R10G10B10A2:
+			case eSpecial_R9G9B9E5:
+			case eSpecial_R11G11B10:
+			case eSpecial_D24S8:
+			case eSpecial_B8G8R8A8:
+				bytesPerPixel = 4;
+				break;
+			case eSpecial_B5G6R5:
+			case eSpecial_B5G5R5A1:
+			case eSpecial_B4G4R4A4:
+				bytesPerPixel = 2;
+				break;
+			case eSpecial_D32S8:
+				bytesPerPixel = 5;
+				break;
+			case eSpecial_YUV:
+				RDCERR("Unsupported file save format");
+				return false;
+			default:
+				bytesPerPixel = td.format.compCount*td.format.compByteWidth;
+		}
+		
+		rowPitch = td.width * bytesPerPixel;
+		slicePitch = rowPitch * td.height;
+	}
+
+	// loop over fetching subresources
+	for(uint32_t s=0; s < numSlices; s++)
+	{
+		uint32_t slice = s*sliceStride + sliceOffset;
+
+		for(uint32_t m=0; m < numMips; m++)
+		{
+			uint32_t mip = m + mipOffset;
+
+			size_t datasize = 0;
+			byte *bytes = m_pDevice->GetTextureData(liveid, slice, mip, resolveSamples, downcast, sd.comp.blackPoint, sd.comp.whitePoint, datasize);
+
+			if(bytes == NULL)
+			{
+				RDCERR("Couldn't get bytes for mip %u, slice %u", mip, slice);
+
+				for(size_t i=0; i < subdata.size(); i++)
+					delete[] subdata[i];
+
+				return false;
+			}
+
+			if(td.depth == 1)
+			{
+				subdata.push_back(bytes);
+				continue;
+			}
+
+			uint32_t mipSlicePitch = slicePitch;
+			
+			uint32_t w = RDCMAX(1U, td.width>>m);
+			uint32_t h = RDCMAX(1U, td.height>>m);
+
+			if(blockformat)
+			{
+				mipSlicePitch = RDCMAX(1U, ((w+3)/4)) * blockSize * RDCMAX(1U, h/4);
+			}
+			else
+			{
+				mipSlicePitch = w * bytesPerPixel * h;
+			}
+
+			// we don't support slice ranges, only all-or-nothing
+			// we're also not dealing with multisampled slices if
+			// depth > 1. So if we only want one slice out of a 3D texture
+			// then make sure we get it
+			if(numSlices == 1)
+			{
+				byte *depthslice = new byte[mipSlicePitch];
+				byte *b = bytes + mipSlicePitch*sliceOffset;
+				memcpy(depthslice, b, slicePitch);
+				subdata.push_back(depthslice);
+
+				delete[] bytes;
+				continue;
+			}
+
+			s += (td.depth-1);
+
+			byte *b = bytes;
+
+			// add each depth slice as a separate subdata
+			for(uint32_t d=0; d < td.depth; d++)
+			{
+				byte *depthslice = new byte[mipSlicePitch];
+
+				memcpy(depthslice, b, mipSlicePitch);
+
+				subdata.push_back(depthslice);
+
+				b += mipSlicePitch;
+			}
+
+			delete[] bytes;
+		}
+	}
+	
+	// should have been handled above, but verify incoming data is RGBA8
+	if(sd.slice.slicesAsGrid && td.format.compByteWidth == 1 && td.format.compCount == 4)
+	{
+		uint32_t sliceWidth = td.width;
+		uint32_t sliceHeight = td.height;
+
+		uint32_t sliceGridHeight = (td.arraysize*td.depth) / sd.slice.sliceGridWidth;
+		if(td.arraysize % sd.slice.sliceGridWidth != 0)
+			sliceGridHeight++;
+
+		td.width *= sd.slice.sliceGridWidth;
+		td.height *= sliceGridHeight;
+
+		byte *combinedData = new byte[td.width*td.height*td.format.compCount];
+
+		memset(combinedData, 0, td.width*td.height*td.format.compCount);
+		
+		for(size_t i=0; i < subdata.size(); i++)
+		{
+			uint32_t gridx = i % sd.slice.sliceGridWidth;
+			uint32_t gridy = i / sd.slice.sliceGridWidth;
+
+			uint32_t yoffs = gridy*sliceHeight;
+			uint32_t xoffs = gridx*sliceWidth;
+
+			for(uint32_t y=0; y < sliceHeight; y++)
+			{
+				for(uint32_t x=0; x < sliceWidth; x++)
+				{
+					uint32_t *srcpix = (uint32_t *)&subdata[i][ ( y * sliceWidth + x ) * 4 + 0 ];
+					uint32_t *dstpix = (uint32_t *)&combinedData[ ( (y + yoffs) * td.width + x + xoffs ) * 4 + 0 ];
+
+					*dstpix = *srcpix;
+				}
+			}
+
+			delete[] subdata[i];
+		}
+
+		subdata.resize(1);
+		subdata[0] = combinedData;
+		rowPitch = td.width * 4;
+	}
+	
+	// should have been handled above, but verify incoming data is RGBA8 and 6 slices
+	if(sd.slice.cubeCruciform && td.format.compByteWidth == 1 && td.format.compCount == 4 && subdata.size() == 6)
+	{
+		uint32_t sliceWidth = td.width;
+		uint32_t sliceHeight = td.height;
+
+		td.width *= 4;
+		td.height *= 3;
+
+		byte *combinedData = new byte[td.width*td.height*td.format.compCount];
+
+		memset(combinedData, 0, td.width*td.height*td.format.compCount);
+		
+		/*
+		 Y X=0   1   2   3      
+		 =     +---+
+		 0     |+y |
+		       |[2]|
+		   +---+---+---+---+
+		 1 |-x |+z |+x |-z |
+		   |[1]|[4]|[0]|[5]|
+		   +---+---+---+---+
+		 2     |-y |
+		       |[3]|
+		       +---+
+
+		*/
+
+		uint32_t gridx[6] = { 2, 0, 1, 1, 1, 3 };
+		uint32_t gridy[6] = { 1, 1, 0, 2, 1, 1 };
+		
+		for(size_t i=0; i < subdata.size(); i++)
+		{
+			uint32_t yoffs = gridy[i]*sliceHeight;
+			uint32_t xoffs = gridx[i]*sliceWidth;
+
+			for(uint32_t y=0; y < sliceHeight; y++)
+			{
+				for(uint32_t x=0; x < sliceWidth; x++)
+				{
+					uint32_t *srcpix = (uint32_t *)&subdata[i][ ( y * sliceWidth + x ) * 4 + 0 ];
+					uint32_t *dstpix = (uint32_t *)&combinedData[ ( (y + yoffs) * td.width + x + xoffs ) * 4 + 0 ];
+
+					*dstpix = *srcpix;
+				}
+			}
+
+			delete[] subdata[i];
+		}
+
+		subdata.resize(1);
+		subdata[0] = combinedData;
+		rowPitch = td.width * 4;
+	}
+	
+	int numComps = td.format.compCount;
+	
+	// handle formats that don't support alpha
+	if(numComps == 4 && (sd.destType == eFileType_BMP || sd.destType == eFileType_JPG) )
+	{
+		byte *nonalpha = new byte[td.width*td.height*3];
+
+		for(uint32_t y=0; y < td.height; y++)
+		{
+			for(uint32_t x=0; x < td.width; x++)
+			{
+				byte r = subdata[0][ ( y * td.width + x ) * 4 + 0 ];
+				byte g = subdata[0][ ( y * td.width + x ) * 4 + 1 ];
+				byte b = subdata[0][ ( y * td.width + x ) * 4 + 2 ];
+				byte a = subdata[0][ ( y * td.width + x ) * 4 + 3 ];
+
+				if(sd.alpha != eAlphaMap_Discard)
+				{
+					FloatVector col = sd.alphaCol;
+					if(sd.alpha == eAlphaMap_BlendToCheckerboard)
+					{
+						bool lightSquare = ((x/64) % 2) == ((y/64) % 2);
+						col = lightSquare ? sd.alphaCol : sd.alphaColSecondary;
+					}
+
+					col.x = powf(col.x, 1.0f/2.2f);
+					col.y = powf(col.y, 1.0f/2.2f);
+					col.z = powf(col.z, 1.0f/2.2f);
+
+					FloatVector pixel = FloatVector( float(r)/255.0f, float(g)/255.0f, float(b)/255.0f, float(a)/255.0f );
+
+					pixel.x = pixel.x * pixel.w + col.x * (1.0f - pixel.w);
+					pixel.y = pixel.y * pixel.w + col.y * (1.0f - pixel.w);
+					pixel.z = pixel.z * pixel.w + col.z * (1.0f - pixel.w);
+
+					r = byte(pixel.x * 255.0f);
+					g = byte(pixel.y * 255.0f);
+					b = byte(pixel.z * 255.0f);
+				}
+				
+				nonalpha[ ( y * td.width + x ) * 3 + 0 ] = r;
+				nonalpha[ ( y * td.width + x ) * 3 + 1 ] = g;
+				nonalpha[ ( y * td.width + x ) * 3 + 2 ] = b;
+			}
+		}
+
+		delete[] subdata[0];
+
+		subdata[0] = nonalpha;
+
+		numComps = 3;
+		rowPitch = td.width * 3;
+	}
+	
+	// assume that (R,G,0) is better mapping than (Y,A) for 2 component data
+	if(numComps == 2 && (sd.destType == eFileType_BMP || sd.destType == eFileType_JPG ||
+	                     sd.destType == eFileType_PNG || sd.destType == eFileType_TGA) )
+	{
+		byte *rg0 = new byte[td.width*td.height*3];
+
+		for(uint32_t y=0; y < td.height; y++)
+		{
+			for(uint32_t x=0; x < td.width; x++)
+			{
+				byte r = subdata[0][ ( y * td.width + x ) * 2 + 0 ];
+				byte g = subdata[0][ ( y * td.width + x ) * 2 + 1 ];
+
+				rg0[ ( y * td.width + x ) * 3 + 0 ] = r;
+				rg0[ ( y * td.width + x ) * 3 + 1 ] = g;
+				rg0[ ( y * td.width + x ) * 3 + 2 ] = 0;
+			}
+		}
+
+		delete[] subdata[0];
+
+		subdata[0] = rg0;
+
+		numComps = 3;
+		rowPitch = td.width * 2;
+	}
+
+	FILE *f = FileIO::fopen(path, L"wb");
+
+	if(!f)
+	{
+		success = false;
+	}
+	else
+	{
+		if(sd.destType == eFileType_DDS)
+		{
+			dds_data ddsData;
+
+			ddsData.width = td.width;
+			ddsData.height = td.height;
+			ddsData.depth = td.depth;
+			ddsData.format = td.format;
+			ddsData.mips = numMips;
+			ddsData.slices = numSlices/td.depth;
+			ddsData.subdata = &subdata[0];
+			ddsData.cubemap = td.cubemap && numSlices == 6;
+
+			success = write_dds_to_file(f, ddsData);
+		}
+		else if(sd.destType == eFileType_BMP)
+		{
+			int ret = stbi_write_bmp_to_file(f, td.width, td.height, numComps, subdata[0]);
+			success = (ret != 0);
+		}
+		else if(sd.destType == eFileType_PNG)
+		{
+			int ret = stbi_write_png_to_file(f, td.width, td.height, td.format.compCount, subdata[0], rowPitch);
+			success = (ret != 0);
+		}
+		else if(sd.destType == eFileType_TGA)
+		{
+			int ret = stbi_write_tga_to_file(f, td.width, td.height, td.format.compCount, subdata[0]);
+			success = (ret != 0);
+		}
+		else if(sd.destType == eFileType_JPG)
+		{
+			jpge::params p;
+			p.m_quality = sd.jpegQuality;
+
+			int len = td.width*td.height*td.format.compCount;
+
+			char *jpgdst = new char[len];
+
+			success = jpge::compress_image_to_jpeg_file_in_memory(jpgdst, len, td.width, td.height, numComps, subdata[0], p);
+
+			if(success)
+				fwrite(jpgdst, 1, len, f);
+
+			delete[] jpgdst;
+		}
+		else if(sd.destType == eFileType_HDR)
+		{
+			float *fldata = new float[td.width*td.height*3];
+
+			byte *srcData = subdata[0];
+			
+			for(uint32_t y=0; y < td.height; y++)
+			{
+				for(uint32_t x=0; x < td.width; x++)
+				{
+					float r = 0.0f;
+					float g = 0.0f;
+					float b = 0.0f;
+
+					if(td.format.special && td.format.specialFormat == eSpecial_R10G10B10A2)
+					{
+						uint32_t *u32 = (uint32_t *)srcData;
+
+						Vec4f vec = ConvertFromR10G10B10A2(*u32);
+
+						r = vec.x;
+						g = vec.y;
+						b = vec.z;
+
+						srcData += 4;
+					}
+					else if(td.format.special && td.format.specialFormat == eSpecial_R11G11B10)
+					{
+						uint32_t *u32 = (uint32_t *)srcData;
+
+						Vec3f vec = ConvertFromR11G11B10(*u32);
+
+						r = vec.x;
+						g = vec.y;
+						b = vec.z;
+
+						srcData += 4;
+					}
+					else
+					{
+						if(td.format.compCount >= 1)
+							r = ConvertComponent(td.format, srcData + td.format.compByteWidth*0);
+						if(td.format.compCount >= 2)
+							g = ConvertComponent(td.format, srcData + td.format.compByteWidth*1);
+						if(td.format.compCount >= 3)
+							b = ConvertComponent(td.format, srcData + td.format.compByteWidth*2);
+
+						srcData += td.format.compCount * td.format.compByteWidth;
+					}
+
+					fldata[(y*td.width + x) * 3 + 0] = r;
+					fldata[(y*td.width + x) * 3 + 1] = g;
+					fldata[(y*td.width + x) * 3 + 2] = b;
+				}
+			}
+
+			int ret = stbi_write_hdr_to_file(f, td.width, td.height, 3, fldata);
+			success = (ret != 0);
+
+			delete[] fldata;
+		}
+
+		FileIO::fclose(f);
+	}
+
+	for(size_t i=0; i < subdata.size(); i++)
+		delete[] subdata[i];
+
+	return success;
 }
 
 bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
@@ -770,8 +1475,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetUsage(ReplayRendere
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(ReplayRenderer *rend, ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars)
 { return rend->GetCBufferVariableContents(shader, cbufslot, buffer, offs, vars); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, ResourceId texID, uint32_t mip, const wchar_t *path)
-{ return rend->SaveTexture(texID, mip, path); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const wchar_t *path)
+{ return rend->SaveTexture(saveData, path); }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, PostVSMeshData *data)
 { return rend->GetPostVSData(stage, data); }

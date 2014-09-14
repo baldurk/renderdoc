@@ -1389,7 +1389,7 @@ PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, Me
 	return ret;
 }
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
 {
 	RDCUNIMPLEMENTED("GetTextureData");
 	return NULL;
@@ -1408,12 +1408,6 @@ void GLReplay::RemoveReplacement(ResourceId id)
 void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 {
 	RDCUNIMPLEMENTED("TimeDrawcalls");
-}
-
-bool GLReplay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
-{
-	RDCUNIMPLEMENTED("SaveTexture");
-	return false;
 }
 
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)

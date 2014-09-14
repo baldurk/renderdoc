@@ -126,6 +126,23 @@ enum TextureDisplayOverlay
 	eTexOverlay_QuadOverdrawDraw,
 };
 
+enum FileType
+{
+	eFileType_DDS,
+	eFileType_PNG,
+	eFileType_JPG,
+	eFileType_BMP,
+	eFileType_TGA,
+	eFileType_HDR,
+};
+
+enum AlphaMapping
+{
+	eAlphaMap_Discard,
+	eAlphaMap_BlendToColour,
+	eAlphaMap_BlendToCheckerboard,
+};
+
 enum SpecialFormat
 {
 	eSpecial_Unknown = 0,
