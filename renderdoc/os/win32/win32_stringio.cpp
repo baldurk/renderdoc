@@ -71,12 +71,12 @@ namespace Keyboard
 		inputWindows.erase((HWND)wnd);
 	}
 
-	bool GetKeyState(KeyButton key)
+	bool GetKeyState(int key)
 	{
 		int vk = 0;
 		
-		if(key >= eKey_A && key <= eKey_Z) vk = (int)key;
-		if(key >= eKey_0 && key <= eKey_9) vk = (int)key;
+		if(key >= eKey_A && key <= eKey_Z) vk = key;
+		if(key >= eKey_0 && key <= eKey_9) vk = key;
 
 		switch(key)
 		{

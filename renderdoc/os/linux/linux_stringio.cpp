@@ -24,6 +24,7 @@
 
 
 #include "os/os_specific.h"
+#include "api/app/renderdoc_app.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -58,14 +59,14 @@ namespace Keyboard
 	{
 	}
 
-	bool GetKeyState(KeyButton key)
+	bool GetKeyState(int key)
 	{
 		KeySym ks = 0;
 		
 		if(CurrentXDisplay == NULL) return false;
 
-		if(key >= eKey_A && key <= eKey_Z) ks = (int)key;
-		if(key >= eKey_0 && key <= eKey_9) ks = (int)key;
+		if(key >= eKey_A && key <= eKey_Z) ks = key;
+		if(key >= eKey_0 && key <= eKey_9) ks = key;
 		
 		switch(key)
 		{

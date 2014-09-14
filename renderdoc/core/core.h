@@ -235,14 +235,14 @@ class RenderDoc
 		void SetFocusKeys(KeyButton *keys, int num)
 		{
 			m_FocusKeys.resize(num);
-			if(keys && num > 0)
-				memcpy(&m_FocusKeys[0], keys, num*sizeof(KeyButton));
+			for(int i=0; i < num && keys; i++)
+				m_FocusKeys[i] = keys[i];
 		}
 		void SetCaptureKeys(KeyButton *keys, int num)
 		{
 			m_CaptureKeys.resize(num);
-			if(keys && num > 0)
-				memcpy(&m_CaptureKeys[0], keys, num*sizeof(KeyButton));
+			for(int i=0; i < num && keys; i++)
+				m_CaptureKeys[i] = keys[i];
 		}
 
 		const vector<KeyButton> &GetFocusKeys() { return m_FocusKeys; }

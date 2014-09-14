@@ -188,14 +188,12 @@ namespace FileIO
 	int fclose(FILE *f);
 };
 
-enum KeyButton;
-
 namespace Keyboard
 {
 	void Init();
 	void AddInputWindow(void *wnd);
 	void RemoveInputWindow(void *wnd);
-	bool GetKeyState(KeyButton key);
+	bool GetKeyState(int key);
 };
 
 namespace StringFormat
