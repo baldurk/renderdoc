@@ -288,9 +288,6 @@
     <ClInclude Include="api\replay\basic_types.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
-    <ClInclude Include="api\replay\capture_options.h">
-      <Filter>API\Replay</Filter>
-    </ClInclude>
     <ClInclude Include="api\replay\control_types.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
