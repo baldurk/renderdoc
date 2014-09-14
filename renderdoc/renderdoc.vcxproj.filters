@@ -85,6 +85,9 @@
     <Filter Include="API\In-App">
       <UniqueIdentifier>{188b97fd-b9d4-47a6-a51a-48bc00e6fc5c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\File Formats">
+      <UniqueIdentifier>{eb0686f4-bcb3-4edd-b488-937b1491909b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -312,6 +315,9 @@
     <ClInclude Include="api\replay\renderdoc_replay.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="common\dds_readwrite.h">
+      <Filter>Common\File Formats</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -535,6 +541,9 @@
     </ClCompile>
     <ClCompile Include="3rdparty\stb\stb_impl.c">
       <Filter>3rdparty\stb</Filter>
+    </ClCompile>
+    <ClCompile Include="common\dds_readwrite.cpp">
+      <Filter>Common\File Formats</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

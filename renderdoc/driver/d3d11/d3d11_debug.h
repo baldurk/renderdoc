@@ -127,8 +127,6 @@ class D3D11DebugManager
 
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
 
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path);
-
 		void RenderText(float x, float y, float size, const char *textfmt, ...);
 		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
 

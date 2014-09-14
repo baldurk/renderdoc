@@ -33,6 +33,12 @@
 
 #include "serialise/serialiser.h"
 
+#include "3rdparty/jpeg-compressor/jpgd.h"
+#include "3rdparty/jpeg-compressor/jpge.h"
+#include "3rdparty/stb/stb_image.h"
+#include "3rdparty/stb/stb_image_write.h"
+#include "common/dds_readwrite.h"
+
 ReplayRenderer::ReplayRenderer()
 {
 	m_pDevice = NULL;

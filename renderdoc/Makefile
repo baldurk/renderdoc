@@ -17,6 +17,7 @@ hooks/hooks.o \
 hooks/gl_linux_hooks.o \
 serialise/serialiser.o \
 common/common.o \
+common/dds_readwrite.o \
 core/remote_access.o \
 core/replay_proxy.o \
 core/remote_replay.o \

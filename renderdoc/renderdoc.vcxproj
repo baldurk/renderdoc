@@ -240,6 +240,7 @@
     <ClInclude Include="api\replay\replay_enums.h" />
     <ClInclude Include="api\replay\shader_types.h" />
     <ClInclude Include="common\common.h" />
+    <ClInclude Include="common\dds_readwrite.h" />
     <ClInclude Include="common\globalconfig.h" />
     <ClInclude Include="common\string_utils.h" />
     <ClInclude Include="common\threading.h" />
@@ -306,6 +307,7 @@
     <ClCompile Include="3rdparty\mhook\mhook-lib\mhook.cpp" />
     <ClCompile Include="3rdparty\stb\stb_impl.c" />
     <ClCompile Include="common\common.cpp" />
+    <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\remote_access.cpp">
       <AssemblerOutput Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">NoListing</AssemblerOutput>
