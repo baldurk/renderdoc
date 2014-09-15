@@ -227,9 +227,6 @@ typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateReplayRenderer)(const
 // Remote access and control
 //////////////////////////////////////////////////////////////////////////
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident);
-typedef void (RENDERDOC_CC *pRENDERDOC_InitRemoteAccess)(uint32_t *ident);
-
 extern "C" RENDERDOC_API RemoteAccess* RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const wchar_t *host, uint32_t ident, const wchar_t *clientName, bool forceConnection);
 typedef RemoteAccess* (RENDERDOC_CC *pRENDERDOC_CreateRemoteAccessConnection)(const wchar_t *host, uint32_t ident, const wchar_t *clientName, bool forceConnection);
 

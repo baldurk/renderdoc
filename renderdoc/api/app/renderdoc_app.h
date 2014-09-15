@@ -224,6 +224,9 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetFocusToggleKeys)(KeyButton *keys, int 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureKeys(KeyButton *keys, int num);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureKeys)(KeyButton *keys, int num);
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident);
+typedef void (RENDERDOC_CC *pRENDERDOC_InitRemoteAccess)(uint32_t *ident);
+
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
 //////////////////////////////////////////////////////////////////////////
