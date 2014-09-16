@@ -175,7 +175,7 @@
             this.fileFormat.Location = new System.Drawing.Point(159, 3);
             this.fileFormat.Name = "fileFormat";
             this.fileFormat.Size = new System.Drawing.Size(121, 21);
-            this.fileFormat.TabIndex = 0;
+            this.fileFormat.TabIndex = 3;
             this.fileFormat.SelectedIndexChanged += new System.EventHandler(this.fileFormat_SelectedIndexChanged);
             // 
             // label2
@@ -195,7 +195,7 @@
             this.jpegCompression.Location = new System.Drawing.Point(159, 30);
             this.jpegCompression.Name = "jpegCompression";
             this.jpegCompression.Size = new System.Drawing.Size(120, 20);
-            this.jpegCompression.TabIndex = 3;
+            this.jpegCompression.TabIndex = 4;
             this.jpegCompression.ValueChanged += new System.EventHandler(this.jpegCompression_ValueChanged);
             // 
             // flowLayoutPanel2
@@ -214,7 +214,7 @@
             this.ok.Location = new System.Drawing.Point(3, 3);
             this.ok.Name = "ok";
             this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 1;
+            this.ok.TabIndex = 22;
             this.ok.Text = "Save";
             this.ok.UseVisualStyleBackColor = true;
             this.ok.Click += new System.EventHandler(this.ok_Click);
@@ -225,7 +225,7 @@
             this.cancel.Location = new System.Drawing.Point(84, 3);
             this.cancel.Name = "cancel";
             this.cancel.Size = new System.Drawing.Size(75, 23);
-            this.cancel.TabIndex = 0;
+            this.cancel.TabIndex = 23;
             this.cancel.Text = "Cancel";
             this.cancel.UseVisualStyleBackColor = true;
             // 
@@ -280,7 +280,7 @@
             this.alphaMap.Location = new System.Drawing.Point(89, 3);
             this.alphaMap.Name = "alphaMap";
             this.alphaMap.Size = new System.Drawing.Size(148, 21);
-            this.alphaMap.TabIndex = 0;
+            this.alphaMap.TabIndex = 18;
             this.alphaMap.SelectedIndexChanged += new System.EventHandler(this.alphaMap_SelectedIndexChanged);
             // 
             // alphaCol
@@ -289,7 +289,7 @@
             this.alphaCol.Location = new System.Drawing.Point(243, 3);
             this.alphaCol.Name = "alphaCol";
             this.alphaCol.Size = new System.Drawing.Size(110, 21);
-            this.alphaCol.TabIndex = 2;
+            this.alphaCol.TabIndex = 19;
             this.alphaCol.Text = "Background Colour";
             this.alphaCol.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageBeforeText;
             this.alphaCol.UseVisualStyleBackColor = true;
@@ -313,7 +313,7 @@
             this.blackPoint.Margin = new System.Windows.Forms.Padding(3, 10, 3, 3);
             this.blackPoint.Name = "blackPoint";
             this.blackPoint.Size = new System.Drawing.Size(100, 20);
-            this.blackPoint.TabIndex = 5;
+            this.blackPoint.TabIndex = 20;
             this.blackPoint.TextChanged += new System.EventHandler(this.blackPoint_TextChanged);
             // 
             // label5
@@ -334,7 +334,7 @@
             this.whitePoint.Margin = new System.Windows.Forms.Padding(3, 10, 3, 3);
             this.whitePoint.Name = "whitePoint";
             this.whitePoint.Size = new System.Drawing.Size(100, 20);
-            this.whitePoint.TabIndex = 6;
+            this.whitePoint.TabIndex = 21;
             this.whitePoint.TextChanged += new System.EventHandler(this.whitePoint_TextChanged);
             // 
             // sliceGroup
@@ -373,7 +373,7 @@
             this.exportAllSlices.MinimumSize = new System.Drawing.Size(120, 0);
             this.exportAllSlices.Name = "exportAllSlices";
             this.exportAllSlices.Size = new System.Drawing.Size(120, 17);
-            this.exportAllSlices.TabIndex = 0;
+            this.exportAllSlices.TabIndex = 12;
             this.exportAllSlices.Text = "Export All Slices";
             this.exportAllSlices.UseVisualStyleBackColor = true;
             this.exportAllSlices.CheckedChanged += new System.EventHandler(this.exportAllSlices_CheckedChanged);
@@ -386,7 +386,7 @@
             this.oneSlice.MinimumSize = new System.Drawing.Size(120, 0);
             this.oneSlice.Name = "oneSlice";
             this.oneSlice.Size = new System.Drawing.Size(120, 17);
-            this.oneSlice.TabIndex = 4;
+            this.oneSlice.TabIndex = 13;
             this.oneSlice.Text = "Select Slice:";
             this.oneSlice.UseVisualStyleBackColor = true;
             this.oneSlice.CheckedChanged += new System.EventHandler(this.oneSlice_CheckedChanged);
@@ -399,7 +399,7 @@
             this.sliceSelect.Location = new System.Drawing.Point(129, 26);
             this.sliceSelect.Name = "sliceSelect";
             this.sliceSelect.Size = new System.Drawing.Size(121, 21);
-            this.sliceSelect.TabIndex = 5;
+            this.sliceSelect.TabIndex = 14;
             this.sliceSelect.SelectedIndexChanged += new System.EventHandler(this.sliceSelect_SelectedIndexChanged);
             // 
             // mapSlicesToGrid
@@ -408,7 +408,7 @@
             this.mapSlicesToGrid.Location = new System.Drawing.Point(3, 53);
             this.mapSlicesToGrid.Name = "mapSlicesToGrid";
             this.mapSlicesToGrid.Size = new System.Drawing.Size(179, 17);
-            this.mapSlicesToGrid.TabIndex = 1;
+            this.mapSlicesToGrid.TabIndex = 15;
             this.mapSlicesToGrid.Text = "Show Slices as Grid. Grid Width:";
             this.mapSlicesToGrid.UseVisualStyleBackColor = true;
             this.mapSlicesToGrid.CheckedChanged += new System.EventHandler(this.mapSlicesToGrid_CheckedChanged);
@@ -425,7 +425,7 @@
             0});
             this.gridWidth.Name = "gridWidth";
             this.gridWidth.Size = new System.Drawing.Size(49, 20);
-            this.gridWidth.TabIndex = 3;
+            this.gridWidth.TabIndex = 16;
             this.gridWidth.Value = new decimal(new int[] {
             1,
             0,
@@ -439,7 +439,7 @@
             this.cubeCruciform.Location = new System.Drawing.Point(3, 79);
             this.cubeCruciform.Name = "cubeCruciform";
             this.cubeCruciform.Size = new System.Drawing.Size(144, 17);
-            this.cubeCruciform.TabIndex = 2;
+            this.cubeCruciform.TabIndex = 17;
             this.cubeCruciform.Text = "Show Cubemap as Cross";
             this.cubeCruciform.UseVisualStyleBackColor = true;
             this.cubeCruciform.CheckedChanged += new System.EventHandler(this.cubeCruciform_CheckedChanged);
@@ -478,7 +478,7 @@
             this.exportAllMips.MinimumSize = new System.Drawing.Size(120, 0);
             this.exportAllMips.Name = "exportAllMips";
             this.exportAllMips.Size = new System.Drawing.Size(120, 17);
-            this.exportAllMips.TabIndex = 0;
+            this.exportAllMips.TabIndex = 5;
             this.exportAllMips.Text = "Export All Mips";
             this.exportAllMips.UseVisualStyleBackColor = true;
             this.exportAllMips.CheckedChanged += new System.EventHandler(this.exportAllMips_CheckedChanged);
@@ -491,7 +491,7 @@
             this.oneMip.MinimumSize = new System.Drawing.Size(120, 0);
             this.oneMip.Name = "oneMip";
             this.oneMip.Size = new System.Drawing.Size(120, 17);
-            this.oneMip.TabIndex = 2;
+            this.oneMip.TabIndex = 6;
             this.oneMip.Text = "Select Mip:";
             this.oneMip.UseVisualStyleBackColor = true;
             this.oneMip.CheckedChanged += new System.EventHandler(this.oneMip_CheckedChanged);
@@ -504,7 +504,7 @@
             this.mipSelect.Location = new System.Drawing.Point(129, 26);
             this.mipSelect.Name = "mipSelect";
             this.mipSelect.Size = new System.Drawing.Size(121, 21);
-            this.mipSelect.TabIndex = 1;
+            this.mipSelect.TabIndex = 7;
             this.mipSelect.SelectedIndexChanged += new System.EventHandler(this.mipSelect_SelectedIndexChanged);
             // 
             // sampleGroup
@@ -541,7 +541,7 @@
             this.mapSampleArray.Location = new System.Drawing.Point(3, 3);
             this.mapSampleArray.Name = "mapSampleArray";
             this.mapSampleArray.Size = new System.Drawing.Size(162, 17);
-            this.mapSampleArray.TabIndex = 1;
+            this.mapSampleArray.TabIndex = 8;
             this.mapSampleArray.Text = "Map Samples as Array Slices";
             this.mapSampleArray.UseVisualStyleBackColor = true;
             this.mapSampleArray.CheckedChanged += new System.EventHandler(this.mapSampleArray_CheckedChanged);
@@ -553,7 +553,7 @@
             this.resolveSamples.Location = new System.Drawing.Point(3, 26);
             this.resolveSamples.Name = "resolveSamples";
             this.resolveSamples.Size = new System.Drawing.Size(108, 17);
-            this.resolveSamples.TabIndex = 4;
+            this.resolveSamples.TabIndex = 9;
             this.resolveSamples.Text = "Resolve Samples";
             this.resolveSamples.UseVisualStyleBackColor = true;
             this.resolveSamples.CheckedChanged += new System.EventHandler(this.resolveSamples_CheckedChanged);
@@ -566,7 +566,7 @@
             this.oneSample.MinimumSize = new System.Drawing.Size(120, 0);
             this.oneSample.Name = "oneSample";
             this.oneSample.Size = new System.Drawing.Size(120, 17);
-            this.oneSample.TabIndex = 3;
+            this.oneSample.TabIndex = 10;
             this.oneSample.Text = "Select Sample:";
             this.oneSample.UseVisualStyleBackColor = true;
             this.oneSample.CheckedChanged += new System.EventHandler(this.oneSample_CheckedChanged);
@@ -579,7 +579,7 @@
             this.sampleSelect.Location = new System.Drawing.Point(129, 49);
             this.sampleSelect.Name = "sampleSelect";
             this.sampleSelect.Size = new System.Drawing.Size(121, 21);
-            this.sampleSelect.TabIndex = 2;
+            this.sampleSelect.TabIndex = 11;
             this.sampleSelect.SelectedIndexChanged += new System.EventHandler(this.sampleSelect_SelectedIndexChanged);
             // 
             // groupBox2
@@ -610,7 +610,7 @@
             browse.Location = new System.Drawing.Point(337, 15);
             browse.Name = "browse";
             browse.Size = new System.Drawing.Size(26, 23);
-            browse.TabIndex = 0;
+            browse.TabIndex = 2;
             browse.Text = "...";
             browse.UseVisualStyleBackColor = true;
             browse.Click += new System.EventHandler(this.browse_Click);
