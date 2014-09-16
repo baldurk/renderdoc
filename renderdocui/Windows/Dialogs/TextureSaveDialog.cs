@@ -133,6 +133,14 @@ namespace renderdocui.Windows.Dialogs
 
             sliceGroup.Visible = (tex.depth > 1 || tex.arraysize > 1 || tex.msSamp > 1);
 
+            if (saveData.destType != FileType.DDS)
+            {
+                cubeCruciform.Enabled = (tex.cubemap && tex.arraysize == 6);
+                
+                if (!oneSlice.Checked && !cubeCruciform.Enabled)
+                    mapSlicesToGrid.Checked = true;
+            }
+
             fileFormat.SelectedIndex = (int)saveData.destType;
         }
 
