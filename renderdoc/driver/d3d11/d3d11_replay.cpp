@@ -1270,7 +1270,7 @@ void D3D11Replay::BuildCustomShader(string source, string entry, const uint32_t 
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)
 {
-	return m_pDevice->GetDebugManager()->RenderTexture(cfg);
+	return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
 void D3D11Replay::RenderCheckerboard(Vec3f light, Vec3f dark)

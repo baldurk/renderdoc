@@ -144,7 +144,7 @@ class D3D11DebugManager
 
 		ID3D11Buffer *MakeCBuffer(UINT size);
 
-		bool RenderTexture(TextureDisplay cfg);
+		bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
 
 		void RenderCheckerboard(Vec3f light, Vec3f dark);
 

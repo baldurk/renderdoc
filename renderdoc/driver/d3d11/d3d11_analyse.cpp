@@ -1669,7 +1669,7 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 		texDisplay.offx = -float(x);
 		texDisplay.offy = -float(y);
 
-		RenderTexture(texDisplay);
+		RenderTexture(texDisplay, false);
 	}
 
 	D3D11_BOX box;
@@ -1815,7 +1815,8 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
 				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 				texDisplay.HDRMul = -1.0f;
-				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.linearDisplayAsGamma = false;
+				texDisplay.overlay = eTexOverlay_None;
 				texDisplay.FlipY = false;
 				texDisplay.mip = mip;
 				texDisplay.sampleIdx = 0;
@@ -1825,11 +1826,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 				texDisplay.rangemax = whitePoint;
 				texDisplay.scale = 1.0f;
 				texDisplay.texid = id;
-				texDisplay.rawoutput = true;
+				texDisplay.rawoutput = false;
 				texDisplay.offx = 0;
 				texDisplay.offy = 0;
 
-				RenderTexture(texDisplay);
+				RenderTexture(texDisplay, false);
 			}
 			
 			SetOutputDimensions(oldW, oldH);
@@ -1941,10 +1942,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
 			{
 				TextureDisplay texDisplay;
-
+				
 				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 				texDisplay.HDRMul = -1.0f;
-				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.linearDisplayAsGamma = false;
+				texDisplay.overlay = eTexOverlay_None;
 				texDisplay.FlipY = false;
 				texDisplay.mip = mip;
 				texDisplay.sampleIdx = 0;
@@ -1954,11 +1956,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 				texDisplay.rangemax = whitePoint;
 				texDisplay.scale = 1.0f;
 				texDisplay.texid = id;
-				texDisplay.rawoutput = true;
+				texDisplay.rawoutput = false;
 				texDisplay.offx = 0;
 				texDisplay.offy = 0;
 
-				RenderTexture(texDisplay);
+				RenderTexture(texDisplay, false);
 			}
 			
 			SetOutputDimensions(oldW, oldH);
@@ -2087,24 +2089,25 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 				m_pImmediateContext->RSSetViewports(1, &viewport);
 
 				TextureDisplay texDisplay;
-
+				
 				texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
 				texDisplay.HDRMul = -1.0f;
-				texDisplay.linearDisplayAsGamma = true;
+				texDisplay.linearDisplayAsGamma = false;
+				texDisplay.overlay = eTexOverlay_None;
 				texDisplay.FlipY = false;
 				texDisplay.mip = mip;
 				texDisplay.sampleIdx = 0;
 				texDisplay.CustomShader = ResourceId();
-				texDisplay.sliceFace = i;
+				texDisplay.sliceFace = arrayIdx;
 				texDisplay.rangemin = blackPoint;
 				texDisplay.rangemax = whitePoint;
 				texDisplay.scale = 1.0f;
 				texDisplay.texid = id;
-				texDisplay.rawoutput = true;
+				texDisplay.rawoutput = false;
 				texDisplay.offx = 0;
 				texDisplay.offy = 0;
 
-				RenderTexture(texDisplay);
+				RenderTexture(texDisplay, false);
 
 				SAFE_RELEASE(wrappedrtv);
 			}
@@ -2319,7 +2322,7 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
 	SetOutputDimensions(details.texWidth, details.texHeight);
 
-	RenderTexture(disp);
+	RenderTexture(disp, true);
 
 	return m_CustomShaderResourceId;
 }

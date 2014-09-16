@@ -3316,7 +3316,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, float size, const c
 	}
 }
 
-bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
+bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 {
 	DebugVertexCBuffer vertexData;
 	DebugPixelCBufferData pixelData;
@@ -3603,7 +3603,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 		m_pImmediateContext->PSSetSamplers(0, 2, samps);
 
 		float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-		if(cfg.rawoutput)
+		if(cfg.rawoutput || !blendAlpha)
 			m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
 		else
 			m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
