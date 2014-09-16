@@ -45,6 +45,22 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (keyData == Keys.Escape)
+            {
+                DialogResult = DialogResult.Cancel;
+                this.Close();
+                return true;
+            }
+            if (keyData == Keys.Enter)
+            {
+                ok_Click(this, null);
+                return true;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         public FetchTexture tex = new FetchTexture();
         public TextureSave saveData = new TextureSave();
 
