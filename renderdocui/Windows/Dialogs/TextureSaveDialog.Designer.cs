@@ -64,12 +64,12 @@
             this.oneMip = new System.Windows.Forms.CheckBox();
             this.mipSelect = new System.Windows.Forms.ComboBox();
             this.sampleGroup = new System.Windows.Forms.GroupBox();
+            this.mapSampleArray = new System.Windows.Forms.CheckBox();
+            this.resolveSamples = new System.Windows.Forms.CheckBox();
             this.oneSample = new System.Windows.Forms.CheckBox();
             this.sampleSelect = new System.Windows.Forms.ComboBox();
-            this.mapSampleArray = new System.Windows.Forms.CheckBox();
-            this.colorDialog = new System.Windows.Forms.ColorDialog();
-            this.resolveSamples = new System.Windows.Forms.CheckBox();
             this.filename = new System.Windows.Forms.TextBox();
+            this.colorDialog = new System.Windows.Forms.ColorDialog();
             this.saveTexDialog = new System.Windows.Forms.SaveFileDialog();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
@@ -534,6 +534,31 @@
             flowLayoutPanel5.Size = new System.Drawing.Size(363, 73);
             flowLayoutPanel5.TabIndex = 0;
             // 
+            // mapSampleArray
+            // 
+            this.mapSampleArray.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.mapSampleArray.AutoSize = true;
+            flowLayoutPanel5.SetFlowBreak(this.mapSampleArray, true);
+            this.mapSampleArray.Location = new System.Drawing.Point(3, 3);
+            this.mapSampleArray.Name = "mapSampleArray";
+            this.mapSampleArray.Size = new System.Drawing.Size(162, 17);
+            this.mapSampleArray.TabIndex = 1;
+            this.mapSampleArray.Text = "Map Samples as Array Slices";
+            this.mapSampleArray.UseVisualStyleBackColor = true;
+            this.mapSampleArray.CheckedChanged += new System.EventHandler(this.mapSampleArray_CheckedChanged);
+            // 
+            // resolveSamples
+            // 
+            this.resolveSamples.AutoSize = true;
+            flowLayoutPanel5.SetFlowBreak(this.resolveSamples, true);
+            this.resolveSamples.Location = new System.Drawing.Point(3, 26);
+            this.resolveSamples.Name = "resolveSamples";
+            this.resolveSamples.Size = new System.Drawing.Size(108, 17);
+            this.resolveSamples.TabIndex = 4;
+            this.resolveSamples.Text = "Resolve Samples";
+            this.resolveSamples.UseVisualStyleBackColor = true;
+            this.resolveSamples.CheckedChanged += new System.EventHandler(this.resolveSamples_CheckedChanged);
+            // 
             // oneSample
             // 
             this.oneSample.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
@@ -558,35 +583,6 @@
             this.sampleSelect.TabIndex = 2;
             this.sampleSelect.SelectedIndexChanged += new System.EventHandler(this.sampleSelect_SelectedIndexChanged);
             // 
-            // mapSampleArray
-            // 
-            this.mapSampleArray.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.mapSampleArray.AutoSize = true;
-            flowLayoutPanel5.SetFlowBreak(this.mapSampleArray, true);
-            this.mapSampleArray.Location = new System.Drawing.Point(3, 3);
-            this.mapSampleArray.Name = "mapSampleArray";
-            this.mapSampleArray.Size = new System.Drawing.Size(162, 17);
-            this.mapSampleArray.TabIndex = 1;
-            this.mapSampleArray.Text = "Map Samples as Array Slices";
-            this.mapSampleArray.UseVisualStyleBackColor = true;
-            this.mapSampleArray.CheckedChanged += new System.EventHandler(this.mapSampleArray_CheckedChanged);
-            // 
-            // colorDialog
-            // 
-            this.colorDialog.AnyColor = true;
-            // 
-            // resolveSamples
-            // 
-            this.resolveSamples.AutoSize = true;
-            flowLayoutPanel5.SetFlowBreak(this.resolveSamples, true);
-            this.resolveSamples.Location = new System.Drawing.Point(3, 26);
-            this.resolveSamples.Name = "resolveSamples";
-            this.resolveSamples.Size = new System.Drawing.Size(108, 17);
-            this.resolveSamples.TabIndex = 4;
-            this.resolveSamples.Text = "Resolve Samples";
-            this.resolveSamples.UseVisualStyleBackColor = true;
-            this.resolveSamples.CheckedChanged += new System.EventHandler(this.resolveSamples_CheckedChanged);
-            // 
             // groupBox2
             // 
             groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
@@ -600,6 +596,15 @@
             groupBox2.TabStop = false;
             groupBox2.Text = "Path";
             // 
+            // filename
+            // 
+            this.filename.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.filename.Location = new System.Drawing.Point(9, 15);
+            this.filename.Name = "filename";
+            this.filename.Size = new System.Drawing.Size(319, 20);
+            this.filename.TabIndex = 1;
+            // 
             // browse
             // 
             browse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
@@ -611,14 +616,9 @@
             browse.UseVisualStyleBackColor = true;
             browse.Click += new System.EventHandler(this.browse_Click);
             // 
-            // filename
+            // colorDialog
             // 
-            this.filename.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.filename.Location = new System.Drawing.Point(9, 15);
-            this.filename.Name = "filename";
-            this.filename.Size = new System.Drawing.Size(319, 20);
-            this.filename.TabIndex = 1;
+            this.colorDialog.AnyColor = true;
             // 
             // saveTexDialog
             // 
@@ -633,6 +633,7 @@
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.ClientSize = new System.Drawing.Size(375, 521);
             this.Controls.Add(tableLayoutPanel1);
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.Name = "TextureSaveDialog";
