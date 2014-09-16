@@ -442,8 +442,8 @@ namespace renderdoc
         public SliceMapping slice = new SliceMapping();
 
         public AlphaMapping alpha = AlphaMapping.Discard;
-        public FloatVector alphaCol = new FloatVector();
-        public FloatVector alphaColSecondary = new FloatVector();
+        public FloatVector alphaCol = new FloatVector(0.666f, 0.666f, 0.666f);
+        public FloatVector alphaColSecondary = new FloatVector(0.333f, 0.333f, 0.333f);
 
         public int jpegQuality = 90;
     };

@@ -230,6 +230,12 @@
     <Compile Include="Windows\Dialogs\SettingsDialog.Designer.cs">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\TextureSaveDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureSaveDialog.Designer.cs">
+      <DependentUpon>TextureSaveDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\EventBrowser.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -343,6 +349,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TextureSaveDialog.resx">
+      <DependentUpon>TextureSaveDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\EventBrowser.resx">
       <DependentUpon>EventBrowser.cs</DependentUpon>

@@ -34,6 +34,7 @@ using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using renderdocui.Code;
 using renderdocui.Controls;
+using renderdocui.Windows.Dialogs;
 using renderdoc;
 using System.Threading;
 
@@ -2700,48 +2701,30 @@ namespace renderdocui.Windows
             }));
         }
 
+        private TextureSaveDialog m_SaveDialog = null;
+
         private void saveTex_Click(object sender, EventArgs e)
         {
-            //if (saveTextureDialog.ShowDialog() == DialogResult.OK)
-            {
-                TextureSave sd = new TextureSave();
+            if (m_SaveDialog == null)
+                m_SaveDialog = new TextureSaveDialog();
 
-                sd.destType = FileType.DDS;
-                saveTextureDialog.FileName = "T:/tmp/a.dds";
+            m_SaveDialog.saveData.id = m_TexDisplay.texid;
+            m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
+            m_SaveDialog.saveData.mip = (int)m_TexDisplay.mip;
+            m_SaveDialog.saveData.comp.blackPoint = m_TexDisplay.rangemin;
+            m_SaveDialog.saveData.comp.whitePoint = m_TexDisplay.rangemax;
+            m_SaveDialog.saveData.alphaCol = m_TexDisplay.lightBackgroundColour;
+            m_SaveDialog.saveData.alpha = m_TexDisplay.Alpha ? AlphaMapping.BlendToCheckerboard : AlphaMapping.Discard;
+            if (m_TexDisplay.Alpha && !checkerBack.Checked) m_SaveDialog.saveData.alpha = AlphaMapping.BlendToColour;
+            m_SaveDialog.tex = CurrentTexture;
 
-                sd.id = m_TexDisplay.texid;
-
-                sd.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
-                if (sd.destType == FileType.DDS)
-                    sd.slice.sliceIndex = -1;
-
-                sd.mip = (int)m_TexDisplay.mip;
-                if (sd.destType == FileType.DDS)
-                    sd.mip = -1;
-
-                if (sd.destType == FileType.DDS)
-                {
-                    sd.sample.mapToArray = true;
-                }
-                else
-                {
-                    sd.sample.mapToArray = false;
-                    sd.sample.sampleIndex = m_TexDisplay.sampleIdx;
-                }
-
-                sd.comp.blackPoint = m_TexDisplay.rangemin;
-                sd.comp.whitePoint = m_TexDisplay.rangemax;
-
-                sd.alphaCol = m_TexDisplay.lightBackgroundColour;
-                sd.alphaColSecondary = m_TexDisplay.darkBackgroundColour;
-
-                sd.alpha = m_TexDisplay.Alpha ? AlphaMapping.BlendToCheckerboard : AlphaMapping.Discard;
-
+            if(m_SaveDialog.ShowDialog() == DialogResult.OK)
+            { 
                 bool ret = false;
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
-                    ret = r.SaveTexture(sd, saveTextureDialog.FileName);
+                    ret = r.SaveTexture(m_SaveDialog.saveData, m_SaveDialog.Filename);
                 });
 
                 if(!ret)
