@@ -729,8 +729,8 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *pat
 		
 		for(size_t i=0; i < subdata.size(); i++)
 		{
-			uint32_t gridx = i % sd.slice.sliceGridWidth;
-			uint32_t gridy = i / sd.slice.sliceGridWidth;
+			uint32_t gridx = (uint32_t)i % sd.slice.sliceGridWidth;
+			uint32_t gridy = (uint32_t)i / sd.slice.sliceGridWidth;
 
 			uint32_t yoffs = gridy*sliceHeight;
 			uint32_t xoffs = gridx*sliceWidth;
