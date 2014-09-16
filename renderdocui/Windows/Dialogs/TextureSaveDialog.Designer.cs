@@ -126,7 +126,7 @@
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            tableLayoutPanel1.Size = new System.Drawing.Size(375, 521);
+            tableLayoutPanel1.Size = new System.Drawing.Size(378, 555);
             tableLayoutPanel1.TabIndex = 0;
             // 
             // groupBox1
@@ -137,7 +137,7 @@
             groupBox1.Controls.Add(flowLayoutPanel1);
             groupBox1.Location = new System.Drawing.Point(3, 53);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(369, 72);
+            groupBox1.Size = new System.Drawing.Size(372, 72);
             groupBox1.TabIndex = 0;
             groupBox1.TabStop = false;
             groupBox1.Text = "File Format";
@@ -152,7 +152,7 @@
             flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel1.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel1.Name = "flowLayoutPanel1";
-            flowLayoutPanel1.Size = new System.Drawing.Size(363, 53);
+            flowLayoutPanel1.Size = new System.Drawing.Size(366, 53);
             flowLayoutPanel1.TabIndex = 0;
             // 
             // label1
@@ -204,14 +204,13 @@
             flowLayoutPanel2.AutoSize = true;
             flowLayoutPanel2.Controls.Add(this.ok);
             flowLayoutPanel2.Controls.Add(this.cancel);
-            flowLayoutPanel2.Location = new System.Drawing.Point(210, 513);
+            flowLayoutPanel2.Location = new System.Drawing.Point(213, 523);
             flowLayoutPanel2.Name = "flowLayoutPanel2";
             flowLayoutPanel2.Size = new System.Drawing.Size(162, 29);
             flowLayoutPanel2.TabIndex = 1;
             // 
             // ok
             // 
-            this.ok.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.ok.Location = new System.Drawing.Point(3, 3);
             this.ok.Name = "ok";
             this.ok.Size = new System.Drawing.Size(75, 23);
@@ -238,7 +237,7 @@
             this.alphaLDRGroup.Controls.Add(flowLayoutPanel3);
             this.alphaLDRGroup.Location = new System.Drawing.Point(3, 428);
             this.alphaLDRGroup.Name = "alphaLDRGroup";
-            this.alphaLDRGroup.Size = new System.Drawing.Size(369, 79);
+            this.alphaLDRGroup.Size = new System.Drawing.Size(372, 79);
             this.alphaLDRGroup.TabIndex = 2;
             this.alphaLDRGroup.TabStop = false;
             this.alphaLDRGroup.Text = "Alpha Handling";
@@ -256,7 +255,7 @@
             flowLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel3.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel3.Name = "flowLayoutPanel3";
-            flowLayoutPanel3.Size = new System.Drawing.Size(363, 60);
+            flowLayoutPanel3.Size = new System.Drawing.Size(366, 60);
             flowLayoutPanel3.TabIndex = 0;
             // 
             // label3
@@ -346,7 +345,7 @@
             this.sliceGroup.Controls.Add(flowLayoutPanel6);
             this.sliceGroup.Location = new System.Drawing.Point(3, 304);
             this.sliceGroup.Name = "sliceGroup";
-            this.sliceGroup.Size = new System.Drawing.Size(369, 118);
+            this.sliceGroup.Size = new System.Drawing.Size(372, 118);
             this.sliceGroup.TabIndex = 5;
             this.sliceGroup.TabStop = false;
             this.sliceGroup.Text = "Array/Depth Slices";
@@ -363,7 +362,7 @@
             flowLayoutPanel6.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel6.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel6.Name = "flowLayoutPanel6";
-            flowLayoutPanel6.Size = new System.Drawing.Size(363, 99);
+            flowLayoutPanel6.Size = new System.Drawing.Size(366, 99);
             flowLayoutPanel6.TabIndex = 0;
             // 
             // exportAllSlices
@@ -453,7 +452,7 @@
             this.mipGroup.Controls.Add(flowLayoutPanel4);
             this.mipGroup.Location = new System.Drawing.Point(3, 131);
             this.mipGroup.Name = "mipGroup";
-            this.mipGroup.Size = new System.Drawing.Size(369, 69);
+            this.mipGroup.Size = new System.Drawing.Size(372, 69);
             this.mipGroup.TabIndex = 3;
             this.mipGroup.TabStop = false;
             this.mipGroup.Text = "Mips";
@@ -467,7 +466,7 @@
             flowLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel4.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel4.Name = "flowLayoutPanel4";
-            flowLayoutPanel4.Size = new System.Drawing.Size(363, 50);
+            flowLayoutPanel4.Size = new System.Drawing.Size(366, 50);
             flowLayoutPanel4.TabIndex = 0;
             // 
             // exportAllMips
@@ -516,7 +515,7 @@
             this.sampleGroup.Controls.Add(flowLayoutPanel5);
             this.sampleGroup.Location = new System.Drawing.Point(3, 206);
             this.sampleGroup.Name = "sampleGroup";
-            this.sampleGroup.Size = new System.Drawing.Size(369, 92);
+            this.sampleGroup.Size = new System.Drawing.Size(372, 92);
             this.sampleGroup.TabIndex = 6;
             this.sampleGroup.TabStop = false;
             this.sampleGroup.Text = "MSAA Samples";
@@ -531,7 +530,7 @@
             flowLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel5.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel5.Name = "flowLayoutPanel5";
-            flowLayoutPanel5.Size = new System.Drawing.Size(363, 73);
+            flowLayoutPanel5.Size = new System.Drawing.Size(366, 73);
             flowLayoutPanel5.TabIndex = 0;
             // 
             // mapSampleArray
@@ -591,7 +590,7 @@
             groupBox2.Controls.Add(browse);
             groupBox2.Location = new System.Drawing.Point(3, 3);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new System.Drawing.Size(369, 44);
+            groupBox2.Size = new System.Drawing.Size(372, 44);
             groupBox2.TabIndex = 7;
             groupBox2.TabStop = false;
             groupBox2.Text = "Path";
@@ -602,13 +601,13 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.filename.Location = new System.Drawing.Point(9, 15);
             this.filename.Name = "filename";
-            this.filename.Size = new System.Drawing.Size(319, 20);
+            this.filename.Size = new System.Drawing.Size(322, 20);
             this.filename.TabIndex = 1;
             // 
             // browse
             // 
             browse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            browse.Location = new System.Drawing.Point(334, 15);
+            browse.Location = new System.Drawing.Point(337, 15);
             browse.Name = "browse";
             browse.Size = new System.Drawing.Size(26, 23);
             browse.TabIndex = 0;
@@ -623,6 +622,7 @@
             // saveTexDialog
             // 
             this.saveTexDialog.DefaultExt = "dds";
+            this.saveTexDialog.OverwritePrompt = false;
             this.saveTexDialog.Title = "Save Texture As";
             // 
             // TextureSaveDialog
@@ -631,7 +631,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.ClientSize = new System.Drawing.Size(375, 521);
+            this.ClientSize = new System.Drawing.Size(378, 555);
             this.Controls.Add(tableLayoutPanel1);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;

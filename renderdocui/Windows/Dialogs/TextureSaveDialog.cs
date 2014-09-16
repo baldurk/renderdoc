@@ -196,6 +196,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void browse_Click(object sender, EventArgs e)
         {
+            saveTexDialog.FilterIndex = fileFormat.SelectedIndex + 1;
             var res = saveTexDialog.ShowDialog();
             if (res == DialogResult.OK || res == DialogResult.Yes)
             {
@@ -279,6 +280,35 @@ namespace renderdocui.Windows.Dialogs
 
             float.TryParse(blackPoint.Text, out saveData.comp.blackPoint);
             float.TryParse(whitePoint.Text, out saveData.comp.whitePoint);
+
+            try
+            {
+                // use same path for non-existing path as invalid path
+                if (!Directory.Exists(Path.GetDirectoryName(Filename)))
+                    throw new ArgumentException();
+
+                if (File.Exists(Filename))
+                {
+                    var res = MessageBox.Show(String.Format("{0} already exists.\nDo you want to replace it?", Path.GetFileName(Filename)), "Confirm Save Texture",
+                                MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button2);
+
+                    if (res != DialogResult.Yes)
+                        return;
+                }
+            }
+            catch(ArgumentException)
+            {
+                // invalid path or similar
+
+                MessageBox.Show(String.Format("{0}\nPath does not exist.\nCheck the path and try again.", Filename), "Save Texture",
+                                MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1);
+
+                return;
+            }
+
+            // path is valid and either doesn't exist or user confirmed replacement
+            DialogResult = DialogResult.OK;
+            Close();
         }
 
         private void blackPoint_TextChanged(object sender, EventArgs e)
