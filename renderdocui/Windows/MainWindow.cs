@@ -886,7 +886,7 @@ namespace renderdocui.Windows
                 return;
             }
             
-            if(!OfficialVersion)
+            if(!OfficialVersion && !BetaVersion)
                 return;
 
             if (m_Core.Config.CheckUpdate_UpdateAvailable)
@@ -903,10 +903,15 @@ namespace renderdocui.Windows
 
             m_Core.Config.CheckUpdate_LastUpdate = today;
 
+            string versionCheck = VersionString;
+
+            if (BetaVersion)
+                versionCheck += String.Format("-{0}-beta", GitCommitHash.Substring(0, 8));
+
             var updateThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 // spawn thread to check update
-                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", VersionString));
+                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", versionCheck));
 
                 try
                 {
