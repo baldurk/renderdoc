@@ -1449,8 +1449,8 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_FreeTargetResource(Rep
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame)
 { return rend->GetFrameInfo(frame); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws)
-{ return rend->GetDrawcalls(frameID, includeTimes, draws); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, bool32 includeTimes, rdctype::array<FetchDrawcall> *draws)
+{ return rend->GetDrawcalls(frameID, includeTimes != 0, draws); }
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetTextures(ReplayRenderer *rend, rdctype::array<FetchTexture> *texs)
 { return rend->GetTextures(texs); }
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRenderer *rend, rdctype::array<FetchBuffer> *bufs)
@@ -1483,8 +1483,11 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRe
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval)
 { return rend->GetMinMax(tex, sliceFace, mip, sample, minval, maxval); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram)
-{ return rend->GetHistogram(tex, sliceFace, mip, sample, minval, maxval, channels, histogram); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram)
+{
+	bool chans[4] = { channels[0] != 0, channels[1] != 0, channels[2] != 0, channels[3] != 0 };
+	return rend->GetHistogram(tex, sliceFace, mip, sample, minval, maxval, chans, histogram);
+}
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data)
 { return rend->GetBufferData(buff, offset, len, data); }

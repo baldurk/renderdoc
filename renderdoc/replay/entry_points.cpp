@@ -128,7 +128,7 @@ bool RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t 
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool crashed)
+void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 crashed)
 {
 	if(RenderDoc::Inst().GetCrashHandler() == NULL)
 		return;
@@ -214,15 +214,15 @@ void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts)
 
 extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-									 const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+									 const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit);
+	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit);
+	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
@@ -372,9 +372,9 @@ uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const wchar_t *host, 
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool *killReplay)
+void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay)
 {
-	bool dummy = false;
+	bool32 dummy = false;
 
 	if(killReplay == NULL) killReplay = &dummy;
 

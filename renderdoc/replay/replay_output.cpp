@@ -590,6 +590,6 @@ extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetPixelContextLocation(
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output)
 { output->DisablePixelContext(); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool customShader,
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool32 customShader,
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
-{ return output->PickPixel(texID, customShader, x, y, sliceFace, mip, sample, val); }
+{ return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val); }

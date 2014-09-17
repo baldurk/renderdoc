@@ -599,7 +599,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_ReceiveMessage(RemoteAcc
 { access->ReceiveMessage(msg); }
 
 extern "C" RENDERDOC_API
-RemoteAccess * RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const wchar_t *host, uint32_t ident, const wchar_t *clientName, bool forceConnection)
+RemoteAccess * RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const wchar_t *host, uint32_t ident, const wchar_t *clientName, bool32 forceConnection)
 {
 	wstring s = L"localhost";
 	if(host != NULL && host[0] != L'\0')
@@ -612,7 +612,7 @@ RemoteAccess * RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const wchar_t
 	if(sock == NULL)
 		return NULL;
 
-	RemoteAccess *remote = new RemoteAccess(sock, clientName, forceConnection, localhost);
+	RemoteAccess *remote = new RemoteAccess(sock, clientName, forceConnection != 0, localhost);
 
 	if(remote->Connected())
 		return remote;

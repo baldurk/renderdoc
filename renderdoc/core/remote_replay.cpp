@@ -70,7 +70,7 @@ static void ProgressTicker(void *d)
 	}
 }
 
-void RenderDoc::BecomeReplayHost(volatile bool &killReplay)
+void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 {
 	Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", RenderDoc_ReplayNetworkPort, 1);
 
