@@ -5,7 +5,7 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11 develo
 
 Quick Links:
 
-* **Builds & Downloads**: http://cryengine.com/renderdoc, https://renderdoc.org/builds
+* **Builds & Downloads**: https://renderdoc.org/builds
 * **Documentation**: renderdoc.chm in the build, or http://docs.renderdoc.org/
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: baldurk@baldurk.org
@@ -15,12 +15,9 @@ Quick Links:
 Downloads
 --------------
 
-There are binary releases available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
+There are [binary releases](https://renderdoc.org/builds) available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
 
-* http://cryengine.com/renderdoc - Official stable installers
-* https://renderdoc.org/builds - Automated builds from the master branch, as just zipped folders
-
-It's recommended that if you're new you start with the latest official stable installer, and only use the automated builds if you want the bleeding edge, or you want a specific bugfix.
+It's recommended that if you're new you start with the stable builds. Beta builds are available for those who want more regular updates with the latest features and fixes, but might run into some bugs as well. Nightly builds are available every day from master branch here if you need it.
 
 License
 --------------
