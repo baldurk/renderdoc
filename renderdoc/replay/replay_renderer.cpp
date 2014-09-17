@@ -717,7 +717,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *pat
 		uint32_t sliceHeight = td.height;
 
 		uint32_t sliceGridHeight = (td.arraysize*td.depth) / sd.slice.sliceGridWidth;
-		if(td.arraysize % sd.slice.sliceGridWidth != 0)
+		if((td.arraysize*td.depth) % sd.slice.sliceGridWidth != 0)
 			sliceGridHeight++;
 
 		td.width *= sd.slice.sliceGridWidth;
