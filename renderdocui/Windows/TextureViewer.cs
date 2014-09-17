@@ -2538,7 +2538,7 @@ namespace renderdocui.Windows
 
             uint[] histogram;
             success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
-                                     rangeHistogram.BlackPoint, rangeHistogram.WhitePoint,
+                                     rangeHistogram.RangeMin, rangeHistogram.RangeMax,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,
                                      m_TexDisplay.Blue && fmt.compCount > 2,
@@ -2549,7 +2549,7 @@ namespace renderdocui.Windows
             {
                 this.BeginInvoke(new Action(() =>
                 {
-                    rangeHistogram.SetHistogramRange(rangeHistogram.BlackPoint, rangeHistogram.WhitePoint);
+                    rangeHistogram.SetHistogramRange(rangeHistogram.RangeMin, rangeHistogram.RangeMax);
                     rangeHistogram.HistogramData = histogram;
                 }));
             }
