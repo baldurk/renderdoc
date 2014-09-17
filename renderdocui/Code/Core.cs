@@ -500,9 +500,14 @@ namespace renderdocui.Code
             m_LogLoaded = true;
             progressThread = false;
 
+            List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
+            logviewers.AddRange(m_LogViewers);
+
             // notify all the registers log viewers that a log has been loaded
-            foreach (var logviewer in m_LogViewers)
+            foreach (var logviewer in logviewers)
             {
+                if (logviewer == null || !(logviewer is Control)) continue;
+
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
                 {
