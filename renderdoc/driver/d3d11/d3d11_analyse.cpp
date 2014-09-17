@@ -2098,7 +2098,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 				texDisplay.mip = mip;
 				texDisplay.sampleIdx = 0;
 				texDisplay.CustomShader = ResourceId();
-				texDisplay.sliceFace = arrayIdx;
+				texDisplay.sliceFace = i;
 				texDisplay.rangemin = blackPoint;
 				texDisplay.rangemax = whitePoint;
 				texDisplay.scale = 1.0f;
