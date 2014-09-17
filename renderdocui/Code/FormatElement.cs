@@ -159,7 +159,9 @@ namespace renderdocui.Code
                 {
                     if (format.compType == FormatComponentType.Float)
                     {
-                        if (format.compByteWidth == 4)
+                        if (format.compByteWidth == 8)
+                            ret.Add(read.ReadDouble());
+                        else if (format.compByteWidth == 4)
                             ret.Add(read.ReadSingle());
                         else if (format.compByteWidth == 2)
                             ret.Add(format.ConvertFromHalf(read.ReadUInt16()));
@@ -194,9 +196,7 @@ namespace renderdocui.Code
                     }
                     else if (format.compType == FormatComponentType.Double)
                     {
-                        // should never hit this! just read a float
-                        ret.Add(read.ReadSingle());
-                        renderdoc.StaticExports.LogText("Unexpected double FormatElement");
+                        ret.Add(read.ReadDouble());
                     }
                     else
                     {
@@ -245,6 +245,7 @@ namespace renderdocui.Code
             ret.value.fv = new float[16];
             ret.value.uv = new uint[16];
             ret.value.iv = new int[16];
+            ret.value._dv_arr = new double[16];
 
             for (uint row = 0; row < ret.rows; row++)
             {
@@ -255,7 +256,9 @@ namespace renderdocui.Code
 
                     object o = objs[src];
 
-                    if (o is float)
+                    if (o is double)
+                        ret.value.dv[dst] = (double)o;
+                    else if (o is float)
                         ret.value.fv[dst] = (float)o;
                     else if (o is uint)
                         ret.value.uv[dst] = (uint)o;
@@ -419,7 +422,7 @@ namespace renderdocui.Code
                     }
                     else if (basetype == "double")
                     {
-                        type = FormatComponentType.Float;
+                        type = FormatComponentType.Double;
                         width = 8;
                     }
                     else if (basetype == "unormh")

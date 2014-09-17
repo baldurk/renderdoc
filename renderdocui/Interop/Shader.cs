@@ -50,13 +50,13 @@ namespace renderdoc
             public Int32[] iv;
 
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            private double[] dv_arr;
+            public double[] _dv_arr;
 
             public double[] dv
             {
                 get
                 {
-                    if (dv_arr == null)
+                    if (_dv_arr == null)
                     {
                         UInt64[] ds = { 0, 0 };
                         ds[0] = uv[1];
@@ -68,12 +68,12 @@ namespace renderdoc
                         ds[0] |= uv[0];
                         ds[1] |= uv[2];
 
-                        dv_arr = new double[2];
-                        dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
-                        dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
+                        _dv_arr = new double[2];
+                        _dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
+                        _dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
                     }
 
-                    return dv_arr;
+                    return _dv_arr;
                 }
             }
         };

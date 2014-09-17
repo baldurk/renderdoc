@@ -1340,6 +1340,10 @@ namespace renderdocui.Windows
             {
                 return Formatter.Format((float)o);
             }
+            else if (o is double)
+            {
+                return Formatter.Format((double)o);
+            }
             else if (o is uint)
             {
                 uint u = (uint)o;
