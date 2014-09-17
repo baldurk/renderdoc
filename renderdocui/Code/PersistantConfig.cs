@@ -141,7 +141,7 @@ namespace renderdocui.Code
             catch (System.IO.IOException ex)
             {
                 // Can't recover, but let user know that we couldn't save their settings.
-                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}\nA default config is loaded and will be saved out.", file, ex.Message));
+                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}", file, ex.Message));
             }
         }
 
