@@ -1323,7 +1323,7 @@ namespace renderdocui.Windows
 
         private void nightlybuildsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start("http://renderdoc.org/autobuild");
+            Process.Start("https://renderdoc.org/builds");
         }
 
         private void sourceOnGithubToolStripMenuItem_Click(object sender, EventArgs e)

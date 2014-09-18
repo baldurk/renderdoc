@@ -594,7 +594,7 @@
             // 
             this.nightlybuildsToolStripMenuItem.Name = "nightlybuildsToolStripMenuItem";
             this.nightlybuildsToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
-            this.nightlybuildsToolStripMenuItem.Text = "Nightly Builds";
+            this.nightlybuildsToolStripMenuItem.Text = "Build/Release downloads";
             this.nightlybuildsToolStripMenuItem.Click += new System.EventHandler(this.nightlybuildsToolStripMenuItem_Click);
             // 
             // aboutToolStripMenuItem
