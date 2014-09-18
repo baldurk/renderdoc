@@ -97,6 +97,14 @@
   
   <listItem><para>
   <externalLink>
+<linkText>stb</linkText>
+<linkAlternateText>Used to read and write various image formats.</linkAlternateText>
+<linkUri>https://github.com/nothings/stb</linkUri>
+</externalLink>
+  </para></listItem>
+  
+  <listItem><para>
+  <externalLink>
 <linkText>Sandcastle Help File Builder</linkText>
 <linkAlternateText>Sandcastle Help File Builder for creating this documentation that you're reading!</linkAlternateText>
 <linkUri>http://shfb.codeplex.com/</linkUri>
