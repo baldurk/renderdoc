@@ -219,7 +219,7 @@
 	      <ComponentRef Id='Documentation' />
 			</Feature>
 
-			<Feature Id='FileExts' Title='File Associations' Description='Associate .rdc (Capture logs) and .cap (Capture settings) files with RenderDoc.' Level='10'>
+			<Feature Id='FileExts' Title='File Associations' Description='Associate .rdc (Capture logs) and .cap (Capture settings) files with RenderDoc.' Level='1'>
 				<ComponentRef Id='ImageThumbnailProvider' />
 				<ComponentRef Id='FileExtensionRDC' />
 				<ComponentRef Id='FileExtensionCAP' />
