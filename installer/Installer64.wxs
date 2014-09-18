@@ -31,6 +31,7 @@
 							<File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release64/renderdocui.exe' KeyPath='yes'>
                 <Shortcut Id="startmenuRenderDoc" Directory="ProgramMenuDir" Name="RenderDoc" WorkingDirectory='INSTALLDIR' Icon="icon.ico" IconIndex="0" Advertise="yes" />
               </File>
+							<File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release64/renderdocui.pdb' />
 							<File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release64/renderdocui.exe.config' />
 
 							<RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
