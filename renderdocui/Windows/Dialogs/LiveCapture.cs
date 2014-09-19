@@ -183,7 +183,7 @@ namespace renderdocui.Windows
                     {
                         uint capID = m_Connection.CaptureFile.ID;
                         DateTime timestamp = new DateTime(1970, 1, 1, 0, 0, 0);
-                        timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp);
+                        timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp).ToLocalTime();
                         byte[] thumb = m_Connection.CaptureFile.thumbnail;
                         string path = m_Connection.CaptureFile.localpath;
 
