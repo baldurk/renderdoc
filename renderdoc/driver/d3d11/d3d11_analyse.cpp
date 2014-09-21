@@ -4350,7 +4350,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		}
 
 		{
-			byte *rowdata = pixstoreDepthData + mapped.RowPitch * storey;
+			byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * storey;
 			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * pixstoreStride + 0));
 
 			mod.preMod.depth = data[0];
@@ -4741,7 +4741,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			// colour
 			{
 				// shader output is always 4 32bit components, so we can copy straight
-				byte *rowdata = shadoutStoreData + mapped.RowPitch * (shadColSlot/2048);
+				byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (shadColSlot/2048);
 				byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
 
 				memcpy(&history[h].shaderOut.col.value_u[0], data, 4*sizeof(float));
@@ -4749,7 +4749,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			// depth
 			{
-				byte *rowdata = pixstoreDepthData + mapped.RowPitch * (depthSlot/2048);
+				byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * (depthSlot/2048);
 				float *data = (float *)(rowdata + 2 * sizeof(float) * (depthSlot%2048));
 
 				history[h].shaderOut.depth = data[0];
@@ -4766,7 +4766,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		// fetch primitive ID
 		{
 			// shader output is always 4 32bit components, so we can copy straight
-			byte *rowdata = shadoutStoreData + mapped.RowPitch * (shadColSlot/2048);
+			byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (shadColSlot/2048);
 			byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
 			
 			memcpy(&history[h].primitiveID, data, sizeof(uint32_t));
