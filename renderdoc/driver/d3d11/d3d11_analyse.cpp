@@ -3204,7 +3204,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
 		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
-		RDCMAX(1U, pixstoreSlots / 2048),
+		RDCMAX(1U, (pixstoreSlots / 2048) + 1),
 		1U,
 		1U,
 		details.texFmt,
