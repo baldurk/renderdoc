@@ -139,6 +139,8 @@ class State : public ShaderDebugState
 			uint32_t GroupID[3];
 			uint32_t ThreadID[3];
 			uint32_t coverage;
+			uint32_t primID;
+			uint32_t isFrontFace;
 		} semantics;
 
 		void Init();

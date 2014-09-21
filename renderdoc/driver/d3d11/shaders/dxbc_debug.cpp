@@ -990,6 +990,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 			v = s = ShaderVariable("vCoverage", semantics.coverage, semantics.coverage, semantics.coverage, semantics.coverage);
 			break;
 		}
+		case TYPE_INPUT_PRIMITIVEID:
+		{
+			v = s = ShaderVariable("vPrimitiveID", semantics.primID, semantics.primID, semantics.primID, semantics.primID);
+			break;
+		}
 		default:
 		{
 			RDCERR("Currently unsupported operand type %d!", oper.type);

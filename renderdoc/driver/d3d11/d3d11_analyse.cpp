@@ -792,10 +792,11 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 // want to copy the data to
 struct DataOutput
 {
-	DataOutput(int regster, int element, int numWords) { reg = regster; elem = element; numwords = numWords; }
+	DataOutput(int regster, int element, int numWords, SystemAttribute attr) { reg = regster; elem = element; numwords = numWords; sysattribute = attr; }
 
 	int reg;
 	int elem;
+	SystemAttribute sysattribute;
 
 	int numwords;
 };
@@ -806,6 +807,7 @@ struct DebugHit
 	float posx; float posy;
 	float depth;
 	uint32_t primitive;
+	uint32_t isFrontFace;
 	uint32_t coverage;
 	uint32_t rawdata; // arbitrary, depending on shader
 };
@@ -1179,7 +1181,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	{
 		extractHlsl += "float4 input_dummy : SV_Position;\n";
 
-		initialValues.push_back(DataOutput(-1, 0, 4));
+		initialValues.push_back(DataOutput(-1, 0, 4, eAttr_None));
 
 		structureStride += 4;
 	}
@@ -1189,6 +1191,18 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
 	{
 		extractHlsl += "  ";
+		
+		bool included = true;
+
+		// handled specially to account for SV_ ordering
+		if(dxbc->m_InputSig[i].systemValue == eAttr_PrimitiveIndex ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_MSAACoverage ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_IsFrontFace)
+		{
+			extractHlsl += "//";
+			included = false;
+		}
+
 		if(dxbc->m_InputSig[i].compType == eCompType_Float)
 			extractHlsl += "float";
 		else if(dxbc->m_InputSig[i].compType == eCompType_SInt)
@@ -1204,7 +1218,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			(dxbc->m_InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
 			(dxbc->m_InputSig[i].regChannelMask & 0x8 ? 1 : 0);
 
-		structureStride += 4*numCols;
+		if(included)
+			structureStride += 4*numCols;
 
 		string name = dxbc->m_InputSig[i].semanticIdxName.elems;
 		
@@ -1222,22 +1237,23 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			dxbc->m_InputSig[i].regChannelMask & 0x8 ? 3 :
 			-1;
 
-		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols));
+		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue));
 	}
 
 	extractHlsl += "};\n\n";
 
 	uint32_t overdrawLevels = 100; // maximum number of overdraw levels
 
-	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint covge; PSInput IN; float derivValid; PSInput INddx; PSInput INddy; };\n\n";
+	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; };\n\n";
 	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
-	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage)\n{\n";
+	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage, bool fface : SV_IsFrontFace)\n{\n";
 	extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
 	extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2)\n";
 	extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
 	extractHlsl += "  idx = min(idx, " + ToStr::Get(overdrawLevels) + ");\n\n";
 	extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
 	extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
+	extractHlsl += "  PSInitialBuffer[idx].fface = fface;\n";
 	extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
 	extractHlsl += "  PSInitialBuffer[idx].IN = IN;\n";
 	extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
@@ -1256,6 +1272,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	uint32_t structStride = sizeof(uint32_t)    // uint hit;
 	                      + sizeof(float)*3     // float3 pos;
 												+ sizeof(uint32_t)    // uint prim;
+												+ sizeof(uint32_t)    // uint fface;
 												+ sizeof(uint32_t)    // uint covge;
 												+ sizeof(float)       // float derivValid;
 												+ structureStride*3;  // PSInput IN, INddx, INddy;
@@ -1440,8 +1457,21 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			ins[ins.count-1].value.u.x = hit->coverage;
 		
 		initialState.semantics.coverage = hit->coverage;
+		initialState.semantics.primID = hit->primitive;
+		initialState.semantics.isFrontFace = hit->isFrontFace;
 
 		uint32_t *data = &hit->rawdata;
+
+		float *ddx = (float *)data;
+
+		// ddx(SV_Position.x) MUST be 1.0
+		if(*ddx != 1.0f)
+		{
+			RDCERR("Derivatives invalid");
+			return empty;
+		}
+
+		data++;
 
 		for(size_t i=0; i < initialValues.size(); i++)
 		{
@@ -1449,9 +1479,26 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 			if(initialValues[i].reg >= 0)
 			{
-				rawout = &traces[destIdx].inputs[initialValues[i].reg].value.iv[initialValues[i].elem];
+				ShaderVariable &invar = traces[destIdx].inputs[initialValues[i].reg];
 
-				memcpy(rawout, data, initialValues[i].numwords*4);
+				if(initialValues[i].sysattribute == eAttr_PrimitiveIndex)
+				{
+					invar.value.u.x = hit->primitive;
+				}
+				else if(initialValues[i].sysattribute == eAttr_MSAACoverage)
+				{
+					invar.value.u.x = hit->coverage;
+				}
+				else if(initialValues[i].sysattribute == eAttr_IsFrontFace)
+				{
+					invar.value.u.x = hit->isFrontFace ? ~0U : 0;
+				}
+				else
+				{
+					rawout = &invar.value.iv[initialValues[i].elem];
+
+					memcpy(rawout, data, initialValues[i].numwords*4);
+				}
 			}
 
 			data += initialValues[i].numwords;
@@ -1467,16 +1514,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 				quad[i].SetHelper();
 		}
 
-		float *ddx = (float *)data;
-
-		// ddx(SV_Position.x) MUST be 1.0
-		if(*ddx != 1.0f)
-		{
-			RDCERR("Derivatives invalid");
-			return empty;
-		}
-
-		ddx++;
+		ddx = (float *)data;
 
 		for(size_t i=0; i < initialValues.size(); i++)
 		{
