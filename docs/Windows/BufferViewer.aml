@@ -114,6 +114,9 @@
   <listItem><para>snormf - 32bit signed normalised value</para></listItem>
   <listItem><para>uintten - 4 component unsigned integer format, packed as 10:10:10:2</para></listItem>
   <listItem><para>unormten - 4 component unsigned normalised format, packed as 10:10:10:2</para></listItem>
+  <listItem><para>xuint - hex-formatted 32bit integer</para></listItem>
+  <listItem><para>xshort - hex-formatted 16bit integer</para></listItem>
+  <listItem><para>xbyte - hex-formatted 8bit integer</para></listItem>
 </list>
 
       </content>

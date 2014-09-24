@@ -87,20 +87,10 @@
 
 			  </listItem>
 			  <listItem>
-			    <para>There is no pixel history at present. When pixel debugging you must select the
-			    exact drawcall that you are interested in debugging.
-			    </para>
-			  </listItem>
-			  <listItem>
 			    <para>If a debugged pixel is overdrawn multiple times by the same drawcall RenderDoc will attempt
 			    to pick the pixel that last passed the depth test, but this may not necessarily be entirely
 			    accurate and in the case of blending there's no way currently to pick other pixels that passed
 			    the depth test.
-			    </para>
-			  </listItem>
-			  <listItem>
-			    <para>The instruction set for shader debugging is not complete, and some instructions may be
-			    unimplemented leading to incorrect results when debugging.
 			    </para>
 			  </listItem>
 			  <listItem>

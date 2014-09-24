@@ -144,8 +144,8 @@
       	output register along with a swizzle and typecast.</para>
       	<para>Swizzles follow the standard hlsl rules - .[xyzw] or .[rgba] in any permutation or repetition
       	will show those channels.</para>
-      	<para>The custom typecast can be any of ,x ,i ,d ,f ,u to display the register as hex, signed integer,
-      	double, float or unsigned respectively.</para>
+      	<para>The custom typecast can be any of ,x ,i ,d ,f ,u ,b to display the register as hex, signed integer,
+      	double, float, unsigned, or bitwise respectively.</para>
         <mediaLink>
 <caption placement="after" lead="Watch window">Watch window - custom register expressions evaluated.</caption>
 <image xlink:href="ShaderWatch"/>

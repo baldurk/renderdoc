@@ -29,7 +29,7 @@
         <HelpKeyword index="K" term="Features" />
       </HelpKeywords>
     </Topic>
-    <Topic id="e2878f27-34d3-458a-9077-d0fb32c16829" visible="True" isSelected="true" title="Tips &amp; Tricks">
+    <Topic id="e2878f27-34d3-458a-9077-d0fb32c16829" visible="True" title="Tips &amp; Tricks">
       <HelpKeywords>
         <HelpKeyword index="K" term="Tips &amp; Tricks" />
         <HelpKeyword index="K" term="Code Integration, Manually triggered log capture" />
@@ -62,10 +62,11 @@
         <HelpKeyword index="K" term="Capture Options" />
       </HelpKeywords>
     </Topic>
-    <Topic id="F1C1E449-55ED-46FE-BBFD-11D1A0511501" visible="True" title="How do I inspect a pixel value?">
+    <Topic id="F1C1E449-55ED-46FE-BBFD-11D1A0511501" visible="True" isSelected="true" title="How do I inspect a pixel value?">
       <HelpKeywords>
         <HelpKeyword index="K" term="How To, Inspect pixel value" />
         <HelpKeyword index="K" term="Pixel Picking" />
+        <HelpKeyword index="K" term="Pixel History" />
       </HelpKeywords>
     </Topic>
     <Topic id="32C47E20-0FA2-4F52-B33A-4440EBCCBCE4" visible="True" title="How do I view a specific texture?">

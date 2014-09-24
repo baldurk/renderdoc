@@ -14,17 +14,6 @@
         or delayed indefinitely.
       </para>
     </introduction>
-    <section address="Source">
-      <title>Source Code Release</title>
-      <content>
-        <para>
-          At current the source is not available, but the plan is to release the code onto github
-          at some point in the future, hopefully soon. Primarily it will be once RenderDoc has stabilised
-          and there is a good feature set available, as opposed to the very basic features currently
-          available.
-        </para>
-      </content>
-    </section>
     <section address="Features">
       <title>Planned Features</title>
       <content>

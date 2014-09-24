@@ -65,10 +65,12 @@
 			  		currently selected pipeline slot as it changes, rather than remaining on the given texture.</para></listItem>
 			  		<listItem><para>Tabbed view for locking a view of a particular resource over time.</para></listItem>
 			  		<listItem><para>Pixel value picking.</para></listItem>
+			  		<listItem><para>Save (in theory) any type of texture and format to various formats, dds as well as regular png/jpg.</para></listItem>
 			  		<listItem><para>Several debug overlays for render targets - Wireframe, Depth pass/fail, Stencil pass/fail,
-			  		Clipping (below black/above white points), NaN/-ve/INF highlight.</para></listItem>
+			  		Clipping (below black/above white points), NaN/-ve/INF highlight, quad overdraw.</para></listItem>
 			  	</list>
 			  </listItem>
+			  <listItem><para>Pixel history view.</para></listItem>
 			  <listItem><para>Custom visualisation shader support - e.g. decode custom packed formats or gbuffers.</para></listItem>
 			  <listItem><para>Vertex, Pixel and Compute shader debugging.</para></listItem>
 			  <listItem><para>Hot shader editing and replacement.</para></listItem>

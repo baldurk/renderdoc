@@ -60,6 +60,22 @@
         about this is available: <link xlink:href="8a7568ca-6b2c-4873-b8eb-d1ad2aff9629" />.</para>
       </content>
     </section>
+    <section address="PixelHistory">
+      <title>Pixel History</title>
+      <content>
+        <para>When you have a pixel selected, you can click 'History' to open up a pixel history view
+        showing every modification to the selected texture from the start of the frame to the currently
+        selected event.</para>
+        <para>This display shows each modifying event as its own row, coloured as to whether any modifications
+        happened from this event or not - green for fragments that passed all pipeline tests, red for
+        where fragments failed some test, and light grey for UAV writes where it's unknown if there was a write.</para>
+        <para>You can expand each event to see if there were multiple fragments, and see the shader output
+        value from each fragment.</para>
+        <para>Right clicking will allow you to launch the shader debugger at the given event for the selected
+        pixel. Currently this does not debug the specific fragment you selected, only the default behaviour
+        for debugging that event.</para>
+      </content>
+    </section>
     <relatedTopics>
       <link xlink:href="2c540574-0b81-4a40-8119-ba0283fddf41" />
     </relatedTopics>

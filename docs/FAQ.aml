@@ -118,11 +118,10 @@
         </para>
         <para>
           In future API support is planned for at least OpenGL and D3D9 as soon as time and scheduling
-          allows - OpenGL support is under development. Support for Mantle would be nice but I can't
-          promise it just yet until the API is
-          public.
+          allows - OpenGL support is under development. Support for Mantle is currently under development
+          also.
         </para>
-        <para>Other APIs could be supported once the source is open as I've tried to structure
+        <para>Other APIs could be supported as I've tried to structure
           things such that different back-ends can be slotted in without significant code changes.
         </para>
       </content>
@@ -244,6 +243,50 @@
           You can override this behaviour on any texture that isn't listed as explicitly SRGB with the gamma (&#947;)
           button - toggle this off and the overcorrection will be disabled.
         </para>
+      </content>
+    </section>
+    <section address="FAQ12">
+      <title>RenderDoc makes my bug go away! Or causes new artifacts that weren't there</title>
+      <content>
+        <para>
+          For various tedious reasons RenderDoc's replay isn't (and in most cases <em>can't be</em>) a
+          perfect reproduction of what your code was executing in the application when captured, and it
+          can change the circumstances while running.
+        </para>
+        <para>
+          During capture the main impact of having RenderDoc enabled is that timings will change, and
+          more memory (sometimes much more) will be allocated. There are also slight differences to the
+          interception of Map() calls as they go through an intermediate buffer to be captured. Generally
+          the only problem this can expose is that when capturing a frame, if something is timing dependent
+          RenderDoc causes one or two <em>very</em> slow frames, and can cause the bug to disappear.
+        </para>
+        <para>
+          The two primary causes of differences between the captured program and the replayed log (for
+          better or for worse) are:
+        </para>
+        
+<list class="ordered">
+  <listItem>
+	  <para>
+	    Map()s that use DISCARD are filled with a marker value, so any values that aren't written
+	    to the buffer will be different - in application you can get lucky and they can be previous
+	    values that were uploaded, but in replay they will be 0xCCCCCCCC.
+	  </para>
+  </listItem>
+  <listItem>
+	  <para>
+	    RenderDoc as an optimisation will not save or restore the contents of render targets at the
+	    start of the frame if it believes they will be entirely overwritten in the frame. This
+	    detection is typically accurate but means targets are cleared to black or full depth rather
+	    than accumulating, even if that accumulation is not intentional it may be the cause of the bug.
+	  </para>
+	  <para>
+	    This behaviour can be overridden by enabling 'Save all initials' in the
+	    <link xlink:href="0dd6fe0d-4130-46f4-b2ea-9565de13111d">capture options</link>.
+	  </para>
+  </listItem>
+</list>
+
       </content>
     </section>
   </developerConceptualDocument>

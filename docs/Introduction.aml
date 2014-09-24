@@ -14,17 +14,26 @@
         and explanation of which features are available in RenderDoc and how to
         best use them.
       </para>
+      <para>
+        The latest information and discussion is always available on the
+        <externalLink>
+<linkText>GitHub wiki</linkText>
+<linkAlternateText>wiki on GitHub</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc/wiki</linkUri>
+</externalLink>.
+      </para>
     </introduction>
     <section address="guide">
       <title>License</title>
 	  <content>
 	    <para>
 	      RenderDoc is released under the MIT license, so there are no restrictions on your use of it either
-	      commercial or non-commercial.
-	    </para>
-	    <para>
-	      This license will also not change when the source is released, so any source modifications will be
-	      equally unrestricted.
+	      commercial or non-commercial. This includes the source release available on the
+	      <externalLink>
+<linkText>GitHub repository</linkText>
+<linkAlternateText>Source on GitHub</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc/issues</linkUri>
+</externalLink>.
 	    </para>
 	    <para>
 	      Details of the licenses of third party software used in RenderDoc are included in the LICENSE file
