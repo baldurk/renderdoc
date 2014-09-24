@@ -24,7 +24,7 @@
 
 
 #include "replay_proxy.h"
-#include "3rdparty/lz4/lz4.h"
+#include "lz4/lz4.h"
 
 template<>
 string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)

@@ -35,13 +35,7 @@ using std::map;
 
 #if defined(WIN32)
 
-#if USE_MHOOK
-	#include "3rdparty/mhook/mhook-lib/mhook.h"
-#elif USE_IAT_HOOK
-	#include "os/win32/win32_hook.h"
-#else
-	#error "No hook method enabled"
-#endif
+#include "os/win32/win32_hook.h"
 
 template<typename FuncType>
 class Hook
@@ -53,9 +47,6 @@ class Hook
 		}
 		~Hook()
 		{
-#if USE_MHOOK
-			Mhook_Unhook(&orig_funcptr);
-#endif
 		}
 		
 		FuncType operator()()
@@ -67,29 +58,15 @@ class Hook
 		{
 			orig_funcptr = Process::GetFunctionAddress(module_name, function);
 
-#if USE_MHOOK
-			if(orig_funcptr == NULL)
-				return false;
-			
-			return Mhook_SetHook(&orig_funcptr, destination_function_ptr);
-#elif USE_IAT_HOOK
 			return Win32_IAT_Hook(&orig_funcptr, module_name, function, destination_function_ptr);
-#else
-			#error "No hook method enabled"
-#endif
 		}
 
 	private:
 		void *orig_funcptr;
 };
 
-#if USE_MHOOK
-	#define HOOKS_BEGIN() Mhook_SuspendOtherThreads()
-	#define HOOKS_END() Mhook_ResumeOtherThreads()
-#else
-	#define HOOKS_BEGIN() Win32_IAT_BeginHooks()
-	#define HOOKS_END() Win32_IAT_EndHooks()
-#endif
+#define HOOKS_BEGIN() Win32_IAT_BeginHooks()
+#define HOOKS_END() Win32_IAT_EndHooks()
 
 #elif defined(LINUX)
 

@@ -29,8 +29,8 @@
 #define CRASH_HANDLER_ENABLED
 
 // breakpad
-#include "client/windows/handler/exception_handler.h"
-#include "client/windows/common/ipc_protocol.h"
+#include "breakpad/client/windows/handler/exception_handler.h"
+#include "breakpad/client/windows/common/ipc_protocol.h"
 
 class CrashHandler : public ICrashHandler
 {

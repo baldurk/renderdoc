@@ -31,16 +31,19 @@
 
 #include "resource.h"
 
-// breakpad
-#include "common/windows/http_upload.h"
-#include "client/windows/crash_generation/client_info.h"
-#include "client/windows/crash_generation/crash_generation_server.h"
-
-#include "miniz.h"
+#include "miniz/miniz.h"
 
 using std::string;
 using std::wstring;
 using std::vector;
+
+HINSTANCE hInstance = NULL;
+
+#if defined(RELEASE)
+// breakpad
+#include "breakpad/common/windows/http_upload.h"
+#include "breakpad/client/windows/crash_generation/client_info.h"
+#include "breakpad/client/windows/crash_generation/crash_generation_server.h"
 
 using google_breakpad::ClientInfo;
 using google_breakpad::CrashGenerationServer;
@@ -58,8 +61,6 @@ string reproSteps = "";
 wstring dump = L"";
 vector<google_breakpad::CustomInfoEntry> customInfo;
 wstring logpath = L"";
-
-HINSTANCE hInstance = NULL;
 
 INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -186,6 +187,7 @@ static void _cdecl OnClientExited(void* context, const ClientInfo* client_info)
 {
 	exitServer = true;
 }
+#endif
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
@@ -319,7 +321,8 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, 
 	{
 		return 1;
 	}
-	
+
+#if defined(RELEASE)
 	CrashGenerationServer *crashServer = NULL;
 
 	// special WIN32 option for launching the crash handler
@@ -494,6 +497,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, 
 
 		return 0;
 	}
+#endif
 
 	return renderdoccmd(argc, argv);
 }

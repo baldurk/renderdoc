@@ -32,7 +32,7 @@
 
 #include "maths/vec.h"
 
-#include "3rdparty/jpeg-compressor/jpge.h"
+#include "jpeg-compressor/jpge.h"
 
 const char *GLChunkNames[] =
 {

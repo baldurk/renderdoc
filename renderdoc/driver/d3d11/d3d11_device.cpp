@@ -35,7 +35,7 @@
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_context.h"
 
-#include "3rdparty/jpeg-compressor/jpge.h"
+#include "jpeg-compressor/jpge.h"
 
 #if defined(INCLUDE_D3D_11_1)
 #include <d3d11shadertracing.h>

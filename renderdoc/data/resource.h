@@ -25,7 +25,7 @@
 #endif
 
 #define GIT_COMMIT_HASH							"NO_GIT_COMMIT_HASH_DEFINED"
-//#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
+#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
 
 // Next default values for new objects
 // 

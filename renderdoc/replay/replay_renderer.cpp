@@ -34,10 +34,10 @@
 
 #include "serialise/serialiser.h"
 
-#include "3rdparty/jpeg-compressor/jpgd.h"
-#include "3rdparty/jpeg-compressor/jpge.h"
-#include "3rdparty/stb/stb_image.h"
-#include "3rdparty/stb/stb_image_write.h"
+#include "jpeg-compressor/jpgd.h"
+#include "jpeg-compressor/jpge.h"
+#include "stb/stb_image.h"
+#include "stb/stb_image_write.h"
 #include "common/dds_readwrite.h"
 
 static inline float ConvertComponent(ResourceFormat fmt, byte *data)
