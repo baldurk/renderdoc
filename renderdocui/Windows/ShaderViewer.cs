@@ -1279,14 +1279,17 @@ namespace renderdocui.Windows
                                             "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);" + Environment.NewLine +
                                             "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);" + Environment.NewLine +
                                             "Texture2DArray<float4> texDisplayTexCubeArray : register(t8);" + Environment.NewLine +
+                                            "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);" + Environment.NewLine +
                                             "" + Environment.NewLine +
                                             "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);" + Environment.NewLine +
                                             "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);" + Environment.NewLine +
                                             "Texture3D<uint4> texDisplayUIntTex3D : register(t13);" + Environment.NewLine +
+                                            "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);" + Environment.NewLine +
                                             "" + Environment.NewLine +
                                             "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);" + Environment.NewLine +
                                             "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);" + Environment.NewLine +
                                             "Texture3D<int4> texDisplayIntTex3D : register(t23);" + Environment.NewLine +
+                                            "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);" + Environment.NewLine +
                                             "// End Textures" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
