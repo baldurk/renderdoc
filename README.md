@@ -35,8 +35,6 @@ The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later 
 
 The only external dependency should be the Windows 8.1 SDK. The 8.0 SDK should also work fine, but [the vcxproj](renderdoc/renderdoc.vcxproj) is set up to look in `$(ProgramFiles)\Windows Kits\8.1\` for the necessary paths. If your SDK is installed elsewhere you'll also need to change these locally. You can also compile only against the June 2010 DirectX SDK if you undefine `INCLUDE_D3D_11_1` in `d3d11_common.h`.
 
-If you are on VS express you won't have the DIA SDK, so set `USE_DIA` 0 in [pdblocate.cpp](pdblocate/pdblocate.cpp) and you'll just lose callstack symbol resolution.
-
 Profile is recommended for day-to-day dev. It's debuggable but not too slow. Release is obviously what you should build for any builds you'll send out to people or if you want to evaluate performance.
 
 ### Linux ###
