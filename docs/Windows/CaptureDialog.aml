@@ -133,16 +133,6 @@
     <entry><para>Disabled</para></entry>
   </row>
   <row>
-    <entry><para>Cache State Objects</para></entry>
-    <entry><para>In D3D11 creating a state object with the same descriptor as one that already exists
-    will simply return a pointer to the existing state object, with a reference count added. Given that 
-    creation and destruction in RenderDoc has a certain overhead, when this option is enabled RenderDoc will
-    hold onto a reference to freed state objects in case they are likely to be re-allocated soon after.</para>
-    <para>This will reduce churn and overhead with minimal impact to the application, and it's recommended to
-    leave this enabled unless you have specific problems or want to remove this optimisation.</para></entry>
-    <entry><para>Enabled</para></entry>
-  </row>
-  <row>
     <entry><para>Hook into Children</para></entry>
     <entry><para>This option causes RenderDoc to hook into CreateProcess and intercept any calls to it from
     the target application. When this option is enabled those child processes will be injected with RenderDoc

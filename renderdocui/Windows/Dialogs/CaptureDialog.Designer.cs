@@ -48,7 +48,6 @@
             this.CaptureCallstacks = new System.Windows.Forms.CheckBox();
             this.CaptureCallstacksOnlyDraws = new System.Windows.Forms.CheckBox();
             this.DebugDeviceMode = new System.Windows.Forms.CheckBox();
-            this.CacheStateObjects = new System.Windows.Forms.CheckBox();
             this.HookIntoChildren = new System.Windows.Forms.CheckBox();
             this.SaveAllInitials = new System.Windows.Forms.CheckBox();
             this.RefAllResources = new System.Windows.Forms.CheckBox();
@@ -215,7 +214,6 @@
             this.capOptsFlow.Controls.Add(this.CaptureCallstacks);
             this.capOptsFlow.Controls.Add(this.CaptureCallstacksOnlyDraws);
             this.capOptsFlow.Controls.Add(this.DebugDeviceMode);
-            this.capOptsFlow.Controls.Add(this.CacheStateObjects);
             this.capOptsFlow.Controls.Add(this.HookIntoChildren);
             this.capOptsFlow.Controls.Add(this.SaveAllInitials);
             this.capOptsFlow.Controls.Add(this.RefAllResources);
@@ -311,17 +309,6 @@
             this.toolTip.SetToolTip(this.DebugDeviceMode, "D3D11: Create a debug device - allows capturing and reading of D3D errors and war" +
         "nings");
             this.DebugDeviceMode.UseVisualStyleBackColor = true;
-            // 
-            // CacheStateObjects
-            // 
-            this.CacheStateObjects.Location = new System.Drawing.Point(275, 29);
-            this.CacheStateObjects.Name = "CacheStateObjects";
-            this.CacheStateObjects.Size = new System.Drawing.Size(130, 20);
-            this.CacheStateObjects.TabIndex = 13;
-            this.CacheStateObjects.Text = "Cache State Objects";
-            this.toolTip.SetToolTip(this.CacheStateObjects, "D3D11: Caches state objects so that rapid creation & destruction\r\ndoesn\'t inflate" +
-        " memory used and log file size");
-            this.CacheStateObjects.UseVisualStyleBackColor = true;
             // 
             // HookIntoChildren
             // 
@@ -656,7 +643,6 @@
 
         private System.Windows.Forms.Button capture;
         private System.Windows.Forms.Button close;
-        private System.Windows.Forms.CheckBox CacheStateObjects;
         private System.Windows.Forms.CheckBox AllowVSync;
         private System.Windows.Forms.CheckBox DebugDeviceMode;
         private System.Windows.Forms.CheckBox AllowFullscreen;

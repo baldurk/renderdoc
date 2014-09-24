@@ -68,7 +68,6 @@ namespace renderdocui.Windows.Dialogs
 
             AllowFullscreen.Checked = settings.Options.AllowFullscreen;
             AllowVSync.Checked = settings.Options.AllowVSync;
-            CacheStateObjects.Checked = settings.Options.CacheStateObjects;
             HookIntoChildren.Checked = settings.Options.HookIntoChildren;
             CaptureCallstacks.Checked = settings.Options.CaptureCallstacks;
             CaptureCallstacksOnlyDraws.Checked = settings.Options.CaptureCallstacksOnlyDraws;
@@ -107,7 +106,6 @@ namespace renderdocui.Windows.Dialogs
             ret.Options.AllowFullscreen = AllowFullscreen.Checked;
             ret.Options.AllowVSync = AllowVSync.Checked;
             ret.Options.HookIntoChildren = HookIntoChildren.Checked;
-            ret.Options.CacheStateObjects = CacheStateObjects.Checked;
             ret.Options.CaptureCallstacks = CaptureCallstacks.Checked;
             ret.Options.CaptureCallstacksOnlyDraws = CaptureCallstacksOnlyDraws.Checked;
             ret.Options.DebugDeviceMode = DebugDeviceMode.Checked;

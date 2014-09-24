@@ -90,7 +90,7 @@ namespace renderdoc
                 defs.CaptureCallstacks = false;
                 defs.CaptureCallstacksOnlyDraws = false;
                 defs.DelayForDebugger = 0;
-                defs.CacheStateObjects = true;
+                defs.CacheStateObjects = false;
                 defs.HookIntoChildren = false;
                 defs.RefAllResources = false;
                 defs.SaveAllInitials = false;

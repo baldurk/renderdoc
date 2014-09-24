@@ -67,23 +67,67 @@ struct CaptureOptions
 		  CaptureCallstacks(false),
 		  CaptureCallstacksOnlyDraws(false),
 		  DelayForDebugger(0),
-		  CacheStateObjects(true),
+		  CacheStateObjects(false),
 		  HookIntoChildren(false),
 		  RefAllResources(false),
 		  SaveAllInitials(false),
 		  CaptureAllCmdLists(false)
 	{}
 
+	// Whether or not to allow the application to enable vsync
+	//
+	// Enabled - allows the application to enable or disable vsync at will
+	// Disabled - vsync is force disabled
 	bool32 AllowVSync;
+	
+	// Whether or not to allow the application to enable fullscreen
+	//
+	// Enabled - allows the application to enable or disable fullscreen at will
+	// Disabled - fullscreen is force disabled
 	bool32 AllowFullscreen;
+
+	// Enables in-built API debugging features and records the results into the
+	// capture logfile, which is matched up with events on replay
 	bool32 DebugDeviceMode;
+
+	// Captures callstacks for every API event during capture
 	bool32 CaptureCallstacks;
+
+	// Only captures callstacks for drawcall type API events.
+	// Ignored if CaptureCallstacks is disabled
 	bool32 CaptureCallstacksOnlyDraws;
+
+	// Specify a delay in seconds to wait for a debugger to attach after
+	// creating or injecting into a process, before continuing to allow it to run.
 	uint32_t DelayForDebugger;
+
+	// Deprecated, ignored.
 	bool32 CacheStateObjects;
+
+	// Hooks any system API events that create child processes, and injects
+	// renderdoc into them recursively with the same options.
 	bool32 HookIntoChildren;
+
+	// By default renderdoc only includes resources in the final logfile necessary
+	// for that frame, this allows you to override that behaviour
+	//
+	// Enabled - all live resources at the time of capture are included in the log
+	//           and available for inspection
+	// Disabled - only the resources referenced by the captured frame are included
 	bool32 RefAllResources;
+
+	// By default renderdoc skips saving initial states for
 	bool32 SaveAllInitials;
+
+	// In APIs that allow for the recording of command lists to be replayed later,
+	// renderdoc may choose to not capture command lists before a frame capture is
+	// triggered, to reduce overheads. This means any command lists recorded once
+	// and replayed many times will not be available and may cause a failure to
+	// capture.
+	//
+	// Enabled - All command lists are captured from the start of the application
+	// Disabled - Command lists are only captured if their recording begins during
+	//            the period when a frame capture is in progress.
 	bool32 CaptureAllCmdLists;
 	
 #ifdef __cplusplus
@@ -97,7 +141,6 @@ struct CaptureOptions
 				>> CaptureCallstacks
 				>> CaptureCallstacksOnlyDraws
 				>> DelayForDebugger
-				>> CacheStateObjects
 				>> HookIntoChildren
 				>> RefAllResources
 				>> SaveAllInitials
@@ -114,7 +157,6 @@ struct CaptureOptions
 				<< CaptureCallstacks << " "
 				<< CaptureCallstacksOnlyDraws << " "
 				<< DelayForDebugger << " "
-				<< CacheStateObjects << " "
 				<< HookIntoChildren << " "
 				<< RefAllResources << " "
 				<< SaveAllInitials << " "
