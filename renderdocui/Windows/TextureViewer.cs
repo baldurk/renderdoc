@@ -1312,7 +1312,7 @@ namespace renderdocui.Windows
             {
                 if (value == true)
                 {
-                    debugPixel.Enabled = debugPixelContext.Enabled = true;
+                    debugPixelContext.Enabled = true;
                     toolTip.RemoveAll();
                     toolTip.SetToolTip(debugPixelContext, "Debug this pixel");
                     toolTip.SetToolTip(pixelHistory, "Show history for this pixel");
@@ -1324,7 +1324,7 @@ namespace renderdocui.Windows
                     m_CurPixelValue = null;
                     m_CurRealValue = null;
 
-                    debugPixel.Enabled = debugPixelContext.Enabled = false;
+                    debugPixelContext.Enabled = false;
                     toolTip.RemoveAll();
                     toolTip.SetToolTip(debugPixelContext, "Right Click to choose a pixel");
                     toolTip.SetToolTip(pixelHistory, "Right Click to choose a pixel");
