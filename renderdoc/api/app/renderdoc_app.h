@@ -236,8 +236,8 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile();
 typedef const wchar_t* (RENDERDOC_CC *pRENDERDOC_GetLogFile)();
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
-typedef bool (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
+typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
@@ -251,8 +251,8 @@ typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle);
 typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *wndHandle);
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle);
-typedef bool (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle);
+typedef bool32 (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();

@@ -405,10 +405,10 @@ struct RemoteRenderer
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteRenderer_Shutdown(RemoteRenderer *remote)
 {	remote->Shutdown(); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
 { return remote->LocalProxies(out); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
 { return remote->RemoteSupportedReplays(out); }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const wchar_t *logfile, float *progress, ReplayRenderer **rend)

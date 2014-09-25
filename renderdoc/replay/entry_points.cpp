@@ -103,7 +103,7 @@ const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile()
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp)
+bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp)
 {
 	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
@@ -154,7 +154,7 @@ void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
+bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
 {
 	if(logfile == NULL)
 		return false;
@@ -244,7 +244,7 @@ void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle)
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
+bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
 {
 	return RenderDoc::Inst().EndFrameCapture(wndHandle);
 }
@@ -280,7 +280,7 @@ void RENDERDOC_CC RENDERDOC_QueueCapture(uint32_t frameNumber)
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len)
+bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len)
 {
 	Serialiser ser(filename, Serialiser::READING, false);
 
