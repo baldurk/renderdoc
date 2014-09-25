@@ -27,6 +27,8 @@
 
 #include "dds_readwrite.h"
 
+static const uint32_t dds_fourcc = MAKE_FOURCC('D', 'D', 'S', ' ');
+
 // from MSDN
 struct DDS_PIXELFORMAT {
   uint32_t dwSize;
@@ -209,7 +211,8 @@ struct DDS_HEADER_DXT10 {
 #define DDSCAPS_MIPMAP		0x400000
 #define DDSCAPS_TEXTURE		0x1000
 
-#define DDSCAPS2_CUBEMAP	0xff00 // d3d10+ requires all cubemap faces
+#define DDSCAPS2_CUBEMAP	0x0200 // d3d10+ requires all cubemap faces
+#define DDSCAPS2_CUBEMAP_ALLFACES 0xfc00
 #define DDSCAPS2_VOLUME		0x200000
 
 #define DDS_RESOURCE_MISC_TEXTURECUBE 0x4
@@ -397,7 +400,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 {
 	if(!f) return false;
 
-	uint32_t magic = 0x20534444;
+	uint32_t magic = dds_fourcc;
 	DDS_HEADER header;
 	DDS_HEADER_DXT10 headerDXT10;
 	RDCEraseEl(header);
@@ -462,7 +465,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 
 	if(data.cubemap)
 	{
-		header.dwCaps2 = DDSCAPS2_CUBEMAP;
+		header.dwCaps2 = DDSCAPS2_CUBEMAP|DDSCAPS2_CUBEMAP_ALLFACES;
 		headerDXT10.miscFlag |= DDS_RESOURCE_MISC_TEXTURECUBE;
 		headerDXT10.arraySize /= 6;
 	}
@@ -571,25 +574,44 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 			FileIO::fwrite(&headerDXT10, sizeof(headerDXT10), 1, f);
 
 		int i=0;
-		for(int slice=0; slice < RDCMAX(1,data.slices*data.depth); slice++)
+		for(int slice=0; slice < RDCMAX(1,data.slices); slice++)
 		{
 			for(int mip=0; mip < RDCMAX(1,data.mips); mip++)
 			{
-				byte *bytedata = data.subdata[slice * RDCMAX(1,data.mips) + mip];
-
-				int rowlen = RDCMAX(1, data.width>>mip);
-				int numRows = RDCMAX(1, data.height>>mip);
-				int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
-
-				// pitch/rows are in blocks, not pixels, for block formats.
-				if(blockFormat)
+				int numdepths = RDCMAX(1, data.depth>>mip);
+				for(int d=0; d < numdepths; d++)
 				{
-					numRows = RDCMAX(1, numRows/4);
-					
-					int blockSize = (data.format.specialFormat == eSpecial_BC1 || data.format.specialFormat == eSpecial_BC4) ? 8 : 16;
+					byte *bytedata = data.subdata[i];
 
-					pitch = RDCMAX(blockSize, (((rowlen+3)/4)) * blockSize);
+					int rowlen = RDCMAX(1, data.width>>mip);
+					int numRows = RDCMAX(1, data.height>>mip);
+					int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+
+					// pitch/rows are in blocks, not pixels, for block formats.
+					if(blockFormat)
+					{
+						numRows = RDCMAX(1, numRows/4);
+
+						int blockSize = (data.format.specialFormat == eSpecial_BC1 || data.format.specialFormat == eSpecial_BC4) ? 8 : 16;
+
+						pitch = RDCMAX(blockSize, (((rowlen+3)/4)) * blockSize);
+					}
+
+					for(int row=0; row < numRows; row++)
+					{
+						FileIO::fwrite(bytedata, 1, pitch, f);
+
+						bytedata += pitch;
+					}
+
+					i++;
 				}
+			}
+		}
+	}
+
+	return true;
+}
 
 				for(int row=0; row < numRows; row++)
 				{
