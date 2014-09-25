@@ -1145,7 +1145,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	return ret;
 }
 
-ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	using namespace DXBC;
 	using namespace ShaderDebug;
@@ -1371,17 +1371,10 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	}
 
 	// if we encounter multiple hits at our destination pixel co-ord (or any other) we
-	// really need to check depth state here, but that's difficult so skip it for now
-	// we can iterate over the hits and get the depth of each from the second element
-	// in each struct, but we also need the test depth AND need to be able to resolve
-	// the depth test in the same way for each fragment.
-	//
-	// For now, just take the first. Later need to modify buf to point at the data of
-	// the actual passing fragment.
-	// also with alpha blending on we'd need to be able to pick the right one anyway.
-	// so really here we just need to be able to get the depth result of each hit and
-	// let the user choose, since multiple might pass & apply.
-
+	// check to see if a specific primitive was requested (via primitive parameter not
+	// being set to ~0U). If it was, debug that pixel, otherwise do a best-estimate
+	// of which fragment was the last to successfully depth test and debug that, just by
+	// checking if the depth test is ordered and picking the final fragment in the series
 
 	// our debugging quad. Order is TL, TR, BL, BR
 	State quad[4];
@@ -1410,29 +1403,50 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	DebugHit *winner = NULL;
 
-	for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
+	if(primitive != ~0U)
 	{
-		DebugHit *hit = (DebugHit *)(initialData+i*structStride);
-
-		// only interested in destination pixel
-		if(hit->posx != (float)x + 0.5 || hit->posy != (float)y + 0.5)
-			continue;
-
-		if(winner == NULL || depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
-			depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL)
+		for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
 		{
-			winner = hit;
-			continue;
+			DebugHit *hit = (DebugHit *)(initialData+i*structStride);
+
+			// only interested in destination pixel
+			if(hit->posx != (float)x + 0.5 || hit->posy != (float)y + 0.5)
+				continue;
+			
+			if(hit->primitive == primitive)
+			{
+				winner = hit;
+				break;
+			}
 		}
-
-		if(
-			(depthFunc == D3D11_COMPARISON_LESS && hit->depth < winner->depth) ||
-			(depthFunc == D3D11_COMPARISON_LESS_EQUAL && hit->depth <= winner->depth) ||
-			(depthFunc == D3D11_COMPARISON_GREATER && hit->depth > winner->depth) ||
-			(depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth)
-		  )
+	}
+	
+	if(winner == NULL)
+	{
+		for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
 		{
-			winner = hit;
+			DebugHit *hit = (DebugHit *)(initialData+i*structStride);
+
+			// only interested in destination pixel
+			if(hit->posx != (float)x + 0.5 || hit->posy != (float)y + 0.5)
+				continue;
+
+			if(winner == NULL || depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
+				depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL)
+			{
+				winner = hit;
+				continue;
+			}
+
+			if(
+				(depthFunc == D3D11_COMPARISON_LESS && hit->depth < winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_LESS_EQUAL && hit->depth <= winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_GREATER && hit->depth > winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth)
+				)
+			{
+				winner = hit;
+			}
 		}
 	}
 

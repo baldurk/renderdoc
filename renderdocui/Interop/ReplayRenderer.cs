@@ -213,11 +213,11 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_PixelHistory(IntPtr real, ResourceId target, UInt32 x, UInt32 y, IntPtr history);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_VSGetDebugStates(IntPtr real, UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset, IntPtr outtrace);
+        private static extern bool ReplayRenderer_DebugVertex(IntPtr real, UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_PSGetDebugStates(IntPtr real, UInt32 x, UInt32 y, IntPtr outtrace);
+        private static extern bool ReplayRenderer_DebugPixel(IntPtr real, UInt32 x, UInt32 y, UInt32 sample, UInt32 primitive, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_CSGetDebugStates(IntPtr real, UInt32[] groupid, UInt32[] threadid, IntPtr outtrace);
+        private static extern bool ReplayRenderer_DebugThread(IntPtr real, UInt32[] groupid, UInt32[] threadid, IntPtr outtrace);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetUsage(IntPtr real, ResourceId id, IntPtr outusage);
@@ -506,11 +506,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderDebugTrace VSGetDebugStates(UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset)
+        public ShaderDebugTrace DebugVertex(UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_VSGetDebugStates(m_Real, vertid, instid, idx, instOffset, vertOffset, mem);
+            bool success = ReplayRenderer_DebugVertex(m_Real, vertid, instid, idx, instOffset, vertOffset, mem);
 
             ShaderDebugTrace ret = null;
 
@@ -522,11 +522,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderDebugTrace PSGetDebugStates(UInt32 x, UInt32 y)
+        public ShaderDebugTrace DebugPixel(UInt32 x, UInt32 y, UInt32 sample, UInt32 primitive)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_PSGetDebugStates(m_Real, x, y, mem);
+            bool success = ReplayRenderer_DebugPixel(m_Real, x, y, sample, primitive, mem);
 
             ShaderDebugTrace ret = null;
 
@@ -538,11 +538,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderDebugTrace CSGetDebugStates(UInt32[] groupid, UInt32[] threadid)
+        public ShaderDebugTrace DebugThread(UInt32[] groupid, UInt32[] threadid)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_CSGetDebugStates(m_Real, groupid, threadid, mem);
+            bool success = ReplayRenderer_DebugThread(m_Real, groupid, threadid, mem);
 
             ShaderDebugTrace ret = null;
 

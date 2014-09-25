@@ -2030,7 +2030,7 @@ namespace renderdocui.Windows.PipelineState
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
-                    trace = r.CSGetDebugStates(new uint[] { gx, gy, gz }, new uint[] { tx, ty, tz });
+                    trace = r.DebugThread(new uint[] { gx, gy, gz }, new uint[] { tx, ty, tz });
                 });
 
                 if (trace == null || trace.states.Length == 0)

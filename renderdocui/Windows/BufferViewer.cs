@@ -2172,7 +2172,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.VSGetDebugStates((UInt32)row, (UInt32)m_CurInst, idx, draw.instanceOffset, draw.vertexOffset);
+                trace = r.DebugVertex((UInt32)row, (UInt32)m_CurInst, idx, draw.instanceOffset, draw.vertexOffset);
             });
 
             this.BeginInvoke(new Action(() =>

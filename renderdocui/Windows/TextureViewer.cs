@@ -2681,7 +2681,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.PSGetDebugStates((UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+                trace = r.DebugPixel((UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y, m_TexDisplay.sampleIdx, uint.MaxValue);
             });
 
             if (trace == null || trace.states.Length == 0)

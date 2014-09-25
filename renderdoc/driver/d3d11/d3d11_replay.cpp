@@ -1309,9 +1309,9 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t frameID, uint32_t eventID, ui
 	return m_pDevice->GetDebugManager()->DebugVertex(frameID, eventID, vertid, instid, idx, instOffset, vertOffset);
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
-	return m_pDevice->GetDebugManager()->DebugPixel(frameID, eventID, x, y);
+	return m_pDevice->GetDebugManager()->DebugPixel(frameID, eventID, x, y, sample, primitive);
 }
 
 ShaderDebugTrace D3D11Replay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])

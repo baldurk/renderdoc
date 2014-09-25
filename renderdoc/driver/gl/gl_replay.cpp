@@ -1432,7 +1432,7 @@ ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint3
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	RDCUNIMPLEMENTED("DebugPixel");
 	return ShaderDebugTrace();

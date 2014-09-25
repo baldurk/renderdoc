@@ -827,7 +827,7 @@ bool ProxySerialiser::Tick()
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugPixel:
-			DebugPixel(0, 0, 0, 0);
+			DebugPixel(0, 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugThread:
 		{
@@ -1571,7 +1571,7 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID
 	return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	ShaderDebugTrace ret;
 	
@@ -1579,10 +1579,12 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID,
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", x);
 	m_ToReplaySerialiser->Serialise("", y);
+	m_ToReplaySerialiser->Serialise("", sample);
+	m_ToReplaySerialiser->Serialise("", primitive);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->DebugPixel(frameID, eventID, x, y);
+		ret = m_Remote->DebugPixel(frameID, eventID, x, y, sample, primitive);
 	}
 	else
 	{

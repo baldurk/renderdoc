@@ -161,9 +161,9 @@ struct ReplayRenderer
 		ShaderReflection *GetShaderDetails(ResourceId shader);
 		
 		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history);
-		bool VSGetDebugStates(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
-		bool PSGetDebugStates(uint32_t x, uint32_t y, ShaderDebugTrace *trace);
-		bool CSGetDebugStates(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
+		bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
+		bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace);
+		bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
 
 		bool GetPostVSData(MeshDataStage stage, PostVSMeshData *data);
 		

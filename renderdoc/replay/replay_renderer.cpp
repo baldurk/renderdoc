@@ -1092,7 +1092,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 	return true;
 }
 
-bool ReplayRenderer::VSGetDebugStates(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
+bool ReplayRenderer::DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
 {
 	if(trace == NULL) return false;
 
@@ -1103,18 +1103,18 @@ bool ReplayRenderer::VSGetDebugStates(uint32_t vertid, uint32_t instid, uint32_t
 	return true;
 }
 
-bool ReplayRenderer::PSGetDebugStates(uint32_t x, uint32_t y, ShaderDebugTrace *trace)
+bool ReplayRenderer::DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace)
 {
 	if(trace == NULL) return false;
 
-	*trace = m_pDevice->DebugPixel(m_FrameID, m_EventID, x, y);
+	*trace = m_pDevice->DebugPixel(m_FrameID, m_EventID, x, y, sample, primitive);
 	
 	SetFrameEvent(m_FrameID, m_EventID, true);
 
 	return true;
 }
 
-bool ReplayRenderer::CSGetDebugStates(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace)
+bool ReplayRenderer::DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace)
 {
 	if(trace == NULL) return false;
 
@@ -1462,12 +1462,12 @@ extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShader
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
 { return rend->PixelHistory(target, x, y, history); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_VSGetDebugStates(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
-{ return rend->VSGetDebugStates(vertid, instid, idx, instOffset, vertOffset, trace); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_PSGetDebugStates(ReplayRenderer *rend, uint32_t x, uint32_t y, ShaderDebugTrace *trace)
-{ return rend->PSGetDebugStates(x, y, trace); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_CSGetDebugStates(ReplayRenderer *rend, uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace)
-{ return rend->CSGetDebugStates(groupid, threadid, trace); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_DebugVertex(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
+{ return rend->DebugVertex(vertid, instid, idx, instOffset, vertOffset, trace); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_DebugPixel(ReplayRenderer *rend, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace)
+{ return rend->DebugPixel(x, y, sample, primitive, trace); }
+extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_DebugThread(ReplayRenderer *rend, uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace)
+{ return rend->DebugThread(groupid, threadid, trace); }
 
 extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage)
 { return rend->GetUsage(id, usage); }
