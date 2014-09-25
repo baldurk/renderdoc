@@ -665,6 +665,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *pat
 			
 			uint32_t w = RDCMAX(1U, td.width>>m);
 			uint32_t h = RDCMAX(1U, td.height>>m);
+			uint32_t d = RDCMAX(1U, td.depth>>m);
 
 			if(blockformat)
 			{
@@ -690,12 +691,12 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *pat
 				continue;
 			}
 
-			s += (td.depth-1);
+			s += (d-1);
 
 			byte *b = bytes;
 
 			// add each depth slice as a separate subdata
-			for(uint32_t d=0; d < td.depth; d++)
+			for(uint32_t di=0; di < d; di++)
 			{
 				byte *depthslice = new byte[mipSlicePitch];
 
