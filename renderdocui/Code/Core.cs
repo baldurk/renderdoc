@@ -374,9 +374,6 @@ namespace renderdocui.Code
 
             m_LogLoadingInProgress = true;
 
-            if(!temporary)
-                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
-
             if (File.Exists(Core.ConfigFilename))
                 m_Config.Serialize(Core.ConfigFilename);
 
@@ -453,6 +450,9 @@ namespace renderdocui.Code
 
                 return;
             }
+
+            if (!temporary)
+                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
 
             m_FrameID = 0;
             m_EventID = 0;
