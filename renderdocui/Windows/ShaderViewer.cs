@@ -505,6 +505,8 @@ namespace renderdocui.Windows
                 m_DisassemblyView.Margins.Margin1.Mask = (int)m_DisassemblyView.Markers[BREAKPOINT_MARKER + 1].Mask;
                 m_DisassemblyView.Margins.Margin3.Mask &= ~((int)m_DisassemblyView.Markers[BREAKPOINT_MARKER + 1].Mask);
 
+                m_DisassemblyView.MouseMove += new MouseEventHandler(scintilla1_MouseMove);
+                m_DisassemblyView.Leave += new EventHandler(scintilla1_Leave);
                 m_DisassemblyView.KeyDown += new KeyEventHandler(scintilla1_DebuggingKeyDown);
 
                 watchRegs.Items.Add(new ListViewItem(new string[] { "", "", "" }));
@@ -608,6 +610,138 @@ namespace renderdocui.Windows
                     m_PrevRanges.Add(r);
                     r.SetIndicator(4);
                 }
+            }
+        }
+
+        private Point m_HoverPos = Point.Empty;
+        private string m_HoverReg = "";
+        private ScintillaNET.Scintilla m_HoverScintilla = null;
+
+        void scintilla1_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states.Length == 0) return;
+
+            ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
+
+            var pt = scintilla1.PointToClient(Cursor.Position);
+
+            if (pt.X == m_HoverPos.X && pt.Y == m_HoverPos.Y) return;
+
+            m_HoverPos = pt;
+
+            variableHover.Hide(scintilla1);
+            hoverTimer.Enabled = false;
+            m_HoverScintilla = null;
+
+            int pos = scintilla1.PositionFromPoint(pt.X, pt.Y);
+
+            string word = scintilla1.GetWordFromPosition(pos);
+
+            var match = Regex.Match(word, "^[rvo][0-9]+$");
+
+            if (match.Success)
+            {
+                m_HoverReg = word;
+                m_HoverScintilla = scintilla1;
+
+                hoverTimer.Enabled = true;
+                hoverTimer.Start();
+            }
+        }
+
+        void scintilla1_Leave(object sender, EventArgs e)
+        {
+            ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
+
+            System.Diagnostics.Trace.WriteLine("leave");
+
+            variableHover.Hide(scintilla1);
+            hoverTimer.Enabled = false;
+            m_HoverScintilla = null;
+            m_HoverPos = Point.Empty;
+        }
+
+        private void hoverTimer_Tick(object sender, EventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states.Length == 0) return;
+
+            hoverTimer.Enabled = false;
+
+            if (m_HoverScintilla != null && m_HoverReg != "")
+            {
+                var pt = m_HoverScintilla.PointToClient(Cursor.Position);
+
+                var state = m_Trace.states[CurrentStep];
+
+                string regtype = m_HoverReg.Substring(0, 1);
+                string regidx = m_HoverReg.Substring(1);
+
+                ShaderVariable[] vars = null;
+
+                if (regtype == "r")
+                {
+                    vars = state.registers;
+                }
+                else if (regtype == "v")
+                {
+                    vars = m_Trace.inputs;
+                }
+                else if (regtype == "o")
+                {
+                    vars = state.outputs;
+                }
+
+                int regindex = -1;
+
+                if (vars != null && int.TryParse(regidx, out regindex))
+                {
+                    if (regindex >= 0 && regindex < vars.Length)
+                    {
+                        ShaderVariable vr = vars[regindex];
+
+                        var fmt =
+                            @"{0,5} |          X          Y          Z          W" + Environment.NewLine +
+                            @"----------------------------------------------------" + Environment.NewLine +
+                            @"float | {1,10} {2,10} {3,10} {4,10}" + Environment.NewLine +
+                            @"uint  | {5,10} {6,10} {7,10} {8,10}" + Environment.NewLine +
+                            @"int   | {9,10} {10,10} {11,10} {12,10}";
+
+                        var tooltip = String.Format(fmt, m_HoverReg,
+                            Formatter.Format(vr.value.fv[0]), Formatter.Format(vr.value.fv[1]), Formatter.Format(vr.value.fv[2]), Formatter.Format(vr.value.fv[3]),
+                            vr.value.uv[0], vr.value.uv[1], vr.value.uv[2], vr.value.uv[3],
+                            vr.value.iv[0], vr.value.iv[1], vr.value.iv[2], vr.value.iv[3]);
+
+                        variableHover.Show(tooltip, m_HoverScintilla,
+                                           m_HoverScintilla.ClientRectangle.Left + pt.X + 10, m_HoverScintilla.ClientRectangle.Top + pt.Y + 10);
+                    }
+                }
+            }
+        }
+
+        private const int ToolTipFontSize = 9;
+
+        private void variableHover_Popup(object sender, PopupEventArgs e)
+        {
+            using (Font fw = new Font(FontFamily.GenericMonospace, ToolTipFontSize))
+            {
+                SizeF size = TextRenderer.MeasureText(variableHover.GetToolTip(m_HoverScintilla), fw);
+
+                e.ToolTipSize = new Size((int)size.Width, (int)size.Height);
+            }
+        }
+
+        private void variableHover_Draw(object sender, DrawToolTipEventArgs e)
+        {
+            using (Font fw = new Font(FontFamily.GenericMonospace, ToolTipFontSize))
+            {
+                var g = e.Graphics;
+                
+                DrawToolTipEventArgs args = new DrawToolTipEventArgs(g, e.AssociatedWindow, e.AssociatedControl, e.Bounds, e.ToolTipText,
+                                                                     variableHover.BackColor, variableHover.ForeColor, fw);
+
+                args.DrawBackground();
+                args.DrawBorder();
+                args.DrawText(TextFormatFlags.TextBoxControl);
             }
         }
 
