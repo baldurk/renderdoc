@@ -267,8 +267,6 @@ struct RemoteRenderer
 
 			m_RemoteDrivers.reserve(m.size());
 			for(auto it=m.begin(); it != m.end(); ++it) m_RemoteDrivers.push_back(*it);
-
-			m_ProxyDriver = NULL;
 		}
 		~RemoteRenderer()
 		{
@@ -322,7 +320,7 @@ struct RemoteRenderer
 			if(progress == NULL)
 				progress = &dummy;
 
-			RDCDriver proxydriver = m_Proxies[proxyid].first;
+			RDCDriver proxydrivertype = m_Proxies[proxyid].first;
 
 			Serialiser ser(L"", Serialiser::WRITING, false);
 		
@@ -354,21 +352,23 @@ struct RemoteRenderer
 
 			RDCLOG("Log ready on replay host");
 
-			m_ProxyDriver = NULL;
-			auto status = RenderDoc::Inst().CreateReplayDriver(proxydriver, NULL, &m_ProxyDriver);
+			IReplayDriver *proxyDriver = NULL;
+			auto status = RenderDoc::Inst().CreateReplayDriver(proxydrivertype, NULL, &proxyDriver);
 
-			if(status != eReplayCreate_Success || !m_ProxyDriver)
+			if(status != eReplayCreate_Success || !proxyDriver)
+			{
+				if(proxyDriver) proxyDriver->Shutdown();
 				return status;
+			}
 
 			ReplayRenderer *ret = new ReplayRenderer();
 
-			ProxySerialiser *proxy = new ProxySerialiser(m_Socket, m_ProxyDriver);
+			ProxySerialiser *proxy = new ProxySerialiser(m_Socket, proxyDriver);
 			status = ret->SetDevice(proxy);
 
 			if(status != eReplayCreate_Success)
 			{
 				SAFE_DELETE(ret);
-				SAFE_DELETE(proxy);
 				return status;
 			}
 			
@@ -395,8 +395,6 @@ struct RemoteRenderer
 
 			if(ser)	*ser = new Serialiser(payload.size(), &payload[0], false);
 		}
-
-		IReplayDriver *m_ProxyDriver;
 
 		vector< pair<RDCDriver, wstring> > m_Proxies;
 		vector< pair<RDCDriver, wstring> > m_RemoteDrivers;
