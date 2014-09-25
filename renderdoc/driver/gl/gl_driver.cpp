@@ -329,7 +329,7 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 
 	m_DeviceRecord = NULL;
 
-	m_ResourceManager = new GLResourceManager(this);
+	m_ResourceManager = new GLResourceManager(m_State, m_pSerialiser, this);
 
 	m_DeviceResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResDevice));
 	m_ContextResourceID = GetResourceManager()->RegisterResource(GLResource(NULL, eResSpecial, eSpecialResContext));
@@ -360,8 +360,6 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_FakeBB_FBO = 0;
 	m_FakeBB_Color = 0;
 	m_FakeBB_DepthStencil = 0;
-
-	GetResourceManager()->SetSerialiser(m_State, m_pSerialiser);
 		
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
@@ -660,7 +658,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 			GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
 			
-			GetResourceManager()->InsertInitialContentsChunks(m_pSerialiser, m_pFileSerialiser);
+			GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
 
 			RDCDEBUG("Creating Capture Scope");	
 
@@ -730,7 +728,7 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 
 	if(m_State >= WRITING)
 	{
-		GetResourceManager()->Serialise_InitialContentsNeeded(m_pSerialiser);
+		GetResourceManager()->Serialise_InitialContentsNeeded();
 	}
 	else
 	{
@@ -741,7 +739,7 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
 		m_FrameRecord.push_back(record);
 
-		GetResourceManager()->CreateInitialContents(m_pSerialiser);
+		GetResourceManager()->CreateInitialContents();
 	}
 }
 

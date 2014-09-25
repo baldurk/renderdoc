@@ -116,8 +116,8 @@ private:
 class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, D3D11ResourceRecord>
 {
 	public:
-		D3D11ResourceManager(WrappedID3D11Device *dev)
-			: m_Device(dev)
+		D3D11ResourceManager(LogState state, Serialiser *ser, WrappedID3D11Device *dev)
+			: ResourceManager(state, ser), m_Device(dev)
 		{
 		}
 		

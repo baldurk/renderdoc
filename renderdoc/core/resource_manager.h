@@ -264,7 +264,7 @@ template<typename ResourceType, typename RecordType>
 class ResourceManager : public ResourceRecordHandler
 {
 	public:
-		ResourceManager();
+		ResourceManager(LogState state, Serialiser *ser);
 		virtual ~ResourceManager();
 
 		void Shutdown();
@@ -297,7 +297,7 @@ class ResourceManager : public ResourceRecordHandler
 		void ReleaseInFrameResources();
 		
 		// insert the chunks for the resources referenced in the frame
-		void InsertReferencedChunks(Serialiser *ser);
+		void InsertReferencedChunks(Serialiser *fileSer);
 
 		// mark resource records as unwritten, ready to be written to a new logfile.
 		void MarkUnwrittenResources();
@@ -329,12 +329,12 @@ class ResourceManager : public ResourceRecordHandler
 		void SetInitialContents(ResourceId id, InitialContentData contents);
 
 		// generate chunks for initial contents and insert.
-		void InsertInitialContentsChunks(Serialiser *chunkSer, Serialiser *fileSer);
+		void InsertInitialContentsChunks(Serialiser *fileSer);
 		
 		// Serialise out which resources need initial contents, along with whether their
 		// initial contents are in the serialised stream (e.g. RTs might still want to be
 		// cleared on frame init).
-		void Serialise_InitialContentsNeeded(Serialiser *ser);
+		void Serialise_InitialContentsNeeded();
 
 
 		// handle marking a resource referenced for read or write and storing RAW access etc.
@@ -366,7 +366,7 @@ class ResourceManager : public ResourceRecordHandler
 		ResourceId GetLiveID(ResourceId id);
 
 		// Serialise in which resources need initial contents and set them up.
-		void CreateInitialContents(Serialiser *ser);
+		void CreateInitialContents();
 
 		// Apply the initial contents for the resources that need them, used at the start of a frame
 		void ApplyInitialContents();
@@ -390,6 +390,9 @@ class ResourceManager : public ResourceRecordHandler
 		virtual bool Serialise_InitialState(ResourceType res) = 0;
 		virtual void Create_InitialState(ResourceId id, ResourceType live, bool hasData) = 0;
 		virtual void Apply_InitialState(ResourceType live, InitialContentData initial) = 0;
+
+		LogState m_State;
+		Serialiser *m_pSerialiser;
 
 	private:
 		bool m_InFrame;
@@ -434,10 +437,13 @@ class ResourceManager : public ResourceRecordHandler
 };
 
 template<typename ResourceType, typename RecordType>
-ResourceManager<ResourceType, RecordType>::ResourceManager()
+ResourceManager<ResourceType, RecordType>::ResourceManager(LogState state, Serialiser *ser)
 {
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(ResourceManager));
+
+	m_State = state;
+	m_pSerialiser = ser;
 	
 	m_InFrame = false;
 }
@@ -642,7 +648,7 @@ typename ResourceManager<ResourceType, RecordType>::InitialContentData ResourceM
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::Serialise_InitialContentsNeeded(Serialiser *ser)
+void ResourceManager<ResourceType, RecordType>::Serialise_InitialContentsNeeded()
 {
 	SCOPED_LOCK(m_Lock);
 
@@ -677,30 +683,30 @@ void ResourceManager<ResourceType, RecordType>::Serialise_InitialContentsNeeded(
 	}
 	
 	uint32_t numWritten = (uint32_t)written.size();
-	ser->Serialise("NumWrittenResources", numWritten);
+	m_pSerialiser->Serialise("NumWrittenResources", numWritten);
 
 	for(auto it=written.begin(); it != written.end(); ++it)
 	{
-		ser->Serialise("id", it->id);
-		ser->Serialise("WrittenData", it->written);
+		m_pSerialiser->Serialise("id", it->id);
+		m_pSerialiser->Serialise("WrittenData", it->written);
 	}
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::CreateInitialContents(Serialiser *ser)
+void ResourceManager<ResourceType, RecordType>::CreateInitialContents()
 {
 	set<ResourceId> neededInitials;
 
 	uint32_t NumWrittenResources = 0;
-	ser->Serialise("NumWrittenResources", NumWrittenResources);
+	m_pSerialiser->Serialise("NumWrittenResources", NumWrittenResources);
 
 	for(uint32_t i=0; i < NumWrittenResources; i++)
 	{
 		ResourceId id = ResourceId();
 		bool WrittenData = false;
 
-		ser->Serialise("id", id);
-		ser->Serialise("WrittenData", WrittenData);
+		m_pSerialiser->Serialise("id", id);
+		m_pSerialiser->Serialise("WrittenData", WrittenData);
 
 		neededInitials.insert(id);
 
@@ -759,7 +765,7 @@ void ResourceManager<ResourceType, RecordType>::MarkUnwrittenResources()
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::InsertReferencedChunks(Serialiser *ser)
+void ResourceManager<ResourceType, RecordType>::InsertReferencedChunks(Serialiser *fileSer)
 {
 	map<int32_t,Chunk*> sortedChunks;
 
@@ -791,7 +797,7 @@ void ResourceManager<ResourceType, RecordType>::InsertReferencedChunks(Serialise
 
 	for(auto it = sortedChunks.begin(); it != sortedChunks.end(); it++)
 	{
-		ser->Insert(it->second);
+		fileSer->Insert(it->second);
 	}
 
 	RDCDEBUG("inserted to serialiser");
@@ -828,7 +834,7 @@ void ResourceManager<ResourceType, RecordType>::PrepareInitialContents()
 }
 
 template<typename ResourceType, typename RecordType>
-void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Serialiser *chunkSerialiser, Serialiser *fileSerialiser)
+void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Serialiser *fileSerialiser)
 {
 	SCOPED_LOCK(m_Lock);
 
@@ -858,7 +864,7 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 			continue;
 		}
 
-		ScopedContext scope(chunkSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+		ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 		Serialise_InitialState(res);
 
@@ -871,7 +877,7 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 
 		if(Force_InitialState(it->second))
 		{
-			ScopedContext scope(chunkSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+			ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
 			Serialise_InitialState(it->second);
 

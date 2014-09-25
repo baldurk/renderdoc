@@ -34,10 +34,10 @@ class WrappedOpenGL;
 class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 {
 	public: 
-		GLResourceManager(WrappedOpenGL *gl) : m_GL(gl), m_SyncName(1)
+		GLResourceManager(LogState state, Serialiser *ser, WrappedOpenGL *gl)
+			: ResourceManager(state, ser), m_GL(gl), m_SyncName(1)
 		{
 			m_pSerialiser = NULL;
-			m_State = READING;
 		}
 		~GLResourceManager() {}
 
@@ -138,12 +138,6 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return m_SyncIDs[sync];
 		}
 
-		void SetSerialiser(LogState state, Serialiser *ser)
-		{
-			m_State = state;
-			m_pSerialiser = ser;
-		}
-
 		bool Serialise_InitialState(GLResource res);
 
 	private:
@@ -166,9 +160,6 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		map<GLsync, ResourceId> m_SyncIDs;
 		map<GLuint, GLsync> m_CurrentSyncs;
 		volatile int64_t m_SyncName;
-
-		Serialiser *m_pSerialiser;
-		LogState m_State;
 
 		WrappedOpenGL *m_GL;
 };
