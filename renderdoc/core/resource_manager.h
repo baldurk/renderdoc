@@ -842,7 +842,8 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 	{
 		ResourceId id = *it;
 		
-		if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end())
+		if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
+			 RenderDoc::Inst().GetCaptureOptions().RefAllResources)
 		{
 			RDCDEBUG("Resource %llu is GPU dirty but not referenced - skipping", id);
 			continue;
