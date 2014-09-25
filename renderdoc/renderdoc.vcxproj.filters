@@ -509,6 +509,9 @@
     <ClCompile Include="3rdparty\stb\stb_impl.c">
       <Filter>3rdparty\stb</Filter>
     </ClCompile>
+    <ClCompile Include="core\image_viewer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

@@ -91,6 +91,7 @@ enum RDCDriver
 	RDC_Reserved2 = 4,
 	RDC_D3D10 = 5,
 	RDC_D3D9 = 6,
+	RDC_Image = 7,
 	RDC_Custom = 100000,
 	RDC_Custom0 = RDC_Custom,
 	RDC_Custom1,

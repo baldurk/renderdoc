@@ -33,6 +33,9 @@
 #include "data/version.h"
 #include "crash_handler.h"
 
+#include "stb/stb_image.h"
+#include "common/dds_readwrite.h"
+
 template<>
 string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 {
@@ -412,6 +415,27 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 
 	if(ser.HasError())
 	{
+		FILE *f = FileIO::fopen(logFile, L"rb");
+		if(f)
+		{
+			int x = 0, y = 0, comp = 0;
+			int ret = stbi_info_from_file(f, &x, &y, &comp);
+
+			FileIO::fseek64(f, 0, SEEK_SET);
+
+			if(is_dds_file(f))
+				ret = x = y = comp = 1;
+			
+			FileIO::fclose(f);
+
+			if(ret == 1 && x > 0 && y > 0 && comp > 0)
+			{
+				driverType = RDC_Image;
+				driverName = L"Image";
+				return eReplayCreate_Success;
+			}
+		}
+
 		RDCERR("Couldn't open '%ls'", logFile);
 
 		switch(ser.ErrorCode())
@@ -511,6 +535,11 @@ void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const wchar_t *name, Re
 ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const wchar_t *logfile, IReplayDriver **driver)
 {
 	if(driver == NULL) return eReplayCreate_InternalError;
+	
+	// allows passing RDC_Unknown as 'I don't care, give me a proxy driver of any type'
+	// only valid if logfile is NULL and it will be used as a proxy, not to process a log
+	if(driverType == RDC_Unknown && logfile == NULL && !m_ReplayDriverProviders.empty())
+		return m_ReplayDriverProviders.begin()->second(logfile, driver);
 
 	if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
 		return m_ReplayDriverProviders[driverType](logfile, driver);

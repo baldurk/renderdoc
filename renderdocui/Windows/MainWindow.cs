@@ -202,11 +202,13 @@ namespace renderdocui.Windows
 
             if (m_InitFilename != "")
             {
-                if(Path.GetExtension(m_InitFilename) == ".rdc")
+                if (Path.GetExtension(m_InitFilename) == ".rdc")
+                {
                     LoadLogAsync(m_InitFilename, false);
+                }
                 else if (Path.GetExtension(m_InitFilename) == ".cap")
                 {
-                    if(m_Core.CaptureDialog == null)
+                    if (m_Core.CaptureDialog == null)
                         m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
 
                     m_Core.CaptureDialog.LoadSettings(m_InitFilename);
@@ -220,6 +222,11 @@ namespace renderdocui.Windows
                     {
                         dockPanel.ActiveAutoHideContent = m_Core.CaptureDialog;
                     }
+                }
+                else
+                {
+                    // not a recognised filetype, see if we can load it anyway
+                    LoadLogAsync(m_InitFilename, false);
                 }
 
                 m_InitFilename = "";
@@ -1420,7 +1427,7 @@ namespace renderdocui.Windows
                 {
                     var filename = (string)data.GetValue(0);
 
-                    if (Path.GetExtension(filename).ToLower() == ".rdc")
+                    if (File.Exists(filename))
                     {
                         return Path.GetFullPath(filename);
                     }
