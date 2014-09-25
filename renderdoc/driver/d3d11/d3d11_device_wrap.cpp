@@ -398,6 +398,12 @@ HRESULT WrappedID3D11Device::CreateTexture1D(
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 		}
+		else
+		{
+			WrappedID3D11Texture1D *w = (WrappedID3D11Texture1D *)wrapped;
+
+			GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+		}
 
 		*ppTexture1D = wrapped;
 	}
@@ -605,6 +611,12 @@ HRESULT WrappedID3D11Device::CreateTexture3D(
 
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
+		}
+		else
+		{
+			WrappedID3D11Texture3D *w = (WrappedID3D11Texture3D *)wrapped;
+
+			GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
 		}
 
 		*ppTexture3D = wrapped;

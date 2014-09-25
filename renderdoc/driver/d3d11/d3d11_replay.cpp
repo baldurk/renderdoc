@@ -1369,6 +1369,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 {
 	ResourceId ret;
 
+	ID3D11Resource *resource = NULL;
+
 	if(templateTex.dimension == 1)
 	{
 		ID3D11Texture1D *throwaway = NULL;
@@ -1393,6 +1395,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			RDCERR("Failed to create 1D proxy texture");
 			return ResourceId();
 		}
+
+		resource = throwaway;
 		
 		if(templateTex.creationFlags & eTextureCreate_DSV)
 			desc.Format = GetTypelessFormat(desc.Format);
@@ -1426,12 +1430,17 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			desc.Format = GetTypelessFormat(desc.Format);
 		}
 
+		if(templateTex.cubemap)
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+
 		HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &throwaway);
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to create 2D proxy texture");
 			return ResourceId();
 		}
+
+		resource = throwaway;
 
 		ret = ((WrappedID3D11Texture2D *)throwaway)->GetResourceID();
 		if(templateTex.creationFlags & eTextureCreate_DSV)
@@ -1463,11 +1472,19 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			return ResourceId();
 		}
 
+		resource = throwaway;
+
 		ret = ((WrappedID3D11Texture3D *)throwaway)->GetResourceID();
 	}
 	else
 	{
 		RDCERR("Invalid texture dimension: %d", templateTex.dimension);
+	}
+
+	if(resource != NULL && templateTex.customName)
+	{
+		string name = narrow(wstring(templateTex.name.elems));
+		SetDebugName(resource, name.c_str());
 	}
 
 	return ret;
