@@ -225,6 +225,251 @@ struct DDS_HEADER_DXT10 {
 #define DDPF_LUMINANCE		0x20000
 #define DDPF_RGBA			(DDPF_RGB|DDPF_ALPHAPIXELS)
 
+ResourceFormat DXGIFormat2ResourceFormat(DXGI_FORMAT format)
+{
+	ResourceFormat special;
+	ResourceFormat fmt32, fmt16, fmt8;
+
+	fmt32.compByteWidth = 4;
+	fmt32.compCount = 1;
+	fmt32.compType = eCompType_Float;
+	fmt32.special = false;
+
+	fmt16.compByteWidth = 2;
+	fmt16.compCount = 1;
+	fmt16.compType = eCompType_Float;
+	fmt16.special = false;
+
+	fmt8.compByteWidth = 1;
+	fmt8.compCount = 1;
+	fmt8.compType = eCompType_UNorm;
+	fmt8.special = false;
+
+	switch(format)
+	{
+		case DXGI_FORMAT_BC1_UNORM:
+		case DXGI_FORMAT_BC1_UNORM_SRGB:
+			special.specialFormat = eSpecial_BC1;
+			special.srgbCorrected = (format == DXGI_FORMAT_BC1_UNORM_SRGB ? true : false);
+			return special;
+		case DXGI_FORMAT_BC2_UNORM:
+		case DXGI_FORMAT_BC2_UNORM_SRGB:
+			special.specialFormat = eSpecial_BC2;
+			special.srgbCorrected = (format == DXGI_FORMAT_BC2_UNORM_SRGB ? true : false);
+			return special;
+		case DXGI_FORMAT_BC3_UNORM:
+		case DXGI_FORMAT_BC3_UNORM_SRGB:
+			special.specialFormat = eSpecial_BC3;
+			special.srgbCorrected = (format == DXGI_FORMAT_BC3_UNORM_SRGB ? true : false);
+			return special;
+		case DXGI_FORMAT_BC4_UNORM:
+		case DXGI_FORMAT_BC4_SNORM:
+			special.specialFormat = eSpecial_BC4;
+			special.compType = (format == DXGI_FORMAT_BC4_UNORM ? eCompType_UNorm : eCompType_SNorm);
+			return special;
+		case DXGI_FORMAT_BC5_UNORM:
+		case DXGI_FORMAT_BC5_SNORM:
+			special.specialFormat = eSpecial_BC5;
+			special.compType = (format == DXGI_FORMAT_BC5_UNORM ? eCompType_UNorm : eCompType_SNorm);
+			return special;
+		case DXGI_FORMAT_BC6H_UF16:
+		case DXGI_FORMAT_BC6H_SF16:
+			special.specialFormat = eSpecial_BC6;
+			special.compType = (format == DXGI_FORMAT_BC6H_UF16 ? eCompType_UNorm : eCompType_SNorm);
+			return special;
+		case DXGI_FORMAT_BC7_UNORM:
+		case DXGI_FORMAT_BC7_UNORM_SRGB:
+			special.specialFormat = eSpecial_BC7;
+			special.srgbCorrected = (format == DXGI_FORMAT_BC7_UNORM_SRGB ? true : false);
+			return special;
+		case DXGI_FORMAT_R10G10B10A2_UNORM:
+		case DXGI_FORMAT_R10G10B10A2_UINT:
+			special.specialFormat = eSpecial_R10G10B10A2;
+			special.compType = (format == DXGI_FORMAT_R10G10B10A2_UNORM ? eCompType_UNorm : eCompType_UInt);
+			return special;
+		case DXGI_FORMAT_B8G8R8A8_UNORM:
+		case DXGI_FORMAT_B8G8R8A8_UNORM_SRGB:
+			special.specialFormat = eSpecial_B8G8R8A8;
+			special.srgbCorrected = (format == DXGI_FORMAT_B8G8R8A8_UNORM_SRGB ? true : false);
+			return special;
+		case DXGI_FORMAT_R11G11B10_FLOAT:
+			special.specialFormat = eSpecial_R11G11B10;
+			return special;
+		case DXGI_FORMAT_B5G6R5_UNORM:
+			special.specialFormat = eSpecial_B5G6R5;
+			return special;
+		case DXGI_FORMAT_B5G5R5A1_UNORM:
+			special.specialFormat = eSpecial_B5G5R5A1;
+			return special;
+		case DXGI_FORMAT_R9G9B9E5_SHAREDEXP:
+			special.specialFormat = eSpecial_R9G9B9E5;
+			return special;
+		case DXGI_FORMAT_B4G4R4A4_UNORM:
+			special.specialFormat = eSpecial_B4G4R4A4;
+			return special;
+		case DXGI_FORMAT_D24_UNORM_S8_UINT:
+			special.specialFormat = eSpecial_D24S8;
+			return special;
+		case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+			special.specialFormat = eSpecial_D32S8;
+			return special;
+		
+		case DXGI_FORMAT_R32G32B32A32_UINT:
+			fmt32.compType = eCompType_UInt;
+			fmt32.compCount = 4;
+			return fmt32;
+		case DXGI_FORMAT_R32G32B32A32_SINT:
+			fmt32.compType = eCompType_SInt;
+			fmt32.compCount = 4;
+			return fmt32;
+		case DXGI_FORMAT_R32G32B32A32_FLOAT:
+			fmt32.compCount = 4;
+			return fmt32;
+		
+		case DXGI_FORMAT_R32G32B32_UINT:
+			fmt32.compType = eCompType_UInt;
+			fmt32.compCount = 3;
+			return fmt32;
+		case DXGI_FORMAT_R32G32B32_SINT:
+			fmt32.compType = eCompType_SInt;
+			fmt32.compCount = 3;
+			return fmt32;
+		case DXGI_FORMAT_R32G32B32_FLOAT:
+			fmt32.compCount = 3;
+			return fmt32;
+		
+		case DXGI_FORMAT_R32G32_UINT:
+			fmt32.compType = eCompType_UInt;
+			fmt32.compCount = 2;
+			return fmt32;
+		case DXGI_FORMAT_R32G32_SINT:
+			fmt32.compType = eCompType_SInt;
+			fmt32.compCount = 2;
+			return fmt32;
+		case DXGI_FORMAT_R32G32_FLOAT:
+			fmt32.compCount = 2;
+			return fmt32;
+		
+		case DXGI_FORMAT_R32_UINT:
+			fmt32.compType = eCompType_UInt;
+			return fmt32;
+		case DXGI_FORMAT_R32_SINT:
+			fmt32.compType = eCompType_SInt;
+			return fmt32;
+		case DXGI_FORMAT_R32_FLOAT:
+			return fmt32;
+
+		case DXGI_FORMAT_R16G16B16A16_UINT:
+			fmt16.compType = eCompType_UInt;
+			fmt16.compCount = 4;
+			return fmt16;
+		case DXGI_FORMAT_R16G16B16A16_SINT:
+			fmt16.compType = eCompType_SInt;
+			fmt16.compCount = 4;
+			return fmt16;
+		case DXGI_FORMAT_R16G16B16A16_UNORM:
+			fmt16.compType = eCompType_UNorm;
+			fmt16.compCount = 4;
+			return fmt16;
+		case DXGI_FORMAT_R16G16B16A16_SNORM:
+			fmt16.compType = eCompType_SNorm;
+			fmt16.compCount = 4;
+			return fmt16;
+		case DXGI_FORMAT_R16G16B16A16_FLOAT:
+			fmt16.compCount = 4;
+			return fmt16;
+
+		case DXGI_FORMAT_R16G16_UINT:
+			fmt16.compType = eCompType_UInt;
+			fmt16.compCount = 2;
+			return fmt16;
+		case DXGI_FORMAT_R16G16_SINT:
+			fmt16.compType = eCompType_SInt;
+			fmt16.compCount = 2;
+			return fmt16;
+		case DXGI_FORMAT_R16G16_UNORM:
+			fmt16.compType = eCompType_UNorm;
+			fmt16.compCount = 2;
+			return fmt16;
+		case DXGI_FORMAT_R16G16_SNORM:
+			fmt16.compType = eCompType_SNorm;
+			fmt16.compCount = 2;
+			return fmt16;
+		case DXGI_FORMAT_R16G16_FLOAT:
+			fmt16.compCount = 2;
+			return fmt16;
+
+		case DXGI_FORMAT_R16_UINT:
+			fmt16.compType = eCompType_UInt;
+			return fmt16;
+		case DXGI_FORMAT_R16_SINT:
+			fmt16.compType = eCompType_SInt;
+			return fmt16;
+		case DXGI_FORMAT_R16_UNORM:
+			fmt16.compType = eCompType_UNorm;
+			return fmt16;
+		case DXGI_FORMAT_R16_SNORM:
+			fmt16.compType = eCompType_SNorm;
+			return fmt16;
+		case DXGI_FORMAT_R16_FLOAT:
+			return fmt16;
+
+		case DXGI_FORMAT_R8G8B8A8_UINT:
+			fmt8.compType = eCompType_UInt;
+			fmt8.compCount = 4;
+			return fmt8;
+		case DXGI_FORMAT_R8G8B8A8_SINT:
+			fmt8.compType = eCompType_SInt;
+			fmt8.compCount = 4;
+			return fmt8;
+		case DXGI_FORMAT_R8G8B8A8_SNORM:
+			fmt8.compType = eCompType_SNorm;
+			fmt8.compCount = 4;
+			return fmt8;
+		case DXGI_FORMAT_R8G8B8A8_UNORM_SRGB:
+			fmt8.compType = eCompType_UNorm;
+			fmt8.srgbCorrected = true;
+			fmt8.compCount = 4;
+			return fmt8;
+		case DXGI_FORMAT_R8G8B8A8_UNORM:
+			fmt8.compCount = 4;
+			return fmt8;
+
+		case DXGI_FORMAT_R8G8_UINT:
+			fmt8.compType = eCompType_UInt;
+			fmt8.compCount = 2;
+			return fmt8;
+		case DXGI_FORMAT_R8G8_SINT:
+			fmt8.compType = eCompType_SInt;
+			fmt8.compCount = 2;
+			return fmt8;
+		case DXGI_FORMAT_R8G8_SNORM:
+			fmt8.compType = eCompType_SNorm;
+			fmt8.compCount = 2;
+			return fmt8;
+		case DXGI_FORMAT_R8G8_UNORM:
+			fmt8.compCount = 2;
+			return fmt8;
+
+		case DXGI_FORMAT_R8_UINT:
+			fmt8.compType = eCompType_UInt;
+			return fmt8;
+		case DXGI_FORMAT_R8_SINT:
+			fmt8.compType = eCompType_SInt;
+			return fmt8;
+		case DXGI_FORMAT_R8_SNORM:
+			fmt8.compType = eCompType_SNorm;
+			return fmt8;
+		case DXGI_FORMAT_R8_UNORM:
+			return fmt8;
+
+		default:
+			RDCWARN("Unsupported DXGI_FORMAT: %u", (uint32_t)format);
+	}
+
+	return ResourceFormat();
+}
+
 DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 {
 	if(format.special)
@@ -613,17 +858,227 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 	return true;
 }
 
-				for(int row=0; row < numRows; row++)
-				{
-					FileIO::fwrite(bytedata, 1, pitch, f);
+bool is_dds_file(FILE *f)
+{
+	FileIO::fseek64(f, 0, SEEK_SET);
 
-					bytedata += pitch;
-				}
+	uint32_t magic = 0;
+	FileIO::fread(&magic, sizeof(magic), 1, f);
 
-				i++;
-			}
+	FileIO::fseek64(f, 0, SEEK_SET);
+
+	return magic == dds_fourcc;
+}
+
+dds_data load_dds_from_file(FILE *f)
+{
+	dds_data ret = {};
+	dds_data error = {};
+	
+	FileIO::fseek64(f, 0, SEEK_SET);
+
+	uint32_t magic = 0;
+	FileIO::fread(&magic, sizeof(magic), 1, f);
+
+	DDS_HEADER header = {};
+	FileIO::fread(&header, sizeof(header), 1, f);
+
+	bool dx10Header = false;
+	DDS_HEADER_DXT10 headerDXT10 = {};
+	
+	if(header.ddspf.dwFlags == DDPF_FOURCC && header.ddspf.dwFourCC == MAKE_FOURCC('D', 'X', '1', '0'))
+	{
+		FileIO::fread(&headerDXT10, sizeof(headerDXT10), 1, f);
+		dx10Header = true;
+	}
+
+	ret.width = RDCMAX(1U, header.dwWidth);
+	ret.height = RDCMAX(1U, header.dwHeight);
+	ret.depth = RDCMAX(1U, header.dwDepth);
+	ret.slices = dx10Header ? RDCMAX(1U, headerDXT10.arraySize) : 1;
+	ret.mips = RDCMAX(1U, header.dwMipMapCount);
+
+	uint32_t cubeFlags = DDSCAPS2_CUBEMAP|DDSCAPS2_CUBEMAP_ALLFACES;
+
+	if((header.dwCaps2 & cubeFlags) == cubeFlags && header.dwCaps & DDSCAPS_COMPLEX)
+		ret.cubemap = true;
+
+	if(dx10Header && headerDXT10.miscFlag & DDS_RESOURCE_MISC_TEXTURECUBE)
+		ret.cubemap = true;
+
+	if(ret.cubemap)
+		ret.slices *= 6;
+
+	if(dx10Header)
+	{
+		ret.format = DXGIFormat2ResourceFormat(headerDXT10.dxgiFormat);
+		if(ret.format.special && ret.format.specialFormat == eSpecial_Unknown)
+		{
+				RDCWARN("Unsupported DXGI_FORMAT: %u", (uint32_t)headerDXT10.dxgiFormat);
+				return error;
+		}
+	}
+	else if(header.ddspf.dwFlags == DDPF_FOURCC)
+	{
+		switch(header.ddspf.dwFourCC)
+		{
+			case MAKE_FOURCC('D', 'X', 'T', '1'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC1_UNORM);
+				break;
+			case MAKE_FOURCC('D', 'X', 'T', '3'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC2_UNORM);
+				break;
+			case MAKE_FOURCC('D', 'X', 'T', '5'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC3_UNORM);
+				break;
+			case MAKE_FOURCC('B', 'C', '4', 'U'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC4_UNORM);
+				break;
+			case MAKE_FOURCC('B', 'C', '4', 'S'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC4_SNORM);
+				break;
+			case MAKE_FOURCC('A', 'T', 'I', '2'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC5_UNORM);
+				break;
+			case MAKE_FOURCC('B', 'C', '5', 'S'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_BC5_SNORM);
+				break;
+			case MAKE_FOURCC('R', 'G', 'B', 'G'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R8G8_B8G8_UNORM);
+				break;
+			case MAKE_FOURCC('G', 'R', 'G', 'B'):
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_G8R8_G8B8_UNORM);
+				break;
+			case 36:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_UNORM);
+				break;
+			case 110:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_SNORM);
+				break;
+			case 111:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16_FLOAT);
+				break;
+			case 112:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16_FLOAT);
+				break;
+			case 113:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R16G16B16A16_FLOAT);
+				break;
+			case 114:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32_FLOAT);
+				break;
+			case 115:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32_FLOAT);
+				break;
+			case 116:
+				ret.format = DXGIFormat2ResourceFormat(DXGI_FORMAT_R32G32B32A32_FLOAT);
+				break;
+			default:
+				RDCWARN("Unsupported FourCC: %08x", header.ddspf.dwFourCC);
+				return error;
+		}
+	}
+	else
+	{
+		if(header.ddspf.dwRGBBitCount != 32 &&
+			header.ddspf.dwRGBBitCount != 24 &&
+			header.ddspf.dwRGBBitCount != 16 &&
+			header.ddspf.dwRGBBitCount != 8)
+		{
+			RDCWARN("Unsupported RGB bit count: %u", header.ddspf.dwRGBBitCount);
+			return error;
+		}
+
+		ret.format.compByteWidth = 1;
+		ret.format.compCount = header.ddspf.dwRGBBitCount/8;
+		ret.format.compType = eCompType_UNorm;
+		ret.format.special = false;
+	}
+	
+	uint32_t bytesPerPixel = 1;
+	switch(ret.format.specialFormat)
+	{
+		case eSpecial_R10G10B10A2:
+		case eSpecial_R9G9B9E5:
+		case eSpecial_R11G11B10:
+		case eSpecial_D24S8:
+		case eSpecial_B8G8R8A8:
+			bytesPerPixel = 4;
+			break;
+		case eSpecial_B5G6R5:
+		case eSpecial_B5G5R5A1:
+		case eSpecial_B4G4R4A4:
+			bytesPerPixel = 2;
+			break;
+		case eSpecial_D32S8:
+			bytesPerPixel = 5;
+			break;
+		case eSpecial_YUV:
+			RDCERR("Unsupported file save format");
+			return error;
+		default:
+			bytesPerPixel = ret.format.compCount*ret.format.compByteWidth;
+	}
+
+	bool blockFormat = false;
+
+	if(ret.format.special)
+	{
+		switch(ret.format.specialFormat)
+		{
+			case eSpecial_BC1:
+			case eSpecial_BC2:
+			case eSpecial_BC3:
+			case eSpecial_BC4:
+			case eSpecial_BC5:
+			case eSpecial_BC6:
+			case eSpecial_BC7:
+				blockFormat = true;
+			default:
+				break;
 		}
 	}
 
-	return true;
+	ret.subsizes = new uint32_t[ret.slices * ret.mips];
+	ret.subdata = new byte*[ret.slices * ret.mips];
+
+	int i=0;
+	for(int slice=0; slice < ret.slices; slice++)
+	{
+		for(int mip=0; mip < ret.mips; mip++)
+		{
+			int rowlen = RDCMAX(1, ret.width>>mip);
+			int numRows = RDCMAX(1, ret.height>>mip);
+			int numdepths = RDCMAX(1, ret.depth>>mip);
+			int pitch = RDCMAX(1U, rowlen * bytesPerPixel);
+
+			// pitch/rows are in blocks, not pixels, for block formats.
+			if(blockFormat)
+			{
+				numRows = RDCMAX(1, numRows/4);
+
+				int blockSize = (ret.format.specialFormat == eSpecial_BC1 || ret.format.specialFormat == eSpecial_BC4) ? 8 : 16;
+
+				pitch = RDCMAX(blockSize, (((rowlen+3)/4)) * blockSize);
+			}
+
+			ret.subsizes[i] = numdepths*numRows*pitch;
+			
+			byte *bytedata = ret.subdata[i] = new byte[ret.subsizes[i]];
+			
+			for(int d=0; d < numdepths; d++)
+			{
+				for(int row=0; row < numRows; row++)
+				{
+					FileIO::fread(bytedata, 1, pitch, f);
+
+					bytedata += pitch;
+				}
+			}
+
+			i++;
+		}
+	}
+
+	return ret;
 }

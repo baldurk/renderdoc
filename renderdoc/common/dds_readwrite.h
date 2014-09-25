@@ -40,7 +40,9 @@ struct dds_data
 	ResourceFormat format;
 
 	byte **subdata;
+	uint32_t *subsizes;
 };
 
-extern dds_data load_from_file(FILE *f);
+extern bool is_dds_file(FILE *f);
+extern dds_data load_dds_from_file(FILE *f);
 extern bool write_dds_to_file(FILE *f, const dds_data &data);
