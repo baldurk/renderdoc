@@ -86,6 +86,8 @@ struct PostVSData
 	}
 };
 
+struct CopyPixelParams;
+
 class D3D11DebugManager
 {
 	public:
@@ -320,9 +322,7 @@ class D3D11DebugManager
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
-		void PixelHistoryDepthCopySubresource(bool depthbound, ID3D11Texture2D *uavres, ID3D11UnorderedAccessView *uav, ID3D11Resource *depthres,
-																					ID3D11ShaderResourceView **copyDepthSRV, ID3D11ShaderResourceView **copyStencilSRV,
-																					ID3D11Buffer *srcxyCBuf, ID3D11Buffer *storexyCBuf, uint32_t x, uint32_t y);
+		void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
 		static const int FONT_TEX_WIDTH = 4096;
 		static const int FONT_TEX_HEIGHT = 48;
@@ -396,7 +396,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(DepthCopyMSToArrayPS);
 				SAFE_RELEASE(DepthCopyArrayToMSPS);
 				SAFE_RELEASE(PixelHistoryUnusedCS);
-				SAFE_RELEASE(PixelHistoryDepthCopyCS);
+				SAFE_RELEASE(PixelHistoryCopyCS);
 				SAFE_RELEASE(PrimitiveIDPS);
 
 				SAFE_RELEASE(QuadOverdrawPS);
@@ -461,7 +461,7 @@ class D3D11DebugManager
 			ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
 			ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;
 			ID3D11PixelShader *DepthCopyMSToArrayPS, *DepthCopyArrayToMSPS;
-			ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryDepthCopyCS;
+			ID3D11ComputeShader *PixelHistoryUnusedCS, *PixelHistoryCopyCS;
 			ID3D11PixelShader *PrimitiveIDPS;
 
 			ID3D11PixelShader *QuadOverdrawPS, *QOResolvePS;
