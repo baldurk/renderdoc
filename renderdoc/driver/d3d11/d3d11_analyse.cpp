@@ -2462,7 +2462,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 	realTexDesc.Width = details.texWidth;
 	realTexDesc.Height = details.texHeight;
 
-	if(details.texType == eTexType_2D)
+	if(details.texType == eTexType_2DMS)
 	{
 		realTexDesc.SampleDesc.Count = details.sampleCount;
 		realTexDesc.SampleDesc.Quality = details.sampleQuality;
@@ -2661,6 +2661,21 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 	{
 		m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+		
+		D3D11_RASTERIZER_DESC origdesc;
+
+		{
+			ID3D11RasterizerState *rs = NULL;
+
+			m_pImmediateContext->RSGetState(&rs);
+
+			if(rs)
+				rs->GetDesc(&origdesc);
+			else
+				origdesc.ScissorEnable = FALSE;
+
+			SAFE_RELEASE(rs);
+		}
 
 		desc.DepthEnable = FALSE;
 		desc.StencilEnable = FALSE;
@@ -2725,11 +2740,14 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		float overlayConsts2[] = { 0.5f, 0.6f, 0.8f, 0.3f };
 		buf = MakeCBuffer(overlayConsts2, sizeof(overlayConsts2));
 
-		m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+		if(origdesc.ScissorEnable)
+		{
+			m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
 
-		m_pImmediateContext->RSSetState(rs2);
+			m_pImmediateContext->RSSetState(rs2);
 
-		m_pImmediateContext->Draw(3, 0);
+			m_pImmediateContext->Draw(3, 0);
+		}
 
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
@@ -2826,6 +2844,10 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 			uint32_t width = 1920>>1;
 			uint32_t height = 1080>>1;
+
+			uint32_t depthWidth = 1920;
+			uint32_t depthHeight = 1080;
+			bool forceDepth = false;
 			
 			{
 				ID3D11Resource *res = NULL;
@@ -2861,6 +2883,13 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 					width = desc.Width>>1;
 					height = desc.Height>>1;
+
+					if(desc.SampleDesc.Count > 1)
+					{
+						forceDepth = true;
+						depthWidth = desc.Width;
+						depthHeight = desc.Height;
+					}
 				}
 				else
 				{
@@ -2869,6 +2898,26 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 				}
 
 				SAFE_RELEASE(res);
+			}
+
+			ID3D11DepthStencilView *depthOverride = NULL;
+
+			if(forceDepth)
+			{
+				D3D11_TEXTURE2D_DESC texDesc = {
+					depthWidth, depthHeight, 1U, 1U,
+					DXGI_FORMAT_D32_FLOAT_S8X24_UINT,
+					{ 1, 0 },
+					D3D11_USAGE_DEFAULT,
+					D3D11_BIND_DEPTH_STENCIL,
+					0,
+					0,
+				};
+
+				ID3D11Texture2D *tex = NULL;
+				m_WrappedDevice->CreateTexture2D(&texDesc, NULL, &tex);
+				m_WrappedDevice->CreateDepthStencilView(tex, NULL, &depthOverride);
+				SAFE_RELEASE(tex);
 			}
 			
 			D3D11_TEXTURE2D_DESC uavTexDesc = {
@@ -2921,7 +2970,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 				SAFE_RELEASE(ds);
 
 				UINT UAVcount = 0;
-				m_WrappedContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, oldstate.OM.DepthView, 0, 1, &overdrawUAV, &UAVcount);
+				m_WrappedContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, depthOverride ? depthOverride : oldstate.OM.DepthView, 0, 1, &overdrawUAV, &UAVcount);
 
 				m_pImmediateContext->PSSetShader(m_DebugRender.QuadOverdrawPS, NULL, 0);
 				
@@ -2937,6 +2986,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 						m_WrappedDevice->ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
 				}
 			}
+
+			SAFE_RELEASE(depthOverride);
 			
 			// resolve pass
 			{
