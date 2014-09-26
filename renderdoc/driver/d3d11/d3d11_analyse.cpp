@@ -792,13 +792,16 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 // want to copy the data to
 struct DataOutput
 {
-	DataOutput(int regster, int element, int numWords, SystemAttribute attr) { reg = regster; elem = element; numwords = numWords; sysattribute = attr; }
+	DataOutput(int regster, int element, int numWords, SystemAttribute attr, bool inc)
+	{ reg = regster; elem = element; numwords = numWords; sysattribute = attr; included = inc; }
 
 	int reg;
 	int elem;
 	SystemAttribute sysattribute;
 
 	int numwords;
+
+	bool included;
 };
 
 struct DebugHit
@@ -808,6 +811,7 @@ struct DebugHit
 	float depth;
 	uint32_t primitive;
 	uint32_t isFrontFace;
+	uint32_t sample;
 	uint32_t coverage;
 	uint32_t rawdata; // arbitrary, depending on shader
 };
@@ -1181,7 +1185,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	{
 		extractHlsl += "float4 input_dummy : SV_Position;\n";
 
-		initialValues.push_back(DataOutput(-1, 0, 4, eAttr_None));
+		initialValues.push_back(DataOutput(-1, 0, 4, eAttr_None, true));
 
 		structureStride += 4;
 	}
@@ -1197,7 +1201,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 		// handled specially to account for SV_ ordering
 		if(dxbc->m_InputSig[i].systemValue == eAttr_PrimitiveIndex ||
 			 dxbc->m_InputSig[i].systemValue == eAttr_MSAACoverage ||
-			 dxbc->m_InputSig[i].systemValue == eAttr_IsFrontFace)
+			 dxbc->m_InputSig[i].systemValue == eAttr_IsFrontFace ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_MSAASampleIndex)
 		{
 			extractHlsl += "//";
 			included = false;
@@ -1237,24 +1242,35 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			dxbc->m_InputSig[i].regChannelMask & 0x8 ? 3 :
 			-1;
 
-		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue));
+		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue, included));
 	}
 
 	extractHlsl += "};\n\n";
 
 	uint32_t overdrawLevels = 100; // maximum number of overdraw levels
 
-	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; };\n\n";
-	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u0);\n\n";
-	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint covge : SV_Coverage, bool fface : SV_IsFrontFace)\n{\n";
+	uint32_t uavslot = 0;
+	
+	ID3D11DepthStencilView *depthView = NULL;
+	ID3D11RenderTargetView *rtView = NULL;
+	// preserve at least one render target and/or the depth view, so that
+	// we have the right multisample level on output either way
+	m_pImmediateContext->OMGetRenderTargets(1, &rtView, &depthView);
+	if(rtView != NULL)
+		uavslot = 1;
+
+	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint sample; uint covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; };\n\n";
+	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u" + ToStr::Get(uavslot) + ");\n\n";
+	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint sample : SV_SampleIndex, uint covge : SV_Coverage, bool fface : SV_IsFrontFace)\n{\n";
 	extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
-	extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 2 && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 2)\n";
+	extractHlsl += "  if(abs(debug_pixelPos.x - " + ToStr::Get(x) + ".5) < 0.5f && abs(debug_pixelPos.y - " + ToStr::Get(y) + ".5) < 0.5f)\n";
 	extractHlsl += "    InterlockedAdd(PSInitialBuffer[0].hit, 1, idx);\n\n";
 	extractHlsl += "  idx = min(idx, " + ToStr::Get(overdrawLevels) + ");\n\n";
 	extractHlsl += "  PSInitialBuffer[idx].pos = debug_pixelPos.xyz;\n";
 	extractHlsl += "  PSInitialBuffer[idx].prim = prim;\n";
 	extractHlsl += "  PSInitialBuffer[idx].fface = fface;\n";
 	extractHlsl += "  PSInitialBuffer[idx].covge = covge;\n";
+	extractHlsl += "  PSInitialBuffer[idx].sample = sample;\n";
 	extractHlsl += "  PSInitialBuffer[idx].IN = IN;\n";
 	extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
 	extractHlsl += "  PSInitialBuffer[idx].INddx = (PSInput)0;\n";
@@ -1273,6 +1289,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	                      + sizeof(float)*3     // float3 pos;
 												+ sizeof(uint32_t)    // uint prim;
 												+ sizeof(uint32_t)    // uint fface;
+												+ sizeof(uint32_t)    // uint sample;
 												+ sizeof(uint32_t)    // uint covge;
 												+ sizeof(float)       // float derivValid;
 												+ structureStride*3;  // PSInput IN, INddx, INddy;
@@ -1331,11 +1348,10 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	m_pImmediateContext->ClearUnorderedAccessViewUint(initialUAV, &zero);
 
 	UINT count = (UINT)-1;
-	ID3D11DepthStencilView *depthView = NULL;
-	m_pImmediateContext->OMGetRenderTargets(0, NULL, &depthView);
-	m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, depthView, 0, 1, &initialUAV, &count);
+	m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(uavslot, &rtView, depthView, uavslot, 1, &initialUAV, &count);
 	m_pImmediateContext->PSSetShader(extract, NULL, 0);
 
+	SAFE_RELEASE(rtView);
 	SAFE_RELEASE(depthView);
 	
 	m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
@@ -1403,21 +1419,16 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	DebugHit *winner = NULL;
 
+	if(sample == ~0U) sample = 0;
+
 	if(primitive != ~0U)
 	{
 		for(size_t i=0; i < buf[0].numHits && i < overdrawLevels; i++)
 		{
 			DebugHit *hit = (DebugHit *)(initialData+i*structStride);
-
-			// only interested in destination pixel
-			if(hit->posx != (float)x + 0.5 || hit->posy != (float)y + 0.5)
-				continue;
 			
-			if(hit->primitive == primitive)
-			{
-				winner = hit;
-				break;
-			}
+			if(hit->primitive == primitive && hit->sample == sample)
+					winner = hit;
 		}
 	}
 	
@@ -1427,11 +1438,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 		{
 			DebugHit *hit = (DebugHit *)(initialData+i*structStride);
 
-			// only interested in destination pixel
-			if(hit->posx != (float)x + 0.5 || hit->posy != (float)y + 0.5)
-				continue;
-
-			if(winner == NULL || depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
+			if(winner == NULL || (winner->sample != sample && hit->sample == sample) ||
+				depthFunc == D3D11_COMPARISON_ALWAYS || depthFunc == D3D11_COMPARISON_NEVER ||
 				depthFunc == D3D11_COMPARISON_NOT_EQUAL || depthFunc == D3D11_COMPARISON_EQUAL)
 			{
 				winner = hit;
@@ -1439,13 +1447,14 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			}
 
 			if(
-				(depthFunc == D3D11_COMPARISON_LESS && hit->depth < winner->depth) ||
-				(depthFunc == D3D11_COMPARISON_LESS_EQUAL && hit->depth <= winner->depth) ||
-				(depthFunc == D3D11_COMPARISON_GREATER && hit->depth > winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_LESS          && hit->depth <  winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_LESS_EQUAL    && hit->depth <= winner->depth) ||
+				(depthFunc == D3D11_COMPARISON_GREATER       && hit->depth >  winner->depth) ||
 				(depthFunc == D3D11_COMPARISON_GREATER_EQUAL && hit->depth >= winner->depth)
 				)
 			{
-				winner = hit;
+				if(hit->sample == sample)
+					winner = hit;
 			}
 		}
 	}
@@ -1499,6 +1508,10 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 				{
 					invar.value.u.x = hit->primitive;
 				}
+				else if(initialValues[i].sysattribute == eAttr_MSAASampleIndex)
+				{
+					invar.value.u.x = hit->sample;
+				}
 				else if(initialValues[i].sysattribute == eAttr_MSAACoverage)
 				{
 					invar.value.u.x = hit->coverage;
@@ -1515,7 +1528,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 				}
 			}
 
-			data += initialValues[i].numwords;
+			if(initialValues[i].included)
+				data += initialValues[i].numwords;
 		}
 
 		for(int i=0; i < 4; i++)
@@ -1532,6 +1546,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 		for(size_t i=0; i < initialValues.size(); i++)
 		{
+			if(!initialValues[i].included) continue;
+
 			if(initialValues[i].reg >= 0)
 			{
 				// left
@@ -1560,6 +1576,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 		for(size_t i=0; i < initialValues.size(); i++)
 		{
+			if(!initialValues[i].included) continue;
+
 			if(initialValues[i].reg >= 0)
 			{
 				// top
