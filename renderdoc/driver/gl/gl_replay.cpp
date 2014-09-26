@@ -1420,7 +1420,7 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
 	RDCUNIMPLEMENTED("BuildCustomShader");
 }
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
 {
 	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
 	return vector<PixelModification>();

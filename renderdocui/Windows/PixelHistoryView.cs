@@ -60,7 +60,7 @@ namespace renderdocui.Windows
         float rangeMin, rangeMax;
         int numChannels, channelIdx;
 
-        public PixelHistoryView(Core core, FetchTexture tex, Point pt,
+        public PixelHistoryView(Core core, FetchTexture tex, Point pt, UInt32 sampleIdx,
                                 float rangemin, float rangemax, bool[] channels)
         {
             InitializeComponent();
@@ -74,9 +74,11 @@ namespace renderdocui.Windows
             rangeMin = rangemin;
             rangeMax = rangemax;
             visibleChannels = channels;
-            sample = 0;
+            sample = sampleIdx;
 
             Text = String.Format("Pixel History on {0} for ({1}, {2})", tex.name, pt.X, pt.Y);
+            if(tex.msSamp > 1)
+                Text += String.Format(" @ Sample {0}", sample);
 
             string channelStr = "";
             numChannels = 0;

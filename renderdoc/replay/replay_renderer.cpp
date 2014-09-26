@@ -1016,7 +1016,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const wchar_t *pat
 	return success;
 }
 
-bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
+bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history)
 {
 	bool outofbounds = false;
 	
@@ -1031,6 +1031,9 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 				history->elems = NULL;
 				return false;
 			}
+
+			if(m_Textures[t].msSamp == 1)
+				sampleIdx = ~0U;
 
 			break;
 		}
@@ -1086,7 +1089,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdc
 		return false;
 	}
 
-	*history = m_pDevice->PixelHistory(m_FrameID, events, m_pDevice->GetLiveID(target), x, y);
+	*history = m_pDevice->PixelHistory(m_FrameID, events, m_pDevice->GetLiveID(target), x, y, sampleIdx);
 	
 	SetFrameEvent(m_FrameID, m_EventID, true);
 
@@ -1461,8 +1464,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRen
 extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
 { return rend->GetShaderDetails(shader); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history)
-{ return rend->PixelHistory(target, x, y, history); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history)
+{ return rend->PixelHistory(target, x, y, sampleIdx, history); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugVertex(ReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace)
 { return rend->DebugVertex(vertid, instid, idx, instOffset, vertOffset, trace); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugPixel(ReplayRenderer *rend, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace)

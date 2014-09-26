@@ -2646,7 +2646,7 @@ namespace renderdocui.Windows
         {
             PixelModification[] history = null;
 
-            PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint,
+            PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, m_PickedPoint, m_TexDisplay.sampleIdx,
                                                          m_TexDisplay.rangemin, m_TexDisplay.rangemax,
                                                          new bool[] { m_TexDisplay.Red, m_TexDisplay.Green, m_TexDisplay.Blue, m_TexDisplay.Alpha });
 
@@ -2660,7 +2660,7 @@ namespace renderdocui.Windows
                 Thread.Sleep(100);
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
-                    history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+                    history = r.PixelHistory(CurrentTexture.ID, (UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y, m_TexDisplay.sampleIdx);
 
                     this.BeginInvoke(new Action(() =>
                     {
