@@ -89,6 +89,11 @@ namespace Threading
 	void JoinThread(ThreadHandle handle);
 	void CloseThread(ThreadHandle handle);
 	void Sleep(uint32_t milliseconds);
+
+	// kind of windows specific, to handle this case:
+	// http://blogs.msdn.com/b/oldnewthing/archive/2013/11/05/10463645.aspx
+	void KeepModuleAlive();
+	void ReleaseModuleExitThread();
 };
 
 namespace Network

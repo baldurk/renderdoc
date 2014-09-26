@@ -152,7 +152,15 @@ namespace Threading
 	void CloseThread(ThreadHandle handle)
 	{
 	}
+	
+	void KeepModuleAlive()
+	{
+	}
 
+	void ReleaseModuleExitThread()
+	{
+	}
+	
 	void Sleep(uint32_t milliseconds)
 	{
 		usleep(milliseconds*1000);

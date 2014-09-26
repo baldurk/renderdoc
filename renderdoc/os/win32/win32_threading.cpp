@@ -144,6 +144,21 @@ namespace Threading
 		if(handle == 0) return;
 		CloseHandle((HANDLE)handle);
 	}
+
+	static HMODULE ownModuleHandle = 0;
+
+	void KeepModuleAlive()
+	{
+		// deliberately omitting GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT to bump refcount
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+											 (const char *)&ownModuleHandle,
+											 &ownModuleHandle);
+	}
+
+	void ReleaseModuleExitThread()
+	{
+		FreeLibraryAndExitThread(ownModuleHandle, 0);
+	}
 	
 	void Sleep(uint32_t milliseconds)
 	{

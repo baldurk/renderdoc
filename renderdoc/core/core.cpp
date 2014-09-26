@@ -259,7 +259,7 @@ RenderDoc::~RenderDoc()
 	}
 
 	m_RemoteServerThreadShutdown = true;
-	Threading::JoinThread(m_RemoteThread);
+	// don't join, just close the thread, as we can't wait while in the middle of module unloading
 	Threading::CloseThread(m_RemoteThread);
 	m_RemoteThread = 0;
 

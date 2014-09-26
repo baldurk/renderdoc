@@ -44,6 +44,8 @@ enum PacketType
 
 void RenderDoc::RemoteAccessClientThread(void *s)
 {
+	Threading::KeepModuleAlive();
+
 	Network::Socket *client = (Network::Socket *)s;
 
 	Serialiser ser(L"", Serialiser::WRITING, false);
@@ -66,7 +68,8 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 			SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
 			RenderDoc::Inst().m_SingleClientName = L"";
 		}
-
+		
+		Threading::ReleaseModuleExitThread();
 		return;
 	}
 
@@ -204,10 +207,14 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 		SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
 		RenderDoc::Inst().m_SingleClientName = L"";
 	}
+
+	Threading::ReleaseModuleExitThread();
 }
 
 void RenderDoc::RemoteAccessServerThread(void *s)
 {
+	Threading::KeepModuleAlive();
+
 	Network::Socket *sock = (Network::Socket *)s;
 	
 	RenderDoc::Inst().m_SingleClientName = L"";
@@ -227,6 +234,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 				RDCERR("Error in accept - shutting down server");
 
 				SAFE_DELETE(sock);
+				Threading::ReleaseModuleExitThread();
 				return;
 			}
 
@@ -322,9 +330,11 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 	}
 	
 	RenderDoc::Inst().m_RemoteClientThreadShutdown = true;
-	Threading::JoinThread(clientThread);
+	// don't join, just close the thread, as we can't wait while in the middle of module unloading
 	Threading::CloseThread(clientThread);
 	clientThread = 0;
+
+	Threading::ReleaseModuleExitThread();
 }
 
 struct RemoteAccess
