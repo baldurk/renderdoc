@@ -4,30 +4,30 @@
     Language='1033' Codepage='1252' Version='$(env.RENDERDOC_VERSION)' Manufacturer='Crytek'>
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
-			Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Crytek'
+      Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Crytek'
       InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
-		<UI> 
-			 <Error Id="25000">Please use the 64-bit installer</Error> 
-		</UI> 
+    <UI> 
+       <Error Id="25000">Please use the 64-bit installer</Error> 
+    </UI> 
 
-		<CustomAction Id="Need64BitVersion" Error="25000" /> 
+    <CustomAction Id="Need64BitVersion" Error="25000" /> 
 
-		<InstallUISequence> 
-			 <Custom Action="Need64BitVersion" Before="AppSearch">VersionNT64</Custom> 
-		</InstallUISequence> 
+    <InstallUISequence> 
+       <Custom Action="Need64BitVersion" Before="AppSearch">VersionNT64</Custom> 
+    </InstallUISequence> 
 
-		<InstallExecuteSequence>
-			<RemoveExistingProducts After="InstallInitialize"/>
-		</InstallExecuteSequence>
+    <InstallExecuteSequence>
+      <RemoveExistingProducts After="InstallInitialize"/>
+    </InstallExecuteSequence>
 
-		<Upgrade Id="D320753C-4B18-4905-A752-E68959943E7D">
-			<UpgradeVersion Minimum="0.18.0"
-											IncludeMinimum="yes"
-											IncludeMaximum="yes"
-											Maximum="$(env.RENDERDOC_VERSION)"
-											Property="OLDERVERSIONBEINGUPGRADED" />
-		</Upgrade>
+    <Upgrade Id="D320753C-4B18-4905-A752-E68959943E7D">
+      <UpgradeVersion Minimum="0.18.0"
+                      IncludeMinimum="yes"
+                      IncludeMaximum="yes"
+                      Maximum="$(env.RENDERDOC_VERSION)"
+                      Property="OLDERVERSIONBEINGUPGRADED" />
+    </Upgrade>
 
     <Media Id='1' Cabinet='renderdoc.cab' EmbedCab='yes' DiskPrompt="CD-ROM #1" />
     <Property Id='DiskPrompt' Value="RenderDoc Installation [1]" />
@@ -38,65 +38,65 @@
           <Directory Id='INSTALLDIR' Name='RenderDoc'>
 
             <Component Id='RenderDocUI' Guid='0DB375D5-7712-4853-AA75-536DF863C827'>
-							<File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release32/renderdocui.exe' KeyPath='yes'>
+              <File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release32/renderdocui.exe' KeyPath='yes'>
                 <Shortcut Id="startmenuRenderDoc" Directory="ProgramMenuDir" Name="RenderDoc" WorkingDirectory='INSTALLDIR' Icon="icon.ico" IconIndex="0" Advertise="yes" />
               </File>
-							<File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release32/renderdocui.pdb' />
-							<File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release32/renderdocui.exe.config' />
+              <File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release32/renderdocui.pdb' />
+              <File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release32/renderdocui.exe.config' />
 
-							<RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCCapture.1\shell\open\command" 
-								Value='"[#renderdocuiEXE]" "%1"' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="VerbDescRDC" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCCapture.1" 
-								Value='RenderDoc Capture Log (.rdc)' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="VerbIconRDC" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCCapture.1\DefaultIcon" 
-								Value='[#renderdocuiEXE]' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="RDCProgIDCLSID" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCCapture.1\CLSID" 
-								Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
-								Type="expandable" />
+              <RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCCapture.1\shell\open\command" 
+                Value='"[#renderdocuiEXE]" "%1"' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="VerbDescRDC" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCCapture.1" 
+                Value='RenderDoc Capture Log (.rdc)' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="VerbIconRDC" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCCapture.1\DefaultIcon" 
+                Value='[#renderdocuiEXE]' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="RDCProgIDCLSID" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCCapture.1\CLSID" 
+                Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
+                Type="expandable" />
 
-							<RegistryValue Root="HKLM" Id="VerbCAP" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCSettings.1\shell\open\command" 
-								Value='"[#renderdocuiEXE]" "%1"' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="VerbDescCAP" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCSettings.1" 
-								Value='RenderDoc Capture Settings (.cap)' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="VerbIconCAP" Action="write" 
-								Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
-								Value='[#renderdocuiEXE]' 
-								Type="expandable" />
-							
+              <RegistryValue Root="HKLM" Id="VerbCAP" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCSettings.1\shell\open\command" 
+                Value='"[#renderdocuiEXE]" "%1"' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="VerbDescCAP" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCSettings.1" 
+                Value='RenderDoc Capture Settings (.cap)' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="VerbIconCAP" Action="write" 
+                Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
+                Value='[#renderdocuiEXE]' 
+                Type="expandable" />
+              
             </Component>
 
             <Component Id='RenderDocCPP' Guid='2E6F718F-8BCC-4D41-9688-E99CF2F6B303'>
-							<File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release32/renderdoc.dll' KeyPath='yes' />
-							<File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
-							
-							<RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
-								Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
-								Value='RenderDoc Thumbnail Handler' 
-								Type="expandable" />
-							<RegistryValue Root="HKLM" Id="RDCCLSIDServer" Action="write" 
-								Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}\InprocServer32" 
-								Value='[#RenderDocCPP]' 
-								Type="expandable" />
+              <File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release32/renderdoc.dll' KeyPath='yes' />
+              <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
+              
+              <RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
+                Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
+                Value='RenderDoc Thumbnail Handler' 
+                Type="expandable" />
+              <RegistryValue Root="HKLM" Id="RDCCLSIDServer" Action="write" 
+                Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}\InprocServer32" 
+                Value='[#RenderDocCPP]' 
+                Type="expandable" />
 
             </Component>
 
             <Component Id='LICENSE' Guid='107AD4E6-D64F-4284-A1F6-D8AAAA6CFC42'>
-							<File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='installer/LICENSE.rtf' KeyPath='yes' />
+              <File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='installer/LICENSE.rtf' KeyPath='yes' />
             </Component>
 
             <Component Id='RenderDocCMD' Guid='97338A5D-8FDB-4DF5-AEC7-14B36F234F29'>
-							<File Id='RenderDocCMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release32/renderdoccmd.exe' KeyPath='yes' />
+              <File Id='RenderDocCMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release32/renderdoccmd.exe' KeyPath='yes' />
             </Component>
 
             <Component Id='Scintilla' Guid='63C1C176-5B7C-4D29-9382-8E0FA75C5B80'>
@@ -115,23 +115,23 @@
               </File>
             </Component>
 
-						<Directory Id='pdblocate' Name='pdblocate'>
+            <Directory Id='pdblocate' Name='pdblocate'>
 
-							<Component Id='pdblocateEXE' Guid='733FCA6A-EC84-4E96-BFD2-F2A9A62DEAEB'>
-								<File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release32/pdblocate/pdblocate.exe' KeyPath='yes' />
-							</Component>
+              <Component Id='pdblocateEXE' Guid='733FCA6A-EC84-4E96-BFD2-F2A9A62DEAEB'>
+                <File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release32/pdblocate/pdblocate.exe' KeyPath='yes' />
+              </Component>
 
-							<Directory Id='pdblocateDeps32' Name='x86'>
+              <Directory Id='pdblocateDeps32' Name='x86'>
 
-								<Component Id='pdblocateDeps' Guid='CC83B1BB-8E47-4415-9308-5BEF2A7242A0'>
-									<File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
-									<File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.dll' />
-									<File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.yes' />
-								</Component>
+                <Component Id='pdblocateDeps' Guid='CC83B1BB-8E47-4415-9308-5BEF2A7242A0'>
+                  <File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
+                  <File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.dll' />
+                  <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.yes' />
+                </Component>
 
-							</Directory>
+              </Directory>
 
-						</Directory>
+            </Directory>
 
           </Directory>
         </Directory>
@@ -146,66 +146,121 @@
         </Directory>
       </Directory>
      
-			<Component Id="ImageThumbnailProvider" Guid="51E29C24-61F0-4F40-AB17-D66A97B3D543">
-				<RegistryValue Root="HKLM" Id="RDCProvider" Action="write" KeyPath='yes'
-					Key="Software\Classes\RenderDoc.RDCCapture.1\ShellEx\{e357fccd-a995-4576-b01f-234630154e96}" 
-					Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
-					Type="expandable" />
-			</Component>
-      
-			<Component Id="FileExtensionRDC" Guid="5F21081F-59A8-43EE-8E95-170335FC3EF4">
-				<ProgId Id='RenderDoc.RDCCapture.1' Description='RenderDoc Capture Log (.rdc)'>
-					<Extension Id='rdc' />
-				</ProgId>
-			</Component>
+      <Component Id="ImageOpenWith" Guid="1F56AF06-3E83-4D7E-85A2-6A309A55FF4F">
+        <RegistryValue Root="HKLM" Id="RDCOpenWithCommand" Action="write" KeyPath='yes'
+          Key="Software\Classes\Applications\renderdocui.exe\shell\open\command" 
+          Value='"[#renderdocuiEXE]" "%1"'
+          Type="string" />
 
-			<Component Id="FileExtensionCAP"  Guid="3A373912-99D7-4A1C-B81C-6C69BA6B8733">
-				<ProgId Id='RenderDoc.RDCSettings.1' Description='RenderDoc Capture Settings (.cap)'>
-					<Extension Id='cap' />
-				</ProgId>
-			</Component>
+        <RegistryValue Root="HKLM" Id="RDCOpenWithDDS" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.dds'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithHDR" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.hdr'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithJPG" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.jpg'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithJPEG" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.jpeg'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithPNG" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.png'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithTGA" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.tga'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithBMP" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.bmp'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithGIF" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.gif'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithPSD" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.psd'  Value='' Type="string" />
+
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidDDS" Action="write"
+          Key="Software\Classes\.dds\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidHDR" Action="write"
+          Key="Software\Classes\.hdr\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidJPG" Action="write"
+          Key="Software\Classes\.jpg\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidJPEG" Action="write"
+          Key="Software\Classes\.jpeg\OpenWithProgids" Name='RenderDoc.RDCCapture.1' Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidPNG" Action="write"
+          Key="Software\Classes\.png\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidTGA" Action="write"
+          Key="Software\Classes\.tga\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidBMP" Action="write"
+          Key="Software\Classes\.bmp\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidGIF" Action="write"
+          Key="Software\Classes\.gif\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidPSD" Action="write"
+          Key="Software\Classes\.psd\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+      </Component>
+     
+      <Component Id="ImageThumbnailProvider" Guid="51E29C24-61F0-4F40-AB17-D66A97B3D543">
+        <RegistryValue Root="HKLM" Id="RDCProvider" Action="write" KeyPath='yes'
+          Key="Software\Classes\RenderDoc.RDCCapture.1\ShellEx\{e357fccd-a995-4576-b01f-234630154e96}" 
+          Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
+          Type="expandable" />
+      </Component>
+      
+      <Component Id="FileExtensionRDC" Guid="5F21081F-59A8-43EE-8E95-170335FC3EF4">
+        <ProgId Id='RenderDoc.RDCCapture.1' Description='RenderDoc Capture Log (.rdc)'>
+          <Extension Id='rdc' />
+        </ProgId>
+      </Component>
+
+      <Component Id="FileExtensionCAP"  Guid="3A373912-99D7-4A1C-B81C-6C69BA6B8733">
+        <ProgId Id='RenderDoc.RDCSettings.1' Description='RenderDoc Capture Settings (.cap)'>
+          <Extension Id='cap' />
+        </ProgId>
+      </Component>
 
     </Directory>
 
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
-			<Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
-      	<ComponentRef Id='RenderDocUI' />
-  	    <ComponentRef Id='RenderDocCPP' />
-				<ComponentRef Id='RenderDocCMD' />
+      <Feature Id='MainProgram' Title='Program' Description='The main executable with everything needed to capture and replay.' AllowAdvertise='no' Absent='disallow' Level='1'>
+        <ComponentRef Id='RenderDocUI' />
+        <ComponentRef Id='RenderDocCPP' />
+        <ComponentRef Id='RenderDocCMD' />
 
-				<ComponentRef Id='LICENSE' />
+        <ComponentRef Id='LICENSE' />
 
-				<ComponentRef Id='pdblocateEXE' />
-				<ComponentRef Id='pdblocateDeps' />
+        <ComponentRef Id='pdblocateEXE' />
+        <ComponentRef Id='pdblocateDeps' />
 
-				<ComponentRef Id='Scintilla' />
-				<ComponentRef Id='DockingUI' />
+        <ComponentRef Id='Scintilla' />
+        <ComponentRef Id='DockingUI' />
 
-				<ComponentRef Id='ProgramMenuDir' />
+        <ComponentRef Id='ProgramMenuDir' />
 
-			</Feature>
+        <ComponentRef Id='ImageOpenWith' />
+      </Feature>
 
-			<Feature Id='Docs' Title='Documentation' Description='CHM file with local help.' Level='1'>
-	      <ComponentRef Id='Documentation' />
-			</Feature>
+      <Feature Id='Docs' Title='Documentation' Description='CHM file with local help.' Level='1'>
+        <ComponentRef Id='Documentation' />
+      </Feature>
 
-			<Feature Id='FileExts' Title='File Associations' Description='Associate .rdc (Capture logs) and .cap (Capture settings) files with RenderDoc.' Level='1'>
-				<ComponentRef Id='ImageThumbnailProvider' />
-				<ComponentRef Id='FileExtensionRDC' />
-				<ComponentRef Id='FileExtensionCAP' />
-			</Feature>
+      <Feature Id='FileExts' Title='File Associations' Description='Associate .rdc (Capture logs) and .cap (Capture settings) files with RenderDoc.' Level='1'>
+        <ComponentRef Id='ImageThumbnailProvider' />
+        <ComponentRef Id='FileExtensionRDC' />
+        <ComponentRef Id='FileExtensionCAP' />
+      </Feature>
 
     </Feature>
 
-		<UIRef Id="WixUI_Mondo" />
-		<UIRef Id="WixUI_ErrorProgressText" />
+    <UIRef Id="WixUI_Mondo" />
+    <UIRef Id="WixUI_ErrorProgressText" />
 
-		<WixVariable Id="WixUILicenseRtf" Value="installer/LICENSE.rtf" />
+    <WixVariable Id="WixUILicenseRtf" Value="installer/LICENSE.rtf" />
 
-		<Icon Id="chm.ico"  SourceFile="installer/chm.ico" />
-		<Icon Id="icon.ico" SourceFile="renderdocui/Resources/icon.ico" />
-		<Property Id="ARPPRODUCTICON" Value="icon.ico" />
-		<Property Id="ARPHELPLINK" Value="http://renderdoc.org/" />
+    <Icon Id="chm.ico"  SourceFile="installer/chm.ico" />
+    <Icon Id="icon.ico" SourceFile="renderdocui/Resources/icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="icon.ico" />
+    <Property Id="ARPHELPLINK" Value="http://renderdoc.org/" />
 
   </Product>
 </Wix>
