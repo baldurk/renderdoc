@@ -331,7 +331,9 @@ D3D11DebugManager::~D3D11DebugManager()
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
 		SAFE_RELEASE(it->second.vsout.buf);
+		SAFE_RELEASE(it->second.vsout.idxBuf);
 		SAFE_RELEASE(it->second.gsout.buf);
+		SAFE_RELEASE(it->second.gsout.idxBuf);
 	}
 
 	m_PostVSData.clear();
@@ -3751,7 +3753,7 @@ PostVSMeshData D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t ev
 	PostVSData postvs = GetPostVSBuffers(frameID, eventID);
 	PostVSData::StageData s = postvs.GetStage(stage);
 	ret.numVerts = s.numVerts;
-	ret.topo = (PrimitiveTopology)s.topo;
+	ret.topo = MakePrimitiveTopology(s.topo);
 	if(s.buf != NULL)
 		ret.buf = GetBufferData(s.buf, 0, 0);
 	else
@@ -3866,10 +3868,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			if(a.find("POSITION") != string::npos)
 			{
 				// force to 4 components, as we need it, and store its offset
-				if(a.find("SV_POSITION") != string::npos)
+				if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position || posoffset == ~0U)
+				{
 					decl.ComponentCount = 4;
-				numPosComponents = decl.ComponentCount;
-				posoffset = stride;
+
+					posoffset = stride;
+					numPosComponents = decl.ComponentCount;
+				}
 			}
 
 			stride += decl.ComponentCount * sizeof(float);
@@ -3903,7 +3908,108 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_pImmediateContext->SOSetTargets( 1, &m_SOBuffer, &offset );
 
 		m_pImmediateContext->Begin(m_SOStatsQuery);
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, eventID);
+		
+		ID3D11Buffer *idxBuf = NULL;
+		DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+
+		if((drawcall->flags & eDraw_UseIBuffer) == 0)
+		{
+			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+			m_pImmediateContext->Draw(drawcall->numIndices, drawcall->vertexOffset);
+			m_pImmediateContext->IASetPrimitiveTopology(topo);
+		}
+		else // drawcall is indexed
+		{
+			UINT idxOffs = 0;
+			
+			m_WrappedContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
+			bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+			UINT bytesize = index16 ? 2 : 4; 
+
+			ID3D11Buffer *origBuf = idxBuf;
+
+			vector<byte> idxdata = GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize);
+
+			SAFE_RELEASE(idxBuf);
+			
+			vector<uint32_t> indices;
+			
+			uint16_t *idx16 = (uint16_t *)&idxdata[0];
+			uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+			// grab all unique vertex indices referenced
+			for(uint32_t i=0; i < drawcall->numIndices; i++)
+			{
+				uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+				auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+				if(it != indices.end() && *it == i32)
+					continue;
+
+				indices.insert(it, i32);
+			}
+
+			// An index buffer could be something like: 500, 501, 502, 501, 503, 502
+			// in which case we can't use the existing index buffer without filling 499 slots of vertex
+			// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+			// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+			//
+			// Since we want the indices to be preserved in order to easily match up inputs to outputs,
+			// but shifted, fill in gaps in our streamout vertex buffer with the lowest index value.
+			// (use the lowest index value so that even the gaps are a 'valid' vertex, rather than
+			// potentially garbage data).
+			uint32_t minindex = indices[0];
+
+			// indices[] contains ascending unique vertex indices referenced. Fill gaps with minindex
+			for(size_t i=1; i < indices.size(); i++)
+			{
+				if(indices[i]-1 > indices[i-1])
+				{
+					size_t gapsize = size_t( (indices[i]-1) - indices[i-1] );
+
+					indices.insert(indices.begin()+i, gapsize, minindex);
+
+					i += gapsize;
+				}
+			}
+
+			D3D11_BUFFER_DESC desc = { UINT(sizeof(uint32_t)*indices.size()), D3D11_USAGE_IMMUTABLE, D3D11_BIND_INDEX_BUFFER, 0, 0, 0 };
+			D3D11_SUBRESOURCE_DATA initData = { &indices[0], desc.ByteWidth, desc.ByteWidth };
+
+			m_pDevice->CreateBuffer(&desc, &initData, &idxBuf);
+
+			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+			m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
+			SAFE_RELEASE(idxBuf);
+
+			m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->vertexOffset);
+
+			m_pImmediateContext->IASetPrimitiveTopology(topo);
+			m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
+			
+			// rebase existing index buffer to point from 0 onwards (which will index into our
+			// stream-out'd vertex buffer)
+			if(index16)
+			{
+				for(uint32_t i=0; i < drawcall->numIndices; i++)
+					idx16[i] -= uint16_t(minindex&0xffff);
+			}
+			else
+			{
+				for(uint32_t i=0; i < drawcall->numIndices; i++)
+					idx32[i] -= minindex;
+			}
+			
+			desc.ByteWidth = (UINT)idxdata.size();
+			initData.pSysMem = &idxdata[0];
+			initData.SysMemPitch = initData.SysMemSlicePitch = desc.ByteWidth;
+
+			m_WrappedDevice->CreateBuffer(&desc, &initData, &idxBuf);
+		}
+
 		m_pImmediateContext->End(m_SOStatsQuery);
 
 		m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -3935,7 +4041,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		D3D11_BUFFER_DESC bufferDesc =
 		{
-			stride * (uint32_t)numPrims.NumPrimitivesWritten*3,
+			stride * (uint32_t)numPrims.NumPrimitivesWritten,
 			D3D11_USAGE_IMMUTABLE,
 			D3D11_BIND_VERTEX_BUFFER,
 			0,
@@ -4022,9 +4128,18 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.buf = vsoutBuffer;
 		m_PostVSData[idx].vsout.posOffset = posoffset;
 		m_PostVSData[idx].vsout.vertStride = stride;
-		m_PostVSData[idx].vsout.numPrims = (uint32_t)numPrims.NumPrimitivesWritten;
 		m_PostVSData[idx].vsout.nearPlane = nearp;
 		m_PostVSData[idx].vsout.farPlane = farp;
+
+		m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+		m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+
+		m_PostVSData[idx].vsout.idxBuf = NULL;
+		if(m_PostVSData[idx].vsout.useIndices && idxBuf)
+		{
+			m_PostVSData[idx].vsout.idxBuf = idxBuf;
+			m_PostVSData[idx].vsout.idxFmt = idxFmt;
+		}
 
 		m_PostVSData[idx].vsout.topo = topo;
 	}
@@ -4035,32 +4150,12 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.buf = NULL;
 		m_PostVSData[idx].vsout.posOffset = ~0U;
 		m_PostVSData[idx].vsout.vertStride = 0;
-		m_PostVSData[idx].vsout.numPrims = 0;
 		m_PostVSData[idx].vsout.nearPlane = 0.0f;
 		m_PostVSData[idx].vsout.farPlane = 0.0f;
+		m_PostVSData[idx].vsout.useIndices = false;
+		m_PostVSData[idx].vsout.idxBuf = NULL;
 
 		m_PostVSData[idx].vsout.topo = topo;
-	}
-
-	// streamout expands strips unfortunately
-	if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
-
-	switch(m_PostVSData[idx].vsout.topo)
-	{
-		case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims; break;
-		case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims*2; break;
-		default:
-		case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims*3; break;
 	}
 
 	if(dxbcGS || dxbcDS)
@@ -4092,15 +4187,17 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			decl.ComponentCount = sign.compCount&0xff;
 
 			string a = strupper(string(decl.SemanticName));
-
-			// force to 4 components, as we need it, and store its offset
+			
 			if(a.find("POSITION") != string::npos)
 			{
 				// force to 4 components, as we need it, and store its offset
-				if(a.find("SV_POSITION") != string::npos)
+				if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position || posoffset == ~0U)
+				{
 					decl.ComponentCount = 4;
-				numPosComponents = decl.ComponentCount;
-				posoffset = stride;
+
+					posoffset = stride;
+					numPosComponents = decl.ComponentCount;
+				}
 			}
 
 			stride += decl.ComponentCount * sizeof(float);
@@ -4253,9 +4350,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].gsout.buf = gsoutBuffer;
 		m_PostVSData[idx].gsout.posOffset = posoffset;
 		m_PostVSData[idx].gsout.vertStride = stride;
-		m_PostVSData[idx].gsout.numPrims = (uint32_t)numPrims.NumPrimitivesWritten;
 		m_PostVSData[idx].gsout.nearPlane = nearp;
 		m_PostVSData[idx].gsout.farPlane = farp;
+		m_PostVSData[idx].gsout.useIndices = false;
+		m_PostVSData[idx].gsout.idxBuf = NULL;
 
 		D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		
@@ -4300,12 +4398,14 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		switch(m_PostVSData[idx].gsout.topo)
 		{
 			case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims; break;
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten; break;
 			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims*2; break;
+			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*2; break;
 			default:
 			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims*3; break;
+			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*3; break;
 		}
 	}
 }
@@ -4435,16 +4535,29 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			for(size_t i=0; i < events.size()-1; i++)
 			{
 				PostVSData data = GetPostVSBuffers(frameID, events[i]);
-				const PostVSData::StageData &stage = data.GetStage(cfg.type);
+				PostVSData::StageData stage = data.GetStage(cfg.type);
+
+				if(stage.buf == NULL && cfg.type == eMeshDataStage_GSOut)
+					stage = data.GetStage(eMeshDataStage_VSOut);
 
 				if(stage.buf)
 				{
-					if(stage.topo < D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
-					{
+					if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+						m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+					else
 						m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
 
-						ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-						m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
+					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+					if(stage.useIndices)
+					{
+						buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
+						m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
+
+						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+					}
+					else
+					{
 						m_pImmediateContext->Draw(stage.numVerts, 0);
 					}
 				}
@@ -4457,12 +4570,22 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 			if(stage.buf)
 			{
-				if(stage.topo < D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
-				{
+				if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+					m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+				else
 					m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
-				
-					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+
+				ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
+				m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+				if(stage.useIndices)
+				{
+					buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
+					m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
+
+					m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+				}
+				else
+				{
 					m_pImmediateContext->Draw(stage.numVerts, 0);
 				}
 			}
@@ -4609,7 +4732,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->IASetVertexBuffers(m_MeshDisplayNULLVB, 1, &vb, &dummy, &dummy);
 
 		// draw solid shaded mode
-		if(cfg.solidShadeMode != eShade_None)
+		if(cfg.solidShadeMode != eShade_None && pipeState.m_IA.Topology < eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
@@ -4638,7 +4761,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		}
 		
 		// draw wireframe mode
-		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw)
+		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
@@ -4649,6 +4772,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+
+			if(pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
+				m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 		}

@@ -43,6 +43,7 @@ HMODULE GetD3DCompiler();
 
 ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt);
 DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
+PrimitiveTopology MakePrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topo);
 
 ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
 

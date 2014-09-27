@@ -58,9 +58,12 @@ struct PostVSData
 		D3D11_PRIMITIVE_TOPOLOGY topo;
 
 		uint32_t numVerts;
-		uint32_t numPrims;
 		uint32_t posOffset;
 		uint32_t vertStride;
+
+		bool useIndices;
+		ID3D11Buffer *idxBuf;
+		DXGI_FORMAT idxFmt;
 
 		float nearPlane;
 		float farPlane;
@@ -282,7 +285,7 @@ class D3D11DebugManager
 		bool m_ShaderCacheDirty, m_CacheShaders;
 		map<uint32_t, ID3DBlob*> m_ShaderCache;
 
-		static const int m_SOBufferSize = 16*1024*1024;
+		static const int m_SOBufferSize = 32*1024*1024;
 		ID3D11Buffer *m_SOBuffer;
 		ID3D11Buffer *m_SOStagingBuffer;
 		ID3D11Query *m_SOStatsQuery;

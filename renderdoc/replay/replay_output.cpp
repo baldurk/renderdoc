@@ -175,7 +175,7 @@ void ReplayOutput::RefreshOverlay()
 		}
 		else if(!passEvents.empty())
 		{
-			uint32_t prev = passEvents[0];
+			uint32_t prev = 0;
 
 			for(size_t i=0; i < passEvents.size(); i++)
 			{
