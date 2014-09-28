@@ -2367,74 +2367,9 @@ namespace renderdocui.Windows
 
         #region Vertex Highlighting
 
-        private FloatVector GetPosition(UIState ui, int rowidx)
+        private void highlightVerts_CheckedChanged(object sender, EventArgs e)
         {
-            if (rowidx >= 0 && rowidx < ui.m_Rows.Length)
-            {
-                uint offset = 0;
-                foreach (var el in ui.m_Input.BufferFormats)
-                {
-                    if (el.name.ToUpper() == "POSITION" || el.name.ToUpper() == "SV_POSITION")
-                    {
-                        Stream stream = new MemoryStream(ui.m_RawData);
-                        BinaryReader reader = new BinaryReader(stream);
-
-                        uint offs = (uint)(ui.m_RawStride * rowidx + offset);
-
-                        uint numComps = Math.Min(el.format.compCount, 4);
-
-                        if (offs > ui.m_RawData.Length || offs + sizeof(float) * numComps > ui.m_RawData.Length)
-                            return new FloatVector();
-
-                        stream.Seek(offs, SeekOrigin.Begin);
-
-                        var ret = new FloatVector();
-
-                        if (el.format.compByteWidth == 4)
-                        {
-                            for (int i = 0; i < numComps; i++)
-                            {
-                                if (i == 0) ret.x = reader.ReadSingle();
-                                if (i == 1) ret.y = reader.ReadSingle();
-                                if (i == 2) ret.z = reader.ReadSingle();
-                                if (i == 3) ret.w = reader.ReadSingle();
-                            }
-                        }
-                        else if (el.format.compByteWidth == 2)
-                        {
-                            for (int i = 0; i < numComps; i++)
-                            {
-                                ushort data = reader.ReadUInt16();
-                                if (i == 0) ret.x = el.format.ConvertFromHalf(data);
-                                if (i == 1) ret.y = el.format.ConvertFromHalf(data);
-                                if (i == 2) ret.z = el.format.ConvertFromHalf(data);
-                                if (i == 3) ret.w = el.format.ConvertFromHalf(data);
-                            }
-                        }
-
-                        return ret;
-                    }
-
-                    offset += el.ByteSize;
-                }
-            }
-
-            return new FloatVector();
-        }
-
-        private uint GetIndex(UIState ui, int rowidx)
-        {
-            if (rowidx >= 0 && ui.m_Data.Indices != null && rowidx < ui.m_Data.Indices.Length)
-            {
-                uint ret = ui.m_Data.Indices[rowidx];
-
-                if (ui.m_Input.IndexFormat.ByteSize == 2 && ret == ushort.MaxValue)
-                    ret = uint.MaxValue;
-
-                return ret;
-            }
-
-            return uint.MaxValue;
+            UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
         }
 
         private void ClearHighlightVerts()
@@ -2449,7 +2384,10 @@ namespace renderdocui.Windows
             if (ui.m_GridView.SelectedRows.Count == 0) return;
             if (!MeshView) return;
 
-            m_MeshDisplay.highlightVert = (uint)ui.m_GridView.SelectedRows[0].Index;
+            if(highlightVerts.Checked)
+                m_MeshDisplay.highlightVert = (uint)ui.m_GridView.SelectedRows[0].Index;
+            else
+                m_MeshDisplay.highlightVert = ~0U;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }

@@ -462,6 +462,7 @@
     <None Include="Resources\connect.png" />
     <None Include="Resources\disconnect.png" />
     <None Include="Resources\flip_y.png" />
+    <None Include="Resources\asterisk_orange.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />
