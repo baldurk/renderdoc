@@ -315,10 +315,21 @@ struct Module
 
 vector<Module> modules;
 
-typedef BOOL (CALLBACK *PFINDFILEINPATHCALLBACKW)(PCWSTR, PVOID);
-
-typedef BOOL (WINAPI *PSYMINITIALIZEW)(HANDLE, PCWSTR, BOOL);
-typedef BOOL (WINAPI *PSYMFINDFILEINPATHW)(HANDLE, PCWSTR, PCWSTR, PVOID, DWORD, DWORD, DWORD, PWSTR, PFINDFILEINPATHCALLBACKW, PVOID);
+typedef BOOL(WINAPI *PSYMINITIALIZEW)(
+	_In_ HANDLE hProcess,
+	_In_opt_ PCWSTR UserSearchPath,
+	_In_ BOOL fInvadeProcess);
+typedef BOOL(WINAPI *PSYMFINDFILEINPATHW)(
+	_In_ HANDLE hprocess,
+	_In_opt_ PCWSTR SearchPath,
+	_In_ PCWSTR FileName,
+	_In_opt_ PVOID id,
+	_In_ DWORD two,
+	_In_ DWORD three,
+	_In_ DWORD flags,
+	_Out_writes_(MAX_PATH + 1) PWSTR FoundFile,
+	_In_opt_ PFINDFILEINPATHCALLBACKW callback,
+	_In_opt_ PVOID context);
 
 PSYMINITIALIZEW dynSymInitializeW = NULL;
 PSYMFINDFILEINPATHW dynSymFindFileInPathW = NULL;
