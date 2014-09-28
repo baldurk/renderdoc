@@ -30,9 +30,9 @@
         {
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.Label label1;
-            System.Windows.Forms.GroupBox groupBox1;
-            System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label2;
+            System.Windows.Forms.Label label3;
+            System.Windows.Forms.GroupBox groupBox1;
             System.Windows.Forms.ToolStrip toolStrip1;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LiveCapture));
             this.queueCap = new System.Windows.Forms.Button();
@@ -49,6 +49,8 @@
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.connectionIcon = new System.Windows.Forms.Label();
             this.connectionStatus = new System.Windows.Forms.Label();
+            this.childProcessLabel = new System.Windows.Forms.Label();
+            this.childProcesses = new System.Windows.Forms.ListView();
             this.rightclickContext = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.openThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -56,10 +58,11 @@
             this.saveThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.deleteThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.captureCountdown = new System.Windows.Forms.Timer(this.components);
+            this.childUpdateTimer = new System.Windows.Forms.Timer(this.components);
             label1 = new System.Windows.Forms.Label();
-            groupBox1 = new System.Windows.Forms.GroupBox();
-            label3 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
+            label3 = new System.Windows.Forms.Label();
+            groupBox1 = new System.Windows.Forms.GroupBox();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.captureFrame)).BeginInit();
@@ -74,11 +77,29 @@
             // 
             label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
             label1.AutoSize = true;
-            label1.Location = new System.Drawing.Point(3, 131);
+            label1.Location = new System.Drawing.Point(3, 205);
             label1.Name = "label1";
             label1.Size = new System.Drawing.Size(98, 13);
             label1.TabIndex = 6;
             label1.Text = "Captures collected:";
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new System.Drawing.Point(6, 21);
+            label2.Name = "label2";
+            label2.Size = new System.Drawing.Size(74, 13);
+            label2.TabIndex = 2;
+            label2.Text = "Capture Delay";
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new System.Drawing.Point(6, 50);
+            label3.Name = "label3";
+            label3.Size = new System.Drawing.Size(86, 13);
+            label3.TabIndex = 3;
+            label3.Text = "Capture Frame #";
             // 
             // groupBox1
             // 
@@ -93,7 +114,7 @@
             groupBox1.Controls.Add(this.triggerCapture);
             groupBox1.Location = new System.Drawing.Point(3, 34);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(543, 75);
+            groupBox1.Size = new System.Drawing.Size(351, 75);
             groupBox1.TabIndex = 7;
             groupBox1.TabStop = false;
             groupBox1.Text = "Tools";
@@ -131,24 +152,6 @@
             0,
             0});
             // 
-            // label3
-            // 
-            label3.AutoSize = true;
-            label3.Location = new System.Drawing.Point(6, 50);
-            label3.Name = "label3";
-            label3.Size = new System.Drawing.Size(86, 13);
-            label3.TabIndex = 3;
-            label3.Text = "Capture Frame #";
-            // 
-            // label2
-            // 
-            label2.AutoSize = true;
-            label2.Location = new System.Drawing.Point(6, 21);
-            label2.Name = "label2";
-            label2.Size = new System.Drawing.Size(74, 13);
-            label2.TabIndex = 2;
-            label2.Text = "Capture Delay";
-            // 
             // captureDelay
             // 
             this.captureDelay.Location = new System.Drawing.Point(96, 19);
@@ -175,10 +178,10 @@
             this.deleteMenu,
             this.saveMenu,
             this.openMenu});
-            toolStrip1.Location = new System.Drawing.Point(0, 376);
+            toolStrip1.Location = new System.Drawing.Point(0, 375);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            toolStrip1.Size = new System.Drawing.Size(549, 25);
+            toolStrip1.Size = new System.Drawing.Size(357, 25);
             toolStrip1.Stretch = true;
             toolStrip1.TabIndex = 8;
             toolStrip1.Text = "toolStrip1";
@@ -220,14 +223,14 @@
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.openToolStripMenuItem.Text = "In &this instance";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openCapture_Click);
             // 
             // newInstanceToolStripMenuItem
             // 
             this.newInstanceToolStripMenuItem.Name = "newInstanceToolStripMenuItem";
-            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             this.newInstanceToolStripMenuItem.Text = "In &new instance";
             this.newInstanceToolStripMenuItem.Click += new System.EventHandler(this.openNewWindow_Click);
             // 
@@ -235,22 +238,25 @@
             // 
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel1.Controls.Add(this.captures, 0, 3);
+            this.tableLayoutPanel1.Controls.Add(this.captures, 0, 5);
             this.tableLayoutPanel1.Controls.Add(this.flowLayoutPanel1, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(label1, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(label1, 0, 4);
             this.tableLayoutPanel1.Controls.Add(groupBox1, 0, 1);
-            this.tableLayoutPanel1.Controls.Add(toolStrip1, 0, 4);
+            this.tableLayoutPanel1.Controls.Add(toolStrip1, 0, 6);
+            this.tableLayoutPanel1.Controls.Add(this.childProcessLabel, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.childProcesses, 0, 3);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 5;
+            this.tableLayoutPanel1.RowCount = 7;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(549, 401);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(357, 400);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // captures
@@ -258,10 +264,10 @@
             this.captures.Dock = System.Windows.Forms.DockStyle.Fill;
             this.captures.FullRowSelect = true;
             this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.captures.Location = new System.Drawing.Point(3, 147);
+            this.captures.Location = new System.Drawing.Point(3, 221);
             this.captures.Name = "captures";
-            this.captures.Size = new System.Drawing.Size(543, 226);
-            this.captures.TabIndex = 5;
+            this.captures.Size = new System.Drawing.Size(351, 151);
+            this.captures.TabIndex = 6;
             this.captures.TileSize = new System.Drawing.Size(300, 100);
             this.captures.UseCompatibleStateImageBehavior = false;
             this.captures.View = System.Windows.Forms.View.Tile;
@@ -277,7 +283,7 @@
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(543, 25);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(351, 25);
             this.flowLayoutPanel1.TabIndex = 4;
             this.flowLayoutPanel1.WrapContents = false;
             // 
@@ -300,6 +306,28 @@
             this.connectionStatus.TabIndex = 2;
             this.connectionStatus.Text = "Connecting...";
             this.connectionStatus.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // childProcessLabel
+            // 
+            this.childProcessLabel.Location = new System.Drawing.Point(3, 112);
+            this.childProcessLabel.Name = "childProcessLabel";
+            this.childProcessLabel.Size = new System.Drawing.Size(85, 28);
+            this.childProcessLabel.TabIndex = 9;
+            this.childProcessLabel.Text = "Child Processes:";
+            this.childProcessLabel.TextAlign = System.Drawing.ContentAlignment.BottomLeft;
+            // 
+            // childProcesses
+            // 
+            this.childProcesses.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.childProcesses.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.childProcesses.Location = new System.Drawing.Point(3, 143);
+            this.childProcesses.MinimumSize = new System.Drawing.Size(0, 40);
+            this.childProcesses.Name = "childProcesses";
+            this.childProcesses.Size = new System.Drawing.Size(351, 40);
+            this.childProcesses.TabIndex = 5;
+            this.childProcesses.UseCompatibleStateImageBehavior = false;
+            this.childProcesses.View = System.Windows.Forms.View.Tile;
+            this.childProcesses.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.childProcesses_MouseDoubleClick);
             // 
             // rightclickContext
             // 
@@ -352,11 +380,16 @@
             this.captureCountdown.Interval = 1000;
             this.captureCountdown.Tick += new System.EventHandler(this.captureCountdown_Tick);
             // 
+            // childUpdateTimer
+            // 
+            this.childUpdateTimer.Enabled = true;
+            this.childUpdateTimer.Tick += new System.EventHandler(this.childUpdateTimer_Tick);
+            // 
             // LiveCapture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(549, 401);
+            this.ClientSize = new System.Drawing.Size(357, 400);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "LiveCapture";
@@ -382,7 +415,6 @@
         #endregion
 
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-        private System.Windows.Forms.ListView captures;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel1;
         private System.Windows.Forms.Label connectionIcon;
         private System.Windows.Forms.Label connectionStatus;
@@ -390,17 +422,21 @@
         private System.Windows.Forms.ToolStripMenuItem openThisCaptureToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem deleteThisCaptureToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveThisCaptureToolStripMenuItem;
-        private System.Windows.Forms.Button triggerCapture;
-        private System.Windows.Forms.NumericUpDown captureDelay;
         private System.Windows.Forms.Timer captureCountdown;
+        private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem1;
+        private System.Windows.Forms.Label childProcessLabel;
+        private System.Windows.Forms.Timer childUpdateTimer;
+        private System.Windows.Forms.ListView childProcesses;
+        private System.Windows.Forms.Button queueCap;
+        private System.Windows.Forms.NumericUpDown captureFrame;
+        private System.Windows.Forms.NumericUpDown captureDelay;
+        private System.Windows.Forms.Button triggerCapture;
+        private System.Windows.Forms.ListView captures;
+        private System.Windows.Forms.ToolStripButton deleteMenu;
+        private System.Windows.Forms.ToolStripButton saveMenu;
         private System.Windows.Forms.ToolStripSplitButton openMenu;
         private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem;
-        private System.Windows.Forms.ToolStripButton saveMenu;
-        private System.Windows.Forms.ToolStripButton deleteMenu;
-        private System.Windows.Forms.ToolStripMenuItem openToolStripMenuItem1;
-        private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem1;
-        private System.Windows.Forms.NumericUpDown captureFrame;
-        private System.Windows.Forms.Button queueCap;
     }
 }
