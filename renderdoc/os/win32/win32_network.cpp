@@ -28,6 +28,10 @@
 
 #include "os/os_specific.h"
 
+#ifndef WSA_FLAG_NO_HANDLE_INHERIT
+#define WSA_FLAG_NO_HANDLE_INHERIT 0x80
+#endif
+
 namespace Network
 {
 
@@ -227,7 +231,7 @@ bool Socket::RecvDataBlocking(void *buf, uint32_t length)
 
 Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 {
-	SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	SOCKET s = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT);
 
 	if(s == INVALID_SOCKET)
 		return NULL;
@@ -277,7 +281,7 @@ Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS)
 	
     for(addrinfoW *ptr = result; ptr != NULL; ptr = ptr->ai_next)
 	{
-		SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+		SOCKET s = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT);
 
 		if(s == INVALID_SOCKET)
 			return NULL;
