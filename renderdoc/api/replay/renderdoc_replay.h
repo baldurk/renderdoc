@@ -180,6 +180,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_Shutdown(RemoteAccess *a
  
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetTarget(RemoteAccess *access);
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access);
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access);

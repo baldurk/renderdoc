@@ -384,6 +384,7 @@ namespace renderdoc
         NewCapture,
         CaptureCopied,
         RegisterAPI,
+        NewChild,
     };
 
     public static class EnumString

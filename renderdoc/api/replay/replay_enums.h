@@ -379,4 +379,5 @@ enum RemoteMessageType
 	eRemoteMsg_NewCapture,
 	eRemoteMsg_CaptureCopied,
 	eRemoteMsg_RegisterAPI,
+	eRemoteMsg_NewChild,
 };

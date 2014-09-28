@@ -39,6 +39,8 @@ using System.IO;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
+using Process = System.Diagnostics.Process;
+
 namespace renderdocui.Windows
 {
     public partial class LiveCapture : DockContent
@@ -212,6 +214,23 @@ namespace renderdocui.Windows
                             CaptureRetrieved(capID, path);
                         });
                         m_Connection.CaptureCopied = false;
+                    }
+
+                    if (m_Connection.ChildAdded)
+                    {
+                        try
+                        {
+                            var p = Process.GetProcessById((int)m_Connection.NewChild.PID);
+
+                            System.Diagnostics.Trace.WriteLine(String.Format("Add new child PID {0} name {1} ident {2} to UI",
+                                m_Connection.NewChild.PID, p.ProcessName, m_Connection.NewChild.ident));
+                        }
+                        catch (Exception)
+                        {
+                            // process expired/doesn't exist anymore
+                        }
+
+                        m_Connection.ChildAdded = false;
                     }
                 }
 

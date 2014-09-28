@@ -40,6 +40,7 @@ enum PacketType
 	ePacket_TriggerCapture,
 	ePacket_CopyCapture,
 	ePacket_QueueCapture,
+	ePacket_NewChild,
 };
 
 void RenderDoc::RemoteAccessClientThread(void *s)
@@ -59,6 +60,8 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 	wstring target = RenderDoc::Inst().GetCurrentTarget();
 	ser.Serialise("", target);
 	ser.Serialise("", api);
+	uint32_t mypid = Process::GetCurrentPID();
+	ser.Serialise("", mypid);
 
 	if(!SendPacket(client, ePacket_Handshake, ser))
 	{
@@ -78,6 +81,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 	int curtime = 0;
 
 	vector<CaptureData> captures;
+	vector< pair<uint32_t, uint32_t> > children;
 
 	while(client)
 	{
@@ -97,6 +101,9 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 		wstring curapi;
 		RenderDoc::Inst().GetCurrentDriver(driver, curapi);
 
+		vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+		vector< pair<uint32_t, uint32_t> > childprocs = RenderDoc::Inst().GetChildProcesses();
+
 		if(curapi != api)
 		{
 			api = curapi;
@@ -105,31 +112,37 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 			packetType = ePacket_RegisterAPI;
 		}
-		else
+		else if(caps.size() != captures.size())
 		{
-			vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+			uint32_t idx = (uint32_t)captures.size();
 
-			if(caps.size() != captures.size())
-			{
-				uint32_t idx = (uint32_t)captures.size();
+			captures.push_back(caps[idx]);
 
-				captures.push_back(caps[idx]);
+			packetType = ePacket_NewCapture;
 
-				packetType = ePacket_NewCapture;
+			ser.Serialise("", idx);
+			ser.Serialise("", captures.back().timestamp);
+			ser.Serialise("", captures.back().path);
 
-				ser.Serialise("", idx);
-				ser.Serialise("", captures.back().timestamp);
-				ser.Serialise("", captures.back().path);
+			uint32_t len = 128*1024;
+			byte *thumb = new byte[len];
+			RENDERDOC_GetThumbnail(captures.back().path.c_str(), thumb, len);
 
-				uint32_t len = 128*1024;
-				byte *thumb = new byte[len];
-				RENDERDOC_GetThumbnail(captures.back().path.c_str(), thumb, len);
+			size_t l = len;
+			ser.Serialise("", len);
+			ser.SerialiseBuffer("", thumb, l);
+			delete[] thumb;
+		}
+		else if(childprocs.size() != children.size())
+		{
+			uint32_t idx = (uint32_t)children.size();
 
-				size_t l = len;
-				ser.Serialise("", len);
-				ser.SerialiseBuffer("", thumb, l);
-				delete[] thumb;
-			}
+			children.push_back(childprocs[idx]);
+
+			packetType = ePacket_NewChild;
+
+			ser.Serialise("", children.back().first);
+			ser.Serialise("", children.back().second);
 		}
 
 		if(curtime < pingtime && packetType == ePacket_Noop)
@@ -368,8 +381,9 @@ struct RemoteAccess
 			{
 				ser->Serialise("", m_Target);
 				ser->Serialise("", m_API);
+				ser->Serialise("", m_PID);
 
-				RDCLOG("Got remote handshake: %ls (%ls)", m_Target.c_str(), m_API.c_str());
+				RDCLOG("Got remote handshake: %ls (%ls) [%u]", m_Target.c_str(), m_API.c_str(), m_PID);
 			}
 			else if(type == ePacket_Busy)
 			{
@@ -399,6 +413,11 @@ struct RemoteAccess
 		const wchar_t *GetAPI()
 		{
 			return m_API.c_str();
+		}
+
+		uint32_t GetPID()
+		{
+			return m_PID;
 		}
 
 		const wchar_t *GetBusyClient()
@@ -525,6 +544,19 @@ struct RemoteAccess
 
 					return;
 				}
+				else if(type == ePacket_NewChild)
+				{
+					msg->Type = eRemoteMsg_NewChild;
+
+					ser->Serialise("", msg->NewChild.PID);
+					ser->Serialise("", msg->NewChild.ident);
+					
+					RDCLOG("Got a new child process: %u %u", msg->NewChild.PID, msg->NewChild.ident);
+
+					SAFE_DELETE(ser);
+
+					return;
+				}
 				else if(type == ePacket_NewCapture)
 				{
 					msg->Type = eRemoteMsg_NewCapture;
@@ -578,6 +610,7 @@ struct RemoteAccess
 		Network::Socket *m_Socket;
 		bool m_Local;
 		wstring m_Target, m_API, m_BusyClient;
+		uint32_t m_PID;
 
 		map<uint32_t, wstring> m_CaptureCopies;
 
@@ -595,6 +628,8 @@ extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetTarget(Remo
 { return access->GetTarget(); }
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access)
 { return access->GetAPI(); }
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access)
+{ return access->GetPID(); }
 extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access)
 { return access->GetBusyClient(); }
 

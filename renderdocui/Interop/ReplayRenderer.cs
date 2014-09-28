@@ -64,6 +64,15 @@ namespace renderdoc
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public BusyData Busy;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NewChildData
+        {
+            public UInt32 PID;
+            public UInt32 ident;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public NewChildData NewChild;
     };
 
     public class ReplayOutput
@@ -749,6 +758,8 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr RemoteAccess_GetAPI(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern UInt32 RemoteAccess_GetPID(IntPtr real);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr RemoteAccess_GetBusyClient(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -783,6 +794,7 @@ namespace renderdoc
                 m_Connected = true;
                 Target = Marshal.PtrToStringUni(RemoteAccess_GetTarget(m_Real));
                 API = Marshal.PtrToStringUni(RemoteAccess_GetAPI(m_Real));
+                PID = RemoteAccess_GetPID(m_Real);
                 BusyClient = Marshal.PtrToStringUni(RemoteAccess_GetBusyClient(m_Real));
             }
 
@@ -851,11 +863,7 @@ namespace renderdoc
                 }
                 else if (msg.Type == RemoteMessageType.NewCapture)
                 {
-                    CaptureFile.ID = msg.NewCapture.ID;
-                    CaptureFile.timestamp = msg.NewCapture.timestamp;
-                    CaptureFile.localpath = msg.NewCapture.localpath;
-                    CaptureFile.thumbnail = msg.NewCapture.thumbnail;
-
+                    CaptureFile = msg.NewCapture;
                     CaptureExists = true;
                 }
                 else if (msg.Type == RemoteMessageType.CaptureCopied)
@@ -869,24 +877,26 @@ namespace renderdoc
                     API = msg.RegisterAPI.APIName;
                     InfoUpdated = true;
                 }
+                else if (msg.Type == RemoteMessageType.NewChild)
+                {
+                    NewChild = msg.NewChild;
+                    ChildAdded = true;
+                }
             }
         }
 
         public string BusyClient;
         public string Target;
         public string API;
+        public UInt32 PID;
 
         public bool CaptureExists;
+        public bool ChildAdded;
         public bool CaptureCopied;
         public bool InfoUpdated;
 
-        public struct CaptureInfo
-        {
-            public UInt32 ID;
-            public UInt64 timestamp;
-            public byte[] thumbnail;
-            public string localpath;
-        };
-        public CaptureInfo CaptureFile = new CaptureInfo();
+        public RemoteMessage.NewCaptureData CaptureFile = new RemoteMessage.NewCaptureData();
+
+        public RemoteMessage.NewChildData NewChild = new RemoteMessage.NewChildData();
     };
 };

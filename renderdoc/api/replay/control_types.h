@@ -187,4 +187,10 @@ struct RemoteMessage
 	{
 		rdctype::wstr ClientName;
 	} Busy;
+
+	struct NewChildData
+	{
+		uint32_t PID;
+		uint32_t ident;
+	} NewChild;
 };

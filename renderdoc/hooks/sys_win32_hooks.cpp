@@ -126,8 +126,10 @@ class SysHook : LibraryHook
 				RDCDEBUG("Intercepting CreateProcessA");
 
 				// inherit logfile and capture options
-				RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
 										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
 			}
 
 			ResumeThread(lpProcessInformation->hThread);
@@ -176,8 +178,10 @@ class SysHook : LibraryHook
 				RDCDEBUG("Intercepting CreateProcessW");
 
 				// inherit logfile and capture options
-				RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
 										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
 			}
 			
 			ResumeThread(lpProcessInformation->hThread);

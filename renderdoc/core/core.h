@@ -31,9 +31,11 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <utility>
 using std::wstring;
 using std::vector;
 using std::map;
+using std::pair;
 using std::set;
 
 class Serialiser;
@@ -182,6 +184,17 @@ class RenderDoc
 		Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels, size_t thlen, uint32_t thwidth, uint32_t thheight);
 		void SuccessfullyWrittenLog();
 
+		void AddChildProcess(uint32_t pid, uint32_t ident)
+		{
+			SCOPED_LOCK(m_ChildLock);
+			m_Children.push_back( std::make_pair(pid, ident) );
+		}
+		vector< pair<uint32_t, uint32_t> > GetChildProcesses()
+		{
+			SCOPED_LOCK(m_ChildLock);
+			return m_Children;
+		}
+
 		vector<CaptureData> GetCaptures()
 		{
 			SCOPED_LOCK(m_CaptureLock);
@@ -284,6 +297,9 @@ class RenderDoc
 
 		Threading::CriticalSection m_CaptureLock;
 		vector<CaptureData> m_Captures;
+		
+		Threading::CriticalSection m_ChildLock;
+		vector< pair<uint32_t, uint32_t> > m_Children;
 
 		map<RDCDriver, wstring> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
