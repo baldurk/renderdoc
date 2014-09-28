@@ -4942,12 +4942,15 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			if(cfg.type == eMeshDataStage_VSIn)
 			{
 				m_HighlightCache.data = GetBufferData(cfg.positionBuf, 0, 0);
+				m_HighlightCache.topo = curRS->IA.Topo;
 			}
 			else
 			{
 				PostVSMeshData postvs = GetPostVSBuffers(frameID, events.back(), stage);
 				m_HighlightCache.data.resize(postvs.buf.count);
 				memcpy(&m_HighlightCache.data[0], postvs.buf.elems, postvs.buf.count);
+
+				m_HighlightCache.topo = GetPostVSBuffers(frameID, events.back()).GetStage(stage).topo;
 			}
 
 			if((drawcall->flags & eDraw_UseIBuffer) == 0)
@@ -4980,6 +4983,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 		}
 
+		D3D11_PRIMITIVE_TOPOLOGY meshtopo = m_HighlightCache.topo;
+
 		uint32_t idx = cfg.highlightVert;
 
 		byte *data = &m_HighlightCache.data[0]; // buffer start
@@ -5011,10 +5016,10 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		D3D11_PRIMITIVE_TOPOLOGY primTopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // tri or line list
 		uint32_t primSize = 3; // number of verts per primitive
 		
-		if(pipeState.m_IA.Topology == eTopology_LineList ||
-		   pipeState.m_IA.Topology == eTopology_LineList_Adj ||
-		   pipeState.m_IA.Topology == eTopology_LineStrip ||
-		   pipeState.m_IA.Topology == eTopology_LineStrip_Adj)
+		if(meshtopo == eTopology_LineList ||
+		   meshtopo == eTopology_LineList_Adj ||
+		   meshtopo == eTopology_LineStrip ||
+		   meshtopo == eTopology_LineStrip_Adj)
 		{
 			primSize = 2;
 			primTopo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
@@ -5024,14 +5029,14 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 		// see http://msdn.microsoft.com/en-us/library/windows/desktop/bb205124(v=vs.85).aspx for
 		// how primitive topologies are laid out
-		if(pipeState.m_IA.Topology == eTopology_LineList)
+		if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
 		{
 			uint32_t v = uint32_t(idx/2) * 2; // find first vert in primitive
 
 			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
 			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
 		}
-		else if(pipeState.m_IA.Topology == eTopology_TriangleList)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
 		{
 			uint32_t v = uint32_t(idx/3) * 3; // find first vert in primitive
 
@@ -5039,7 +5044,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
 			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
 		}
-		else if(pipeState.m_IA.Topology == eTopology_LineList_Adj)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
 		{
 			uint32_t v = uint32_t(idx/4) * 4; // find first vert in primitive
 			
@@ -5059,7 +5064,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(vs[1]);
 			activePrim.push_back(vs[2]);
 		}
-		else if(pipeState.m_IA.Topology == eTopology_TriangleList_Adj)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ)
 		{
 			uint32_t v = uint32_t(idx/6) * 6; // find first vert in primitive
 			
@@ -5088,7 +5093,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(vs[2]);
 			activePrim.push_back(vs[4]);
 		}
-		else if(pipeState.m_IA.Topology == eTopology_LineStrip)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
 		{
 			// find first vert in primitive. In strips a vert isn't
 			// in only one primitive, so we pick the first primitive
@@ -5099,7 +5104,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
 			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
 		}
-		else if(pipeState.m_IA.Topology == eTopology_TriangleStrip)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
 		{
 			// find first vert in primitive. In strips a vert isn't
 			// in only one primitive, so we pick the first primitive
@@ -5111,7 +5116,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
 			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
 		}
-		else if(pipeState.m_IA.Topology == eTopology_LineStrip_Adj)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
 		{
 			// find first vert in primitive. In strips a vert isn't
 			// in only one primitive, so we pick the first primitive
@@ -5135,7 +5140,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			activePrim.push_back(vs[1]);
 			activePrim.push_back(vs[2]);
 		}
-		else if(pipeState.m_IA.Topology == eTopology_TriangleStrip_Adj)
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
 		{
 			// Triangle strip with adjacency is the most complex topology, as
 			// we need to handle the ends separately where the pattern breaks.
@@ -5261,9 +5266,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 				activePrim.push_back(vs[6]);
 			}
 		}
-		else if(pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
+		else if(meshtopo >= D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
 		{
-			uint32_t dim = (pipeState.m_IA.Topology-eTopology_PatchList_1CPs) + 1;
+			uint32_t dim = (meshtopo-D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST) + 1;
 
 			uint32_t v0 = uint32_t(idx/dim) * dim;
 
@@ -5273,7 +5278,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 					inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, valid));
 			}
 		}
-		else // if(pipeState.m_IA.Topology == eTopology_PointList) point list, or unknown/unhandled type
+		else // if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST) point list, or unknown/unhandled type
 		{
 			// no adjacency, inactive verts or active primitive
 		}
