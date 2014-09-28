@@ -541,12 +541,13 @@ AddrInfo GetAddr(wstring req)
 		{
 			wcsncpy_s(ret.funcName, file, 126);
 
+			wchar_t *voidparam = wcsstr(ret.funcName, L"(void)");
+
 			// remove stupid (void) for empty parameters
-			if(wcsstr(ret.funcName, L"(void)"))
+			if (voidparam != NULL)
 			{
-				wchar_t *a = wcsstr(ret.funcName, L"(void)");
-				*(a+1) = L')';
-				*(a+2) = 0;
+				*(voidparam + 1) = L')';
+				*(voidparam + 2) = 0;
 			}
 		}
 
