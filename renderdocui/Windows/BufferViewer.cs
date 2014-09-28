@@ -443,6 +443,8 @@ namespace renderdocui.Windows
                     var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                     var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
 
+                    UpdateMeshPositionBuffer();
+
                     if (curReq != m_ReqID)
                         return;
 
@@ -519,6 +521,9 @@ namespace renderdocui.Windows
                 var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
                 var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                 var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
+
+                if (MeshView)
+                    UpdateMeshPositionBuffer();
 
                 if (curReq != m_ReqID)
                     return;
@@ -1792,7 +1797,7 @@ namespace renderdocui.Windows
                 }
             }
 
-            ClearHighlightVerts();
+            UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
 
             m_CurrentCamera.Apply();
             m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
@@ -1950,9 +1955,46 @@ namespace renderdocui.Windows
                 controlType.SelectedIndex = 1;
             }
 
+            UpdateMeshPositionBuffer();
+
             enableCameraControls();
 
             controlType_SelectedIndexChanged(sender, e);
+        }
+
+        private void UpdateMeshPositionBuffer()
+        {
+            var ui = GetUIState(m_MeshDisplay.type);
+
+            FormatElement pos = null;
+
+            if (ui.m_Input.BufferFormats != null)
+            {
+                foreach (var el in ui.m_Input.BufferFormats)
+                {
+                    // prioritise SV_Position over general POSITION
+                    if (el.name.ToUpper() == "SV_POSITION")
+                        pos = el;
+                    if (el.name.ToUpper() == "POSITION" && pos == null)
+                        pos = el;
+                }
+            }
+
+            if (pos == null)
+            {
+                m_MeshDisplay.positionBuf = ResourceId.Null;
+            }
+            else
+            {
+                m_MeshDisplay.positionBuf = m_VSIn.m_Input.Buffers[pos.buffer];
+                m_MeshDisplay.positionOffset = pos.offset + ui.m_Input.Offsets[pos.buffer];
+                m_MeshDisplay.positionStride = ui.m_Input.Strides[pos.buffer];
+
+                m_MeshDisplay.positionCompByteWidth = pos.format.compByteWidth;
+                m_MeshDisplay.positionCompCount = pos.format.compCount;
+                m_MeshDisplay.positionCompType = pos.format.compType;
+                m_MeshDisplay.positionFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
+            }
         }
 
         private void camGuess_PropChanged()
@@ -2397,7 +2439,7 @@ namespace renderdocui.Windows
 
         private void ClearHighlightVerts()
         {
-            m_MeshDisplay.showVerts = false;
+            m_MeshDisplay.highlightVert = ~0U;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }
 
@@ -2407,83 +2449,7 @@ namespace renderdocui.Windows
             if (ui.m_GridView.SelectedRows.Count == 0) return;
             if (!MeshView) return;
 
-            int v0 = (ui.m_GridView.SelectedRows[0].Index / 3) * 3;
-
-            if (ui == m_VSIn && ui.m_Data.Topology == PrimitiveTopology.TriangleStrip)
-            {
-                int idx = ui.m_GridView.SelectedRows[0].Index;
-                v0 = Math.Min(ui.m_GridView.RowCount - 3, idx);
-
-                if ((ui.m_Input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0)
-                {
-                    // handle tristrip reset values by clamping where possible.
-                    if (GetIndex(ui, v0 + 2) == uint.MaxValue && v0 > 0)
-                    {
-                        if (v0 > 0)
-                        {
-                            v0 -= 1;
-                        }
-                        else
-                        {
-                            // reset value before we've done a full tri. Don't show highlight
-                            ClearHighlightVerts();
-                            return;
-                        }
-                    }
-                    else if (GetIndex(ui, v0 + 1) == uint.MaxValue && v0 > 1)
-                    {
-                        if (v0 > 1)
-                        {
-                            v0 -= 2;
-                        }
-                        else
-                        {
-                            // reset value before we've done a full tri. Don't show highlight
-                            ClearHighlightVerts();
-                            return;
-                        }
-                    }
-
-                    if (GetIndex(ui, v0 + 0) == uint.MaxValue ||
-                        GetIndex(ui, v0 + 1) == uint.MaxValue ||
-                        GetIndex(ui, v0 + 2) == uint.MaxValue)
-                    {
-                        // selected a reset value, or shifted back into a reset value thus degenerate triangle,
-                        // don't show anything
-                        ClearHighlightVerts();
-                        return;
-                    }
-                }
-            }
-
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 0)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.showVerts = true;
-            }
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 1)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.showVerts = true;
-            }
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 2)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.showVerts = true;
-            }
-
-            if (ui.m_Data.Topology == PrimitiveTopology.PointList)
-                m_MeshDisplay.highlight.v2 = m_MeshDisplay.highlight.v1 = m_MeshDisplay.highlight.v0;
-
-            if (ui.m_Data.Topology == PrimitiveTopology.LineList ||
-                ui.m_Data.Topology == PrimitiveTopology.LineStrip)
-                m_MeshDisplay.highlight.v2 = m_MeshDisplay.highlight.v1;
+            m_MeshDisplay.highlightVert = (uint)ui.m_GridView.SelectedRows[0].Index;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }

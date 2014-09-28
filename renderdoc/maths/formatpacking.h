@@ -102,4 +102,7 @@ inline float ConvertFromSRGB8(uint8_t comp)
 	return SRGB8_lookuptable[comp];
 }
 
+struct ResourceFormat;
+float ConvertComponent(ResourceFormat fmt, byte *data);
+
 #include "half_convert.h"

@@ -42,8 +42,14 @@ struct MeshDisplay
 
 	bool32 thisDrawOnly;
 
-	bool32 showVerts;
-	FloatVector hilightVerts[3];
+	uint32_t highlightVert;
+	ResourceId positionBuf;
+	uint32_t positionOffset;
+	uint32_t positionStride;
+	uint32_t positionCompCount;
+	uint32_t positionCompByteWidth;
+	FormatComponentType positionCompType;
+	SpecialFormat positionFormat;
 
 	FloatVector prevMeshColour;
 	FloatVector currentMeshColour;

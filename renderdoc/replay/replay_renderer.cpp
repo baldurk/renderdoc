@@ -40,7 +40,7 @@
 #include "stb/stb_image_write.h"
 #include "common/dds_readwrite.h"
 
-static inline float ConvertComponent(ResourceFormat fmt, byte *data)
+float ConvertComponent(ResourceFormat fmt, byte *data)
 {
 	if(fmt.compByteWidth == 4)
 	{

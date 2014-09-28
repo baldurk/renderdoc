@@ -355,17 +355,14 @@ namespace renderdoc
 
         public bool thisDrawOnly = true;
 
-        public bool showVerts;
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct HighlightVerts
-        {
-            public FloatVector v0;
-            public FloatVector v1;
-            public FloatVector v2;
-        };
-        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public HighlightVerts highlight = new HighlightVerts();
+        public UInt32 highlightVert;
+        public ResourceId positionBuf;
+        public UInt32 positionOffset;
+        public UInt32 positionStride;
+        public UInt32 positionCompCount;
+        public UInt32 positionCompByteWidth;
+        public FormatComponentType positionCompType;
+        public SpecialFormat positionFormat;
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();

@@ -564,7 +564,10 @@ void ReplayOutput::DisplayMesh()
 	
 	m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
-	m_pDevice->RenderMesh(m_FrameID, events, m_RenderData.meshDisplay);
+	MeshDisplay mesh = m_RenderData.meshDisplay;
+	mesh.positionBuf = m_pDevice->GetLiveID(mesh.positionBuf);
+
+	m_pDevice->RenderMesh(m_FrameID, events, mesh);
 }
 
 

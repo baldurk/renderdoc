@@ -292,6 +292,21 @@ class D3D11DebugManager
 		// <frame,event> -> data
 		map<pair<uint32_t,uint32_t>, PostVSData> m_PostVSData;
 
+		// simple cache for when we need buffer data for highlighting
+		// vertices, typical use will be lots of vertices in the same
+		// mesh, not jumping back and forth much between meshes.
+		struct HighlightCache
+		{
+			HighlightCache() : EID(0), buf(), stage(eMeshDataStage_Unknown), useidx(false) {}
+			uint32_t EID;
+			ResourceId buf;
+			MeshDataStage stage;
+			bool useidx;
+
+			vector<byte> data;
+			vector<uint32_t> indices;
+		} m_HighlightCache;
+
 		ID3D11Texture2D *m_OverlayRenderTex;
 		ResourceId m_OverlayResourceId;
 
@@ -313,6 +328,8 @@ class D3D11DebugManager
 		ID3D11Buffer *m_AxisHelper;
 		ID3D11Buffer *m_FrustumHelper;
 		ID3D11Buffer *m_TriHighlightHelper;
+		
+		FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid);
 		
 		bool InitStreamOut();
 		void ShutdownStreamOut();
