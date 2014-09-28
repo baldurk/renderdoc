@@ -403,7 +403,7 @@ wstring LookupModule(wstring moduleDetails)
 	{
 		wstring sympath = GetSymSearchPath();
 
-		wchar_t path[MAX_PATH] = {0};
+		wchar_t path[MAX_PATH+1] = {0};
 		BOOL found = dynSymFindFileInPathW(GetCurrentProcess(), sympath.c_str(), pdbName, &guid, age, 0, SSRVOPT_GUIDPTR, path, NULL, NULL);
 		DWORD err = GetLastError();
 
