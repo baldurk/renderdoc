@@ -117,9 +117,6 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <metadata name="groupBox1.GenerateMember" type="System.Boolean, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089">
-    <value>False</value>
-  </metadata>
   <data name="helpText.Text" xml:space="preserve">
     <value>Type in a buffer format declaration. Comments and {} braces are skipped, : semantics are ignored.
 Declare each element as an hlsl variable, e.g: "float4 first; float2 second; uint2 third;"

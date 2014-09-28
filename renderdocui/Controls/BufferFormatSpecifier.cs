@@ -76,10 +76,28 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
-		private void hideHelp_Click(object sender, EventArgs e)
-		{
-			helpText.Visible = !helpText.Visible;
-		}
+        private void toggleHelp_Click(object sender, EventArgs e)
+        {
+            helpText.Visible = !helpText.Visible;
+
+            tableLayoutPanel1.SuspendLayout();
+
+            if (helpText.Visible)
+            {
+                tableLayoutPanel1.Controls.Remove(formatGroupBox);
+                tableLayoutPanel1.Controls.Add(formatGroupBox, 0, 1);
+                tableLayoutPanel1.SetRowSpan(formatGroupBox, 1);
+            }
+            else
+            {
+                tableLayoutPanel1.Controls.Remove(formatGroupBox);
+                tableLayoutPanel1.Controls.Add(formatGroupBox, 0, 0);
+                tableLayoutPanel1.SetRowSpan(formatGroupBox, 2);
+            }
+
+            tableLayoutPanel1.ResumeLayout(false);
+            tableLayoutPanel1.PerformLayout();
+        }
     }
 
     public interface IBufferFormatProcessor
