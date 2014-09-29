@@ -297,7 +297,10 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 int renderdoccmd(int argc, wchar_t **argv);
 bool argequal(const wchar_t *a, const wchar_t *b);
 
-int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd )
+int WINAPI wWinMain(_In_ HINSTANCE hInst,
+	_In_opt_ HINSTANCE hPrevInstance,
+	_In_ LPWSTR lpCmdLine,
+	_In_ int nShowCmd)
 {
 	LPWSTR *argv;
 	int argc;
