@@ -68,15 +68,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.depth = 1;
 		tex.cubemap = false;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture1D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -99,6 +90,27 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.msQual = 0; tex.msSamp = 1;
 
 		tex.numSubresources *= desc.ArraySize;
+		
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			if(tex.arraysize > 1)
+				str = StringFormat::Fmt("Texture1DArray%s %llu", suffix, tex.ID);
+			else
+				str = StringFormat::Fmt("Texture1D%s %llu", suffix, tex.ID);
+		}
+		
+		tex.name = widen(str);
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -126,15 +138,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.height = desc.Height;
 		tex.depth = 1;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-		
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture2D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -164,6 +167,41 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 
 		tex.numSubresources *= desc.ArraySize;
 		
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+			const char *ms = "";
+
+			if(tex.msSamp > 1)
+				ms = "MS";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			if(tex.cubemap)
+			{
+				if(tex.arraysize > 6)
+					str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
+				else
+					str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
+			}
+			else
+			{
+				if(tex.arraysize > 1)
+					str = StringFormat::Fmt("Texture2D%sArray%s %llu", ms, suffix, tex.ID);
+				else
+					str = StringFormat::Fmt("Texture2D%s%s %llu", ms, suffix, tex.ID);
+			}
+		}
+		
+		tex.name = widen(str);
+		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
 			tex.byteSize += GetByteSize(d3dtex, s);
@@ -188,15 +226,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.depth = desc.Depth;
 		tex.cubemap = false;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-		
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture3D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -217,6 +246,24 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 
 		tex.mips = tex.numSubresources;
 		tex.arraysize = 1;
+				
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			str = StringFormat::Fmt("Texture3D%s %llu", suffix, tex.ID);
+		}
+
+		tex.name = widen(str);
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
