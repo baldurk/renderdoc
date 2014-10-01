@@ -261,6 +261,8 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 				uint32_t registers = rows; 
 				uint32_t regLen = cols;
 				const char *regName = "row";
+				
+				string base = outvars[outIdx].name.elems;
 
 				if(!flatten)
 				{
@@ -282,8 +284,6 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 						regName = "col";
 					}
 				}
-
-				string base = outvars[outIdx].name.elems;
 
 				for(size_t r=0; r < registers*elems; r++)
 				{
