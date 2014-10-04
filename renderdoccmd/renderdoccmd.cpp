@@ -222,6 +222,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 				uint32_t pidNum = (uint32_t)wtoi(pid);
 
 				wchar_t *log = argv[3];
+				if(log[0] == 0) log = NULL;
 
 				CaptureOptions cmdopts;
 

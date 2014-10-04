@@ -259,11 +259,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 		pSec.nLength = sizeof(pSec);
 		tSec.nLength = sizeof(tSec);
 	
-		wchar_t *paramsAlloc = new wchar_t[256];
+		wchar_t *paramsAlloc = new wchar_t[2048];
 
 		string optstr = opts->ToString();
 
-		_snwprintf_s(paramsAlloc, 255, 255, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"", renderdocPath, pid, logfile, optstr.c_str());
+		_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"",
+		             renderdocPath, pid, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+		paramsAlloc[2047] = 0;
 	
 		BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
 
