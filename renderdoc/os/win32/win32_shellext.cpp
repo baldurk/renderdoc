@@ -316,13 +316,16 @@ struct RDCThumbnailProviderFactory : public IClassFactory
 	bool locked;
 };
 
-STDAPI DllGetClassObject(REFCLSID rclsid, REFIID riid, LPVOID *ppv)
+_Check_return_
+STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
 {
 	if(rclsid == CLSID_RDCThumbnailProvider)
 	{
-		*ppv = (LPVOID)(new RDCThumbnailProviderFactory);
+		if(ppv) *ppv = (LPVOID)(new RDCThumbnailProviderFactory);
 		return S_OK;
 	}
+
+	if(ppv) *ppv = NULL;
 
 	return CLASS_E_CLASSNOTAVAILABLE;
 }
