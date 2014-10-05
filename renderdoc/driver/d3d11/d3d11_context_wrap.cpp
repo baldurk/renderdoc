@@ -1940,19 +1940,22 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		// technically this isn't dirty until the draw call, but let's be conservative
-		// to avoid having to track "possibly" dirty resources.
-		// Besides, it's unlikely an application will set an output then not draw to it
-		if(ppSOTargets[i] && m_State >= WRITING_CAPFRAME)
+		if(ppSOTargets && ppSOTargets[i])
 		{
-			MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
-			
-			if(m_State == WRITING_CAPFRAME)
-				m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
-			if(m_State == WRITING_IDLE)
-				m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
+			// technically this isn't dirty until the draw call, but let's be conservative
+			// to avoid having to track "possibly" dirty resources.
+			// Besides, it's unlikely an application will set an output then not draw to it
+			if(m_State >= WRITING_CAPFRAME)
+			{
+				MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
+
+				if(m_State == WRITING_CAPFRAME)
+					m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
+				if(m_State == WRITING_IDLE)
+					m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
+			}
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
 		}
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
 	}
 
 	m_pRealContext->SOSetTargets(NumBuffers, bufs, pOffsets);
@@ -2733,19 +2736,22 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews, ID3D11RenderT
 	
 	for(UINT i=0; i < NumViews; i++)
 	{
-		if(ppRenderTargetViews[i] && m_State >= WRITING)
+		if(ppRenderTargetViews && ppRenderTargetViews[i])
 		{
-			ID3D11Resource *res = NULL;
-			ppRenderTargetViews[i]->GetResource(&res);
-			// technically this isn't dirty until the draw call, but let's be conservative
-			// to avoid having to track "possibly" dirty resources.
-			// Besides, it's unlikely an application will set an output then not draw to it
-			if(m_State == WRITING_IDLE)
-				m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(res));
-			SAFE_RELEASE(res);
-		}
+			if(m_State >= WRITING)
+			{
+				ID3D11Resource *res = NULL;
+				ppRenderTargetViews[i]->GetResource(&res);
+				// technically this isn't dirty until the draw call, but let's be conservative
+				// to avoid having to track "possibly" dirty resources.
+				// Besides, it's unlikely an application will set an output then not draw to it
+				if(m_State == WRITING_IDLE)
+					m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(res));
+				SAFE_RELEASE(res);
+			}
 
-		RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+			RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+		}
 	}
 
 	if(pDepthStencilView && m_State >= WRITING)
@@ -4418,7 +4424,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
 		m_CurrentPipelineState->Clear();
 	VerifyState();
 
-	*ppCommandList = wrapped;
+	if (ppCommandList) *ppCommandList = wrapped;
 
 	return hr;
 }

@@ -578,10 +578,13 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->VSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
@@ -676,10 +679,13 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->HSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
@@ -774,10 +780,13 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->DSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
@@ -872,10 +881,13 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->GSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
@@ -970,10 +982,13 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->PSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
@@ -1068,10 +1083,13 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
 	ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		if(ppConstantBuffers[i] && m_State >= WRITING_CAPFRAME)
-			MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
+		if(ppConstantBuffers && ppConstantBuffers[i])
+		{
+			if(m_State >= WRITING_CAPFRAME)
+				MarkResourceReferenced(GetIDForResource(ppConstantBuffers[i]), eFrameRef_Read);
 
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppConstantBuffers[i]);
+		}
 	}
 	
 	m_pRealContext1->CSSetConstantBuffers1(StartSlot, NumBuffers, bufs, pFirstConstant, pNumConstants);
