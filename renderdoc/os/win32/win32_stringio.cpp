@@ -45,12 +45,24 @@ string GetEmbeddedResourceWin32(int resource)
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, &mod);
 
 	HRSRC res = FindResource(mod, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TYPE_EMBED));
-	int err = GetLastError();
-	HGLOBAL data = LoadResource(mod, res);
-	DWORD resSize = SizeofResource(mod, res);
-	const char* resData = (const char*)LockResource(data);
+	
+	if(res == NULL)
+	{
+		RDCFATAL("Couldn't find embedded win32 resource");
+	}
 
-	return string(resData, resData+resSize);
+	HGLOBAL data = LoadResource(mod, res);
+
+	if(data != NULL)
+	{
+		DWORD resSize = SizeofResource(mod, res);
+		const char* resData = (const char*)LockResource(data);
+
+		if(resData)
+			return string(resData, resData+resSize);
+	}
+
+	return "";
 }
 
 namespace Keyboard
