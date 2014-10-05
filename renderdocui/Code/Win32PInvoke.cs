@@ -38,7 +38,7 @@ namespace renderdocui.Code
 
         // for redirecting mousewheel
         [DllImport("user32.dll")]
-        public static extern IntPtr WindowFromPoint(System.Drawing.Point pt);
+        public static extern IntPtr WindowFromPoint(int xPoint, int yPoint);
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr wnd, int msg, IntPtr wp, IntPtr lp);
 
