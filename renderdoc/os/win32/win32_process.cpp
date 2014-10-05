@@ -43,14 +43,29 @@ void InjectDLL(HANDLE hProcess, wstring libName)
 
 	static HMODULE kernel32 = GetModuleHandle(_T("Kernel32"));
 
+	if(kernel32 == NULL)
+	{
+		RDCERR("Couldn't get handle for kernel32.dll");
+		return;
+	}
+
 	void *remoteMem = VirtualAllocEx(hProcess, NULL, sizeof(dllPath), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
+	if(remoteMem)
+	{
+		WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
 
-	HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"), remoteMem, 0, NULL);
-	WaitForSingleObject(hThread, INFINITE);
-
-	CloseHandle(hThread);
-	VirtualFreeEx(hProcess, remoteMem, sizeof(dllPath), MEM_RELEASE); 
+		HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"), remoteMem, 0, NULL);
+		if(hThread)
+		{
+			WaitForSingleObject(hThread, INFINITE);
+			CloseHandle(hThread);
+		}
+		VirtualFreeEx(hProcess, remoteMem, sizeof(dllPath), MEM_RELEASE); 
+	}
+	else
+	{
+		RDCERR("Couldn't allocate remote memory for DLL '%ls'", libName.c_str());
+	}
 }
 
 uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
