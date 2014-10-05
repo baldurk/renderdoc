@@ -626,7 +626,7 @@ void RenderDoc::SetLogFile(const wchar_t *logFile)
 
 void RenderDoc::SetProgress(LoadProgressSection section, float delta)
 {
-	if(m_ProgressPtr == NULL)
+	if(m_ProgressPtr == NULL || section < 0 || section >= NumSections)
 		return;
 
 	float weights[NumSections];
