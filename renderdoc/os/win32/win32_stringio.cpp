@@ -238,7 +238,7 @@ namespace FileIO
 		va_list args;
 		va_start(args, fmt);
 
-		int ret = ::fprintf(f, fmt, args);
+		int ret = ::vfprintf(f, fmt, args);
 
 		va_end(args);
 
