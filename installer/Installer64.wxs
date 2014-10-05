@@ -68,7 +68,7 @@
 
             <Component Id='RenderDocCPP' Win64="yes" Guid='9D5949F9-0447-47B6-829D-77465E1FDAD9'>
               <File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release64/renderdoc.dll' KeyPath='yes' />
-              <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
+              <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/d3dcompiler_47.dll' />
               
               <RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
                 Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
