@@ -66,20 +66,30 @@ public:
 		if(dxgihooks.m_HasHooks)
 			return dxgihooks.CreateDXGIFactory1_hook(riid, ppFactory);
 
-		PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+		HMODULE dxgi = GetModuleHandleA("dxgi.dll");
 
-		if(!createFunc)
+		if(dxgi)
 		{
-			RDCERR("Trying to create hooked dxgi factory without dxgi loaded");
-			return E_INVALIDARG;
-		}
-		
-		HRESULT ret = createFunc(riid, ppFactory);
-		
-		if(SUCCEEDED(ret))
-			RefCountDXGIObject::HandleWrap(riid, ppFactory);
+			PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory1");
 
-		return ret;
+			if(!createFunc)
+			{
+				RDCERR("Trying to create hooked dxgi factory without dxgi loaded");
+				return E_INVALIDARG;
+			}
+		
+			HRESULT ret = createFunc(riid, ppFactory);
+		
+			if(SUCCEEDED(ret))
+				RefCountDXGIObject::HandleWrap(riid, ppFactory);
+
+			return ret;
+		}
+		else
+		{
+			RDCERR("Something went seriously wrong, dxgi.dll couldn't be loaded!");
+			return E_UNEXPECTED;
+		}
 	}
 
 private:

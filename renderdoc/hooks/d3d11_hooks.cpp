@@ -120,9 +120,23 @@ private:
 			
 			// shouldn't ever get in here if we're in the case without hooks but let's be safe.
 			if(m_HasHooks)
+			{
 				createFunc = CreateDeviceAndSwapChain();
+			}
 			else
-				createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(GetModuleHandleA("d3d11.dll"), "D3D11CreateDeviceAndSwapChain");
+			{
+				HMODULE d3d11 = GetModuleHandleA("d3d11.dll");
+
+				if(d3d11)
+				{
+					createFunc = (PFN_D3D11_CREATE_DEVICE_AND_SWAP_CHAIN)GetProcAddress(d3d11, "D3D11CreateDeviceAndSwapChain");
+				}
+				else
+				{
+					RDCERR("Something went seriously wrong, d3d11.dll couldn't be loaded!");
+					return E_UNEXPECTED;
+				}
+			}
 		
 			return createFunc(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
 								SDKVersion, pSwapChainDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
