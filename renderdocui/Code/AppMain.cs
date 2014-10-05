@@ -71,7 +71,7 @@ namespace renderdocui.Code
             // save it)
             foreach(var a in args)
             {
-                if(a.ToLowerInvariant() == "--tempfile")
+                if(a.ToUpperInvariant() == "--tempfile")
                     temp = true;
             }
 
@@ -80,7 +80,7 @@ namespace renderdocui.Code
 
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i].ToLowerInvariant() == "--remoteaccess" && i + 1 < args.Length)
+                if (args[i].ToUpperInvariant() == "--remoteaccess" && i + 1 < args.Length)
                 {
                     var regexp = @"^([a-zA-Z0-9_-]+:)?([0-9]+)$";
 
@@ -89,7 +89,7 @@ namespace renderdocui.Code
                     if (match.Success)
                     {
                         var host = match.Groups[1].Value;
-                        if (host != "" && host[host.Length - 1] == ':')
+                        if (host.Length > 0 && host[host.Length - 1] == ':')
                             host = host.Substring(0, host.Length - 1);
                         uint ident = 0;
                         if (uint.TryParse(match.Groups[2].Value, out ident))

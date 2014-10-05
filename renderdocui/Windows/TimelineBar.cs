@@ -377,7 +377,7 @@ namespace renderdocui.Windows
         {
             float myWidth = 20.0f;
 
-            if (s.Name != "")
+            if (s.Name.Length > 0)
                 myWidth = Math.Max(myWidth, MinBarSize(g, "+ " + s.Name));
 
             if (s.subsections == null || s.subsections.Count == 0)
@@ -499,7 +499,7 @@ namespace renderdocui.Windows
             for (int i = 0; i < section.subsections.Count; i++)
             {
                 var s = section.subsections[i];
-                if (s.Name != "")
+                if (s.Name.Length > 0)
                 {
                     g.Clip = new Region(clipRect);
                     var childRect = DrawBar(g, col, rect, start, widths[i], (s.Expanded ? "- " : "+ ") + s.Name, visible);

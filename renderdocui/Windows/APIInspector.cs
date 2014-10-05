@@ -100,7 +100,7 @@ namespace renderdocui.Windows
                     for (int i = 1; i < lines.Length; i++)
                     {
                         string l = rgx.Replace(lines[i], replacement);
-                        if (l != "")
+                        if (l.Length == 0)
                             node.Nodes.Add(new TreelistView.Node(new object[] { "", l }));
                     }
 
@@ -164,7 +164,7 @@ namespace renderdocui.Windows
 
             callstack.Items.Clear();
 
-            if (calls.Length == 1 && calls[0] == "")
+            if (calls.Length == 1 && calls[0].Length == 0)
             {
                 callstack.Items.Add("Symbols not loaded. Tools -> Resolve Symbols.");
             }

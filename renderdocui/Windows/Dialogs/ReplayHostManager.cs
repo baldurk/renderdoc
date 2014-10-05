@@ -115,7 +115,7 @@ namespace renderdocui.Windows.Dialogs
 
                 hosts.Clear();
 
-                if (kv.Value != "")
+                if (kv.Value.Length > 0)
                     hosts.Add(kv.Value);
 
                 var plugins = renderdocplugin.PluginHelpers.GetPlugins();
@@ -151,7 +151,7 @@ namespace renderdocui.Windows.Dialogs
                 hosts.Remove("");
 
                 host.Items.AddRange(hosts.ToArray());
-                if (kv.Value != "")
+                if (kv.Value.Length > 0)
                     host.SelectedIndex = 0;
 
                 host.Tag = driver;
@@ -179,7 +179,7 @@ namespace renderdocui.Windows.Dialogs
             var host = sender as ComboBox;
             string driver = host.Tag as string;
 
-            if (driver != "" && m_Core.Config.ReplayHosts.ContainsKey(driver))
+            if (driver.Length > 0 && m_Core.Config.ReplayHosts.ContainsKey(driver))
                 m_Core.Config.ReplayHosts[driver] = host.Text;
         }
 
@@ -194,7 +194,7 @@ namespace renderdocui.Windows.Dialogs
             {
                 string driver = host.Tag as string;
 
-                if(host.Text == "")
+                if (host.Text.Length == 0)
                     continue;
 
                 bool found = false;

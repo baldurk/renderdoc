@@ -61,7 +61,7 @@ namespace renderdocui.Windows.Dialogs
         public void SetErrors(string err)
         {
             errors.Text = err;
-            if (errors.Text == "")
+            if (errors.Text.Length == 0)
                 errors.Visible = false;
             else
                 errors.Visible = true;

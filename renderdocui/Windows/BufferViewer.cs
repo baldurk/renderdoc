@@ -720,7 +720,7 @@ namespace renderdocui.Windows
                     f[i] = new FormatElement();
 
                     f[i].buffer = 0;
-                    f[i].name = details.OutputSig[i].varName != "" ? details.OutputSig[i].varName : details.OutputSig[i].semanticIdxName;
+                    f[i].name = details.OutputSig[i].varName.Length > 0 ? details.OutputSig[i].varName : details.OutputSig[i].semanticIdxName;
                     f[i].format.compByteWidth = sizeof(float);
                     f[i].format.compCount = sig.compCount;
                     f[i].format.compType = sig.compType;
@@ -1273,7 +1273,7 @@ namespace renderdocui.Windows
                                 strm.Seek(offs, SeekOrigin.Begin);
                             }
 
-                            string elname = bufferFormats[el].name.ToLowerInvariant();
+                            string elname = bufferFormats[el].name.ToUpperInvariant();
                             var fmt = bufferFormats[el].format;
                             int byteWidth = (int)fmt.compByteWidth;
 
@@ -1285,7 +1285,7 @@ namespace renderdocui.Windows
                             if (bytes.Length != bytesToRead)
                                 throw new System.IO.EndOfStreamException();
 
-                            if (elname == "position" || elname == "sv_position")
+                            if (elname == "POSITION" || elname == "SV_POSITION")
                             {
                                 for (int i = 0; i < fmt.compCount; i++)
                                 {
@@ -1973,9 +1973,9 @@ namespace renderdocui.Windows
                 foreach (var el in ui.m_Input.BufferFormats)
                 {
                     // prioritise SV_Position over general POSITION
-                    if (el.name.ToUpper() == "SV_POSITION")
+                    if (el.name.ToUpperInvariant() == "SV_POSITION")
                         pos = el;
-                    if (el.name.ToUpper() == "POSITION" && pos == null)
+                    if (el.name.ToUpperInvariant() == "POSITION" && pos == null)
                         pos = el;
                 }
             }
@@ -2013,7 +2013,7 @@ namespace renderdocui.Windows
 
 
             float aspect = 0.0f;
-            if (aspectGuess.Text != "")
+            if (aspectGuess.Text.Length > 0)
             {
                 float.TryParse(aspectGuess.Text, out aspect);
             }
@@ -2025,7 +2025,7 @@ namespace renderdocui.Windows
 
 
             float near = -float.MaxValue;
-            if (nearGuess.Text != "")
+            if (nearGuess.Text.Length > 0)
             {
                 float.TryParse(nearGuess.Text, out near);
             }
@@ -2037,7 +2037,7 @@ namespace renderdocui.Windows
 
 
             float far = -float.MaxValue;
-            if (farGuess.Text != "")
+            if (farGuess.Text.Length > 0)
             {
                 float.TryParse(farGuess.Text, out far);
             }

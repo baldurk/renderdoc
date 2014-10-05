@@ -25,8 +25,8 @@ namespace renderdocui.Windows.Dialogs
             {
                 fileFormat.Items.Add(ft.ToString());
 
-                if (filter != "") filter += "|";
-                filter += String.Format("{0} Files (*.{1})|*.{1}", ft.ToString(), ft.ToString().ToLowerInvariant());
+                if (filter.Length > 0) filter += "|";
+                filter += String.Format("{0} Files (*.{1})|*.{1}", ft.ToString(), ft.ToString().ToUpperInvariant());
             }
             
             saveTexDialog.Filter = filter;
@@ -228,11 +228,11 @@ namespace renderdocui.Windows.Dialogs
 
                 try
                 {
-                    string ext = Path.GetExtension(filename.Text).ToLowerInvariant().Substring(1); // trim . from extension
+                    string ext = Path.GetExtension(filename.Text).ToUpperInvariant().Substring(1); // trim . from extension
 
                     foreach (var ft in (FileType[])Enum.GetValues(typeof(FileType)))
                     {
-                        if (ft.ToString().ToLowerInvariant() == ext)
+                        if (ft.ToString().ToUpperInvariant() == ext)
                         {
                             fileFormat.SelectedIndex = (int)ft;
                             break;

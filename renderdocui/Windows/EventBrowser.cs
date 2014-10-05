@@ -475,7 +475,7 @@ namespace renderdocui.Windows
             {
                 if (n.Tag is DeferredEvent)
                 {
-                    if (n["Name"].ToString().ToLowerInvariant().Contains(filter))
+                    if (n["Name"].ToString().ToUpperInvariant().Contains(filter))
                     {
                         n.Image = global::renderdocui.Properties.Resources.find;
                         results++;
@@ -493,10 +493,10 @@ namespace renderdocui.Windows
 
         private int SetFindIcons(string filter)
         {
-            if(filter == "")
+            if (filter.Length == 0)
                 return 0;
 
-            return SetFindIcons(eventView.Nodes[0].Nodes, filter.ToLowerInvariant());
+            return SetFindIcons(eventView.Nodes[0].Nodes, filter.ToUpperInvariant());
         }
 
         private TreelistView.Node FindNode(TreelistView.NodeCollection nodes, string filter, UInt32 after)
@@ -505,7 +505,7 @@ namespace renderdocui.Windows
             {
                 if (n.Tag is DeferredEvent)
                 {
-                    if ((UInt32)n["EID"] > after && n["Name"].ToString().ToLowerInvariant().Contains(filter))
+                    if ((UInt32)n["EID"] > after && n["Name"].ToString().ToUpperInvariant().Contains(filter))
                         return n;
                 }
 
@@ -537,7 +537,7 @@ namespace renderdocui.Windows
 
                     bool matchesAfter = (forward && def.eventID > after) || (!forward && def.eventID < after);
 
-                    if (matchesAfter && n["Name"].ToString().ToLowerInvariant().Contains(filter))
+                    if (matchesAfter && n["Name"].ToString().ToUpperInvariant().Contains(filter))
                         return (int)def.eventID;
                 }
 
@@ -558,7 +558,7 @@ namespace renderdocui.Windows
             if (eventView.Nodes.Count == 0)
                 return 0;
 
-            return FindEvent(eventView.Nodes[0].Nodes, filter.ToLowerInvariant(), after, forward);
+            return FindEvent(eventView.Nodes[0].Nodes, filter.ToUpperInvariant(), after, forward);
         }
 
         public void OnEventSelected(UInt32 frameID, UInt32 eventID)
@@ -614,7 +614,7 @@ namespace renderdocui.Windows
         {
             jumpStrip.Visible = false;
 
-            if (findEvent.Text == "")
+            if (findEvent.Text.Length == 0)
             {
                 findStrip.Visible = false;
 
@@ -713,7 +713,7 @@ namespace renderdocui.Windows
 
         private void findEvent_TextChanged(object sender, EventArgs e)
         {
-            if (findEvent.Text != "")
+            if (findEvent.Text.Length > 0)
             {
                 findHighlight.Enabled = false;
                 findHighlight.Enabled = true;
@@ -729,7 +729,7 @@ namespace renderdocui.Windows
 
         private void findHighlight_Tick(object sender, EventArgs e)
         {
-            if (findEvent.Text == "")
+            if (findEvent.Text.Length == 0)
             {
                 findEvent.BackColor = SystemColors.Window;
                 ClearFindIcons();
@@ -768,8 +768,8 @@ namespace renderdocui.Windows
                     findHighlight.Enabled = false;
                     findHighlight_Tick(sender, null);
                 }
-                
-                if (findEvent.Text != "")
+
+                if (findEvent.Text.Length > 0)
                 {
                     Find(true);
                 }
@@ -829,7 +829,7 @@ namespace renderdocui.Windows
 
         private void Find(bool forward)
         {
-            if(findEvent.Text == "")
+            if (findEvent.Text.Length == 0)
                 return;
 
             UInt32 curEID = m_Core.CurEvent;

@@ -319,7 +319,7 @@ namespace renderdocui.Code
                 var line = l;
                 line = line.Trim();
 
-                if (line == "") continue;
+                if (line.Length == 0) continue;
 
                 var match = regParser.Match(line);
 

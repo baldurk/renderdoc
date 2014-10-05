@@ -398,7 +398,7 @@ namespace renderdocui.Windows
                 w.CloseButtonVisible = false;
             }
 
-            if (shader.DebugInfo.entryFunc != "" && shader.DebugInfo.files.Length > 0)
+            if (shader.DebugInfo.entryFunc.Length > 0 && shader.DebugInfo.files.Length > 0)
             {
                 if(trace != null)
                     Text = String.Format("Debug {0}() - {1}", shader.DebugInfo.entryFunc, debugContext);
@@ -459,8 +459,8 @@ namespace renderdocui.Windows
 
                 foreach (var s in m_ShaderDetails.InputSig)
                 {
-                    string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName == "") name = s.varName;
+                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName.Length == 0) name = s.varName;
 
                     var node = inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
@@ -478,8 +478,8 @@ namespace renderdocui.Windows
 
                 foreach (var s in m_ShaderDetails.OutputSig)
                 {
-                    string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName == "") name = s.varName;
+                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName.Length == 0) name = s.varName;
 
                     if(multipleStreams)
                         name = String.Format("Stream {0} : {1}", s.stream, name);
@@ -667,7 +667,7 @@ namespace renderdocui.Windows
 
             hoverTimer.Enabled = false;
 
-            if (m_HoverScintilla != null && m_HoverReg != "")
+            if (m_HoverScintilla != null && m_HoverReg.Length > 0)
             {
                 var pt = m_HoverScintilla.PointToClient(Cursor.Position);
 
@@ -995,7 +995,7 @@ namespace renderdocui.Windows
                     var swizzle = match.Groups[3].Value.Replace(".", "");
                     var regcast = match.Groups[4].Value.Replace(",", "");
 
-                    if (regcast == "")
+                    if (regcast.Length == 0)
                     {
                         if (displayInts.Checked)
                             regcast = "i";
@@ -1039,7 +1039,7 @@ namespace renderdocui.Windows
                         {
                             ShaderVariable vr = vars[regindex];
 
-                            if (swizzle == "")
+                            if (swizzle.Length == 0)
                             {
                                 swizzle = "xyzw".Substring(0, (int)vr.columns);
 
@@ -1469,9 +1469,9 @@ namespace renderdocui.Windows
 
         private void watchRegs_AfterLabelEdit(object sender, LabelEditEventArgs e)
         {
-            if (e.Label == "" && e.Item < watchRegs.Items.Count - 1)
+            if (e.Label.Length == 0 && e.Item < watchRegs.Items.Count - 1)
                 watchRegs.Items.RemoveAt(e.Item);
-            else if (e.Label != null && e.Label != "" && e.Item == watchRegs.Items.Count - 1)
+            else if (e.Label != null && e.Label.Length > 0 && e.Item == watchRegs.Items.Count - 1)
                 watchRegs.Items.Add(new ListViewItem(new string[] { "", "", "" }));
 
             this.BeginInvoke((MethodInvoker)delegate { UpdateDebugging(); });

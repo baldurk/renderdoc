@@ -237,7 +237,7 @@ namespace renderdocui.Controls
             {
                 if (needName &&
                     Slot < reflection.ConstantBlocks.Length &&
-                    reflection.ConstantBlocks[Slot].name != "")
+                    reflection.ConstantBlocks[Slot].name.Length > 0)
                     BufferName = "<" + reflection.ConstantBlocks[Slot].name + ">";
             }
 
@@ -302,7 +302,7 @@ namespace renderdocui.Controls
 
 		public void ProcessBufferFormat(string formatText)
 		{
-			if (formatText == "")
+			if (formatText.Length == 0)
 			{
 				m_FormatOverride = null;
 				if (m_FormatSpecifier != null)

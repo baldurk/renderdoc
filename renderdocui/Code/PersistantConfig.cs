@@ -160,7 +160,7 @@ namespace renderdocui.Code
 
             foreach (var kv in c.ReplayHostKeyValues)
             {
-                if(kv.Key != null && kv.Key != "" &&
+                if (kv.Key != null && kv.Key.Length > 0 &&
                     kv.Value != null)
                 c.ReplayHosts.Add(kv.Key, kv.Value);
             }

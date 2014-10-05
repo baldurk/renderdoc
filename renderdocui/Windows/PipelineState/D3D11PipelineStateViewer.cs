@@ -116,7 +116,6 @@ namespace renderdocui.Windows.PipelineState
             gsStreams.Nodes.Clear();
 
             var tick = global::renderdocui.Properties.Resources.tick;
-            var cross = global::renderdocui.Properties.Resources.cross;
 
             fillMode.Text = "Solid";
             cullMode.Text = "Front";
@@ -194,7 +193,7 @@ namespace renderdocui.Windows.PipelineState
             else
                 shader.Text = stage.ShaderName;
 
-            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc != "" && shaderDetails.DebugInfo.files.Length > 0)
+            if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 
                                 Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
 
@@ -227,7 +226,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string slotname = i.ToString();
 
-                        if (shaderInput != null && shaderInput.name != "")
+                        if (shaderInput != null && shaderInput.name.Length > 0)
                             slotname += ": " + shaderInput.name;
 
                         UInt32 w = 1, h = 1, d = 1;
@@ -337,7 +336,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    bool filledSlot = (s.AddressU != "");
+                    bool filledSlot = (s.AddressU.Length > 0);
                     bool usedSlot = (shaderInput != null);
                     
                     // show if
@@ -348,7 +347,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string slotname = i.ToString();
 
-                        if (shaderInput != null && shaderInput.name != "")
+                        if (shaderInput != null && shaderInput.name.Length > 0)
                             slotname += ": " + shaderInput.name;
 
                         string borderColor = s.BorderColor[0].ToString() + ", " +
@@ -411,7 +410,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     ConstantBlock shaderCBuf = null;
 
-                    if (shaderDetails != null && i < shaderDetails.ConstantBlocks.Length && shaderDetails.ConstantBlocks[i].name != "")
+                    if (shaderDetails != null && i < shaderDetails.ConstantBlocks.Length && shaderDetails.ConstantBlocks[i].name.Length > 0)
                         shaderCBuf = shaderDetails.ConstantBlocks[i];
 
                     bool filledSlot = (b.Buffer != ResourceId.Null);
@@ -444,7 +443,7 @@ namespace renderdocui.Windows.PipelineState
 
                         string slotname = i.ToString();
 
-                        if (shaderCBuf != null && shaderCBuf.name != "")
+                        if (shaderCBuf != null && shaderCBuf.name.Length > 0)
                             slotname += ": " + shaderCBuf.name;
 
                         var node = cbuffers.Nodes.Add(new object[] { slotname, name, b.VecOffset, b.VecCount, numvars, length });
@@ -550,7 +549,7 @@ namespace renderdocui.Windows.PipelineState
 
             if(state.m_IA.Bytecode == null)
                 iaBytecode.Text = "None";
-            else if(state.m_IA.Bytecode.DebugInfo == null || state.m_IA.Bytecode.DebugInfo.entryFunc == "")
+            else if (state.m_IA.Bytecode.DebugInfo == null || state.m_IA.Bytecode.DebugInfo.entryFunc.Length == 0)
                 iaBytecode.Text = "Layout " + state.m_IA.layout.ToString();
             else
                 iaBytecode.Text = state.m_IA.Bytecode.DebugInfo.entryFunc;
@@ -577,7 +576,7 @@ namespace renderdocui.Windows.PipelineState
                     for (int i = 0; i < count; i++)
                     {
                         // misorder or misnamed semantics
-                        if (IA[i].semanticIdxName.ToLowerInvariant() != VS[i].semanticIdxName.ToLowerInvariant())
+                        if (IA[i].semanticIdxName.ToUpperInvariant() != VS[i].semanticIdxName.ToUpperInvariant())
                             mismatchDetails += String.Format("IA bytecode semantic {0}: {1} != VS bytecode semantic {0}: {2}\n", i,
                                                                 IA[i].semanticIdxName, VS[i].semanticIdxName);
 
@@ -1469,7 +1468,7 @@ namespace renderdocui.Windows.PipelineState
                             {
                                 if (r.variableType.members.Length == 0)
                                 {
-                                    if (r.variableType.Name != "")
+                                    if (r.variableType.Name.Length > 0)
                                         format = r.variableType.Name + " " + r.name + ";";
                                 }
                                 else
@@ -1486,7 +1485,7 @@ namespace renderdocui.Windows.PipelineState
                 if (buf.ID != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    if (format == "")
+                    if (format.Length == 0)
                         viewer.ViewRawBuffer(buf.ID);
                     else
                         viewer.ViewRawBuffer(buf.ID, format);
@@ -1652,7 +1651,7 @@ namespace renderdocui.Windows.PipelineState
             string mainfile = "";
 
             var files = new Dictionary<string, string>();
-            if (shaderDetails.DebugInfo.entryFunc != "" && shaderDetails.DebugInfo.files.Length > 0)
+            if (shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
             {
                 entryFunc = shaderDetails.DebugInfo.entryFunc;
 
@@ -1708,7 +1707,7 @@ namespace renderdocui.Windows.PipelineState
                 int cbufIdx = 0;
                 foreach (var cbuf in shaderDetails.ConstantBlocks)
                 {
-                    if (cbuf.name != "" && cbuf.variables.Length > 0)
+                    if (cbuf.name.Length > 0 && cbuf.variables.Length > 0)
                     {
                         cbuffers += String.Format("cbuffer {0} : register(b{1}) {{", cbuf.name, cbufIdx) + nl;
                         MakeShaderVariablesHLSL(true, cbuf.variables, ref cbuffers, ref hlsl);
@@ -1721,12 +1720,12 @@ namespace renderdocui.Windows.PipelineState
 
                 hlsl += String.Format("struct {0}Input{1}{{{1}", shType, nl);
                 foreach(var sig in shaderDetails.InputSig)
-                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName != "" ? sig.varName : "param" + sig.regIndex, sig.D3D11SemanticString);
+                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3D11SemanticString);
                 hlsl += "};" + nl2;
 
                 hlsl += String.Format("struct {0}Output{1}{{{1}", shType, nl);
                 foreach (var sig in shaderDetails.OutputSig)
-                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName != "" ? sig.varName : "param" + sig.regIndex, sig.D3D11SemanticString);
+                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3D11SemanticString);
                 hlsl += "};" + nl2;
 
                 hlsl += String.Format("{0}Output {1}(in {0}Input IN){2}{{{2}\t{0}Output OUT = ({0}Output)0;{2}{2}\t// ...{2}{2}\treturn OUT;{2}}}{2}", shType, entryFunc, nl);
@@ -1854,7 +1853,7 @@ namespace renderdocui.Windows.PipelineState
         {
             if (stage.ShaderDetails != null &&
                 (stage.ShaderDetails.ConstantBlocks.Length <= slot ||
-                 stage.ShaderDetails.ConstantBlocks[slot].name == "")
+                 stage.ShaderDetails.ConstantBlocks[slot].name.Length == 0)
                )
             {
                 // unused cbuffer, open regular buffer viewer

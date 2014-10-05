@@ -204,8 +204,8 @@ namespace renderdocui.Controls
                                     (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.DSV) > 0));
                 include |= (Texs && (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.RTV) == 0 &&
                                     (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.DSV) == 0);
-                include |= (filter != "" && (m_Core.CurTextures[i].name.ToLowerInvariant().Contains(filter.ToLowerInvariant())));
-                include |= (!RTs && !Texs && filter == "");
+                include |= (filter.Length > 0 && (m_Core.CurTextures[i].name.ToUpperInvariant().Contains(filter.ToUpperInvariant())));
+                include |= (!RTs && !Texs && filter.Length == 0);
 
                 if (include)
                 {

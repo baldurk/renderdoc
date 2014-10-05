@@ -323,9 +323,9 @@ namespace renderdocui.Windows.Dialogs
         {
             try
             {
-                if (exePath.Text != "" && Directory.Exists(Path.GetDirectoryName(exePath.Text)))
+                if (exePath.Text.Length > 0 && Directory.Exists(Path.GetDirectoryName(exePath.Text)))
                     exeBrowser.InitialDirectory = Path.GetDirectoryName(exePath.Text);
-                else if (m_Core.Config.LastCapturePath != "")
+                else if (m_Core.Config.LastCapturePath.Length > 0)
                     exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
             }
             catch (ArgumentException)
@@ -347,7 +347,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void exePath_DragEnter(object sender, DragEventArgs e)
         {
-            if (ValidData(e.Data) != "")
+            if (ValidData(e.Data).Length > 0)
                 e.Effect = DragDropEffects.Copy;
             else
                 e.Effect = DragDropEffects.None;
@@ -356,7 +356,7 @@ namespace renderdocui.Windows.Dialogs
         private void exePath_DragDrop(object sender, DragEventArgs e)
         {
             string fn = ValidData(e.Data);
-            if (fn != "")
+            if (fn.Length > 0)
             {
                 exePath.Text = fn;
 
@@ -374,7 +374,7 @@ namespace renderdocui.Windows.Dialogs
                     workDirBrowser.SelectedPath = workDirPath.Text;
                 else if (Directory.Exists(Path.GetDirectoryName(exePath.Text)))
                     workDirBrowser.SelectedPath = Path.GetDirectoryName(exePath.Text);
-                else if (m_Core.Config.LastCapturePath != "")
+                else if (m_Core.Config.LastCapturePath.Length > 0)
                     exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
             }
             catch (ArgumentException)
@@ -478,7 +478,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void workDirPath_Leave(object sender, EventArgs e)
         {
-            if (workDirPath.Text == "")
+            if (workDirPath.Text.Length == 0)
             {
                 workDirHint = true;
                 workDirPath.ForeColor = SystemColors.GrayText;
@@ -497,7 +497,7 @@ namespace renderdocui.Windows.Dialogs
         {
             if (workDirHint == false) return;
 
-            if (exePath.Text == "")
+            if (exePath.Text.Length == 0)
             {
                 workDirPath.Text = "";
                 return;

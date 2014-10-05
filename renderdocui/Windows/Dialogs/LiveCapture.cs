@@ -108,7 +108,7 @@ namespace renderdocui.Windows
 
             m_ConnectThread = null;
 
-            Text = (m_Host != "" ? m_Host + " - " : "") + "Connecting...";
+            Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connecting...";
             connectionStatus.Text = "Connecting...";
             connectionIcon.Image = global::renderdocui.Properties.Resources.hourglass;
 
@@ -145,7 +145,7 @@ namespace renderdocui.Windows
                 if (m_Connection.Connected)
                 {
                     string api = "...";
-                    if (m_Connection.API != "") api = m_Connection.API;
+                    if (m_Connection.API.Length > 0) api = m_Connection.API;
                     this.BeginInvoke((MethodInvoker)delegate
                     {
                         if (m_Connection.PID == 0)
@@ -211,17 +211,17 @@ namespace renderdocui.Windows
                         byte[] thumb = m_Connection.CaptureFile.thumbnail;
                         string path = m_Connection.CaptureFile.localpath;
 
-                        if (path == "" || File.Exists(path))
+                        if (path.Length == 0 || File.Exists(path))
                         {
                             this.BeginInvoke((MethodInvoker)delegate
                             {
                                 CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, timestamp);
-                                if (path != "")
+                                if (path.Length > 0)
                                     CaptureRetrieved(capID, path);
                             });
                             m_Connection.CaptureExists = false;
 
-                            if (path == "")
+                            if (path.Length == 0)
                                 m_Connection.CopyCapture(capID, m_Core.TempLogFilename("remotecopy_" + m_Connection.Target));
                         }
                     }
@@ -278,7 +278,7 @@ namespace renderdocui.Windows
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    Text = (m_Host != "" ? m_Host + " - " : "") + "Connection failed";
+                    Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connection failed";
                     connectionStatus.Text = "Connection failed";
                     connectionIcon.Image = global::renderdocui.Properties.Resources.delete;
 
@@ -388,7 +388,7 @@ namespace renderdocui.Windows
 
             string path = m_Main.GetSavePath();
 
-            if (path != "")
+            if (path.Length > 0)
             {
                 File.Copy(log.localpath, path, true);
                 File.Delete(log.localpath);

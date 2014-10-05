@@ -346,7 +346,7 @@ namespace renderdocui.Windows
 
         private void TextureViewer_Load(object sender, EventArgs e)
         {
-            if (onloadLayout != "")
+            if (onloadLayout.Length > 0)
             {
                 Control[] persistors = {
                                        renderToolstripContainer,
@@ -494,7 +494,7 @@ namespace renderdocui.Windows
         {
             if (!m_Core.LogLoaded) return;
 
-            if (filter == "")
+            if (filter.Length > 0)
             {
                 var shaders = m_CustomShaders.Values.ToArray();
 
@@ -510,7 +510,7 @@ namespace renderdocui.Windows
             else
             {
                 var fn = Path.GetFileNameWithoutExtension(filter);
-                var key = fn.ToLowerInvariant();
+                var key = fn.ToUpperInvariant();
 
                 if (m_CustomShaders.ContainsKey(key))
                 {
@@ -543,7 +543,7 @@ namespace renderdocui.Windows
             foreach (var f in Directory.EnumerateFiles(Core.ConfigDirectory, "*.hlsl"))
             {
                 var fn = Path.GetFileNameWithoutExtension(f);
-                var key = fn.ToLowerInvariant();
+                var key = fn.ToUpperInvariant();
 
                 if (!m_CustomShaders.ContainsKey(key))
                 {
@@ -583,13 +583,13 @@ namespace renderdocui.Windows
 
         private void customCreate_Click(object sender, EventArgs e)
         {
-            if (customShader.Text == null || customShader.Text == "")
+            if (customShader.Text == null || customShader.Text.Length == 0)
             {
                 MessageBox.Show("No name entered.\nEnter a name in the textbox.", "Error Creating Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+            if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
             {
                 MessageBox.Show("Selected shader already exists.\nEnter a new name in the textbox.", "Error Creating Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -633,13 +633,13 @@ namespace renderdocui.Windows
 
         private void customDelete_Click(object sender, EventArgs e)
         {
-            if (customShader.Text == null || customShader.Text == "")
+            if (customShader.Text == null || customShader.Text.Length == 0)
             {
                 MessageBox.Show("No shader selected.\nSelect a custom shader from the drop-down", "Error Deleting Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+            if (!m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
             {
                 MessageBox.Show("Selected shader doesn't exist.\nSelect a custom shader from the drop-down", "Error Deleting Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -877,7 +877,7 @@ namespace renderdocui.Windows
 
                     if (tex != null)
                     {
-                        prev.Init(!tex.customName && bindName != "" ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
+                        prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
                         IntPtr handle = prev.ThumbnailHandle;
                         ResourceId id = RTs[i];
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
@@ -887,7 +887,7 @@ namespace renderdocui.Windows
                     }
                     else if (buf != null)
                     {
-                        prev.Init(!buf.customName && bindName != "" ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
+                        prev.Init(!buf.customName && bindName.Length > 0 ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
                         IntPtr handle = prev.ThumbnailHandle;
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                         {
@@ -963,7 +963,7 @@ namespace renderdocui.Windows
 
                     if (tex != null)
                     {
-                        prev.Init(!tex.customName && bindName != "" ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
+                        prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
                         IntPtr handle = prev.ThumbnailHandle;
                         ResourceId id = Texs[i];
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
@@ -1609,10 +1609,10 @@ namespace renderdocui.Windows
                 m_TexDisplay.HDRMul = -1.0f;
 
                 m_TexDisplay.CustomShader = ResourceId.Null;
-                if (m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+                if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
                 {
                     if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue = null; UI_UpdateStatusText(); }
-                    m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToLowerInvariant()];
+                    m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToUpperInvariant()];
                     customDelete.Enabled = customEdit.Enabled = true;
                     customCreate.Enabled = false;
                 }

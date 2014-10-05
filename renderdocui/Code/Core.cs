@@ -573,7 +573,7 @@ namespace renderdocui.Code
             string folder = Config.CaptureSavePath;
             try
             {
-                if (folder == "" || !Directory.Exists(folder))
+                if (folder.Length == 0 || !Directory.Exists(folder))
                     folder = Path.GetTempPath();
             }
             catch (ArgumentException)
