@@ -244,8 +244,6 @@ namespace renderdocui.Windows
                         {
                             try
                             {
-                                var p = Process.GetProcessById((int)m_Connection.NewChild.PID);
-
                                 ChildProcess c = new ChildProcess();
                                 c.PID = (int)m_Connection.NewChild.PID;
                                 c.ident = m_Connection.NewChild.ident;
@@ -713,7 +711,7 @@ namespace renderdocui.Windows
                 try
                 {
                     // if this throws an exception the process no longer exists so we'll remove it
-                    var p = Process.GetProcessById(m_Children[i].PID);
+                    Process.GetProcessById(m_Children[i].PID);
                 }
                 catch (Exception)
                 {

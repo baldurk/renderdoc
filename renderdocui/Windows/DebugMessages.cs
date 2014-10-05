@@ -99,11 +99,7 @@ namespace renderdocui.Windows
             messages.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
 
             for (UInt32 f = 0; f < m_Core.FrameInfo.Length; f++)
-            {
-                FetchDrawcall[] drawcalls = m_Core.GetDrawcalls(f);
-
                 AddDebugMessages(m_Core.GetDrawcalls(f));
-            }
 
             messages.RowCount = m_Messages.Count;
         }

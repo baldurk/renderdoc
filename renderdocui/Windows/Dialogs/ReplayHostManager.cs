@@ -45,7 +45,6 @@ namespace renderdocui.Windows.Dialogs
     // GPU in it to check for bugs or access different hardware profiling counters
     public partial class ReplayHostManager : Form
     {
-        MainWindow m_Main;
         Core m_Core;
         List<ComboBox> m_Hosts = new List<ComboBox>();
 
@@ -56,7 +55,6 @@ namespace renderdocui.Windows.Dialogs
             Icon = global::renderdocui.Properties.Resources.icon;
 
             m_Core = core;
-            m_Main = main;
 
             string[] proxies = new string[0];
             try

@@ -2353,8 +2353,6 @@ namespace renderdocui.Windows
         {
             if (e.Button == MouseButtons.Right && sender is ToolStripButton)
             {
-                ToolStripButton me = (sender as ToolStripButton);
-
                 bool checkd = false;
 
                 var butts = new ToolStripButton[] { customRed, customGreen, customBlue, customAlpha };
@@ -2592,8 +2590,6 @@ namespace renderdocui.Windows
         {
             if (tabContextMenu.SourceControl == m_PreviewPanel.Pane.TabStripControl)
             {
-                int idx = m_PreviewPanel.Pane.TabStripControl.Tabs.IndexOf(m_PreviewPanel.Pane.ActiveContent);
-
                 if (m_PreviewPanel.Pane.ActiveContent != m_PreviewPanel)
                 {
                     (m_PreviewPanel.Pane.ActiveContent as DockContent).Close();
@@ -2887,10 +2883,6 @@ namespace renderdocui.Windows
         {
             if (e.Button == MouseButtons.Left && sender is ResourcePreview)
             {
-                var prev = (ResourcePreview)sender;
-
-                var follow = (Following)prev.Tag;
-
                 var id = m_Following.GetResourceId(m_Core);
 
                 if (id != ResourceId.Null)

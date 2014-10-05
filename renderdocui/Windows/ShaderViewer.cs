@@ -462,7 +462,7 @@ namespace renderdocui.Windows
                     string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
                     if (s.semanticName.Length == 0) name = s.varName;
 
-                    var node = inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                    inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                 }
 
@@ -484,7 +484,7 @@ namespace renderdocui.Windows
                     if(multipleStreams)
                         name = String.Format("Stream {0} : {1}", s.stream, name);
 
-                    var node = outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                    outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                 }
             }
@@ -521,8 +521,6 @@ namespace renderdocui.Windows
         {
             ScintillaNET.Scintilla scintilla1 = new ScintillaNET.Scintilla();
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).BeginInit();
-
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ShaderViewer));
 
             // 
             // scintilla1

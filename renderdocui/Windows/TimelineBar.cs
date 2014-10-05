@@ -133,8 +133,6 @@ namespace renderdocui.Windows
         private float DrawPip(Graphics g, Color col, RectangleF rect, int type,
                                 int idx, int numChildren, float startSeg, float segWidth, string text)
         {
-            int pipPaddingX = (int)Math.Max(0, rect.Width * segWidth * 0.02f);
-
             var subRect = GetSubrect(rect, startSeg, segWidth);
             subRect.X += pipRadius;
             subRect.Y += pipPaddingY;

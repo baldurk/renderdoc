@@ -136,8 +136,6 @@ namespace renderdocui.Windows
                 return;
             }
 
-            String[] filteredCalls = new String[calls.Length];
-
             /*
             String commonRoot = calls[0];
 

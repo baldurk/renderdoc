@@ -1131,7 +1131,6 @@ namespace renderdocui.Windows
             var state = GetUIState(type);
 
             Input input = state.m_Input;
-            uint instance = m_CurInst;
 
             if(data.Buffers == null)
                 return;
@@ -2220,8 +2219,6 @@ namespace renderdocui.Windows
 
         private void ShowFormatSpecifier()
         {
-            UIState ui = GetUIState(MeshDataStage.VSIn);
-
 			if (m_FormatSpecifier == null)
 			{
 				m_FormatSpecifier = new BufferFormatSpecifier(this, m_FormatText);

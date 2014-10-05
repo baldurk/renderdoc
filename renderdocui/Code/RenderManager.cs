@@ -187,16 +187,11 @@ namespace renderdocui.Code
                 if(renderer != null)
                 {
                     System.Diagnostics.Debug.WriteLine("Renderer created");
-
-                    DateTime prevTime = DateTime.Now;
-
+                    
                     Running = true;
 
                     while (Running)
                     {
-                        DateTime curTime = DateTime.Now;
-                        long msPassed = (curTime.Ticks - prevTime.Ticks) / TimeSpan.TicksPerMillisecond;
-
                         List<InvokeHandle> queue = new List<InvokeHandle>();
                         lock (m_renderQueue)
                         {
