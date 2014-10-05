@@ -64,6 +64,8 @@ struct MapIntercept
 	D3D11_MAP MapType;
 	UINT MapFlags;
 
+	bool verifyWrite;
+
 	void CopyFromD3D();
 	void CopyToD3D(size_t RangeStart = 0, size_t RangeEnd = 0);
 };

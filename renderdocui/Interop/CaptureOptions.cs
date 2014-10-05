@@ -73,7 +73,7 @@ namespace renderdoc
         public bool CaptureCallstacks;
         public bool CaptureCallstacksOnlyDraws;
         public UInt32 DelayForDebugger;
-        public bool CacheStateObjects;
+        public bool VerifyMapWrites;
         public bool HookIntoChildren;
         public bool RefAllResources;
         public bool SaveAllInitials;
@@ -90,7 +90,7 @@ namespace renderdoc
                 defs.CaptureCallstacks = false;
                 defs.CaptureCallstacksOnlyDraws = false;
                 defs.DelayForDebugger = 0;
-                defs.CacheStateObjects = false;
+                defs.VerifyMapWrites = true;
                 defs.HookIntoChildren = false;
                 defs.RefAllResources = false;
                 defs.SaveAllInitials = false;

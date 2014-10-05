@@ -2379,6 +2379,8 @@ void WrappedID3D11Device::StartFrameCapture(void *wnd)
 
 	GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
 
+	m_pImmediateContext->FreeCaptureData();
+
 	m_pImmediateContext->AttemptCapture();
 	m_pImmediateContext->BeginCaptureFrame();
 

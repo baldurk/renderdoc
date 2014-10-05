@@ -79,6 +79,7 @@ namespace renderdocui.Windows.Dialogs
             RefAllResources.Checked = settings.Options.RefAllResources;
             SaveAllInitials.Checked = settings.Options.SaveAllInitials;
             DelayForDebugger.Value = settings.Options.DelayForDebugger;
+            VerifyMapWrites.Checked = settings.Options.VerifyMapWrites;
             AutoStart.Checked = settings.AutoStart;
 
             if (settings.AutoStart)
@@ -117,6 +118,7 @@ namespace renderdocui.Windows.Dialogs
             ret.Options.SaveAllInitials = SaveAllInitials.Checked;
             ret.Options.CaptureAllCmdLists = CaptureAllCmdLists.Checked;
             ret.Options.DelayForDebugger = (uint)DelayForDebugger.Value;
+            ret.Options.VerifyMapWrites = VerifyMapWrites.Checked;
 
             return ret;
         }

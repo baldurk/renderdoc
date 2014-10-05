@@ -56,6 +56,7 @@
             this.SaveAllInitials = new System.Windows.Forms.CheckBox();
             this.RefAllResources = new System.Windows.Forms.CheckBox();
             this.CaptureAllCmdLists = new System.Windows.Forms.CheckBox();
+            this.VerifyMapWrites = new System.Windows.Forms.CheckBox();
             this.AutoStart = new System.Windows.Forms.CheckBox();
             this.panel2 = new System.Windows.Forms.Panel();
             this.load = new System.Windows.Forms.Button();
@@ -181,7 +182,7 @@
             this.queueFrameCap.Location = new System.Drawing.Point(3, 3);
             this.queueFrameCap.Name = "queueFrameCap";
             this.queueFrameCap.Size = new System.Drawing.Size(151, 24);
-            this.queueFrameCap.TabIndex = 19;
+            this.queueFrameCap.TabIndex = 20;
             this.queueFrameCap.Text = "Queue Capture of Frame";
             this.queueFrameCap.UseVisualStyleBackColor = true;
             // 
@@ -201,7 +202,7 @@
             0});
             this.queuedCapFrame.Name = "queuedCapFrame";
             this.queuedCapFrame.Size = new System.Drawing.Size(120, 20);
-            this.queuedCapFrame.TabIndex = 20;
+            this.queuedCapFrame.TabIndex = 21;
             this.queuedCapFrame.ThousandsSeparator = true;
             this.queuedCapFrame.Value = new decimal(new int[] {
             2,
@@ -278,6 +279,7 @@
             this.capOptsFlow.Controls.Add(this.SaveAllInitials);
             this.capOptsFlow.Controls.Add(this.RefAllResources);
             this.capOptsFlow.Controls.Add(this.CaptureAllCmdLists);
+            this.capOptsFlow.Controls.Add(this.VerifyMapWrites);
             this.capOptsFlow.Controls.Add(this.AutoStart);
             this.capOptsFlow.Location = new System.Drawing.Point(3, 16);
             this.capOptsFlow.MaximumSize = new System.Drawing.Size(640, 0);
@@ -412,12 +414,22 @@
         "as an overhead but ensures if you hold onto a list it will be captured.");
             this.CaptureAllCmdLists.UseVisualStyleBackColor = true;
             // 
+            // VerifyMapWrites
+            // 
+            this.VerifyMapWrites.Location = new System.Drawing.Point(275, 55);
+            this.VerifyMapWrites.Name = "VerifyMapWrites";
+            this.VerifyMapWrites.Size = new System.Drawing.Size(130, 20);
+            this.VerifyMapWrites.TabIndex = 18;
+            this.VerifyMapWrites.Text = "Verify Map() Writes";
+            this.toolTip.SetToolTip(this.AutoStart, "When enabled, causes Map() pointers to be validated to check for buffer overruns.");
+            this.VerifyMapWrites.UseVisualStyleBackColor = true;
+            // 
             // AutoStart
             // 
-            this.AutoStart.Location = new System.Drawing.Point(275, 55);
+            this.AutoStart.Location = new System.Drawing.Point(411, 55);
             this.AutoStart.Name = "AutoStart";
             this.AutoStart.Size = new System.Drawing.Size(130, 20);
-            this.AutoStart.TabIndex = 18;
+            this.AutoStart.TabIndex = 19;
             this.AutoStart.Text = "Auto start";
             this.toolTip.SetToolTip(this.AutoStart, "If these capture settings are saved & run, auto start the capture instantly on lo" +
         "ad");
@@ -733,6 +745,7 @@
         private System.Windows.Forms.CheckBox SaveAllInitials;
         private System.Windows.Forms.CheckBox RefAllResources;
         private System.Windows.Forms.CheckBox CaptureCallstacksOnlyDraws;
+        private System.Windows.Forms.CheckBox VerifyMapWrites;
         private System.Windows.Forms.CheckBox AutoStart;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.FlowLayoutPanel capOptsFlow;

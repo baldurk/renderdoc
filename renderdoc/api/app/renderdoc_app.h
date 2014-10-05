@@ -67,7 +67,7 @@ struct CaptureOptions
 		  CaptureCallstacks(false),
 		  CaptureCallstacksOnlyDraws(false),
 		  DelayForDebugger(0),
-		  CacheStateObjects(false),
+		  VerifyMapWrites(true),
 		  HookIntoChildren(false),
 		  RefAllResources(false),
 		  SaveAllInitials(false),
@@ -101,8 +101,9 @@ struct CaptureOptions
 	// creating or injecting into a process, before continuing to allow it to run.
 	uint32_t DelayForDebugger;
 
-	// Deprecated, ignored.
-	bool32 CacheStateObjects;
+	// Verify any writes to mapped buffers, to check that they don't overwrite the
+	// bounds of the pointer returned.
+	bool32 VerifyMapWrites;
 
 	// Hooks any system API events that create child processes, and injects
 	// renderdoc into them recursively with the same options.
@@ -141,6 +142,7 @@ struct CaptureOptions
 				>> CaptureCallstacks
 				>> CaptureCallstacksOnlyDraws
 				>> DelayForDebugger
+				>> VerifyMapWrites
 				>> HookIntoChildren
 				>> RefAllResources
 				>> SaveAllInitials
@@ -157,6 +159,7 @@ struct CaptureOptions
 				<< CaptureCallstacks << " "
 				<< CaptureCallstacksOnlyDraws << " "
 				<< DelayForDebugger << " "
+				<< VerifyMapWrites << " "
 				<< HookIntoChildren << " "
 				<< RefAllResources << " "
 				<< SaveAllInitials << " "
