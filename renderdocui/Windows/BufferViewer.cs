@@ -1397,9 +1397,9 @@ namespace renderdocui.Windows
             {
                 uint u = (uint)o;
 
-                if (el.format.compByteWidth == 4) String.Format(el.hex ? "{0:X8}" : "{0}", u);
-                if (el.format.compByteWidth == 2) String.Format(el.hex ? "{0:X4}" : "{0}", u);
-                if (el.format.compByteWidth == 1) String.Format(el.hex ? "{0:X2}" : "{0}", u);
+                if (el.format.compByteWidth == 4) return String.Format(el.hex ? "{0:X8}" : "{0}", u);
+                if (el.format.compByteWidth == 2) return String.Format(el.hex ? "{0:X4}" : "{0}", u);
+                if (el.format.compByteWidth == 1) return String.Format(el.hex ? "{0:X2}" : "{0}", u);
 
                 return String.Format("{0}", (uint)o);
             }

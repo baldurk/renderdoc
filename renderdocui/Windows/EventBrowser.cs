@@ -382,7 +382,7 @@ namespace renderdocui.Windows
 
                 DeferredEvent evt = eventView.Nodes[0].Nodes.LastNode.Tag as DeferredEvent;
 
-                m_Core.SetEventID(null, 0, evt.eventID + 1);
+                m_Core.SetEventID(null, evt.frameID, evt.eventID + 1);
 
                 eventView.NodesSelection.Clear();
                 eventView.NodesSelection.Add(eventView.Nodes[0]);
