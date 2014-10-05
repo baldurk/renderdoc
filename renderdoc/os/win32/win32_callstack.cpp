@@ -158,7 +158,7 @@ static bool InitDbgHelp()
 		}
 		else
 		{
-			slash = wcsrchr(slash, '/');
+			slash = wcsrchr(path, '/');
 
 			if(slash == 0)
 			{
