@@ -265,11 +265,12 @@ void WrappedID3D11DeviceContext::IAGetIndexBuffer(ID3D11Buffer **pIndexBuffer, D
 		SAFE_ADDREF(*pIndexBuffer);
 
 		RDCASSERT(*pIndexBuffer == m_CurrentPipelineState->IA.IndexBuffer);
+
+		if (Format)
+			RDCASSERT(*Format == m_CurrentPipelineState->IA.IndexFormat);
+		if (Offset)
+			RDCASSERT(*Offset == m_CurrentPipelineState->IA.IndexOffset);
 	}
-	if(Format)
-		RDCASSERT(*Format == m_CurrentPipelineState->IA.IndexFormat);
-	if(Offset)
-		RDCASSERT(*Offset == m_CurrentPipelineState->IA.IndexOffset);
 }
 
 void WrappedID3D11DeviceContext::IAGetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY *pTopology)
