@@ -316,20 +316,20 @@ struct Module
 vector<Module> modules;
 
 typedef BOOL(WINAPI *PSYMINITIALIZEW)(
-	_In_ HANDLE hProcess,
-	_In_opt_ PCWSTR UserSearchPath,
-	_In_ BOOL fInvadeProcess);
+	__in HANDLE hProcess,
+	__in_opt PCWSTR UserSearchPath,
+	__in BOOL fInvadeProcess);
 typedef BOOL(WINAPI *PSYMFINDFILEINPATHW)(
-	_In_ HANDLE hprocess,
-	_In_opt_ PCWSTR SearchPath,
-	_In_ PCWSTR FileName,
-	_In_opt_ PVOID id,
-	_In_ DWORD two,
-	_In_ DWORD three,
-	_In_ DWORD flags,
-	_Out_writes_(MAX_PATH + 1) PWSTR FoundFile,
-	_In_opt_ PFINDFILEINPATHCALLBACKW callback,
-	_In_opt_ PVOID context);
+	__in HANDLE hprocess,
+	__in_opt PCWSTR SearchPath,
+	__in PCWSTR FileName,
+	__in_opt PVOID id,
+	__in DWORD two,
+	__in DWORD three,
+	__in DWORD flags,
+	__out_ecount(MAX_PATH + 1) PWSTR FoundFile,
+	__in_opt PFINDFILEINPATHCALLBACKW callback,
+	__in_opt PVOID context);
 
 PSYMINITIALIZEW dynSymInitializeW = NULL;
 PSYMFINDFILEINPATHW dynSymFindFileInPathW = NULL;
