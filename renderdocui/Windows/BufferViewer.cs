@@ -1859,6 +1859,9 @@ namespace renderdocui.Windows
         {
             m_Core.RemoveLogViewer(this);
 
+            m_Updater.Stop();
+            m_Updater = null;
+
             m_ReqID++;
         }
 
