@@ -112,6 +112,10 @@ class SysHook : LibraryHook
 			{
 				lpProcessInformation = &dummy;
 			}
+			else
+			{
+				*lpProcessInformation = dummy;
+			}
 
 			dwCreationFlags |= CREATE_SUSPENDED;
 
@@ -163,6 +167,10 @@ class SysHook : LibraryHook
 			if(lpProcessInformation == NULL)
 			{
 				lpProcessInformation = &dummy;
+			}
+			else
+			{
+				*lpProcessInformation = dummy;
 			}
 
 			dwCreationFlags |= CREATE_SUSPENDED;

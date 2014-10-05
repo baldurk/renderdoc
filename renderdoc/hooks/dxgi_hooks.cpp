@@ -93,6 +93,7 @@ private:
 	
 	static HRESULT WINAPI CreateDXGIFactory_hook(__in REFIID riid, __out  void **ppFactory)
 	{
+		if(ppFactory) *ppFactory = NULL;
 		HRESULT ret = dxgihooks.CreateDXGIFactory()(riid, ppFactory);
 		
 		if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
@@ -103,6 +104,7 @@ private:
 
 	static HRESULT WINAPI CreateDXGIFactory1_hook(__in REFIID riid, __out  void **ppFactory)
 	{
+		if(ppFactory) *ppFactory = NULL;
 		HRESULT ret = dxgihooks.CreateDXGIFactory1()(riid, ppFactory);
 		
 		if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
