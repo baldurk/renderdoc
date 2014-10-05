@@ -29,6 +29,8 @@
 #include <replay/renderdoc_replay.h>
 #include <app/renderdoc_app.h>
 
+#include <renderdocshim.h>
+
 #include "resource.h"
 
 #include "miniz/miniz.h"
@@ -293,6 +295,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 }
 
 int renderdoccmd(int argc, wchar_t **argv);
+bool argequal(const wchar_t *a, const wchar_t *b);
 
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd )
 {
@@ -498,6 +501,106 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, 
 		return 0;
 	}
 #endif
+
+	// this installs a global windows hook pointing at renderdocshim*.dll that filters all running processes and
+	// loads renderdoc.dll in the target one. In any other process it unloads as soon as possible
+	if(argc == 5 && argequal(argv[1], L"--globalhook"))
+	{
+		wchar_t *pathmatch = argv[2];
+
+		wchar_t *log = argv[3];
+		
+		CaptureOptions cmdopts;
+		string optstring(&argv[4][0], &argv[4][0] + wcslen(argv[4]));
+		cmdopts.FromString(optstring);
+
+		// make sure the user doesn't accidentally run this with 'a' as a parameter or something.
+		// "a.exe" is over 4 characters so this limit should not be a problem.
+		if(wcslen(pathmatch) < 4)
+		{
+			fprintf(stderr, "--globalhook path match is too short/general. Danger of matching too many processes!\n");
+			return 1;
+		}
+
+		wchar_t rdocpath[1024];
+
+		// fetch path to our matching renderdoc.dll
+		HMODULE rdoc = GetModuleHandleA("renderdoc.dll");
+
+		if(rdoc == NULL)
+		{
+			fprintf(stderr, "--globalhook couldn't find renderdoc.dll!\n");
+			return 1;
+		}
+
+		GetModuleFileNameW(rdoc, rdocpath, _countof(rdocpath)-1);
+		FreeLibrary(rdoc);
+
+		// Create pipe from control program, to stay open until requested to close
+		HANDLE pipe = CreateFileW(L"\\\\.\\pipe\\"
+#ifdef WIN64
+			L"RenderDoc.GlobalHookControl64"
+#else
+			L"RenderDoc.GlobalHookControl32"
+#endif
+		                          , GENERIC_READ|GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+
+		if(pipe == INVALID_HANDLE_VALUE)
+		{
+			fprintf(stderr, "--globalhook couldn't open control pipe.\n");
+			return 1;
+		}
+		
+		HANDLE datahandle = OpenFileMappingA(FILE_MAP_READ, FALSE, GLOBAL_HOOK_DATA_NAME);
+
+		if(datahandle != NULL)
+		{
+			CloseHandle(pipe);
+			CloseHandle(datahandle);
+			fprintf(stderr, "--globalhook found pre-existing global data, not creating second global hook.\n");
+			return 1;
+		}
+			
+		datahandle = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, sizeof(ShimData), GLOBAL_HOOK_DATA_NAME);
+
+		if(datahandle)
+		{
+			ShimData *shimdata = (ShimData *)MapViewOfFile(datahandle, FILE_MAP_WRITE|FILE_MAP_READ, 0, 0, sizeof(ShimData));
+
+			if(shimdata)
+			{
+				memset(shimdata, 0, sizeof(ShimData));
+
+				wcsncpy_s(shimdata->pathmatchstring, pathmatch, _TRUNCATE);
+				wcsncpy_s(shimdata->rdocpath, rdocpath, _TRUNCATE);
+				wcsncpy_s(shimdata->log, log, _TRUNCATE);
+				memcpy   (shimdata->opts, &cmdopts, sizeof(CaptureOptions));
+
+				static_assert(sizeof(CaptureOptions) <= sizeof(shimdata->opts), "ShimData options is too small");
+
+				// wait until a write comes in over the pipe
+				char buf[16];
+				DWORD read = 0;
+				ReadFile(pipe, buf, 16, &read, NULL);
+
+				UnmapViewOfFile(shimdata);
+			}
+			else
+			{
+				fprintf(stderr, "--globalhook couldn't map global data store.\n");
+			}
+			
+			CloseHandle(datahandle);
+		}
+		else
+		{
+			fprintf(stderr, "--globalhook couldn't create global data store.\n");
+		}
+		
+		CloseHandle(pipe);
+
+		return 0;
+	}
 
 	return renderdoccmd(argc, argv);
 }

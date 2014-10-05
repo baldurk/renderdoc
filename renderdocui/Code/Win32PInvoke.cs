@@ -91,5 +91,17 @@ namespace renderdocui.Code
 
         [DllImport("shell32.dll")]
         public static extern void SHChangeNotify(HChangeNotifyEventID wEventId, HChangeNotifyFlags uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern uint GetShortPathName(string lpszLongPath, char[] lpszShortPath, int cchBuffer);
+
+        public static string ShortPath(string longpath)
+        {
+            char[] buffer = new char[256];
+
+            GetShortPathName(longpath, buffer, buffer.Length);
+
+            return new string(buffer);
+        }
     }
 }

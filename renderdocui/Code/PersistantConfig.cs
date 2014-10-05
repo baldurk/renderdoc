@@ -94,6 +94,8 @@ namespace renderdocui.Code
         public bool CheckUpdate_UpdateAvailable = false;
         public DateTime CheckUpdate_LastUpdate = new DateTime(2012, 06, 27);
 
+        public bool AllowGlobalHook = false;
+
         public void SetupFormatter()
         {
             Formatter.MinFigures = Formatter_MinFigures;
@@ -124,8 +126,12 @@ namespace renderdocui.Code
             RecentCaptureSettings.Clear();
         }
 
+        public bool ReadOnly = false;
+
         public void Serialize(string file)
         {
+            if (ReadOnly) return;
+
             try
             {
                 ReplayHostKeyValues.Clear();

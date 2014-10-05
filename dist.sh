@@ -45,9 +45,9 @@ rm -f dist/Release{32,64}/*.{exp,lib,metagen,xml} dist/Release{32,64}/*.vshost.*
 # In the 64bit release folder, make an x86 subfolder and copy in renderdoc 32bit
 mkdir -p dist/Release64/x86
 rm -rf dist/Release32/pdblocate/x64 dist/ReleasePDBs32/pdblocate/x64
-cp -R dist/Release32/{renderdoc.dll,renderdoccmd.exe,pdblocate} dist/Release64/x86/
+cp -R dist/Release32/{renderdoc.dll,renderdocshim32.dll,renderdoccmd.exe,pdblocate} dist/Release64/x86/
 mkdir -p dist/ReleasePDBs64/x86
-cp -R dist/ReleasePDBs32/{renderdoc.dll,renderdoc.pdb,renderdoccmd.exe,renderdoccmd.pdb,pdblocate} dist/ReleasePDBs64/x86/
+cp -R dist/ReleasePDBs32/{renderdoc.dll,renderdoc.pdb,renderdocshim32.dll,renderdocshim32.pdb,renderdoccmd.exe,renderdoccmd.pdb,pdblocate} dist/ReleasePDBs64/x86/
 
 if [[ $AUTOBUILD -eq 0 ]]; then
 	echo "Ready to make installer MSIs - make sure to bump version numbers on package."

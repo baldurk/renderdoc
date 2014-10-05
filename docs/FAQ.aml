@@ -289,5 +289,21 @@
 
       </content>
     </section>
+    <section address="FAQ13">
+      <title>I can't launch my program for capture directly. Can I capture it anyway?</title>
+      <content>
+        <para>
+          There is an option for capturing programs using RenderDoc where you can't easily set
+          up a direct launch of the process.
+        </para>
+        <para>
+          More details can be found in the 
+	      <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">capture options</link> page which
+	      details how to use it, however you should take care to read the warnings! This option
+	      isn't without its risks, so you need to be sure you know what you're doing before
+	      using it. It should always be used as a last resort when there is no other option.
+        </para>
+      </content>
+    </section>
   </developerConceptualDocument>
 </topic>

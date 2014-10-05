@@ -411,6 +411,62 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 	return ret;
 }
 
+void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+{
+	if(pathmatch == NULL) return;
+
+	wchar_t renderdocPath[MAX_PATH] = {0};
+	GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), &renderdocPath[0], MAX_PATH-1);
+	
+	wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+
+	if(slash) *slash = 0;
+	else      slash = renderdocPath + wcslen(renderdocPath);
+	
+	wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+	
+	PROCESS_INFORMATION pi = {0};
+	STARTUPINFO si = {0};
+	SECURITY_ATTRIBUTES pSec = {0};
+	SECURITY_ATTRIBUTES tSec = {0};
+	pSec.nLength = sizeof(pSec);
+	tSec.nLength = sizeof(tSec);
+	
+	wchar_t *paramsAlloc = new wchar_t[2048];
+
+	string optstr = opts->ToString();
+
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
+		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+	paramsAlloc[2047] = 0;
+
+	BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+
+	if(retValue == FALSE) return;
+	
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+
+#if defined(WIN64)
+	*slash = 0;
+
+	wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
+	
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
+		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+	paramsAlloc[2047] = 0;
+
+	retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+
+	if(retValue == FALSE) return;
+	
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+#endif
+}
+
 void *Process::GetFunctionAddress(const char *module, const char *function)
 {
 	HMODULE mod = GetModuleHandleA(module);

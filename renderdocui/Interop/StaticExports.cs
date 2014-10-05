@@ -37,6 +37,9 @@ namespace renderdoc
         private static extern ReplayCreateStatus RENDERDOC_CreateReplayRenderer(string logfile, ref float progress, ref IntPtr rendPtr);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_StartGlobalHook(string pathmatch, string logfile, CaptureOptions opts);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 RENDERDOC_ExecuteAndInject(string app, string workingDir, string cmdLine,
                                                                     string logfile, CaptureOptions opts, bool waitForExit);
 
@@ -92,6 +95,11 @@ namespace renderdoc
             }
 
             return new ReplayRenderer(rendPtr);
+        }
+
+        public static void StartGlobalHook(string pathmatch, string logfile, CaptureOptions opts)
+        {
+            RENDERDOC_StartGlobalHook(pathmatch, logfile, opts);
         }
 
         public static UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, string logfile, CaptureOptions opts)

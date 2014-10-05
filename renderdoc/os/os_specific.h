@@ -46,6 +46,7 @@ struct CaptureOptions;
 
 namespace Process
 {
+	void StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts);
 	uint32_t InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
 	uint32_t CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
 										const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);

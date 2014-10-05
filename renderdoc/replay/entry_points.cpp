@@ -220,6 +220,12 @@ uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const wchar_t *app, const wchar
 }
 
 extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+{
+	Process::StartGlobalHook(pathmatch, logfile, opts);
+}
+
+extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
 	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);

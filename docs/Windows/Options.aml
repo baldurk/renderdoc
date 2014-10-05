@@ -96,6 +96,15 @@
     recommended that you manually check for updates as new versions will be made available regularly with bugfixes.</para></entry>
     <entry><para>Enabled</para></entry>
   </row>
+  <row>
+    <entry><para>Allow global process hooking</para></entry>
+    <entry><para>This option enables the functionality allowing capturing of programs that aren't
+    launched directly from RenderDoc, but are launched from somewhere else.</para>
+    <para>This option <legacyBold>can be dangerous</legacyBold> which is why you have to deliberately enable it
+    here. Be careful when using this and only do so when necessary - more details can be found in the 
+	<link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">capture options</link> page.</para></entry>
+    <entry><para>Disabled</para></entry>
+  </row>
 </table>
 
       </content>

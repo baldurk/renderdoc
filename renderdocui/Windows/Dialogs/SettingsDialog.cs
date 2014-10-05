@@ -60,6 +60,8 @@ namespace renderdocui.Windows.Dialogs
             TextureViewer_ResetRange.Checked = m_Core.Config.TextureViewer_ResetRange;
             ShaderViewer_FriendlyNaming.Checked = m_Core.Config.ShaderViewer_FriendlyNaming;
             CheckUpdate_AllowChecks.Checked = m_Core.Config.CheckUpdate_AllowChecks;
+
+            AllowGlobalHook.Checked = m_Core.Config.AllowGlobalHook;
             
             {
                 Type type = m_Core.Config.EventBrowser_TimeUnit.GetType();
@@ -140,6 +142,16 @@ namespace renderdocui.Windows.Dialogs
             m_Core.Config.CheckUpdate_AllowChecks = CheckUpdate_AllowChecks.Checked;
 
             m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void AllowGlobalHook_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.AllowGlobalHook = AllowGlobalHook.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+
+            if (m_Core.CaptureDialog != null)
+                m_Core.CaptureDialog.UpdateGlobalHook();
         }
 
         private void EventBrowser_TimeUnit_SelectionChangeCommitted(object sender, EventArgs e)

@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2014 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,37 +22,19 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "os/os_specific.h"
-#include <sys/types.h>
-#include <unistd.h>
-
-uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+struct ShimData
 {
-	RDCUNIMPLEMENTED();
-	return 0;
-}
+	wchar_t pathmatchstring[2048];
+	wchar_t rdocpath[2048];
+	wchar_t log[2048];
 
-uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-                                             const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
-{
-	RDCUNIMPLEMENTED();
-	return 0;
-}
+	unsigned char opts[512];
+};
 
-void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
-{
-	RDCUNIMPLEMENTED();
-	return 0;
-}
-
-void *Process::GetFunctionAddress(const char *module, const char *function)
-{
-	RDCUNIMPLEMENTED();
-	return NULL;
-}
-
-uint32_t Process::GetCurrentPID()
-{
-	return (uint32_t)getpid();
-}
+#ifdef WIN64
+#define GLOBAL_HOOK_DATA_NAME "RenderDocGlobalHookData64"
+#define SHIM_DLL_NAME "renderdocshim64.dll"
+#else
+#define GLOBAL_HOOK_DATA_NAME "RenderDocGlobalHookData32"
+#define SHIM_DLL_NAME "renderdocshim32.dll"
+#endif

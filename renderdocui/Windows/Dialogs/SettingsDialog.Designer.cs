@@ -32,6 +32,7 @@
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
             System.Windows.Forms.GroupBox groupBox1;
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
+            System.Windows.Forms.Label label13;
             System.Windows.Forms.Label label6;
             System.Windows.Forms.Label label4;
             System.Windows.Forms.Label label1;
@@ -47,9 +48,13 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
+            this.ok = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
+            this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
             this.Formatter_PosExp = new System.Windows.Forms.NumericUpDown();
             this.Formatter_NegExp = new System.Windows.Forms.NumericUpDown();
             this.rdcAssoc = new System.Windows.Forms.Button();
@@ -69,12 +74,10 @@
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
             this.pagesTree = new TreelistView.TreeListView();
-            this.ok = new System.Windows.Forms.Button();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
+            label13 = new System.Windows.Forms.Label();
             label6 = new System.Windows.Forms.Label();
             label4 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
@@ -128,6 +131,21 @@
             tableLayoutPanel1.Size = new System.Drawing.Size(580, 353);
             tableLayoutPanel1.TabIndex = 1;
             // 
+            // ok
+            // 
+            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ok.Location = new System.Drawing.Point(502, 327);
+            this.ok.Name = "ok";
+            this.ok.Size = new System.Drawing.Size(75, 23);
+            this.ok.TabIndex = 100;
+            this.ok.Text = "OK";
+            this.ok.UseVisualStyleBackColor = true;
+            this.ok.Click += new System.EventHandler(this.ok_Click);
+            // 
+            // browserCaptureDialog
+            // 
+            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
+            // 
             // settingsTabs
             // 
             this.settingsTabs.Alignment = System.Windows.Forms.TabAlignment.Left;
@@ -170,6 +188,8 @@
             tableLayoutPanel2.ColumnCount = 2;
             tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            tableLayoutPanel2.Controls.Add(this.AllowGlobalHook, 1, 7);
+            tableLayoutPanel2.Controls.Add(label13, 0, 7);
             tableLayoutPanel2.Controls.Add(this.Formatter_PosExp, 1, 5);
             tableLayoutPanel2.Controls.Add(this.Formatter_NegExp, 1, 4);
             tableLayoutPanel2.Controls.Add(label6, 0, 3);
@@ -182,14 +202,15 @@
             tableLayoutPanel2.Controls.Add(label7, 0, 5);
             tableLayoutPanel2.Controls.Add(this.Formatter_MaxFigures, 1, 3);
             tableLayoutPanel2.Controls.Add(this.Formatter_MinFigures, 1, 2);
-            tableLayoutPanel2.Controls.Add(label3, 0, 7);
-            tableLayoutPanel2.Controls.Add(this.CheckUpdate_AllowChecks, 1, 7);
+            tableLayoutPanel2.Controls.Add(label3, 0, 8);
+            tableLayoutPanel2.Controls.Add(this.CheckUpdate_AllowChecks, 1, 8);
             tableLayoutPanel2.Controls.Add(label11, 0, 6);
             tableLayoutPanel2.Controls.Add(this.browseCaptureDirectory, 1, 6);
             tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             tableLayoutPanel2.Location = new System.Drawing.Point(3, 16);
             tableLayoutPanel2.Name = "tableLayoutPanel2";
-            tableLayoutPanel2.RowCount = 9;
+            tableLayoutPanel2.RowCount = 10;
+            tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
@@ -201,6 +222,35 @@
             tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             tableLayoutPanel2.Size = new System.Drawing.Size(361, 285);
             tableLayoutPanel2.TabIndex = 0;
+            // 
+            // AllowGlobalHook
+            // 
+            this.AllowGlobalHook.AutoSize = true;
+            this.AllowGlobalHook.Checked = true;
+            this.AllowGlobalHook.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.AllowGlobalHook.Location = new System.Drawing.Point(268, 194);
+            this.AllowGlobalHook.Name = "AllowGlobalHook";
+            this.AllowGlobalHook.Size = new System.Drawing.Size(15, 14);
+            this.AllowGlobalHook.TabIndex = 16;
+            this.toolTip.SetToolTip(this.AllowGlobalHook, "Allow RenderDoc to insert a global hook into all processes to catch the execution" +
+        " of the desired process, without directly launching it.");
+            this.AllowGlobalHook.UseVisualStyleBackColor = true;
+            this.AllowGlobalHook.CheckedChanged += new System.EventHandler(this.AllowGlobalHook_CheckedChanged);
+            // 
+            // label13
+            // 
+            label13.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label13.AutoSize = true;
+            label13.Location = new System.Drawing.Point(3, 191);
+            label13.Name = "label13";
+            label13.Size = new System.Drawing.Size(259, 20);
+            label13.TabIndex = 15;
+            label13.Text = "Allow global process hooking - be careful!";
+            label13.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label13, "Allows RenderDoc to phone home to http://renderdoc.org to anonymously check for n" +
+        "ew versions.");
             // 
             // Formatter_PosExp
             // 
@@ -408,7 +458,7 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             label3.AutoSize = true;
-            label3.Location = new System.Drawing.Point(3, 191);
+            label3.Location = new System.Drawing.Point(3, 211);
             label3.Name = "label3";
             label3.Size = new System.Drawing.Size(259, 20);
             label3.TabIndex = 12;
@@ -422,7 +472,7 @@
             this.CheckUpdate_AllowChecks.AutoSize = true;
             this.CheckUpdate_AllowChecks.Checked = true;
             this.CheckUpdate_AllowChecks.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(268, 194);
+            this.CheckUpdate_AllowChecks.Location = new System.Drawing.Point(268, 214);
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
             this.CheckUpdate_AllowChecks.TabIndex = 8;
@@ -701,21 +751,6 @@
             this.pagesTree.ViewOptions.ShowPlusMinus = false;
             this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
             // 
-            // ok
-            // 
-            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ok.Location = new System.Drawing.Point(502, 327);
-            this.ok.Name = "ok";
-            this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 100;
-            this.ok.Text = "OK";
-            this.ok.UseVisualStyleBackColor = true;
-            this.ok.Click += new System.EventHandler(this.ok_Click);
-            // 
-            // browserCaptureDialog
-            // 
-            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
-            // 
             // SettingsDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -779,5 +814,6 @@
         private System.Windows.Forms.CheckBox EventBrowser_HideEmpty;
         private System.Windows.Forms.Button browseCaptureDirectory;
         private System.Windows.Forms.FolderBrowserDialog browserCaptureDialog;
+        private System.Windows.Forms.CheckBox AllowGlobalHook;
     }
 }

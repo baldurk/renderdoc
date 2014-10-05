@@ -201,6 +201,42 @@
 
       </content>
     </section>
+    <section address="globalhook">
+      <title>Global Process Hook</title>
+      <content>
+<alert class="caution">
+  <para>This option is risky and should not be used lightly. Know what you're doing and
+  use it as a last resort.</para>
+</alert>
+        <para>To expose this option you have to enable it in
+        <link xlink:href="B1826EEE-2ED1-44E4-8202-37CD8B3FEEB5">the settings</link>,
+        to prevent it being used accidentally.</para>
+        <para>When you've entered a path, or filename, in the executable text at the top
+        of the window, this option will then insert a global hook that causes <legacyBold>every</legacyBold> new
+        process created to load a very small shim dll.</para>
+        <para>The shim dll will load, create a thread that checks to see if the process
+        matches the path or filename specified, and then unload. If the process matches
+        it will also inject RenderDoc and capturing will continue as normal. At this
+        point you should <legacyItalic>first disable the global hook</legacyItalic>, then
+        you can use the 'Attach to running instance' menu option to continue as normal.</para>
+        <para>RenderDoc implements this behaviour by modifying the
+	      <externalLink>
+<linkText>AppInit_DLLs</linkText>
+<linkAlternateText>AppInit_DLLs on MSDN</linkAlternateText>
+<linkUri>http://support2.microsoft.com/kb/197571</linkUri>
+</externalLink> registry key to reference RenderDoc's dlls. This is not a particularly safe
+        method but it's the only reliable method to do what we want. The shim dll is
+        deliberately made as small and thin as possible, referencing only kernel32.dll, to
+        minimise any risks.
+        </para>
+        <para>If RenderDoc crashes or something otherwise goes wrong while these registry
+        keys are modified, the shim dll will continue to be injected into every process which
+        is certainly not desireable. Should anything go wrong, RenderDoc writes a .reg
+        file that restores the registry to its previous state in %TEMP%.</para>
+        <para>Again, <legacyBold>this method should be a last resort</legacyBold>. Given
+        the risks you should always try to capture directly in some way before trying this.</para>
+      </content>
+    </section>
     <relatedTopics>
       <link xlink:href="f2f4fbfa-6127-4831-84e7-07309bd85908" />
       <link xlink:href="14048aef-0053-4e38-98cd-541f4d15d12e" />

@@ -126,6 +126,8 @@
       <HelpKeywords>
         <HelpKeyword index="K" term="Window, Capture Window" />
         <HelpKeyword index="K" term="Window, Attach to Process" />
+        <HelpKeyword index="K" term="Capture All Processes" />
+        <HelpKeyword index="K" term="Global Hook" />
       </HelpKeywords>
     </Topic>
     <Topic id="16D2B42E-65B0-40D1-AB91-AD2B156F5DA0" visible="True" title="Event Browser">
