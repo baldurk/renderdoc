@@ -26,7 +26,7 @@ namespace renderdocui.Windows.Dialogs
                 fileFormat.Items.Add(ft.ToString());
 
                 if (filter.Length > 0) filter += "|";
-                filter += String.Format("{0} Files (*.{1})|*.{1}", ft.ToString(), ft.ToString().ToUpperInvariant());
+                filter += String.Format("{0} Files (*.{1})|*.{1}", ft.ToString(), ft.ToString().ToLower(Application.CurrentCulture));
             }
             
             saveTexDialog.Filter = filter;

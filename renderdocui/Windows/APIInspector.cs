@@ -100,7 +100,7 @@ namespace renderdocui.Windows
                     for (int i = 1; i < lines.Length; i++)
                     {
                         string l = rgx.Replace(lines[i], replacement);
-                        if (l.Length == 0)
+                        if (l.Length > 0)
                             node.Nodes.Add(new TreelistView.Node(new object[] { "", l }));
                     }
 
