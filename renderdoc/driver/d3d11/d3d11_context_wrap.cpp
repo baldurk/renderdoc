@@ -1937,7 +1937,7 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, ppSOTargets, 0, NumBuffers);
 	m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, pOffsets, 0, NumBuffers);
 	
-	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
 		// technically this isn't dirty until the draw call, but let's be conservative

@@ -601,7 +601,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 {
 	ShaderVariable *v = NULL;
 	
-	uint32_t indices[4];
+	uint32_t indices[4] = {0};
 
 	RDCASSERT(dstoper.indices.size() <= 4);
 
@@ -778,7 +778,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 {
 	ShaderVariable v, s;
 
-	uint32_t indices[4];
+	uint32_t indices[4] = {0};
 
 	RDCASSERT(oper.indices.size() <= 4);
 
