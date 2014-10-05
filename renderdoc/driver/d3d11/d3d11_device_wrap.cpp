@@ -28,12 +28,9 @@
 #include "driver/d3d11/d3d11_resources.h"
 
 bool WrappedID3D11Device::Serialise_CreateBuffer( 
-	/* [annotation] */ 
-	__in  const D3D11_BUFFER_DESC *pDesc,
-	/* [annotation] */ 
-	__in_opt  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Buffer **ppBuffer)
+	const D3D11_BUFFER_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Buffer **ppBuffer)
 {
 	D3D11_SUBRESOURCE_DATA fakeData;
 	RDCEraseEl(fakeData);
@@ -137,12 +134,9 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(
 }
 
 HRESULT WrappedID3D11Device::CreateBuffer( 
-	/* [annotation] */ 
-	__in  const D3D11_BUFFER_DESC *pDesc,
-	/* [annotation] */ 
-	__in_opt  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Buffer **ppBuffer)
+	const D3D11_BUFFER_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Buffer **ppBuffer)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppBuffer == NULL) return m_pDevice->CreateBuffer(pDesc, pInitialData, NULL);
@@ -305,12 +299,9 @@ TextureDisplayType WrappedID3D11Device::DispTypeForTexture(TexDesc &Descriptor)
 }
 
 bool WrappedID3D11Device::Serialise_CreateTexture1D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE1D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture1D **ppTexture1D)
+	const D3D11_TEXTURE1D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture1D **ppTexture1D)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_TEXTURE1D_DESC, Descriptor, pDesc);
 	SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(*ppTexture1D));
@@ -361,12 +352,9 @@ bool WrappedID3D11Device::Serialise_CreateTexture1D(
 }
 
 HRESULT WrappedID3D11Device::CreateTexture1D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE1D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture1D **ppTexture1D)
+	const D3D11_TEXTURE1D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture1D **ppTexture1D)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppTexture1D == NULL) return m_pDevice->CreateTexture1D(pDesc, pInitialData, NULL);
@@ -412,12 +400,9 @@ HRESULT WrappedID3D11Device::CreateTexture1D(
 }
 
 bool WrappedID3D11Device::Serialise_CreateTexture2D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE2D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture2D **ppTexture2D)
+	const D3D11_TEXTURE2D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture2D **ppTexture2D)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_TEXTURE2D_DESC, Descriptor, pDesc);
 	SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(*ppTexture2D));
@@ -468,12 +453,9 @@ bool WrappedID3D11Device::Serialise_CreateTexture2D(
 }
 
 HRESULT WrappedID3D11Device::CreateTexture2D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE2D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture2D **ppTexture2D)
+	const D3D11_TEXTURE2D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture2D **ppTexture2D)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppTexture2D == NULL) return m_pDevice->CreateTexture2D(pDesc, pInitialData, NULL);
@@ -519,12 +501,9 @@ HRESULT WrappedID3D11Device::CreateTexture2D(
 }
 
 bool WrappedID3D11Device::Serialise_CreateTexture3D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE3D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture3D **ppTexture3D)
+	const D3D11_TEXTURE3D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture3D **ppTexture3D)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_TEXTURE3D_DESC, Descriptor, pDesc);
 	SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(*ppTexture3D));
@@ -575,12 +554,9 @@ bool WrappedID3D11Device::Serialise_CreateTexture3D(
 }
 
 HRESULT WrappedID3D11Device::CreateTexture3D( 
-	/* [annotation] */ 
-	__in  const D3D11_TEXTURE3D_DESC *pDesc,
-	/* [annotation] */ 
-	__in_xcount_opt(pDesc->MipLevels)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-	/* [annotation] */ 
-	__out_opt  ID3D11Texture3D **ppTexture3D)
+	const D3D11_TEXTURE3D_DESC *pDesc,
+	const D3D11_SUBRESOURCE_DATA *pInitialData,
+	ID3D11Texture3D **ppTexture3D)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppTexture3D == NULL) return m_pDevice->CreateTexture3D(pDesc, pInitialData, NULL);
@@ -626,12 +602,9 @@ HRESULT WrappedID3D11Device::CreateTexture3D(
 }
 
 bool WrappedID3D11Device::Serialise_CreateShaderResourceView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11ShaderResourceView **ppSRView)
+	ID3D11Resource *pResource,
+	const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
+	ID3D11ShaderResourceView **ppSRView)
 {
 	SERIALISE_ELEMENT(ResourceId, Resource, GetIDForResource(pResource));
 	SERIALISE_ELEMENT(bool, HasDesc, pDesc != NULL);
@@ -707,12 +680,9 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 }
 
 HRESULT WrappedID3D11Device::CreateShaderResourceView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11ShaderResourceView **ppSRView)
+	ID3D11Resource *pResource,
+	const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
+	ID3D11ShaderResourceView **ppSRView)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppSRView == NULL) return m_pDevice->CreateShaderResourceView(GetResourceManager()->UnwrapResource(pResource), pDesc, NULL);
@@ -761,12 +731,9 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(
 }
 
 bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11UnorderedAccessView **ppUAView)
+	ID3D11Resource *pResource,
+	const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
+	ID3D11UnorderedAccessView **ppUAView)
 {
 	SERIALISE_ELEMENT(ResourceId, Resource, GetIDForResource(pResource));
 	SERIALISE_ELEMENT(bool, HasDesc, pDesc != NULL);
@@ -811,12 +778,9 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
 }
 
 HRESULT WrappedID3D11Device::CreateUnorderedAccessView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11UnorderedAccessView **ppUAView)
+	ID3D11Resource *pResource,
+	const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
+	ID3D11UnorderedAccessView **ppUAView)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppUAView == NULL) return m_pDevice->CreateUnorderedAccessView(GetResourceManager()->UnwrapResource(pResource), pDesc, NULL);
@@ -865,12 +829,9 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(
 }
 
 bool WrappedID3D11Device::Serialise_CreateRenderTargetView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11RenderTargetView **ppRTView)
+	ID3D11Resource *pResource,
+	const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
+	ID3D11RenderTargetView **ppRTView)
 {
 	SERIALISE_ELEMENT(ResourceId, Resource, GetIDForResource(pResource));
 	SERIALISE_ELEMENT(bool, HasDesc, pDesc != NULL);
@@ -942,12 +903,9 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 }
 
 HRESULT WrappedID3D11Device::CreateRenderTargetView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11RenderTargetView **ppRTView)
+	ID3D11Resource *pResource,
+	const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
+	ID3D11RenderTargetView **ppRTView)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppRTView == NULL) return m_pDevice->CreateRenderTargetView(GetResourceManager()->UnwrapResource(pResource), pDesc, NULL);
@@ -997,12 +955,9 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(
 }
 
 bool WrappedID3D11Device::Serialise_CreateDepthStencilView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11DepthStencilView **ppDepthStencilView)
+	ID3D11Resource *pResource,
+	const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
+	ID3D11DepthStencilView **ppDepthStencilView)
 {
 	SERIALISE_ELEMENT(ResourceId, Resource, GetIDForResource(pResource));
 	SERIALISE_ELEMENT(bool, HasDesc, pDesc != NULL);
@@ -1046,12 +1001,9 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
 }
 
 HRESULT WrappedID3D11Device::CreateDepthStencilView( 
-	/* [annotation] */ 
-	__in  ID3D11Resource *pResource,
-	/* [annotation] */ 
-	__in_opt  const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11DepthStencilView **ppDepthStencilView)
+	ID3D11Resource *pResource,
+	const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
+	ID3D11DepthStencilView **ppDepthStencilView)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppDepthStencilView == NULL) return m_pDevice->CreateDepthStencilView(GetResourceManager()->UnwrapResource(pResource), pDesc, NULL);
@@ -1101,16 +1053,11 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(
 }
 
 bool WrappedID3D11Device::Serialise_CreateInputLayout( 
-	/* [annotation] */ 
-	__in_ecount(NumElements)  const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT )  UINT NumElements,
-	/* [annotation] */ 
-	__in  const void *pShaderBytecodeWithInputSignature,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__out_opt  ID3D11InputLayout **ppInputLayout)
+	const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
+	UINT NumElements,
+	const void *pShaderBytecodeWithInputSignature,
+	SIZE_T BytecodeLength,
+	ID3D11InputLayout **ppInputLayout)
 {
 	SERIALISE_ELEMENT(uint32_t, NumElems, NumElements);
 
@@ -1169,16 +1116,11 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 }
 
 HRESULT WrappedID3D11Device::CreateInputLayout( 
-	/* [annotation] */ 
-	__in_ecount(NumElements)  const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT )  UINT NumElements,
-	/* [annotation] */ 
-	__in  const void *pShaderBytecodeWithInputSignature,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__out_opt  ID3D11InputLayout **ppInputLayout)
+	const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
+	UINT NumElements,
+	const void *pShaderBytecodeWithInputSignature,
+	SIZE_T BytecodeLength,
+	ID3D11InputLayout **ppInputLayout)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppInputLayout == NULL) return m_pDevice->CreateInputLayout(pInputElementDescs, NumElements, pShaderBytecodeWithInputSignature, BytecodeLength, NULL);
@@ -1208,14 +1150,10 @@ HRESULT WrappedID3D11Device::CreateInputLayout(
 }
 
 bool WrappedID3D11Device::Serialise_CreateVertexShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11VertexShader **ppVertexShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11VertexShader **ppVertexShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, (void *&)pShaderBytecode, BytecodeLength);
@@ -1247,14 +1185,10 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(
 }
 
 HRESULT WrappedID3D11Device::CreateVertexShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11VertexShader **ppVertexShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11VertexShader **ppVertexShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppVertexShader == NULL) return m_pDevice->CreateVertexShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -1298,14 +1232,10 @@ HRESULT WrappedID3D11Device::CreateVertexShader(
 }
 
 bool WrappedID3D11Device::Serialise_CreateGeometryShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11GeometryShader **ppGeometryShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11GeometryShader **ppGeometryShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1337,14 +1267,10 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(
 }
 
 HRESULT WrappedID3D11Device::CreateGeometryShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11GeometryShader **ppGeometryShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11GeometryShader **ppGeometryShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppGeometryShader == NULL) return m_pDevice->CreateGeometryShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -1389,24 +1315,15 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(
 
 
 bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_ecount_opt(NumEntries)  const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_SO_STREAM_COUNT * D3D11_SO_OUTPUT_COMPONENT_COUNT )  UINT NumEntries,
-	/* [annotation] */ 
-	__in_ecount_opt(NumStrides)  const UINT *pBufferStrides,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_SO_BUFFER_SLOT_COUNT )  UINT NumStrides,
-	/* [annotation] */ 
-	__in  UINT RasterizedStream,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11GeometryShader **ppGeometryShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
+	UINT NumEntries,
+	const UINT *pBufferStrides,
+	UINT NumStrides,
+	UINT RasterizedStream,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11GeometryShader **ppGeometryShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1453,24 +1370,15 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 }
 
 HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_ecount_opt(NumEntries)  const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_SO_STREAM_COUNT * D3D11_SO_OUTPUT_COMPONENT_COUNT )  UINT NumEntries,
-	/* [annotation] */ 
-	__in_ecount_opt(NumStrides)  const UINT *pBufferStrides,
-	/* [annotation] */ 
-	__in_range( 0, D3D11_SO_BUFFER_SLOT_COUNT )  UINT NumStrides,
-	/* [annotation] */ 
-	__in  UINT RasterizedStream,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11GeometryShader **ppGeometryShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
+	UINT NumEntries,
+	const UINT *pBufferStrides,
+	UINT NumStrides,
+	UINT RasterizedStream,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11GeometryShader **ppGeometryShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppGeometryShader == NULL) return m_pDevice->CreateGeometryShaderWithStreamOutput(pShaderBytecode, BytecodeLength, pSODeclaration,
@@ -1519,14 +1427,10 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 }
 
 bool WrappedID3D11Device::Serialise_CreatePixelShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11PixelShader **ppPixelShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11PixelShader **ppPixelShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1558,14 +1462,10 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(
 }
 
 HRESULT WrappedID3D11Device::CreatePixelShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11PixelShader **ppPixelShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11PixelShader **ppPixelShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppPixelShader == NULL) return m_pDevice->CreatePixelShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -1609,14 +1509,10 @@ HRESULT WrappedID3D11Device::CreatePixelShader(
 }
 
 bool WrappedID3D11Device::Serialise_CreateHullShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11HullShader **ppHullShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11HullShader **ppHullShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1648,14 +1544,10 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(
 }
 
 HRESULT WrappedID3D11Device::CreateHullShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11HullShader **ppHullShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11HullShader **ppHullShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppHullShader == NULL) return m_pDevice->CreateHullShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -1699,14 +1591,10 @@ HRESULT WrappedID3D11Device::CreateHullShader(
 }
 
 bool WrappedID3D11Device::Serialise_CreateDomainShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11DomainShader **ppDomainShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11DomainShader **ppDomainShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1738,14 +1626,10 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(
 }
 
 HRESULT WrappedID3D11Device::CreateDomainShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11DomainShader **ppDomainShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11DomainShader **ppDomainShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppDomainShader == NULL) return m_pDevice->CreateDomainShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -1789,14 +1673,10 @@ HRESULT WrappedID3D11Device::CreateDomainShader(
 }
 
 bool WrappedID3D11Device::Serialise_CreateComputeShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11ComputeShader **ppComputeShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11ComputeShader **ppComputeShader)
 {
 	SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)BytecodeLength);
 	SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pShaderBytecode, BytecodeLength);
@@ -1828,14 +1708,10 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(
 }
 
 HRESULT WrappedID3D11Device::CreateComputeShader( 
-	/* [annotation] */ 
-	__in  const void *pShaderBytecode,
-	/* [annotation] */ 
-	__in  SIZE_T BytecodeLength,
-	/* [annotation] */ 
-	__in_opt  ID3D11ClassLinkage *pClassLinkage,
-	/* [annotation] */ 
-	__out_opt  ID3D11ComputeShader **ppComputeShader)
+	const void *pShaderBytecode,
+	SIZE_T BytecodeLength,
+	ID3D11ClassLinkage *pClassLinkage,
+	ID3D11ComputeShader **ppComputeShader)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppComputeShader == NULL) return m_pDevice->CreateComputeShader(pShaderBytecode, BytecodeLength, UNWRAP(WrappedID3D11ClassLinkage, pClassLinkage), NULL);
@@ -2003,8 +1879,7 @@ ID3D11ClassInstance *WrappedID3D11Device::GetClassInstance(LPCSTR pClassInstance
 }
 
 bool WrappedID3D11Device::Serialise_CreateClassLinkage( 
-	/* [annotation] */ 
-	__out  ID3D11ClassLinkage **ppLinkage)
+	ID3D11ClassLinkage **ppLinkage)
 {
 	SERIALISE_ELEMENT(ResourceId, pLinkage, GetIDForResource(*ppLinkage));
 
@@ -2029,8 +1904,7 @@ bool WrappedID3D11Device::Serialise_CreateClassLinkage(
 }
 
 HRESULT WrappedID3D11Device::CreateClassLinkage( 
-	/* [annotation] */ 
-	__out  ID3D11ClassLinkage **ppLinkage)
+	ID3D11ClassLinkage **ppLinkage)
 {
 	// get 'real' return value for NULL parameter
 	if(ppLinkage == NULL) return m_pDevice->CreateClassLinkage(NULL);
@@ -2060,10 +1934,8 @@ HRESULT WrappedID3D11Device::CreateClassLinkage(
 }
 
 bool WrappedID3D11Device::Serialise_CreateBlendState( 
-	/* [annotation] */ 
-	__in  const D3D11_BLEND_DESC *pBlendStateDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11BlendState **ppBlendState)
+	const D3D11_BLEND_DESC *pBlendStateDesc,
+	ID3D11BlendState **ppBlendState)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_BLEND_DESC, Descriptor, pBlendStateDesc);
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppBlendState));
@@ -2099,10 +1971,8 @@ bool WrappedID3D11Device::Serialise_CreateBlendState(
 }
 
 HRESULT WrappedID3D11Device::CreateBlendState( 
-	/* [annotation] */ 
-	__in  const D3D11_BLEND_DESC *pBlendStateDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11BlendState **ppBlendState)
+	const D3D11_BLEND_DESC *pBlendStateDesc,
+	ID3D11BlendState **ppBlendState)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppBlendState == NULL) return m_pDevice->CreateBlendState(pBlendStateDesc, NULL);
@@ -2147,10 +2017,8 @@ HRESULT WrappedID3D11Device::CreateBlendState(
 }
 
 bool WrappedID3D11Device::Serialise_CreateDepthStencilState( 
-	/* [annotation] */ 
-	__in  const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11DepthStencilState **ppDepthStencilState)
+	const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
+	ID3D11DepthStencilState **ppDepthStencilState)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_DEPTH_STENCIL_DESC, Descriptor, pDepthStencilDesc);
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppDepthStencilState));
@@ -2176,10 +2044,8 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilState(
 }
 
 HRESULT WrappedID3D11Device::CreateDepthStencilState( 
-	/* [annotation] */ 
-	__in  const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11DepthStencilState **ppDepthStencilState)
+	const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
+	ID3D11DepthStencilState **ppDepthStencilState)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppDepthStencilState == NULL) return m_pDevice->CreateDepthStencilState(pDepthStencilDesc, NULL);
@@ -2224,10 +2090,8 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(
 }
 
 bool WrappedID3D11Device::Serialise_CreateRasterizerState( 
-	/* [annotation] */ 
-	__in  const D3D11_RASTERIZER_DESC *pRasterizerDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11RasterizerState **ppRasterizerState)
+	const D3D11_RASTERIZER_DESC *pRasterizerDesc,
+	ID3D11RasterizerState **ppRasterizerState)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_RASTERIZER_DESC, Descriptor, pRasterizerDesc);
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppRasterizerState));
@@ -2253,10 +2117,8 @@ bool WrappedID3D11Device::Serialise_CreateRasterizerState(
 }
 
 HRESULT WrappedID3D11Device::CreateRasterizerState( 
-	/* [annotation] */ 
-	__in  const D3D11_RASTERIZER_DESC *pRasterizerDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11RasterizerState **ppRasterizerState)
+	const D3D11_RASTERIZER_DESC *pRasterizerDesc,
+	ID3D11RasterizerState **ppRasterizerState)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppRasterizerState == NULL) return m_pDevice->CreateRasterizerState(pRasterizerDesc, NULL);
@@ -2301,10 +2163,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(
 }
 
 bool WrappedID3D11Device::Serialise_CreateSamplerState( 
-	/* [annotation] */ 
-	__in  const D3D11_SAMPLER_DESC *pSamplerDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11SamplerState **ppSamplerState)
+	const D3D11_SAMPLER_DESC *pSamplerDesc,
+	ID3D11SamplerState **ppSamplerState)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_SAMPLER_DESC, Descriptor, pSamplerDesc);
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(*ppSamplerState));
@@ -2330,10 +2190,8 @@ bool WrappedID3D11Device::Serialise_CreateSamplerState(
 }
 
 HRESULT WrappedID3D11Device::CreateSamplerState( 
-	/* [annotation] */ 
-	__in  const D3D11_SAMPLER_DESC *pSamplerDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11SamplerState **ppSamplerState)
+	const D3D11_SAMPLER_DESC *pSamplerDesc,
+	ID3D11SamplerState **ppSamplerState)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppSamplerState == NULL) return m_pDevice->CreateSamplerState(pSamplerDesc, NULL);
@@ -2378,10 +2236,8 @@ HRESULT WrappedID3D11Device::CreateSamplerState(
 }
 
 bool WrappedID3D11Device::Serialise_CreateQuery( 
-	/* [annotation] */ 
-	__in  const D3D11_QUERY_DESC *pQueryDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Query **ppQuery)
+	const D3D11_QUERY_DESC *pQueryDesc,
+	ID3D11Query **ppQuery)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_QUERY_DESC, Descriptor, pQueryDesc);
 	SERIALISE_ELEMENT(ResourceId, Query, GetIDForResource(*ppQuery));
@@ -2407,10 +2263,8 @@ bool WrappedID3D11Device::Serialise_CreateQuery(
 }
 
 HRESULT WrappedID3D11Device::CreateQuery( 
-	/* [annotation] */ 
-	__in  const D3D11_QUERY_DESC *pQueryDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Query **ppQuery)
+	const D3D11_QUERY_DESC *pQueryDesc,
+	ID3D11Query **ppQuery)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppQuery == NULL) return m_pDevice->CreateQuery(pQueryDesc, NULL);
@@ -2429,10 +2283,8 @@ HRESULT WrappedID3D11Device::CreateQuery(
 }
 
 bool WrappedID3D11Device::Serialise_CreatePredicate( 
-	/* [annotation] */ 
-	__in  const D3D11_QUERY_DESC *pPredicateDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Predicate **ppPredicate)
+	const D3D11_QUERY_DESC *pPredicateDesc,
+	ID3D11Predicate **ppPredicate)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_QUERY_DESC, Descriptor, pPredicateDesc);
 	SERIALISE_ELEMENT(ResourceId, Predicate, GetIDForResource(*ppPredicate));
@@ -2458,10 +2310,8 @@ bool WrappedID3D11Device::Serialise_CreatePredicate(
 }
 
 HRESULT WrappedID3D11Device::CreatePredicate( 
-	/* [annotation] */ 
-	__in  const D3D11_QUERY_DESC *pPredicateDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Predicate **ppPredicate)
+	const D3D11_QUERY_DESC *pPredicateDesc,
+	ID3D11Predicate **ppPredicate)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppPredicate == NULL) return m_pDevice->CreatePredicate(pPredicateDesc, NULL);
@@ -2491,10 +2341,8 @@ HRESULT WrappedID3D11Device::CreatePredicate(
 }
 
 bool WrappedID3D11Device::Serialise_CreateCounter( 
-	/* [annotation] */ 
-	__in  const D3D11_COUNTER_DESC *pCounterDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Counter **ppCounter)
+	const D3D11_COUNTER_DESC *pCounterDesc,
+	ID3D11Counter **ppCounter)
 {
 	SERIALISE_ELEMENT_PTR(D3D11_COUNTER_DESC, Descriptor, pCounterDesc);
 	SERIALISE_ELEMENT(ResourceId, Counter, GetIDForResource(*ppCounter));
@@ -2520,10 +2368,8 @@ bool WrappedID3D11Device::Serialise_CreateCounter(
 }
 
 HRESULT WrappedID3D11Device::CreateCounter( 
-	/* [annotation] */ 
-	__in  const D3D11_COUNTER_DESC *pCounterDesc,
-	/* [annotation] */ 
-	__out_opt  ID3D11Counter **ppCounter)
+	const D3D11_COUNTER_DESC *pCounterDesc,
+	ID3D11Counter **ppCounter)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppCounter == NULL) return m_pDevice->CreateCounter(pCounterDesc, NULL);
@@ -2542,10 +2388,8 @@ HRESULT WrappedID3D11Device::CreateCounter(
 }
 
 bool WrappedID3D11Device::Serialise_CreateDeferredContext( 
-	/* [annotation] */ 
-	__in  const UINT ContextFlags,
-	/* [annotation] */ 
-	__out_opt  ID3D11DeviceContext **ppDeferredContext)
+	const UINT ContextFlags,
+	ID3D11DeviceContext **ppDeferredContext)
 {
 	SERIALISE_ELEMENT(uint32_t, Flags, ContextFlags);
 	SERIALISE_ELEMENT(ResourceId, Context, GetIDForResource(*ppDeferredContext));
@@ -2574,8 +2418,7 @@ bool WrappedID3D11Device::Serialise_CreateDeferredContext(
 
 HRESULT WrappedID3D11Device::CreateDeferredContext( 
 	UINT ContextFlags,
-	/* [annotation] */ 
-	__out_opt  ID3D11DeviceContext **ppDeferredContext)
+	ID3D11DeviceContext **ppDeferredContext)
 {
 	// validation, returns S_FALSE for valid params, or an error code
 	if(ppDeferredContext == NULL) return m_pDevice->CreateDeferredContext(ContextFlags, NULL);
@@ -2609,12 +2452,9 @@ HRESULT WrappedID3D11Device::CreateDeferredContext(
 }
 
 bool WrappedID3D11Device::Serialise_OpenSharedResource( 
-	/* [annotation] */ 
-	__in  HANDLE hResource,
-	/* [annotation] */ 
-	__in  REFIID ReturnedInterface,
-	/* [annotation] */ 
-	__out_opt  void **ppResource)
+	HANDLE hResource,
+	REFIID ReturnedInterface,
+	void **ppResource)
 {
 	SERIALISE_ELEMENT(ResourceType, type, IdentifyTypeByPtr((IUnknown *)*ppResource));
 	SERIALISE_ELEMENT(ResourceId, pResource, GetIDForResource((ID3D11DeviceChild*)*ppResource));
@@ -2857,12 +2697,9 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 }
 
 HRESULT WrappedID3D11Device::OpenSharedResource( 
-	/* [annotation] */ 
-	__in  HANDLE hResource,
-	/* [annotation] */ 
-	__in  REFIID ReturnedInterface,
-	/* [annotation] */ 
-	__out_opt  void **ppResource)
+	HANDLE hResource,
+	REFIID ReturnedInterface,
+	void **ppResource)
 {
 	if(m_State < WRITING || ppResource == NULL) return E_INVALIDARG;
 
@@ -2982,91 +2819,67 @@ HRESULT WrappedID3D11Device::OpenSharedResource(
 }
 
 HRESULT WrappedID3D11Device::CheckFormatSupport( 
-	/* [annotation] */ 
-	__in  DXGI_FORMAT Format,
-	/* [annotation] */ 
-	__out  UINT *pFormatSupport)
+	DXGI_FORMAT Format,
+	UINT *pFormatSupport)
 {
 	return m_pDevice->CheckFormatSupport(Format, pFormatSupport);
 }
 
 HRESULT WrappedID3D11Device::CheckMultisampleQualityLevels( 
-	/* [annotation] */ 
-	__in  DXGI_FORMAT Format,
-	/* [annotation] */ 
-	__in  UINT SampleCount,
-	/* [annotation] */ 
-	__out  UINT *pNumQualityLevels)
+	DXGI_FORMAT Format,
+	UINT SampleCount,
+	UINT *pNumQualityLevels)
 {
 	return m_pDevice->CheckMultisampleQualityLevels(Format, SampleCount, pNumQualityLevels);
 }
 
 void WrappedID3D11Device::CheckCounterInfo( 
-	/* [annotation] */ 
-	__out  D3D11_COUNTER_INFO *pCounterInfo)
+	D3D11_COUNTER_INFO *pCounterInfo)
 {
 	m_pDevice->CheckCounterInfo(pCounterInfo);
 }
 
 HRESULT WrappedID3D11Device::CheckCounter( 
-	/* [annotation] */ 
-	__in  const D3D11_COUNTER_DESC *pDesc,
-	/* [annotation] */ 
-	__out  D3D11_COUNTER_TYPE *pType,
-	/* [annotation] */ 
-	__out  UINT *pActiveCounters,
-	/* [annotation] */ 
-	__out_ecount_opt(*pNameLength)  LPSTR szName,
-	/* [annotation] */ 
-	__inout_opt  UINT *pNameLength,
-	/* [annotation] */ 
-	__out_ecount_opt(*pUnitsLength)  LPSTR szUnits,
-	/* [annotation] */ 
-	__inout_opt  UINT *pUnitsLength,
-	/* [annotation] */ 
-	__out_ecount_opt(*pDescriptionLength)  LPSTR szDescription,
-	/* [annotation] */ 
-	__inout_opt  UINT *pDescriptionLength)
+	const D3D11_COUNTER_DESC *pDesc,
+	D3D11_COUNTER_TYPE *pType,
+	UINT *pActiveCounters,
+	LPSTR szName,
+	UINT *pNameLength,
+	LPSTR szUnits,
+	UINT *pUnitsLength,
+	LPSTR szDescription,
+	UINT *pDescriptionLength)
 {
 	return m_pDevice->CheckCounter(pDesc, pType, pActiveCounters, szName, pNameLength, szUnits, pUnitsLength, szDescription, pDescriptionLength);
 }
 
 HRESULT WrappedID3D11Device::CheckFeatureSupport( 
 	D3D11_FEATURE Feature,
-	/* [annotation] */ 
-	__out_bcount(FeatureSupportDataSize)  void *pFeatureSupportData,
+	void *pFeatureSupportData,
 	UINT FeatureSupportDataSize)
 {
 	return m_pDevice->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
 }
 
 HRESULT WrappedID3D11Device::GetPrivateData( 
-	/* [annotation] */ 
-	__in  REFGUID guid,
-	/* [annotation] */ 
-	__inout  UINT *pDataSize,
-	/* [annotation] */ 
-	__out_bcount_opt(*pDataSize)  void *pData)
+	REFGUID guid,
+	UINT *pDataSize,
+	void *pData)
 {
 	return m_pDevice->GetPrivateData(guid, pDataSize, pData);
 }
 
 HRESULT WrappedID3D11Device::SetPrivateData( 
-	/* [annotation] */ 
-	__in  REFGUID guid,
-	/* [annotation] */ 
-	__in  UINT DataSize,
-	/* [annotation] */ 
-	__in_bcount_opt(DataSize)  const void *pData)
+	REFGUID guid,
+	UINT DataSize,
+	const void *pData)
 {
 	return m_pDevice->SetPrivateData(guid, DataSize, pData);
 }
 
 HRESULT WrappedID3D11Device::SetPrivateDataInterface( 
-	/* [annotation] */ 
-	__in  REFGUID guid,
-	/* [annotation] */ 
-	__in_opt  const IUnknown *pData)
+	REFGUID guid,
+	const IUnknown *pData)
 {
 	return m_pDevice->SetPrivateDataInterface(guid, pData);
 }
@@ -3087,8 +2900,7 @@ HRESULT WrappedID3D11Device::GetDeviceRemovedReason()
 }
 
 void WrappedID3D11Device::GetImmediateContext( 
-	/* [annotation] */ 
-	__out  ID3D11DeviceContext **ppImmediateContext)
+	ID3D11DeviceContext **ppImmediateContext)
 {
 	if(ppImmediateContext)
 	{

@@ -308,12 +308,9 @@ public:
 	//////////////////////////////
 	// implement ID3D11Device
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateBuffer( 
-		/* [annotation] */ 
-		__in  const D3D11_BUFFER_DESC *pDesc,
-		/* [annotation] */ 
-		__in_opt  const D3D11_SUBRESOURCE_DATA *pInitialData,
-		/* [annotation] */ 
-		__out_opt  ID3D11Buffer **ppBuffer));
+		const D3D11_BUFFER_DESC *pDesc,
+		const D3D11_SUBRESOURCE_DATA *pInitialData,
+		ID3D11Buffer **ppBuffer));
 	
 	template<typename TexDesc>
 	TextureDisplayType DispTypeForTexture(TexDesc &Descriptor);
@@ -322,277 +319,175 @@ public:
 															   UINT w, UINT h, UINT d, DXGI_FORMAT fmt, UINT mips, UINT arr, bool HasData);
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateTexture1D( 
-		/* [annotation] */ 
-		__in  const D3D11_TEXTURE1D_DESC *pDesc,
-		/* [annotation] */ 
-		__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-		/* [annotation] */ 
-		__out_opt  ID3D11Texture1D **ppTexture1D));
+		const D3D11_TEXTURE1D_DESC *pDesc,
+		const D3D11_SUBRESOURCE_DATA *pInitialData,
+		ID3D11Texture1D **ppTexture1D));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateTexture2D( 
-		/* [annotation] */ 
-		__in  const D3D11_TEXTURE2D_DESC *pDesc,
-		/* [annotation] */ 
-		__in_xcount_opt(pDesc->MipLevels * pDesc->ArraySize)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-		/* [annotation] */ 
-		__out_opt  ID3D11Texture2D **ppTexture2D));
+		const D3D11_TEXTURE2D_DESC *pDesc,
+		const D3D11_SUBRESOURCE_DATA *pInitialData,
+		ID3D11Texture2D **ppTexture2D));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateTexture3D( 
-		/* [annotation] */ 
-		__in  const D3D11_TEXTURE3D_DESC *pDesc,
-		/* [annotation] */ 
-		__in_xcount_opt(pDesc->MipLevels)  const D3D11_SUBRESOURCE_DATA *pInitialData,
-		/* [annotation] */ 
-		__out_opt  ID3D11Texture3D **ppTexture3D));
+		const D3D11_TEXTURE3D_DESC *pDesc,
+		const D3D11_SUBRESOURCE_DATA *pInitialData,
+		ID3D11Texture3D **ppTexture3D));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateShaderResourceView( 
-		/* [annotation] */ 
-		__in  ID3D11Resource *pResource,
-		/* [annotation] */ 
-		__in_opt  const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11ShaderResourceView **ppSRView));
+		ID3D11Resource *pResource,
+		const D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc,
+		ID3D11ShaderResourceView **ppSRView));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateUnorderedAccessView( 
-		/* [annotation] */ 
-		__in  ID3D11Resource *pResource,
-		/* [annotation] */ 
-		__in_opt  const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11UnorderedAccessView **ppUAView));
+		ID3D11Resource *pResource,
+		const D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc,
+		ID3D11UnorderedAccessView **ppUAView));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateRenderTargetView( 
-		/* [annotation] */ 
-		__in  ID3D11Resource *pResource,
-		/* [annotation] */ 
-		__in_opt  const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11RenderTargetView **ppRTView));
+		ID3D11Resource *pResource,
+		const D3D11_RENDER_TARGET_VIEW_DESC *pDesc,
+		ID3D11RenderTargetView **ppRTView));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDepthStencilView( 
-		/* [annotation] */ 
-		__in  ID3D11Resource *pResource,
-		/* [annotation] */ 
-		__in_opt  const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11DepthStencilView **ppDepthStencilView));
+		ID3D11Resource *pResource,
+		const D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc,
+		ID3D11DepthStencilView **ppDepthStencilView));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateInputLayout( 
-		/* [annotation] */ 
-		__in_ecount(NumElements)  const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
-		/* [annotation] */ 
-		__in_range( 0, D3D11_IA_VERTEX_INPUT_STRUCTURE_ELEMENT_COUNT )  UINT NumElements,
-		/* [annotation] */ 
-		__in  const void *pShaderBytecodeWithInputSignature,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__out_opt  ID3D11InputLayout **ppInputLayout));
+		const D3D11_INPUT_ELEMENT_DESC *pInputElementDescs,
+		UINT NumElements,
+		const void *pShaderBytecodeWithInputSignature,
+		SIZE_T BytecodeLength,
+		ID3D11InputLayout **ppInputLayout));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateVertexShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11VertexShader **ppVertexShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11VertexShader **ppVertexShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateGeometryShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11GeometryShader **ppGeometryShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11GeometryShader **ppGeometryShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateGeometryShaderWithStreamOutput( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_ecount_opt(NumEntries)  const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
-		/* [annotation] */ 
-		__in_range( 0, D3D11_SO_STREAM_COUNT * D3D11_SO_OUTPUT_COMPONENT_COUNT )  UINT NumEntries,
-		/* [annotation] */ 
-		__in_ecount_opt(NumStrides)  const UINT *pBufferStrides,
-		/* [annotation] */ 
-		__in_range( 0, D3D11_SO_BUFFER_SLOT_COUNT )  UINT NumStrides,
-		/* [annotation] */ 
-		__in  UINT RasterizedStream,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11GeometryShader **ppGeometryShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		const D3D11_SO_DECLARATION_ENTRY *pSODeclaration,
+		UINT NumEntries,
+		const UINT *pBufferStrides,
+		UINT NumStrides,
+		UINT RasterizedStream,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11GeometryShader **ppGeometryShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePixelShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11PixelShader **ppPixelShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11PixelShader **ppPixelShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateHullShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11HullShader **ppHullShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11HullShader **ppHullShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDomainShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11DomainShader **ppDomainShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11DomainShader **ppDomainShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateComputeShader( 
-		/* [annotation] */ 
-		__in  const void *pShaderBytecode,
-		/* [annotation] */ 
-		__in  SIZE_T BytecodeLength,
-		/* [annotation] */ 
-		__in_opt  ID3D11ClassLinkage *pClassLinkage,
-		/* [annotation] */ 
-		__out_opt  ID3D11ComputeShader **ppComputeShader));
+		const void *pShaderBytecode,
+		SIZE_T BytecodeLength,
+		ID3D11ClassLinkage *pClassLinkage,
+		ID3D11ComputeShader **ppComputeShader));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateClassLinkage( 
-		/* [annotation] */ 
-		__out  ID3D11ClassLinkage **ppLinkage));
+		ID3D11ClassLinkage **ppLinkage));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateBlendState( 
-		/* [annotation] */ 
-		__in  const D3D11_BLEND_DESC *pBlendStateDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11BlendState **ppBlendState));
+		const D3D11_BLEND_DESC *pBlendStateDesc,
+		ID3D11BlendState **ppBlendState));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDepthStencilState( 
-		/* [annotation] */ 
-		__in  const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11DepthStencilState **ppDepthStencilState));
+		const D3D11_DEPTH_STENCIL_DESC *pDepthStencilDesc,
+		ID3D11DepthStencilState **ppDepthStencilState));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateRasterizerState( 
-		/* [annotation] */ 
-		__in  const D3D11_RASTERIZER_DESC *pRasterizerDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11RasterizerState **ppRasterizerState));
+		const D3D11_RASTERIZER_DESC *pRasterizerDesc,
+		ID3D11RasterizerState **ppRasterizerState));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateSamplerState( 
-		/* [annotation] */ 
-		__in  const D3D11_SAMPLER_DESC *pSamplerDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11SamplerState **ppSamplerState));
+		const D3D11_SAMPLER_DESC *pSamplerDesc,
+		ID3D11SamplerState **ppSamplerState));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateQuery( 
-		/* [annotation] */ 
-		__in  const D3D11_QUERY_DESC *pQueryDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11Query **ppQuery));
+		const D3D11_QUERY_DESC *pQueryDesc,
+		ID3D11Query **ppQuery));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePredicate( 
-		/* [annotation] */ 
-		__in  const D3D11_QUERY_DESC *pPredicateDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11Predicate **ppPredicate));
+		const D3D11_QUERY_DESC *pPredicateDesc,
+		ID3D11Predicate **ppPredicate));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateCounter( 
-		/* [annotation] */ 
-		__in  const D3D11_COUNTER_DESC *pCounterDesc,
-		/* [annotation] */ 
-		__out_opt  ID3D11Counter **ppCounter));
+		const D3D11_COUNTER_DESC *pCounterDesc,
+		ID3D11Counter **ppCounter));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeferredContext( 
 		UINT ContextFlags,
-		/* [annotation] */ 
-		__out_opt  ID3D11DeviceContext **ppDeferredContext));
+		ID3D11DeviceContext **ppDeferredContext));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedResource( 
-		/* [annotation] */ 
-		__in  HANDLE hResource,
-		/* [annotation] */ 
-		__in  REFIID ReturnedInterface,
-		/* [annotation] */ 
-		__out_opt  void **ppResource));
+		HANDLE hResource,
+		REFIID ReturnedInterface,
+		void **ppResource));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CheckFormatSupport( 
-		/* [annotation] */ 
-		__in  DXGI_FORMAT Format,
-		/* [annotation] */ 
-		__out  UINT *pFormatSupport));
+		DXGI_FORMAT Format,
+		UINT *pFormatSupport));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CheckMultisampleQualityLevels( 
-		/* [annotation] */ 
-		__in  DXGI_FORMAT Format,
-		/* [annotation] */ 
-		__in  UINT SampleCount,
-		/* [annotation] */ 
-		__out  UINT *pNumQualityLevels));
+		DXGI_FORMAT Format,
+		UINT SampleCount,
+		UINT *pNumQualityLevels));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, CheckCounterInfo( 
-		/* [annotation] */ 
-		__out  D3D11_COUNTER_INFO *pCounterInfo));
+		D3D11_COUNTER_INFO *pCounterInfo));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CheckCounter( 
-		/* [annotation] */ 
-		__in  const D3D11_COUNTER_DESC *pDesc,
-		/* [annotation] */ 
-		__out  D3D11_COUNTER_TYPE *pType,
-		/* [annotation] */ 
-		__out  UINT *pActiveCounters,
-		/* [annotation] */ 
-		__out_ecount_opt(*pNameLength)  LPSTR szName,
-		/* [annotation] */ 
-		__inout_opt  UINT *pNameLength,
-		/* [annotation] */ 
-		__out_ecount_opt(*pUnitsLength)  LPSTR szUnits,
-		/* [annotation] */ 
-		__inout_opt  UINT *pUnitsLength,
-		/* [annotation] */ 
-		__out_ecount_opt(*pDescriptionLength)  LPSTR szDescription,
-		/* [annotation] */ 
-		__inout_opt  UINT *pDescriptionLength));
+		const D3D11_COUNTER_DESC *pDesc,
+		D3D11_COUNTER_TYPE *pType,
+		UINT *pActiveCounters,
+		LPSTR szName,
+		UINT *pNameLength,
+		LPSTR szUnits,
+		UINT *pUnitsLength,
+		LPSTR szDescription,
+		UINT *pDescriptionLength));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CheckFeatureSupport( 
 		D3D11_FEATURE Feature,
-		/* [annotation] */ 
-		__out_bcount(FeatureSupportDataSize)  void *pFeatureSupportData,
+		void *pFeatureSupportData,
 		UINT FeatureSupportDataSize));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, GetPrivateData( 
-		/* [annotation] */ 
-		__in  REFGUID guid,
-		/* [annotation] */ 
-		__inout  UINT *pDataSize,
-		/* [annotation] */ 
-		__out_bcount_opt(*pDataSize)  void *pData));
+		REFGUID guid,
+		UINT *pDataSize,
+		void *pData));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, SetPrivateData( 
-		/* [annotation] */ 
-		__in  REFGUID guid,
-		/* [annotation] */ 
-		__in  UINT DataSize,
-		/* [annotation] */ 
-		__in_bcount_opt(DataSize)  const void *pData));
+		REFGUID guid,
+		UINT DataSize,
+		const void *pData));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, SetPrivateDataInterface( 
-		/* [annotation] */ 
-		__in  REFGUID guid,
-		/* [annotation] */ 
-		__in_opt  const IUnknown *pData));
+		REFGUID guid,
+		const IUnknown *pData));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual D3D_FEATURE_LEVEL STDMETHODCALLTYPE, GetFeatureLevel( void));
 
@@ -601,67 +496,49 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, GetDeviceRemovedReason( void));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, GetImmediateContext( 
-		/* [annotation] */ 
-		__out  ID3D11DeviceContext **ppImmediateContext));
+		ID3D11DeviceContext **ppImmediateContext));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, SetExceptionMode( 
 		UINT RaiseFlags));
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual UINT STDMETHODCALLTYPE, GetExceptionMode( void));
-	
 
 	//////////////////////////////
 	// implement ID3D11Device1
 	
 #if defined(INCLUDE_D3D_11_1)
-    IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeferredContext1( 
-        UINT ContextFlags,
-        /* [annotation] */ 
-        _Out_opt_  ID3D11DeviceContext1 **ppDeferredContext));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateBlendState1( 
-        /* [annotation] */ 
-        _In_  const D3D11_BLEND_DESC1 *pBlendStateDesc,
-        /* [annotation] */ 
-        _Out_opt_  ID3D11BlendState1 **ppBlendState));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateRasterizerState1( 
-        /* [annotation] */ 
-        _In_  const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
-        /* [annotation] */ 
-        _Out_opt_  ID3D11RasterizerState1 **ppRasterizerState));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeviceContextState( 
-        UINT Flags,
-        /* [annotation] */ 
-        _In_reads_( FeatureLevels )  const D3D_FEATURE_LEVEL *pFeatureLevels,
-        UINT FeatureLevels,
-        UINT SDKVersion,
-        REFIID EmulatedInterface,
-        /* [annotation] */ 
-        _Out_opt_  D3D_FEATURE_LEVEL *pChosenFeatureLevel,
-        /* [annotation] */ 
-        _Out_opt_  ID3DDeviceContextState **ppContextState));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedResource1( 
-        /* [annotation] */ 
-        _In_  HANDLE hResource,
-        /* [annotation] */ 
-        _In_  REFIID returnedInterface,
-        /* [annotation] */ 
-        _Out_  void **ppResource));
-    
-    IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedResourceByName( 
-        /* [annotation] */ 
-        _In_  LPCWSTR lpName,
-        /* [annotation] */ 
-        _In_  DWORD dwDesiredAccess,
-        /* [annotation] */ 
-        _In_  REFIID returnedInterface,
-        /* [annotation] */ 
-        _Out_  void **ppResource));
-        
+	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeferredContext1( 
+			UINT ContextFlags,
+			ID3D11DeviceContext1 **ppDeferredContext));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateBlendState1( 
+			const D3D11_BLEND_DESC1 *pBlendStateDesc,
+			ID3D11BlendState1 **ppBlendState));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateRasterizerState1( 
+			const D3D11_RASTERIZER_DESC1 *pRasterizerDesc,
+			ID3D11RasterizerState1 **ppRasterizerState));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeviceContextState( 
+			UINT Flags,
+			const D3D_FEATURE_LEVEL *pFeatureLevels,
+			UINT FeatureLevels,
+			UINT SDKVersion,
+			REFIID EmulatedInterface,
+			D3D_FEATURE_LEVEL *pChosenFeatureLevel,
+			ID3DDeviceContextState **ppContextState));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedResource1( 
+			HANDLE hResource,
+			REFIID returnedInterface,
+			void **ppResource));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, OpenSharedResourceByName( 
+			LPCWSTR lpName,
+			DWORD dwDesiredAccess,
+			REFIID returnedInterface,
+			void **ppResource));
 #endif
 };
