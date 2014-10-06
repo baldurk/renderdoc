@@ -67,7 +67,7 @@ struct CaptureOptions
 		  CaptureCallstacks(false),
 		  CaptureCallstacksOnlyDraws(false),
 		  DelayForDebugger(0),
-		  VerifyMapWrites(true),
+		  VerifyMapWrites(false),
 		  HookIntoChildren(false),
 		  RefAllResources(false),
 		  SaveAllInitials(false),
