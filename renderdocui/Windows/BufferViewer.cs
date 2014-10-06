@@ -2125,18 +2125,22 @@ namespace renderdocui.Windows
 
         private void bufferView_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right && m_Core.LogLoaded)
+            if (m_Core.LogLoaded)
             {
-                openFormat.Visible = !MeshView;
-
-                debugVertex.Visible = MeshView &&
-                    m_Core.LogLoaded &&
-                    sender == vsInBufferView && 
-                    vsInBufferView.SelectedRows.Count == 1;
-                setInstanceToolStripMenuItem.Enabled = (m_Core.CurDrawcall != null && m_Core.CurDrawcall.numInstances > 1);
-
                 m_ContextUIState = GetUIState(sender);
-                rightclickMenu.Show(((DataGridView)sender).PointToScreen(e.Location));
+
+                if (e.Button == MouseButtons.Right)
+                {
+                    openFormat.Visible = !MeshView;
+
+                    debugVertex.Visible = MeshView &&
+                        m_Core.LogLoaded &&
+                        sender == vsInBufferView &&
+                        vsInBufferView.SelectedRows.Count == 1;
+                    setInstanceToolStripMenuItem.Enabled = (m_Core.CurDrawcall != null && m_Core.CurDrawcall.numInstances > 1);
+
+                    rightclickMenu.Show(((DataGridView)sender).PointToScreen(e.Location));
+                }
             }
         }
 
