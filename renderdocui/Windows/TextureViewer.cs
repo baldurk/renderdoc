@@ -1972,6 +1972,11 @@ namespace renderdocui.Windows
             FetchTexture tex = CurrentTexture;
 
             if (tex == null) return;
+            
+            if (e.KeyCode == Keys.C && e.Control)
+            {
+                Clipboard.SetText(texStatusDim.Text + " | " + statusLabel.Text);
+            }
 
             if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
