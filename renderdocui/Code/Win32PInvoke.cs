@@ -36,9 +36,22 @@ namespace renderdocui.Code
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr LoadLibrary(string lpFileName);
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+
+            public POINT(int x, int y)
+            {
+                this.X = x;
+                this.Y = y;
+            }
+        }
+
         // for redirecting mousewheel
         [DllImport("user32.dll")]
-        public static extern IntPtr WindowFromPoint(int xPoint, int yPoint);
+        public static extern IntPtr WindowFromPoint(POINT pt);
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr wnd, int msg, IntPtr wp, IntPtr lp);
 

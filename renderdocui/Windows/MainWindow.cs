@@ -51,7 +51,9 @@ namespace renderdocui.Windows
                 short x = (short)((pos >> 0) & 0xffff);
                 short y = (short)((pos >> 16) & 0xffff);
 
-                IntPtr wnd = Win32PInvoke.WindowFromPoint((int)x, (int)y);
+                Win32PInvoke.POINT pt = new Win32PInvoke.POINT((int)x, (int)y);
+
+                IntPtr wnd = Win32PInvoke.WindowFromPoint(pt);
 
                 if (wnd != IntPtr.Zero && wnd != m.HWnd && Control.FromHandle(wnd) != null)
                 {
