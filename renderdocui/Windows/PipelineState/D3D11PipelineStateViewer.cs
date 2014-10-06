@@ -1494,6 +1494,48 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
+        private void defaultCopyPaste_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.C && e.Control)
+            {
+                string text = "";
+
+                if (sender is DataGridView)
+                {
+                    foreach (DataGridViewRow row in ((DataGridView)sender).SelectedRows)
+                    {
+                        foreach (var cell in row.Cells)
+                            text += cell.ToString() + " ";
+                        text += Environment.NewLine;
+                    }
+                }
+                else if (sender is TreelistView.TreeListView)
+                {
+                    TreelistView.NodesSelection sel = ((TreelistView.TreeListView)sender).NodesSelection;
+
+                    if (sel.Count > 0)
+                    {
+                        for (int i = 0; i < sel.Count; i++)
+                        {
+                            for (int v = 0; v < sel[i].Count; v++)
+                                text += sel[i][v].ToString() + " ";
+                            text += Environment.NewLine;
+                        }
+                    }
+                    else
+                    {
+                        TreelistView.Node n = ((TreelistView.TreeListView)sender).SelectedNode;
+                        for (int v = 0; v < n.Count; v++)
+                            text += n[v].ToString() + " ";
+                        text += Environment.NewLine;
+                    }
+                }
+
+                if(text.Length > 0)
+                    Clipboard.SetText(text);
+            }
+        }
+
         private void disableSelection_Leave(object sender, EventArgs e)
         {
             if (sender is DataGridView)
