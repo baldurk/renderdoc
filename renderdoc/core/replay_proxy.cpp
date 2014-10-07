@@ -134,7 +134,6 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Re
 	Serialise("", el.Flags);
 	Serialise("", el.HighestMip);
 	Serialise("", el.NumMipLevels);
-	Serialise("", el.MipSlice);
 	Serialise("", el.ArraySize);
 	Serialise("", el.FirstArraySlice);
 }

@@ -657,29 +657,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
 					{
-						view.MipSlice = desc.Texture1D.MipSlice;
+						view.HighestMip = desc.Texture1D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
 					{
 						view.ArraySize = desc.Texture1DArray.ArraySize;
 						view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-						view.MipSlice = desc.Texture1DArray.MipSlice;
+						view.HighestMip = desc.Texture1DArray.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
 					{
-						view.MipSlice = desc.Texture2D.MipSlice;
+						view.HighestMip = desc.Texture2D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
 					{
 						view.ArraySize = desc.Texture2DArray.ArraySize;
 						view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-						view.MipSlice = desc.Texture2DArray.MipSlice;
+						view.HighestMip = desc.Texture2DArray.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
 					{
 						view.ArraySize = desc.Texture3D.WSize;
 						view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-						view.MipSlice = desc.Texture3D.MipSlice;
+						view.HighestMip = desc.Texture3D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 
 					SAFE_RELEASE(res);
@@ -830,29 +835,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D)
 				{
 					view.ArraySize = desc.Texture3D.WSize;
 					view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-					view.MipSlice = desc.Texture3D.MipSlice;
+					view.HighestMip = desc.Texture3D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);
@@ -898,29 +908,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
 				{
 					view.ArraySize = desc.Texture3D.WSize;
 					view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-					view.MipSlice = desc.Texture3D.MipSlice;
+					view.HighestMip = desc.Texture3D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);
@@ -960,23 +975,27 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);

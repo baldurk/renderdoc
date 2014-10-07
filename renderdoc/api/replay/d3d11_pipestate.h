@@ -86,7 +86,7 @@ struct D3D11PipelineState
 				ElementOffset(0), ElementWidth(0),
 				FirstElement(0), NumElements(0),
 				Flags(0),
-				HighestMip(0), NumMipLevels(0), MipSlice(0),
+				HighestMip(0), NumMipLevels(0),
 				ArraySize(0), FirstArraySlice(0) {}
 
 			ResourceId View;
@@ -111,8 +111,6 @@ struct D3D11PipelineState
 			// Texture
 			uint32_t HighestMip;
 			uint32_t NumMipLevels;
-
-			uint32_t MipSlice;
 
 			// Texture Array
 			uint32_t ArraySize;

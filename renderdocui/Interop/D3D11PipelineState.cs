@@ -142,8 +142,6 @@ namespace renderdoc
                 public UInt32 HighestMip;
                 public UInt32 NumMipLevels;
 
-                public UInt32 MipSlice;
-
                 // Texture Array
                 public UInt32 ArraySize;
                 public UInt32 FirstArraySlice;
