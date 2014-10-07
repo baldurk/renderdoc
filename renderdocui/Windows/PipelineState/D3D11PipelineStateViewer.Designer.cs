@@ -281,6 +281,7 @@
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.showDisabledToolitem = new System.Windows.Forms.ToolStripButton();
             this.showEmptyToolitem = new System.Windows.Forms.ToolStripButton();
+            this.export = new System.Windows.Forms.ToolStripButton();
             this.stageTabControl = new renderdocui.Controls.TablessControl();
             this.tabIA = new System.Windows.Forms.TabPage();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -473,6 +474,7 @@
             this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -677,7 +679,7 @@
             this.flowLayoutPanel6.Controls.Add(this.toolStrip1);
             this.flowLayoutPanel6.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel6.Name = "flowLayoutPanel6";
-            this.flowLayoutPanel6.Size = new System.Drawing.Size(335, 25);
+            this.flowLayoutPanel6.Size = new System.Drawing.Size(394, 25);
             this.flowLayoutPanel6.TabIndex = 1;
             // 
             // toolStrip1
@@ -687,10 +689,11 @@
             toolStripLabel1,
             this.toolStripSeparator2,
             this.showDisabledToolitem,
-            this.showEmptyToolitem});
+            this.showEmptyToolitem,
+            this.export});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(335, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(394, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -718,6 +721,15 @@
             this.showEmptyToolitem.Size = new System.Drawing.Size(116, 22);
             this.showEmptyToolitem.Text = "Show Empty Items";
             this.showEmptyToolitem.Click += new System.EventHandler(this.hideEmpty_Click);
+            // 
+            // export
+            // 
+            this.export.Image = global::renderdocui.Properties.Resources.save;
+            this.export.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.export.Name = "export";
+            this.export.Size = new System.Drawing.Size(59, 22);
+            this.export.Text = "Export";
+            this.export.Click += new System.EventHandler(this.export_Click);
             // 
             // stageTabControl
             // 
@@ -869,7 +881,7 @@
             treeListColumn4,
             treeListColumn5,
             treeListColumn6});
-            this.iabuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.iabuffers.Cursor = System.Windows.Forms.Cursors.VSplit;
             this.iabuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.iabuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
             this.iabuffers.Location = new System.Drawing.Point(3, 16);
@@ -2517,7 +2529,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 598F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 599F));
             this.tableLayoutPanel8.Controls.Add(this.forcedSampleCount, 7, 1);
             this.tableLayoutPanel8.Controls.Add(this.label14, 6, 1);
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
@@ -4354,6 +4366,12 @@
             this.showEmpty.Text = "Show Empty";
             this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
             // 
+            // exportDialog
+            // 
+            this.exportDialog.DefaultExt = "html";
+            this.exportDialog.Filter = "HTML Files (*.html)|*.html";
+            this.exportDialog.Title = "Export pipeline state as HTML";
+            // 
             // D3D11PipelineStateViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -4735,5 +4753,7 @@
         private System.Windows.Forms.PictureBox iaBytecodeCog;
         private System.Windows.Forms.PictureBox meshView;
         private System.Windows.Forms.Label iaBytecodeMismatch;
+        private System.Windows.Forms.ToolStripButton export;
+        private System.Windows.Forms.SaveFileDialog exportDialog;
     }
 }
