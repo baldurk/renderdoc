@@ -422,6 +422,31 @@ namespace renderdoc
             return "Unknown Error Code";
         }
 
+        public static string Str(this PrimitiveTopology topo)
+        {
+            switch (topo)
+            {
+                case PrimitiveTopology.Unknown: return "Unknown";
+                case PrimitiveTopology.PointList: return "Point List";
+                case PrimitiveTopology.LineList: return "Line List";
+                case PrimitiveTopology.LineStrip: return "Line Strip";
+                case PrimitiveTopology.LineLoop: return "Line Loop";
+                case PrimitiveTopology.TriangleList: return "Triangle List";
+                case PrimitiveTopology.TriangleStrip: return "Triangle Strip";
+                case PrimitiveTopology.TriangleFan: return "Triangle Fan";
+                case PrimitiveTopology.LineList_Adj: return "Line List with Adjacency";
+                case PrimitiveTopology.LineStrip_Adj: return "Line Strip with Adjacency";
+                case PrimitiveTopology.TriangleList_Adj: return "Triangle List with Adjacency";
+                case PrimitiveTopology.TriangleStrip_Adj: return "Triangle Strip with Adjacency";
+                default: break;
+            }
+
+            if (topo >= PrimitiveTopology.PatchList)
+                return String.Format("Patch List {0} Control Points", (int)topo - (int)PrimitiveTopology.PatchList_1CPs + 1);
+
+            return "Unknown";
+        }
+
         public static string Str(this ResourceUsage usage)
         {
             switch (usage)
