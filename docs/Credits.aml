@@ -105,6 +105,14 @@
   
   <listItem><para>
   <externalLink>
+<linkText>IronPython</linkText>
+<linkAlternateText>Used for the Python shell/integration in the UI.</linkAlternateText>
+<linkUri>http://ironpython.net/</linkUri>
+</externalLink>
+  </para></listItem>
+  
+  <listItem><para>
+  <externalLink>
 <linkText>Sandcastle Help File Builder</linkText>
 <linkAlternateText>Sandcastle Help File Builder for creating this documentation that you're reading!</linkAlternateText>
 <linkUri>http://shfb.codeplex.com/</linkUri>

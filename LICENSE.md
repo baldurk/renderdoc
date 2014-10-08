@@ -68,3 +68,7 @@ RenderDoc also uses several external libraries and components which include thei
 
 - [stb](https://github.com/nothings/stb)
   released to the Public Domain by Sean Barrett
+
+- [IronPython](http://ironpython.net/)
+  distributed under the Apache 2.0 license.
+  Copyright IronPython Team

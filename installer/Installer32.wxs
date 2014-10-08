@@ -110,6 +110,13 @@
               <File Id='WinFormsUIDLL' Name='WeifenLuo.WinFormsUI.Docking.dll' DiskId='1' Source='dist/Release32/WeifenLuo.WinFormsUI.Docking.dll' KeyPath='yes' />
             </Component>
 
+            <Component Id='IronPython' Guid='63C5667D-38DA-464B-8E2F-B2857B8EAEC8'>
+              <File Id='IronPythonDLL' Name='IronPython.dll' DiskId='1' Source='dist/Release32/IronPython.dll' KeyPath='yes' />
+              <File Id='IronPythonModulesDLL' Name='IronPython.Modules.dll' DiskId='1' Source='dist/Release32/IronPython.Modules.dll' />
+              <File Id='MicrosoftScriptingDLL' Name='Microsoft.Scripting.dll' DiskId='1' Source='dist/Release32/Microsoft.Scripting.dll' />
+              <File Id='PythonLibsDLL' Name='pythonlibs.dll' DiskId='1' Source='dist/Release32/pythonlibs.dll' />
+            </Component>
+
             <Component Id='Documentation' Guid='CD32B446-6DC1-49E4-8FE9-509E1AFB126D'>
               <File Id='Documentation' Name='renderdoc.chm' DiskId='1' Source='dist/Release32/renderdoc.chm' KeyPath='yes'>
                 <Shortcut Id="startmenuDocs" Directory="ProgramMenuDir" Name="RenderDoc Documentation" Icon='chm.ico' Advertise="yes" />
