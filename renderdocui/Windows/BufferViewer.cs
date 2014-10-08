@@ -1970,7 +1970,7 @@ namespace renderdocui.Windows
 
             FormatElement pos = null;
 
-            if (ui.m_Input.BufferFormats != null)
+            if (ui.m_Input != null && ui.m_Input.BufferFormats != null)
             {
                 foreach (var el in ui.m_Input.BufferFormats)
                 {

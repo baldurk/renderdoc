@@ -3803,6 +3803,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		return;
 	}
 
+	const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, eventID);
+
+	if(drawcall->numIndices == 0)
+		return;
+
 	DXBC::DXBCFile *dxbcVS = wrappedVS->GetDXBC();
 
 	RDCASSERT(dxbcVS);
@@ -3912,8 +3917,6 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		m_pImmediateContext->Begin(m_SOStatsQuery);
 
-		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, eventID);
-		
 		ID3D11Buffer *idxBuf = NULL;
 		DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
 
