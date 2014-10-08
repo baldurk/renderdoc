@@ -271,6 +271,7 @@ namespace renderdocui.Windows
                 debugVertexToolItem.Visible = debugSep.Visible = false;
                 instLabel.Visible = instSep.Visible = instanceIdxToolitem.Visible = false;
                 syncViewsToolItem.Visible = false;
+                highlightVerts.Visible = false;
                 byteOffset.Text = "0";
 
                 Text = "Buffer Contents";
