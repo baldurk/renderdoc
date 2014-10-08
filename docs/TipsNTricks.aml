@@ -56,6 +56,9 @@ triggerFunc();
 			  </para>
 			  <para>The next <codeInline>Swap()</codeInline> after this call will begin the captured frame,
 			  and the <codeInline>Swap()</codeInline> after that will end it (barring complications)</para>
+			  <para>You can also use the RENDERDOC_StartFrameCapture and RENDERDOC_EndFrameCapture functions
+			  to precisely define the period to be captured. For more information look at the renderdoc_app.h
+			  header in the source code.</para>
 			  </listItem>
 			  <listItem><para>When you have right clicked to select a pixel in the texture viewer, you can
 			  perform precise refinements with the arrow keys to nudge the selection in each direction.</para></listItem>

@@ -281,6 +281,7 @@
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.showDisabledToolitem = new System.Windows.Forms.ToolStripButton();
             this.showEmptyToolitem = new System.Windows.Forms.ToolStripButton();
+            this.export = new System.Windows.Forms.ToolStripButton();
             this.stageTabControl = new renderdocui.Controls.TablessControl();
             this.tabIA = new System.Windows.Forms.TabPage();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -294,6 +295,7 @@
             this.inputLayouts = new TreelistView.TreeListView();
             this.iaBytecode = new System.Windows.Forms.Label();
             this.iaBytecodeCog = new System.Windows.Forms.PictureBox();
+            this.iaBytecodeMismatch = new System.Windows.Forms.Label();
             this.meshView = new System.Windows.Forms.PictureBox();
             this.tabVS = new System.Windows.Forms.TabPage();
             this.panel2 = new System.Windows.Forms.Panel();
@@ -472,7 +474,7 @@
             this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.iaBytecodeMismatch = new System.Windows.Forms.Label();
+            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -677,7 +679,7 @@
             this.flowLayoutPanel6.Controls.Add(this.toolStrip1);
             this.flowLayoutPanel6.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel6.Name = "flowLayoutPanel6";
-            this.flowLayoutPanel6.Size = new System.Drawing.Size(335, 25);
+            this.flowLayoutPanel6.Size = new System.Drawing.Size(394, 25);
             this.flowLayoutPanel6.TabIndex = 1;
             // 
             // toolStrip1
@@ -687,10 +689,11 @@
             toolStripLabel1,
             this.toolStripSeparator2,
             this.showDisabledToolitem,
-            this.showEmptyToolitem});
+            this.showEmptyToolitem,
+            this.export});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(335, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(394, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -718,6 +721,15 @@
             this.showEmptyToolitem.Size = new System.Drawing.Size(116, 22);
             this.showEmptyToolitem.Text = "Show Empty Items";
             this.showEmptyToolitem.Click += new System.EventHandler(this.hideEmpty_Click);
+            // 
+            // export
+            // 
+            this.export.Image = global::renderdocui.Properties.Resources.save;
+            this.export.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.export.Name = "export";
+            this.export.Size = new System.Drawing.Size(59, 22);
+            this.export.Text = "Export";
+            this.export.Click += new System.EventHandler(this.export_Click);
             // 
             // stageTabControl
             // 
@@ -869,7 +881,7 @@
             treeListColumn4,
             treeListColumn5,
             treeListColumn6});
-            this.iabuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.iabuffers.Cursor = System.Windows.Forms.Cursors.VSplit;
             this.iabuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.iabuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
             this.iabuffers.Location = new System.Drawing.Point(3, 16);
@@ -886,6 +898,7 @@
             this.iabuffers.ViewOptions.ShowPlusMinus = false;
             this.iabuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.iabuffers_NodeDoubleClicked);
             this.iabuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.iabuffers_NodeDoubleClicked);
+            this.iabuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.iabuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.iabuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             this.iabuffers.MouseLeave += new System.EventHandler(this.ia_MouseLeave);
@@ -951,6 +964,7 @@
             this.inputLayouts.ViewOptions.ShowPlusMinus = false;
             this.inputLayouts.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.inputLayouts_NodeDoubleClick);
             this.inputLayouts.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.inputLayouts_NodeDoubleClick);
+            this.inputLayouts.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.inputLayouts.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.inputLayouts.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             this.inputLayouts.MouseLeave += new System.EventHandler(this.ia_MouseLeave);
@@ -1011,6 +1025,19 @@
             this.iaBytecodeCog.Click += new System.EventHandler(this.shader_Click);
             this.iaBytecodeCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.iaBytecodeCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
+            // iaBytecodeMismatch
+            // 
+            this.iaBytecodeMismatch.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.iaBytecodeMismatch.AutoSize = true;
+            this.iaBytecodeMismatch.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.iaBytecodeMismatch.ForeColor = System.Drawing.Color.Red;
+            this.iaBytecodeMismatch.Location = new System.Drawing.Point(331, 2);
+            this.iaBytecodeMismatch.Name = "iaBytecodeMismatch";
+            this.iaBytecodeMismatch.Padding = new System.Windows.Forms.Padding(0, 1, 0, 1);
+            this.iaBytecodeMismatch.Size = new System.Drawing.Size(145, 17);
+            this.iaBytecodeMismatch.TabIndex = 26;
+            this.iaBytecodeMismatch.Text = "Warning: Mismatch detected";
             // 
             // groupBox44
             // 
@@ -1187,6 +1214,9 @@
             this.vsClasses.TreeColumn = -1;
             this.vsClasses.ViewOptions.ShowLine = false;
             this.vsClasses.ViewOptions.ShowPlusMinus = false;
+            this.vsClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
+            this.vsClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
+            this.vsClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
             // groupBox7
             // 
@@ -1249,6 +1279,7 @@
             this.vsResources.ViewOptions.ShowPlusMinus = false;
             this.vsResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.vsResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.vsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.vsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.vsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1311,6 +1342,7 @@
             this.vsSamplers.ViewOptions.Indent = 0;
             this.vsSamplers.ViewOptions.ShowLine = false;
             this.vsSamplers.ViewOptions.ShowPlusMinus = false;
+            this.vsSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.vsSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.vsSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1369,6 +1401,7 @@
             this.vsCBuffers.ViewOptions.ShowPlusMinus = false;
             this.vsCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.vsCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.vsCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.vsCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.vsCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1520,6 +1553,7 @@
             this.hsClasses.TreeColumn = -1;
             this.hsClasses.ViewOptions.ShowLine = false;
             this.hsClasses.ViewOptions.ShowPlusMinus = false;
+            this.hsClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1584,6 +1618,7 @@
             this.hsResources.ViewOptions.ShowPlusMinus = false;
             this.hsResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.hsResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.hsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1646,6 +1681,7 @@
             this.hsSamplers.ViewOptions.Indent = 0;
             this.hsSamplers.ViewOptions.ShowLine = false;
             this.hsSamplers.ViewOptions.ShowPlusMinus = false;
+            this.hsSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1704,6 +1740,7 @@
             this.hsCBuffers.ViewOptions.ShowPlusMinus = false;
             this.hsCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.hsCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.hsCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.hsCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.hsCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1855,6 +1892,7 @@
             this.dsClasses.TreeColumn = -1;
             this.dsClasses.ViewOptions.ShowLine = false;
             this.dsClasses.ViewOptions.ShowPlusMinus = false;
+            this.dsClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1919,6 +1957,7 @@
             this.dsResources.ViewOptions.ShowPlusMinus = false;
             this.dsResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.dsResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.dsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -1981,6 +2020,7 @@
             this.dsSamplers.ViewOptions.Indent = 0;
             this.dsSamplers.ViewOptions.ShowLine = false;
             this.dsSamplers.ViewOptions.ShowPlusMinus = false;
+            this.dsSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2039,6 +2079,7 @@
             this.dsCBuffers.ViewOptions.ShowPlusMinus = false;
             this.dsCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.dsCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.dsCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.dsCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.dsCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2123,6 +2164,7 @@
             this.gsStreams.ViewOptions.ShowPlusMinus = false;
             this.gsStreams.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.gsStreams.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.gsStreams.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.gsStreams.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.gsStreams.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2230,6 +2272,9 @@
             this.gsClasses.TreeColumn = -1;
             this.gsClasses.ViewOptions.ShowLine = false;
             this.gsClasses.ViewOptions.ShowPlusMinus = false;
+            this.gsClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
+            this.gsClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
+            this.gsClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
             // groupBox24
             // 
@@ -2292,6 +2337,7 @@
             this.gsResources.ViewOptions.ShowPlusMinus = false;
             this.gsResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.gsResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.gsResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.gsResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.gsResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2354,6 +2400,9 @@
             this.gsSamplers.ViewOptions.Indent = 0;
             this.gsSamplers.ViewOptions.ShowLine = false;
             this.gsSamplers.ViewOptions.ShowPlusMinus = false;
+            this.gsSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
+            this.gsSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
+            this.gsSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
             // groupBox26
             // 
@@ -2410,6 +2459,7 @@
             this.gsCBuffers.ViewOptions.ShowPlusMinus = false;
             this.gsCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.gsCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.gsCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.gsCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.gsCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2479,7 +2529,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 597F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 599F));
             this.tableLayoutPanel8.Controls.Add(this.forcedSampleCount, 7, 1);
             this.tableLayoutPanel8.Controls.Add(this.label14, 6, 1);
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
@@ -2801,6 +2851,7 @@
             this.viewports.Text = "Viewports";
             this.viewports.TreeColumn = -1;
             this.viewports.ViewOptions.ShowPlusMinus = false;
+            this.viewports.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.viewports.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.viewports.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2847,6 +2898,7 @@
             this.scissors.Text = "Scissor Regions";
             this.scissors.TreeColumn = -1;
             this.scissors.ViewOptions.ShowPlusMinus = false;
+            this.scissors.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.scissors.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.scissors.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -2998,6 +3050,7 @@
             this.psClasses.TreeColumn = -1;
             this.psClasses.ViewOptions.ShowLine = false;
             this.psClasses.ViewOptions.ShowPlusMinus = false;
+            this.psClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.psClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.psClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3062,6 +3115,7 @@
             this.psResources.ViewOptions.ShowPlusMinus = false;
             this.psResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.psResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.psResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.psResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.psResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3124,6 +3178,7 @@
             this.psSamplers.ViewOptions.Indent = 0;
             this.psSamplers.ViewOptions.ShowLine = false;
             this.psSamplers.ViewOptions.ShowPlusMinus = false;
+            this.psSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.psSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.psSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3182,6 +3237,7 @@
             this.psCBuffers.ViewOptions.ShowPlusMinus = false;
             this.psCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.psCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.psCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.psCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.psCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3284,6 +3340,7 @@
             this.targetOutputs.ViewOptions.ShowPlusMinus = false;
             this.targetOutputs.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.targetOutputs.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.targetOutputs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.targetOutputs.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.targetOutputs.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3884,6 +3941,7 @@
             this.csUAVs.ViewOptions.ShowPlusMinus = false;
             this.csUAVs.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.csUAVs.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.csUAVs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csUAVs.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csUAVs.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -3924,6 +3982,7 @@
             this.csClasses.TreeColumn = -1;
             this.csClasses.ViewOptions.ShowLine = false;
             this.csClasses.ViewOptions.ShowPlusMinus = false;
+            this.csClasses.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csClasses.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csClasses.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -4159,6 +4218,7 @@
             this.csResources.ViewOptions.ShowPlusMinus = false;
             this.csResources.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
             this.csResources.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.csResources.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csResources.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csResources.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -4220,6 +4280,7 @@
             this.csSamplers.ViewOptions.Indent = 0;
             this.csSamplers.ViewOptions.ShowLine = false;
             this.csSamplers.ViewOptions.ShowPlusMinus = false;
+            this.csSamplers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csSamplers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csSamplers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -4277,6 +4338,7 @@
             this.csCBuffers.ViewOptions.ShowPlusMinus = false;
             this.csCBuffers.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.cbuffers_NodeDoubleClicked);
             this.csCBuffers.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.cbuffers_NodeDoubleClicked);
+            this.csCBuffers.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
             this.csCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
@@ -4304,18 +4366,11 @@
             this.showEmpty.Text = "Show Empty";
             this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
             // 
-            // iaBytecodeMismatch
+            // exportDialog
             // 
-            this.iaBytecodeMismatch.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.iaBytecodeMismatch.AutoSize = true;
-            this.iaBytecodeMismatch.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.iaBytecodeMismatch.ForeColor = System.Drawing.Color.Red;
-            this.iaBytecodeMismatch.Location = new System.Drawing.Point(331, 2);
-            this.iaBytecodeMismatch.Name = "iaBytecodeMismatch";
-            this.iaBytecodeMismatch.Padding = new System.Windows.Forms.Padding(0, 1, 0, 1);
-            this.iaBytecodeMismatch.Size = new System.Drawing.Size(145, 17);
-            this.iaBytecodeMismatch.TabIndex = 26;
-            this.iaBytecodeMismatch.Text = "Warning: Mismatch detected";
+            this.exportDialog.DefaultExt = "html";
+            this.exportDialog.Filter = "HTML Files (*.html)|*.html";
+            this.exportDialog.Title = "Export pipeline state as HTML";
             // 
             // D3D11PipelineStateViewer
             // 
@@ -4698,5 +4753,7 @@
         private System.Windows.Forms.PictureBox iaBytecodeCog;
         private System.Windows.Forms.PictureBox meshView;
         private System.Windows.Forms.Label iaBytecodeMismatch;
+        private System.Windows.Forms.ToolStripButton export;
+        private System.Windows.Forms.SaveFileDialog exportDialog;
     }
 }

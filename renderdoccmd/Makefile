@@ -1,29 +1,37 @@
 CC=gcc
 CPP=g++
+COMMIT=`git rev-parse HEAD`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
-			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
-			 -DRENDERDOC_VERSION_STRING='"0.21"'
-CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/
+			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
+CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/api/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
-LDFLAGS=-L../renderdoc -lrenderdoc -lGL
+LDFLAGS=-L../renderdoc/ -lrenderdoc -lGL
+OBJDIR=.obj
 OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
+.PHONY: all
 all: bin/renderdoccmd
 
-%.o: %.cpp
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
 
-%.o: %.c
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
 
-../renderdoc/librenderdoc.so:
+OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 
-bin/renderdoccmd: $(OBJECTS) $(SOURCES) ../renderdoc/librenderdoc.so
+-include $(OBJDIR_OBJECTS:.o=.d)
+
+bin/renderdoccmd: $(OBJDIR_OBJECTS) ../renderdoc/librenderdoc.so
 	mkdir -p bin/
-	g++ -o bin/renderdoccmd $(OBJECTS) $(LDFLAGS)
+	g++ -o bin/renderdoccmd $(OBJDIR_OBJECTS) $(LDFLAGS)
 
+.PHONY: clean
 clean:
-	find -type f -iname \*.o -exec rm '{}' \;
-	rm -f bin/renderdoccmd
+	rm -rf bin/renderdoccmd $(OBJDIR)

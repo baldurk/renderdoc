@@ -308,9 +308,9 @@ namespace renderdocui.Windows
             }
 
             if (trace != null)
-                Text = String.Format("Debug Shader {0} - {1}", m_Core.CurPipelineState.GetShader(stage), debugContext);
+                Text = String.Format("Debugging {0} - {1}", m_Core.CurPipelineState.GetShaderName(stage), debugContext);
             else
-                Text = String.Format("Shader {0}", m_Core.CurPipelineState.GetShader(stage));
+                Text = m_Core.CurPipelineState.GetShaderName(stage);
 
             var disasm = shader.Disassembly;
 
@@ -398,7 +398,7 @@ namespace renderdocui.Windows
                 w.CloseButtonVisible = false;
             }
 
-            if (shader.DebugInfo.entryFunc != "" && shader.DebugInfo.files.Length > 0)
+            if (shader.DebugInfo.entryFunc.Length > 0 && shader.DebugInfo.files.Length > 0)
             {
                 if(trace != null)
                     Text = String.Format("Debug {0}() - {1}", shader.DebugInfo.entryFunc, debugContext);
@@ -459,10 +459,10 @@ namespace renderdocui.Windows
 
                 foreach (var s in m_ShaderDetails.InputSig)
                 {
-                    string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName == "") name = s.varName;
+                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName.Length == 0) name = s.varName;
 
-                    var node = inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                    inSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                 }
 
@@ -478,13 +478,13 @@ namespace renderdocui.Windows
 
                 foreach (var s in m_ShaderDetails.OutputSig)
                 {
-                    string name = s.varName == "" ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
-                    if (s.semanticName == "") name = s.varName;
+                    string name = s.varName.Length == 0 ? s.semanticName : String.Format("{0} ({1})", s.varName, s.semanticName);
+                    if (s.semanticName.Length == 0) name = s.varName;
 
                     if(multipleStreams)
                         name = String.Format("Stream {0} : {1}", s.stream, name);
 
-                    var node = outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
+                    outSig.Nodes.Add(new object[] { name, s.semanticIndex, s.regIndex, s.TypeString, s.systemValue.ToString(),
                                                                 SigParameter.GetComponentString(s.regChannelMask), SigParameter.GetComponentString(s.channelUsedMask) });
                 }
             }
@@ -505,6 +505,8 @@ namespace renderdocui.Windows
                 m_DisassemblyView.Margins.Margin1.Mask = (int)m_DisassemblyView.Markers[BREAKPOINT_MARKER + 1].Mask;
                 m_DisassemblyView.Margins.Margin3.Mask &= ~((int)m_DisassemblyView.Markers[BREAKPOINT_MARKER + 1].Mask);
 
+                m_DisassemblyView.MouseMove += new MouseEventHandler(scintilla1_MouseMove);
+                m_DisassemblyView.Leave += new EventHandler(scintilla1_Leave);
                 m_DisassemblyView.KeyDown += new KeyEventHandler(scintilla1_DebuggingKeyDown);
 
                 watchRegs.Items.Add(new ListViewItem(new string[] { "", "", "" }));
@@ -519,8 +521,6 @@ namespace renderdocui.Windows
         {
             ScintillaNET.Scintilla scintilla1 = new ScintillaNET.Scintilla();
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).BeginInit();
-
-            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ShaderViewer));
 
             // 
             // scintilla1
@@ -608,6 +608,138 @@ namespace renderdocui.Windows
                     m_PrevRanges.Add(r);
                     r.SetIndicator(4);
                 }
+            }
+        }
+
+        private Point m_HoverPos = Point.Empty;
+        private string m_HoverReg = "";
+        private ScintillaNET.Scintilla m_HoverScintilla = null;
+
+        void scintilla1_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states.Length == 0) return;
+
+            ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
+
+            var pt = scintilla1.PointToClient(Cursor.Position);
+
+            if (pt.X == m_HoverPos.X && pt.Y == m_HoverPos.Y) return;
+
+            m_HoverPos = pt;
+
+            variableHover.Hide(scintilla1);
+            hoverTimer.Enabled = false;
+            m_HoverScintilla = null;
+
+            int pos = scintilla1.PositionFromPoint(pt.X, pt.Y);
+
+            string word = scintilla1.GetWordFromPosition(pos);
+
+            var match = Regex.Match(word, "^[rvo][0-9]+$");
+
+            if (match.Success)
+            {
+                m_HoverReg = word;
+                m_HoverScintilla = scintilla1;
+
+                hoverTimer.Enabled = true;
+                hoverTimer.Start();
+            }
+        }
+
+        void scintilla1_Leave(object sender, EventArgs e)
+        {
+            ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
+
+            System.Diagnostics.Trace.WriteLine("leave");
+
+            variableHover.Hide(scintilla1);
+            hoverTimer.Enabled = false;
+            m_HoverScintilla = null;
+            m_HoverPos = Point.Empty;
+        }
+
+        private void hoverTimer_Tick(object sender, EventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states.Length == 0) return;
+
+            hoverTimer.Enabled = false;
+
+            if (m_HoverScintilla != null && m_HoverReg.Length > 0)
+            {
+                var pt = m_HoverScintilla.PointToClient(Cursor.Position);
+
+                var state = m_Trace.states[CurrentStep];
+
+                string regtype = m_HoverReg.Substring(0, 1);
+                string regidx = m_HoverReg.Substring(1);
+
+                ShaderVariable[] vars = null;
+
+                if (regtype == "r")
+                {
+                    vars = state.registers;
+                }
+                else if (regtype == "v")
+                {
+                    vars = m_Trace.inputs;
+                }
+                else if (regtype == "o")
+                {
+                    vars = state.outputs;
+                }
+
+                int regindex = -1;
+
+                if (vars != null && int.TryParse(regidx, out regindex))
+                {
+                    if (regindex >= 0 && regindex < vars.Length)
+                    {
+                        ShaderVariable vr = vars[regindex];
+
+                        var fmt =
+                            @"{0,5} |          X          Y          Z          W" + Environment.NewLine +
+                            @"----------------------------------------------------" + Environment.NewLine +
+                            @"float | {1,10} {2,10} {3,10} {4,10}" + Environment.NewLine +
+                            @"uint  | {5,10} {6,10} {7,10} {8,10}" + Environment.NewLine +
+                            @"int   | {9,10} {10,10} {11,10} {12,10}";
+
+                        var tooltip = String.Format(fmt, m_HoverReg,
+                            Formatter.Format(vr.value.fv[0]), Formatter.Format(vr.value.fv[1]), Formatter.Format(vr.value.fv[2]), Formatter.Format(vr.value.fv[3]),
+                            vr.value.uv[0], vr.value.uv[1], vr.value.uv[2], vr.value.uv[3],
+                            vr.value.iv[0], vr.value.iv[1], vr.value.iv[2], vr.value.iv[3]);
+
+                        variableHover.Show(tooltip, m_HoverScintilla,
+                                           m_HoverScintilla.ClientRectangle.Left + pt.X + 10, m_HoverScintilla.ClientRectangle.Top + pt.Y + 10);
+                    }
+                }
+            }
+        }
+
+        private const int ToolTipFontSize = 9;
+
+        private void variableHover_Popup(object sender, PopupEventArgs e)
+        {
+            using (Font fw = new Font(FontFamily.GenericMonospace, ToolTipFontSize))
+            {
+                SizeF size = TextRenderer.MeasureText(variableHover.GetToolTip(m_HoverScintilla), fw);
+
+                e.ToolTipSize = new Size((int)size.Width, (int)size.Height);
+            }
+        }
+
+        private void variableHover_Draw(object sender, DrawToolTipEventArgs e)
+        {
+            using (Font fw = new Font(FontFamily.GenericMonospace, ToolTipFontSize))
+            {
+                var g = e.Graphics;
+                
+                DrawToolTipEventArgs args = new DrawToolTipEventArgs(g, e.AssociatedWindow, e.AssociatedControl, e.Bounds, e.ToolTipText,
+                                                                     variableHover.BackColor, variableHover.ForeColor, fw);
+
+                args.DrawBackground();
+                args.DrawBorder();
+                args.DrawText(TextFormatFlags.TextBoxControl);
             }
         }
 
@@ -861,7 +993,7 @@ namespace renderdocui.Windows
                     var swizzle = match.Groups[3].Value.Replace(".", "");
                     var regcast = match.Groups[4].Value.Replace(",", "");
 
-                    if (regcast == "")
+                    if (regcast.Length == 0)
                     {
                         if (displayInts.Checked)
                             regcast = "i";
@@ -905,7 +1037,7 @@ namespace renderdocui.Windows
                         {
                             ShaderVariable vr = vars[regindex];
 
-                            if (swizzle == "")
+                            if (swizzle.Length == 0)
                             {
                                 swizzle = "xyzw".Substring(0, (int)vr.columns);
 
@@ -1279,14 +1411,17 @@ namespace renderdocui.Windows
                                             "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);" + Environment.NewLine +
                                             "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);" + Environment.NewLine +
                                             "Texture2DArray<float4> texDisplayTexCubeArray : register(t8);" + Environment.NewLine +
+                                            "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);" + Environment.NewLine +
                                             "" + Environment.NewLine +
                                             "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);" + Environment.NewLine +
                                             "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);" + Environment.NewLine +
                                             "Texture3D<uint4> texDisplayUIntTex3D : register(t13);" + Environment.NewLine +
+                                            "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);" + Environment.NewLine +
                                             "" + Environment.NewLine +
                                             "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);" + Environment.NewLine +
                                             "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);" + Environment.NewLine +
                                             "Texture3D<int4> texDisplayIntTex3D : register(t23);" + Environment.NewLine +
+                                            "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);" + Environment.NewLine +
                                             "// End Textures" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
@@ -1332,9 +1467,9 @@ namespace renderdocui.Windows
 
         private void watchRegs_AfterLabelEdit(object sender, LabelEditEventArgs e)
         {
-            if (e.Label == "" && e.Item < watchRegs.Items.Count - 1)
+            if (e.Label.Length == 0 && e.Item < watchRegs.Items.Count - 1)
                 watchRegs.Items.RemoveAt(e.Item);
-            else if (e.Label != null && e.Label != "" && e.Item == watchRegs.Items.Count - 1)
+            else if (e.Label != null && e.Label.Length > 0 && e.Item == watchRegs.Items.Count - 1)
                 watchRegs.Items.Add(new ListViewItem(new string[] { "", "", "" }));
 
             this.BeginInvoke((MethodInvoker)delegate { UpdateDebugging(); });

@@ -31,16 +31,18 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <utility>
 using std::wstring;
 using std::vector;
 using std::map;
+using std::pair;
 using std::set;
 
 class Serialiser;
 class Chunk;
 
-#include "replay/capture_options.h"
-#include "replay/replay_enums.h"
+#include "api/app/renderdoc_app.h"
+#include "api/replay/replay_enums.h"
 #include "os/os_specific.h"
 #include "common/threading.h"
 
@@ -91,6 +93,7 @@ enum RDCDriver
 	RDC_Reserved2 = 4,
 	RDC_D3D10 = 5,
 	RDC_D3D9 = 6,
+	RDC_Image = 7,
 	RDC_Custom = 100000,
 	RDC_Custom0 = RDC_Custom,
 	RDC_Custom1,
@@ -102,18 +105,6 @@ enum RDCDriver
 	RDC_Custom7,
 	RDC_Custom8,
 	RDC_Custom9,
-};
-
-enum InAppOverlay
-{
-	eOverlay_Enabled = 0x1,
-	eOverlay_FrameRate = 0x2,
-	eOverlay_FrameNumber = 0x4,
-	eOverlay_CaptureList = 0x8,
-
-	eOverlay_Default = (eOverlay_Enabled|eOverlay_FrameRate|eOverlay_FrameNumber|eOverlay_CaptureList),
-	eOverlay_All = ~0U,
-	eOverlay_None = 0,
 };
 
 namespace DXBC { class DXBCFile; }
@@ -135,6 +126,15 @@ struct RDCInitParams
 	LogState m_State;
 	Serialiser *m_pSerialiser;
 	Serialiser *m_pDebugSerialiser;
+};
+
+struct CaptureData
+{
+	CaptureData(wstring p, uint64_t t) : path(p), timestamp(t), retrieved(false) {}
+
+	wstring path;
+	uint64_t timestamp;
+	bool retrieved;
 };
 
 enum LoadProgressSection
@@ -173,7 +173,7 @@ class RenderDoc
 		void SetReplayApp(bool replay) { m_Replay = replay; }
 		bool IsReplayApp() const { return m_Replay; }
 
-		void BecomeReplayHost(volatile bool &killReplay);
+		void BecomeReplayHost(volatile bool32 &killReplay);
 
 		void SetCaptureOptions(const CaptureOptions *opts);
 		const CaptureOptions &GetCaptureOptions() const { return m_Options; }
@@ -184,18 +184,29 @@ class RenderDoc
 		Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels, size_t thlen, uint32_t thwidth, uint32_t thheight);
 		void SuccessfullyWrittenLog();
 
-		vector<wstring> GetCaptures()
+		void AddChildProcess(uint32_t pid, uint32_t ident)
+		{
+			SCOPED_LOCK(m_ChildLock);
+			m_Children.push_back( std::make_pair(pid, ident) );
+		}
+		vector< pair<uint32_t, uint32_t> > GetChildProcesses()
+		{
+			SCOPED_LOCK(m_ChildLock);
+			return m_Children;
+		}
+
+		vector<CaptureData> GetCaptures()
 		{
 			SCOPED_LOCK(m_CaptureLock);
-			return m_CapturePaths;
+			return m_Captures;
 		}
 
 		void MarkCaptureRetrieved(uint32_t idx)
 		{
 			SCOPED_LOCK(m_CaptureLock);
-			if(idx < m_CapturePaths.size())
+			if(idx < m_Captures.size())
 			{
-				m_CaptureRetrieved[idx] = true;
+				m_Captures[idx].retrieved = true;
 			}
 		}
 
@@ -231,9 +242,25 @@ class RenderDoc
 		void TriggerCapture() { m_Cap = true; }
 
 		uint32_t GetOverlayBits() { return m_Overlay; }
-		void MaskOverlayBits(uint32_t and, uint32_t or) { m_Overlay = (m_Overlay & and) | or; }
+		void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
 
 		void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
+
+		void SetFocusKeys(KeyButton *keys, int num)
+		{
+			m_FocusKeys.resize(num);
+			for(int i=0; i < num && keys; i++)
+				m_FocusKeys[i] = keys[i];
+		}
+		void SetCaptureKeys(KeyButton *keys, int num)
+		{
+			m_CaptureKeys.resize(num);
+			for(int i=0; i < num && keys; i++)
+				m_CaptureKeys[i] = keys[i];
+		}
+
+		const vector<KeyButton> &GetFocusKeys() { return m_FocusKeys; }
+		const vector<KeyButton> &GetCaptureKeys() { return m_CaptureKeys; }
 
 		bool ShouldFocusToggle() { bool ret = m_Focus; m_Focus = false; return ret; }
 		bool ShouldTriggerCapture(uint32_t frameNumber);
@@ -247,6 +274,9 @@ class RenderDoc
 
 		bool m_Focus;
 		bool m_Cap;
+
+		vector<KeyButton> m_FocusKeys;
+		vector<KeyButton> m_CaptureKeys;
 
 		wstring m_Target;
 		wstring m_LogFile;
@@ -266,8 +296,10 @@ class RenderDoc
 		float *m_ProgressPtr;
 
 		Threading::CriticalSection m_CaptureLock;
-		vector<wstring> m_CapturePaths;
-		vector<bool> m_CaptureRetrieved;
+		vector<CaptureData> m_Captures;
+		
+		Threading::CriticalSection m_ChildLock;
+		vector< pair<uint32_t, uint32_t> > m_Children;
 
 		map<RDCDriver, wstring> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;

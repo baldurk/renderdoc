@@ -62,7 +62,7 @@ struct GLWindowingData
 #error "Unknown platform"
 #endif
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the debugbreak.
 #define GLNOTIMP(...) RDCDEBUG("OpenGL not implemented - " __VA_ARGS__)

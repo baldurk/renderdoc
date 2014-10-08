@@ -1,39 +1,35 @@
 CC=gcc
 CPP=g++
+COMMIT=`git rev-parse HEAD`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
-			 -DGIT_COMMIT_HASH='"'$$(git rev-parse HEAD)'"' \
-			 -DRENDERDOC_VERSION_STRING='"0.21"'
-CFLAGS=-c -Wall -Werror -Wno-error=format -fPIC $(MACROS) -I.
+			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
+CFLAGS=-c -Wall -Werror -Wno-unknown-pragmas -Wno-error=format -fPIC $(MACROS) -I. -I3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
+OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
 replay/entry_points.o \
-replay/basic_types.o \
+replay/type_helpers.o \
 hooks/hooks.o \
 hooks/gl_linux_hooks.o \
 serialise/serialiser.o \
 common/common.o \
+common/dds_readwrite.o \
 core/remote_access.o \
 core/replay_proxy.o \
 core/remote_replay.o \
 core/resource_manager.o \
 core/core.o \
-data/glsl/blit.frago \
-data/glsl/blit.verto \
-data/glsl/texdisplay.frago \
-data/glsl/checkerboard.frago \
-data/glsl/generic.frago \
-data/glsl/generic.verto \
-data/glsl/mesh.verto \
 maths/camera.o \
 maths/matrix.o \
 os/os_specific.o \
 3rdparty/jpeg-compressor/jpgd.o \
 3rdparty/jpeg-compressor/jpge.o \
 3rdparty/lz4/lz4.o \
+3rdparty/stb/stb_impl.o \
 driver/gl/gl_common.o \
 driver/gl/gl_driver.o \
 driver/gl/gl_manager.o \
@@ -60,24 +56,47 @@ os/linux/linux_process.o \
 os/linux/linux_stringio.o \
 os/linux/linux_threading.o \
 hooks/linux_libentry.o
+SHADERS=data/glsl/blit.frago \
+data/glsl/blit.verto \
+data/glsl/texdisplay.frago \
+data/glsl/checkerboard.frago \
+data/glsl/generic.frago \
+data/glsl/generic.verto \
+data/glsl/mesh.verto
 
+.PHONY: all
 all: librenderdoc.so
 
-%.o: %.cpp
+$(OBJDIR)/%.o: %.cpp
+	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
 
-%.o: %.c
+$(OBJDIR)/%.o: %.c
+	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
 
-%.verto: %.vert
-	cd $$(dirname $@) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+# objcopy needs to be run in with paths in current directory
+# to produce the right symbol names
+$(OBJDIR)/%.verto: %.vert
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
 
-%.frago: %.frag
-	cd $$(dirname $@) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+$(OBJDIR)/%.frago: %.frag
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
 
-librenderdoc.so: $(OBJECTS) $(SOURCES)
-	g++ -o librenderdoc.so $(OBJECTS) $(LDFLAGS)
+OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
+OBJDIR_SHADERS=$(addprefix $(OBJDIR)/, $(SHADERS))
 
+-include $(OBJDIR_OBJECTS:.o=.d)
+
+librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_SHADERS)
+	g++ -o librenderdoc.so $^ $(LDFLAGS)
+
+.PHONY: clean
 clean:
-	find -type f -iname \*.o -exec rm '{}' \;
-	rm -f librenderdoc.so
+	rm -rf librenderdoc.so $(OBJDIR)

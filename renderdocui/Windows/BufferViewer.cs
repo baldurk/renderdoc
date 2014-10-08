@@ -31,7 +31,6 @@ using System.IO;
 using System.Drawing;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
@@ -56,7 +55,7 @@ namespace renderdocui.Windows
     // explicitly myself but the UI interaction makes that murky, so bear in mind that you need to be able to
     // handle changing events while a thread is still going and about to populate some data etc, and be able
     // to abort that and start anew without anything breaking or racing.
-    public partial class BufferViewer : DockContent, ILogViewerForm
+    public partial class BufferViewer : DockContent, ILogViewerForm, IBufferFormatProcessor
     {
         #region Data Privates
 
@@ -84,6 +83,7 @@ namespace renderdocui.Windows
         private class Dataset
         {
             public uint IndexCount = 0;
+            public uint IndexAdd = 0;
 
             public PrimitiveTopology Topology = PrimitiveTopology.Unknown;
 
@@ -443,6 +443,8 @@ namespace renderdocui.Windows
                     var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                     var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
 
+                    UpdateMeshPositionBuffer();
+
                     if (curReq != m_ReqID)
                         return;
 
@@ -519,6 +521,9 @@ namespace renderdocui.Windows
                 var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
                 var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                 var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
+
+                if (MeshView)
+                    UpdateMeshPositionBuffer();
 
                 if (curReq != m_ReqID)
                     return;
@@ -628,227 +633,17 @@ namespace renderdocui.Windows
                 }
             }
 
-            var elems = new List<FormatElement>();
-
-            var formatReader = new StringReader(formatString);
-
-            // regex doesn't account for trailing or preceeding whitespace, or comments
-
-            var regExpr = @"^(row_major\s+)?" + // row_major matrix
-                          @"(" +
-                          @"uintten|unormten" +
-                          @"|unormh|unormb" +
-                          @"|snormh|snormb" +
-                          @"|bool" + // bool is stored as 4-byte int in hlsl
-                          @"|byte|short|int" + // signed ints
-                          @"|ubyte|ushort|uint" + // unsigned ints
-                          @"|xbyte|xshort|xint" + // hex ints
-                          @"|half|float|double" + // float types
-                          @")" +
-                          @"([1-9])?" + // might be a vector
-                          @"(x[1-9])?" + // or a matrix
-                          @"(\s+[A-Za-z_][A-Za-z0-9_]*)?" + // get identifier name
-                          @"(\[[0-9]+\])?" + // optional array dimension
-                          @"(\s*:\s*[A-Za-z_][A-Za-z0-9_]*)?" + // optional semantic
-                          @"$";
-
-            Regex regParser = new Regex(regExpr, RegexOptions.Compiled);
-
-            bool success = true;
-            string errors = "";
-
             Input input = new Input();
 
-            input.Strides = new uint[] { 0 };
+            string errors = "";
 
-            var text = formatReader.ReadToEnd();
+            FormatElement[] elems = FormatElement.ParseFormatString(formatString, true, out errors);
 
-            text = text.Replace("{", "").Replace("}", "");
-
-            Regex c_comments = new Regex(@"/\*[^*]*\*+(?:[^*/][^*]*\*+)*/", RegexOptions.Compiled);
-            text = c_comments.Replace(text, "");
-
-            Regex cpp_comments = new Regex(@"//.*", RegexOptions.Compiled);
-            text = cpp_comments.Replace(text, "");
-
-            // get each line and parse it to determine the format the user wanted
-            foreach (var l in text.Split(';'))
-            {
-                var line = l;
-                line = line.Trim();
-
-                if (line == "") continue;
-
-                var match = regParser.Match(line);
-
-                if (!match.Success)
-                {
-                    errors = "Couldn't parse line:\n" + line;
-                    success = false;
-                    break;
-                }
-
-                var basetype = match.Groups[2].Value;
-                bool row_major = match.Groups[1].Success;
-                var vectorDim = match.Groups[3].Success ? match.Groups[3].Value : "1";
-                var matrixDim = match.Groups[4].Success ? match.Groups[4].Value.Substring(1) : "1";
-                var name = match.Groups[5].Success ? match.Groups[5].Value.Trim() : "data";
-                var arrayDim = match.Groups[6].Success ? match.Groups[6].Value.Trim() : "[1]";
-                arrayDim = arrayDim.Substring(1, arrayDim.Length - 2);
-
-                if(match.Groups[4].Success)
-                {
-                    var a = vectorDim;
-                    vectorDim = matrixDim;
-                    matrixDim = a;
-                }
-
-                ResourceFormat fmt = new ResourceFormat(FormatComponentType.None, 0, 0);
-
-                bool hex = false;
-
-                FormatComponentType type = FormatComponentType.Float;
-                uint count = 0;
-                uint arrayCount = 1;
-                uint matrixCount = 0;
-                uint width = 0;
-
-                // calculate format
-                {
-                    if (!uint.TryParse(vectorDim, out count))
-                    {
-                        errors = "Invalid vector dimension on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-                    if (!uint.TryParse(arrayDim, out arrayCount))
-                    {
-                        arrayCount = 1;
-                    }
-                    arrayCount = Math.Max(0, arrayCount);
-                    if (!uint.TryParse(matrixDim, out matrixCount))
-                    {
-                        errors = "Invalid matrix second dimension on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-
-                    if (basetype == "bool")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 4;
-                    }
-                    else if (basetype == "byte")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 1;
-                    }
-                    else if (basetype == "ubyte" || basetype == "xbyte")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 1;
-                    }
-                    else if (basetype == "short")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 2;
-                    }
-                    else if (basetype == "ushort" || basetype == "xshort")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 2;
-                    }
-                    else if (basetype == "int")
-                    {
-                        type = FormatComponentType.SInt;
-                        width = 4;
-                    }
-                    else if (basetype == "uint" || basetype == "xint")
-                    {
-                        type = FormatComponentType.UInt;
-                        width = 4;
-                    }
-                    else if (basetype == "half")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 2;
-                    }
-                    else if (basetype == "float")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 4;
-                    }
-                    else if (basetype == "double")
-                    {
-                        type = FormatComponentType.Float;
-                        width = 8;
-                    }
-                    else if (basetype == "unormh")
-                    {
-                        type = FormatComponentType.UNorm;
-                        width = 2;
-                    }
-                    else if (basetype == "unormb")
-                    {
-                        type = FormatComponentType.UNorm;
-                        width = 1;
-                    }
-                    else if (basetype == "snormh")
-                    {
-                        type = FormatComponentType.SNorm;
-                        width = 2;
-                    }
-                    else if (basetype == "snormb")
-                    {
-                        type = FormatComponentType.SNorm;
-                        width = 1;
-                    }
-                    else if (basetype == "uintten")
-                    {
-                        fmt = new ResourceFormat(FormatComponentType.UInt, 4 * count, 1);
-                        fmt.special = true;
-                        fmt.specialFormat = SpecialFormat.R10G10B10A2;
-                    }
-                    else if (basetype == "unormten")
-                    {
-                        fmt = new ResourceFormat(FormatComponentType.UNorm, 4 * count, 1);
-                        fmt.special = true;
-                        fmt.specialFormat = SpecialFormat.R10G10B10A2;
-                    }
-                    else
-                    {
-                        errors = "Unrecognised basic type on line:\n" + line;
-                        success = false;
-                        break;
-                    }
-                }
-
-                if (basetype == "xint" || basetype == "xshort" || basetype == "xbyte")
-                    hex = true;
-
-                if(fmt.compType == FormatComponentType.None)
-                    fmt = new ResourceFormat(type, count * arrayCount, width);
-
-                FormatElement elem = new FormatElement(name, 0, input.Strides[0], false, row_major, matrixCount, fmt, hex);
-
-                elems.Add(elem);
-                input.Strides[0] += elem.ByteSize;
-            }
-
-            if (!success || elems.Count == 0)
-            {
-                elems.Clear();
-
-                var fmt = new ResourceFormat(FormatComponentType.UInt, 4, 4);
-
-                elems.Add(new FormatElement("data", 0, input.Strides[0], false, false, 1, fmt, true));
-                input.Strides[0] = elems.Last().ByteSize;
-            }
-
+            input.Strides = new uint[] { elems.Last().offset + elems.Last().ByteSize };
             input.Buffers = new ResourceId[] { buff };
             input.Offsets = new uint[] { 0 };
             input.IndexBuffer = ResourceId.Null;
-            input.BufferFormats = elems.ToArray();
+            input.BufferFormats = elems;
             input.IndexOffset = 0;
 
             m_VSIn.m_Input = input;
@@ -883,6 +678,22 @@ namespace renderdocui.Windows
             ret.Drawcall = draw;
             ret.Topology = m_Core.CurPipelineState.DrawTopology;
 
+            ResourceId ibuffer = ResourceId.Null;
+            uint ioffset = 0;
+            ResourceFormat ifmt = null;
+
+            m_Core.CurPipelineState.GetIBuffer(out ibuffer, out ioffset, out ifmt);
+
+            if (draw != null && (draw.flags & DrawcallFlags.UseIBuffer) == 0)
+            {
+                ibuffer = ResourceId.Null;
+                ioffset = 0;
+            }
+
+            ret.IndexFormat = new FormatElement("", 0, 0, false, false, 1, ifmt, false);
+            ret.IndexBuffer = ibuffer;
+            ret.IndexOffset = ioffset;
+
             if (type != MeshDataStage.VSIn)
             {
                 ShaderReflection details = null;
@@ -909,7 +720,7 @@ namespace renderdocui.Windows
                     f[i] = new FormatElement();
 
                     f[i].buffer = 0;
-                    f[i].name = details.OutputSig[i].varName != "" ? details.OutputSig[i].varName : details.OutputSig[i].semanticIdxName;
+                    f[i].name = details.OutputSig[i].varName.Length > 0 ? details.OutputSig[i].varName : details.OutputSig[i].semanticIdxName;
                     f[i].format.compByteWidth = sizeof(float);
                     f[i].format.compCount = sig.compCount;
                     f[i].format.compType = sig.compType;
@@ -927,7 +738,6 @@ namespace renderdocui.Windows
                 ret.Strides = new uint[] { offset };
                 ret.Offsets = new uint[] { 0 };
                 ret.Buffers = null;
-                ret.IndexBuffer = ResourceId.Null;
 
                 return ret;
             }
@@ -964,26 +774,10 @@ namespace renderdocui.Windows
                 }
             }
 
-            ResourceId ibuffer = ResourceId.Null;
-            uint ioffset = 0;
-            ResourceFormat ifmt = null;
-
-            m_Core.CurPipelineState.GetIBuffer(out ibuffer, out ioffset, out ifmt);
-
-            if (draw != null && (draw.flags & DrawcallFlags.UseIBuffer) == 0)
-            {
-                ibuffer = ResourceId.Null;
-                ioffset = 0;
-            }
-
             ret.BufferFormats = f;
             ret.Strides = s;
             ret.Offsets = o;
             ret.Buffers = bs;
-
-            ret.IndexFormat = new FormatElement("", 0, 0, false, false, 1, ifmt, false);
-            ret.IndexBuffer = ibuffer;
-            ret.IndexOffset = ioffset;
 
             return ret;
         }
@@ -997,6 +791,7 @@ namespace renderdocui.Windows
             Dataset ret = new Dataset();
 
             ret.IndexCount = 0;
+            ret.IndexAdd = 0;
 
             if (input == null)
                 return ret;
@@ -1049,6 +844,50 @@ namespace renderdocui.Windows
                 }
 
                 ret.Indices = null;
+
+                if (postvs != null && type == MeshDataStage.VSOut &&
+                    (input.Drawcall.flags & DrawcallFlags.UseIBuffer) > 0 && input.IndexBuffer != ResourceId.Null)
+                {
+                    ret.IndexCount = input.Drawcall.numIndices;
+
+                    byte[] rawidxs = r.GetBufferData(input.IndexBuffer,
+                                                     input.IndexOffset + input.Drawcall.indexOffset * input.IndexFormat.format.compByteWidth,
+                                                     ret.IndexCount * input.IndexFormat.format.compByteWidth);
+
+                    ret.Indices = new uint[rawidxs.Length / input.IndexFormat.format.compByteWidth];
+
+                    if (input.IndexFormat.format.compByteWidth == 2)
+                    {
+                        ushort[] tmp = new ushort[rawidxs.Length / 2];
+
+                        Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
+
+                        for (int i = 0; i < tmp.Length; i++)
+                        {
+                            ret.Indices[i] = tmp[i];
+                        }
+                    }
+                    else if (input.IndexFormat.format.compByteWidth == 4)
+                    {
+                        Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                    }
+
+                    uint minIndex = ret.Indices[0];
+                    foreach (var i in ret.Indices)
+                    {
+                        if (input.IndexFormat.format.compByteWidth == 2 && i == UInt16.MaxValue)
+                            continue;
+                        if (input.IndexFormat.format.compByteWidth == 4 && i == UInt32.MaxValue)
+                            continue;
+
+                        minIndex = Math.Min(minIndex, i);
+                    }
+
+                    for (int idx = 0; idx < ret.Indices.Length; idx++)
+                        ret.Indices[idx] -= minIndex;
+
+                    ret.IndexAdd = minIndex;
+                }
 
                 return ret;
             }
@@ -1292,7 +1131,6 @@ namespace renderdocui.Windows
             var state = GetUIState(type);
 
             Input input = state.m_Input;
-            uint instance = m_CurInst;
 
             if(data.Buffers == null)
                 return;
@@ -1434,7 +1272,7 @@ namespace renderdocui.Windows
                                 strm.Seek(offs, SeekOrigin.Begin);
                             }
 
-                            string elname = bufferFormats[el].name.ToLowerInvariant();
+                            string elname = bufferFormats[el].name.ToUpperInvariant();
                             var fmt = bufferFormats[el].format;
                             int byteWidth = (int)fmt.compByteWidth;
 
@@ -1446,7 +1284,7 @@ namespace renderdocui.Windows
                             if (bytes.Length != bytesToRead)
                                 throw new System.IO.EndOfStreamException();
 
-                            if (elname == "position" || elname == "sv_position")
+                            if (elname == "POSITION" || elname == "SV_POSITION")
                             {
                                 for (int i = 0; i < fmt.compCount; i++)
                                 {
@@ -1545,6 +1383,34 @@ namespace renderdocui.Windows
             }
         }
 
+        private string ElementString(FormatElement el, object o)
+        {
+            if (o is float)
+            {
+                return Formatter.Format((float)o);
+            }
+            else if (o is double)
+            {
+                return Formatter.Format((double)o);
+            }
+            else if (o is uint)
+            {
+                uint u = (uint)o;
+
+                if (el.format.compByteWidth == 4) return String.Format(el.hex ? "{0:X8}" : "{0}", u);
+                if (el.format.compByteWidth == 2) return String.Format(el.hex ? "{0:X4}" : "{0}", u);
+                if (el.format.compByteWidth == 1) return String.Format(el.hex ? "{0:X2}" : "{0}", u);
+
+                return String.Format("{0}", (uint)o);
+            }
+            else if (o is int)
+            {
+                return String.Format("{0}", (int)o);
+            }
+
+            return o.ToString();
+        }
+
         private void UI_CacheRow(UIState state, int rowIdx)
         {
             if (state.m_Rows[rowIdx] != null || SuppressCaching)
@@ -1606,7 +1472,7 @@ namespace renderdocui.Windows
                         if (outOfBoundsIdx)
                             rowdata[1] = "-";
                         else
-                            rowdata[1] = index;
+                            rowdata[1] = index + data.IndexAdd;
 
                         bool strip = state.m_Data.Topology == PrimitiveTopology.LineStrip ||
                                      state.m_Data.Topology == PrimitiveTopology.LineStrip_Adj ||
@@ -1660,158 +1526,31 @@ namespace renderdocui.Windows
                                 strm.Seek(offs, SeekOrigin.Begin);
                             }
 
-                            string elname = bufferFormats[el].name.ToLowerInvariant();
-                            var fmt = bufferFormats[el].format;
+                            object[] elements = bufferFormats[el].GetObjects(read);
 
-                            if (fmt.special && fmt.specialFormat == SpecialFormat.B8G8R8A8)
+                            if (bufferFormats[el].matrixdim == 1)
                             {
-                                byte b = read.ReadByte();
-                                byte g = read.ReadByte();
-                                byte r = read.ReadByte();
-                                byte a = read.ReadByte();
-
-                                rowdata[x + 0] = fmt.Interpret(r, false);
-                                rowdata[x + 1] = fmt.Interpret(g, false);
-                                rowdata[x + 2] = fmt.Interpret(b, false);
-                                rowdata[x + 3] = fmt.Interpret(a, false);
-                                x += 4;
+                                for (int i = 0; i < elements.Length; i++)
+                                    rowdata[x + i] = ElementString(bufferFormats[el], elements[i]);
+                                x += elements.Length;
                             }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B5G5R5A1)
+                            else
                             {
-                                ushort packed = read.ReadUInt16();
-
-                                rowdata[x + 2] = (float)((packed >> 0) & 0x1f) / 31.0f;
-                                rowdata[x + 1] = (float)((packed >> 5) & 0x1f) / 31.0f;
-                                rowdata[x + 0] = (float)((packed >> 10) & 0x1f) / 31.0f;
-                                rowdata[x + 3] = ((packed & 0x8000) > 0) ? 1.0f : 0.0f;
-                                x += 4;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B5G6R5)
-                            {
-                                ushort packed = read.ReadUInt16();
-                                
-                                rowdata[x + 2] = (float)((packed >> 0) & 0x1f) / 31.0f;
-                                rowdata[x + 1] = (float)((packed >> 5) & 0x3f) / 63.0f;
-                                rowdata[x + 0] = (float)((packed >> 11) & 0x1f) / 31.0f;
-                                x += 3;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.B4G4R4A4)
-                            {
-                                ushort packed = read.ReadUInt16();
-
-                                rowdata[x + 2] = (float)((packed >> 0) & 0xf) / 15.0f;
-                                rowdata[x + 1] = (float)((packed >> 4) & 0xf) / 15.0f;
-                                rowdata[x + 0] = (float)((packed >> 8) & 0xf) / 15.0f;
-                                rowdata[x + 3] = (float)((packed >> 12) & 0xf) / 15.0f;
-                                x += 4;
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.R10G10B10A2)
-                            {
-                                // allow for vectors of this format - for raw buffer viewer
-                                for (int i = 0; i < (fmt.compCount / 4); i++)
-                                {
-                                    uint packed = read.ReadUInt32();
-
-                                    uint r = (packed >> 0) & 0x3ff;
-                                    uint g = (packed >> 10) & 0x3ff;
-                                    uint b = (packed >> 20) & 0x3ff;
-                                    uint a = (packed >> 30) & 0x003;
-
-                                    if (fmt.compType == FormatComponentType.UInt)
-                                    {
-                                        rowdata[x + 0] = r;
-                                        rowdata[x + 1] = g;
-                                        rowdata[x + 2] = b;
-                                        rowdata[x + 3] = a;
-                                    }
-                                    else
-                                    {
-                                        rowdata[x + 0] = (float)r / 1023.0f;
-                                        rowdata[x + 1] = (float)g / 1023.0f;
-                                        rowdata[x + 2] = (float)b / 1023.0f;
-                                        rowdata[x + 3] = (float)a / 3.0f;
-                                    }
-
-                                    x += 4;
-                                }
-                            }
-                            else if (fmt.special && fmt.specialFormat == SpecialFormat.R11G11B10)
-                            {
-                                uint packed = read.ReadUInt32();
-
-                                uint xMantissa = ((packed >> 0) & 0x3f);
-                                uint xExponent = ((packed >> 6) & 0x1f);
-                                uint yMantissa = ((packed >> 11) & 0x3f);
-                                uint yExponent = ((packed >> 17) & 0x1f);
-                                uint zMantissa = ((packed >> 22) & 0x1f);
-                                uint zExponent = ((packed >> 27) & 0x1f);
-
-                                rowdata[x + 0] = ((float)(xMantissa) / 64.0f) * Math.Pow(2.0f, (float)xExponent - 15.0f);
-                                rowdata[x + 1] = ((float)(yMantissa) / 32.0f) * Math.Pow(2.0f, (float)yExponent - 15.0f);
-                                rowdata[x + 2] = ((float)(zMantissa) / 32.0f) * Math.Pow(2.0f, (float)zExponent - 15.0f);
-
-                                x += 3;
-                            }
-                            else if(bufferFormats[el].matrixdim > 1)
-                            {
-                                object[] arr = new object[bufferFormats[el].matrixdim * fmt.compCount];
-                                for (int i = 0; i < bufferFormats[el].matrixdim * fmt.compCount; i++)
-                                {
-                                    if (fmt.compType == FormatComponentType.Float)
-                                    {
-                                        if (fmt.compByteWidth == 4)
-                                            arr[i] = read.ReadSingle();
-                                        else if (fmt.compByteWidth == 2)
-                                            arr[i] = fmt.ConvertFromHalf(read.ReadUInt16());
-                                    }
-                                    else
-                                    {
-                                        if (fmt.compByteWidth == 4)
-                                            arr[i] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
-                                        else if (fmt.compByteWidth == 2)
-                                            arr[i] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
-                                        else if (fmt.compByteWidth == 1)
-                                            arr[i] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
-                                    }
-                                }
-
-                                int cols = (int)fmt.compCount;
+                                int cols = (int)bufferFormats[el].format.compCount;
                                 int rows = (int)bufferFormats[el].matrixdim;
 
                                 for (int col = 0; col < cols; col++)
                                 {
-                                    object[] colarr = new object[rows];
+                                    string[] colarr = new string[rows];
                                     for (int row = 0; row < rows; row++)
                                     {
                                         if (!bufferFormats[el].rowmajor)
-                                            colarr[row] = arr[col * rows + row];
+                                            colarr[row] = ElementString(bufferFormats[el], elements[col * rows + row]);
                                         else
-                                            colarr[row] = arr[row * cols + col];
+                                            colarr[row] = ElementString(bufferFormats[el], elements[row * cols + col]);
                                     }
 
                                     rowdata[x++] = colarr;
-                                }
-                            }
-                            else if (fmt.compType == FormatComponentType.Float)
-                            {
-                                for (int i = 0; i < fmt.compCount; i++, x++)
-                                {
-                                    if (fmt.compByteWidth == 4)
-                                        rowdata[x] = read.ReadSingle();
-                                    else if (fmt.compByteWidth == 2)
-                                        rowdata[x] = fmt.ConvertFromHalf(read.ReadUInt16());
-                                }
-                            }
-                            else
-                            {
-                                for (int i = 0; i < fmt.compCount; i++, x++)
-                                {
-                                    if (fmt.compByteWidth == 4)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt32(), bufferFormats[el].hex);
-                                    else if (fmt.compByteWidth == 2)
-                                        rowdata[x] = fmt.Interpret(read.ReadUInt16(), bufferFormats[el].hex);
-                                    else if (fmt.compByteWidth == 1)
-                                        rowdata[x] = fmt.Interpret(read.ReadByte(), bufferFormats[el].hex);
                                 }
                             }
                         }
@@ -2057,7 +1796,7 @@ namespace renderdocui.Windows
                 }
             }
 
-            ClearHighlightVerts();
+            UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
 
             m_CurrentCamera.Apply();
             m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
@@ -2118,6 +1857,9 @@ namespace renderdocui.Windows
         private void BufferViewer_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
+
+            m_Updater.Stop();
+            m_Updater = null;
 
             m_ReqID++;
         }
@@ -2215,9 +1957,46 @@ namespace renderdocui.Windows
                 controlType.SelectedIndex = 1;
             }
 
+            UpdateMeshPositionBuffer();
+
             enableCameraControls();
 
             controlType_SelectedIndexChanged(sender, e);
+        }
+
+        private void UpdateMeshPositionBuffer()
+        {
+            var ui = GetUIState(m_MeshDisplay.type);
+
+            FormatElement pos = null;
+
+            if (ui.m_Input.BufferFormats != null)
+            {
+                foreach (var el in ui.m_Input.BufferFormats)
+                {
+                    // prioritise SV_Position over general POSITION
+                    if (el.name.ToUpperInvariant() == "SV_POSITION")
+                        pos = el;
+                    if (el.name.ToUpperInvariant() == "POSITION" && pos == null)
+                        pos = el;
+                }
+            }
+
+            if (pos == null)
+            {
+                m_MeshDisplay.positionBuf = ResourceId.Null;
+            }
+            else
+            {
+                m_MeshDisplay.positionBuf = m_VSIn.m_Input.Buffers[pos.buffer];
+                m_MeshDisplay.positionOffset = pos.offset + ui.m_Input.Offsets[pos.buffer];
+                m_MeshDisplay.positionStride = ui.m_Input.Strides[pos.buffer];
+
+                m_MeshDisplay.positionCompByteWidth = pos.format.compByteWidth;
+                m_MeshDisplay.positionCompCount = pos.format.compCount;
+                m_MeshDisplay.positionCompType = pos.format.compType;
+                m_MeshDisplay.positionFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
+            }
         }
 
         private void camGuess_PropChanged()
@@ -2236,7 +2015,7 @@ namespace renderdocui.Windows
 
 
             float aspect = 0.0f;
-            if (aspectGuess.Text != "")
+            if (aspectGuess.Text.Length > 0)
             {
                 float.TryParse(aspectGuess.Text, out aspect);
             }
@@ -2248,7 +2027,7 @@ namespace renderdocui.Windows
 
 
             float near = -float.MaxValue;
-            if (nearGuess.Text != "")
+            if (nearGuess.Text.Length > 0)
             {
                 float.TryParse(nearGuess.Text, out near);
             }
@@ -2260,7 +2039,7 @@ namespace renderdocui.Windows
 
 
             float far = -float.MaxValue;
-            if (farGuess.Text != "")
+            if (farGuess.Text.Length > 0)
             {
                 float.TryParse(farGuess.Text, out far);
             }
@@ -2346,18 +2125,22 @@ namespace renderdocui.Windows
 
         private void bufferView_MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Right && m_Core.LogLoaded)
+            if (m_Core.LogLoaded)
             {
-                openFormat.Visible = !MeshView;
-
-                debugVertex.Visible = MeshView &&
-                    m_Core.LogLoaded &&
-                    sender == vsInBufferView && 
-                    vsInBufferView.SelectedRows.Count == 1;
-                setInstanceToolStripMenuItem.Enabled = (m_Core.CurDrawcall != null && m_Core.CurDrawcall.numInstances > 1);
-
                 m_ContextUIState = GetUIState(sender);
-                rightclickMenu.Show(((DataGridView)sender).PointToScreen(e.Location));
+
+                if (e.Button == MouseButtons.Right)
+                {
+                    openFormat.Visible = !MeshView;
+
+                    debugVertex.Visible = MeshView &&
+                        m_Core.LogLoaded &&
+                        sender == vsInBufferView &&
+                        vsInBufferView.SelectedRows.Count == 1;
+                    setInstanceToolStripMenuItem.Enabled = (m_Core.CurDrawcall != null && m_Core.CurDrawcall.numInstances > 1);
+
+                    rightclickMenu.Show(((DataGridView)sender).PointToScreen(e.Location));
+                }
             }
         }
 
@@ -2433,14 +2216,23 @@ namespace renderdocui.Windows
             ShowFormatSpecifier();
         }
 
+        public void ProcessBufferFormat(string formatText)
+        {
+            ViewRawBuffer(GetUIState(MeshDataStage.VSIn).m_Input.Buffers[0], formatText);
+        }
+
         private void ShowFormatSpecifier()
         {
-            UIState ui = GetUIState(MeshDataStage.VSIn);
+			if (m_FormatSpecifier == null)
+			{
+				m_FormatSpecifier = new BufferFormatSpecifier(this, m_FormatText);
 
-            if (m_FormatSpecifier == null)
-                m_FormatSpecifier = new BufferFormatSpecifier(this, ui.m_Input.Buffers[0], m_FormatText);
+				var dock = Helpers.WrapDockContent(dockPanel, m_FormatSpecifier, m_FormatSpecifier.Text);
+				dock.CloseButton = false;
+				dock.CloseButtonVisible = false;
+			}
 
-            m_FormatSpecifier.Show(dockPanel, DockState.DockBottom);
+            (m_FormatSpecifier.Parent as DockContent).Show(dockPanel, DockState.DockBottom);
         }
 
         private void debugVertex_Click(object sender, EventArgs e)
@@ -2471,7 +2263,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.VSGetDebugStates((UInt32)row, (UInt32)m_CurInst, idx, draw.instanceOffset, draw.vertexOffset);
+                trace = r.DebugVertex((UInt32)row, (UInt32)m_CurInst, idx, draw.instanceOffset, draw.vertexOffset);
             });
 
             this.BeginInvoke(new Action(() =>
@@ -2579,79 +2371,14 @@ namespace renderdocui.Windows
 
         #region Vertex Highlighting
 
-        private FloatVector GetPosition(UIState ui, int rowidx)
+        private void highlightVerts_CheckedChanged(object sender, EventArgs e)
         {
-            if (rowidx >= 0 && rowidx < ui.m_Rows.Length)
-            {
-                uint offset = 0;
-                foreach (var el in ui.m_Input.BufferFormats)
-                {
-                    if (el.name.ToUpper() == "POSITION" || el.name.ToUpper() == "SV_POSITION")
-                    {
-                        Stream stream = new MemoryStream(ui.m_RawData);
-                        BinaryReader reader = new BinaryReader(stream);
-
-                        uint offs = (uint)(ui.m_RawStride * rowidx + offset);
-
-                        uint numComps = Math.Min(el.format.compCount, 4);
-
-                        if (offs > ui.m_RawData.Length || offs + sizeof(float) * numComps > ui.m_RawData.Length)
-                            return new FloatVector();
-
-                        stream.Seek(offs, SeekOrigin.Begin);
-
-                        var ret = new FloatVector();
-
-                        if (el.format.compByteWidth == 4)
-                        {
-                            for (int i = 0; i < numComps; i++)
-                            {
-                                if (i == 0) ret.x = reader.ReadSingle();
-                                if (i == 1) ret.y = reader.ReadSingle();
-                                if (i == 2) ret.z = reader.ReadSingle();
-                                if (i == 3) ret.w = reader.ReadSingle();
-                            }
-                        }
-                        else if (el.format.compByteWidth == 2)
-                        {
-                            for (int i = 0; i < numComps; i++)
-                            {
-                                ushort data = reader.ReadUInt16();
-                                if (i == 0) ret.x = el.format.ConvertFromHalf(data);
-                                if (i == 1) ret.y = el.format.ConvertFromHalf(data);
-                                if (i == 2) ret.z = el.format.ConvertFromHalf(data);
-                                if (i == 3) ret.w = el.format.ConvertFromHalf(data);
-                            }
-                        }
-
-                        return ret;
-                    }
-
-                    offset += el.ByteSize;
-                }
-            }
-
-            return new FloatVector();
-        }
-
-        private uint GetIndex(UIState ui, int rowidx)
-        {
-            if (rowidx >= 0 && ui.m_Data.Indices != null && rowidx < ui.m_Data.Indices.Length)
-            {
-                uint ret = ui.m_Data.Indices[rowidx];
-
-                if (ui.m_Input.IndexFormat.ByteSize == 2 && ret == ushort.MaxValue)
-                    ret = uint.MaxValue;
-
-                return ret;
-            }
-
-            return uint.MaxValue;
+            UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
         }
 
         private void ClearHighlightVerts()
         {
-            m_MeshDisplay.showVerts = false;
+            m_MeshDisplay.highlightVert = ~0U;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }
 
@@ -2661,83 +2388,10 @@ namespace renderdocui.Windows
             if (ui.m_GridView.SelectedRows.Count == 0) return;
             if (!MeshView) return;
 
-            int v0 = (ui.m_GridView.SelectedRows[0].Index / 3) * 3;
-
-            if (ui == m_VSIn && ui.m_Data.Topology == PrimitiveTopology.TriangleStrip)
-            {
-                int idx = ui.m_GridView.SelectedRows[0].Index;
-                v0 = Math.Min(ui.m_GridView.RowCount - 3, idx);
-
-                if ((ui.m_Input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0)
-                {
-                    // handle tristrip reset values by clamping where possible.
-                    if (GetIndex(ui, v0 + 2) == uint.MaxValue && v0 > 0)
-                    {
-                        if (v0 > 0)
-                        {
-                            v0 -= 1;
-                        }
-                        else
-                        {
-                            // reset value before we've done a full tri. Don't show highlight
-                            ClearHighlightVerts();
-                            return;
-                        }
-                    }
-                    else if (GetIndex(ui, v0 + 1) == uint.MaxValue && v0 > 1)
-                    {
-                        if (v0 > 1)
-                        {
-                            v0 -= 2;
-                        }
-                        else
-                        {
-                            // reset value before we've done a full tri. Don't show highlight
-                            ClearHighlightVerts();
-                            return;
-                        }
-                    }
-
-                    if (GetIndex(ui, v0 + 0) == uint.MaxValue ||
-                        GetIndex(ui, v0 + 1) == uint.MaxValue ||
-                        GetIndex(ui, v0 + 2) == uint.MaxValue)
-                    {
-                        // selected a reset value, or shifted back into a reset value thus degenerate triangle,
-                        // don't show anything
-                        ClearHighlightVerts();
-                        return;
-                    }
-                }
-            }
-
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 0)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.showVerts = true;
-            }
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 1)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.showVerts = true;
-            }
-            if (ui.m_GridView.SelectedRows[0].Index == v0 + 2)
-            {
-                m_MeshDisplay.highlight.v0 = GetPosition(ui, v0 + 2);
-                m_MeshDisplay.highlight.v1 = GetPosition(ui, v0 + 1);
-                m_MeshDisplay.highlight.v2 = GetPosition(ui, v0 + 0);
-                m_MeshDisplay.showVerts = true;
-            }
-
-            if (ui.m_Data.Topology == PrimitiveTopology.PointList)
-                m_MeshDisplay.highlight.v2 = m_MeshDisplay.highlight.v1 = m_MeshDisplay.highlight.v0;
-
-            if (ui.m_Data.Topology == PrimitiveTopology.LineList ||
-                ui.m_Data.Topology == PrimitiveTopology.LineStrip)
-                m_MeshDisplay.highlight.v2 = m_MeshDisplay.highlight.v1;
+            if(highlightVerts.Checked)
+                m_MeshDisplay.highlightVert = (uint)ui.m_GridView.SelectedRows[0].Index;
+            else
+                m_MeshDisplay.highlightVert = ~0U;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }
@@ -2756,49 +2410,4 @@ namespace renderdocui.Windows
             }
         }
     }
-
-    public class FormatElement
-    {
-        public FormatElement()
-        {
-            name = "";
-            buffer = 0;
-            offset = 0;
-            perinstance = false;
-            rowmajor = false;
-            matrixdim = 0;
-            format = new ResourceFormat();
-            hex = false;
-        }
-
-        public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat fmt, bool h)
-        {
-            name = Name;
-            buffer = buf;
-            offset = offs;
-            format = fmt;
-            perinstance = pi;
-            rowmajor = rowMat;
-            matrixdim = matDim;
-            hex = h;
-        }
-
-        public uint ByteSize
-        {
-            get
-            {
-                return format.compByteWidth * format.compCount * matrixdim;
-            }
-        }
-
-        public string name;
-        public int buffer;
-        public uint offset;
-        public bool perinstance;
-        public bool rowmajor;
-        public uint matrixdim;
-        public ResourceFormat format;
-        public bool hex;
-    }
-
 }

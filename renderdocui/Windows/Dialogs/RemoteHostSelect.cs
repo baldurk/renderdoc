@@ -215,7 +215,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void AddNewHost()
         {
-            if (hostname.Text.Trim() != "" && !m_Core.Config.RecentHosts.Contains(hostname.Text.ToLower()))
+            if (hostname.Text.Trim().Length > 0 && !m_Core.Config.RecentHosts.Contains(hostname.Text, StringComparer.OrdinalIgnoreCase))
             {
                 m_Core.Config.RecentHosts.Add(hostname.Text);
                 m_Core.Config.Serialize(Core.ConfigFilename);

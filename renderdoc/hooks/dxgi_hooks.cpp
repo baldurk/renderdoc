@@ -40,11 +40,6 @@ public:
 	{
 		bool success = true;
 
-#if USE_MHOOK
-		// require d3d11.dll hooked as well for proper operation
-		if(GetModuleHandleA("d3d11.dll") == NULL) return false;
-#endif
-
 		success &= CreateDXGIFactory.Initialize("CreateDXGIFactory", DLL_NAME, CreateDXGIFactory_hook);
 		success &= CreateDXGIFactory1.Initialize("CreateDXGIFactory1", DLL_NAME, CreateDXGIFactory1_hook);
 
@@ -71,20 +66,30 @@ public:
 		if(dxgihooks.m_HasHooks)
 			return dxgihooks.CreateDXGIFactory1_hook(riid, ppFactory);
 
-		PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(GetModuleHandleA("dxgi.dll"), "CreateDXGIFactory1");
+		HMODULE dxgi = GetModuleHandleA("dxgi.dll");
 
-		if(!createFunc)
+		if(dxgi)
 		{
-			RDCERR("Trying to create hooked dxgi factory without dxgi loaded");
-			return E_INVALIDARG;
-		}
-		
-		HRESULT ret = createFunc(riid, ppFactory);
-		
-		if(SUCCEEDED(ret))
-			RefCountDXGIObject::HandleWrap(riid, ppFactory);
+			PFN_CREATE_DXGI_FACTORY createFunc = (PFN_CREATE_DXGI_FACTORY)GetProcAddress(dxgi, "CreateDXGIFactory1");
 
-		return ret;
+			if(!createFunc)
+			{
+				RDCERR("Trying to create hooked dxgi factory without dxgi loaded");
+				return E_INVALIDARG;
+			}
+		
+			HRESULT ret = createFunc(riid, ppFactory);
+		
+			if(SUCCEEDED(ret))
+				RefCountDXGIObject::HandleWrap(riid, ppFactory);
+
+			return ret;
+		}
+		else
+		{
+			RDCERR("Something went seriously wrong, dxgi.dll couldn't be loaded!");
+			return E_UNEXPECTED;
+		}
 	}
 
 private:
@@ -98,6 +103,7 @@ private:
 	
 	static HRESULT WINAPI CreateDXGIFactory_hook(__in REFIID riid, __out  void **ppFactory)
 	{
+		if(ppFactory) *ppFactory = NULL;
 		HRESULT ret = dxgihooks.CreateDXGIFactory()(riid, ppFactory);
 		
 		if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)
@@ -108,6 +114,7 @@ private:
 
 	static HRESULT WINAPI CreateDXGIFactory1_hook(__in REFIID riid, __out  void **ppFactory)
 	{
+		if(ppFactory) *ppFactory = NULL;
 		HRESULT ret = dxgihooks.CreateDXGIFactory1()(riid, ppFactory);
 		
 		if(SUCCEEDED(ret) && dxgihooks.m_EnabledHooks)

@@ -51,7 +51,9 @@ namespace renderdocui.Windows
                 short x = (short)((pos >> 0) & 0xffff);
                 short y = (short)((pos >> 16) & 0xffff);
 
-                IntPtr wnd = Win32PInvoke.WindowFromPoint(new Point(x, y));
+                Win32PInvoke.POINT pt = new Win32PInvoke.POINT((int)x, (int)y);
+
+                IntPtr wnd = Win32PInvoke.WindowFromPoint(pt);
 
                 if (wnd != IntPtr.Zero && wnd != m.HWnd && Control.FromHandle(wnd) != null)
                 {
@@ -200,13 +202,15 @@ namespace renderdocui.Windows
                 ShowLiveCapture(live);
             }
 
-            if (m_InitFilename != "")
+            if (m_InitFilename.Length > 0)
             {
-                if(Path.GetExtension(m_InitFilename) == ".rdc")
+                if (Path.GetExtension(m_InitFilename) == ".rdc")
+                {
                     LoadLogAsync(m_InitFilename, false);
+                }
                 else if (Path.GetExtension(m_InitFilename) == ".cap")
                 {
-                    if(m_Core.CaptureDialog == null)
+                    if (m_Core.CaptureDialog == null)
                         m_Core.CaptureDialog = new Dialogs.CaptureDialog(m_Core, OnCaptureTrigger, OnInjectTrigger);
 
                     m_Core.CaptureDialog.LoadSettings(m_InitFilename);
@@ -220,6 +224,11 @@ namespace renderdocui.Windows
                     {
                         dockPanel.ActiveAutoHideContent = m_Core.CaptureDialog;
                     }
+                }
+                else
+                {
+                    // not a recognised filetype, see if we can load it anyway
+                    LoadLogAsync(m_InitFilename, false);
                 }
 
                 m_InitFilename = "";
@@ -402,7 +411,7 @@ namespace renderdocui.Windows
 
                 return m_Core.CaptureDialog;
             }
-            else if (persistString != null && persistString != "")
+            else if (persistString != null && persistString.Length > 0)
                 LoadCustomString(persistString);
 
             return null;
@@ -501,7 +510,7 @@ namespace renderdocui.Windows
             if (m_Core != null && m_Core.LogLoaded)
             {
                 prefix = Path.GetFileName(m_Core.LogFileName);
-                if (m_RemoteReplay != "")
+                if (m_RemoteReplay.Length > 0)
                     prefix += String.Format(" (Remote replay on {0})", m_RemoteReplay);
                 prefix += " - ";
             }
@@ -528,12 +537,12 @@ namespace renderdocui.Windows
 
             Thread thread = null;
 
-            if (!m_Core.Config.ReplayHosts.ContainsKey(driver) && driver.Trim() != "")
+            if (!m_Core.Config.ReplayHosts.ContainsKey(driver) && driver.Trim().Length > 0)
                 m_Core.Config.ReplayHosts.Add(driver, "");
 
-            // if driver is "" something went wrong loading the log, let it be handled as usual
+            // if driver is empty something went wrong loading the log, let it be handled as usual
             // below. Otherwise prompt to replay remotely.
-            if (driver != "" && (!support || m_Core.Config.ReplayHosts[driver] != ""))
+            if (driver.Length > 0 && (!support || m_Core.Config.ReplayHosts[driver].Length > 0))
             {
                 string remoteMessage = String.Format("This log was captured with {0}", driver);
 
@@ -542,7 +551,7 @@ namespace renderdocui.Windows
                 else
                     remoteMessage += " and your settings say to replay this remotely.\n";
 
-                if(m_Core.Config.ReplayHosts[driver] == "")
+                if (m_Core.Config.ReplayHosts[driver].Length == 0)
                     remoteMessage += "Do you wish to select a remote host to replay on?\n\n" +
                                   "You can set up a default host for this driver on the next screen.";
                 else
@@ -553,11 +562,11 @@ namespace renderdocui.Windows
 
                 if (res == DialogResult.Yes)
                 {
-                    if (m_Core.Config.ReplayHosts[driver] == "")
+                    if (m_Core.Config.ReplayHosts[driver].Length == 0)
                     {
                         (new Dialogs.ReplayHostManager(m_Core, this)).ShowDialog();
 
-                        if (m_Core.Config.ReplayHosts[driver] == "")
+                        if (m_Core.Config.ReplayHosts[driver].Length == 0)
                             return;
                     }
 
@@ -856,7 +865,7 @@ namespace renderdocui.Windows
             if(!PromptCloseLog())
                 return;
 
-            if (m_Core.Config.LastLogPath != "")
+            if (m_Core.Config.LastLogPath.Length > 0)
                 openDialog.InitialDirectory = m_Core.Config.LastLogPath;
 
             DialogResult res = openDialog.ShowDialog();
@@ -886,7 +895,7 @@ namespace renderdocui.Windows
                 return;
             }
             
-            if(!OfficialVersion)
+            if(!OfficialVersion && !BetaVersion)
                 return;
 
             if (m_Core.Config.CheckUpdate_UpdateAvailable)
@@ -903,10 +912,15 @@ namespace renderdocui.Windows
 
             m_Core.Config.CheckUpdate_LastUpdate = today;
 
+            string versionCheck = VersionString;
+
+            if (BetaVersion)
+                versionCheck += String.Format("-{0}-beta", GitCommitHash.Substring(0, 8));
+
             var updateThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 // spawn thread to check update
-                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", VersionString));
+                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", versionCheck));
 
                 try
                 {
@@ -970,7 +984,7 @@ namespace renderdocui.Windows
 
             CloseLogfile();
 
-            if(deletepath != "")
+            if (deletepath.Length > 0)
                 File.Delete(deletepath);
 
             return true;
@@ -1318,7 +1332,7 @@ namespace renderdocui.Windows
 
         private void nightlybuildsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Process.Start("http://renderdoc.org/autobuild");
+            Process.Start("https://renderdoc.org/builds");
         }
 
         private void sourceOnGithubToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1415,7 +1429,7 @@ namespace renderdocui.Windows
                 {
                     var filename = (string)data.GetValue(0);
 
-                    if (Path.GetExtension(filename).ToLower() == ".rdc")
+                    if (File.Exists(filename))
                     {
                         return Path.GetFullPath(filename);
                     }
@@ -1428,7 +1442,7 @@ namespace renderdocui.Windows
         private void MainWindow_DragDrop(object sender, DragEventArgs e)
         {
             string fn = ValidData(e.Data);
-            if (fn != "")
+            if (fn.Length > 0)
             {
                 LoadLogfile(fn, false);
             }
@@ -1436,7 +1450,7 @@ namespace renderdocui.Windows
 
         private void MainWindow_DragEnter(object sender, DragEventArgs e)
         {
-            if(ValidData(e.Data) != "")
+            if (ValidData(e.Data).Length > 0)
                 e.Effect = DragDropEffects.Copy;
             else
                 e.Effect = DragDropEffects.None;

@@ -39,6 +39,8 @@ using System.IO;
 using System.Drawing.Imaging;
 using System.Drawing.Drawing2D;
 
+using Process = System.Diagnostics.Process;
+
 namespace renderdocui.Windows
 {
     public partial class LiveCapture : DockContent
@@ -75,6 +77,16 @@ namespace renderdocui.Windows
             public string localpath;
         };
 
+        class ChildProcess
+        {
+            public int PID;
+            public uint ident;
+            public string name;
+            public bool added = false;
+        };
+
+        List<ChildProcess> m_Children = new List<ChildProcess>();
+
         public LiveCapture(Core core, string host, UInt32 remoteIdent, MainWindow main)
         {
             InitializeComponent();
@@ -91,9 +103,12 @@ namespace renderdocui.Windows
             m_Host = host;
             m_RemoteIdent = remoteIdent;
 
+            childProcessLabel.Visible = false;
+            childProcesses.Visible = false;
+
             m_ConnectThread = null;
 
-            Text = (m_Host != "" ? m_Host + " - " : "") + "Connecting...";
+            Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connecting...";
             connectionStatus.Text = "Connecting...";
             connectionIcon.Image = global::renderdocui.Properties.Resources.hourglass;
 
@@ -130,11 +145,20 @@ namespace renderdocui.Windows
                 if (m_Connection.Connected)
                 {
                     string api = "...";
-                    if (m_Connection.API != "") api = m_Connection.API;
+                    if (m_Connection.API.Length > 0) api = m_Connection.API;
                     this.BeginInvoke((MethodInvoker)delegate
                     {
-                        connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, api);
-                        Text = String.Format("{0} ({1})", m_Connection.Target, api);
+                        if (m_Connection.PID == 0)
+                        {
+                            connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, api);
+                            Text = String.Format("{0} ({1})", m_Connection.Target, api);
+                        }
+                        else
+                        {
+                            connectionStatus.Text = String.Format("Connection established to {0} [PID {1}] ({2})",
+                                     m_Connection.Target, m_Connection.PID, api);
+                            Text = String.Format("{0} [PID {1}] ({2})", m_Connection.Target, m_Connection.PID, api);
+                        }
                         connectionIcon.Image = global::renderdocui.Properties.Resources.connect;
                     });
                 }
@@ -183,21 +207,21 @@ namespace renderdocui.Windows
                     {
                         uint capID = m_Connection.CaptureFile.ID;
                         DateTime timestamp = new DateTime(1970, 1, 1, 0, 0, 0);
-                        timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp);
+                        timestamp = timestamp.AddSeconds(m_Connection.CaptureFile.timestamp).ToLocalTime();
                         byte[] thumb = m_Connection.CaptureFile.thumbnail;
                         string path = m_Connection.CaptureFile.localpath;
 
-                        if (path == "" || File.Exists(path))
+                        if (path.Length == 0 || File.Exists(path))
                         {
                             this.BeginInvoke((MethodInvoker)delegate
                             {
                                 CaptureAdded(capID, m_Connection.Target, m_Connection.API, thumb, timestamp);
-                                if (path != "")
+                                if (path.Length > 0)
                                     CaptureRetrieved(capID, path);
                             });
                             m_Connection.CaptureExists = false;
 
-                            if (path == "")
+                            if (path.Length == 0)
                                 m_Connection.CopyCapture(capID, m_Core.TempLogFilename("remotecopy_" + m_Connection.Target));
                         }
                     }
@@ -213,6 +237,31 @@ namespace renderdocui.Windows
                         });
                         m_Connection.CaptureCopied = false;
                     }
+
+                    if (m_Connection.ChildAdded)
+                    {
+                        if (m_Connection.NewChild.PID != 0)
+                        {
+                            try
+                            {
+                                ChildProcess c = new ChildProcess();
+                                c.PID = (int)m_Connection.NewChild.PID;
+                                c.ident = m_Connection.NewChild.ident;
+                                c.name = Process.GetProcessById((int)m_Connection.NewChild.PID).ProcessName;
+
+                                lock (m_Children)
+                                {
+                                    m_Children.Add(c);
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                // process expired/doesn't exist anymore
+                            }
+                        }
+
+                        m_Connection.ChildAdded = false;
+                    }
                 }
 
                 this.BeginInvoke((MethodInvoker)delegate
@@ -227,7 +276,7 @@ namespace renderdocui.Windows
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    Text = (m_Host != "" ? m_Host + " - " : "") + "Connection failed";
+                    Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connection failed";
                     connectionStatus.Text = "Connection failed";
                     connectionIcon.Image = global::renderdocui.Properties.Resources.delete;
 
@@ -337,7 +386,7 @@ namespace renderdocui.Windows
 
             string path = m_Main.GetSavePath();
 
-            if (path != "")
+            if (path.Length > 0)
             {
                 File.Copy(log.localpath, path, true);
                 File.Delete(log.localpath);
@@ -596,7 +645,23 @@ namespace renderdocui.Windows
                         m_Main.OwnTemporaryLog = true;
                     }
                 }
-                Close();
+
+                // auto-close and load log if we got a capture. If we
+                // don't haveany captures but DO have child processes,
+                // then don't close just yet.
+                if(captures.Items.Count == 1 || m_Children.Count == 0)
+                    Close();
+
+                // if we have no captures and only one child, close and
+                // open up a connection to it (similar to behaviour with
+                // only one capture
+                if (captures.Items.Count == 0 && m_Children.Count == 1)
+                {
+                    uint ident = m_Children[0].ident;
+                    var live = new LiveCapture(m_Core, m_Host, ident, m_Main);
+                    m_Main.ShowLiveCapture(live);
+                    Close();
+                }
             }
         }
 
@@ -636,6 +701,60 @@ namespace renderdocui.Windows
             {
                 triggerCapture.Text = String.Format("Triggering in {0}s", m_CaptureCounter);
             }
+        }
+
+        private void childUpdateTimer_Tick(object sender, EventArgs e)
+        {
+            // remove any stale processes
+            for (int i = 0; i < m_Children.Count; i++)
+            {
+                try
+                {
+                    // if this throws an exception the process no longer exists so we'll remove it
+                    Process.GetProcessById(m_Children[i].PID);
+                }
+                catch (Exception)
+                {
+                    if (m_Children[i].added)
+                        childProcesses.Items.RemoveByKey(m_Children[i].PID.ToString());
+
+                    // process expired/doesn't exist anymore
+                    m_Children.RemoveAt(i);
+
+                    // don't increment i, check the next element at i (if we weren't at the end
+                    i--;
+                }
+            }
+
+            for (int i = 0; i < m_Children.Count; i++)
+            {
+                if (!m_Children[i].added)
+                {
+                    string text = String.Format("{0} [PID {1}]", m_Children[i].name, m_Children[i].PID);
+
+                    m_Children[i].added = true;
+                    childProcesses.Items.Add(m_Children[i].PID.ToString(), text, 0).Tag = m_Children[i].ident;
+                }
+            }
+
+            if (m_Children.Count > 0)
+            {
+                childProcessLabel.Visible = childProcesses.Visible = true;
+            }
+            else
+            {
+                childProcessLabel.Visible = childProcesses.Visible = false;
+            }
+        }
+
+        private void childProcesses_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (childProcesses.SelectedItems.Count == 1 && childProcesses.SelectedItems[0].Tag is uint)
+            {
+                uint ident = (uint)childProcesses.SelectedItems[0].Tag;
+                var live = new LiveCapture(m_Core, m_Host, ident, m_Main);
+                m_Main.ShowLiveCapture(live);
+            }                
         }
     }
 }

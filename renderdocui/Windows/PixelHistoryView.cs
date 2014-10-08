@@ -39,15 +39,28 @@ namespace renderdocui.Windows
 {
     public partial class PixelHistoryView : DockContent, ILogViewerForm
     {
+        struct EventTag
+        {
+            public EventTag(uint eid, uint prim)
+            {
+                EID = eid;
+                Primitive = prim;
+            }
+
+            public uint EID;
+            public uint Primitive;
+        };
+
         Core m_Core;
         FetchTexture texture;
         Point pixel;
+        uint sample;
         PixelModification[] modifications;
         bool[] visibleChannels;
         float rangeMin, rangeMax;
         int numChannels, channelIdx;
 
-        public PixelHistoryView(Core core, FetchTexture tex, Point pt,
+        public PixelHistoryView(Core core, FetchTexture tex, Point pt, UInt32 sampleIdx,
                                 float rangemin, float rangemax, bool[] channels)
         {
             InitializeComponent();
@@ -61,8 +74,11 @@ namespace renderdocui.Windows
             rangeMin = rangemin;
             rangeMax = rangemax;
             visibleChannels = channels;
+            sample = sampleIdx;
 
             Text = String.Format("Pixel History on {0} for ({1}, {2})", tex.name, pt.X, pt.Y);
+            if(tex.msSamp > 1)
+                Text += String.Format(" @ Sample {0}", sample);
 
             string channelStr = "";
             numChannels = 0;
@@ -276,7 +292,7 @@ namespace renderdocui.Windows
                 node = new TreelistView.Node(new object[] { name, shadOutVal, "", postModVal, "" });
             }
 
-            node.Tag = mod.eventID;
+            node.Tag = new EventTag(mod.eventID, mod.uavWrite ? uint.MaxValue : mod.primitiveID);
 
             if (floatTex || depth)
             {
@@ -360,7 +376,7 @@ namespace renderdocui.Windows
             var node = new TreelistView.Node(new object[] { name, preModVal, "", postModVal, "" });
 
             node.DefaultBackColor = passed ? Color.FromArgb(235, 255, 235) : Color.FromArgb(255, 235, 235);
-            node.Tag = mods[0].eventID;
+            node.Tag = new EventTag(mods[0].eventID, uint.MaxValue);
 
             if (uavnowrite)
                 node.DefaultBackColor = Color.FromArgb(235, 235, 235);
@@ -427,9 +443,9 @@ namespace renderdocui.Windows
 
         private void events_NodeDoubleClicked(TreelistView.Node node)
         {
-            if (node.Tag is uint)
+            if (node.Tag is EventTag)
             {
-                m_Core.SetEventID(this, m_Core.CurFrame, (uint)node.Tag);
+                m_Core.SetEventID(this, m_Core.CurFrame, ((EventTag)node.Tag).EID);
             }
         }
 
@@ -441,11 +457,12 @@ namespace renderdocui.Windows
 
                 debugToolStripMenuItem.Text = "Debug Pixel";
 
-                if (events.SelectedNode != null && events.SelectedNode.Tag != null && events.SelectedNode.Tag is uint)
+                if (events.SelectedNode != null && events.SelectedNode.Tag != null && events.SelectedNode.Tag is EventTag)
                 {
+                    EventTag tag = (EventTag)events.SelectedNode.Tag;
                     debugToolStripMenuItem.Enabled = true;
-                    debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) at Event {2}",
-                                                                    pixel.X, pixel.Y, (uint)events.SelectedNode.Tag);
+                    debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) primitive {2} at Event {3}",
+                                                                    pixel.X, pixel.Y, tag.Primitive, tag.EID);
                 }
 
                 rightclickMenu.Show(events.PointToScreen(e.Location));
@@ -458,9 +475,11 @@ namespace renderdocui.Windows
 
             var node = events.SelectedNode;
 
-            if (node.Tag is uint)
+            if (node.Tag is EventTag)
             {
-                m_Core.SetEventID(this, m_Core.CurFrame, (uint)node.Tag);
+                EventTag tag = (EventTag)node.Tag;
+
+                m_Core.SetEventID(this, m_Core.CurFrame, tag.EID);
 
                 ShaderDebugTrace trace = null;
 
@@ -468,7 +487,7 @@ namespace renderdocui.Windows
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
-                    trace = r.PSGetDebugStates((UInt32)pixel.X, (UInt32)pixel.Y);
+                    trace = r.DebugPixel((UInt32)pixel.X, (UInt32)pixel.Y, sample, tag.Primitive);
                 });
 
                 if (trace == null || trace.states.Length == 0)

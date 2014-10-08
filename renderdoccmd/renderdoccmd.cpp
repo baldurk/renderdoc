@@ -24,7 +24,8 @@
 
 #include <string>
 
-#include <replay/renderdoc.h>
+#include <replay/renderdoc_replay.h>
+#include <app/renderdoc_app.h>
 
 using std::string;
 using std::wstring;
@@ -221,6 +222,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 				uint32_t pidNum = (uint32_t)wtoi(pid);
 
 				wchar_t *log = argv[3];
+				if(log[0] == 0) log = NULL;
 
 				CaptureOptions cmdopts;
 

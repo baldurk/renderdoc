@@ -40,6 +40,11 @@ uint64_t Timing::GetTick()
 	return uint64_t(ts.tv_sec)*1000000000ULL + uint32_t(ts.tv_nsec & 0xffffffff);
 }
 
+uint64_t Timing::GetUnixTimestamp()
+{
+	return (uint64_t)time(NULL);
+}
+
 namespace Atomic
 {
 	int32_t Inc32(volatile int32_t *i)
@@ -147,7 +152,15 @@ namespace Threading
 	void CloseThread(ThreadHandle handle)
 	{
 	}
+	
+	void KeepModuleAlive()
+	{
+	}
 
+	void ReleaseModuleExitThread()
+	{
+	}
+	
 	void Sleep(uint32_t milliseconds)
 	{
 		usleep(milliseconds*1000);

@@ -120,7 +120,6 @@
             this.toolstripsPanel = new System.Windows.Forms.FlowLayoutPanel();
             this.actionsStrip = new System.Windows.Forms.ToolStrip();
             this.saveTex = new System.Windows.Forms.ToolStripButton();
-            this.debugPixel = new System.Windows.Forms.ToolStripButton();
             this.texListShow = new System.Windows.Forms.ToolStripButton();
             this.texlistContainer = new System.Windows.Forms.TableLayoutPanel();
             this.textureList = new renderdocui.Controls.TextureListBox();
@@ -964,7 +963,6 @@
             this.actionsStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             toolStripLabel1,
             this.saveTex,
-            this.debugPixel,
             this.texListShow});
             this.actionsStrip.Location = new System.Drawing.Point(0, 25);
             this.actionsStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
@@ -982,16 +980,6 @@
             this.saveTex.Size = new System.Drawing.Size(23, 22);
             this.saveTex.Text = "Save Selected Texture";
             this.saveTex.Click += new System.EventHandler(this.saveTex_Click);
-            // 
-            // debugPixel
-            // 
-            this.debugPixel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.debugPixel.Image = global::renderdocui.Properties.Resources.wrench;
-            this.debugPixel.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.debugPixel.Name = "debugPixel";
-            this.debugPixel.Size = new System.Drawing.Size(23, 22);
-            this.debugPixel.Text = "Debug Pixel";
-            this.debugPixel.Click += new System.EventHandler(this.debugPixel_Click);
             // 
             // texListShow
             // 
@@ -1405,7 +1393,6 @@
         private System.Windows.Forms.ToolStripContainer renderToolstripContainer;
         private System.Windows.Forms.TableLayoutPanel pixelContextPanel;
         private System.Windows.Forms.Button debugPixelContext;
-        private System.Windows.Forms.ToolStripButton debugPixel;
         private System.Windows.Forms.TableLayoutPanel texlistContainer;
         private System.Windows.Forms.ToolStripStatusLabel hoverSwatch;
         private System.Windows.Forms.ToolStripMenuItem openNewTab;

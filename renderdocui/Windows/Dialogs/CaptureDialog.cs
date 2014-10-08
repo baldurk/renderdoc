@@ -28,13 +28,17 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
-using System.Diagnostics;
 using System.Text;
+using System.Threading;
 using System.IO;
 using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
+using Microsoft.Win32;
 using renderdocui.Code;
 using renderdoc;
+
+using Process = System.Diagnostics.Process;
+using System.IO.Pipes;
 
 namespace renderdocui.Windows.Dialogs
 {
@@ -68,7 +72,6 @@ namespace renderdocui.Windows.Dialogs
 
             AllowFullscreen.Checked = settings.Options.AllowFullscreen;
             AllowVSync.Checked = settings.Options.AllowVSync;
-            CacheStateObjects.Checked = settings.Options.CacheStateObjects;
             HookIntoChildren.Checked = settings.Options.HookIntoChildren;
             CaptureCallstacks.Checked = settings.Options.CaptureCallstacks;
             CaptureCallstacksOnlyDraws.Checked = settings.Options.CaptureCallstacksOnlyDraws;
@@ -76,6 +79,7 @@ namespace renderdocui.Windows.Dialogs
             RefAllResources.Checked = settings.Options.RefAllResources;
             SaveAllInitials.Checked = settings.Options.SaveAllInitials;
             DelayForDebugger.Value = settings.Options.DelayForDebugger;
+            VerifyMapWrites.Checked = settings.Options.VerifyMapWrites;
             AutoStart.Checked = settings.AutoStart;
 
             if (settings.AutoStart)
@@ -107,7 +111,6 @@ namespace renderdocui.Windows.Dialogs
             ret.Options.AllowFullscreen = AllowFullscreen.Checked;
             ret.Options.AllowVSync = AllowVSync.Checked;
             ret.Options.HookIntoChildren = HookIntoChildren.Checked;
-            ret.Options.CacheStateObjects = CacheStateObjects.Checked;
             ret.Options.CaptureCallstacks = CaptureCallstacks.Checked;
             ret.Options.CaptureCallstacksOnlyDraws = CaptureCallstacksOnlyDraws.Checked;
             ret.Options.DebugDeviceMode = DebugDeviceMode.Checked;
@@ -115,6 +118,7 @@ namespace renderdocui.Windows.Dialogs
             ret.Options.SaveAllInitials = SaveAllInitials.Checked;
             ret.Options.CaptureAllCmdLists = CaptureAllCmdLists.Checked;
             ret.Options.DelayForDebugger = (uint)DelayForDebugger.Value;
+            ret.Options.VerifyMapWrites = VerifyMapWrites.Checked;
 
             return ret;
         }
@@ -136,6 +140,8 @@ namespace renderdocui.Windows.Dialogs
                     processGroup.Visible = true;
                     programGroup.Visible = false;
 
+                    globalGroup.Visible = false;
+
                     capture.Text = "Inject";
 
                     FillProcessList();
@@ -146,6 +152,8 @@ namespace renderdocui.Windows.Dialogs
                 {
                     processGroup.Visible = false;
                     programGroup.Visible = true;
+
+                    globalGroup.Visible = m_Core.Config.AllowGlobalHook;
 
                     capture.Text = "Capture";
                     
@@ -172,6 +180,8 @@ namespace renderdocui.Windows.Dialogs
             workDirPath.ForeColor = SystemColors.GrayText;
 
             SetSettings(defaults);
+
+            UpdateGlobalHook();
         }
 
         #region Callbacks
@@ -256,7 +266,7 @@ namespace renderdocui.Windows.Dialogs
 
             var live = m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Options);
 
-            if (queueFrameCap.Checked)
+            if (queueFrameCap.Checked && live != null)
                 live.QueueCapture((int)queuedCapFrame.Value);
         }
 
@@ -315,9 +325,9 @@ namespace renderdocui.Windows.Dialogs
         {
             try
             {
-                if (exePath.Text != "" && Directory.Exists(Path.GetDirectoryName(exePath.Text)))
+                if (exePath.Text.Length > 0 && Directory.Exists(Path.GetDirectoryName(exePath.Text)))
                     exeBrowser.InitialDirectory = Path.GetDirectoryName(exePath.Text);
-                else if (m_Core.Config.LastCapturePath != "")
+                else if (m_Core.Config.LastCapturePath.Length > 0)
                     exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
             }
             catch (ArgumentException)
@@ -339,7 +349,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void exePath_DragEnter(object sender, DragEventArgs e)
         {
-            if (ValidData(e.Data) != "")
+            if (ValidData(e.Data).Length > 0)
                 e.Effect = DragDropEffects.Copy;
             else
                 e.Effect = DragDropEffects.None;
@@ -348,7 +358,7 @@ namespace renderdocui.Windows.Dialogs
         private void exePath_DragDrop(object sender, DragEventArgs e)
         {
             string fn = ValidData(e.Data);
-            if (fn != "")
+            if (fn.Length > 0)
             {
                 exePath.Text = fn;
 
@@ -366,7 +376,7 @@ namespace renderdocui.Windows.Dialogs
                     workDirBrowser.SelectedPath = workDirPath.Text;
                 else if (Directory.Exists(Path.GetDirectoryName(exePath.Text)))
                     workDirBrowser.SelectedPath = Path.GetDirectoryName(exePath.Text);
-                else if (m_Core.Config.LastCapturePath != "")
+                else if (m_Core.Config.LastCapturePath.Length > 0)
                     exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
             }
             catch (ArgumentException)
@@ -447,6 +457,16 @@ namespace renderdocui.Windows.Dialogs
             capOptsFlow.MaximumSize = new Size(capOptsGroup.ClientRectangle.Width - 8, 0);
         }
 
+        private void actionsGroup_Layout(object sender, LayoutEventArgs e)
+        {
+            actionsFlow.MaximumSize = new Size(actionsGroup.ClientRectangle.Width - 8, 0);
+        }
+
+        private void globalGroup_Layout(object sender, LayoutEventArgs e)
+        {
+            globalFlow.MaximumSize = new Size(globalGroup.ClientRectangle.Width - 8, 0);
+        }
+
         private void workDirPath_Enter(object sender, EventArgs e)
         {
             if (workDirHint)
@@ -460,7 +480,7 @@ namespace renderdocui.Windows.Dialogs
 
         private void workDirPath_Leave(object sender, EventArgs e)
         {
-            if (workDirPath.Text == "")
+            if (workDirPath.Text.Length == 0)
             {
                 workDirHint = true;
                 workDirPath.ForeColor = SystemColors.GrayText;
@@ -472,13 +492,14 @@ namespace renderdocui.Windows.Dialogs
         private void exePath_TextChanged(object sender, EventArgs e)
         {
             UpdateWorkDirHint();
+            UpdateGlobalHook();
         }
 
         private void UpdateWorkDirHint()
         {
             if (workDirHint == false) return;
 
-            if(exePath.Text == "")
+            if (exePath.Text.Length == 0)
             {
                 workDirPath.Text = "";
                 return;
@@ -492,6 +513,336 @@ namespace renderdocui.Windows.Dialogs
             {
                 // invalid path or similar
             }
+        }
+
+        public void UpdateGlobalHook()
+        {
+            globalGroup.Visible = !InjectMode && m_Core.Config.AllowGlobalHook;
+
+            if (exePath.Text.Length >= 4)
+            {
+                toggleGlobalHook.Enabled = true;
+                globalLabel.Text = "Global hooking is risky!" + Environment.NewLine + Environment.NewLine +
+                    "Be sure you know what you're doing.";
+
+                if (toggleGlobalHook.Checked)
+                    globalLabel.Text += Environment.NewLine + "Emergency restore @ %TEMP%\\RenderDoc_RestoreGlobalHook.reg";
+            }
+            else
+            {
+                toggleGlobalHook.Enabled = false;
+                globalLabel.Text = "Global hooking requires an executable path, or filename";
+            }
+        }
+
+        private string prevAppInit = "";
+        private string prevAppInitWoW64 = "";
+        private int prevAppInitEnabled = 0;
+        private int prevAppInitWoW64Enabled = 0;
+
+        private AutoResetEvent wakeupEvent = new AutoResetEvent(false);
+        private bool pipeExit = false;
+        private Thread pipeThread = null;
+        private NamedPipeServerStream pipe32 = null;
+        private NamedPipeServerStream pipe64 = null;
+
+        private void EnableAppInit(RegistryKey parent, string path, string dllname, out int prevEnabled, out string prevStr)
+        {
+            RegistryKey key = parent.OpenSubKey("Microsoft", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("Windows NT", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("CurrentVersion", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("Windows", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            object o = key.GetValue("LoadAppInit_DLLs");
+            if (o == null || !(o is int)) { prevEnabled = 0; prevStr = ""; return; }
+            prevEnabled = (int)o;
+
+            o = key.GetValue("AppInit_DLLs");
+            if (o == null || !(o is string)) { prevEnabled = 0; prevStr = ""; return; }
+            prevStr = (string)o;
+
+            key.SetValue("AppInit_DLLs", Win32PInvoke.ShortPath(Path.Combine(path, dllname)));
+            key.SetValue("LoadAppInit_DLLs", (int)1);
+        }
+
+        private void RestoreAppInit(RegistryKey parent, int prevEnabled, string prevStr)
+        {
+            RegistryKey key = parent.OpenSubKey("Microsoft", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("Windows NT", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("CurrentVersion", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key = key.OpenSubKey("Windows", true);
+            if (key == null) { prevEnabled = 0; prevStr = ""; return; }
+
+            key.SetValue("AppInit_DLLs", prevStr);
+            key.SetValue("LoadAppInit_DLLs", prevEnabled);
+        }
+
+        private void PipeTick()
+        {
+            while (!pipeExit)
+            {
+                wakeupEvent.WaitOne(250);
+            }
+
+            if (pipe32 != null)
+            {
+                if (pipe32.IsConnected)
+                {
+                    using (StreamWriter writer = new StreamWriter(pipe32))
+                    {
+                        writer.Write("exit");
+                        writer.Flush();
+                    }
+                }
+
+                pipe32.Dispose();
+                pipe32 = null;
+            }
+
+            if (pipe64 != null)
+            {
+                if (pipe64.IsConnected)
+                {
+                    using (StreamWriter writer = new StreamWriter(pipe64))
+                    {
+                        writer.Write("exit");
+                        writer.Flush();
+                    }
+                }
+
+                pipe64.Dispose();
+                pipe64 = null;
+            }
+        }
+
+        private void ExitPipeThread()
+        {
+            pipeExit = true;
+            wakeupEvent.Set();
+
+            if (pipeThread != null)
+            {
+                if (pipeThread.ThreadState != ThreadState.Aborted &&
+                    pipeThread.ThreadState != ThreadState.Stopped)
+                {
+                    // try to shut down gracefully
+                    pipeThread.Join(1000);
+
+                    if (pipeThread.ThreadState != ThreadState.Aborted &&
+                        pipeThread.ThreadState != ThreadState.Stopped)
+                    {
+                        pipeThread.Abort();
+                        pipeThread.Join();
+                    }
+                }
+            }
+
+            pipeThread = null;
+
+            if (pipe32 != null)
+            {
+                pipe32.Dispose();
+                pipe32 = null;
+            }
+
+            if (pipe64 != null)
+            {
+                pipe64.Dispose();
+                pipe64 = null;
+            }
+        }
+        
+        private void toggleGlobalHook_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!toggleGlobalHook.Enabled)
+                return;
+
+            toggleGlobalHook.Enabled = false;
+
+            if (toggleGlobalHook.Checked)
+            {
+                if(!Helpers.IsElevated)
+                {
+                    DialogResult res = MessageBox.Show("RenderDoc needs to restart with admin privileges. Restart?", "Restart as admin", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question);
+
+                    if (res == DialogResult.Yes)
+                    {
+                        string capfile = Path.GetTempFileName() + ".cap";
+
+                        AutoStart.Checked = false;
+
+                        SaveSettings(capfile);
+
+                        var process = new Process();
+                        process.StartInfo = new System.Diagnostics.ProcessStartInfo(Application.ExecutablePath, capfile);
+                        process.StartInfo.Verb = "runas";
+                        try
+                        {
+                            process.Start();
+                        }
+                        catch (Exception)
+                        {
+                            // don't restart if it failed for some reason (e.g. user clicked no to UAC)
+                            toggleGlobalHook.Checked = false;
+                            toggleGlobalHook.Enabled = true;
+                            return;
+                        }
+
+                        m_Core.Config.Serialize(Core.ConfigFilename);
+                        m_Core.Config.ReadOnly = true;
+                        m_Core.AppWindow.Close();
+                        return;
+                    }
+                    else
+                    {
+                        toggleGlobalHook.Checked = false;
+                        toggleGlobalHook.Enabled = true;
+                        return;
+                    }
+                }
+
+                exePath.Enabled = exeBrowse.Enabled =
+                    workDirPath.Enabled = workDirBrowse.Enabled =
+                    cmdline.Enabled =
+                    capture.Enabled = save.Enabled = load.Enabled = false;
+
+                foreach (Control c in capOptsFlow.Controls)
+                    c.Enabled = false;
+
+                foreach (Control c in actionsFlow.Controls)
+                    c.Enabled = false;
+
+                toggleGlobalHook.Text = "Disable Global Hook";
+
+                var path = Path.GetDirectoryName(Path.GetFullPath(Application.ExecutablePath));
+
+                var regfile = Path.Combine(Path.GetTempPath(), "RenderDoc_RestoreGlobalHook.reg");
+
+                if (Environment.Is64BitProcess)
+                {
+                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"),
+                                  path, "x86\\renderdocshim32.dll",
+                                  out prevAppInitWoW64Enabled, out prevAppInitWoW64);
+
+                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"),
+                                  path, "renderdocshim64.dll",
+                                  out prevAppInitEnabled, out prevAppInit);
+
+                    using (FileStream s = File.OpenWrite(regfile))
+                    {
+                        using(StreamWriter sw = new StreamWriter(s))
+                        {
+                            sw.WriteLine("Windows Registry Editor Version 5.00");
+                            sw.WriteLine("");
+                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitWoW64Enabled));
+                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInitWoW64));
+                            sw.WriteLine("");
+                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
+                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
+                            sw.Flush();
+                        }
+                    }
+                }
+                else
+                {
+                    // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
+                    // don't need to handle that manually
+                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), path, "renderdocshim32.dll",
+                                    out prevAppInitEnabled, out prevAppInit);
+
+                    using (FileStream s = File.OpenWrite(regfile))
+                    {
+                        using (StreamWriter sw = new StreamWriter(s))
+                        {
+                            sw.WriteLine("Windows Registry Editor Version 5.00");
+                            sw.WriteLine("");
+                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
+                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
+                            sw.Flush();
+                        }
+                    }
+                }
+
+                ExitPipeThread();
+
+                pipeExit = false;
+
+                pipe32 = new NamedPipeServerStream("RenderDoc.GlobalHookControl32");
+                pipe64 = new NamedPipeServerStream("RenderDoc.GlobalHookControl64");
+
+                pipeThread = Helpers.NewThread(new ThreadStart(PipeTick));
+
+                pipeThread.Start();
+
+                string exe = exePath.Text;
+
+                string logfile = exe;
+                if (logfile.Contains("/")) logfile = logfile.Substring(logfile.LastIndexOf('/') + 1);
+                if (logfile.Contains("\\")) logfile = logfile.Substring(logfile.LastIndexOf('\\') + 1);
+                if (logfile.Contains(".")) logfile = logfile.Substring(0, logfile.IndexOf('.'));
+                logfile = m_Core.TempLogFilename(logfile);
+
+                StaticExports.StartGlobalHook(exe, logfile, GetSettings().Options);
+            }
+            else
+            {
+                ExitPipeThread();
+
+                exePath.Enabled = exeBrowse.Enabled =
+                    workDirPath.Enabled = workDirBrowse.Enabled =
+                    cmdline.Enabled =
+                    capture.Enabled = save.Enabled = load.Enabled = true;
+
+                foreach (Control c in capOptsFlow.Controls)
+                    c.Enabled = true;
+
+                foreach (Control c in actionsFlow.Controls)
+                    c.Enabled = true;
+
+                toggleGlobalHook.Text = "Enable Global Hook";
+
+                if (Environment.Is64BitProcess)
+                {
+                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"), prevAppInitWoW64Enabled, prevAppInitWoW64);
+                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
+                }
+                else
+                {
+                    // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
+                    // don't need to handle that manually
+                    RestoreAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), prevAppInitEnabled, prevAppInit);
+                }
+
+                var regfile = Path.Combine(Path.GetTempPath(), "RenderDoc_RestoreGlobalHook.reg");
+
+                if (File.Exists(regfile)) File.Delete(regfile);
+            }
+
+            toggleGlobalHook.Enabled = true;
+
+            UpdateGlobalHook();
+        }
+
+        private void CaptureDialog_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (toggleGlobalHook.Checked)
+                toggleGlobalHook.Checked = false;
         }
     }
 }

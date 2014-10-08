@@ -24,7 +24,7 @@
 
 
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "hooks.h"
 
@@ -112,6 +112,10 @@ class SysHook : LibraryHook
 			{
 				lpProcessInformation = &dummy;
 			}
+			else
+			{
+				*lpProcessInformation = dummy;
+			}
 
 			dwCreationFlags |= CREATE_SUSPENDED;
 
@@ -126,8 +130,10 @@ class SysHook : LibraryHook
 				RDCDEBUG("Intercepting CreateProcessA");
 
 				// inherit logfile and capture options
-				RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
 										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
 			}
 
 			ResumeThread(lpProcessInformation->hThread);
@@ -162,6 +168,10 @@ class SysHook : LibraryHook
 			{
 				lpProcessInformation = &dummy;
 			}
+			else
+			{
+				*lpProcessInformation = dummy;
+			}
 
 			dwCreationFlags |= CREATE_SUSPENDED;
 
@@ -176,8 +186,10 @@ class SysHook : LibraryHook
 				RDCDEBUG("Intercepting CreateProcessW");
 
 				// inherit logfile and capture options
-				RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
 										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
 			}
 			
 			ResumeThread(lpProcessInformation->hThread);

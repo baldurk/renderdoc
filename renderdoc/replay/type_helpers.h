@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "basic_types.h"
+#include "api/replay/basic_types.h"
 
 #include <vector>
 

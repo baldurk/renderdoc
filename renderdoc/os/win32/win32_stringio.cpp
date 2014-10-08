@@ -24,6 +24,7 @@
 
 
 #include "os/os_specific.h"
+#include "api/app/renderdoc_app.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -44,12 +45,24 @@ string GetEmbeddedResourceWin32(int resource)
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, &mod);
 
 	HRSRC res = FindResource(mod, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TYPE_EMBED));
-	int err = GetLastError();
-	HGLOBAL data = LoadResource(mod, res);
-	DWORD resSize = SizeofResource(mod, res);
-	const char* resData = (const char*)LockResource(data);
+	
+	if(res == NULL)
+	{
+		RDCFATAL("Couldn't find embedded win32 resource");
+	}
 
-	return string(resData, resData+resSize);
+	HGLOBAL data = LoadResource(mod, res);
+
+	if(data != NULL)
+	{
+		DWORD resSize = SizeofResource(mod, res);
+		const char* resData = (const char*)LockResource(data);
+
+		if(resData)
+			return string(resData, resData+resSize);
+	}
+
+	return "";
 }
 
 namespace Keyboard
@@ -70,18 +83,47 @@ namespace Keyboard
 		inputWindows.erase((HWND)wnd);
 	}
 
-	bool GetKeyState(KeyButton key)
+	bool GetKeyState(int key)
 	{
 		int vk = 0;
+		
+		if(key >= eKey_A && key <= eKey_Z) vk = key;
+		if(key >= eKey_0 && key <= eKey_9) vk = key;
 
 		switch(key)
 		{
-			case eKey_F11:		 vk = VK_F11; break;
-			case eKey_F12:     vk = VK_F12; break;
-			case eKey_PrtScrn: vk = VK_SNAPSHOT; break;
+			case eKey_Divide:    vk = VK_DIVIDE; break;
+			case eKey_Multiply:  vk = VK_MULTIPLY; break;
+			case eKey_Subtract:  vk = VK_SUBTRACT; break;
+			case eKey_Plus:      vk = VK_ADD; break;
+			case eKey_F1:        vk = VK_F1; break;
+			case eKey_F2:        vk = VK_F2; break;
+			case eKey_F3:        vk = VK_F3; break;
+			case eKey_F4:        vk = VK_F4; break;
+			case eKey_F5:        vk = VK_F5; break;
+			case eKey_F6:        vk = VK_F6; break;
+			case eKey_F7:        vk = VK_F7; break;
+			case eKey_F8:        vk = VK_F8; break;
+			case eKey_F9:        vk = VK_F9; break;
+			case eKey_F10:       vk = VK_F10; break;
+			case eKey_F11:       vk = VK_F11; break;
+			case eKey_F12:       vk = VK_F12; break;
+			case eKey_Home:      vk = VK_HOME; break;
+			case eKey_End:       vk = VK_END; break;
+			case eKey_Insert:    vk = VK_INSERT; break;
+			case eKey_Delete:    vk = VK_DELETE; break;
+			case eKey_PageUp:    vk = VK_PRIOR; break;
+			case eKey_PageDn:    vk = VK_NEXT; break;
+			case eKey_Backspace: vk = VK_BACK; break;
+			case eKey_Tab:       vk = VK_TAB; break;
+			case eKey_PrtScrn:   vk = VK_SNAPSHOT; break;
+			case eKey_Pause:     vk = VK_PAUSE; break;
 			default:
-				return false;
+				break;
 		}
+
+		if(vk == 0)
+			return false;
 		
 		bool keydown = GetAsyncKeyState(vk) != 0;
 
@@ -208,7 +250,7 @@ namespace FileIO
 		va_list args;
 		va_start(args, fmt);
 
-		int ret = ::fprintf(f, fmt, args);
+		int ret = ::vfprintf(f, fmt, args);
 
 		va_end(args);
 

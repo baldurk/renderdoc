@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "replay/replay_renderer.h"
 #include "core/core.h"
 #include "os/os_specific.h"
@@ -70,7 +70,7 @@ static void ProgressTicker(void *d)
 	}
 }
 
-void RenderDoc::BecomeReplayHost(volatile bool &killReplay)
+void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 {
 	Network::Socket *sock = Network::CreateServerSocket("0.0.0.0", RenderDoc_ReplayNetworkPort, 1);
 
@@ -267,13 +267,9 @@ struct RemoteRenderer
 
 			m_RemoteDrivers.reserve(m.size());
 			for(auto it=m.begin(); it != m.end(); ++it) m_RemoteDrivers.push_back(*it);
-
-			m_ProxyDriver = NULL;
-			m_ProxySerialiser = NULL;
 		}
 		~RemoteRenderer()
 		{
-			SAFE_DELETE(m_ProxySerialiser);
 			SAFE_DELETE(m_Socket);
 		}
 
@@ -324,7 +320,7 @@ struct RemoteRenderer
 			if(progress == NULL)
 				progress = &dummy;
 
-			RDCDriver proxydriver = m_Proxies[proxyid].first;
+			RDCDriver proxydrivertype = m_Proxies[proxyid].first;
 
 			Serialiser ser(L"", Serialiser::WRITING, false);
 		
@@ -356,23 +352,28 @@ struct RemoteRenderer
 
 			RDCLOG("Log ready on replay host");
 
-			m_ProxyDriver = NULL;
-			auto status = RenderDoc::Inst().CreateReplayDriver(proxydriver, NULL, &m_ProxyDriver);
+			IReplayDriver *proxyDriver = NULL;
+			auto status = RenderDoc::Inst().CreateReplayDriver(proxydrivertype, NULL, &proxyDriver);
 
-			if(status != eReplayCreate_Success || !m_ProxyDriver)
+			if(status != eReplayCreate_Success || !proxyDriver)
+			{
+				if(proxyDriver) proxyDriver->Shutdown();
 				return status;
+			}
 
 			ReplayRenderer *ret = new ReplayRenderer();
 
-			m_ProxySerialiser = new ProxySerialiser(m_Socket, m_ProxyDriver);
-			status = ret->SetDevice(m_ProxySerialiser);
+			ProxySerialiser *proxy = new ProxySerialiser(m_Socket, proxyDriver);
+			status = ret->SetDevice(proxy);
 
 			if(status != eReplayCreate_Success)
 			{
 				SAFE_DELETE(ret);
-				SAFE_DELETE(m_ProxySerialiser);
 				return status;
 			}
+			
+			// ReplayRenderer takes ownership of the ProxySerialiser (as IReplayDriver)
+			// and it cleans itself up in Shutdown.
 
 			*rend = ret;
 
@@ -395,9 +396,6 @@ struct RemoteRenderer
 			if(ser)	*ser = new Serialiser(payload.size(), &payload[0], false);
 		}
 
-		IReplayDriver *m_ProxyDriver;
-		ProxySerialiser *m_ProxySerialiser;
-
 		vector< pair<RDCDriver, wstring> > m_Proxies;
 		vector< pair<RDCDriver, wstring> > m_RemoteDrivers;
 };
@@ -405,10 +403,10 @@ struct RemoteRenderer
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteRenderer_Shutdown(RemoteRenderer *remote)
 {	remote->Shutdown(); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_LocalProxies(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
 { return remote->LocalProxies(out); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_RemoteSupportedReplays(RemoteRenderer *remote, rdctype::array<rdctype::wstr> *out)
 { return remote->RemoteSupportedReplays(out); }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const wchar_t *logfile, float *progress, ReplayRenderer **rend)

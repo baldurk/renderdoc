@@ -374,9 +374,6 @@ namespace renderdocui.Code
 
             m_LogLoadingInProgress = true;
 
-            if(!temporary)
-                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
-
             if (File.Exists(Core.ConfigFilename))
                 m_Config.Serialize(Core.ConfigFilename);
 
@@ -454,6 +451,9 @@ namespace renderdocui.Code
                 return;
             }
 
+            if (!temporary)
+                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
+
             m_FrameID = 0;
             m_EventID = 0;
 
@@ -500,9 +500,14 @@ namespace renderdocui.Code
             m_LogLoaded = true;
             progressThread = false;
 
+            List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
+            logviewers.AddRange(m_LogViewers);
+
             // notify all the registers log viewers that a log has been loaded
-            foreach (var logviewer in m_LogViewers)
+            foreach (var logviewer in logviewers)
             {
+                if (logviewer == null || !(logviewer is Control)) continue;
+
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
                 {
@@ -568,7 +573,7 @@ namespace renderdocui.Code
             string folder = Config.CaptureSavePath;
             try
             {
-                if (folder == "" || !Directory.Exists(folder))
+                if (folder.Length == 0 || !Directory.Exists(folder))
                     folder = Path.GetTempPath();
             }
             catch (ArgumentException)

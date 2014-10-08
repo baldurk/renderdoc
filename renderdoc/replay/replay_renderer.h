@@ -27,7 +27,7 @@
 
 #include "common/common.h"
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
 
 #include <vector>
@@ -160,10 +160,10 @@ struct ReplayRenderer
 		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::wstr> *trace);
 		ShaderReflection *GetShaderDetails(ResourceId shader);
 		
-		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, rdctype::array<PixelModification> *history);
-		bool VSGetDebugStates(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
-		bool PSGetDebugStates(uint32_t x, uint32_t y, ShaderDebugTrace *trace);
-		bool CSGetDebugStates(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
+		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history);
+		bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
+		bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace);
+		bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
 
 		bool GetPostVSData(MeshDataStage stage, PostVSMeshData *data);
 		
@@ -174,7 +174,7 @@ struct ReplayRenderer
 		
 		bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
 		
-		bool SaveTexture(ResourceId tex, uint32_t saveMip, const wchar_t *path);
+		bool SaveTexture(const TextureSave &saveData, const wchar_t *path);
 
 		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
 	

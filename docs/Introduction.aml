@@ -14,17 +14,26 @@
         and explanation of which features are available in RenderDoc and how to
         best use them.
       </para>
+      <para>
+        The latest information and discussion is always available on the
+        <externalLink>
+<linkText>GitHub wiki</linkText>
+<linkAlternateText>wiki on GitHub</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc/wiki</linkUri>
+</externalLink>.
+      </para>
     </introduction>
     <section address="guide">
       <title>License</title>
 	  <content>
 	    <para>
 	      RenderDoc is released under the MIT license, so there are no restrictions on your use of it either
-	      commercial or non-commercial.
-	    </para>
-	    <para>
-	      This license will also not change when the source is released, so any source modifications will be
-	      equally unrestricted.
+	      commercial or non-commercial. This includes the source release available on the
+	      <externalLink>
+<linkText>GitHub repository</linkText>
+<linkAlternateText>Source on GitHub</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc/issues</linkUri>
+</externalLink>.
 	    </para>
 	    <para>
 	      Details of the licenses of third party software used in RenderDoc are included in the LICENSE file
@@ -96,13 +105,16 @@
 		  where you can also find the full source code.
 	    </para>
 	    <para>
-	      There are also <externalLink>
-<linkText>forums</linkText>
-<linkAlternateText>Forums on CryDev.net</linkAlternateText>
-<linkUri>http://www.crydev.net/viewforum.php?f=379</linkUri>
+	      The <externalLink>
+<linkText>builds page</linkText>
+<linkAlternateText>Build and release downloads</linkAlternateText>
+<linkUri>https://renderdoc.org/builds</linkUri>
 </externalLink>
- where you can post on and get help from others who are using
-	      RenderDoc.
+		  always has the latest stable and beta build downloads, as well as builds made
+		  from the source code each night for the bleeding edge. Stable releases update
+		  relatively infrequently and are tested the most to ensure they're as reliable
+		  as possible. Beta releases update more often to expose the latest fixes and
+		  features from the source, but risk more bugs sneaking in.
 	    </para>
       </content>
     </section>
@@ -113,9 +125,9 @@
           <linkUri>http://renderdoc.org/</linkUri>
       </externalLink>
       <externalLink>
-		<linkText>Forums on CryDev.net</linkText>
-		<linkAlternateText>Go to the forums on CryDev.net</linkAlternateText>
-		<linkUri>http://www.crydev.net/viewforum.php?f=379</linkUri>
+		<linkText>Builds page</linkText>
+		<linkAlternateText>Build and release downloads</linkAlternateText>
+		<linkUri>https://renderdoc.org/builds</linkUri>
 	  </externalLink>
 
       <!--

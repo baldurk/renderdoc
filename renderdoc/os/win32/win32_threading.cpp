@@ -25,6 +25,8 @@
 
 #include "os/os_specific.h"
 
+#include <time.h>
+
 double Timing::GetTickFrequency()
 {
 	LARGE_INTEGER li;
@@ -38,6 +40,11 @@ uint64_t Timing::GetTick()
 	QueryPerformanceCounter(&li);
 
 	return li.QuadPart;
+}
+
+uint64_t Timing::GetUnixTimestamp()
+{
+	return (uint64_t)time(NULL);
 }
 
 namespace Atomic
@@ -136,6 +143,21 @@ namespace Threading
 	{
 		if(handle == 0) return;
 		CloseHandle((HANDLE)handle);
+	}
+
+	static HMODULE ownModuleHandle = 0;
+
+	void KeepModuleAlive()
+	{
+		// deliberately omitting GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT to bump refcount
+		GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS,
+											 (const char *)&ownModuleHandle,
+											 &ownModuleHandle);
+	}
+
+	void ReleaseModuleExitThread()
+	{
+		FreeLibraryAndExitThread(ownModuleHandle, 0);
 	}
 	
 	void Sleep(uint32_t milliseconds)

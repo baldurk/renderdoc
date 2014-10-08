@@ -85,8 +85,6 @@ namespace renderdocplugin
 
             var ass = m_LoadedPlugins[assemblyName];
 
-            Type pluginType = ass.GetType(assemblyName + "." + type.Name);
-
             return (T)ass.CreateInstance(assemblyName + "." + type.Name);
         }
     }

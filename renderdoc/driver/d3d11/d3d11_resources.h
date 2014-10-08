@@ -83,10 +83,12 @@ DXGI_FORMAT GetSnormTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetUIntTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetSIntTypedFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT f);
+DXGI_FORMAT GetNonSRGBFormat(DXGI_FORMAT f);
 bool IsBlockFormat(DXGI_FORMAT f);
 bool IsDepthFormat(DXGI_FORMAT f);
 
 bool IsUIntFormat(DXGI_FORMAT f);
+bool IsTypelessFormat(DXGI_FORMAT f);
 bool IsIntFormat(DXGI_FORMAT f);
 bool IsSRGBFormat(DXGI_FORMAT f);
 

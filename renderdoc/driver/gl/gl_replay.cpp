@@ -1214,6 +1214,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 			{
 				vector<ShaderVariable> ov;
 				FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".", variables[i].type.members, ov, data);
+				var.isStruct = true;
 				var.members = ov;
 			}
 			else
@@ -1227,10 +1228,13 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					vector<ShaderVariable> ov;
 					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
 					arrEl.members = ov;
+
+					arrEl.isStruct = true;
 					
 					arrelems.push_back(arrEl);
 				}
 				var.members = arrelems;
+				var.isStruct = false;
 				var.rows = var.columns = 0;
 			}
 		}
@@ -1277,10 +1281,13 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
 							values[0] + values[2] * a, values[1], data, el);
 
+						el.isStruct = false;
+
 						elems.push_back(el);
 					}
 
 					var.members = elems;
+					var.isStruct = false;
 					var.rows = var.columns = 0;
 				}
 			}
@@ -1382,7 +1389,7 @@ PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, Me
 	return ret;
 }
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
 {
 	RDCUNIMPLEMENTED("GetTextureData");
 	return NULL;
@@ -1403,12 +1410,6 @@ void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 	RDCUNIMPLEMENTED("TimeDrawcalls");
 }
 
-bool GLReplay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
-{
-	RDCUNIMPLEMENTED("SaveTexture");
-	return false;
-}
-
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
 	RDCUNIMPLEMENTED("BuildTargetShader");
@@ -1419,7 +1420,7 @@ void GLReplay::BuildCustomShader(string source, string entry, const uint32_t com
 	RDCUNIMPLEMENTED("BuildCustomShader");
 }
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
 {
 	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
 	return vector<PixelModification>();
@@ -1431,7 +1432,7 @@ ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint3
 	return ShaderDebugTrace();
 }
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	RDCUNIMPLEMENTED("DebugPixel");
 	return ShaderDebugTrace();

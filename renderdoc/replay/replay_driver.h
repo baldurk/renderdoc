@@ -26,7 +26,7 @@
 #pragma once
 
 #include "maths/vec.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
 #include "core/core.h"
 
@@ -82,7 +82,7 @@ class IRemoteDriver
 		virtual PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage) = 0;
 		
 		virtual vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len) = 0;
-		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize) = 0;
+		virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize) = 0;
 		
 		virtual void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;
 		virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
@@ -93,9 +93,9 @@ class IRemoteDriver
 		
 		virtual void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 
-		virtual vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y) = 0;
+		virtual vector<PixelModification> PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx) = 0;
 		virtual ShaderDebugTrace DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset) = 0;
-		virtual ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y) = 0;
+		virtual ShaderDebugTrace DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive) = 0;
 		virtual ShaderDebugTrace DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3]) = 0;
 
 		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
@@ -127,8 +127,6 @@ class IReplayDriver : public IRemoteDriver
 
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
-
-		virtual bool SaveTexture(ResourceId tex, uint32_t saveMip, wstring path) = 0;
 
 		virtual void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;

@@ -31,6 +31,7 @@
 #include "maths/camera.h"
 #include "data/resource.h"
 #include "common/string_utils.h"
+#include "maths/formatpacking.h"
 
 #include "driver/d3d11/d3d11_resources.h"
 
@@ -331,7 +332,9 @@ D3D11DebugManager::~D3D11DebugManager()
 	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
 	{
 		SAFE_RELEASE(it->second.vsout.buf);
+		SAFE_RELEASE(it->second.vsout.idxBuf);
 		SAFE_RELEASE(it->second.gsout.buf);
+		SAFE_RELEASE(it->second.gsout.idxBuf);
 	}
 
 	m_PostVSData.clear();
@@ -785,7 +788,7 @@ bool D3D11DebugManager::InitDebugRendering()
 	m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
 
 	m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
-	m_DebugRender.PixelHistoryDepthCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyDepthStencil", "cs_5_0");
+	m_DebugRender.PixelHistoryCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
 	m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
 	
 	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
@@ -1478,7 +1481,7 @@ bool D3D11DebugManager::InitStreamOut()
 		D3D11_BUFFER_DESC bdesc;
 		bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bdesc.ByteWidth = sizeof(Vec4f)*4;
+		bdesc.ByteWidth = sizeof(Vec4f)*16;
 		bdesc.MiscFlags = 0;
 		bdesc.Usage = D3D11_USAGE_DYNAMIC;
 
@@ -2170,14 +2173,15 @@ vector<byte> D3D11DebugManager::GetBufferData(ID3D11Buffer *buffer, uint32_t off
 	D3D11_BUFFER_DESC desc;
 	buffer->GetDesc(&desc);
 
+	if(len == 0)
+	{
+		len = desc.ByteWidth-offset;
+	}
+
 	if(len > 0 && offset+len > desc.ByteWidth)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
 		len = RDCMIN(len, desc.ByteWidth-offset);
-	}
-	else if(len == 0)
-	{
-		len = desc.ByteWidth;
 	}
 
 	uint32_t outOffs = 0;
@@ -2324,6 +2328,10 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 		m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
 		m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
 		SAFE_RELEASE(dsState);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
 	}
 
 	ID3D11DepthStencilView *dsvMS = NULL;
@@ -2570,6 +2578,11 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 	
 	m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 	m_pImmediateContext->PSSetShader(depth ? m_DebugRender.DepthCopyMSToArrayPS : m_DebugRender.CopyMSToArrayPS, NULL, 0);
+	
+	D3D11_VIEWPORT view = { 0.0f, 0.0f, (float)descArr.Width, (float)descArr.Height, 0.0f, 1.0f };
+
+	m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+	m_pImmediateContext->RSSetViewports(1, &view);
 
 	m_pImmediateContext->IASetInputLayout(NULL);
 	float blendFactor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
@@ -2595,6 +2608,10 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 		m_pDevice->CreateDepthStencilState(&dsDesc, &dsState);
 		m_pImmediateContext->OMSetDepthStencilState(dsState, 0);
 		SAFE_RELEASE(dsState);
+	}
+	else
+	{
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
 	}
 
 	ID3D11RenderTargetView *rtvArray = NULL;
@@ -3303,7 +3320,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, float size, const c
 	}
 }
 
-bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
+bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 {
 	DebugVertexCBuffer vertexData;
 	DebugPixelCBufferData pixelData;
@@ -3590,7 +3607,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg)
 		m_pImmediateContext->PSSetSamplers(0, 2, samps);
 
 		float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-		if(cfg.rawoutput)
+		if(cfg.rawoutput || !blendAlpha)
 			m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
 		else
 			m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
@@ -3738,7 +3755,7 @@ PostVSMeshData D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t ev
 	PostVSData postvs = GetPostVSBuffers(frameID, eventID);
 	PostVSData::StageData s = postvs.GetStage(stage);
 	ret.numVerts = s.numVerts;
-	ret.topo = (PrimitiveTopology)s.topo;
+	ret.topo = MakePrimitiveTopology(s.topo);
 	if(s.buf != NULL)
 		ret.buf = GetBufferData(s.buf, 0, 0);
 	else
@@ -3853,10 +3870,14 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			if(a.find("POSITION") != string::npos)
 			{
 				// force to 4 components, as we need it, and store its offset
-				if(a.find("SV_POSITION") != string::npos)
-					decl.ComponentCount = 4;
-				numPosComponents = decl.ComponentCount;
-				posoffset = stride;
+				if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position || posoffset == ~0U)
+				{
+					if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position)
+						decl.ComponentCount = 4;
+
+					posoffset = stride;
+					numPosComponents = decl.ComponentCount;
+				}
 			}
 
 			stride += decl.ComponentCount * sizeof(float);
@@ -3890,7 +3911,108 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_pImmediateContext->SOSetTargets( 1, &m_SOBuffer, &offset );
 
 		m_pImmediateContext->Begin(m_SOStatsQuery);
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, eventID);
+		
+		ID3D11Buffer *idxBuf = NULL;
+		DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+
+		if((drawcall->flags & eDraw_UseIBuffer) == 0)
+		{
+			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+			m_pImmediateContext->Draw(drawcall->numIndices, drawcall->vertexOffset);
+			m_pImmediateContext->IASetPrimitiveTopology(topo);
+		}
+		else // drawcall is indexed
+		{
+			UINT idxOffs = 0;
+			
+			m_WrappedContext->IAGetIndexBuffer(&idxBuf, &idxFmt, &idxOffs);
+			bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+			UINT bytesize = index16 ? 2 : 4; 
+
+			ID3D11Buffer *origBuf = idxBuf;
+
+			vector<byte> idxdata = GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize);
+
+			SAFE_RELEASE(idxBuf);
+			
+			vector<uint32_t> indices;
+			
+			uint16_t *idx16 = (uint16_t *)&idxdata[0];
+			uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+			// grab all unique vertex indices referenced
+			for(uint32_t i=0; i < drawcall->numIndices; i++)
+			{
+				uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
+
+				auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+				if(it != indices.end() && *it == i32)
+					continue;
+
+				indices.insert(it, i32);
+			}
+
+			// An index buffer could be something like: 500, 501, 502, 501, 503, 502
+			// in which case we can't use the existing index buffer without filling 499 slots of vertex
+			// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+			// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+			//
+			// Since we want the indices to be preserved in order to easily match up inputs to outputs,
+			// but shifted, fill in gaps in our streamout vertex buffer with the lowest index value.
+			// (use the lowest index value so that even the gaps are a 'valid' vertex, rather than
+			// potentially garbage data).
+			uint32_t minindex = indices[0];
+
+			// indices[] contains ascending unique vertex indices referenced. Fill gaps with minindex
+			for(size_t i=1; i < indices.size(); i++)
+			{
+				if(indices[i]-1 > indices[i-1])
+				{
+					size_t gapsize = size_t( (indices[i]-1) - indices[i-1] );
+
+					indices.insert(indices.begin()+i, gapsize, minindex);
+
+					i += gapsize;
+				}
+			}
+
+			D3D11_BUFFER_DESC desc = { UINT(sizeof(uint32_t)*indices.size()), D3D11_USAGE_IMMUTABLE, D3D11_BIND_INDEX_BUFFER, 0, 0, 0 };
+			D3D11_SUBRESOURCE_DATA initData = { &indices[0], desc.ByteWidth, desc.ByteWidth };
+
+			m_pDevice->CreateBuffer(&desc, &initData, &idxBuf);
+
+			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+			m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
+			SAFE_RELEASE(idxBuf);
+
+			m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->vertexOffset);
+
+			m_pImmediateContext->IASetPrimitiveTopology(topo);
+			m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
+			
+			// rebase existing index buffer to point from 0 onwards (which will index into our
+			// stream-out'd vertex buffer)
+			if(index16)
+			{
+				for(uint32_t i=0; i < drawcall->numIndices; i++)
+					idx16[i] -= uint16_t(minindex&0xffff);
+			}
+			else
+			{
+				for(uint32_t i=0; i < drawcall->numIndices; i++)
+					idx32[i] -= minindex;
+			}
+			
+			desc.ByteWidth = (UINT)idxdata.size();
+			initData.pSysMem = &idxdata[0];
+			initData.SysMemPitch = initData.SysMemSlicePitch = desc.ByteWidth;
+
+			m_WrappedDevice->CreateBuffer(&desc, &initData, &idxBuf);
+		}
+
 		m_pImmediateContext->End(m_SOStatsQuery);
 
 		m_pImmediateContext->GSSetShader(NULL, NULL, 0);
@@ -3908,6 +4030,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		if(numPrims.NumPrimitivesWritten == 0)
 		{
 			m_PostVSData[idx] = PostVSData();
+			SAFE_RELEASE(idxBuf);
 			return;
 		}
 
@@ -3917,12 +4040,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to map sobuffer %08x", hr);
+			SAFE_RELEASE(idxBuf);
 			return;
 		}
 
 		D3D11_BUFFER_DESC bufferDesc =
 		{
-			stride * (uint32_t)numPrims.NumPrimitivesWritten*3,
+			stride * (uint32_t)numPrims.NumPrimitivesWritten,
 			D3D11_USAGE_IMMUTABLE,
 			D3D11_BIND_VERTEX_BUFFER,
 			0,
@@ -3935,6 +4059,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			RDCERR("Generated output data too large: %08x", bufferDesc.ByteWidth);
 
 			m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
+			SAFE_RELEASE(idxBuf);
 			return;
 		}
 
@@ -3954,6 +4079,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			RDCERR("Failed to create postvs pos buffer %08x", hr);
 
 			m_pImmediateContext->Unmap(m_SOStagingBuffer, 0);
+			SAFE_RELEASE(idxBuf);
 			return;
 		}
 
@@ -4009,9 +4135,18 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.buf = vsoutBuffer;
 		m_PostVSData[idx].vsout.posOffset = posoffset;
 		m_PostVSData[idx].vsout.vertStride = stride;
-		m_PostVSData[idx].vsout.numPrims = (uint32_t)numPrims.NumPrimitivesWritten;
 		m_PostVSData[idx].vsout.nearPlane = nearp;
 		m_PostVSData[idx].vsout.farPlane = farp;
+
+		m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+		m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+
+		m_PostVSData[idx].vsout.idxBuf = NULL;
+		if(m_PostVSData[idx].vsout.useIndices && idxBuf)
+		{
+			m_PostVSData[idx].vsout.idxBuf = idxBuf;
+			m_PostVSData[idx].vsout.idxFmt = idxFmt;
+		}
 
 		m_PostVSData[idx].vsout.topo = topo;
 	}
@@ -4022,32 +4157,12 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].vsout.buf = NULL;
 		m_PostVSData[idx].vsout.posOffset = ~0U;
 		m_PostVSData[idx].vsout.vertStride = 0;
-		m_PostVSData[idx].vsout.numPrims = 0;
 		m_PostVSData[idx].vsout.nearPlane = 0.0f;
 		m_PostVSData[idx].vsout.farPlane = 0.0f;
+		m_PostVSData[idx].vsout.useIndices = false;
+		m_PostVSData[idx].vsout.idxBuf = NULL;
 
 		m_PostVSData[idx].vsout.topo = topo;
-	}
-
-	// streamout expands strips unfortunately
-	if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
-	else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
-		m_PostVSData[idx].vsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
-
-	switch(m_PostVSData[idx].vsout.topo)
-	{
-		case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims; break;
-		case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims*2; break;
-		default:
-		case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-			m_PostVSData[idx].vsout.numVerts = m_PostVSData[idx].vsout.numPrims*3; break;
 	}
 
 	if(dxbcGS || dxbcDS)
@@ -4079,15 +4194,18 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			decl.ComponentCount = sign.compCount&0xff;
 
 			string a = strupper(string(decl.SemanticName));
-
-			// force to 4 components, as we need it, and store its offset
+			
 			if(a.find("POSITION") != string::npos)
 			{
 				// force to 4 components, as we need it, and store its offset
-				if(a.find("SV_POSITION") != string::npos)
-					decl.ComponentCount = 4;
-				numPosComponents = decl.ComponentCount;
-				posoffset = stride;
+				if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position || posoffset == ~0U)
+				{
+					if(a.find("SV_POSITION") != string::npos || sign.systemValue == eAttr_Position)
+						decl.ComponentCount = 4;
+
+					posoffset = stride;
+					numPosComponents = decl.ComponentCount;
+				}
 			}
 
 			stride += decl.ComponentCount * sizeof(float);
@@ -4240,9 +4358,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].gsout.buf = gsoutBuffer;
 		m_PostVSData[idx].gsout.posOffset = posoffset;
 		m_PostVSData[idx].gsout.vertStride = stride;
-		m_PostVSData[idx].gsout.numPrims = (uint32_t)numPrims.NumPrimitivesWritten;
 		m_PostVSData[idx].gsout.nearPlane = nearp;
 		m_PostVSData[idx].gsout.farPlane = farp;
+		m_PostVSData[idx].gsout.useIndices = false;
+		m_PostVSData[idx].gsout.idxBuf = NULL;
 
 		D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		
@@ -4287,14 +4406,109 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		switch(m_PostVSData[idx].gsout.topo)
 		{
 			case D3D11_PRIMITIVE_TOPOLOGY_POINTLIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims; break;
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten; break;
 			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims*2; break;
+			case D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*2; break;
 			default:
 			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-				m_PostVSData[idx].gsout.numVerts = m_PostVSData[idx].gsout.numPrims*3; break;
+			case D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
+				m_PostVSData[idx].gsout.numVerts = (uint32_t)numPrims.NumPrimitivesWritten*3; break;
 		}
 	}
+}
+
+FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid)
+{
+	FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+	if(m_HighlightCache.useidx)
+	{
+		if(vert >= (uint32_t)m_HighlightCache.indices.size())
+		{
+			valid = false;
+			return ret;
+		}
+
+		vert = m_HighlightCache.indices[vert];
+	}
+
+	data += vert*cfg.positionStride;
+
+	float *out = &ret.x;
+
+	ResourceFormat fmt;
+	fmt.compByteWidth = cfg.positionCompByteWidth;
+	fmt.compCount = cfg.positionCompCount;
+	fmt.compType = cfg.positionCompType;
+
+	if(cfg.positionFormat == eSpecial_R10G10B10A2)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		ret.w = v.w;
+		return ret;
+	}
+	else if(cfg.positionFormat == eSpecial_R11G11B10)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		return ret;
+	}
+	else if(cfg.positionFormat == eSpecial_B8G8R8A8)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		fmt.compByteWidth = 1;
+		fmt.compCount = 4;
+		fmt.compType = eCompType_UNorm;
+	}
+	
+	if(data + cfg.positionCompCount*cfg.positionCompByteWidth >= end)
+	{
+		valid = false;
+		return ret;
+	}
+
+	for(uint32_t i=0; i < cfg.positionCompCount; i++)
+	{
+		*out = ConvertComponent(fmt, data);
+
+		data += cfg.positionCompByteWidth;
+		out++;
+	}
+
+	if(cfg.positionFormat == eSpecial_B8G8R8A8)
+	{
+		FloatVector reversed;
+		reversed.x = ret.x;
+		reversed.y = ret.y;
+		reversed.z = ret.z;
+		reversed.w = ret.w;
+		return reversed;
+	}
+
+	return ret;
 }
 
 void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
@@ -4422,16 +4636,29 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			for(size_t i=0; i < events.size()-1; i++)
 			{
 				PostVSData data = GetPostVSBuffers(frameID, events[i]);
-				const PostVSData::StageData &stage = data.GetStage(cfg.type);
+				PostVSData::StageData stage = data.GetStage(cfg.type);
+
+				if(stage.buf == NULL && cfg.type == eMeshDataStage_GSOut)
+					stage = data.GetStage(eMeshDataStage_VSOut);
 
 				if(stage.buf)
 				{
-					if(stage.topo < D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
-					{
+					if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+						m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+					else
 						m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
 
-						ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-						m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
+					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+					if(stage.useIndices)
+					{
+						buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
+						m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
+
+						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+					}
+					else
+					{
 						m_pImmediateContext->Draw(stage.numVerts, 0);
 					}
 				}
@@ -4444,12 +4671,22 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
 			if(stage.buf)
 			{
-				if(stage.topo < D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
-				{
+				if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+					m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+				else
 					m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
-				
-					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+
+				ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
+				m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+				if(stage.useIndices)
+				{
+					buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
+					m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
+
+					m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+				}
+				else
+				{
 					m_pImmediateContext->Draw(stage.numVerts, 0);
 				}
 			}
@@ -4596,7 +4833,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->IASetVertexBuffers(m_MeshDisplayNULLVB, 1, &vb, &dummy, &dummy);
 
 		// draw solid shaded mode
-		if(cfg.solidShadeMode != eShade_None)
+		if(cfg.solidShadeMode != eShade_None && pipeState.m_IA.Topology < eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
@@ -4625,7 +4862,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		}
 		
 		// draw wireframe mode
-		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw)
+		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
@@ -4636,6 +4873,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+
+			if(pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
+				m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 		}
@@ -4684,79 +4924,494 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->Draw(2, 4);
 	}
 
-	if(cfg.showVerts)
-	{	
-		// if data is from post transform, it will be in clipspace
-		if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
-			(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
-		{
-			vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
-			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
-		}
-		else
-		{
-			vertexData.ModelViewProj = projMat.Mul(camMat);
-			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
-		}
+	if(cfg.highlightVert != ~0U)
+	{
+		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, events.back());
 
-		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
-
-		pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
-		FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
-
-		D3D11_MAPPED_SUBRESOURCE mapped;
-
-		HRESULT hr = S_OK;
-
-		hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-
-		if(FAILED(hr))
-		{
-			RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
-			return;
-		}
-
-		memcpy(mapped.pData, cfg.hilightVerts, sizeof(Vec4f)*3);
-		m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
-
-		UINT strides[] = { sizeof(Vec4f) };
-		UINT offsets[] = { 0 };
-
-		m_pImmediateContext->IASetVertexBuffers(0, 1, &m_TriHighlightHelper, (UINT *)&strides, (UINT *)&offsets);
-		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-		m_pImmediateContext->Draw(3, 0);
+		MeshDataStage stage = cfg.type;
 		
-		FloatVector vertSprite[4] = {
-			cfg.hilightVerts[0],
-			cfg.hilightVerts[0],
-			cfg.hilightVerts[0],
-			cfg.hilightVerts[0]
-		};
+		if(cfg.type == eMeshDataStage_VSOut && pipeState.m_HS.Shader != ResourceId())
+			stage = eMeshDataStage_VSIn;
 
-		hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
-		
-		if(FAILED(hr))
+		if(m_HighlightCache.EID != events.back() || m_HighlightCache.buf != cfg.positionBuf || stage != m_HighlightCache.stage)
 		{
-			RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
-			return;
+			m_HighlightCache.EID = events.back();
+			m_HighlightCache.buf = cfg.positionBuf;
+			m_HighlightCache.stage = stage;
+
+			if(cfg.type == eMeshDataStage_VSIn)
+			{
+				m_HighlightCache.data = GetBufferData(cfg.positionBuf, 0, 0);
+				m_HighlightCache.topo = curRS->IA.Topo;
+			}
+			else
+			{
+				PostVSMeshData postvs = GetPostVSBuffers(frameID, events.back(), stage);
+				m_HighlightCache.data.resize(postvs.buf.count);
+				memcpy(&m_HighlightCache.data[0], postvs.buf.elems, postvs.buf.count);
+
+				m_HighlightCache.topo = GetPostVSBuffers(frameID, events.back()).GetStage(stage).topo;
+			}
+
+			if((drawcall->flags & eDraw_UseIBuffer) == 0)
+			{
+				m_HighlightCache.indices.clear();
+				m_HighlightCache.useidx = false;
+			}
+			else
+			{
+				m_HighlightCache.useidx = true;
+
+				ID3D11Buffer *idxBuf = curRS->IA.IndexBuffer;
+				DXGI_FORMAT idxFmt = curRS->IA.IndexFormat;
+				UINT idxOffs = curRS->IA.IndexOffset;
+
+				bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+				UINT bytesize = index16 ? 2 : 4; 
+
+				vector<byte> idxdata = GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize);
+
+				uint16_t *idx16 = (uint16_t *)&idxdata[0];
+				uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+				uint32_t numIndices = RDCMIN(drawcall->numIndices, uint32_t(idxdata.size()/bytesize));
+
+				m_HighlightCache.indices.resize(numIndices);
+
+				for(uint32_t i=0; i < numIndices; i++)
+					m_HighlightCache.indices[i] = index16 ? uint32_t(idx16[i]) : idx32[i];
+			}
 		}
 
-		memcpy(mapped.pData, vertSprite, sizeof(vertSprite));
-		m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+		D3D11_PRIMITIVE_TOPOLOGY meshtopo = m_HighlightCache.topo;
 
-		float scale = 800.0f/float(GetHeight());
-		float asp = float(GetWidth())/float(GetHeight());
+		uint32_t idx = cfg.highlightVert;
 
-		pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);		
-		vertexData.SpriteSize = Vec2f(scale/asp, scale);
-		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
-		FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+		byte *data = &m_HighlightCache.data[0]; // buffer start
+		byte *dataEnd = data + m_HighlightCache.data.size();
+
+		data += cfg.positionOffset; // to start of position data
+		data += drawcall->vertexOffset*cfg.positionStride; // to first vertex
 		
-		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		m_pImmediateContext->Draw(4, 0);
+		///////////////////////////////////////////////////////////////
+		// vectors to be set from buffers, depending on topology
+
+		bool valid = true;
+
+		// this vert (blue dot, required)
+		FloatVector activeVertex;
+		 
+		// primitive this vert is a part of (red prim, optional)
+		vector<FloatVector> activePrim;
+
+		// for patch lists, to show other verts in patch (green dots, optional)
+		// for non-patch lists, we use the activePrim and adjacentPrimVertices
+		// to show what other verts are related
+		vector<FloatVector> inactiveVertices;
+
+		// adjacency (line or tri, strips or lists) (green prims, optional)
+		// will be N*M long, N adjacent prims of M verts each. M = primSize below
+		vector<FloatVector> adjacentPrimVertices; 
+
+		D3D11_PRIMITIVE_TOPOLOGY primTopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // tri or line list
+		uint32_t primSize = 3; // number of verts per primitive
 		
+		if(meshtopo == eTopology_LineList ||
+		   meshtopo == eTopology_LineList_Adj ||
+		   meshtopo == eTopology_LineStrip ||
+		   meshtopo == eTopology_LineStrip_Adj)
+		{
+			primSize = 2;
+			primTopo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+		}
+		
+		activeVertex = InterpretVertex(data, idx, cfg, dataEnd, valid);
+
+		// see http://msdn.microsoft.com/en-us/library/windows/desktop/bb205124(v=vs.85).aspx for
+		// how primitive topologies are laid out
+		if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
+		{
+			uint32_t v = uint32_t(idx/2) * 2; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST)
+		{
+			uint32_t v = uint32_t(idx/3) * 3; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
+		{
+			uint32_t v = uint32_t(idx/4) * 4; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ)
+		{
+			uint32_t v = uint32_t(idx/6) * 6; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+				InterpretVertex(data, v+4, cfg, dataEnd, valid),
+				InterpretVertex(data, v+5, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+			adjacentPrimVertices.push_back(vs[2]);
+			
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+			adjacentPrimVertices.push_back(vs[4]);
+			
+			adjacentPrimVertices.push_back(vs[4]);
+			adjacentPrimVertices.push_back(vs[5]);
+			adjacentPrimVertices.push_back(vs[0]);
+
+			activePrim.push_back(vs[0]);
+			activePrim.push_back(vs[2]);
+			activePrim.push_back(vs[4]);
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 1U) - 1;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 2U) - 2;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 3U) - 3;
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
+		{
+			// Triangle strip with adjacency is the most complex topology, as
+			// we need to handle the ends separately where the pattern breaks.
+
+			uint32_t numidx = drawcall->numIndices;
+
+			if(numidx < 6)
+			{
+				// not enough indices provided, bail to make sure logic below doesn't
+				// need to have tons of edge case detection
+				valid = false;
+			}
+			else if(idx <= 4 || numidx <= 7)
+			{
+				FloatVector vs[] = {
+					InterpretVertex(data, 0, cfg, dataEnd, valid),
+					InterpretVertex(data, 1, cfg, dataEnd, valid),
+					InterpretVertex(data, 2, cfg, dataEnd, valid),
+					InterpretVertex(data, 3, cfg, dataEnd, valid),
+					InterpretVertex(data, 4, cfg, dataEnd, valid),
+
+					// note this one isn't used as it's adjacency for the next triangle
+					InterpretVertex(data, 5, cfg, dataEnd, valid),
+
+					// min() with number of indices in case this is a tiny strip
+					// that is basically just a list
+					InterpretVertex(data, RDCMIN(6U, numidx-1), cfg, dataEnd, valid),
+				};
+
+				// these are the triangles on the far left of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[1]);
+				adjacentPrimVertices.push_back(vs[2]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[3]);
+				adjacentPrimVertices.push_back(vs[0]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				activePrim.push_back(vs[0]);
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+			}
+			else if(idx > numidx-4)
+			{
+				// in diagram, numidx == 14
+
+				FloatVector vs[] = {
+					/*[0]=*/ InterpretVertex(data, numidx-8, cfg, dataEnd, valid), // 6 in diagram
+
+					// as above, unused since this is adjacency for 2-previous triangle
+					/*[1]=*/ InterpretVertex(data, numidx-7, cfg, dataEnd, valid), // 7 in diagram
+					/*[2]=*/ InterpretVertex(data, numidx-6, cfg, dataEnd, valid), // 8 in diagram
+					
+					// as above, unused since this is adjacency for previous triangle
+					/*[3]=*/ InterpretVertex(data, numidx-5, cfg, dataEnd, valid), // 9 in diagram
+					/*[4]=*/ InterpretVertex(data, numidx-4, cfg, dataEnd, valid), // 10 in diagram
+					/*[5]=*/ InterpretVertex(data, numidx-3, cfg, dataEnd, valid), // 11 in diagram
+					/*[6]=*/ InterpretVertex(data, numidx-2, cfg, dataEnd, valid), // 12 in diagram
+					/*[7]=*/ InterpretVertex(data, numidx-1, cfg, dataEnd, valid), // 13 in diagram
+				};
+
+				// these are the triangles on the far right of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+				adjacentPrimVertices.push_back(vs[0]); // 6 in diagram
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+				adjacentPrimVertices.push_back(vs[7]); // 13 in diagram
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+				adjacentPrimVertices.push_back(vs[5]); // 11 in diagram
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+
+				activePrim.push_back(vs[2]); // 8 in diagram
+				activePrim.push_back(vs[4]); // 10 in diagram
+				activePrim.push_back(vs[6]); // 12 in diagram
+			}
+			else
+			{
+				// we're in the middle somewhere. Each primitive has two vertices for it
+				// so our step rate is 2. The first 'middle' primitive starts at indices 5&6
+				// and uses indices all the way back to 0
+				uint32_t v = RDCMAX( ( (idx+1) / 2) * 2, 6U) - 6;
+
+				// these correspond to the indices in the MSDN diagram, with {2,4,6} as the
+				// main triangle
+				FloatVector vs[] = {
+					InterpretVertex(data, v+0, cfg, dataEnd, valid),
+
+					// this one is adjacency for 2-previous triangle
+					InterpretVertex(data, v+1, cfg, dataEnd, valid),
+					InterpretVertex(data, v+2, cfg, dataEnd, valid),
+
+					// this one is adjacency for previous triangle
+					InterpretVertex(data, v+3, cfg, dataEnd, valid),
+					InterpretVertex(data, v+4, cfg, dataEnd, valid),
+					InterpretVertex(data, v+5, cfg, dataEnd, valid),
+					InterpretVertex(data, v+6, cfg, dataEnd, valid),
+					InterpretVertex(data, v+7, cfg, dataEnd, valid),
+					InterpretVertex(data, v+8, cfg, dataEnd, valid),
+				};
+
+				// these are the triangles around {2,4,6} in the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[5]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				adjacentPrimVertices.push_back(vs[6]);
+				adjacentPrimVertices.push_back(vs[8]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+				activePrim.push_back(vs[6]);
+			}
+		}
+		else if(meshtopo >= D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+		{
+			uint32_t dim = (meshtopo-D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST) + 1;
+
+			uint32_t v0 = uint32_t(idx/dim) * dim;
+
+			for(uint32_t v = v0; v < v0+dim; v++)
+			{
+				if(v != idx && valid)
+					inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, valid));
+			}
+		}
+		else // if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST) point list, or unknown/unhandled type
+		{
+			// no adjacency, inactive verts or active primitive
+		}
+
+		if(valid)
+		{
+			////////////////////////////////////////////////////////////////
+			// prepare rendering (for both vertices & primitives)
+
+			// if data is from post transform, it will be in clipspace
+			if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
+				(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
+			{
+				vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+				m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
+				m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
+			}
+			else
+			{
+				vertexData.ModelViewProj = projMat.Mul(camMat);
+				m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+			}
+
+			FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+
+			D3D11_MAPPED_SUBRESOURCE mapped;
+			HRESULT hr = S_OK;
+			UINT strides[] = { sizeof(Vec4f) };
+			UINT offsets[] = { 0 };
+			m_pImmediateContext->IASetVertexBuffers(0, 1, &m_TriHighlightHelper, (UINT *)&strides, (UINT *)&offsets);
+
+			////////////////////////////////////////////////////////////////
+			// render primitives
+
+			m_pImmediateContext->IASetPrimitiveTopology(primTopo);
+
+			// Draw active primitive (red)
+			pixelData.WireframeColour = Vec3f(1.0f, 0.0f, 0.0f);
+			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+			if(activePrim.size() >= primSize)
+			{
+				hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+				if(FAILED(hr))
+				{
+					RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+					return;
+				}
+
+				memcpy(mapped.pData, &activePrim[0], sizeof(Vec4f)*primSize);
+				m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+
+				m_pImmediateContext->Draw(primSize, 0);
+			}
+
+			// Draw adjacent primitives (green)
+			pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
+			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+			if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
+			{
+				hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+				if(FAILED(hr))
+				{
+					RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+					return;
+				}
+
+				memcpy(mapped.pData, &adjacentPrimVertices[0], sizeof(Vec4f)*adjacentPrimVertices.size());
+				m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+
+				m_pImmediateContext->Draw((UINT)adjacentPrimVertices.size(), 0);
+			}
+
+			////////////////////////////////////////////////////////////////
+			// prepare to render dots (set new VS params and topology)
+			float scale = 800.0f/float(GetHeight());
+			float asp = float(GetWidth())/float(GetHeight());
+
+			vertexData.SpriteSize = Vec2f(scale/asp, scale);
+			FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+
+			// Draw active vertex (blue)
+			pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 1.0f);
+			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+			FloatVector vertSprite[4] = {
+				activeVertex,
+				activeVertex,
+				activeVertex,
+				activeVertex,
+			};
+
+			hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+			if(FAILED(hr))
+			{
+				RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+				return;
+			}
+
+			memcpy(mapped.pData, vertSprite, sizeof(vertSprite));
+			m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+
+			m_pImmediateContext->Draw(4, 0);
+
+			// Draw inactive vertices (green)
+			pixelData.WireframeColour = Vec3f(0.0f, 1.0f, 0.0f);
+			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+			for(size_t i=0; i < inactiveVertices.size(); i++)
+			{
+				vertSprite[0] = vertSprite[1] = vertSprite[2] = vertSprite[3] = inactiveVertices[i];
+
+				hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+
+				if(FAILED(hr))
+				{
+					RDCERR("Failde to map m_TriHighlightHelper %08x", hr);
+					return;
+				}
+
+				memcpy(mapped.pData, vertSprite, sizeof(vertSprite));
+				m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+
+				m_pImmediateContext->Draw(4, 0);
+			}
+		}
+
 		if(cfg.type != eMeshDataStage_VSIn)
 			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
 	}

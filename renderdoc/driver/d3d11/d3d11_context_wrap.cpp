@@ -265,11 +265,12 @@ void WrappedID3D11DeviceContext::IAGetIndexBuffer(ID3D11Buffer **pIndexBuffer, D
 		SAFE_ADDREF(*pIndexBuffer);
 
 		RDCASSERT(*pIndexBuffer == m_CurrentPipelineState->IA.IndexBuffer);
+
+		if (Format)
+			RDCASSERT(*Format == m_CurrentPipelineState->IA.IndexFormat);
+		if (Offset)
+			RDCASSERT(*Offset == m_CurrentPipelineState->IA.IndexOffset);
 	}
-	if(Format)
-		RDCASSERT(*Format == m_CurrentPipelineState->IA.IndexFormat);
-	if(Offset)
-		RDCASSERT(*Offset == m_CurrentPipelineState->IA.IndexOffset);
 }
 
 void WrappedID3D11DeviceContext::IAGetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY *pTopology)
@@ -1936,22 +1937,25 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, ppSOTargets, 0, NumBuffers);
 	m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, pOffsets, 0, NumBuffers);
 	
-	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
-		// technically this isn't dirty until the draw call, but let's be conservative
-		// to avoid having to track "possibly" dirty resources.
-		// Besides, it's unlikely an application will set an output then not draw to it
-		if(ppSOTargets[i] && m_State >= WRITING_CAPFRAME)
+		if(ppSOTargets && ppSOTargets[i])
 		{
-			MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
-			
-			if(m_State == WRITING_CAPFRAME)
-				m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
-			if(m_State == WRITING_IDLE)
-				m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
+			// technically this isn't dirty until the draw call, but let's be conservative
+			// to avoid having to track "possibly" dirty resources.
+			// Besides, it's unlikely an application will set an output then not draw to it
+			if(m_State >= WRITING_CAPFRAME)
+			{
+				MarkResourceReferenced(GetIDForResource(ppSOTargets[i]), eFrameRef_Write);
+
+				if(m_State == WRITING_CAPFRAME)
+					m_MissingTracks.insert(GetIDForResource(ppSOTargets[i]));
+				if(m_State == WRITING_IDLE)
+					m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(ppSOTargets[i]));
+			}
+			bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
 		}
-		bufs[i] = UNWRAP(WrappedID3D11Buffer, ppSOTargets[i]);
 	}
 
 	m_pRealContext->SOSetTargets(NumBuffers, bufs, pOffsets);
@@ -2732,19 +2736,22 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews, ID3D11RenderT
 	
 	for(UINT i=0; i < NumViews; i++)
 	{
-		if(ppRenderTargetViews[i] && m_State >= WRITING)
+		if(ppRenderTargetViews && ppRenderTargetViews[i])
 		{
-			ID3D11Resource *res = NULL;
-			ppRenderTargetViews[i]->GetResource(&res);
-			// technically this isn't dirty until the draw call, but let's be conservative
-			// to avoid having to track "possibly" dirty resources.
-			// Besides, it's unlikely an application will set an output then not draw to it
-			if(m_State == WRITING_IDLE)
-				m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(res));
-			SAFE_RELEASE(res);
-		}
+			if(m_State >= WRITING)
+			{
+				ID3D11Resource *res = NULL;
+				ppRenderTargetViews[i]->GetResource(&res);
+				// technically this isn't dirty until the draw call, but let's be conservative
+				// to avoid having to track "possibly" dirty resources.
+				// Besides, it's unlikely an application will set an output then not draw to it
+				if(m_State == WRITING_IDLE)
+					m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(res));
+				SAFE_RELEASE(res);
+			}
 
-		RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+			RTs[i] = UNWRAP(WrappedID3D11RenderTargetView, ppRenderTargetViews[i]);
+		}
 	}
 
 	if(pDepthStencilView && m_State >= WRITING)
@@ -4417,7 +4424,7 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
 		m_CurrentPipelineState->Clear();
 	VerifyState();
 
-	*ppCommandList = wrapped;
+	if (ppCommandList) *ppCommandList = wrapped;
 
 	return hr;
 }
@@ -6181,6 +6188,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 		}
 
 		intercept = MapIntercept();
+		intercept.verifyWrite = (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites != 0);
 		intercept.SetD3D(mappedResource);
 		intercept.InitWrappedResource(resMap, Subresource, appMem);
 		intercept.MapType = MapType;
@@ -6198,10 +6206,43 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 		mapLength = record->Length;
 		
 		intercept = MapIntercept();
+		intercept.verifyWrite = (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites != 0);
 		intercept.SetD3D(mappedResource);
-		intercept.InitWrappedResource(pResource, Subresource, record->GetDataPtr());
 		intercept.MapType = MapType;
 		intercept.MapFlags = MapFlags;
+
+		if(intercept.verifyWrite)
+		{
+			int ctxMapID = 0;
+
+			ResourceId Resource = GetIDForResource(pResource);
+
+			if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+			{
+				if(m_MapResourceRecordAllocs[Resource] == 0)
+					m_MapResourceRecordAllocs[Resource] = record->GetContextID();
+
+				ctxMapID = m_MapResourceRecordAllocs[Resource];
+
+				RDCASSERT(ctxMapID != 0);
+			}
+
+			byte *appMem = record->GetShadowPtr(ctxMapID, 0);
+
+			if(appMem == NULL)
+			{
+				record->AllocShadowStorage(ctxMapID, mapLength);
+				appMem = record->GetShadowPtr(ctxMapID, 0);
+			}
+
+			memcpy(appMem, record->GetDataPtr(), mapLength);
+
+			intercept.InitWrappedResource(pResource, Subresource, appMem);
+		}
+		else
+		{
+			intercept.InitWrappedResource(pResource, Subresource, record->GetDataPtr());
+		}
 
 		*pMappedResource = intercept.app;
 
@@ -6303,9 +6344,10 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 			if(record->NumSubResources > (int)Subresource)
 				record = (D3D11ResourceRecord *)record->SubResources[Subresource];
 
-			record->UpdateCount++;
+			if(RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites == 0)
+				record->UpdateCount++;
 
-			if(record->UpdateCount > 60)
+			if(record->UpdateCount > 60 && RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites == 0)
 			{
 				m_HighTrafficResources.insert(pResource);
 				m_pDevice->GetResourceManager()->MarkDirtyResource(Id);
@@ -6349,6 +6391,8 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 
 	MapIntercept intercept;
 	
+	int ctxMapID = 0;
+
 	if(m_State >= WRITING)
 	{
 		auto it = m_OpenMaps.find(mapIdx);
@@ -6358,6 +6402,27 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 		intercept = it->second;
 
 		m_OpenMaps.erase(it);
+		
+		if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED && (m_State == WRITING_CAPFRAME || intercept.verifyWrite))
+		{
+			ctxMapID = m_MapResourceRecordAllocs[mapIdx.resource];
+
+			RDCASSERT(ctxMapID != 0);
+		}
+
+		if(intercept.verifyWrite && record)
+		{
+			if(!record->VerifyShadowStorage(ctxMapID))
+			{
+				int res = MessageBoxA(NULL,
+				                      "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
+				                      "Map() overwrite detected!", MB_YESNO|MB_ICONERROR);
+				if(res == IDYES)
+				{
+					OS_DEBUG_BREAK();
+				}
+			}
+		}
 	}
 
 	if(m_State < WRITING || m_State == WRITING_CAPFRAME)
@@ -6371,15 +6436,6 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 		size_t diffStart = 0;
 		size_t diffEnd = len;
 		
-		int ctxMapID = 0;
-
-		if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED && m_State == WRITING_CAPFRAME)
-		{
-			ctxMapID = m_MapResourceRecordAllocs[mapIdx.resource];
-
-			RDCASSERT(ctxMapID != 0);
-		}
-
 		if(m_State == WRITING_CAPFRAME && len > 512 && intercept.MapType != D3D11_MAP_WRITE_DISCARD)
 		{
 			bool found = FindDiffRange(appWritePtr, record->GetShadowPtr(ctxMapID, 1), len, diffStart, diffEnd);
@@ -6518,6 +6574,10 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 
 			if(m_State < WRITING)
 				SAFE_DELETE_ARRAY(buf);
+		}
+		else if(intercept.verifyWrite)
+		{
+			memcpy(record->GetDataPtr(), intercept.app.pData, len);
 		}
 	}
 

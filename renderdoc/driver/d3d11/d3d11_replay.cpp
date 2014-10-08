@@ -68,15 +68,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.depth = 1;
 		tex.cubemap = false;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture1D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -99,6 +90,27 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.msQual = 0; tex.msSamp = 1;
 
 		tex.numSubresources *= desc.ArraySize;
+		
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			if(tex.arraysize > 1)
+				str = StringFormat::Fmt("Texture1DArray%s %llu", suffix, tex.ID);
+			else
+				str = StringFormat::Fmt("Texture1D%s %llu", suffix, tex.ID);
+		}
+		
+		tex.name = widen(str);
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -126,15 +138,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.height = desc.Height;
 		tex.depth = 1;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-		
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture2D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -164,6 +167,41 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 
 		tex.numSubresources *= desc.ArraySize;
 		
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+			const char *ms = "";
+
+			if(tex.msSamp > 1)
+				ms = "MS";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			if(tex.cubemap)
+			{
+				if(tex.arraysize > 6)
+					str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
+				else
+					str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
+			}
+			else
+			{
+				if(tex.arraysize > 1)
+					str = StringFormat::Fmt("Texture2D%sArray%s %llu", ms, suffix, tex.ID);
+				else
+					str = StringFormat::Fmt("Texture2D%s%s %llu", ms, suffix, tex.ID);
+			}
+		}
+		
+		tex.name = widen(str);
+		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
 			tex.byteSize += GetByteSize(d3dtex, s);
@@ -188,15 +226,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.depth = desc.Depth;
 		tex.cubemap = false;
 		tex.format = MakeResourceFormat(desc.Format);
-		tex.customName = true;
-		
-		if(str == "")
-		{
-			tex.customName = false;
-			str = StringFormat::Fmt("Texture3D %llu", tex.ID);
-		}
-		
-		tex.name = widen(str);
 
 		tex.numSubresources = desc.MipLevels;
 
@@ -217,6 +246,24 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 
 		tex.mips = tex.numSubresources;
 		tex.arraysize = 1;
+				
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			str = StringFormat::Fmt("Texture3D%s %llu", suffix, tex.ID);
+		}
+
+		tex.name = widen(str);
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -354,75 +401,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 	/////////////////////////////////////////////////
 	// Input Assembler
 	/////////////////////////////////////////////////
-
-	switch(rs->IA.Topo)
-	{
-		default:
-		case D3D_PRIMITIVE_TOPOLOGY_UNDEFINED:
-			ret.m_IA.Topology = eTopology_Unknown;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_POINTLIST:
-			ret.m_IA.Topology = eTopology_PointList;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST:
-			ret.m_IA.Topology = eTopology_LineList;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP:
-			ret.m_IA.Topology = eTopology_LineStrip;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-			ret.m_IA.Topology = eTopology_TriangleList;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-			ret.m_IA.Topology = eTopology_TriangleStrip;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-			ret.m_IA.Topology = eTopology_LineList_Adj;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
-			ret.m_IA.Topology = eTopology_LineStrip_Adj;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-			ret.m_IA.Topology = eTopology_TriangleList_Adj;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-			ret.m_IA.Topology = eTopology_TriangleStrip_Adj;
-			break;
-		case D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_2_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_4_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_5_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_6_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_7_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_8_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_9_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_10_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_11_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_12_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_13_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_14_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_15_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_16_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_17_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_18_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_19_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_20_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_21_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_22_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_23_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_24_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_25_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_26_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_27_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_28_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_29_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_30_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_31_CONTROL_POINT_PATCHLIST:
-		case D3D_PRIMITIVE_TOPOLOGY_32_CONTROL_POINT_PATCHLIST:
-			ret.m_IA.Topology = PrimitiveTopology(eTopology_PatchList_1CPs + (rs->IA.Topo - D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST) );
-			break;
-	}
+	
+	ret.m_IA.Topology = MakePrimitiveTopology(rs->IA.Topo);
 
 	D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -474,6 +454,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		D3D11PipelineState::ShaderStage *dstArr = &ret.m_VS;
 		const D3D11RenderState::shader *srcArr = &rs->VS;
 
+		const char *stageNames[] = { "Vertex", "Hull", "Domain", "Geometry", "Pixel", "Compute" };
+
 		for(size_t i=0; i < 6; i++)
 		{
 			D3D11PipelineState::ShaderStage &dst = dstArr[i];
@@ -485,6 +467,17 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 			dst.Shader = rm->GetOriginalID(id);
 			dst.ShaderDetails = NULL;
+
+			string str = GetDebugName(src.Shader);
+			dst.customName = true;
+
+			if(str == "" && dst.Shader != ResourceId())
+			{
+				dst.customName = false;
+				str = StringFormat::Fmt("%hs Shader %llu", stageNames[i], dst.Shader);
+			}
+
+			dst.ShaderName = widen(str);
 
 			// create identity bindpoint mapping
 			create_array_uninit(dst.BindpointMapping.ConstantBlocks, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
@@ -664,29 +657,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
 					{
-						view.MipSlice = desc.Texture1D.MipSlice;
+						view.HighestMip = desc.Texture1D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
 					{
 						view.ArraySize = desc.Texture1DArray.ArraySize;
 						view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-						view.MipSlice = desc.Texture1DArray.MipSlice;
+						view.HighestMip = desc.Texture1DArray.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
 					{
-						view.MipSlice = desc.Texture2D.MipSlice;
+						view.HighestMip = desc.Texture2D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
 					{
 						view.ArraySize = desc.Texture2DArray.ArraySize;
 						view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-						view.MipSlice = desc.Texture2DArray.MipSlice;
+						view.HighestMip = desc.Texture2DArray.MipSlice;
+						view.NumMipLevels = 1;
 					}
 					else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
 					{
 						view.ArraySize = desc.Texture3D.WSize;
 						view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-						view.MipSlice = desc.Texture3D.MipSlice;
+						view.HighestMip = desc.Texture3D.MipSlice;
+						view.NumMipLevels = 1;
 					}
 
 					SAFE_RELEASE(res);
@@ -837,29 +835,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D)
 				{
 					view.ArraySize = desc.Texture3D.WSize;
 					view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-					view.MipSlice = desc.Texture3D.MipSlice;
+					view.HighestMip = desc.Texture3D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);
@@ -905,29 +908,34 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_UAV_DIMENSION_TEXTURE3D)
 				{
 					view.ArraySize = desc.Texture3D.WSize;
 					view.FirstArraySlice = desc.Texture3D.FirstWSlice;
-					view.MipSlice = desc.Texture3D.MipSlice;
+					view.HighestMip = desc.Texture3D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);
@@ -967,23 +975,27 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 				if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
 				{
-					view.MipSlice = desc.Texture1D.MipSlice;
+					view.HighestMip = desc.Texture1D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY)
 				{
 					view.ArraySize = desc.Texture1DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture1DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture1DArray.MipSlice;
+					view.HighestMip = desc.Texture1DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D)
 				{
-					view.MipSlice = desc.Texture2D.MipSlice;
+					view.HighestMip = desc.Texture2D.MipSlice;
+					view.NumMipLevels = 1;
 				}
 				else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY)
 				{
 					view.ArraySize = desc.Texture2DArray.ArraySize;
 					view.FirstArraySlice = desc.Texture2DArray.FirstArraySlice;
-					view.MipSlice = desc.Texture2DArray.MipSlice;
+					view.HighestMip = desc.Texture2DArray.MipSlice;
+					view.NumMipLevels = 1;
 				}
 
 				SAFE_RELEASE(res);
@@ -1220,9 +1232,9 @@ vector<byte> D3D11Replay::GetBufferData(ResourceId buff, uint32_t offset, uint32
 	return m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
 {
-	return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, dataSize);
+	return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1238,11 +1250,6 @@ void D3D11Replay::RemoveReplacement(ResourceId id)
 void D3D11Replay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 {
 	return m_pDevice->GetDebugManager()->TimeDrawcalls(arr);
-}
-
-bool D3D11Replay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
-{
-	return m_pDevice->GetDebugManager()->SaveTexture(tex, saveMip, path);
 }
 
 void D3D11Replay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
@@ -1262,7 +1269,7 @@ void D3D11Replay::BuildCustomShader(string source, string entry, const uint32_t 
 
 bool D3D11Replay::RenderTexture(TextureDisplay cfg)
 {
-	return m_pDevice->GetDebugManager()->RenderTexture(cfg);
+	return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
 void D3D11Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
@@ -1291,9 +1298,9 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vec
 	return;
 }
 
-vector<PixelModification> D3D11Replay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> D3D11Replay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
 {
-	return m_pDevice->GetDebugManager()->PixelHistory(frameID, events, target, x, y);
+	return m_pDevice->GetDebugManager()->PixelHistory(frameID, events, target, x, y, sampleIdx);
 }
 
 ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
@@ -1301,9 +1308,9 @@ ShaderDebugTrace D3D11Replay::DebugVertex(uint32_t frameID, uint32_t eventID, ui
 	return m_pDevice->GetDebugManager()->DebugVertex(frameID, eventID, vertid, instid, idx, instOffset, vertOffset);
 }
 
-ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace D3D11Replay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
-	return m_pDevice->GetDebugManager()->DebugPixel(frameID, eventID, x, y);
+	return m_pDevice->GetDebugManager()->DebugPixel(frameID, eventID, x, y, sample, primitive);
 }
 
 ShaderDebugTrace D3D11Replay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
@@ -1361,6 +1368,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 {
 	ResourceId ret;
 
+	ID3D11Resource *resource = NULL;
+
 	if(templateTex.dimension == 1)
 	{
 		ID3D11Texture1D *throwaway = NULL;
@@ -1385,6 +1394,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			RDCERR("Failed to create 1D proxy texture");
 			return ResourceId();
 		}
+
+		resource = throwaway;
 		
 		if(templateTex.creationFlags & eTextureCreate_DSV)
 			desc.Format = GetTypelessFormat(desc.Format);
@@ -1418,12 +1429,17 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			desc.Format = GetTypelessFormat(desc.Format);
 		}
 
+		if(templateTex.cubemap)
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_TEXTURECUBE;
+
 		HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &throwaway);
 		if(FAILED(hr))
 		{
 			RDCERR("Failed to create 2D proxy texture");
 			return ResourceId();
 		}
+
+		resource = throwaway;
 
 		ret = ((WrappedID3D11Texture2D *)throwaway)->GetResourceID();
 		if(templateTex.creationFlags & eTextureCreate_DSV)
@@ -1455,11 +1471,19 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 			return ResourceId();
 		}
 
+		resource = throwaway;
+
 		ret = ((WrappedID3D11Texture3D *)throwaway)->GetResourceID();
 	}
 	else
 	{
 		RDCERR("Invalid texture dimension: %d", templateTex.dimension);
+	}
+
+	if(resource != NULL && templateTex.customName)
+	{
+		string name = narrow(wstring(templateTex.name.elems));
+		SetDebugName(resource, name.c_str());
 	}
 
 	return ret;

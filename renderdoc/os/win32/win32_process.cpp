@@ -43,14 +43,29 @@ void InjectDLL(HANDLE hProcess, wstring libName)
 
 	static HMODULE kernel32 = GetModuleHandle(_T("Kernel32"));
 
+	if(kernel32 == NULL)
+	{
+		RDCERR("Couldn't get handle for kernel32.dll");
+		return;
+	}
+
 	void *remoteMem = VirtualAllocEx(hProcess, NULL, sizeof(dllPath), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-	WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
+	if(remoteMem)
+	{
+		WriteProcessMemory(hProcess, remoteMem, (void *)dllPath, sizeof(dllPath), NULL);
 
-	HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"), remoteMem, 0, NULL);
-	WaitForSingleObject(hThread, INFINITE);
-
-	CloseHandle(hThread);
-	VirtualFreeEx(hProcess, remoteMem, sizeof(dllPath), MEM_RELEASE); 
+		HANDLE hThread = CreateRemoteThread(hProcess, NULL, 0, (LPTHREAD_START_ROUTINE)GetProcAddress(kernel32, "LoadLibraryW"), remoteMem, 0, NULL);
+		if(hThread)
+		{
+			WaitForSingleObject(hThread, INFINITE);
+			CloseHandle(hThread);
+		}
+		VirtualFreeEx(hProcess, remoteMem, sizeof(dllPath), MEM_RELEASE); 
+	}
+	else
+	{
+		RDCERR("Couldn't allocate remote memory for DLL '%ls'", libName.c_str());
+	}
 }
 
 uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
@@ -259,11 +274,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 		pSec.nLength = sizeof(pSec);
 		tSec.nLength = sizeof(tSec);
 	
-		wchar_t *paramsAlloc = new wchar_t[256];
+		wchar_t *paramsAlloc = new wchar_t[2048];
 
 		string optstr = opts->ToString();
 
-		_snwprintf_s(paramsAlloc, 255, 255, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"", renderdocPath, pid, logfile, optstr.c_str());
+		_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"",
+		             renderdocPath, pid, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+		paramsAlloc[2047] = 0;
 	
 		BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, CREATE_SUSPENDED, NULL, NULL, &si, &pi);
 
@@ -290,20 +308,6 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 
 		return (uint32_t)exitCode;
 	}
-#endif
-
-#if USE_MHOOK
-	// misc
-	InjectDLL(hProcess, L"kernel32.dll");
-
-	// D3D11
-	InjectDLL(hProcess, L"d3d9.dll");
-	InjectDLL(hProcess, L"d3d11.dll");
-	InjectDLL(hProcess, L"dxgi.dll");
-
-	// OpenGL
-	InjectDLL(hProcess, L"opengl32.dll");
-	InjectDLL(hProcess, L"gdi32.dll");
 #endif
 
 	InjectDLL(hProcess, renderdocPath);
@@ -420,6 +424,62 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 	CloseHandle(pi.hThread);
 
 	return ret;
+}
+
+void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+{
+	if(pathmatch == NULL) return;
+
+	wchar_t renderdocPath[MAX_PATH] = {0};
+	GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), &renderdocPath[0], MAX_PATH-1);
+	
+	wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+
+	if(slash) *slash = 0;
+	else      slash = renderdocPath + wcslen(renderdocPath);
+	
+	wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+	
+	PROCESS_INFORMATION pi = {0};
+	STARTUPINFO si = {0};
+	SECURITY_ATTRIBUTES pSec = {0};
+	SECURITY_ATTRIBUTES tSec = {0};
+	pSec.nLength = sizeof(pSec);
+	tSec.nLength = sizeof(tSec);
+	
+	wchar_t *paramsAlloc = new wchar_t[2048];
+
+	string optstr = opts->ToString();
+
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
+		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+	paramsAlloc[2047] = 0;
+
+	BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+
+	if(retValue == FALSE) return;
+	
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+
+#if defined(WIN64)
+	*slash = 0;
+
+	wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
+	
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
+		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+
+	paramsAlloc[2047] = 0;
+
+	retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, 0, NULL, NULL, &si, &pi);
+
+	if(retValue == FALSE) return;
+	
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+#endif
 }
 
 void *Process::GetFunctionAddress(const char *module, const char *function)

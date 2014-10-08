@@ -148,45 +148,21 @@ namespace renderdoc
             return Maths_HalfToFloat(comp);
         }
 
-        public string Interpret(UInt32 comp, bool hex)
-        {
-            if (compByteWidth != 4 || compType == FormatComponentType.Float) throw new ArgumentException();
-
-            if (compType == FormatComponentType.SInt)
-            {
-                int cast = (int)comp;
-                return String.Format("{0}", cast);
-            }
-            else if (compType == FormatComponentType.UInt)
-            {
-                return String.Format(hex ? "{0:X8}" : "{0}", comp);
-            }
-
-            throw new ArgumentException();
-        }
-
-        public string Interpret(UInt16 comp, bool hex)
+        public object Interpret(UInt16 comp)
         {
             if (compByteWidth != 2 || compType == FormatComponentType.Float) throw new ArgumentException();
 
             if (compType == FormatComponentType.SInt)
             {
-                Int16 cast = (Int16)comp;
-                return String.Format("{0}", cast);
+                return (Int16)comp;
             }
             else if (compType == FormatComponentType.UInt)
             {
-                return String.Format(hex ? "{0:X4}" : "{0}", comp);
+                return comp;
             }
             else if (compType == FormatComponentType.UNorm)
             {
-                float f = (float)comp / (float)UInt16.MaxValue;
-                return Formatter.Format(f);
-            }
-            else if (compType == FormatComponentType.UNorm_SRGB)
-            {
-                float f = (float)comp / (float)UInt16.MaxValue;
-                return Formatter.Format(f);
+                return (float)comp / (float)UInt16.MaxValue;
             }
             else if (compType == FormatComponentType.SNorm)
             {
@@ -199,34 +175,27 @@ namespace renderdoc
                 else
                     f = ((float)cast) / 32767.0f;
 
-                return Formatter.Format(f);
+                return f;
             }
 
             throw new ArgumentException();
         }
 
-        public string Interpret(byte comp, bool hex)
+        public object Interpret(byte comp)
         {
             if (compByteWidth != 1 || compType == FormatComponentType.Float) throw new ArgumentException();
 
             if (compType == FormatComponentType.SInt)
             {
-                sbyte cast = (sbyte)comp;
-                return String.Format("{0}", cast);
+                return (sbyte)comp;
             }
             else if (compType == FormatComponentType.UInt)
             {
-                return String.Format(hex ? "{0:X2}" : "{0}", comp);
+                return comp;
             }
             else if (compType == FormatComponentType.UNorm)
             {
-                float f = ((float)comp) / 255.0f;
-                return Formatter.Format(f);
-            }
-            else if (compType == FormatComponentType.UNorm_SRGB)
-            {
-                float f = ((float)comp) / 255.0f;
-                return Formatter.Format(f);
+                return ((float)comp) / 255.0f;
             }
             else if (compType == FormatComponentType.SNorm)
             {
@@ -239,7 +208,7 @@ namespace renderdoc
                 else
                     f = ((float)cast) / 127.0f;
 
-                return Formatter.Format(f);
+                return f;
             }
 
             throw new ArgumentException();
@@ -386,17 +355,14 @@ namespace renderdoc
 
         public bool thisDrawOnly = true;
 
-        public bool showVerts;
-        
-        [StructLayout(LayoutKind.Sequential)]
-        public struct HighlightVerts
-        {
-            public FloatVector v0;
-            public FloatVector v1;
-            public FloatVector v2;
-        };
-        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public HighlightVerts highlight = new HighlightVerts();
+        public UInt32 highlightVert;
+        public ResourceId positionBuf;
+        public UInt32 positionOffset;
+        public UInt32 positionStride;
+        public UInt32 positionCompCount;
+        public UInt32 positionCompByteWidth;
+        public FormatComponentType positionCompType;
+        public SpecialFormat positionFormat;
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();
@@ -428,6 +394,55 @@ namespace renderdoc
         public FloatVector darkBackgroundColour = new FloatVector(0.333f, 0.333f, 0.333f);
 
         public TextureDisplayOverlay overlay = TextureDisplayOverlay.None;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class TextureSave
+    {
+        public ResourceId id = ResourceId.Null;
+
+        public FileType destType = FileType.DDS;
+
+        public Int32 mip = -1;
+
+        public struct ComponentMapping
+        {
+            public float blackPoint;
+            public float whitePoint;
+        };
+
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public ComponentMapping comp = new ComponentMapping();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SampleMapping
+        {
+            public bool mapToArray;
+
+            public UInt32 sampleIndex;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public SampleMapping sample = new SampleMapping();
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct SliceMapping
+        {
+            public Int32 sliceIndex;
+
+            public bool slicesAsGrid;
+
+            public Int32 sliceGridWidth;
+
+            public bool cubeCruciform;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public SliceMapping slice = new SliceMapping();
+
+        public AlphaMapping alpha = AlphaMapping.Discard;
+        public FloatVector alphaCol = new FloatVector(0.666f, 0.666f, 0.666f);
+        public FloatVector alphaColSecondary = new FloatVector(0.333f, 0.333f, 0.333f);
+
+        public int jpegQuality = 90;
     };
 
     [StructLayout(LayoutKind.Sequential)]

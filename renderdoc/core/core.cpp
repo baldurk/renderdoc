@@ -30,11 +30,11 @@
 
 #include <time.h>
 
-#ifdef WIN32
-#include "data/resource.h"
-#endif
-
+#include "data/version.h"
 #include "crash_handler.h"
+
+#include "stb/stb_image.h"
+#include "common/dds_readwrite.h"
 
 template<>
 string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
@@ -43,11 +43,67 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 	{
 		TOSTR_CASE_STRINGIZE(RDC_Unknown)
 		TOSTR_CASE_STRINGIZE(RDC_D3D11)
+		TOSTR_CASE_STRINGIZE(RDC_OpenGL)
+		TOSTR_CASE_STRINGIZE(RDC_Mantle)
+		TOSTR_CASE_STRINGIZE(RDC_D3D10)
+		TOSTR_CASE_STRINGIZE(RDC_D3D9)
 		default: break;
 	}
 	
 	char tostrBuf[256] = {0};
 	StringFormat::snprintf(tostrBuf, 255, "RDCDriver<%d>", el);
+
+	return tostrBuf;
+}
+
+template<>
+string ToStrHelper<false, KeyButton>::Get(const KeyButton &el)
+{
+	char alphanumericbuf[2] = { 'A', 0 };
+
+	// enums map straight to ascii
+	if( (el >= eKey_A && el <= eKey_Z) || (el >= eKey_0 && el <= eKey_9) )
+	{
+		alphanumericbuf[0] = (char)el;
+		return alphanumericbuf;
+	}
+
+	switch(el)
+	{
+		case eKey_Divide:    return "/";
+		case eKey_Multiply:  return "*";
+		case eKey_Subtract:  return "-";
+		case eKey_Plus:      return "+";
+
+		case eKey_F1:        return "F1";
+		case eKey_F2:        return "F2";
+		case eKey_F3:        return "F3";
+		case eKey_F4:        return "F4";
+		case eKey_F5:        return "F5";
+		case eKey_F6:        return "F6";
+		case eKey_F7:        return "F7";
+		case eKey_F8:        return "F8";
+		case eKey_F9:        return "F9";
+		case eKey_F10:       return "F10";
+		case eKey_F11:       return "F11";
+		case eKey_F12:       return "F12";
+
+		case eKey_Home:      return "Home";
+		case eKey_End:       return "End";
+		case eKey_Insert:    return "Insert";
+		case eKey_Delete:    return "Delete";
+		case eKey_PageUp:    return "PageUp";
+		case eKey_PageDn:    return "PageDn";
+
+		case eKey_Backspace: return "Backspace";
+		case eKey_Tab:       return "Tab";
+		case eKey_PrtScrn:   return "PrtScrn";
+		case eKey_Pause:     return "Pause";
+		default: break;
+	}
+	
+	char tostrBuf[256] = {0};
+	StringFormat::snprintf(tostrBuf, 255, "KeyButton<%d>", el);
 
 	return tostrBuf;
 }
@@ -84,6 +140,13 @@ RenderDoc::RenderDoc()
 
 	m_Focus = false;
 	m_Cap = false;
+
+	m_FocusKeys.clear();
+	m_FocusKeys.push_back(eKey_F11);
+
+	m_CaptureKeys.clear();
+	m_CaptureKeys.push_back(eKey_F12);
+	m_CaptureKeys.push_back(eKey_PrtScrn);
 
 	m_ProgressPtr = NULL;
 	
@@ -182,21 +245,21 @@ RenderDoc::~RenderDoc()
 		SAFE_DELETE(m_ExHandler);
 	}
 
-	for(size_t i=0; i < m_CapturePaths.size(); i++)
+	for(size_t i=0; i < m_Captures.size(); i++)
 	{
-		if(m_CaptureRetrieved[i])
+		if(m_Captures[i].retrieved)
 		{
-			RDCLOG("Removing remotely retrieved capture %ls", m_CapturePaths[i].c_str());
-			FileIO::UnlinkFileW(m_CapturePaths[i].c_str());
+			RDCLOG("Removing remotely retrieved capture %ls", m_Captures[i].path.c_str());
+			FileIO::UnlinkFileW(m_Captures[i].path.c_str());
 		}
 		else
 		{
-			RDCLOG("'Leaking' unretrieved capture %ls", m_CapturePaths[i].c_str());
+			RDCLOG("'Leaking' unretrieved capture %ls", m_Captures[i].path.c_str());
 		}
 	}
 
 	m_RemoteServerThreadShutdown = true;
-	Threading::JoinThread(m_RemoteThread);
+	// don't join, just close the thread, as we can't wait while in the middle of module unloading
 	Threading::CloseThread(m_RemoteThread);
 	m_RemoteThread = 0;
 
@@ -243,19 +306,22 @@ bool RenderDoc::EndFrameCapture(void *wnd)
 
 void RenderDoc::Tick()
 {
-	static bool prev_f11 = false;
-	static bool prev_f12 = false;
+	static bool prev_focus = false;
+	static bool prev_cap = false;
 
-	bool cur_f11 = Keyboard::GetKeyState(Keyboard::eKey_F11);
-	bool cur_f12 = Keyboard::GetKeyState(Keyboard::eKey_F12) || Keyboard::GetKeyState(Keyboard::eKey_PrtScrn); 
+	bool cur_focus = false;
+	for(size_t i=0; i < m_FocusKeys.size(); i++) cur_focus |= Keyboard::GetKeyState(m_FocusKeys[i]);
 
-	if(!prev_f11 && cur_f11)
+	bool cur_cap = false;
+	for(size_t i=0; i < m_CaptureKeys.size(); i++) cur_cap |= Keyboard::GetKeyState(m_CaptureKeys[i]);
+
+	if(!prev_focus && cur_focus)
 			FocusToggle();
-	if(!prev_f12 && cur_f12)
+	if(!prev_cap && cur_cap)
 			TriggerCapture();
 
-	prev_f11 = cur_f11;
-	prev_f12 = cur_f12;
+	prev_focus = cur_focus;
+	prev_cap = cur_cap;
 }
 
 bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
@@ -349,6 +415,27 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 
 	if(ser.HasError())
 	{
+		FILE *f = FileIO::fopen(logFile, L"rb");
+		if(f)
+		{
+			int x = 0, y = 0, comp = 0;
+			int ret = stbi_info_from_file(f, &x, &y, &comp);
+
+			FileIO::fseek64(f, 0, SEEK_SET);
+
+			if(is_dds_file(f))
+				ret = x = y = comp = 1;
+			
+			FileIO::fclose(f);
+
+			if(ret == 1 && x > 0 && y > 0 && comp > 0)
+			{
+				driverType = RDC_Image;
+				driverName = L"Image";
+				return eReplayCreate_Success;
+			}
+		}
+
 		RDCERR("Couldn't open '%ls'", logFile);
 
 		switch(ser.ErrorCode())
@@ -448,6 +535,11 @@ void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const wchar_t *name, Re
 ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const wchar_t *logfile, IReplayDriver **driver)
 {
 	if(driver == NULL) return eReplayCreate_InternalError;
+	
+	// allows passing RDC_Unknown as 'I don't care, give me a proxy driver of any type'
+	// only valid if logfile is NULL and it will be used as a proxy, not to process a log
+	if(driverType == RDC_Unknown && logfile == NULL && !m_ReplayDriverProviders.empty())
+		return m_ReplayDriverProviders.begin()->second(logfile, driver);
 
 	if(m_ReplayDriverProviders.find(driverType) != m_ReplayDriverProviders.end())
 		return m_ReplayDriverProviders[driverType](logfile, driver);
@@ -534,7 +626,7 @@ void RenderDoc::SetLogFile(const wchar_t *logFile)
 
 void RenderDoc::SetProgress(LoadProgressSection section, float delta)
 {
-	if(m_ProgressPtr == NULL)
+	if(m_ProgressPtr == NULL || section < 0 || section >= NumSections)
 		return;
 
 	float weights[NumSections];
@@ -558,9 +650,9 @@ void RenderDoc::SuccessfullyWrittenLog()
 {
 	RDCLOG("Written to disk: %ls", m_CurrentLogFile.c_str());	
 
+	CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp());
 	{
 		SCOPED_LOCK(m_CaptureLock);
-		m_CapturePaths.push_back(m_CurrentLogFile);
-		m_CaptureRetrieved.push_back(false);
+		m_Captures.push_back(cap);
 	}
 }

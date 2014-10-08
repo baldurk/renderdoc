@@ -36,9 +36,22 @@ namespace renderdocui.Code
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr LoadLibrary(string lpFileName);
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct POINT
+        {
+            public int X;
+            public int Y;
+
+            public POINT(int x, int y)
+            {
+                this.X = x;
+                this.Y = y;
+            }
+        }
+
         // for redirecting mousewheel
         [DllImport("user32.dll")]
-        public static extern IntPtr WindowFromPoint(System.Drawing.Point pt);
+        public static extern IntPtr WindowFromPoint(POINT pt);
         [DllImport("user32.dll")]
         public static extern IntPtr SendMessage(IntPtr wnd, int msg, IntPtr wp, IntPtr lp);
 
@@ -91,5 +104,17 @@ namespace renderdocui.Code
 
         [DllImport("shell32.dll")]
         public static extern void SHChangeNotify(HChangeNotifyEventID wEventId, HChangeNotifyFlags uFlags, IntPtr dwItem1, IntPtr dwItem2);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern uint GetShortPathName(string lpszLongPath, char[] lpszShortPath, int cchBuffer);
+
+        public static string ShortPath(string longpath)
+        {
+            char[] buffer = new char[256];
+
+            GetShortPathName(longpath, buffer, buffer.Length);
+
+            return new string(buffer);
+        }
     }
 }

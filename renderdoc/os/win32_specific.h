@@ -47,8 +47,3 @@ namespace Threading
 {
 	typedef CriticalSectionTemplate<CRITICAL_SECTION> CriticalSection;
 };
-
-// Hooking configuration
-#define USE_MHOOK 0
-#define USE_IAT_HOOK 1
-

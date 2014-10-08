@@ -33,7 +33,7 @@
 #include <dxgi.h>
 #include <d3d11.h>
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 
 class WrappedID3D11Device;
@@ -43,6 +43,7 @@ HMODULE GetD3DCompiler();
 
 ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt);
 DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
+PrimitiveTopology MakePrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topo);
 
 ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
 

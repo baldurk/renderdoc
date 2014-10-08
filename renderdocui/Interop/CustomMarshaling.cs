@@ -430,7 +430,6 @@ namespace renderdoc
                 {
                     FieldInfo field = fields[fieldIdx];
 
-                    string name = field.Name;
                     IntPtr fieldPtr = isUnion ? sourcePtr : OffsetPtr(structureType, fields, fieldIdx, sourcePtr);
 
                     var arrayType = NonArrayType(field.FieldType);

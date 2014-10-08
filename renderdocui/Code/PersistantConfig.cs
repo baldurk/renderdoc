@@ -94,6 +94,8 @@ namespace renderdocui.Code
         public bool CheckUpdate_UpdateAvailable = false;
         public DateTime CheckUpdate_LastUpdate = new DateTime(2012, 06, 27);
 
+        public bool AllowGlobalHook = false;
+
         public void SetupFormatter()
         {
             Formatter.MinFigures = Formatter_MinFigures;
@@ -124,8 +126,12 @@ namespace renderdocui.Code
             RecentCaptureSettings.Clear();
         }
 
+        public bool ReadOnly = false;
+
         public void Serialize(string file)
         {
+            if (ReadOnly) return;
+
             try
             {
                 ReplayHostKeyValues.Clear();
@@ -141,7 +147,7 @@ namespace renderdocui.Code
             catch (System.IO.IOException ex)
             {
                 // Can't recover, but let user know that we couldn't save their settings.
-                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}\nA default config is loaded and will be saved out.", file, ex.Message));
+                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}", file, ex.Message));
             }
         }
 
@@ -154,7 +160,7 @@ namespace renderdocui.Code
 
             foreach (var kv in c.ReplayHostKeyValues)
             {
-                if(kv.Key != null && kv.Key != "" &&
+                if (kv.Key != null && kv.Key.Length > 0 &&
                     kv.Value != null)
                 c.ReplayHosts.Add(kv.Key, kv.Value);
             }

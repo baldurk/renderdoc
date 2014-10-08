@@ -103,8 +103,10 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 	
 	if(m_State == READING)
 	{
-		const char **strings = new const char*[srcs.size()];
-		for(size_t i=0; i < srcs.size(); i++)
+		size_t numStrings = srcs.size();
+
+		const char **strings = new const char*[numStrings];
+		for(size_t i=0; i < numStrings; i++)
 			strings[i] = srcs[i].c_str();
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);

@@ -580,6 +580,10 @@ void DXBCFile::MakeDisassembly()
 				{
 					line = "Unknown file";
 				}
+				else if(fileLines[fileID].empty())
+				{
+					line = "";
+				}
 				else
 				{
 					int32_t lineIdx = RDCMIN(lineNum, (int32_t)fileLines[fileID].size()-1);

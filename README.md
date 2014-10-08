@@ -5,7 +5,7 @@ Welcome to RenderDoc - a graphics debugger, currently available for D3D11 develo
 
 Quick Links:
 
-* **Builds & Downloads**: http://cryengine.com/renderdoc, https://renderdoc.org/builds
+* **Builds & Downloads**: https://renderdoc.org/builds
 * **Documentation**: renderdoc.chm in the build, or http://docs.renderdoc.org/
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: baldurk@baldurk.org
@@ -15,12 +15,9 @@ Quick Links:
 Downloads
 --------------
 
-There are binary releases available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
+There are [binary releases](https://renderdoc.org/builds) available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
 
-* http://cryengine.com/renderdoc - Official stable installers
-* https://renderdoc.org/builds - Automated builds from the master branch, as just zipped folders
-
-It's recommended that if you're new you start with the latest official stable installer, and only use the automated builds if you want the bleeding edge, or you want a specific bugfix.
+It's recommended that if you're new you start with the stable builds. Beta builds are available for those who want more regular updates with the latest features and fixes, but might run into some bugs as well. Nightly builds are available every day from master branch here if you need it.
 
 License
 --------------
@@ -34,11 +31,9 @@ Building RenderDoc is fairly straight forward.
 
 ### Windows ###
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade. You will also need to rebuild breakpad, just build `Release|Win32` and `Release|x64` in [breakpad.sln](breakpad/breakpad.sln).
+The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012 and VS2013 without issues.
 
 The only external dependency should be the Windows 8.1 SDK. The 8.0 SDK should also work fine, but [the vcxproj](renderdoc/renderdoc.vcxproj) is set up to look in `$(ProgramFiles)\Windows Kits\8.1\` for the necessary paths. If your SDK is installed elsewhere you'll also need to change these locally. You can also compile only against the June 2010 DirectX SDK if you undefine `INCLUDE_D3D_11_1` in `d3d11_common.h`.
-
-If you are on VS express you won't have the DIA SDK, so set `USE_DIA` 0 in [pdblocate.cpp](pdblocate/pdblocate.cpp) and you'll just lose callstack symbol resolution.
 
 Profile is recommended for day-to-day dev. It's debuggable but not too slow. Release is obviously what you should build for any builds you'll send out to people or if you want to evaluate performance.
 

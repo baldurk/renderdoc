@@ -60,18 +60,18 @@ namespace renderdoc
             CustomMarshal.Free(f);
             CustomMarshal.Free(r);
         }
-        public void fpsLook(Vec3f pos, Vec3f rot)
+        public void fpsLook(Vec3f lookpos, Vec3f lookrot)
         {
             IntPtr p = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr f = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr r = CustomMarshal.Alloc(typeof(FloatVector));
 
             isarc = false;
-            parampos = new Vec3f(pos);
-            paramrot = new Vec3f(rot);
+            parampos = new Vec3f(lookpos);
+            paramrot = new Vec3f(lookrot);
 
-            var ps = new FloatVector(pos);
-            var rt = new FloatVector(rot);
+            var ps = new FloatVector(lookpos);
+            var rt = new FloatVector(lookrot);
 
             Maths_CameraFPSLook(ref ps, ref rt, p, f, r);
 

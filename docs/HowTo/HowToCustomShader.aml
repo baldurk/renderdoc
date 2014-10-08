@@ -107,6 +107,8 @@ uint RENDERDOC_TextureType;
   <listItem><para>Depth + Stencil</para></listItem>
   <listItem><para>Depth (Multisampled)</para></listItem>
   <listItem><para>Depth + Stencil (Multisampled)</para></listItem>
+  <listItem><para>Cubemap</para></listItem>
+  <listItem><para>2D texture (Multisampled)</para></listItem>
 </list>
 
 </entry>
@@ -135,14 +137,17 @@ Texture2DArray&lt;uint2&gt; texDisplayTexStencilArray : register(t5);
 Texture2DMSArray&lt;float2&gt; texDisplayTexDepthMSArray : register(t6);
 Texture2DMSArray&lt;uint2&gt; texDisplayTexStencilMSArray : register(t7);
 Texture2DArray&lt;float4&gt; texDisplayTexCubeArray : register(t8);
+Texture2DMSArray&lt;float4&gt; texDisplayTex2DMSArray : register(t9);
 
 Texture1DArray&lt;uint4&gt; texDisplayUIntTex1DArray : register(t11);
 Texture2DArray&lt;uint4&gt; texDisplayUIntTex2DArray : register(t12);
 Texture3D&lt;uint4&gt; texDisplayUIntTex3D : register(t13);
+Texture2DMSArray&lt;uint4&gt; texDisplayUIntTex2DMSArray : register(t19);
 
 Texture1DArray&lt;int4&gt; texDisplayIntTex1DArray : register(t21);
 Texture2DArray&lt;int4&gt; texDisplayIntTex2DArray : register(t22);
 Texture3D&lt;int4&gt; texDisplayIntTex3D : register(t23);
+Texture2DMSArray&lt;int4&gt; texDisplayIntTex2DMSArray : register(t29);
 </code>
 <para>These resources are bound sparsely with the appropriate type for the
     current texture. With a couple of exceptions there will only be one texture bound

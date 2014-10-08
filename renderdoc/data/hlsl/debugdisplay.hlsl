@@ -389,24 +389,105 @@ float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-cbuffer cb0 : register(b0) { uint2 src_coord; uint2 padding0; };
-cbuffer cb1 : register(b1) { uint2 dst_coord; uint copy_stencil; uint padding1; };
-Texture2D<float2> depth_src : register(t0);
-Texture2D<uint2> stencil_src : register(t1);
-RWTexture2D<float2> depth_out : register(u0);
+cbuffer cb0 : register(b0)
+{
+	uint3 src_coord; 
+	bool multisampled;
+	
+	bool is_float;
+	bool is_uint;
+	bool is_int;
+	uint padding;
+};
+
+cbuffer cb1 : register(b1)
+{
+	uint2 dst_coord;
+	bool copy_depth;
+	bool copy_stencil;
+};
+
+Texture2DArray<float2> copyin_depth : register(t0);
+Texture2DArray<uint2> copyin_stencil : register(t1);
+
+Texture2DMSArray<float2> copyin_depth_ms : register(t2);
+Texture2DMSArray<uint2> copyin_stencil_ms : register(t3);
+
+Texture2DArray<float4> copyin_float : register(t4);
+Texture2DMSArray<float4> copyin_float_ms : register(t5);
+
+Texture2DArray<uint4> copyin_uint : register(t6);
+Texture2DMSArray<uint4> copyin_uint_ms : register(t7);
+
+Texture2DArray<int4> copyin_int : register(t8);
+Texture2DMSArray<int4> copyin_int_ms : register(t9);
+
+RWTexture2D<float2> copyout_depth : register(u0);
+RWTexture2D<float4> copyout_float : register(u1);
+RWTexture2D<uint4> copyout_uint : register(u2);
+RWTexture2D<int4> copyout_int : register(u3);
 
 [numthreads(1, 1, 1)]
 void RENDERDOC_PixelHistoryUnused()
 {
-	depth_out[dst_coord.xy].rg = float2(-1.0f, -1.0f);
+	copyout_depth[dst_coord.xy].rg = float2(-1.0f, -1.0f);
 }
 
 [numthreads(1, 1, 1)]
-void RENDERDOC_PixelHistoryCopyDepthStencil()
+void RENDERDOC_PixelHistoryCopyPixel()
 {
-	depth_out[dst_coord.xy].rg = float2(
-			depth_src[src_coord.xy].r,
-			copy_stencil > 0 ? (float)stencil_src[src_coord.xy].g : -1.0f);
+	if(multisampled)
+	{
+		if(copy_depth || copy_stencil)
+		{
+			float2 val = float2(copyin_depth_ms.sample[src_coord.z][uint3(src_coord.xy, 0)].r, -1.0f);
+
+			if(copy_stencil) val.g = (float)copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, 0)].g;
+
+			copyout_depth[dst_coord.xy].rg = val;
+		}
+		else
+		{
+			if(is_float)
+			{
+				copyout_float[dst_coord.xy] = copyin_float_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+			}
+			else if(is_uint)
+			{
+				copyout_uint[dst_coord.xy] = copyin_uint_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+			}
+			else if(is_int)
+			{
+				copyout_int[dst_coord.xy] = copyin_int_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+			}
+		}
+	}
+	else
+	{
+		if(copy_depth || copy_stencil)
+		{
+			float2 val = float2(copyin_depth[uint3(src_coord.xy, 0)].r, -1.0f);
+
+			if(copy_stencil) val.g = (float)copyin_stencil[uint3(src_coord.xy, 0)].g;
+
+			copyout_depth[dst_coord.xy].rg = val;
+		}
+		else
+		{
+			if(is_float)
+			{
+				copyout_float[dst_coord.xy] = copyin_float[uint3(src_coord.xy, 0)];
+			}
+			else if(is_uint)
+			{
+				copyout_uint[dst_coord.xy] = copyin_uint[uint3(src_coord.xy, 0)];
+			}
+			else if(is_int)
+			{
+				copyout_int[dst_coord.xy] = copyin_int[uint3(src_coord.xy, 0)];
+			}
+		}
+	}
 }
 
 float4 RENDERDOC_PrimitiveIDPS(uint prim : SV_PrimitiveID) : SV_Target0

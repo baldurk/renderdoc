@@ -33,7 +33,7 @@
 #include "driver/d3d11/d3d11_common.h"
 
 #include "core/core.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "serialise/serialiser.h"
 #include "common/wrapped_pool.h"
@@ -42,6 +42,8 @@
 struct D3D11ResourceRecord : public ResourceRecord
 {
 	enum { NullResource = NULL };
+
+	static byte markerValue[32];
 
 	D3D11ResourceRecord(ResourceId id)
 		: ResourceRecord(id, true)
@@ -60,9 +62,25 @@ struct D3D11ResourceRecord : public ResourceRecord
 	{
 		if(ShadowPtr[ctx][0] == NULL)
 		{
-			ShadowPtr[ctx][0] = Serialiser::AllocAlignedBuffer(size);
-			ShadowPtr[ctx][1] = Serialiser::AllocAlignedBuffer(size);
+			ShadowPtr[ctx][0] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
+			ShadowPtr[ctx][1] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
+
+			memcpy(ShadowPtr[ctx][0] + size, markerValue, sizeof(markerValue));
+			memcpy(ShadowPtr[ctx][1] + size, markerValue, sizeof(markerValue));
+
+			ShadowSize[ctx] = size;
 		}
+	}
+
+	bool VerifyShadowStorage(int ctx)
+	{
+		if(ShadowPtr[ctx][0] && memcmp(ShadowPtr[ctx][0] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
+			return false;
+
+		if(ShadowPtr[ctx][1] && memcmp(ShadowPtr[ctx][1] + ShadowSize[ctx], markerValue, sizeof(markerValue)))
+			return false;
+
+		return true;
 	}
 
 	void FreeShadowStorage()
@@ -109,6 +127,7 @@ struct D3D11ResourceRecord : public ResourceRecord
 
 private:
 	byte *ShadowPtr[32][2];
+	size_t ShadowSize[32];
 
 	bool contexts[32];
 };
@@ -116,8 +135,8 @@ private:
 class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, D3D11ResourceRecord>
 {
 	public:
-		D3D11ResourceManager(WrappedID3D11Device *dev)
-			: m_Device(dev)
+		D3D11ResourceManager(LogState state, Serialiser *ser, WrappedID3D11Device *dev)
+			: ResourceManager(state, ser), m_Device(dev)
 		{
 		}
 		

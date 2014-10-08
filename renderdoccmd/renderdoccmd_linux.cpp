@@ -30,7 +30,7 @@
 
 #include <unistd.h>
 
-#include <replay/renderdoc.h>
+#include <replay/renderdoc_replay.h>
 
 using std::wstring;
 

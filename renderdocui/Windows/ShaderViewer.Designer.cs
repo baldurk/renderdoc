@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
             WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin1 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
             WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
@@ -98,6 +99,8 @@
             this.VarName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.Type = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.Value = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.variableHover = new System.Windows.Forms.ToolTip(this.components);
+            this.hoverTimer = new System.Windows.Forms.Timer(this.components);
             this.outSig = new TreelistView.TreeListView();
             this.inSig = new TreelistView.TreeListView();
             this.variableRegs = new TreelistView.TreeListView();
@@ -213,20 +216,20 @@
             // autosToolStripMenuItem
             // 
             this.autosToolStripMenuItem.Name = "autosToolStripMenuItem";
-            this.autosToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.autosToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.autosToolStripMenuItem.Text = "Autos";
             this.autosToolStripMenuItem.Click += new System.EventHandler(this.autosToolStripMenuItem_Click);
             // 
             // resourcesToolStripMenuItem
             // 
             this.resourcesToolStripMenuItem.Name = "resourcesToolStripMenuItem";
-            this.resourcesToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.resourcesToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.resourcesToolStripMenuItem.Text = "Resources";
             // 
             // watchToolStripMenuItem
             // 
             this.watchToolStripMenuItem.Name = "watchToolStripMenuItem";
-            this.watchToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            this.watchToolStripMenuItem.Size = new System.Drawing.Size(124, 22);
             this.watchToolStripMenuItem.Text = "Watch";
             this.watchToolStripMenuItem.Click += new System.EventHandler(this.watchToolStripMenuItem_Click);
             // 
@@ -246,7 +249,7 @@
             this.debuggingStrip.Location = new System.Drawing.Point(0, 0);
             this.debuggingStrip.Margin = new System.Windows.Forms.Padding(0, 0, 12, 0);
             this.debuggingStrip.Name = "debuggingStrip";
-            this.debuggingStrip.Size = new System.Drawing.Size(234, 25);
+            this.debuggingStrip.Size = new System.Drawing.Size(203, 25);
             this.debuggingStrip.TabIndex = 0;
             this.debuggingStrip.Text = "Debugging";
             // 
@@ -359,7 +362,7 @@
             this.editStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.saveButton,
             this.snippetDropDown});
-            this.editStrip.Location = new System.Drawing.Point(246, 0);
+            this.editStrip.Location = new System.Drawing.Point(215, 0);
             this.editStrip.Name = "editStrip";
             this.editStrip.Size = new System.Drawing.Size(55, 25);
             this.editStrip.TabIndex = 2;
@@ -514,6 +517,22 @@
             // Value
             // 
             this.Value.Text = "Value";
+            // 
+            // variableHover
+            // 
+            this.variableHover.AutoPopDelay = 5000;
+            this.variableHover.InitialDelay = 1000;
+            this.variableHover.OwnerDraw = true;
+            this.variableHover.ReshowDelay = 100;
+            this.variableHover.UseAnimation = false;
+            this.variableHover.UseFading = false;
+            this.variableHover.Draw += new System.Windows.Forms.DrawToolTipEventHandler(this.variableHover_Draw);
+            this.variableHover.Popup += new System.Windows.Forms.PopupEventHandler(this.variableHover_Popup);
+            // 
+            // hoverTimer
+            // 
+            this.hoverTimer.Interval = 500;
+            this.hoverTimer.Tick += new System.EventHandler(this.hoverTimer_Tick);
             // 
             // outSig
             // 
@@ -715,5 +734,7 @@
         private System.Windows.Forms.ColumnHeader VarName;
         private System.Windows.Forms.ColumnHeader Type;
         private System.Windows.Forms.ColumnHeader Value;
+        private System.Windows.Forms.ToolTip variableHover;
+        private System.Windows.Forms.Timer hoverTimer;
     }
 }

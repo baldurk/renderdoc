@@ -27,7 +27,7 @@
 
 #include "common/common.h"
 #include "os/os_specific.h"
-#include "replay/basic_types.h"
+#include "api/replay/basic_types.h"
 
 #include "replay/type_helpers.h"
 

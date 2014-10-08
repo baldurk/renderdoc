@@ -34,7 +34,7 @@
 #include "dxbc_debug.h"
 #include "dxbc_inspect.h"
 
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 using namespace DXBC;
 
@@ -601,7 +601,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 {
 	ShaderVariable *v = NULL;
 	
-	uint32_t indices[4];
+	uint32_t indices[4] = {0};
 
 	RDCASSERT(dstoper.indices.size() <= 4);
 
@@ -778,7 +778,7 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 {
 	ShaderVariable v, s;
 
-	uint32_t indices[4];
+	uint32_t indices[4] = {0};
 
 	RDCASSERT(oper.indices.size() <= 4);
 
@@ -988,6 +988,11 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		case TYPE_INPUT_COVERAGE_MASK:
 		{
 			v = s = ShaderVariable("vCoverage", semantics.coverage, semantics.coverage, semantics.coverage, semantics.coverage);
+			break;
+		}
+		case TYPE_INPUT_PRIMITIVEID:
+		{
+			v = s = ShaderVariable("vPrimitiveID", semantics.primID, semantics.primID, semantics.primID, semantics.primID);
 			break;
 		}
 		default:

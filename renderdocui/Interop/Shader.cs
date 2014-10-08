@@ -50,13 +50,13 @@ namespace renderdoc
             public Int32[] iv;
 
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            private double[] dv_arr;
+            public double[] _dv_arr;
 
             public double[] dv
             {
                 get
                 {
-                    if (dv_arr == null)
+                    if (_dv_arr == null)
                     {
                         UInt64[] ds = { 0, 0 };
                         ds[0] = uv[1];
@@ -68,12 +68,12 @@ namespace renderdoc
                         ds[0] |= uv[0];
                         ds[1] |= uv[2];
 
-                        dv_arr = new double[2];
-                        dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
-                        dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
+                        _dv_arr = new double[2];
+                        _dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
+                        _dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
                     }
 
-                    return dv_arr;
+                    return _dv_arr;
                 }
             }
         };
@@ -81,18 +81,21 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.Union)]
         public ValueUnion value;
 
+        public bool isStruct;
+        
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderVariable[] members;
-        
-        public override string ToString()
-		{ 
-			if(members.Length > 0) return String.Format("struct[{0}]", members.Length);
-			if(rows == 1) return Row(0);
-			
+
+		public override string ToString()
+		{
+			if (members.Length > 0)
+				return "";
+			if (rows == 1) return Row(0);
+
 			string ret = "";
-            for (int i = 0; i < (int)rows; i++)
+			for (int i = 0; i < (int)rows; i++)
 			{
-				if(i > 0) ret += ", ";
+				if (i > 0) ret += ", ";
 				ret += "{" + Row(i) + "}";
 			}
 
@@ -101,24 +104,36 @@ namespace renderdoc
 
 		public string RowTypeString()
 		{
-            if (members.Length > 0) return "struct";
+			if (members.Length > 0)
+			{
+				if (isStruct)
+					return "struct";
+				else
+					return "flibbertygibbet";
+			}
 
-			if(rows == 0 && columns == 0)
+			if (rows == 0 && columns == 0)
 				return "-";
 
-			if(columns == 1)
+			if (columns == 1)
 				return type.Str();
 
-            return String.Format("{0}{1}", type.Str(), columns);
+			return String.Format("{0}{1}", type.Str(), columns);
 		}
 
 		public string TypeString()
 		{
-            if (members.Length > 0) return "struct";
+			if (members.Length > 0)
+			{
+				if (isStruct)
+					return "struct";
+				else
+					return String.Format("{0}[{1}]", members[0].TypeString(), members.Length);
+			}
 
-            if (rows == 1 && columns == 1) return type.Str();
-            if (rows == 1) return String.Format("{0}{1}", type.Str(), columns);
-            else return String.Format("{0}{1}x{2}", type.Str(), rows, columns);
+			if (rows == 1 && columns == 1) return type.Str();
+			if (rows == 1) return String.Format("{0}{1}", type.Str(), columns);
+			else return String.Format("{0}{1}x{2}", type.Str(), rows, columns);
 		}
 
         public string RowValuesToString(int cols, double x, double y)
@@ -154,7 +169,7 @@ namespace renderdoc
 		public string Row(int row, VarType t)
 		{
 			if(t == VarType.Double)
-				return RowValuesToString((int)columns, value.dv[row*columns+0], value.dv[row*columns+1]);
+                return RowValuesToString((int)columns, value.dv[row * columns + 0], value.dv[row * columns + 1]);
 			else if(t == VarType.Int)
                 return RowValuesToString((int)columns, value.iv[row * columns + 0], value.iv[row * columns + 1], value.iv[row * columns + 2], value.iv[row * columns + 3]);
 			else if(t == VarType.UInt)

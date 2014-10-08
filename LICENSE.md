@@ -65,3 +65,6 @@ RenderDoc also uses several external libraries and components which include thei
 - [lz4](https://code.google.com/p/lz4/)
   distributed under the New BSD License (3 Clause).
   Copyright 2013 Yann Collet.
+
+- [stb](https://github.com/nothings/stb)
+  released to the Public Domain by Sean Barrett

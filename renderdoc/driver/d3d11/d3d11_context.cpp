@@ -913,8 +913,11 @@ void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
 	// assign new drawcall IDs
 	for(size_t i=0; i < node.children.size(); i++)
 	{
+		m_CurEventID++;
+
+		node.children[i].draw.eventID = m_CurEventID;
 		node.children[i].draw.drawcallID = m_CurDrawcallID;
-		
+
 		// markers don't increment drawcall ID
 		if((node.children[i].draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
 			m_CurDrawcallID++;

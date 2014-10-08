@@ -41,7 +41,7 @@ namespace renderdocui.Code
         {
             m_Rate = msCount;
             m_Update = up;
-            m_CameraTick = new System.Threading.Timer(TickCB, this as object, m_Rate, System.Threading.Timeout.Infinite);
+            Start();
         }
 
         private int m_Rate;
@@ -58,6 +58,17 @@ namespace renderdocui.Code
 
             if (me.m_Update != null) me.m_Update();
             if (me.m_CameraTick != null) me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
+        }
+
+        public void Start()
+        {
+            m_CameraTick = new System.Threading.Timer(TickCB, this as object, m_Rate, System.Threading.Timeout.Infinite);
+        }
+
+        public void Stop()
+        {
+            m_CameraTick.Dispose();
+            m_CameraTick = null;
         }
     }
 

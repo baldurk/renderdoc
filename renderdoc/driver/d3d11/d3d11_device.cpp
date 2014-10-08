@@ -35,7 +35,7 @@
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_context.h"
 
-#include "3rdparty/jpeg-compressor/jpge.h"
+#include "jpeg-compressor/jpge.h"
 
 #if defined(INCLUDE_D3D_11_1)
 #include <d3d11shadertracing.h>
@@ -230,6 +230,9 @@ void WrappedID3D11Device::SetLogFile(const wchar_t *logfile)
 	m_pSerialiser = new Serialiser(logfile, Serialiser::READING, debugSerialiser);
 	m_pSerialiser->SetChunkNameLookup(&GetChunkName);
 	m_pImmediateContext->SetSerialiser(m_pSerialiser);
+
+	SAFE_DELETE(m_ResourceManager);
+	m_ResourceManager = new D3D11ResourceManager(m_State, m_pSerialiser, this);
 }
 
 WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitParams *params)
@@ -246,7 +249,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	m_Replay.SetDevice(this);
 
 	m_DebugManager = NULL;
-	m_ResourceManager = new D3D11ResourceManager(this);
 
 	// refcounters implicitly construct with one reference, but we don't start with any soft
 	// references.
@@ -296,6 +298,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_pDebugSerialiser = NULL;
 #endif
 	}
+	
+	m_ResourceManager = new D3D11ResourceManager(m_State, m_pSerialiser, this);
 
 	if(m_pSerialiser)
 		m_pSerialiser->SetChunkNameLookup(&GetChunkName);
@@ -876,7 +880,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
 	if(m_State >= WRITING)
 	{
-		GetResourceManager()->Serialise_InitialContentsNeeded(m_pSerialiser);
+		GetResourceManager()->Serialise_InitialContentsNeeded();
 	}
 	else
 	{
@@ -887,7 +891,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_pImmediateContext->GetResourceID());
 		m_FrameRecord.push_back(record);
 
-		GetResourceManager()->CreateInitialContents(m_pSerialiser);
+		GetResourceManager()->CreateInitialContents();
 	}
 }
 
@@ -2375,6 +2379,8 @@ void WrappedID3D11Device::StartFrameCapture(void *wnd)
 
 	GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Write);
 
+	m_pImmediateContext->FreeCaptureData();
+
 	m_pImmediateContext->AttemptCapture();
 	m_pImmediateContext->BeginCaptureFrame();
 
@@ -2660,7 +2666,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 
 		GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
 
-		GetResourceManager()->InsertInitialContentsChunks(m_pSerialiser, m_pFileSerialiser);
+		GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
 
 		RDCDEBUG("Creating Capture Scope");	
 
@@ -2907,15 +2913,35 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 			if(swap == m_SwapChain)
 			{
-				string overlayText = "F12/PrtScr to capture.";
+				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
+
+				string overlayText = "";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i > 0)
+						overlayText += ", ";
+
+					overlayText += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					overlayText += " to capture.";
 
 				if(overlay & eOverlay_FrameNumber)
-					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("Frame: %d.", m_FrameCounter);
+				}
 				if(overlay & eOverlay_FrameRate)
-					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("%.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
 																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+				}
 
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
+				if(!overlayText.empty())
+					GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
 
 				size_t i=0;
 
@@ -2945,7 +2971,24 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			}
 			else
 			{
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Inactive swapchain, F11 to cycle");
+				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
+
+				string str = "Inactive swapchain.";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i == 0)
+						str += " ";
+					else
+						str += ", ";
+
+					str += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					str += " to cycle between swapchains";
+
+				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, str.c_str());
 			}
 
 			GetDebugManager()->SetOutputDimensions(w, h);

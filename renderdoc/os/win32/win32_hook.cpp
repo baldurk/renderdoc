@@ -310,7 +310,10 @@ static bool OrdinalAsString(void *func)
 
 FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 {
-	if(mod == s_HookData->module || mod == NULL || func == NULL || OrdinalAsString((void *)func))
+	if(mod == NULL || func == NULL)
+		return (FARPROC)NULL;
+
+	if(mod == s_HookData->module || OrdinalAsString((void *)func))
 		return GetProcAddress(mod, func);
 	
 	for(auto it=s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)

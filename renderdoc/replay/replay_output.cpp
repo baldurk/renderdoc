@@ -175,7 +175,7 @@ void ReplayOutput::RefreshOverlay()
 		}
 		else if(!passEvents.empty())
 		{
-			uint32_t prev = passEvents[0];
+			uint32_t prev = 0;
 
 			for(size_t i=0; i < passEvents.size(); i++)
 			{
@@ -564,32 +564,35 @@ void ReplayOutput::DisplayMesh()
 	
 	m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
-	m_pDevice->RenderMesh(m_FrameID, events, m_RenderData.meshDisplay);
+	MeshDisplay mesh = m_RenderData.meshDisplay;
+	mesh.positionBuf = m_pDevice->GetLiveID(mesh.positionBuf);
+
+	m_pDevice->RenderMesh(m_FrameID, events, mesh);
 }
 
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetOutputConfig(ReplayOutput *output, const OutputConfig &o)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetOutputConfig(ReplayOutput *output, const OutputConfig &o)
 { return output->SetOutputConfig(o); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetTextureDisplay(ReplayOutput *output, const TextureDisplay &o)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(ReplayOutput *output, const TextureDisplay &o)
 { return output->SetTextureDisplay(o); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetMeshDisplay(ReplayOutput *output, const MeshDisplay &o)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(ReplayOutput *output, const MeshDisplay &o)
 { return output->SetMeshDisplay(o); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_ClearThumbnails(ReplayOutput *output)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(ReplayOutput *output)
 { return output->ClearThumbnails(); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output, void *wnd, ResourceId texID)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output, void *wnd, ResourceId texID)
 { return output->AddThumbnail(wnd, texID); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output)
 { return output->Display(); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetPixelContext(ReplayOutput *output, void *wnd)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(ReplayOutput *output, void *wnd)
 { return output->SetPixelContext(wnd); }
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y)
 { return output->SetPixelContextLocation(x, y); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output)
 { output->DisablePixelContext(); }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool customShader,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool32 customShader,
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
-{ return output->PickPixel(texID, customShader, x, y, sliceFace, mip, sample, val); }
+{ return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val); }

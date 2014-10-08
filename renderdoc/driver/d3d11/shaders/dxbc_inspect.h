@@ -35,7 +35,7 @@ using std::map;
 #pragma once
 
 #include "common/common.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 #include "dxbc_disassemble.h"
 

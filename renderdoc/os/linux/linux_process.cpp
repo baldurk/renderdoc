@@ -40,6 +40,12 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 	return 0;
 }
 
+void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+{
+	RDCUNIMPLEMENTED();
+	return 0;
+}
+
 void *Process::GetFunctionAddress(const char *module, const char *function)
 {
 	RDCUNIMPLEMENTED();

@@ -28,7 +28,7 @@
 #include "serialise/serialiser.h"
 #include "core/core.h"
 #include "replay/replay_renderer.h"
-#include "replay/renderdoc.h"
+#include "api/replay/renderdoc_replay.h"
 
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half)
 {
@@ -97,13 +97,38 @@ void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text)
 }
 
 extern "C" RENDERDOC_API
-const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFilename()
+const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile()
 {
 	return RDCGETLOGFILE();
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool crashed)
+bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp)
+{
+	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+
+	if(idx >= (uint32_t)caps.size())
+	{
+		if(logfile) logfile[0] = 0;
+		if(pathlength) *pathlength = 0;
+		if(timestamp) *timestamp = 0;
+		return false;
+	}
+
+	CaptureData &c = caps[idx];
+
+	if(logfile)
+		memcpy(logfile, c.path.c_str(), sizeof(wchar_t)*(c.path.size()+1));
+	if(pathlength)
+		*pathlength = uint32_t(c.path.size()+1);
+	if(timestamp)
+		*timestamp = c.timestamp;
+
+	return true;
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 crashed)
 {
 	if(RenderDoc::Inst().GetCrashHandler() == NULL)
 		return;
@@ -129,7 +154,7 @@ void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool cr
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
+bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
 {
 	if(logfile == NULL)
 		return false;
@@ -189,15 +214,21 @@ void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts)
 
 extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-									 const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+									 const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit);
+	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+void RENDERDOC_CC RENDERDOC_StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
 {
-	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit);
+	Process::StartGlobalHook(pathmatch, logfile, opts);
+}
+
+extern "C" RENDERDOC_API
+uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
+{
+	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
@@ -219,7 +250,7 @@ void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle)
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
+bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
 {
 	return RenderDoc::Inst().EndFrameCapture(wndHandle);
 }
@@ -231,9 +262,21 @@ uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits()
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t and, uint32_t or)
+void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or)
 {
-	RenderDoc::Inst().MaskOverlayBits(and, or);
+	RenderDoc::Inst().MaskOverlayBits(And, Or);
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetFocusToggleKeys(KeyButton *keys, int num)
+{
+	RenderDoc::Inst().SetFocusKeys(keys, num);
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_SetCaptureKeys(KeyButton *keys, int num)
+{
+	RenderDoc::Inst().SetCaptureKeys(keys, num);
 }
 
 extern "C" RENDERDOC_API
@@ -243,7 +286,7 @@ void RENDERDOC_CC RENDERDOC_QueueCapture(uint32_t frameNumber)
 }
 
 extern "C" RENDERDOC_API
-bool RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len)
+bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len)
 {
 	Serialiser ser(filename, Serialiser::READING, false);
 
@@ -335,9 +378,9 @@ uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const wchar_t *host, 
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool *killReplay)
+void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay)
 {
-	bool dummy = false;
+	bool32 dummy = false;
 
 	if(killReplay == NULL) killReplay = &dummy;
 

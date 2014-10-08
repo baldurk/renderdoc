@@ -103,6 +103,9 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
+            [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+            public string ShaderName;
+            public bool customName;
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;
@@ -138,8 +141,6 @@ namespace renderdoc
                 // Texture
                 public UInt32 HighestMip;
                 public UInt32 NumMipLevels;
-
-                public UInt32 MipSlice;
 
                 // Texture Array
                 public UInt32 ArraySize;

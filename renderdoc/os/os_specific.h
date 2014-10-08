@@ -46,6 +46,7 @@ struct CaptureOptions;
 
 namespace Process
 {
+	void StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts);
 	uint32_t InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
 	uint32_t CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
 										const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
@@ -57,6 +58,7 @@ namespace Timing
 {
 	double GetTickFrequency();
 	uint64_t GetTick();
+	uint64_t GetUnixTimestamp();
 };
 
 namespace Threading
@@ -88,6 +90,11 @@ namespace Threading
 	void JoinThread(ThreadHandle handle);
 	void CloseThread(ThreadHandle handle);
 	void Sleep(uint32_t milliseconds);
+
+	// kind of windows specific, to handle this case:
+	// http://blogs.msdn.com/b/oldnewthing/archive/2013/11/05/10463645.aspx
+	void KeepModuleAlive();
+	void ReleaseModuleExitThread();
 };
 
 namespace Network
@@ -189,26 +196,10 @@ namespace FileIO
 
 namespace Keyboard
 {
-	enum KeyButton
-	{
-		eKey_0 = 0x30, // '0'
-		// ...
-		eKey_1 = 0x39, // '9'
-		eKey_A = 0x41, // 'A'
-		// ...
-		eKey_Z = 0x5A, // 'Z'
-
-		eKey_F11,
-		eKey_F12,
-		eKey_PrtScrn,
-
-		eKey_Max,
-	};
-
 	void Init();
 	void AddInputWindow(void *wnd);
 	void RemoveInputWindow(void *wnd);
-	bool GetKeyState(KeyButton key);
+	bool GetKeyState(int key);
 };
 
 namespace StringFormat

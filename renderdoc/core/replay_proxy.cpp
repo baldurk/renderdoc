@@ -24,7 +24,7 @@
 
 
 #include "replay_proxy.h"
-#include "3rdparty/lz4/lz4.h"
+#include "lz4/lz4.h"
 
 template<>
 string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
@@ -79,6 +79,20 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, BindpointMap &el)
+{
+	Serialise("", el.bind);
+	Serialise("", el.used);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderBindpointMapping &el)
+{
+	Serialise("", el.ConstantBlocks);
+	Serialise("", el.Resources);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler::LayoutInput &el)
 {
 	Serialise("", el.SemanticName);
@@ -120,7 +134,6 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Re
 	Serialise("", el.Flags);
 	Serialise("", el.HighestMip);
 	Serialise("", el.NumMipLevels);
-	Serialise("", el.MipSlice);
 	Serialise("", el.ArraySize);
 	Serialise("", el.FirstArraySlice);
 }
@@ -146,9 +159,13 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage &el
 {
 	Serialise("", el.Shader);
 	Serialise("", el.stage);
+	Serialise("", el.ShaderName);
+	Serialise("", el.customName);
 
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
+
+	Serialise("", el.BindpointMapping);
 	
 	Serialise("", el.SRVs);
 	Serialise("", el.UAVs);
@@ -524,6 +541,8 @@ void Serialiser::Serialise(const char *name, ShaderVariable &el)
 
 	Serialise<16>("", el.value.uv);
 	
+	Serialise("", el.isStruct);
+	
 	Serialise("", el.members);
 }
 
@@ -539,6 +558,10 @@ template<>
 void Serialiser::Serialise(const char *name, PixelModification &el)
 {
 	Serialise("", el.eventID);
+	
+	Serialise("", el.uavWrite);
+	Serialise("", el.fragIndex);
+	Serialise("", el.primitiveID);
 
 	Serialise<4>("", el.preMod.col.value_u);
 	Serialise("", el.preMod.depth);
@@ -565,6 +588,16 @@ void Serialiser::Serialise(const char *name, ShaderDebugState &el)
 	Serialise("", el.registers);
 	Serialise("", el.outputs);
 	Serialise("", el.nextInstruction);
+	
+	vector< vector<ShaderVariable> > indexableTemps;
+	
+	int32_t numidxtemps = el.indexableTemps.count;
+	Serialise("", numidxtemps);
+
+	if(m_Mode == READING) create_array_uninit(el.indexableTemps, numidxtemps);
+
+	for(int32_t i=0; i < numidxtemps; i++)
+		Serialise("", el.indexableTemps[i]);
 }
 
 template<>
@@ -632,6 +665,9 @@ ProxySerialiser::~ProxySerialiser()
 	SAFE_DELETE(m_FromReplaySerialiser);
 	SAFE_DELETE(m_ToReplaySerialiser);
 
+	if(m_Proxy) m_Proxy->Shutdown();
+	m_Proxy = NULL;
+
 	for(auto it=m_ShaderReflectionCache.begin(); it != m_ShaderReflectionCache.end(); ++it)
 		delete it->second;
 }
@@ -669,7 +705,7 @@ void ProxySerialiser::EnsureCached(ResourceId texid, uint32_t arrayIdx, uint32_t
 		ResourceId proxyid = m_ProxyTextureIds[texid];
 		
 		size_t size;
-		byte *data = GetTextureData(texid, arrayIdx, mip, size);
+		byte *data = GetTextureData(texid, arrayIdx, mip, false, false, 0.0f, 0.0f, size);
 
 		if(data)
 			m_Proxy->SetProxyTextureData(proxyid, arrayIdx, mip, data, size);
@@ -765,7 +801,7 @@ bool ProxySerialiser::Tick()
 		case eCommand_GetTextureData:
 		{
 			size_t dummy;
-			GetTextureData(ResourceId(), 0, 0, dummy);
+			GetTextureData(ResourceId(), 0, 0, false, false, 0.0f, 0.0f, dummy);
 			break;
 		}
 		case eCommand_InitPostVS:
@@ -787,13 +823,13 @@ bool ProxySerialiser::Tick()
 			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0, vector<uint32_t>());
 			break;
 		case eCommand_PixelHistory:
-			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0);
+			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0, 0);
 			break;
 		case eCommand_DebugVertex:
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugPixel:
-			DebugPixel(0, 0, 0, 0);
+			DebugPixel(0, 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugThread:
 		{
@@ -1188,17 +1224,22 @@ vector<byte> ProxySerialiser::GetBufferData(ResourceId buff, uint32_t offset, ui
 	return ret;
 }
 
-byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
+byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm,
+                                      float blackPoint, float whitePoint, size_t &dataSize)
 {
 	m_ToReplaySerialiser->Serialise("", tex);
 	m_ToReplaySerialiser->Serialise("", arrayIdx);
 	m_ToReplaySerialiser->Serialise("", mip);
+	m_ToReplaySerialiser->Serialise("", resolve);
+	m_ToReplaySerialiser->Serialise("", forceRGBA8unorm);
+	m_ToReplaySerialiser->Serialise("", blackPoint);
+	m_ToReplaySerialiser->Serialise("", whitePoint);
 
 	if(m_ReplayHost)
 	{
-		byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, dataSize);
+		byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize);
 
-		byte *compressed = new byte[dataSize+64];
+		byte *compressed = new byte[dataSize+512];
 		
 		size_t compressedSize = (size_t)LZ4_compress((const char *)data, (char *)compressed, (int)dataSize);
 	
@@ -1219,7 +1260,7 @@ byte *ProxySerialiser::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_
 		m_FromReplaySerialiser->Serialise("", dataSize);
 		m_FromReplaySerialiser->Serialise("", compressedSize);
 
-		byte *ret = new byte[dataSize+64];
+		byte *ret = new byte[dataSize+512];
 
 		byte *compressed = (byte *)m_FromReplaySerialiser->RawReadBytes(compressedSize);
 
@@ -1480,7 +1521,7 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 	}
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y)
+vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
 {
 	vector<PixelModification> ret;
 	
@@ -1489,10 +1530,11 @@ vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector
 	m_ToReplaySerialiser->Serialise("", target);
 	m_ToReplaySerialiser->Serialise("", x);
 	m_ToReplaySerialiser->Serialise("", y);
+	m_ToReplaySerialiser->Serialise("", sampleIdx);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->PixelHistory(frameID, events, target, x, y);
+		ret = m_Remote->PixelHistory(frameID, events, target, x, y, sampleIdx);
 	}
 	else
 	{
@@ -1532,7 +1574,7 @@ ShaderDebugTrace ProxySerialiser::DebugVertex(uint32_t frameID, uint32_t eventID
 	return ret;
 }
 
-ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
 	ShaderDebugTrace ret;
 	
@@ -1540,10 +1582,12 @@ ShaderDebugTrace ProxySerialiser::DebugPixel(uint32_t frameID, uint32_t eventID,
 	m_ToReplaySerialiser->Serialise("", eventID);
 	m_ToReplaySerialiser->Serialise("", x);
 	m_ToReplaySerialiser->Serialise("", y);
+	m_ToReplaySerialiser->Serialise("", sample);
+	m_ToReplaySerialiser->Serialise("", primitive);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->DebugPixel(frameID, eventID, x, y);
+		ret = m_Remote->DebugPixel(frameID, eventID, x, y, sample, primitive);
 	}
 	else
 	{
