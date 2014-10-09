@@ -1422,6 +1422,7 @@ namespace renderdocui.Windows.PipelineState
             else if(tag is FetchBuffer)
             {
                 FetchBuffer buf = (FetchBuffer)tag;
+                D3D11PipelineState.ShaderStage.ResourceView view = null;
 
                 string format = "";
 
@@ -1435,6 +1436,7 @@ namespace renderdocui.Windows.PipelineState
                     if (stage.SRVs[i].Resource == buf.ID)
                     {
                         bind = i;
+                        view = stage.SRVs[i];
                         break;
                     }
                 }
@@ -1445,6 +1447,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         bind = i;
                         uav = true;
+                        view = stage.UAVs[i];
                         break;
                     }
                     if (stage == m_Core.CurD3D11PipelineState.m_PS &&
@@ -1452,6 +1455,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
                         uav = true;
+                        view = m_Core.CurD3D11PipelineState.m_OM.UAVs[i];
                         break;
                     }
                 }
@@ -1469,7 +1473,52 @@ namespace renderdocui.Windows.PipelineState
                             {
                                 if (r.variableType.members.Length == 0)
                                 {
-                                    if (r.variableType.Name.Length > 0)
+                                    if (view != null)
+                                    {
+                                        if (view.Format.special && view.Format.specialFormat == SpecialFormat.R10G10B10A2)
+                                        {
+                                            if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
+                                            if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
+                                        }
+                                        else
+                                        {
+                                            switch (view.Format.compByteWidth)
+                                            {
+                                                case 1:
+                                                {
+                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormb";
+                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormb";
+                                                    if (view.Format.compType == FormatComponentType.UInt) format = "ubyte";
+                                                    if (view.Format.compType == FormatComponentType.SInt) format = "byte";
+                                                    break;
+                                                }
+                                                case 2:
+                                                {
+                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormh";
+                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormh";
+                                                    if (view.Format.compType == FormatComponentType.UInt) format = "ushort";
+                                                    if (view.Format.compType == FormatComponentType.SInt) format = "short";
+                                                    if (view.Format.compType == FormatComponentType.Float) format = "half";
+                                                    break;
+                                                }
+                                                case 4:
+                                                {
+                                                    if (view.Format.compType == FormatComponentType.UNorm) format = "unormf";
+                                                    if (view.Format.compType == FormatComponentType.SNorm) format = "snormf";
+                                                    if (view.Format.compType == FormatComponentType.UInt) format = "uint";
+                                                    if (view.Format.compType == FormatComponentType.SInt) format = "int";
+                                                    if (view.Format.compType == FormatComponentType.Float) format = "float";
+                                                    break;
+                                                }
+                                            }
+
+                                            format += view.Format.compCount;
+                                        }
+
+                                        format += " " + r.name + ";";
+                                    }
+
+                                    if (format == "" && r.variableType.Name.Length > 0)
                                         format = r.variableType.Name + " " + r.name + ";";
                                 }
                                 else
