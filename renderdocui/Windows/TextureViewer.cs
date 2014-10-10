@@ -421,6 +421,12 @@ namespace renderdocui.Windows
 
         public void ViewTexture(ResourceId ID, bool focus)
         {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => { this.ViewTexture(ID, focus); }));
+                return;
+            }
+
             TextureViewer_Load(null, null);
 
             if (lockedTabs.ContainsKey(ID))
