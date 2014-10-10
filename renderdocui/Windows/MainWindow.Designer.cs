@@ -110,6 +110,7 @@
             this.statusProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
+            this.pythonShellToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip1.SuspendLayout();
             this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -269,6 +270,7 @@
             this.toolStripMenuItem1,
             this.saveLayoutToolStripMenuItem,
             this.toolStripSeparator1,
+            this.pythonShellToolStripMenuItem,
             this.eventViewerToolStripMenuItem,
             this.textureToolStripMenuItem,
             this.D3D11PipelineStateToolStripMenuItem,
@@ -298,7 +300,7 @@
             // layoutSaveDefault
             // 
             this.layoutSaveDefault.Name = "layoutSaveDefault";
-            this.layoutSaveDefault.Size = new System.Drawing.Size(145, 22);
+            this.layoutSaveDefault.Size = new System.Drawing.Size(152, 22);
             this.layoutSaveDefault.Tag = "0";
             this.layoutSaveDefault.Text = "&Default Layout";
             this.layoutSaveDefault.Click += new System.EventHandler(this.saveLayout_Click);
@@ -306,12 +308,12 @@
             // toolStripSeparator3
             // 
             this.toolStripSeparator3.Name = "toolStripSeparator3";
-            this.toolStripSeparator3.Size = new System.Drawing.Size(142, 6);
+            this.toolStripSeparator3.Size = new System.Drawing.Size(149, 6);
             // 
             // layoutSave1
             // 
             this.layoutSave1.Name = "layoutSave1";
-            this.layoutSave1.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave1.Size = new System.Drawing.Size(152, 22);
             this.layoutSave1.Tag = "1";
             this.layoutSave1.Text = "Layout &1";
             this.layoutSave1.Click += new System.EventHandler(this.saveLayout_Click);
@@ -319,7 +321,7 @@
             // layoutSave2
             // 
             this.layoutSave2.Name = "layoutSave2";
-            this.layoutSave2.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave2.Size = new System.Drawing.Size(152, 22);
             this.layoutSave2.Tag = "2";
             this.layoutSave2.Text = "Layout &2";
             this.layoutSave2.Click += new System.EventHandler(this.saveLayout_Click);
@@ -327,7 +329,7 @@
             // layoutSave3
             // 
             this.layoutSave3.Name = "layoutSave3";
-            this.layoutSave3.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave3.Size = new System.Drawing.Size(152, 22);
             this.layoutSave3.Tag = "3";
             this.layoutSave3.Text = "Layout &3";
             this.layoutSave3.Click += new System.EventHandler(this.saveLayout_Click);
@@ -335,7 +337,7 @@
             // layoutSave4
             // 
             this.layoutSave4.Name = "layoutSave4";
-            this.layoutSave4.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave4.Size = new System.Drawing.Size(152, 22);
             this.layoutSave4.Tag = "4";
             this.layoutSave4.Text = "Layout &4";
             this.layoutSave4.Click += new System.EventHandler(this.saveLayout_Click);
@@ -343,7 +345,7 @@
             // layoutSave5
             // 
             this.layoutSave5.Name = "layoutSave5";
-            this.layoutSave5.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave5.Size = new System.Drawing.Size(152, 22);
             this.layoutSave5.Tag = "5";
             this.layoutSave5.Text = "Layout &5";
             this.layoutSave5.Click += new System.EventHandler(this.saveLayout_Click);
@@ -351,7 +353,7 @@
             // layoutSave6
             // 
             this.layoutSave6.Name = "layoutSave6";
-            this.layoutSave6.Size = new System.Drawing.Size(145, 22);
+            this.layoutSave6.Size = new System.Drawing.Size(152, 22);
             this.layoutSave6.Tag = "6";
             this.layoutSave6.Text = "Layout &6";
             this.layoutSave6.Click += new System.EventHandler(this.saveLayout_Click);
@@ -545,14 +547,14 @@
             this.viewDocsToolStripMenuItem.Name = "viewDocsToolStripMenuItem";
             this.viewDocsToolStripMenuItem.RightToLeft = System.Windows.Forms.RightToLeft.No;
             this.viewDocsToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F1;
-            this.viewDocsToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.viewDocsToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.viewDocsToolStripMenuItem.Text = "View &Documentation";
             this.viewDocsToolStripMenuItem.Click += new System.EventHandler(this.viewDocsToolStripMenuItem_Click);
             // 
             // viewLogFileToolStripMenuItem
             // 
             this.viewLogFileToolStripMenuItem.Name = "viewLogFileToolStripMenuItem";
-            this.viewLogFileToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.viewLogFileToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.viewLogFileToolStripMenuItem.Text = "View Diagnostic &Log File";
             this.viewLogFileToolStripMenuItem.Click += new System.EventHandler(this.viewLogFileToolStripMenuItem_Click);
             // 
@@ -560,40 +562,40 @@
             // 
             this.sendErrorReportToolStripMenuItem.Name = "sendErrorReportToolStripMenuItem";
             this.sendErrorReportToolStripMenuItem.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.sendErrorReportToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.sendErrorReportToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.sendErrorReportToolStripMenuItem.Text = "Send &Error Report";
             this.sendErrorReportToolStripMenuItem.Click += new System.EventHandler(this.sendErrorReportToolStripMenuItem_Click);
             // 
             // toolStripSeparator9
             // 
             this.toolStripSeparator9.Name = "toolStripSeparator9";
-            this.toolStripSeparator9.Size = new System.Drawing.Size(187, 6);
+            this.toolStripSeparator9.Size = new System.Drawing.Size(189, 6);
             // 
             // updateToolStripMenuItem
             // 
             this.updateToolStripMenuItem.Enabled = false;
             this.updateToolStripMenuItem.Image = global::renderdocui.Properties.Resources.hourglass;
             this.updateToolStripMenuItem.Name = "updateToolStripMenuItem";
-            this.updateToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.updateToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.updateToolStripMenuItem.Text = "No update available";
             this.updateToolStripMenuItem.Click += new System.EventHandler(this.updateToolStripMenuItem_Click);
             // 
             // toolStripSeparator8
             // 
             this.toolStripSeparator8.Name = "toolStripSeparator8";
-            this.toolStripSeparator8.Size = new System.Drawing.Size(187, 6);
+            this.toolStripSeparator8.Size = new System.Drawing.Size(189, 6);
             // 
             // sourceOnGithubToolStripMenuItem
             // 
             this.sourceOnGithubToolStripMenuItem.Name = "sourceOnGithubToolStripMenuItem";
-            this.sourceOnGithubToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.sourceOnGithubToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.sourceOnGithubToolStripMenuItem.Text = "Source on github";
             this.sourceOnGithubToolStripMenuItem.Click += new System.EventHandler(this.sourceOnGithubToolStripMenuItem_Click);
             // 
             // nightlybuildsToolStripMenuItem
             // 
             this.nightlybuildsToolStripMenuItem.Name = "nightlybuildsToolStripMenuItem";
-            this.nightlybuildsToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.nightlybuildsToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.nightlybuildsToolStripMenuItem.Text = "Build/Release downloads";
             this.nightlybuildsToolStripMenuItem.Click += new System.EventHandler(this.nightlybuildsToolStripMenuItem_Click);
             // 
@@ -601,7 +603,7 @@
             // 
             this.aboutToolStripMenuItem.Name = "aboutToolStripMenuItem";
             this.aboutToolStripMenuItem.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(190, 22);
+            this.aboutToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
             this.aboutToolStripMenuItem.Text = "&About";
             this.aboutToolStripMenuItem.Click += new System.EventHandler(this.aboutToolStripMenuItem_Click);
             // 
@@ -725,6 +727,13 @@
             this.saveDialog.Filter = "Log Files (*.rdc)|*.rdc";
             this.saveDialog.Title = "Save Log As";
             // 
+            // pythonShellToolStripMenuItem
+            // 
+            this.pythonShellToolStripMenuItem.Name = "pythonShellToolStripMenuItem";
+            this.pythonShellToolStripMenuItem.Size = new System.Drawing.Size(155, 22);
+            this.pythonShellToolStripMenuItem.Text = "P&ython Shell";
+            this.pythonShellToolStripMenuItem.Click += new System.EventHandler(this.pythonShellToolStripMenuItem_Click);
+            // 
             // MainWindow
             // 
             this.AllowDrop = true;
@@ -826,6 +835,7 @@
         private System.Windows.Forms.ToolStripMenuItem viewLogFileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem nightlybuildsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem sourceOnGithubToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem pythonShellToolStripMenuItem;
 
     }
 }

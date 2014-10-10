@@ -404,6 +404,10 @@ namespace renderdocui.Windows
                 return m_Core.GetDebugMessages();
             else if (IsPersist(persistString, typeof(TimelineBar).ToString()))
                 return m_Core.GetTimelineBar();
+            else if (IsPersist(persistString, typeof(Dialogs.PythonShell).ToString()))
+            {
+                return new Dialogs.PythonShell(m_Core);
+            }
             else if (IsPersist(persistString, typeof(Dialogs.CaptureDialog).ToString()))
             {
                 if (m_Core.CaptureDialog == null)
@@ -1357,6 +1361,11 @@ namespace renderdocui.Windows
                 t.InitFromPersistString("");
 
             t.Show(dockPanel);
+        }
+
+        private void pythonShellToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            (new Dialogs.PythonShell(m_Core)).Show(dockPanel);
         }
 
         private void PipelineStateToolStripMenuItem_Click(object sender, EventArgs e)

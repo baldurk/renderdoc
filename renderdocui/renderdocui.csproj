@@ -224,6 +224,12 @@
     <Compile Include="Windows\Dialogs\ColumnSelector.Designer.cs">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\PythonShell.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\PythonShell.Designer.cs">
+      <DependentUpon>PythonShell.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\Dialogs\RemoteHostSelect.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -353,6 +359,9 @@
     <EmbeddedResource Include="Windows\Dialogs\ColumnSelector.resx">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\PythonShell.resx">
+      <DependentUpon>PythonShell.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\RemoteHostSelect.resx">
       <DependentUpon>RemoteHostSelect.cs</DependentUpon>
     </EmbeddedResource>
@@ -475,6 +484,7 @@
     <None Include="Resources\disconnect.png" />
     <None Include="Resources\flip_y.png" />
     <None Include="Resources\asterisk_orange.png" />
+    <None Include="Resources\folder_page.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />
