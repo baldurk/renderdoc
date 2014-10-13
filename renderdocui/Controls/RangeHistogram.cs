@@ -31,6 +31,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using renderdocui.Code;
 
 namespace renderdocui.Controls
 {
@@ -458,16 +459,24 @@ namespace renderdocui.Controls
                 }
             }
 
-            Point[] blackTriangle = { new Point(blackPoint.Right, m_MarkerSize*2),
-                                      new Point(blackPoint.Right+m_MarkerSize, 0),
-                                      new Point(blackPoint.Right-m_MarkerSize, 0) };
-
-            e.Graphics.FillPolygon(Brushes.DarkGray, blackTriangle);
+            Point[] blackTriangle = { new Point(blackPoint.Right,              m_MarkerSize*2),
+                                      new Point(blackPoint.Right + m_MarkerSize, 0),
+                                      new Point(blackPoint.Right - m_MarkerSize, 0) };
 
             Point[] whiteTriangle = { new Point(whitePoint.Left, whitePoint.Bottom-m_MarkerSize*2+m_Margin),
                                       new Point(whitePoint.Left+m_MarkerSize, whitePoint.Bottom+m_Margin),
                                       new Point(whitePoint.Left-m_MarkerSize, whitePoint.Bottom+m_Margin) };
 
+            for (int i = 0; i < 3; i++)
+            {
+                blackTriangle[i].X = Helpers.Clamp(blackTriangle[i].X, (int)e.Graphics.ClipBounds.Left-1, (int)e.Graphics.ClipBounds.Right+1);
+                blackTriangle[i].Y = Helpers.Clamp(blackTriangle[i].Y, (int)e.Graphics.ClipBounds.Top-1, (int)e.Graphics.ClipBounds.Bottom+1);
+
+                whiteTriangle[i].X = Helpers.Clamp(whiteTriangle[i].X, (int)e.Graphics.ClipBounds.Left-1, (int)e.Graphics.ClipBounds.Right+1);
+                whiteTriangle[i].Y = Helpers.Clamp(whiteTriangle[i].Y, (int)e.Graphics.ClipBounds.Top-1, (int)e.Graphics.ClipBounds.Bottom+1);
+            }
+
+            e.Graphics.FillPolygon(Brushes.DarkGray, blackTriangle);
             e.Graphics.FillPolygon(Brushes.DarkGray, whiteTriangle);
 
             blackTriangle[0].Y -= 2;
@@ -483,6 +492,15 @@ namespace renderdocui.Controls
 
             whiteTriangle[1].X -= 2;
             whiteTriangle[2].X += 2;
+
+            for (int i = 0; i < 3; i++)
+            {
+                blackTriangle[i].X = Helpers.Clamp(blackTriangle[i].X, (int)e.Graphics.ClipBounds.Left - 1, (int)e.Graphics.ClipBounds.Right + 1);
+                blackTriangle[i].Y = Helpers.Clamp(blackTriangle[i].Y, (int)e.Graphics.ClipBounds.Top - 1, (int)e.Graphics.ClipBounds.Bottom + 1);
+
+                whiteTriangle[i].X = Helpers.Clamp(whiteTriangle[i].X, (int)e.Graphics.ClipBounds.Left - 1, (int)e.Graphics.ClipBounds.Right + 1);
+                whiteTriangle[i].Y = Helpers.Clamp(whiteTriangle[i].Y, (int)e.Graphics.ClipBounds.Top - 1, (int)e.Graphics.ClipBounds.Bottom + 1);
+            }
 
             e.Graphics.FillPolygon(Brushes.Black, blackTriangle);
             e.Graphics.FillPolygon(Brushes.White, whiteTriangle);
