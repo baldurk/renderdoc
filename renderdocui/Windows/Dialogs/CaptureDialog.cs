@@ -326,9 +326,21 @@ namespace renderdocui.Windows.Dialogs
             try
             {
                 if (exePath.Text.Length > 0 && Directory.Exists(Path.GetDirectoryName(exePath.Text)))
+                {
                     exeBrowser.InitialDirectory = Path.GetDirectoryName(exePath.Text);
+                }
                 else if (m_Core.Config.LastCapturePath.Length > 0)
-                    exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
+                {
+                    if (m_Core.Config.LastCaptureExe.Length > 0)
+                    {
+                        exeBrowser.FileName = m_Core.Config.LastCaptureExe;
+                        exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
+                    }
+                    else
+                    {
+                        exeBrowser.InitialDirectory = m_Core.Config.LastCapturePath;
+                    }
+                }
             }
             catch (ArgumentException)
             {
@@ -345,6 +357,7 @@ namespace renderdocui.Windows.Dialogs
             UpdateWorkDirHint();
 
             m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
+            m_Core.Config.LastCaptureExe = Path.GetFileName(exeBrowser.FileName);
         }
 
         private void exePath_DragEnter(object sender, DragEventArgs e)
@@ -365,6 +378,7 @@ namespace renderdocui.Windows.Dialogs
                 UpdateWorkDirHint();
 
                 m_Core.Config.LastCapturePath = Path.GetDirectoryName(exeBrowser.FileName);
+                m_Core.Config.LastCaptureExe = Path.GetFileName(exeBrowser.FileName);
             }
         }
 

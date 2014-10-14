@@ -41,6 +41,7 @@ namespace renderdocui.Code
         public string LastLogPath = "";
         public List<string> RecentLogFiles = new List<string>();
         public string LastCapturePath = "";
+        public string LastCaptureExe = "";
         public List<string> RecentCaptureSettings = new List<string>();
         public int CallstackLevelSkip = 0;
 
