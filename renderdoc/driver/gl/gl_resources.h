@@ -30,6 +30,8 @@
 #include "driver/gl/gl_common.h"
 
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align);
+GLenum GetBaseFormat(GLenum internalFormat);
+GLenum GetDataType(GLenum internalFormat);
 
 enum GLNamespace
 {

@@ -132,7 +132,11 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			res = GLResource(MakeNullResource);
 	}
 
-	if(res.Namespace == eResVertexArray)
+	if(res.Namespace == eResBuffer)
+	{
+		// Nothing to serialize
+	}
+	else if(res.Namespace == eResVertexArray)
 	{
 		VertexArrayInitialData data[16];
 
