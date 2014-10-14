@@ -582,14 +582,26 @@ void WrappedOpenGL::Present(void *windowHandle)
 			{
 				RDCGLenum prevReadBuf = eGL_BACK;
 				GLint prevBuf = 0;
-				GLint unpackBufBind = 0;
+				GLint packBufBind = 0;
+				GLint prevPackRowLen = 0;
+				GLint prevPackSkipRows = 0;
+				GLint prevPackSkipPixels = 0;
+				GLint prevPackAlignment = 0;
 				m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
 				m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
-				m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &unpackBufBind);
+				m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
+				m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
+				m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
+				m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
+				m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
 
 				m_Real.glReadBuffer(eGL_BACK);
 				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
-				m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
+				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
+				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
+				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 
 				thwidth = m_InitParams.width;
 				thheight = m_InitParams.height;
@@ -617,9 +629,13 @@ void WrappedOpenGL::Present(void *windowHandle)
 					}
 				}
 
-				m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackBufBind);
+				m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, packBufBind);
 				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
 				m_Real.glReadBuffer(prevReadBuf);
+				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
+				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
+				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
+				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 			}
 			
 			byte *jpgbuf = NULL;
