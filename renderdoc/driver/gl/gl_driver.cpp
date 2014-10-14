@@ -121,6 +121,7 @@ const char *GLChunkNames[] =
 	"glDepthFunc",
 	"glDepthMask",
 	"glDepthRange",
+	"glDepthRangef",
 	"glDepthRangeArrayv",
 	"glDepthBoundsEXT",
 	"glPatchParameteri",
@@ -1190,6 +1191,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DEPTH_RANGE:
 		Serialise_glDepthRange(0, 0);
+		break;
+	case DEPTH_RANGEF:
+		Serialise_glDepthRangef(0, 0);
 		break;
 	case DEPTH_RANGEARRAY:
 		Serialise_glDepthRangeArrayv(0, 0, NULL);
