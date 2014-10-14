@@ -118,6 +118,7 @@ struct CachedHookData
 
 		// for safety (and because we don't need to), ignore these modules
 		if(!_stricmp(modName, "kernel32.dll") ||
+			!_stricmp(modName, "powrprof.dll") ||
 			 strstr(lowername, "msvcr") == lowername ||
 			 strstr(lowername, "msvcp") == lowername)
 				return;
