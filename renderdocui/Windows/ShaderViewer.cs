@@ -824,7 +824,8 @@ namespace renderdocui.Windows
 
                 foreach (var input in m_Trace.inputs)
                 {
-                  constantRegs.Nodes.Add(new TreelistView.Node(new object[] { input.name, input.type.ToString() + " input", StringRep(input, true) }));
+                    if (input.rows > 0 || input.columns > 0)
+                        constantRegs.Nodes.Add(new TreelistView.Node(new object[] { input.name, input.type.ToString() + " input", StringRep(input, true) }));
                 }
 
                 var pipestate = m_Core.CurD3D11PipelineState;

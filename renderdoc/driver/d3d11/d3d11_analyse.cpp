@@ -1165,6 +1165,27 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	SAFE_RELEASE(statePS);
 
+	ID3D11GeometryShader *stateGS = NULL;
+	m_WrappedContext->GSGetShader(&stateGS, NULL, NULL);
+
+	WrappedID3D11Shader<ID3D11GeometryShader> *gs = (WrappedID3D11Shader<ID3D11GeometryShader> *)stateGS;
+
+	SAFE_RELEASE(stateGS);
+
+	ID3D11DomainShader *stateDS = NULL;
+	m_WrappedContext->DSGetShader(&stateDS, NULL, NULL);
+
+	WrappedID3D11Shader<ID3D11DomainShader> *ds = (WrappedID3D11Shader<ID3D11DomainShader> *)stateDS;
+
+	SAFE_RELEASE(stateDS);
+
+	ID3D11VertexShader *stateVS = NULL;
+	m_WrappedContext->VSGetShader(&stateVS, NULL, NULL);
+
+	WrappedID3D11Shader<ID3D11VertexShader> *vs = (WrappedID3D11Shader<ID3D11VertexShader> *)stateVS;
+
+	SAFE_RELEASE(stateVS);
+
 	if(!ps)
 		return empty;
 	
@@ -1174,6 +1195,12 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	if(!dxbc)
 		return empty;
+	
+	DXBCFile *prevdxbc = NULL;
+
+	if(prevdxbc == NULL && gs != NULL) prevdxbc = gs->GetDXBC();
+	if(prevdxbc == NULL && ds != NULL) prevdxbc = ds->GetDXBC();
+	if(prevdxbc == NULL && vs != NULL) prevdxbc = vs->GetDXBC();
 
 	vector<DataOutput> initialValues;
 
@@ -1192,6 +1219,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	vector<string> floatInputs;
 
+	uint32_t nextreg = 0;
+
 	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
 	{
 		extractHlsl += "  ";
@@ -1207,6 +1236,62 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			extractHlsl += "//";
 			included = false;
 		}
+
+		int missingreg = int(dxbc->m_InputSig[i].regIndex) - int(nextreg);
+
+		// fill in holes from output sig of previous shader if possible, to try and
+		// ensure the same register order
+		for(int dummy=0; dummy < missingreg; dummy++)
+		{
+			bool filled = false;
+
+			if(prevdxbc)
+			{
+				for(size_t os=0; os < prevdxbc->m_OutputSig.size(); os++)
+				{
+					if(prevdxbc->m_OutputSig[os].regIndex == nextreg+dummy)
+					{
+						filled = true;
+
+						if(prevdxbc->m_OutputSig[os].compType == eCompType_Float)
+							extractHlsl += "float";
+						else if(prevdxbc->m_OutputSig[os].compType == eCompType_SInt)
+							extractHlsl += "int";
+						else if(prevdxbc->m_OutputSig[os].compType == eCompType_UInt)
+							extractHlsl += "uint";
+						else
+							RDCERR("Unexpected input signature type: %d", prevdxbc->m_OutputSig[os].compType);
+
+						int numCols = 
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x1 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x2 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x4 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x8 ? 1 : 0);
+
+						structureStride += 4*numCols;
+
+						initialValues.push_back(DataOutput(-1, 0, numCols, eAttr_None, true));
+
+						string name = prevdxbc->m_OutputSig[os].semanticIdxName.elems;
+
+						extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
+					}
+				}
+			}
+
+			if(!filled)
+			{
+				string dummy_reg = "dummy_register";
+				dummy_reg += ToStr::Get((uint32_t)nextreg+dummy);
+				extractHlsl += "float4 var_" + dummy_reg + " : semantic_" + dummy_reg + ";\n";
+
+				initialValues.push_back(DataOutput(-1, 0, 4, eAttr_None, true));
+
+				structureStride += 4*sizeof(float);
+			}
+		}
+
+		nextreg = dxbc->m_InputSig[i].regIndex+1;
 
 		if(dxbc->m_InputSig[i].compType == eCompType_Float)
 			extractHlsl += "float";
