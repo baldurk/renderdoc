@@ -37,7 +37,6 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		GLResourceManager(LogState state, Serialiser *ser, WrappedOpenGL *gl)
 			: ResourceManager(state, ser), m_GL(gl), m_SyncName(1)
 		{
-			m_pSerialiser = NULL;
 		}
 		~GLResourceManager() {}
 

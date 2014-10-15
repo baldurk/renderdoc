@@ -80,6 +80,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_UNSIGNED_INT_8_8_8_8_REV:
 		case eGL_UNSIGNED_INT_10_10_10_2:
 		case eGL_UNSIGNED_INT_2_10_10_10_REV:
+		case eGL_UNSIGNED_INT_10F_11F_11F_REV:
 			return ((w*4 + alignAdd) & alignMask)*h*d;
 		case eGL_DEPTH_COMPONENT16:
 			return ((w*2 + alignAdd) & alignMask)*h*d;
@@ -87,8 +88,10 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_DEPTH24_STENCIL8:
 		case eGL_DEPTH_COMPONENT32:
 		case eGL_DEPTH_COMPONENT32F:
+		case eGL_UNSIGNED_INT_24_8:
 			return ((w*4 + alignAdd) & alignMask)*h*d;
 		case eGL_DEPTH32F_STENCIL8:
+		case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV:
 			return ((w*5 + alignAdd) & alignMask)*h*d;
 		default:
 			RDCERR("Unhandled Byte Size type %d!", type);
@@ -125,4 +128,194 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 	RDCERR("Unhandled Byte Size case!");
 
 	return 0;
+}
+
+GLenum GetBaseFormat(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_R8:
+		case eGL_R8_SNORM:
+		case eGL_R16:
+		case eGL_R16_SNORM:
+		case eGL_R16F:
+		case eGL_R8I:
+		case eGL_R8UI:
+		case eGL_R16I:
+		case eGL_R16UI:
+		case eGL_R32I:
+		case eGL_R32UI:
+		case eGL_R32F:
+			return eGL_RED;
+		case eGL_RG8:
+		case eGL_RG8_SNORM:
+		case eGL_RG16:
+		case eGL_RG16_SNORM:
+		case eGL_RG16F:
+		case eGL_RG32F:
+		case eGL_RG8I:
+		case eGL_RG8UI:
+		case eGL_RG16I:
+		case eGL_RG16UI:
+		case eGL_RG32I:
+		case eGL_RG32UI:
+			return eGL_RG;
+		case eGL_R3_G3_B2:
+		case eGL_RGB4:
+		case eGL_RGB5:
+		case eGL_RGB565:
+		case eGL_RGB8:
+		case eGL_RGB8_SNORM:
+		case eGL_RGB10:
+		case eGL_RGB12:
+		case eGL_RGB16:
+		case eGL_RGB16_SNORM:
+		case eGL_SRGB8:
+		case eGL_RGB16F:
+		case eGL_RGB32F:
+		case eGL_R11F_G11F_B10F:
+		case eGL_RGB9_E5:
+		case eGL_RGB8I:
+		case eGL_RGB8UI:
+		case eGL_RGB16I:
+		case eGL_RGB16UI:
+		case eGL_RGB32I:
+		case eGL_RGB32UI:
+			return eGL_RGB;
+		case eGL_RGBA2:
+		case eGL_RGBA4:
+		case eGL_RGB5_A1:
+		case eGL_RGBA8:
+		case eGL_RGBA8_SNORM:
+		case eGL_RGB10_A2:
+		case eGL_RGB10_A2UI:
+		case eGL_RGBA12:
+		case eGL_RGBA16:
+		case eGL_RGBA16_SNORM:
+		case eGL_SRGB8_ALPHA8:
+		case eGL_RGBA16F:
+		case eGL_RGBA32F:
+		case eGL_RGBA8I:
+		case eGL_RGBA8UI:
+		case eGL_RGBA16I:
+		case eGL_RGBA16UI:
+		case eGL_RGBA32UI:
+		case eGL_RGBA32I:
+			return eGL_RGBA;
+		case eGL_DEPTH_COMPONENT16:
+		case eGL_DEPTH_COMPONENT24:
+		case eGL_DEPTH_COMPONENT32:
+		case eGL_DEPTH_COMPONENT32F:
+			return eGL_DEPTH_COMPONENT;
+		case eGL_DEPTH24_STENCIL8:
+		case eGL_DEPTH32F_STENCIL8:
+			return eGL_DEPTH_STENCIL;
+		case eGL_STENCIL_INDEX1:
+		case eGL_STENCIL_INDEX4:
+		case eGL_STENCIL_INDEX8:
+		case eGL_STENCIL_INDEX16:
+			return eGL_STENCIL;
+	}
+
+	RDCERR("Unhandled Base Format case!");
+
+	return eGL_NONE;
+}
+
+GLenum GetDataType(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_RGBA8UI:
+		case eGL_RG8UI:
+		case eGL_R8UI:
+		case eGL_RGBA8:
+		case eGL_RG8:
+		case eGL_R8:
+		case eGL_RGB8:
+		case eGL_RGB8UI:
+			return eGL_UNSIGNED_BYTE;
+		case eGL_RGBA8I:
+		case eGL_RG8I:
+		case eGL_R8I:
+		case eGL_RGBA8_SNORM:
+		case eGL_RG8_SNORM:
+		case eGL_R8_SNORM:
+		case eGL_RGB8_SNORM:
+		case eGL_SRGB8:
+		case eGL_RGB8I:
+		case eGL_SRGB8_ALPHA8:
+			return eGL_BYTE;
+		case eGL_RGBA16UI:
+		case eGL_RG16UI:
+		case eGL_R16UI:
+		case eGL_RGBA16:
+		case eGL_RG16:
+		case eGL_R16:
+		case eGL_RGB16:
+		case eGL_RGB16UI:
+		case eGL_DEPTH_COMPONENT16:
+			return eGL_UNSIGNED_SHORT;
+		case eGL_RGBA16I:
+		case eGL_RG16I:
+		case eGL_R16I:
+		case eGL_RGBA16_SNORM:
+		case eGL_RG16_SNORM:
+		case eGL_R16_SNORM:
+		case eGL_RGB16_SNORM:
+		case eGL_RGB16I:
+			return eGL_SHORT;
+		case eGL_RGBA32UI:
+		case eGL_RG32UI:
+		case eGL_R32UI:
+		case eGL_RGB32UI:
+		case eGL_DEPTH_COMPONENT24:
+		case eGL_DEPTH_COMPONENT32:
+			return eGL_UNSIGNED_INT;
+		case eGL_RGBA32I:
+		case eGL_RG32I:
+		case eGL_R32I:
+		case eGL_RGB32I:
+			return eGL_INT;
+		case eGL_RGBA16F:
+		case eGL_RG16F:
+		case eGL_RGB16F:
+		case eGL_R16F:
+			return eGL_HALF_FLOAT;
+		case eGL_RGBA32F:
+		case eGL_RG32F:
+		case eGL_R32F:
+		case eGL_DEPTH_COMPONENT32F:
+			return eGL_FLOAT;
+		case eGL_R11F_G11F_B10F:
+			return eGL_UNSIGNED_INT_10F_11F_11F_REV;
+		case eGL_RGB10_A2UI:
+			return eGL_INT_2_10_10_10_REV;
+		case eGL_RGB10_A2:
+			return eGL_UNSIGNED_INT_2_10_10_10_REV;
+		case eGL_R3_G3_B2:
+			return eGL_UNSIGNED_BYTE_3_3_2;
+		case eGL_RGB4:
+		case eGL_RGBA4:
+			return eGL_UNSIGNED_SHORT_4_4_4_4;
+		case eGL_RGB5:
+		case eGL_RGB5_A1:
+			return eGL_UNSIGNED_SHORT_5_5_5_1;
+		case eGL_RGB565:
+			return eGL_UNSIGNED_SHORT_5_6_5;
+		case eGL_RGB10:
+			return eGL_UNSIGNED_INT_10_10_10_2;
+		case eGL_RGB9_E5:
+			return eGL_UNSIGNED_INT_5_9_9_9_REV;
+		case eGL_DEPTH24_STENCIL8:
+			return eGL_UNSIGNED_INT_24_8;
+		case eGL_DEPTH32F_STENCIL8:
+			return eGL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+		case eGL_STENCIL_INDEX8:
+			return eGL_UNSIGNED_BYTE;
+	}
+
+	RDCERR("Unhandled Data Type case!");
+
+	return eGL_NONE;
 }
