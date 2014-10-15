@@ -630,7 +630,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 					}
 				}
 
-				m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, packBufBind);
+				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
 				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
 				m_Real.glReadBuffer(prevReadBuf);
 				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
