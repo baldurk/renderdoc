@@ -288,10 +288,30 @@ namespace renderdocui.Controls
 
 			ShaderVariable[] ret = new ShaderVariable[m_FormatOverride.Length];
 
-			for (int i = 0; i < m_FormatOverride.Length; i++)
+			int i = 0;
+
+			try
 			{
-				stream.Seek(m_FormatOverride[i].offset, SeekOrigin.Begin);
-				ret[i] = m_FormatOverride[i].GetShaderVar(reader);
+				for (i = 0; i < m_FormatOverride.Length; i++)
+				{
+					stream.Seek(m_FormatOverride[i].offset, SeekOrigin.Begin);
+					ret[i] = m_FormatOverride[i].GetShaderVar(reader);
+				}
+			}
+			catch (System.IO.EndOfStreamException)
+			{
+				for (; i < m_FormatOverride.Length; i++)
+				{
+					ret[i] = new ShaderVariable();
+					ret[i].name = "-";
+					ret[i].type = VarType.Float;
+					ret[i].rows = ret[i].columns = 1;
+					ret[i].members = new ShaderVariable[0] { };
+					ret[i].value.fv = new float[16];
+					ret[i].value.uv = new uint[16];
+					ret[i].value.iv = new int[16];
+					ret[i].value._dv_arr = new double[16];
+				}
 			}
 
 			reader.Dispose();
