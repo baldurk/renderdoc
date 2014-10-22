@@ -179,6 +179,7 @@ class RenderDoc
 		const CaptureOptions &GetCaptureOptions() const { return m_Options; }
 
 		void RecreateCrashHandler();
+		void UnloadCrashHandler();
 		ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
 
 		Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels, size_t thlen, uint32_t thwidth, uint32_t thheight);

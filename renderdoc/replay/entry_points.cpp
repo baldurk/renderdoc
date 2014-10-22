@@ -154,6 +154,12 @@ void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 
 }
 
 extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_UnloadCrashHandler()
+{
+	RenderDoc::Inst().UnloadCrashHandler();
+}
+
+extern "C" RENDERDOC_API
 bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
 {
 	if(logfile == NULL)

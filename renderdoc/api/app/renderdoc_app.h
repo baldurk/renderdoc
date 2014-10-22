@@ -271,3 +271,6 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureKeys)(KeyButton *keys, int num)
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident);
 typedef void (RENDERDOC_CC *pRENDERDOC_InitRemoteAccess)(uint32_t *ident);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnloadCrashHandler();
+typedef void (RENDERDOC_CC *pRENDERDOC_UnloadCrashHandler)();

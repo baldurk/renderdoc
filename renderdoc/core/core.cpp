@@ -119,8 +119,7 @@ RenderDoc &RenderDoc::Inst()
 
 void RenderDoc::RecreateCrashHandler()
 {
-	if(m_ExHandler)
-		m_ExHandler->UnregisterMemoryRegion(this);
+	UnloadCrashHandler();
 
 #ifdef CRASH_HANDLER_ENABLED
 	m_ExHandler = new CrashHandler(m_ExHandler);
@@ -128,6 +127,14 @@ void RenderDoc::RecreateCrashHandler()
 		
 	if(m_ExHandler)
 		m_ExHandler->RegisterMemoryRegion(this, sizeof(RenderDoc));
+}
+
+void RenderDoc::UnloadCrashHandler()
+{
+	if(m_ExHandler)
+		m_ExHandler->UnregisterMemoryRegion(this);
+
+	SAFE_DELETE(m_ExHandler);
 }
 
 RenderDoc::RenderDoc()
@@ -240,9 +247,7 @@ RenderDoc::~RenderDoc()
 {
 	if(m_ExHandler)
 	{
-		m_ExHandler->UnregisterMemoryRegion(this);
-
-		SAFE_DELETE(m_ExHandler);
+		UnloadCrashHandler();
 	}
 
 	for(size_t i=0; i < m_Captures.size(); i++)
