@@ -1162,10 +1162,12 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11VertexShader *ret;
-		HRESULT hr = m_pDevice->CreateVertexShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreateVertexShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1244,10 +1246,12 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11GeometryShader *ret;
-		HRESULT hr = m_pDevice->CreateGeometryShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreateGeometryShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1341,13 +1345,13 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11GeometryShader *ret;
 		HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(ShaderBytecode, (size_t)BytecodeLen,
-														SODecl, numEntries,
-														BufStrides, numStrides,
-														RastStream,
-														UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-														&ret);
+		                                           SODecl, numEntries, BufStrides, numStrides, RastStream, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1439,10 +1443,12 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11PixelShader *ret;
-		HRESULT hr = m_pDevice->CreatePixelShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreatePixelShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1521,10 +1527,12 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11HullShader *ret;
-		HRESULT hr = m_pDevice->CreateHullShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreateHullShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1603,10 +1611,12 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(
 	
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11DomainShader *ret;
-		HRESULT hr = m_pDevice->CreateDomainShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreateDomainShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1685,10 +1695,12 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(
 
 	if(m_State == READING)
 	{
+		ID3D11ClassLinkage *linkage = NULL;
+		if(GetResourceManager()->HasLiveResource(pLinkage))
+			linkage = UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage));
+
 		ID3D11ComputeShader *ret;
-		HRESULT hr = m_pDevice->CreateComputeShader(ShaderBytecode, (size_t)BytecodeLen,
-													UNWRAP(WrappedID3D11ClassLinkage, (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage)),
-													&ret);
+		HRESULT hr = m_pDevice->CreateComputeShader(ShaderBytecode, (size_t)BytecodeLen, linkage, &ret);
 
 		if(FAILED(hr))
 		{
@@ -1770,7 +1782,7 @@ bool WrappedID3D11Device::Serialise_CreateClassInstance(LPCSTR pClassTypeName,
 	SERIALISE_ELEMENT(ResourceId, pLinkage, linkage->GetResourceID());
 	SERIALISE_ELEMENT(ResourceId, instance, GetIDForResource(inst));
 
-	if(m_State == READING)
+	if(m_State == READING && GetResourceManager()->HasLiveResource(pLinkage))
 	{
 		ID3D11ClassLinkage *wrappedLink = (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage);
 		ID3D11ClassLinkage *realLink = UNWRAP(WrappedID3D11ClassLinkage, wrappedLink);
@@ -1830,7 +1842,7 @@ bool WrappedID3D11Device::Serialise_GetClassInstance(LPCSTR pClassInstanceName, 
 	SERIALISE_ELEMENT(ResourceId, pLinkage, linkage->GetResourceID());
 	SERIALISE_ELEMENT(ResourceId, instance, GetIDForResource(inst));
 	
-	if(m_State == READING)
+	if(m_State == READING && GetResourceManager()->HasLiveResource(pLinkage))
 	{
 		ID3D11ClassLinkage *wrappedLink = (ID3D11ClassLinkage *)GetResourceManager()->GetLiveResource(pLinkage);
 		ID3D11ClassLinkage *realLink = UNWRAP(WrappedID3D11ClassLinkage, wrappedLink);

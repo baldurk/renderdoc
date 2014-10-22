@@ -1110,8 +1110,11 @@ ResourceType ResourceManager<ResourceType, RecordType>::GetLiveResource(Resource
 
 	if(m_InframeResourceMap.find(origid) != m_InframeResourceMap.end())
 		return m_InframeResourceMap[origid];
+	
+	if(m_LiveResourceMap.find(origid) != m_LiveResourceMap.end())
+		return m_LiveResourceMap[origid];
 
-	return m_LiveResourceMap[origid];
+	return (ResourceType)RecordType::NullResource;
 }
 
 template<typename ResourceType, typename RecordType>

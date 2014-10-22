@@ -289,16 +289,22 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId id)
 
 void D3D11Replay::FreeTargetResource(ResourceId id)
 {
-	ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+	if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+	{
+		ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
 
-	SAFE_RELEASE(resource);
+		SAFE_RELEASE(resource);
+	}
 }
 
 void D3D11Replay::FreeCustomShader(ResourceId id)
 {
-	ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
+	if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+	{
+		ID3D11DeviceChild *resource = m_pDevice->GetResourceManager()->GetLiveResource(id);
 
-	SAFE_RELEASE(resource);
+		SAFE_RELEASE(resource);
+	}
 }
 
 vector<FetchFrameRecord> D3D11Replay::GetFrameRecord()

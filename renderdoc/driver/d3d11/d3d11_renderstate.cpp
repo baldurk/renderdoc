@@ -440,20 +440,36 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 {
 	SERIALISE_ELEMENT(ResourceId, IALayout, GetIDForResource(IA.Layout));
 	if(m_State < WRITING)
-		IA.Layout = (ID3D11InputLayout *)device->GetResourceManager()->GetLiveResource(IALayout);
+	{
+		if(device->GetResourceManager()->HasLiveResource(IALayout))
+			IA.Layout = (ID3D11InputLayout *)device->GetResourceManager()->GetLiveResource(IALayout);
+		else
+			IA.Layout = NULL;
+	}
 
 	m_pSerialiser->Serialise("IA.Topo", IA.Topo);
 
 	SERIALISE_ELEMENT(ResourceId, IAIndexBuffer, GetIDForResource(IA.IndexBuffer));
 	if(m_State < WRITING)
-		IA.IndexBuffer = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(IAIndexBuffer);
+	{
+		if(device->GetResourceManager()->HasLiveResource(IAIndexBuffer))
+			IA.IndexBuffer = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(IAIndexBuffer);
+		else
+			IA.IndexBuffer = NULL;
+	}
 
 	for(int i=0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
 	{
 		ResourceId VB;
 		if(m_State >= WRITING) VB = GetIDForResource(IA.VBs[i]);
 		m_pSerialiser->Serialise("IA.VBs", VB);
-		if(m_State < WRITING) IA.VBs[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(VB);
+		if(m_State < WRITING)
+		{
+			if(device->GetResourceManager()->HasLiveResource(VB))
+				IA.VBs[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(VB);
+			else
+				IA.VBs[i] = NULL;
+		}
 	}
 
 	m_pSerialiser->Serialise<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Strides", IA.Strides);
@@ -467,14 +483,25 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 	{
 		SERIALISE_ELEMENT(ResourceId, Shader, GetIDForResource(sh->Shader));
 		if(m_State < WRITING)
-			sh->Shader = (ID3D11DeviceChild *)device->GetResourceManager()->GetLiveResource(Shader);
+		{
+			if(device->GetResourceManager()->HasLiveResource(Shader))
+				sh->Shader = (ID3D11DeviceChild *)device->GetResourceManager()->GetLiveResource(Shader);
+			else
+				sh->Shader = NULL;
+		}
 
 		for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		{
 			ResourceId id;
 			if(m_State >= WRITING) id = GetIDForResource(sh->ConstantBuffers[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".ConstantBuffers").c_str(), id);
-			if(m_State < WRITING) sh->ConstantBuffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
+			if(m_State < WRITING)
+			{
+				if(device->GetResourceManager()->HasLiveResource(id))
+					sh->ConstantBuffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
+				else
+					sh->ConstantBuffers[i] = NULL;
+			}
 			
 			m_pSerialiser->Serialise((string(names[s]) + ".CBOffsets").c_str(), sh->CBOffsets[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".CBCounts").c_str(), sh->CBCounts[i]);
@@ -485,7 +512,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 			ResourceId id;
 			if(m_State >= WRITING) id = GetIDForResource(sh->Samplers[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".Samplers").c_str(), id);
-			if(m_State < WRITING) sh->Samplers[i] = (ID3D11SamplerState *)device->GetResourceManager()->GetLiveResource(id);
+			if(m_State < WRITING)
+			{
+				if(device->GetResourceManager()->HasLiveResource(id)) 
+					sh->Samplers[i] = (ID3D11SamplerState *)device->GetResourceManager()->GetLiveResource(id);
+				else
+					sh->Samplers[i] = NULL;
+			}
 		}
 
 		for(int i=0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
@@ -493,7 +526,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 			ResourceId id;
 			if(m_State >= WRITING) id = GetIDForResource(sh->SRVs[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".SRVs").c_str(), id);
-			if(m_State < WRITING) sh->SRVs[i] = (ID3D11ShaderResourceView *)device->GetResourceManager()->GetLiveResource(id);
+			if(m_State < WRITING)
+			{
+				if(device->GetResourceManager()->HasLiveResource(id)) 
+					sh->SRVs[i] = (ID3D11ShaderResourceView *)device->GetResourceManager()->GetLiveResource(id);
+				else
+					sh->SRVs[i] = NULL;
+			}
 		}
 
 		for(int i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
@@ -501,7 +540,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 			ResourceId id;
 			if(m_State >= WRITING) id = GetIDForResource(sh->UAVs[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".UAVs").c_str(), id);
-			if(m_State < WRITING) sh->UAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(id);
+			if(m_State < WRITING)
+			{
+				if(device->GetResourceManager()->HasLiveResource(id)) 
+					sh->UAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(id);
+				else
+					sh->UAVs[i] = NULL;
+			}
 		}
 		
 		for(int i=0; i < D3D11_SHADER_MAX_INTERFACES; i++)
@@ -509,7 +554,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 			ResourceId id;
 			if(m_State >= WRITING) id = GetIDForResource(sh->Instances[i]);
 			m_pSerialiser->Serialise((string(names[s]) + ".Instances").c_str(), id);
-			if(m_State < WRITING) sh->Instances[i] = (ID3D11ClassInstance *)device->GetResourceManager()->GetLiveResource(id);
+			if(m_State < WRITING)
+			{
+				if(device->GetResourceManager()->HasLiveResource(id)) 
+					sh->Instances[i] = (ID3D11ClassInstance *)device->GetResourceManager()->GetLiveResource(id);
+				else
+					sh->Instances[i] = NULL;
+			}
 		}
 
 		sh++;
@@ -520,14 +571,25 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 		ResourceId id;
 		if(m_State >= WRITING) id = GetIDForResource(SO.Buffers[i]);
 		m_pSerialiser->Serialise("SO.Buffers", id);
-		if(m_State < WRITING) SO.Buffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
+		if(m_State < WRITING)
+		{
+			if(device->GetResourceManager()->HasLiveResource(id)) 
+				SO.Buffers[i] = (ID3D11Buffer *)device->GetResourceManager()->GetLiveResource(id);
+			else
+				SO.Buffers[i] = NULL;
+		}
 
 		m_pSerialiser->Serialise("SO.Offsets", SO.Offsets[i]);
 	}
 
 	SERIALISE_ELEMENT(ResourceId, RSState, GetIDForResource(RS.State));
 	if(m_State < WRITING)
-		RS.State = (ID3D11RasterizerState *)device->GetResourceManager()->GetLiveResource(RSState);
+	{
+		if(device->GetResourceManager()->HasLiveResource(RSState)) 
+			RS.State = (ID3D11RasterizerState *)device->GetResourceManager()->GetLiveResource(RSState);
+		else
+			RS.State = NULL;
+	}
 
 	m_pSerialiser->Serialise("RS.NumViews", RS.NumViews);
 	m_pSerialiser->Serialise("RS.NumScissors", RS.NumScissors);
@@ -536,20 +598,35 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 	
 	SERIALISE_ELEMENT(ResourceId, OMDepthStencilState, GetIDForResource(OM.DepthStencilState));
 	if(m_State < WRITING)
-		OM.DepthStencilState = (ID3D11DepthStencilState *)device->GetResourceManager()->GetLiveResource(OMDepthStencilState);
+	{
+		if(device->GetResourceManager()->HasLiveResource(OMDepthStencilState)) 
+			OM.DepthStencilState = (ID3D11DepthStencilState *)device->GetResourceManager()->GetLiveResource(OMDepthStencilState);
+		else
+			OM.DepthStencilState = NULL;
+	}
 
 	m_pSerialiser->Serialise("OM.StencRef", OM.StencRef);
 
 	SERIALISE_ELEMENT(ResourceId, OMBlendState, GetIDForResource(OM.BlendState));
 	if(m_State < WRITING)
-		OM.BlendState = (ID3D11BlendState *)device->GetResourceManager()->GetLiveResource(OMBlendState);
+	{
+		if(device->GetResourceManager()->HasLiveResource(OMBlendState)) 
+			OM.BlendState = (ID3D11BlendState *)device->GetResourceManager()->GetLiveResource(OMBlendState);
+		else
+			OM.BlendState = NULL;
+	}
 
 	m_pSerialiser->Serialise<4>("OM.BlendFactor", OM.BlendFactor);
 	m_pSerialiser->Serialise("OM.SampleMask", OM.SampleMask);
 
 	SERIALISE_ELEMENT(ResourceId, OMDepthView, GetIDForResource(OM.DepthView));
 	if(m_State < WRITING)
-		OM.DepthView = (ID3D11DepthStencilView *)device->GetResourceManager()->GetLiveResource(OMDepthView);
+	{
+		if(device->GetResourceManager()->HasLiveResource(OMDepthView)) 
+			OM.DepthView = (ID3D11DepthStencilView *)device->GetResourceManager()->GetLiveResource(OMDepthView);
+		else
+			OM.DepthView = NULL;
+	}
 
 	m_pSerialiser->Serialise("OM.UAVStartSlot", OM.UAVStartSlot);
 
@@ -558,7 +635,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 		ResourceId UAV;
 		if(m_State >= WRITING) UAV = GetIDForResource(OM.UAVs[i]);
 		m_pSerialiser->Serialise("OM.UAVs", UAV);
-		if(m_State < WRITING) OM.UAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(UAV);
+		if(m_State < WRITING)
+		{
+			if(device->GetResourceManager()->HasLiveResource(UAV)) 
+				OM.UAVs[i] = (ID3D11UnorderedAccessView *)device->GetResourceManager()->GetLiveResource(UAV);
+			else
+				OM.UAVs[i] = NULL;
+		}
 	}
 
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
@@ -566,7 +649,13 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 		ResourceId RTV;
 		if(m_State >= WRITING) RTV = GetIDForResource(OM.RenderTargets[i]);
 		m_pSerialiser->Serialise("OM.RenderTargets", RTV);
-		if(m_State < WRITING) OM.RenderTargets[i] = (ID3D11RenderTargetView *)device->GetResourceManager()->GetLiveResource(RTV);
+		if(m_State < WRITING)
+		{
+			if(device->GetResourceManager()->HasLiveResource(RTV)) 
+				OM.RenderTargets[i] = (ID3D11RenderTargetView *)device->GetResourceManager()->GetLiveResource(RTV);
+			else
+				OM.RenderTargets[i] = NULL;
+		}
 	}
 
 	if(m_State < WRITING)

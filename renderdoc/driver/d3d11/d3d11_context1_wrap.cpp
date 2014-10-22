@@ -295,7 +295,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion1(ID3D11Resource
 	SERIALISE_ELEMENT_OPT(D3D11_BOX, SourceBox, *pSrcBox, HasSourceBox);
 	SERIALISE_ELEMENT(UINT, flags, CopyFlags);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Destination))
+	if(m_State <= EXECUTING &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Source))
 	{
 		D3D11_BOX *box = &SourceBox;
 		if(!HasSourceBox)
@@ -367,7 +369,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 	SERIALISE_ELEMENT(uint32_t, numRects, NumRects);
 	SERIALISE_ELEMENT_ARR(D3D11_RECT, rects, pRect, NumRects);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
 	{
 		ID3D11View *wrapped = (ID3D11View *)m_pDevice->GetResourceManager()->GetLiveResource(View);
 
@@ -513,7 +515,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}
@@ -613,7 +618,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}
@@ -714,7 +722,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}
@@ -815,7 +826,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}
@@ -916,7 +930,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}
@@ -1017,7 +1034,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
 		
 		if(m_State <= EXECUTING)
 		{
-			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+			else
+				Buffers[i] = NULL;
 			Offsets[i] = offs;
 			Counts[i] = count;
 		}

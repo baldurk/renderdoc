@@ -3423,77 +3423,83 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 			RDCASSERT(dxbc);
 			RDCASSERT(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER);
 
-			WrappedID3D11Shader<ID3D11PixelShader> *wrapped = (WrappedID3D11Shader<ID3D11PixelShader> *)m_WrappedDevice->GetResourceManager()->GetLiveResource(cfg.CustomShader);
-
-			customPS = wrapped->GetReal();
-
-			for(size_t i=0; i < dxbc->m_CBuffers.size(); i++)
+			WrappedID3D11Shader<ID3D11PixelShader> *wrapped = NULL;
+			
+			if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.CustomShader))
 			{
-				const DXBC::CBuffer &cbuf = dxbc->m_CBuffers[i];
-				if(cbuf.name == "$Globals")
+				WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
+						(WrappedID3D11Shader<ID3D11PixelShader> *)m_WrappedDevice->GetResourceManager()->GetLiveResource(cfg.CustomShader);
+
+				customPS = wrapped->GetReal();
+
+				for(size_t i=0; i < dxbc->m_CBuffers.size(); i++)
 				{
-					float *cbufData = new float[cbuf.descriptor.byteSize/sizeof(float) + 1];
-					byte *byteData = (byte *)cbufData;
-
-					for(size_t v=0; v < cbuf.variables.size(); v++)
+					const DXBC::CBuffer &cbuf = dxbc->m_CBuffers[i];
+					if(cbuf.name == "$Globals")
 					{
-						const DXBC::CBufferVariable &var = cbuf.variables[v];
+						float *cbufData = new float[cbuf.descriptor.byteSize/sizeof(float) + 1];
+						byte *byteData = (byte *)cbufData;
 
-						if(var.name == "RENDERDOC_TexDim")
+						for(size_t v=0; v < cbuf.variables.size(); v++)
 						{
-							if(var.type.descriptor.rows == 1 &&
-								var.type.descriptor.cols == 4 &&
-								var.type.descriptor.type == DXBC::VARTYPE_UINT)
-							{
-								uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+							const DXBC::CBufferVariable &var = cbuf.variables[v];
 
-								d[0] = details.texWidth;
-								d[1] = details.texHeight;
-								d[2] = details.texType == D3D11DebugManager::eTexType_3D ? details.texDepth : details.texArraySize;
-								d[3] = details.texMips;
+							if(var.name == "RENDERDOC_TexDim")
+							{
+								if(var.type.descriptor.rows == 1 &&
+									var.type.descriptor.cols == 4 &&
+									var.type.descriptor.type == DXBC::VARTYPE_UINT)
+								{
+									uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+									d[0] = details.texWidth;
+									d[1] = details.texHeight;
+									d[2] = details.texType == D3D11DebugManager::eTexType_3D ? details.texDepth : details.texArraySize;
+									d[3] = details.texMips;
+								}
+								else
+								{
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %hs", var.name.c_str());
+								}
+							}
+							else if(var.name == "RENDERDOC_SelectedMip")
+							{
+								if(var.type.descriptor.rows == 1 &&
+									var.type.descriptor.cols == 1 &&
+									var.type.descriptor.type == DXBC::VARTYPE_UINT)
+								{
+									uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+									d[0] = cfg.mip;
+								}
+								else
+								{
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
+								}
+							}
+							else if(var.name == "RENDERDOC_TextureType")
+							{
+								if(var.type.descriptor.rows == 1 &&
+									var.type.descriptor.cols == 1 &&
+									var.type.descriptor.type == DXBC::VARTYPE_UINT)
+								{
+									uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+									d[0] = details.texType;
+								}
+								else
+								{
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
+								}
 							}
 							else
 							{
-								RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %hs", var.name.c_str());
+								RDCWARN("Custom shader: Variable not recognised: %hs", var.name.c_str());
 							}
 						}
-						else if(var.name == "RENDERDOC_SelectedMip")
-						{
-							if(var.type.descriptor.rows == 1 &&
-								var.type.descriptor.cols == 1 &&
-								var.type.descriptor.type == DXBC::VARTYPE_UINT)
-							{
-								uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
 
-								d[0] = cfg.mip;
-							}
-							else
-							{
-								RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
-							}
-						}
-						else if(var.name == "RENDERDOC_TextureType")
-						{
-							if(var.type.descriptor.rows == 1 &&
-								var.type.descriptor.cols == 1 &&
-								var.type.descriptor.type == DXBC::VARTYPE_UINT)
-							{
-								uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
-
-								d[0] = details.texType;
-							}
-							else
-							{
-								RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
-							}
-						}
-						else
-						{
-							RDCWARN("Custom shader: Variable not recognised: %hs", var.name.c_str());
-						}
+						customBuff = MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
 					}
-
-					customBuff = MakeCBuffer(cbufData, cbuf.descriptor.byteSize);
 				}
 			}
 		}

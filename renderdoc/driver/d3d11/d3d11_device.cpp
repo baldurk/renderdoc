@@ -1371,15 +1371,15 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture1D)
 	{
 		WrappedID3D11Texture1D *tex1D = (WrappedID3D11Texture1D *)res;
-		if(m_State < WRITING)
+		if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
 			tex1D = (WrappedID3D11Texture1D *)m_ResourceManager->GetLiveResource(Id);
 		
 		D3D11ResourceRecord *record = NULL;
 		if(m_State >= WRITING)
 			record = m_ResourceManager->GetResourceRecord(Id);
 
-		D3D11_TEXTURE1D_DESC desc;
-		tex1D->GetDesc(&desc);
+		D3D11_TEXTURE1D_DESC desc = {0};
+		if(tex1D) tex1D->GetDesc(&desc);
 		
 		SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels*desc.ArraySize);
 		
@@ -1398,7 +1398,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			{
 				inmemBuffer = new byte[GetByteSize(desc.Width, 1, 1, desc.Format, 0)];
 			}
-			else
+			else if(tex1D)
 			{
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
@@ -1407,7 +1407,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
-				UINT mip = GetMipForSubresource(tex1D, sub);
+				UINT mip = tex1D ? GetMipForSubresource(tex1D, sub) : 0;
 				
 				if(m_State >= WRITING)
 				{
@@ -1443,15 +1443,22 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 					size_t len = 0;
 					m_pSerialiser->SerialiseBuffer("", data, len);
 
-					subData[sub].pSysMem = data;
-					subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-					subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+					if(tex1D)
+					{
+						subData[sub].pSysMem = data;
+						subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+						subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+					}
+					else
+					{
+						SAFE_DELETE_ARRAY(data);
+					}
 				}
 			}
 
 			SAFE_DELETE_ARRAY(inmemBuffer);
 			
-			if(m_State < WRITING)
+			if(m_State < WRITING && tex1D)
 			{
 				// We don't need to bind this, but IMMUTABLE requires at least one
 				// BindFlags.
@@ -1481,15 +1488,15 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture2D)
 	{
 		WrappedID3D11Texture2D *tex2D = (WrappedID3D11Texture2D *)res;
-		if(m_State < WRITING)
+		if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
 			tex2D = (WrappedID3D11Texture2D *)m_ResourceManager->GetLiveResource(Id);
 		
 		D3D11ResourceRecord *record = NULL;
 		if(m_State >= WRITING)
 			record = m_ResourceManager->GetResourceRecord(Id);
 
-		D3D11_TEXTURE2D_DESC desc;
-		tex2D->GetDesc(&desc);
+		D3D11_TEXTURE2D_DESC desc = {0};
+		if(tex2D) tex2D->GetDesc(&desc);
 
 		SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels*desc.ArraySize);
 
@@ -1533,7 +1540,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			{
 				inmemBuffer = new byte[GetByteSize(desc.Width, desc.Height, 1, desc.Format, 0)];
 			}
-			else
+			else if(tex2D)
 			{
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
@@ -1542,7 +1549,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
-				UINT mip = GetMipForSubresource(tex2D, sub);
+				UINT mip = tex2D ? GetMipForSubresource(tex2D, sub) : 0;
 				
 				if(m_State >= WRITING)
 				{
@@ -1583,15 +1590,22 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 					size_t len = 0;
 					m_pSerialiser->SerialiseBuffer("", data, len);
 
-					subData[sub].pSysMem = data;
-					subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-					subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+					if(tex2D)
+					{
+						subData[sub].pSysMem = data;
+						subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+						subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+					}
+					else
+					{
+						SAFE_DELETE_ARRAY(data);
+					}
 				}
 			}
 
 			SAFE_DELETE_ARRAY(inmemBuffer);
 			
-			if(m_State < WRITING)
+			if(m_State < WRITING && tex2D)
 			{
 				// We don't need to bind this, but IMMUTABLE requires at least one
 				// BindFlags.
@@ -1667,15 +1681,15 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 	else if(type == Resource_Texture3D)
 	{
 		WrappedID3D11Texture3D *tex3D = (WrappedID3D11Texture3D *)res;
-		if(m_State < WRITING)
+		if(m_State < WRITING && m_ResourceManager->HasLiveResource(Id))
 			tex3D = (WrappedID3D11Texture3D *)m_ResourceManager->GetLiveResource(Id);
 		
 		D3D11ResourceRecord *record = NULL;
 		if(m_State >= WRITING)
 			record = m_ResourceManager->GetResourceRecord(Id);
 
-		D3D11_TEXTURE3D_DESC desc;
-		tex3D->GetDesc(&desc);
+		D3D11_TEXTURE3D_DESC desc = {0};
+		if(tex3D) tex3D->GetDesc(&desc);
 		
 		SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels);
 		
@@ -1694,7 +1708,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 			{
 				inmemBuffer = new byte[GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, 0)];
 			}
-			else
+			else if(tex3D)
 			{
 				subData = new D3D11_SUBRESOURCE_DATA[numSubresources];
 			}
@@ -1703,7 +1717,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 
 			for(UINT sub = 0; sub < numSubresources; sub++)
 			{
-				UINT mip = GetMipForSubresource(tex3D, sub);
+				UINT mip = tex3D ? GetMipForSubresource(tex3D, sub) : 0;
 				
 				if(m_State >= WRITING)
 				{
@@ -1755,15 +1769,22 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 					size_t len = 0;
 					m_pSerialiser->SerialiseBuffer("", data, len);
 
-					subData[sub].pSysMem = data;
-					subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
-					subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+					if(tex3D)
+					{
+						subData[sub].pSysMem = data;
+						subData[sub].SysMemPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
+						subData[sub].SysMemSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
+					}
+					else
+					{
+						SAFE_DELETE_ARRAY(data);
+					}
 				}
 			}
 
 			SAFE_DELETE_ARRAY(inmemBuffer);
 			
-			if(m_State < WRITING)
+			if(m_State < WRITING && tex3D)
 			{
 				// We don't need to bind this, but IMMUTABLE requires at least one
 				// BindFlags.

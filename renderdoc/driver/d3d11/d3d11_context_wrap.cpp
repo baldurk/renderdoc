@@ -318,7 +318,7 @@ bool WrappedID3D11DeviceContext::Serialise_IASetInputLayout(ID3D11InputLayout *p
 {
 	SERIALISE_ELEMENT(ResourceId, InputLayout, GetIDForResource(pInputLayout));
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(InputLayout))
 	{
 		pInputLayout = (ID3D11InputLayout *)m_pDevice->GetResourceManager()->GetLiveResource(InputLayout);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->IA.Layout, pInputLayout);
@@ -364,8 +364,10 @@ bool WrappedID3D11DeviceContext::Serialise_IASetVertexBuffers(UINT StartSlot_, U
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppVertexBuffers[i]));
 		
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -429,7 +431,7 @@ bool WrappedID3D11DeviceContext::Serialise_IASetIndexBuffer(ID3D11Buffer *pIndex
 	SERIALISE_ELEMENT(DXGI_FORMAT, Format, Format_);
 	SERIALISE_ELEMENT(uint32_t, Offset, Offset_);
 	
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Buffer))
 	{
 		pIndexBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(Buffer);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->IA.IndexBuffer, pIndexBuffer);
@@ -577,8 +579,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 		
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -640,8 +644,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -706,8 +712,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -763,8 +771,10 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(ID3D11VertexShader *pShad
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -775,7 +785,9 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(ID3D11VertexShader *pShad
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.Shader, pShader);
 		m_pRealContext->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -923,8 +935,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -989,8 +1003,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1055,8 +1071,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1112,8 +1130,10 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(ID3D11HullShader *pShader
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1124,7 +1144,9 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(ID3D11HullShader *pShader
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.Shader, pShader);
 		m_pRealContext->HSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11HullShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -1272,8 +1294,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -1337,8 +1361,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1403,8 +1429,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1460,8 +1488,10 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(ID3D11DomainShader *pShad
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1472,7 +1502,9 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(ID3D11DomainShader *pShad
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.Shader, pShader);
 		m_pRealContext->DSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11DomainShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -1620,8 +1652,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -1685,8 +1719,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1751,8 +1787,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1808,8 +1846,10 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(ID3D11GeometryShader *pSh
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -1820,7 +1860,9 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(ID3D11GeometryShader *pSh
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.Shader, pShader);
 		m_pRealContext->GSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11GeometryShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -1893,8 +1935,10 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(UINT NumBuffers_, ID3D11
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSOTargets[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -2108,7 +2152,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(pRasterizerState));
 	
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(id);
 #if defined(INCLUDE_D3D_11_1)
@@ -2272,8 +2316,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -2335,8 +2381,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -2399,8 +2447,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -2453,8 +2503,10 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(ID3D11PixelShader *pShade
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -2465,7 +2517,9 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(ID3D11PixelShader *pShade
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.Shader, pShader);
 		m_pRealContext->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -2996,7 +3050,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 
 	SERIALISE_ELEMENT(uint32_t, SampleMask, SampleMask_);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(State))
 	{
 		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(State);
 #if defined(INCLUDE_D3D_11_1)
@@ -3062,7 +3116,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetDepthStencilState(ID3D11DepthSte
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(pDepthStencilState));
 	SERIALISE_ELEMENT(uint32_t, StencilRef, StencilRef_&0xff);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(State))
 	{
 		pDepthStencilState = (ID3D11DepthStencilState *)m_pDevice->GetResourceManager()->GetLiveResource(State);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.DepthStencilState, pDepthStencilState);
@@ -3484,7 +3538,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 	SERIALISE_ELEMENT(ResourceId, BufferForArgs, GetIDForResource(pBufferForArgs));
 	SERIALISE_ELEMENT(uint32_t, AlignedByteOffsetForArgs, AlignedByteOffsetForArgs_);
 	
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
 	{
 		m_pRealContext->DrawIndexedInstancedIndirect(UNWRAP(WrappedID3D11Buffer, m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs)), AlignedByteOffsetForArgs);
 	}
@@ -3497,21 +3551,30 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 	{
 		AddEvent(DRAW, desc);
 		
-		ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
-
-		vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
-		uint32_t *uargs = (uint32_t *)&args[0];
-
-		string name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(uargs[0])
-						+ ", " + ToStr::Get(uargs[1]) + ">)";
-
+		ID3D11Buffer *argBuffer = NULL;
+		
 		FetchDrawcall draw;
+
+		string name = "DrawIndexedInstancedIndirect(-, -)";
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
+		{
+			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
+
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
+			uint32_t *uargs = (uint32_t *)&args[0];
+
+			name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(uargs[0])
+			                   + ", " + ToStr::Get(uargs[1]) + ">)";
+
+			draw.numIndices = uargs[0];
+			draw.numInstances = uargs[1];
+			draw.indexOffset = uargs[2];
+			draw.vertexOffset = uargs[3];
+			draw.instanceOffset = uargs[4];
+		}
+
 		draw.name = widen(name);
-		draw.numIndices = uargs[0];
-		draw.numInstances = uargs[1];
-		draw.indexOffset = uargs[2];
-		draw.vertexOffset = uargs[3];
-		draw.instanceOffset = uargs[4];
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_UseIBuffer|eDraw_Indirect;
 
@@ -3555,7 +3618,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 	SERIALISE_ELEMENT(ResourceId, BufferForArgs, GetIDForResource(pBufferForArgs));
 	SERIALISE_ELEMENT(uint32_t, AlignedByteOffsetForArgs, AlignedByteOffsetForArgs_);
 	
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
 	{
 		m_pRealContext->DrawInstancedIndirect(UNWRAP(WrappedID3D11Buffer, m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs)), AlignedByteOffsetForArgs);
 	}
@@ -3568,20 +3631,26 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 	{
 		AddEvent(DRAW, desc);
 		
-		ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
-
-		vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 4*sizeof(uint32_t));
-		uint32_t *uargs = (uint32_t *)&args[0];
-
-		string name = "DrawInstancedIndirect(<" + ToStr::Get(uargs[0])
-						+ ", " + ToStr::Get(uargs[1]) + ">)";
-
 		FetchDrawcall draw;
+		
+		string name = "DrawInstancedIndirect(-, -)";
+		if(m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
+		{
+			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
+
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 4*sizeof(uint32_t));
+			uint32_t *uargs = (uint32_t *)&args[0];
+
+			name = "DrawInstancedIndirect(<" + ToStr::Get(uargs[0])
+							+ ", " + ToStr::Get(uargs[1]) + ">)";
+
+			draw.numIndices = uargs[0];
+			draw.numInstances = uargs[1];
+			draw.vertexOffset = uargs[2];
+			draw.instanceOffset = uargs[3];
+		}
+
 		draw.name = widen(name);
-		draw.numIndices = uargs[0];
-		draw.numInstances = uargs[1];
-		draw.vertexOffset = uargs[2];
-		draw.instanceOffset = uargs[3];
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
@@ -3746,8 +3815,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppConstantBuffers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Buffers[i] = NULL;
 	}
 	
 	if(m_State <= EXECUTING)
@@ -3811,8 +3882,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShaderResources(UINT StartSlot_,
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppShaderResourceViews[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Views[i] = (ID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Views[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -3952,8 +4025,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetSamplers(UINT StartSlot_, UINT N
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSamplers[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Sampler[i] = (ID3D11SamplerState *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Sampler[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -4008,8 +4083,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(ID3D11ComputeShader *pSha
 	{
 		SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppClassInstances[i]));
 
-		if(m_State <= EXECUTING)
+		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
 			Instances[i] = (ID3D11ClassInstance *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+		else
+			Instances[i] = NULL;
 	}
 
 	if(m_State <= EXECUTING)
@@ -4019,8 +4096,10 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(ID3D11ComputeShader *pSha
 
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
-
-		ID3D11DeviceChild *pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		
+		ID3D11DeviceChild *pShader = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
+			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.Shader, pShader);
 		m_pRealContext->CSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11ComputeShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
@@ -4234,7 +4313,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 	SERIALISE_ELEMENT(ResourceId, BufferForArgs, GetIDForResource(pBufferForArgs));
 	SERIALISE_ELEMENT(uint32_t, AlignedByteOffsetForArgs, AlignedByteOffsetForArgs_);
 	
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
 	{
 		m_pRealContext->DispatchIndirect(UNWRAP(WrappedID3D11Buffer, m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs)), AlignedByteOffsetForArgs);
 	}
@@ -4247,16 +4326,21 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 	{
 		AddEvent(DISPATCH_INDIRECT, desc);
 		
-		ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
-
-		vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
-		uint32_t *uargs = (uint32_t *)&args[0];
-
-		string name = "DispatchIndirect(<" + ToStr::Get(uargs[0])
-						+ ", " + ToStr::Get(uargs[1]) + 
-						+ ", " + ToStr::Get(uargs[2]) + ">)";
-
 		FetchDrawcall draw;
+
+		string name = "DispatchIndirect(-, -, -)";
+		if(m_pDevice->GetResourceManager()->HasLiveResource(BufferForArgs))
+		{
+			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
+
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
+			uint32_t *uargs = (uint32_t *)&args[0];
+
+			name = "DispatchIndirect(<" + ToStr::Get(uargs[0])
+							+ ", " + ToStr::Get(uargs[1]) + 
+							+ ", " + ToStr::Get(uargs[2]) + ">)";
+		}
+
 		draw.name = widen(name);
 		draw.flags |= eDraw_Dispatch|eDraw_Indirect;
 
@@ -4479,7 +4563,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion( ID3D11Resource
 	SERIALISE_ELEMENT(uint8_t, HasSourceBox, pSrcBox != NULL);
 	SERIALISE_ELEMENT_OPT(D3D11_BOX, SourceBox, *pSrcBox, HasSourceBox);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Destination))
+	if(m_State <= EXECUTING &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Source))
 	{
 		D3D11_BOX *box = &SourceBox;
 		if(!HasSourceBox)
@@ -4582,7 +4668,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(ID3D11Resource *pDstReso
 	SERIALISE_ELEMENT(ResourceId, Destination, GetIDForResource(pDstResource));
 	SERIALISE_ELEMENT(ResourceId, Source, GetIDForResource(pSrcResource));
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Destination))
+	if(m_State <= EXECUTING &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(Source))
 	{
 		m_pRealContext->CopyResource(m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource*)m_pDevice->GetResourceManager()->GetLiveResource(Destination)),
 											m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource*)m_pDevice->GetResourceManager()->GetLiveResource(Source)));
@@ -4928,7 +5016,9 @@ bool WrappedID3D11DeviceContext::Serialise_CopyStructureCount(ID3D11Buffer *pDst
 	SERIALISE_ELEMENT(uint32_t, DestAlignedByteOffset, DstAlignedByteOffset);
 	SERIALISE_ELEMENT(ResourceId, SourceView, GetIDForResource(pSrcView));
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(DestBuffer))
+	if(m_State <= EXECUTING &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(DestBuffer) &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(SourceView))
 	{
 		m_pRealContext->CopyStructureCount(UNWRAP(WrappedID3D11Buffer, m_pDevice->GetResourceManager()->GetLiveResource(DestBuffer)),
 											DestAlignedByteOffset,
@@ -4993,7 +5083,9 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pD
 	SERIALISE_ELEMENT(uint32_t, SourceSubresource, SrcSubresource);
 	SERIALISE_ELEMENT(DXGI_FORMAT, Format, Format_);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(DestResource))
+	if(m_State <= EXECUTING &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(DestResource) &&
+		 m_pDevice->GetResourceManager()->HasLiveResource(SourceResource))
 	{
 		m_pRealContext->ResolveSubresource(m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource*)m_pDevice->GetResourceManager()->GetLiveResource(DestResource)),
 												DestSubresource,
@@ -5173,7 +5265,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 
 	m_pSerialiser->Serialise<4>("ColorRGBA", Color);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
 	{
 		m_pRealContext->ClearRenderTargetView(UNWRAP(WrappedID3D11RenderTargetView, m_pDevice->GetResourceManager()->GetLiveResource(View)), Color);
 	}
@@ -5200,8 +5292,9 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 
 		AddDrawcall(draw, true);
 
-		m_ResourceUses[((WrappedID3D11RenderTargetView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
-			.push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+			m_ResourceUses[((WrappedID3D11RenderTargetView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
+				.push_back(EventUsage(m_CurEventID, eUsage_Clear));
 	}
 
 	return true;
@@ -5322,8 +5415,9 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(ID3D11Un
 
 		AddDrawcall(draw, true);
 
-		m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
-			.push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+			m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
+				.push_back(EventUsage(m_CurEventID, eUsage_Clear));
 	}
 
 	return true;
@@ -5439,8 +5533,9 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(ID3D11U
 
 		AddDrawcall(draw, true);
 
-		m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
-			.push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+			m_ResourceUses[((WrappedID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
+				.push_back(EventUsage(m_CurEventID, eUsage_Clear));
 	}
 
 	return true;
@@ -5553,9 +5648,10 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
-
-		m_ResourceUses[((WrappedID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
-			.push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		
+		if(m_pDevice->GetResourceManager()->HasLiveResource(View))
+			m_ResourceUses[((WrappedID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(View))->GetResourceResID()]
+				.push_back(EventUsage(m_CurEventID, eUsage_Clear));
 	}
 
 	return true;
@@ -5667,7 +5763,7 @@ bool WrappedID3D11DeviceContext::Serialise_Begin(ID3D11Asynchronous *pAsync)
 		SERIALISE_ELEMENT(D3D11_QUERY, QueryType, qt);
 	}
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Async))
 	{
 		//m_pImmediateContext->Begin((ID3D11Asynchronous *)m_pDevice->GetResourceManager()->GetLiveResource(Async));
 	}
@@ -5722,7 +5818,7 @@ bool WrappedID3D11DeviceContext::Serialise_End(ID3D11Asynchronous *pAsync)
 		SERIALISE_ELEMENT(D3D11_QUERY, QueryType, qt);
 	}
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Async))
 	{
 		//m_pImmediateContext->End((ID3D11Asynchronous *)m_pDevice->GetResourceManager()->GetLiveResource(Async));
 	}
@@ -5776,7 +5872,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(ID3D11Predicate *pPred
 	SERIALISE_ELEMENT(ResourceId, Predicate, GetIDForResource(pPredicate));
 	SERIALISE_ELEMENT(uint8_t, PredicateValue, PredicateValue_ == TRUE);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Predicate))
 	{
 		m_pRealContext->SetPredication(UNWRAP(WrappedID3D11Predicate, m_pDevice->GetResourceManager()->GetLiveResource(Predicate)), PredicateValue);
 	}
@@ -5810,7 +5906,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetResourceMinLOD(ID3D11Resource *pRe
 	SERIALISE_ELEMENT(ResourceId, Resource, GetIDForResource(pResource));
 	SERIALISE_ELEMENT(float, MinLOD, MinLOD_);
 
-	if(m_State <= EXECUTING)
+	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Resource))
 	{
 		m_pRealContext->SetResourceMinLOD((ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Resource), MinLOD);
 	}
@@ -6104,8 +6200,6 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 		RDCASSERT(m_OpenMaps.find(MappedResource(Resource, Subresource)) == m_OpenMaps.end());
 
 		ID3D11Resource *resMap = pResource;
-		if(m_pDevice->GetResourceManager()->HasLiveResource(Resource))
-			resMap = (ID3D11Resource *)m_pDevice->GetResourceManager()->GetLiveResource(Resource);
 
 		RDCASSERT(resMap);
 		
