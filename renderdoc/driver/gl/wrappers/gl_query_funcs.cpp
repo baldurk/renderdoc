@@ -159,7 +159,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(GLsizei n, GLuint* ids)
 	if(m_State == READING)
 	{
 		GLuint real = 0;
-		m_Real.glGenSamplers(1, &real);
+		m_Real.glGenQueries(1, &real);
 		
 		GLResource res = QueryRes(GetCtx(), real);
 
@@ -172,7 +172,7 @@ bool WrappedOpenGL::Serialise_glGenQueries(GLsizei n, GLuint* ids)
 
 void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 {
-	m_Real.glGenSamplers(count, ids);
+	m_Real.glGenQueries(count, ids);
 
 	for(GLsizei i=0; i < count; i++)
 	{

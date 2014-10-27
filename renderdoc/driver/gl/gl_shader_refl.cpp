@@ -203,7 +203,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		res.IsUAV = false;
 		res.variableType.descriptor.rows = 1;
 		res.variableType.descriptor.cols = 4;
-		res.variableType.descriptor.elements = 1;
+		res.variableType.descriptor.elements = 0;
 		res.variableType.descriptor.rowMajorStorage = false;
 		res.bindPoint = (int32_t)resources.size();
 
@@ -703,8 +703,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		int32_t c = values[1]-1;
 
 		// trim off trailing [0] if it's an array
-		if(values[4] > 1 && var.name[c-3] == '[' && var.name[c-2] == '0' && var.name[c-1] == ']')
+		if(var.name[c-3] == '[' && var.name[c-2] == '0' && var.name[c-1] == ']')
 			var.name.resize(c-3);
+		else
+			var.type.descriptor.elements = 0;
 
 		vector<DynShaderConstant> *parentmembers = &globalUniforms;
 
@@ -769,7 +771,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			parentVar.reg.vec = var.reg.vec;
 			parentVar.reg.comp = 0;
 			parentVar.type.descriptor.name = "struct";
-			parentVar.type.descriptor.elements = RDCMAX(1U, uint32_t(arrayIdx+1));
+			parentVar.type.descriptor.elements = isarray ? RDCMAX(1U, uint32_t(arrayIdx+1)) : 0;
 
 			bool found = false;
 
