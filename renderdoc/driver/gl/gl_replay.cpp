@@ -1210,7 +1210,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 
 		if(variables[i].type.members.count > 0)
 		{
-			if(desc.elements == 1)
+			if(desc.elements == 0)
 			{
 				vector<ShaderVariable> ov;
 				FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".", variables[i].type.members, ov, data);
@@ -1265,7 +1265,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					values[2] = 1;
 				}
 
-				if(desc.elements == 1)
+				if(desc.elements == 0)
 				{
 					FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
 						values[0], values[1], data, var);
