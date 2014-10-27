@@ -81,6 +81,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_UNSIGNED_INT_10_10_10_2:
 		case eGL_UNSIGNED_INT_2_10_10_10_REV:
 		case eGL_UNSIGNED_INT_10F_11F_11F_REV:
+		case eGL_UNSIGNED_INT_5_9_9_9_REV:
 			return ((w*4 + alignAdd) & alignMask)*h*d;
 		case eGL_DEPTH_COMPONENT16:
 			return ((w*2 + alignAdd) & alignMask)*h*d;
