@@ -287,9 +287,9 @@ namespace renderdocui.Windows.Dialogs
         {
             if (result == "exception")
             {
-            System.Diagnostics.Trace.WriteLine("On line " + frame.f_lineno.ToString());
-                linenum = (int)frame.f_lineno - 1;
+                System.Diagnostics.Trace.WriteLine("On line " + frame.f_lineno.ToString());
             }
+            linenum = (int)frame.f_lineno - 1;
 
             stdoutwriter.Flush();
             stdout.Seek(0, SeekOrigin.Begin);
@@ -339,6 +339,9 @@ namespace renderdocui.Windows.Dialogs
 
             EnableButtons(false);
 
+            linenumTimer.Enabled = true;
+            linenumTimer.Start();
+
             Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
                 pythonengine.SetTrace(PythonTrace);
@@ -346,6 +349,7 @@ namespace renderdocui.Windows.Dialogs
                 // ignore output, the trace handler above will print output
                 string output = Execute(pythonengine, scriptscope, script);
 
+                linenumTimer.Stop();
                 pythonengine.SetTrace(null);
 
                 this.BeginInvoke(new Action(() =>
@@ -438,6 +442,11 @@ namespace renderdocui.Windows.Dialogs
                 scriptEditor.Text += "#import clr\n#clr.AddReference(\"pythonlibs\")\n\n";
 
             scriptEditor.Text = scriptEditor.Text.Replace("\n", Environment.NewLine);
+        }
+
+        private void linenumTimer_Tick(object sender, EventArgs e)
+        {
+            SetLineNumber(linenum);
         }
     }
 }

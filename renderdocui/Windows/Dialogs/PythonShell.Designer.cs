@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             System.Windows.Forms.ToolStripContainer toolStripContainer1;
             System.Windows.Forms.ToolStrip toolStrip1;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(PythonShell));
@@ -50,6 +51,7 @@
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
             this.openDialog = new System.Windows.Forms.OpenFileDialog();
             this.newScript = new System.Windows.Forms.ToolStripButton();
+            this.linenumTimer = new System.Windows.Forms.Timer(this.components);
             toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
             toolStripContainer1.ContentPanel.SuspendLayout();
@@ -301,6 +303,11 @@
             this.newScript.Text = "New";
             this.newScript.Click += new System.EventHandler(this.newScript_Click);
             // 
+            // linenumTimer
+            // 
+            this.linenumTimer.Interval = 500;
+            this.linenumTimer.Tick += new System.EventHandler(this.linenumTimer_Tick);
+            // 
             // PythonShell
             // 
             this.AllowDrop = true;
@@ -356,6 +363,7 @@
         private System.Windows.Forms.SaveFileDialog saveDialog;
         private System.Windows.Forms.OpenFileDialog openDialog;
         private System.Windows.Forms.ToolStripButton newScript;
+        private System.Windows.Forms.Timer linenumTimer;
 
 
     }
