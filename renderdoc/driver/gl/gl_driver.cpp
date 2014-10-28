@@ -71,6 +71,7 @@ const char *GLChunkNames[] =
 	"glProgramParameter",
 	"glBindAttribLocation",
 	"glUniformBlockBinding",
+	"glProgramUniformMatrix*",
 	"glProgramUniformVector*",
 	"glLinkProgram",
 	
@@ -290,6 +291,7 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_DrawFramebufferRecord = NULL;
 	m_ReadFramebufferRecord = NULL;
 	m_TextureUnit = 0;
+	m_Program = 0;
 	
 	m_LastIndexSize = eGL_NONE;
 	m_LastIndexOffset = 0;

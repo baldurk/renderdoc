@@ -113,6 +113,7 @@ class WrappedOpenGL
 		GLResourceRecord *m_DrawFramebufferRecord;
 		GLResourceRecord *m_ReadFramebufferRecord;
 		GLint m_TextureUnit;
+		GLuint m_Program;
 
 		// internals
 		Serialiser *m_pSerialiser;
@@ -531,6 +532,7 @@ class WrappedOpenGL
 		bool Serialise_glUniformMatrix(GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type);
 		bool Serialise_glUniformVector(GLint location, GLsizei count, const void *value, UniformType type);
 		
+		bool Serialise_glProgramUniformMatrix(GLuint program, GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type);
 		bool Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count, const void *value, UniformType type);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
@@ -544,6 +546,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3fv(GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4fv(GLint location, GLsizei count, const GLfloat *value));
 		
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1i(GLuint program, GLint location, GLint v0));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value));

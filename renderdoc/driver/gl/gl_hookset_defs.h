@@ -152,6 +152,7 @@
     HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
+	HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC, glProgramUniformMatrix4fv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
     HookExtension(PFNGLPROGRAMUNIFORM1FVPROC, glProgramUniform1fv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IVPROC, glProgramUniform1iv); \
@@ -502,6 +503,7 @@
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
+	HookWrapper5(void, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
     HookWrapper4(void, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \

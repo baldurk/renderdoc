@@ -116,6 +116,7 @@ namespace renderdocui.Windows.Dialogs
         private MemoryStream stdout = null;
         private StreamWriter stdoutwriter = null;
         private StreamReader stdoutreader = null;
+        private int linenum = -1;
 
         private string Execute(ScriptEngine engine, ScriptScope scope, string script)
         {
@@ -284,11 +285,11 @@ namespace renderdocui.Windows.Dialogs
         
         private void TraceCallback(TraceBackFrame frame, string result, object payload)
         {
-            System.Diagnostics.Trace.WriteLine("On line " + frame.f_lineno.ToString());
-
-            int lineNum = (int)frame.f_lineno - 1;
-
-            BeginInvoke(new Action(() => { SetLineNumber(lineNum); }));
+            if (result == "exception")
+            {
+                System.Diagnostics.Trace.WriteLine("On line " + frame.f_lineno.ToString());
+            }
+            linenum = (int)frame.f_lineno - 1;
 
             stdoutwriter.Flush();
             stdout.Seek(0, SeekOrigin.Begin);
@@ -296,10 +297,13 @@ namespace renderdocui.Windows.Dialogs
             stdout.Seek(0, SeekOrigin.Begin);
             stdout.SetLength(0);
 
+            if (output.Length > 0)
+            {
             this.BeginInvoke(new Action(() =>
             {
                 scriptOutput.Text += output;
             }));
+        }
         }
         
         private void SetLineNumber(int lineNum)
@@ -331,8 +335,12 @@ namespace renderdocui.Windows.Dialogs
             var script = scriptEditor.Text;
 
             scriptOutput.Text = "";
+            linenum = -1;
 
             EnableButtons(false);
+
+            linenumTimer.Enabled = true;
+            linenumTimer.Start();
 
             Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
@@ -341,13 +349,14 @@ namespace renderdocui.Windows.Dialogs
                 // ignore output, the trace handler above will print output
                 string output = Execute(pythonengine, scriptscope, script);
 
+                linenumTimer.Stop();
                 pythonengine.SetTrace(null);
 
                 this.BeginInvoke(new Action(() =>
                 {
                     scriptOutput.Text += output;
 
-                    SetLineNumber(-1);
+                    SetLineNumber(linenum);
 
                     EnableButtons(true);
                 }));
@@ -433,6 +442,11 @@ namespace renderdocui.Windows.Dialogs
                 scriptEditor.Text += "#import clr\n#clr.AddReference(\"pythonlibs\")\n\n";
 
             scriptEditor.Text = scriptEditor.Text.Replace("\n", Environment.NewLine);
+        }
+
+        private void linenumTimer_Tick(object sender, EventArgs e)
+        {
+            SetLineNumber(linenum);
         }
     }
 }
