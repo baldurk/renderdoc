@@ -116,6 +116,7 @@ namespace renderdocui.Windows.Dialogs
         private MemoryStream stdout = null;
         private StreamWriter stdoutwriter = null;
         private StreamReader stdoutreader = null;
+        private int linenum = -1;
 
         private string Execute(ScriptEngine engine, ScriptScope scope, string script)
         {
@@ -284,11 +285,11 @@ namespace renderdocui.Windows.Dialogs
         
         private void TraceCallback(TraceBackFrame frame, string result, object payload)
         {
+            if (result == "exception")
+            {
             System.Diagnostics.Trace.WriteLine("On line " + frame.f_lineno.ToString());
-
-            int lineNum = (int)frame.f_lineno - 1;
-
-            BeginInvoke(new Action(() => { SetLineNumber(lineNum); }));
+                linenum = (int)frame.f_lineno - 1;
+            }
 
             stdoutwriter.Flush();
             stdout.Seek(0, SeekOrigin.Begin);
@@ -296,10 +297,13 @@ namespace renderdocui.Windows.Dialogs
             stdout.Seek(0, SeekOrigin.Begin);
             stdout.SetLength(0);
 
+            if (output.Length > 0)
+            {
             this.BeginInvoke(new Action(() =>
             {
                 scriptOutput.Text += output;
             }));
+        }
         }
         
         private void SetLineNumber(int lineNum)
@@ -331,6 +335,7 @@ namespace renderdocui.Windows.Dialogs
             var script = scriptEditor.Text;
 
             scriptOutput.Text = "";
+            linenum = -1;
 
             EnableButtons(false);
 
@@ -347,7 +352,7 @@ namespace renderdocui.Windows.Dialogs
                 {
                     scriptOutput.Text += output;
 
-                    SetLineNumber(-1);
+                    SetLineNumber(linenum);
 
                     EnableButtons(true);
                 }));
