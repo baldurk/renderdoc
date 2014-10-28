@@ -593,6 +593,8 @@ void WrappedOpenGL::glUseProgram(GLuint program)
 {
 	m_Real.glUseProgram(program);
 
+	m_Program = program;
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
