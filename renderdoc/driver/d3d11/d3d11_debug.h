@@ -132,7 +132,7 @@ class D3D11DebugManager
 
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
 
-		void RenderText(float x, float y, float size, const char *textfmt, ...);
+		void RenderText(float x, float y, const char *textfmt, ...);
 		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
 
 		ID3D11Buffer *MakeCBuffer(float *data, size_t size);
@@ -339,14 +339,14 @@ class D3D11DebugManager
 		bool InitFontRendering();
 		void ShutdownFontRendering();
 
-		void RenderTextInternal(float x, float y, float size, const char *text);
+		void RenderTextInternal(float x, float y, const char *text);
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
 
 		void PixelHistoryCopyPixel(CopyPixelParams &params, uint32_t x, uint32_t y);
 
-		static const int FONT_TEX_WIDTH = 4096;
-		static const int FONT_TEX_HEIGHT = 48;
+		static const int FONT_TEX_WIDTH = 256;
+		static const int FONT_TEX_HEIGHT = 128;
 		static const int FONT_MAX_CHARS = 256;
 
 		static const uint32_t STAGE_BUFFER_BYTE_SIZE = 4*1024*1024;
@@ -359,6 +359,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(Layout);
 				SAFE_RELEASE(Tex);
 				SAFE_RELEASE(CBuffer);
+				SAFE_RELEASE(GlyphData);
 				SAFE_RELEASE(CharBuffer);
 				SAFE_RELEASE(VS);
 				SAFE_RELEASE(PS);
@@ -367,9 +368,13 @@ class D3D11DebugManager
 			ID3D11InputLayout *Layout;
 			ID3D11ShaderResourceView *Tex;
 			ID3D11Buffer *CBuffer;
+			ID3D11Buffer *GlyphData;
 			ID3D11Buffer *CharBuffer;
 			ID3D11VertexShader *VS;
 			ID3D11PixelShader *PS;
+
+			float CharAspect;
+			float CharSize;
 		} m_Font;
 
 		struct DebugRenderData

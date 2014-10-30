@@ -37,6 +37,8 @@
 
 #include "d3d11_renderstate.h"
 
+#include "3rdparty/stb/stb_truetype.h"
+
 #include <d3dcompiler.h>
 
 // used for serialising out ms textures - converts typeless to uint typed where possible,
@@ -991,67 +993,6 @@ bool D3D11DebugManager::InitDebugRendering()
 		}
 	}
 
-	{
-		D3D11_SUBRESOURCE_DATA initialPos;
-
-		float *buf = new float[(2 + FONT_MAX_CHARS*4) *3];
-		
-		// tri strip with degenerates to split characters:
-		//
-		// 0--24--68--..
-		// | /|| /|| /
-		// |/ ||/ ||/
-		// 1--35--79--..
-
-		buf[0] = 0.0f;
-		buf[1] = 0.0f;
-		buf[2] = 0.0f;
-
-		buf[3] = 0.0f;
-		buf[4] = -1.0f;
-		buf[5] = 0.0f;
-
-		for(int i=1; i <= FONT_MAX_CHARS; i++)
-		{
-			buf[i*12 - 6 + 0] = 1.0f;
-			buf[i*12 - 6 + 1] = 0.0f;
-			buf[i*12 - 6 + 2] = float(i-1);
-
-			buf[i*12 - 6 + 3] = 1.0f;
-			buf[i*12 - 6 + 4] = -1.0f;
-			buf[i*12 - 6 + 5] = float(i-1);
-
-
-			buf[i*12 + 0 + 0] = 0.0f;
-			buf[i*12 + 0 + 1] = 0.0f;
-			buf[i*12 + 0 + 2] = float(i);
-
-			buf[i*12 + 0 + 3] = 0.0f;
-			buf[i*12 + 0 + 4] = -1.0f;
-			buf[i*12 + 0 + 5] = float(i);
-		}
-
-		initialPos.pSysMem = buf;
-		initialPos.SysMemPitch = initialPos.SysMemSlicePitch = 0;
-		
-		D3D11_BUFFER_DESC bufDesc;
-		
-		bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufDesc.Usage = D3D11_USAGE_DEFAULT;
-		bufDesc.ByteWidth = (2 + FONT_MAX_CHARS*4) *3*sizeof(float);
-		bufDesc.CPUAccessFlags = 0;
-		bufDesc.MiscFlags = 0;
-		
-		hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_DebugRender.PosBuffer);
-
-		if(FAILED(hr))
-		{
-			RDCERR("Failed to create font pos buffer %08x", hr);
-		}
-
-		delete[] buf;
-	}
-	
 	RenderDoc::Inst().SetProgress(DebugManagerInit, 0.9f);
 
 	{
@@ -1496,6 +1437,69 @@ bool D3D11DebugManager::InitStreamOut()
 
 bool D3D11DebugManager::InitFontRendering()
 {
+	HRESULT hr = S_OK;
+
+	{
+		D3D11_SUBRESOURCE_DATA initialPos;
+
+		float *buf = new float[(2 + FONT_MAX_CHARS*4) *3];
+		
+		// tri strip with degenerates to split characters:
+		//
+		// 0--24--68--..
+		// | /|| /|| /
+		// |/ ||/ ||/
+		// 1--35--79--..
+
+		buf[0] = 0.0f;
+		buf[1] = 0.0f;
+		buf[2] = 0.0f;
+
+		buf[3] = 0.0f;
+		buf[4] = 1.0f;
+		buf[5] = 0.0f;
+
+		for(int i=1; i <= FONT_MAX_CHARS; i++)
+		{
+			buf[i*12 - 6 + 0] = 1.0f;
+			buf[i*12 - 6 + 1] = 0.0f;
+			buf[i*12 - 6 + 2] = float(i-1);
+
+			buf[i*12 - 6 + 3] = 1.0f;
+			buf[i*12 - 6 + 4] = 1.0f;
+			buf[i*12 - 6 + 5] = float(i-1);
+
+
+			buf[i*12 + 0 + 0] = 0.0f;
+			buf[i*12 + 0 + 1] = 0.0f;
+			buf[i*12 + 0 + 2] = float(i);
+
+			buf[i*12 + 0 + 3] = 0.0f;
+			buf[i*12 + 0 + 4] = 1.0f;
+			buf[i*12 + 0 + 5] = float(i);
+		}
+
+		initialPos.pSysMem = buf;
+		initialPos.SysMemPitch = initialPos.SysMemSlicePitch = 0;
+		
+		D3D11_BUFFER_DESC bufDesc;
+		
+		bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		bufDesc.Usage = D3D11_USAGE_DEFAULT;
+		bufDesc.ByteWidth = (2 + FONT_MAX_CHARS*4) *3*sizeof(float);
+		bufDesc.CPUAccessFlags = 0;
+		bufDesc.MiscFlags = 0;
+		
+		hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_DebugRender.PosBuffer);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create font pos buffer %08x", hr);
+		}
+
+		delete[] buf;
+	}
+	
 	D3D11_TEXTURE2D_DESC desc;
 	RDCEraseEl(desc);
 	
@@ -1504,108 +1508,54 @@ bool D3D11DebugManager::InitFontRendering()
 	desc.ArraySize = 1;
 	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 	desc.CPUAccessFlags = 0;
-	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	desc.Format = DXGI_FORMAT_R8_UNORM;
 	desc.Width = width;
 	desc.Height = height;
-
-	{
-		int h=height>>1;
-
-		desc.MipLevels = 1;
-
-		while(h >= 8)
-		{
-			desc.MipLevels++;
-
-			h >>= 1;
-		}
-	}
+	desc.MipLevels = 1;
 	desc.MiscFlags = 0;
 	desc.SampleDesc.Quality = 0;
 	desc.SampleDesc.Count = 1;
 	desc.Usage = D3D11_USAGE_DEFAULT;
 
-	D3D11_SUBRESOURCE_DATA *initialData = new D3D11_SUBRESOURCE_DATA[desc.MipLevels];
-
-	/////////////////////////////////////////////////////////////////////
-	BITMAPINFOHEADER bih;
-	RDCEraseEl(bih);
-	bih.biSize = sizeof(BITMAPINFOHEADER);
-	bih.biWidth = width;
-	bih.biHeight = height;
-	bih.biPlanes = 1;
-	bih.biBitCount = 32;
-	bih.biCompression = BI_RGB;
+	D3D11_SUBRESOURCE_DATA initialData;
 	
-	byte **buffers = new byte *[desc.MipLevels];
+	string font = GetEmbeddedResource(sourcecodepro_ttf);
+	byte *ttfdata = (byte *)font.c_str();
 
-	HDC pDC = GetDC(NULL);
-	HDC MemDC = CreateCompatibleDC(pDC);
+	const int firstChar = int(' ') + 1;
+	const int lastChar = 127;
+	const int numChars = lastChar-firstChar;
 
-	SetBkColor(MemDC, RGB(0, 0, 0));
-	SetTextColor(MemDC, RGB(255, 255, 255));
+	byte *buf = new byte[width*height];
 
-	HBITMAP *bmps = new HBITMAP[desc.MipLevels];
+	const float pixelHeight = 20.0f;
 
-	for(UINT i=0; i < desc.MipLevels; i++)
-	{
-		int w = width>>i;
-		int h = height>>i;
+	stbtt_bakedchar chardata[numChars];
+	int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, width, height, firstChar, numChars, chardata);
 
-		bih.biWidth = w;
-		bih.biHeight = h;
+	m_Font.CharSize = pixelHeight;
+	m_Font.CharAspect = chardata->xadvance / pixelHeight;
 
-		HFONT font = CreateFont(h,0,0,0,FW_DONTCARE,FALSE,FALSE,FALSE,DEFAULT_CHARSET,OUT_OUTLINE_PRECIS,
-			CLIP_DEFAULT_PRECIS,ANTIALIASED_QUALITY, FIXED_PITCH,TEXT("Consolas"));
+	stbtt_fontinfo f = {0};
+	stbtt_InitFont(&f, ttfdata, 0);
 
-		bmps[i] = CreateCompatibleBitmap(pDC, w, h);
+	int ascent = 0;
+	stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
 
-		SelectObject(MemDC, bmps[i]);
+	float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
 
-		SelectObject(MemDC, font);
-
-		char str[2] = {0, 0};
-
-		for(int s=0; s < 127-' '-1; s++)
-		{
-			str[0] = (char)(' '+s+1);
-			TextOutA(MemDC, int(s*h*0.75), -1, str, 1);
-		}
-
-		byte *buf = buffers[i] = new byte[w*h*4];
-
-		GetDIBits(MemDC, bmps[i], 0, h, buf, (BITMAPINFO *)&bih, DIB_RGB_COLORS);
-
-		DeleteObject(font);
-
-		// flip it right side up
-		byte *tmpRow = new byte[w*4];
-		for(int j=0; j < h/2; j++)
-		{
-			int x = h-j-1;
-			memcpy(tmpRow, &buf[j*w*4], w*4);
-			memcpy(&buf[j*w*4], &buf[x*w*4], w*4);
-			memcpy(&buf[x*w*4], tmpRow, w*4);
-		}
-		delete[] tmpRow;
-
-		/////////////////////////////////////////////////////////////////////
-
-		initialData[i].pSysMem = buffers[i];
-		initialData[i].SysMemPitch = w*4;
-		initialData[i].SysMemSlicePitch = w*h*4;
-	}
+	initialData.pSysMem = buf;
+	initialData.SysMemPitch = width;
+	initialData.SysMemSlicePitch = width*height;
 	
-	ID3D11Texture2D *debugTex;
+	ID3D11Texture2D *debugTex = NULL;
 
-	HRESULT hr = S_OK;
-
-	hr = m_pDevice->CreateTexture2D(&desc, initialData, &debugTex);
+	hr = m_pDevice->CreateTexture2D(&desc, &initialData, &debugTex);
 
 	if(FAILED(hr))
 		RDCERR("Failed to create debugTex %08x", hr);
 
-	delete[] initialData;
+	delete[] buf;
 
 	hr = m_pDevice->CreateShaderResourceView(debugTex, NULL, &m_Font.Tex);
 
@@ -1614,64 +1564,66 @@ bool D3D11DebugManager::InitFontRendering()
 
 	SAFE_RELEASE(debugTex);
 
-	for(UINT i=0; i < desc.MipLevels; i++)
+	Vec4f glyphData[2*(numChars+1)];
+
+	m_Font.GlyphData = MakeCBuffer(sizeof(glyphData));
+
+	for(int i=0; i < numChars; i++)
 	{
-		SAFE_DELETE_ARRAY(buffers[i]);
-		DeleteObject(bmps[i]);
+		stbtt_bakedchar *b = chardata+i;
+
+		float x = b->xoff;
+		float y = b->yoff + maxheight;
+
+		glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
+		glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
 	}
-	SAFE_DELETE_ARRAY(buffers);
-	SAFE_DELETE_ARRAY(bmps);
 
-	DeleteDC(pDC);
-	DeleteDC(MemDC);
+	FillCBuffer(m_Font.GlyphData, (float *)&glyphData, sizeof(glyphData));
 
+	m_Font.CBuffer = MakeCBuffer(sizeof(FontCBuffer));
+
+	D3D11_BUFFER_DESC bufDesc;
+	
+	bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bufDesc.MiscFlags = 0;
+	bufDesc.Usage = D3D11_USAGE_DYNAMIC;
+	bufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+	bufDesc.ByteWidth = 2+FONT_MAX_CHARS*4*sizeof(uint32_t);
+	
+	hr = m_pDevice->CreateBuffer(&bufDesc, NULL, &m_Font.CharBuffer);
+
+	if(FAILED(hr))
+		RDCERR("Failed to create m_Font.CharBuffer %08x", hr);
+	
+	string fullhlsl = "";
 	{
-		HRESULT hr = S_OK;
+		string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
+		string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
 
-		m_Font.CBuffer = MakeCBuffer(sizeof(FontCBuffer));
-
-		D3D11_BUFFER_DESC bufDesc;
-		
-		bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufDesc.MiscFlags = 0;
-		bufDesc.Usage = D3D11_USAGE_DYNAMIC;
-		bufDesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bufDesc.ByteWidth = 2+FONT_MAX_CHARS*4*4;
-		
-		hr = m_pDevice->CreateBuffer(&bufDesc, NULL, &m_Font.CharBuffer);
-
-		if(FAILED(hr))
-			RDCERR("Failed to create m_Font.CharBuffer %08x", hr);
-		
-		string fullhlsl = "";
-		{
-			string textShaderHLSL = GetEmbeddedResource(debugtext_hlsl);
-			string debugShaderCBuf = GetEmbeddedResource(debugcbuffers_h);
-
-			fullhlsl = debugShaderCBuf + textShaderHLSL;
-		}
-
-		D3D11_INPUT_ELEMENT_DESC inputDescs[2];
-
-		inputDescs[0].SemanticName = "POSITION";
-		inputDescs[0].SemanticIndex = 0;
-		inputDescs[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
-		inputDescs[0].InputSlot = 0;
-		inputDescs[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-		inputDescs[0].AlignedByteOffset = 0;
-		inputDescs[0].InstanceDataStepRate = 0;
-
-		inputDescs[1].SemanticName = "TEXCOORD";
-		inputDescs[1].SemanticIndex = 0;
-		inputDescs[1].Format = DXGI_FORMAT_R32_UINT;
-		inputDescs[1].InputSlot = 1;
-		inputDescs[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-		inputDescs[1].AlignedByteOffset = 0;
-		inputDescs[1].InstanceDataStepRate = 0;
-		
-		m_Font.VS = MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0", 2, inputDescs, &m_Font.Layout);
-		m_Font.PS = MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
+		fullhlsl = debugShaderCBuf + textShaderHLSL;
 	}
+
+	D3D11_INPUT_ELEMENT_DESC inputDescs[2];
+
+	inputDescs[0].SemanticName = "POSITION";
+	inputDescs[0].SemanticIndex = 0;
+	inputDescs[0].Format = DXGI_FORMAT_R32G32B32_FLOAT;
+	inputDescs[0].InputSlot = 0;
+	inputDescs[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	inputDescs[0].AlignedByteOffset = 0;
+	inputDescs[0].InstanceDataStepRate = 0;
+
+	inputDescs[1].SemanticName = "GLYPHIDX";
+	inputDescs[1].SemanticIndex = 0;
+	inputDescs[1].Format = DXGI_FORMAT_R32_UINT;
+	inputDescs[1].InputSlot = 1;
+	inputDescs[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	inputDescs[1].AlignedByteOffset = 0;
+	inputDescs[1].InstanceDataStepRate = 0;
+	
+	m_Font.VS = MakeVShader(fullhlsl.c_str(), "RENDERDOC_TextVS", "vs_4_0", 2, inputDescs, &m_Font.Layout);
+	m_Font.PS = MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
 
 	return true;
 }
@@ -3210,7 +3162,7 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(Reso
 	return details;
 }
 
-void D3D11DebugManager::RenderText(float x, float y, float size, const char *textfmt, ...)
+void D3D11DebugManager::RenderText(float x, float y, const char *textfmt, ...)
 {
 	static char tmpBuf[4096];
 
@@ -3220,18 +3172,16 @@ void D3D11DebugManager::RenderText(float x, float y, float size, const char *tex
 	tmpBuf[4095] = '\0';
 	va_end(args);
 
-	// normalize size to 720 (and scale respectively)
-	// invert y co-ordinates for convenience
-	RenderTextInternal(x, -y, size*(720.0f/float(GetHeight())), tmpBuf);
+	RenderTextInternal(x, y, tmpBuf);
 }
 
-void D3D11DebugManager::RenderTextInternal(float x, float y, float size, const char *text)
+void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
 {
 	if(char *t = strchr((char *)text, '\n'))
 	{
 		*t = 0;
-		RenderTextInternal(x, y, size, text);
-		RenderTextInternal(x, y-18.0f, size, t+1);
+		RenderTextInternal(x, y, text);
+		RenderTextInternal(x, y+1.0f, t+1);
 		*t = '\n';
 		return;
 	}
@@ -3243,18 +3193,17 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, float size, const c
 
 	FontCBuffer data;
 
-	data.TextPosition.x = x*(2.0f/float(GetWidth()));
-	data.TextPosition.y = y*(2.0f/float(GetHeight()));
+	data.TextPosition.x = x;
+	data.TextPosition.y = y;
 
-	data.FontScreenAspect.x = (float(GetHeight())/float(GetWidth()))*0.5f; // 0.5 = character width / character height
-	data.FontScreenAspect.y = 1.0f;
+	data.FontScreenAspect.x = 1.0f/float(GetWidth());
+	data.FontScreenAspect.y = 1.0f/float(GetHeight());
 
-	data.CharacterSize.x = 0.5f*(float(FONT_TEX_HEIGHT)/float(FONT_TEX_WIDTH));
-	data.CharacterSize.y = 1.0f;
+	data.TextSize = m_Font.CharSize;
+	data.FontScreenAspect.x *= m_Font.CharAspect;
 
-	data.TextSize = size*0.05f; // default arbitrary font size
-
-	data.CharacterOffsetX = 0.75f*(float(FONT_TEX_HEIGHT)/float(FONT_TEX_WIDTH));
+	data.CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
+	data.CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
 
 	D3D11_MAPPED_SUBRESOURCE mapped;
 
@@ -3291,6 +3240,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, float size, const c
 
 		m_pImmediateContext->VSSetShader(m_Font.VS, NULL, 0);
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_Font.CBuffer);
+		m_pImmediateContext->VSSetConstantBuffers(1, 1, &m_Font.GlyphData);
 
 		m_pImmediateContext->HSSetShader(NULL, NULL, 0);
 		m_pImmediateContext->DSSetShader(NULL, NULL, 0);

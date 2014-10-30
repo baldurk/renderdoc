@@ -2776,7 +2776,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 					default: break;
 				}
 
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
+				GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
 
 				GetDebugManager()->SetOutputDimensions(w, h);
 			}
@@ -2961,15 +2961,19 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
 				}
 
-				if(!overlayText.empty())
-					GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, overlayText.c_str());
+				float y=0.0f;
 
-				size_t i=0;
+				if(!overlayText.empty())
+				{
+					GetDebugManager()->RenderText(0.0f, y, overlayText.c_str());	y += 1.0f;
+				}
 
 				if(overlay & eOverlay_CaptureList)
 				{
-					for(i=0; i < m_FrameRecord.size(); i++)
-						GetDebugManager()->RenderText(0.0f, (float)(i+1)*18.0f, 1.0f, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					{
+						GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);	y += 1.0f;
+					}
 				}
 
 				if(m_FailedFrame > 0)
@@ -2982,12 +2986,12 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 					default: break;
 					}
 
-					GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "Failed capture at frame %d:\n", m_FailedFrame);
-					GetDebugManager()->RenderText(0.0f, (float)(++i)*18.0f, 1.0f, "    %hs\n", reasonString);
+					GetDebugManager()->RenderText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);	y += 1.0f;
+					GetDebugManager()->RenderText(0.0f, y, "    %hs\n", reasonString);	y += 1.0f;
 				}
 
 #if !defined(RELEASE)
-				GetDebugManager()->RenderText(0.0f, float(++i)*18.0f, 1.0f, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				GetDebugManager()->RenderText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);	y += 1.0f;
 #endif
 			}
 			else
@@ -3009,7 +3013,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 				if(!keys.empty())
 					str += " to cycle between swapchains";
 
-				GetDebugManager()->RenderText(0.0f, 0.0f, 1.0f, str.c_str());
+				GetDebugManager()->RenderText(0.0f, 0.0f, str.c_str());
 			}
 
 			GetDebugManager()->SetOutputDimensions(w, h);

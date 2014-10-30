@@ -117,6 +117,8 @@ RESOURCE_generic_vert      TYPE_EMBED   "glsl/generic.vert"
 RESOURCE_generic_frag      TYPE_EMBED   "glsl/generic.frag"
 RESOURCE_mesh_vert         TYPE_EMBED   "glsl/mesh.vert"
 
+RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
+
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
 //

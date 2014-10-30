@@ -45,7 +45,7 @@
 cbuffer FontCBuffer REG(b0)
 {
 	float2 TextPosition;
-	float CharacterOffsetX;
+	float txtpadding;
 	float TextSize;
 
 	float2 CharacterSize;

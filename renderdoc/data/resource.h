@@ -19,6 +19,8 @@
 #define RESOURCE_generic_frag       206
 #define RESOURCE_mesh_vert          207
 
+#define RESOURCE_sourcecodepro_ttf  301
+
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a
 #define STRINGIZE(a) STRINGIZE2(a)

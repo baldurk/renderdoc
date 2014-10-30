@@ -297,6 +297,9 @@
     <ClInclude Include="3rdparty\stb\stb_image_write.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_truetype.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

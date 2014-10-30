@@ -25,40 +25,55 @@
 // text shader, used for the overlay in game so that we can pass indices in the positon stream
 // and it figures out the right place in the text texture to sample.
 
-struct a2v
+struct glyph
 {
-	float3 pos : POSITION;
-	uint tex : TEXCOORD0;
+	float4 posdata;
+	float4 uvdata;
+};
+
+cbuffer glyphdata : register(b1)
+{
+	glyph glyphs[127-32];
 };
 
 struct v2f
 {
-	float4 pos : SV_POSITION;
-	float4 tex : TEXCOORD0;
+	float4 pos : SV_Position;
+	float4 tex : TEX;
+	float2 glyphuv : GLYPH;
 };
 
-v2f RENDERDOC_TextVS(a2v IN)
+v2f RENDERDOC_TextVS(float3 pos : POSITION, uint tex : GLYPHIDX)
 {
 	v2f OUT = (v2f)0;
 
-	OUT.pos = float4((float2(IN.pos.z,0) + IN.pos.xy)*TextSize*FontScreenAspect.xy + TextPosition.xy, 0, 1)-float4(1,-1,0,0);
-		OUT.tex.xy = (IN.pos.xy+float2(0,1))*CharacterSize.xy + float2((IN.tex.x-1)*CharacterOffsetX, 0);
-
-	if(IN.tex.x == 0)
-		OUT.tex.xy = 0;
+	float2 charPos = float2(pos.z + pos.x + TextPosition.x, -pos.y - TextPosition.y);
+	glyph G = glyphs[tex];
+	
+	OUT.pos = float4(charPos.xy*2.0f*TextSize*FontScreenAspect.xy + float2(-1, 1), 1, 1);
+	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+	OUT.tex = G.uvdata * CharacterSize.xyxy;
+	
 	return OUT;
 }
 
 SamplerState pointSample : register(s0);
 SamplerState linearSample : register(s1);
 
-Texture2D debugTexture : register(t0);
+Texture2D fontTexture : register(t0);
 
 float4 RENDERDOC_TextPS(v2f IN) : SV_Target0
 {
-	IN.tex.y = 1 - IN.tex.y;
+	float text = 0;
 
-	float4 text = debugTexture.Sample(linearSample, IN.tex.xy).xxxx;
+	if(IN.glyphuv.x >= 0.0f && IN.glyphuv.x <= 1.0f && 
+	   IN.glyphuv.y >= 0.0f && IN.glyphuv.y <= 1.0f)
+	{
+		float2 uv;
+		uv.x = lerp(IN.tex.x, IN.tex.z, IN.glyphuv.x);
+		uv.y = lerp(IN.tex.y, IN.tex.w, IN.glyphuv.y);
+		text = fontTexture.Sample(linearSample, uv.xy).x;
+	}
 
-	return text + float4(0.0.xxx, 0.5);
+	return float4(text.xxx, saturate(text + 0.5f));
 }
