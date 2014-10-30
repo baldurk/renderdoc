@@ -105,6 +105,14 @@
   
   <listItem><para>
   <externalLink>
+<linkText>Source Code Pro</linkText>
+<linkAlternateText>Font used for the in-program overlay.</linkAlternateText>
+<linkUri>https://github.com/adobe-fonts/source-code-pro</linkUri>
+</externalLink>
+  </para></listItem>
+  
+  <listItem><para>
+  <externalLink>
 <linkText>IronPython</linkText>
 <linkAlternateText>Used for the Python shell/integration in the UI.</linkAlternateText>
 <linkUri>http://ironpython.net/</linkUri>

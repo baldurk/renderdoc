@@ -69,6 +69,10 @@ RenderDoc also uses several external libraries and components which include thei
 - [stb](https://github.com/nothings/stb)
   released to the Public Domain by Sean Barrett
 
+- [Source Code Pro](https://github.com/adobe-fonts/source-code-pro)
+  distributed under the SIL Open Font License 1.1.
+  Copyright 2010, 2012 Adobe Systems Incorporated.
+
 - [IronPython](http://ironpython.net/)
   distributed under the Apache 2.0 license.
   Copyright IronPython Team
