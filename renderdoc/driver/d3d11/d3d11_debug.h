@@ -108,6 +108,7 @@ class D3D11DebugManager
 		void FlipOutputWindow(uint64_t id);
 
 		void SetOutputDimensions(int w, int h) { m_width = w; m_height = h; }
+		void SetOutputWindow(HWND w);
 		int GetWidth() { return m_width; }
 		int GetHeight() { return m_height; }
 		
@@ -252,6 +253,7 @@ class D3D11DebugManager
 		CacheElem &GetCachedElem(ResourceId id, bool raw);
 
 		int m_width, m_height;
+		float m_supersamplingX, m_supersamplingY;
 
 		WrappedID3D11Device *m_WrappedDevice;
 		WrappedID3D11DeviceContext *m_WrappedContext;

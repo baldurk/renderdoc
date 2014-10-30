@@ -2349,8 +2349,6 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 	if(m_SwapChain == NULL)
 	{
 		m_SwapChain = swap;
-
-		GetDebugManager()->SetOutputDimensions(desc.Width, desc.Height);
 	}
 }
 
@@ -2767,6 +2765,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 				DXGI_SWAP_CHAIN_DESC swapDesc = {0};
 				swap->GetDesc(&swapDesc);
 				GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+				GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
 				const char *reasonString = "Unknown reason";
 				switch(reason)
@@ -2777,8 +2776,6 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 				}
 
 				GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
-
-				GetDebugManager()->SetOutputDimensions(w, h);
 			}
 
 			old.ApplyState(m_pImmediateContext);
@@ -2931,6 +2928,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			DXGI_SWAP_CHAIN_DESC swapDesc = {0};
 			swap->GetDesc(&swapDesc);
 			GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+			GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
 			if(swap == m_SwapChain)
 			{
@@ -3016,8 +3014,6 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 				GetDebugManager()->RenderText(0.0f, 0.0f, str.c_str());
 			}
 
-			GetDebugManager()->SetOutputDimensions(w, h);
-
 			old.ApplyState(m_pImmediateContext);
 		}
 
@@ -3045,6 +3041,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			DXGI_SWAP_CHAIN_DESC swapDesc = {0};
 			m_SwapChain->GetDesc(&swapDesc);
 			GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
+			GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 		}
 	}
 

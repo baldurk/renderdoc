@@ -106,6 +106,9 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 
 	m_OutputWindowID = 1;
 
+	m_supersamplingX = 1.0f;
+	m_supersamplingY = 1.0f;
+
 	m_WrappedDevice = wrapper;
 	ID3D11DeviceContext *ctx = NULL;
 	m_WrappedDevice->GetImmediateContext(&ctx);
@@ -1626,6 +1629,13 @@ bool D3D11DebugManager::InitFontRendering()
 	m_Font.PS = MakePShader(fullhlsl.c_str(), "RENDERDOC_TextPS", "ps_4_0");
 
 	return true;
+}
+
+void D3D11DebugManager::SetOutputWindow(HWND w)
+{
+	RECT rect;GetClientRect(w, &rect);
+	m_supersamplingX = float(m_width)/float(rect.right-rect.left);
+	m_supersamplingY = float(m_height)/float(rect.bottom-rect.top);
 }
 
 void D3D11DebugManager::OutputWindow::MakeRTV()
@@ -3201,6 +3211,9 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
 
 	data.TextSize = m_Font.CharSize;
 	data.FontScreenAspect.x *= m_Font.CharAspect;
+	
+	data.FontScreenAspect.x *= m_supersamplingX;
+	data.FontScreenAspect.y *= m_supersamplingY;
 
 	data.CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
 	data.CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
