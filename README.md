@@ -12,6 +12,17 @@ Quick Links:
 * **IRC channel**: #renderdoc on freenode
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 
+API Support
+--------------
+
+|                | Status                            | Windows                  | Linux                           |
+| -------------- | --------------------------------- | ------------------------ | ------------------------------- |
+| D3D11          | Well supported, all features.     | :heavy_check_mark:       | :heavy_multiplication_x:        |
+| OpenGL 3.1+    | *Work in progress, not complete.* | :heavy_check_mark:       | :heavy_check_mark: No native UI |
+| OpenGL Pre-3.1 | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D10          | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D9           | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+
 Downloads
 --------------
 
