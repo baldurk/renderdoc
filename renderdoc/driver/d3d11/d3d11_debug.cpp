@@ -3310,6 +3310,11 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 	pixelData.RangeMinimum = cfg.rangemin;
 	pixelData.InverseRangeSize = 1.0f/(cfg.rangemax-cfg.rangemin);
 
+	if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
+	{
+		pixelData.InverseRangeSize = FLT_MAX;
+	}
+
 	pixelData.WireframeColour.x = cfg.HDRMul;
 
 	pixelData.RawOutput = cfg.rawoutput ? 1 : 0;
