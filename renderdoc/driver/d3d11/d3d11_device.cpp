@@ -2392,6 +2392,7 @@ void WrappedID3D11Device::StartFrameCapture(void *wnd)
 
 	FetchFrameRecord record;
 	record.frameInfo.frameNumber = m_FrameCounter+1;
+	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
 	m_FrameRecord.push_back(record);
 
 	GetResourceManager()->ClearReferencedResources();
@@ -2963,14 +2964,23 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 				if(!overlayText.empty())
 				{
-					GetDebugManager()->RenderText(0.0f, y, overlayText.c_str());	y += 1.0f;
+					GetDebugManager()->RenderText(0.0f, y, overlayText.c_str());
+					y += 1.0f;
 				}
 
 				if(overlay & eOverlay_CaptureList)
 				{
+					GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					y += 1.0f;
+
+					uint64_t now = Timing::GetUnixTimestamp();
 					for(size_t i=0; i < m_FrameRecord.size(); i++)
 					{
-						GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);	y += 1.0f;
+						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						{
+							GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							y += 1.0f;
+						}
 					}
 				}
 
@@ -2984,12 +2994,15 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 					default: break;
 					}
 
-					GetDebugManager()->RenderText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);	y += 1.0f;
-					GetDebugManager()->RenderText(0.0f, y, "    %hs\n", reasonString);	y += 1.0f;
+					GetDebugManager()->RenderText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);
+					y += 1.0f;
+					GetDebugManager()->RenderText(0.0f, y, "    %hs\n", reasonString);
+					y += 1.0f;
 				}
 
 #if !defined(RELEASE)
-				GetDebugManager()->RenderText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);	y += 1.0f;
+				GetDebugManager()->RenderText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				y += 1.0f;
 #endif
 			}
 			else
