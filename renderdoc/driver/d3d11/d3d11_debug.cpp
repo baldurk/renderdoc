@@ -1493,7 +1493,7 @@ bool D3D11DebugManager::InitFontRendering()
 		bufDesc.CPUAccessFlags = 0;
 		bufDesc.MiscFlags = 0;
 		
-		hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_DebugRender.PosBuffer);
+		hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_Font.PosBuffer);
 
 		if(FAILED(hr))
 		{
@@ -3241,7 +3241,7 @@ void D3D11DebugManager::RenderTextInternal(float x, float y, const char *text)
 	}
 	m_pImmediateContext->Unmap(m_Font.CharBuffer, 0);
 
-	ID3D11Buffer *bufs[2] = { m_DebugRender.PosBuffer, m_Font.CharBuffer };
+	ID3D11Buffer *bufs[2] = { m_Font.PosBuffer, m_Font.CharBuffer };
 	UINT strides[2] = { 3*sizeof(float), sizeof(long) };
 	UINT offsets[2] = { 0, 0 };
 
@@ -3477,7 +3477,6 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 	pixelData.MipLevel = (float)cfg.mip;
 
-	ID3D11Buffer *bufs[2] = { m_DebugRender.PosBuffer, m_Font.CharBuffer };
 	UINT stride = 3*sizeof(float);
 	UINT offset = 0;
 	
@@ -3546,9 +3545,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 	// can't just clear state because we need to keep things like render targets.
 	{
-		m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		m_pImmediateContext->IASetVertexBuffers(0, 1, &m_DebugRender.PosBuffer, &stride, &offset);
 
 		m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
@@ -3687,9 +3684,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	// can't just clear state because we need to keep things like render targets.
 	{
-		m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-		m_pImmediateContext->IASetVertexBuffers(0, 1, &m_DebugRender.PosBuffer, &stride, &offset);
 
 		m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);

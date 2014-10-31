@@ -25,11 +25,6 @@
 // this file provides a couple of functions that, given the basic type, will go and
 // figure out which resource to sample from and load from it then return the value
 
-struct a2v
-{
-	float3 pos : POSITION;
-};
-
 struct v2f
 {
 	float4 pos : SV_Position;

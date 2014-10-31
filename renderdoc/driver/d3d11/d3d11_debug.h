@@ -362,6 +362,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(Tex);
 				SAFE_RELEASE(CBuffer);
 				SAFE_RELEASE(GlyphData);
+				SAFE_RELEASE(PosBuffer);
 				SAFE_RELEASE(CharBuffer);
 				SAFE_RELEASE(VS);
 				SAFE_RELEASE(PS);
@@ -371,7 +372,7 @@ class D3D11DebugManager
 			ID3D11ShaderResourceView *Tex;
 			ID3D11Buffer *CBuffer;
 			ID3D11Buffer *GlyphData;
-			ID3D11Buffer *CharBuffer;
+			ID3D11Buffer *PosBuffer, *CharBuffer;
 			ID3D11VertexShader *VS;
 			ID3D11PixelShader *PS;
 
@@ -386,7 +387,6 @@ class D3D11DebugManager
 			{
 				SAFE_RELEASE(StageBuffer);
 
-				SAFE_RELEASE(PosBuffer);
 				SAFE_RELEASE(OutlineStripVB);
 				SAFE_RELEASE(RastState);
 				SAFE_RELEASE(BlendState);
@@ -471,7 +471,7 @@ class D3D11DebugManager
 
 			ID3D11Buffer *StageBuffer;
 
-			ID3D11Buffer *PosBuffer, *OutlineStripVB;
+			ID3D11Buffer *OutlineStripVB;
 			ID3D11RasterizerState *RastState;
 			ID3D11SamplerState *PointSampState, *LinearSampState;
 			ID3D11BlendState *BlendState, *NopBlendState;

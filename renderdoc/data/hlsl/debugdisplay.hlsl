@@ -24,11 +24,21 @@
 
 
 
-v2f RENDERDOC_DebugVS(a2v IN)
+v2f RENDERDOC_DebugVS(uint vertID : SV_VertexID)
 {
 	v2f OUT = (v2f)0;
-	OUT.pos = float4(Position.xy + (float2(IN.pos.z,0) + IN.pos.xy*TextureResolution.xy)*Scale*ScreenAspect.xy, 0, 1)-float4(1.0,-1.0,0,0);
-	OUT.tex.xy = float2(IN.pos.x, -IN.pos.y);
+
+	float2 positions[] = {
+		float2(0.0f,  0.0f),
+		float2(0.0f, -1.0f),
+		float2(1.0f,  0.0f),
+		float2(1.0f, -1.0f),
+	};
+
+	float2 pos = positions[vertID];
+
+	OUT.pos = float4(Position.xy + pos.xy*TextureResolution.xy*Scale*ScreenAspect.xy, 0, 1)-float4(1.0,-1.0,0,0);
+	OUT.tex.xy = float2(pos.x, -pos.y);
 	return OUT;
 }
 
