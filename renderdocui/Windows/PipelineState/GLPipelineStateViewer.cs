@@ -118,8 +118,7 @@ namespace renderdocui.Windows.PipelineState
             multisampleEnable.Image = tick;
 
             depthClip.Image = tick;
-            depthBias.Text = "0";
-            depthBiasClamp.Text = "0.0";
+            depthBias.Text = "0.0";
             slopeScaledBias.Text = "0.0";
 
             viewports.Nodes.Clear();
@@ -613,13 +612,62 @@ namespace renderdocui.Windows.PipelineState
 
             viewports.BeginUpdate();
             viewports.Nodes.Clear();
+            if (state.m_RS.Viewports != null)
+            {
+                int i = 0;
+                foreach (var v in state.m_RS.Viewports)
+                {
+                    if (v.Width != v.Height || v.Width != 0 || v.Height != 0 || showEmpty.Checked)
+                    {
+                        var node = viewports.Nodes.Add(new object[] { i, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth });
+
+                        if (v.Width == v.Height && v.Width == 0 && v.Height == 0)
+                            EmptyRow(node);
+                    }
+
+                    i++;
+                }
+            }
             viewports.NodesSelection.Clear();
             viewports.EndUpdate();
 
+            bool anyScissorEnable = false;
+
             scissors.BeginUpdate();
             scissors.Nodes.Clear();
+            if (state.m_RS.Scissors != null)
+            {
+                int i = 0;
+                foreach (var s in state.m_RS.Scissors)
+                {
+                    if (s.Width != 0 || s.Height != 0 || showEmpty.Checked)
+                    {
+                        var node = scissors.Nodes.Add(new object[] { i, s.Left, s.Bottom, s.Width, s.Height, s.Enabled });
+
+                        if (s.Width == 0 && s.Height == 0)
+                            EmptyRow(node);
+                    }
+
+                    if (s.Enabled)
+                        anyScissorEnable = true;
+
+                    i++;
+                }
+            }
             scissors.NodesSelection.Clear();
             scissors.EndUpdate();
+
+            fillMode.Text = state.m_RS.m_State.FillMode.ToString();
+            cullMode.Text = state.m_RS.m_State.CullMode.ToString();
+            frontCCW.Image = state.m_RS.m_State.FrontCCW ? tick : cross;
+
+            scissorEnable.Image = anyScissorEnable  ? tick : cross;
+            lineAAEnable.Image = state.m_RS.m_State.AntialiasedLineEnable ? tick : cross;
+            multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? tick : cross;
+
+            depthClip.Image = state.m_RS.m_State.DepthClamp ? cross : tick;
+            depthBias.Text = Formatter.Format(state.m_RS.m_State.DepthBias);
+            slopeScaledBias.Text = Formatter.Format(state.m_RS.m_State.SlopeScaledDepthBias);
 
             ////////////////////////////////////////////////
             // Output Merger

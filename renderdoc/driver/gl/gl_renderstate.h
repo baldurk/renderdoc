@@ -67,7 +67,7 @@ struct GLRenderState
 		eEnabled_SampleAlphaToOne,
 		eEnabled_SampleCoverage,
 		eEnabled_SampleMask,
-		eEnabled_ScissorTest,
+		//eEnabled_ScissorTest, handled below with scissor values
 		eEnabled_StencilTest,
 		eEnabled_TexCubeSeamless,
 		eEnabled_Count,
@@ -131,6 +131,7 @@ struct GLRenderState
 	struct Scissor
 	{
 		int32_t x, y, width, height;
+		bool enabled;
 	} Scissors[16];
 	
 	GLuint ReadFBO, DrawFBO;

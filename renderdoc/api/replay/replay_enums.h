@@ -346,6 +346,7 @@ enum TriangleFillMode
 {
 	eFill_Solid = 0,
 	eFill_Wireframe,
+	eFill_Point,
 };
 
 enum TriangleCullMode
@@ -353,6 +354,7 @@ enum TriangleCullMode
 	eCull_None = 0,
 	eCull_Front,
 	eCull_Back,
+	eCull_FrontAndBack,
 };
 
 enum ReplayCreateStatus
