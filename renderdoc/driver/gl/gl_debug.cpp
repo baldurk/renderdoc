@@ -79,6 +79,8 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 	return ret;
 }
 
+#include "data/glsl/debuguniforms.h"
+
 void GLReplay::InitDebugData()
 {
 	if(m_pDriver == NULL) return;
@@ -96,7 +98,8 @@ void GLReplay::InitDebugData()
 
 	DebugData.blitProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.blitfsSource.c_str());
 
-	string texfs = GetEmbeddedResource(texdisplay_frag);
+	string texfs = GetEmbeddedResource(debuguniforms_h);
+	texfs += GetEmbeddedResource(texdisplay_frag);
 
 	DebugData.texDisplayProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), texfs.c_str());
 
@@ -150,7 +153,7 @@ void GLReplay::InitDebugData()
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
 		gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-		gl.glBufferData(eGL_UNIFORM_BUFFER, Debug_UBOSize, NULL, eGL_DYNAMIC_DRAW);
+		gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(texdisplay), NULL, eGL_DYNAMIC_DRAW);
 	}
 
 	DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
@@ -220,6 +223,8 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
 {
+	FetchTexture tex = GetTexture(cfg.texid);
+
 	MakeCurrentReplayContext(m_DebugCtx);
 	
 	WrappedOpenGL &gl = *m_pDriver;
@@ -228,42 +233,102 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	auto &texDetails = m_pDriver->m_Textures[cfg.texid];
 
-	gl.glActiveTexture(eGL_TEXTURE0);
-	gl.glBindTexture(eGL_TEXTURE_2D, texDetails.resource.name);
+	int resType;
+	switch (texDetails.curType)
+	{
+	case eGL_TEXTURE_1D:
+		resType = RESTYPE_TEX1D;
+		break;
+	default:
+		RDCWARN("Unexpected texture type");
+	case eGL_TEXTURE_2D:
+		resType = RESTYPE_TEX2D;
+		break;
+	case eGL_TEXTURE_3D:
+		resType = RESTYPE_TEX3D;
+		break;
+	case eGL_TEXTURE_CUBE_MAP:
+		resType = RESTYPE_TEXCUBE;
+		break;
+	case eGL_TEXTURE_1D_ARRAY:
+		resType = RESTYPE_TEX1DARRAY;
+		break;
+	case eGL_TEXTURE_2D_ARRAY:
+		resType = RESTYPE_TEX2DARRAY;
+		break;
+	case eGL_TEXTURE_CUBE_MAP_ARRAY:
+		resType = RESTYPE_TEXCUBEARRAY;
+		break;
+	}
 
-	if(cfg.mip == 0 && cfg.scale < 1.0f)
-		gl.glBindSampler(0, DebugData.linearSampler);
+	RDCGLenum dsTexMode = eGL_NONE;
+	if (tex.creationFlags & eTextureCreate_DSV)
+	{
+		if (cfg.Green)
+		{
+			dsTexMode = eGL_STENCIL_INDEX;
+
+			// Stencil texture sampling is not normalized in OpenGL
+			resType |= TEXDISPLAY_UINT_TEX;
+			float rangeScale;
+			switch (tex.format.rawType)
+			{
+			case eGL_STENCIL_INDEX1:
+				rangeScale = 1.0f;
+				break;
+			case eGL_STENCIL_INDEX4:
+				rangeScale = 16.0f;
+				break;
+			default:
+				RDCWARN("Unexpected raw format for stencil visualization");
+			case eGL_DEPTH24_STENCIL8:
+			case eGL_DEPTH32F_STENCIL8:
+			case eGL_STENCIL_INDEX8:
+				rangeScale = 256.0f;
+				break;
+			case eGL_STENCIL_INDEX16:
+				rangeScale = 65536.0f;
+				break;
+			}
+			cfg.rangemin *= rangeScale;
+			cfg.rangemax *= rangeScale;
+		}
+		else
+			dsTexMode = eGL_DEPTH_COMPONENT;
+	}
 	else
-		gl.glBindSampler(0, DebugData.pointSampler);
+	{
+		switch (tex.format.compType)
+		{
+		case eCompType_UInt:
+			resType |= TEXDISPLAY_UINT_TEX;
+			break;
+		case eCompType_SNorm:
+			resType |= TEXDISPLAY_SINT_TEX;
+			break;
+		}
+	}
 	
+	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
+	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+
+	GLint origDSTexMode = eGL_DEPTH_COMPONENT;
+	if (dsTexMode != eGL_NONE)
+	{
+		gl.glGetTexParameteriv(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+		gl.glTexParameteri(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+	}
+
+	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE)
+		gl.glBindSampler(resType, DebugData.linearSampler);
+	else
+		gl.glBindSampler(resType, DebugData.pointSampler);
+
 	GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
 
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 
-	struct uboData
-	{
-		Vec2f   Position;
-		float   Scale;
-		float   HDRMul;
-
-		Vec4f   Channels;
-
-		float   RangeMinimum;
-		float   InverseRangeSize;
-		float   MipLevel;
-		int32_t FlipY;
-		
-		Vec3f   TextureResolutionPS;
-		int32_t OutputDisplayFormat;
-		
-		Vec2f   OutputRes;
-		int32_t RawOutput;
-		float   Slice;
-	};
-
-	uboData *ubo = (uboData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uboData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-
-	RDCCOMPILE_ASSERT(sizeof(uboData) <= Debug_UBOSize, "UBO data is too big");
+	texdisplay *ubo = (texdisplay *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(texdisplay), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	
 	float x = cfg.offx;
 	float y = cfg.offy;
@@ -297,17 +362,29 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	
 	if(cfg.rangemax <= cfg.rangemin) cfg.rangemax += 0.00001f;
 
-	ubo->Channels.x = cfg.Red ? 1.0f : 0.0f;
-	ubo->Channels.y = cfg.Green ? 1.0f : 0.0f;
-	ubo->Channels.z = cfg.Blue ? 1.0f : 0.0f;
-	ubo->Channels.w = cfg.Alpha ? 1.0f : 0.0f;
+	if (dsTexMode == eGL_NONE)
+	{
+		ubo->Channels.x = cfg.Red ? 1.0f : 0.0f;
+		ubo->Channels.y = cfg.Green ? 1.0f : 0.0f;
+		ubo->Channels.z = cfg.Blue ? 1.0f : 0.0f;
+		ubo->Channels.w = cfg.Alpha ? 1.0f : 0.0f;
+	}
+	else
+	{
+		// Both depth and stencil texture mode use the red channel
+		ubo->Channels.x = 1.0f;
+		ubo->Channels.y = 0.0f;
+		ubo->Channels.z = 0.0f;
+		ubo->Channels.w = 0.0f;
+	}
 
 	ubo->RangeMinimum = cfg.rangemin;
 	ubo->InverseRangeSize = 1.0f/(cfg.rangemax-cfg.rangemin);
 	
 	ubo->MipLevel = (float)cfg.mip;
+	ubo->Slice = (float)cfg.sliceFace;
 
-	ubo->OutputDisplayFormat = 0x2; // 2d. Unused for now
+	ubo->OutputDisplayFormat = resType;
 
 	ubo->RawOutput = cfg.rawoutput ? 1 : 0;
 
@@ -334,6 +411,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 	
 	gl.glBindSampler(0, 0);
+
+	if (dsTexMode != eGL_NONE)
+		gl.glTexParameteri(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
 	return true;
 }

@@ -205,8 +205,6 @@ class GLReplay : public IReplayDriver
 
 			GLuint emptyVAO;
 		} DebugData;
-		
-		static const size_t Debug_UBOSize = 64 * sizeof(Vec4f);
 
 		void InitDebugData();
 		

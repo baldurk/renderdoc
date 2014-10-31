@@ -248,6 +248,7 @@
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="core\socket_helpers.h" />
+    <ClInclude Include="data\glsl\debuguniforms.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\version.h" />
