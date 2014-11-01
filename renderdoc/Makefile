@@ -56,7 +56,8 @@ os/linux/linux_process.o \
 os/linux/linux_stringio.o \
 os/linux/linux_threading.o \
 hooks/linux_libentry.o
-DATA=data/glsl/blit.frago \
+DATA=data/glsl/debuguniforms.ho \
+data/glsl/blit.frago \
 data/glsl/blit.verto \
 data/glsl/texdisplay.frago \
 data/glsl/checkerboard.frago \
@@ -93,6 +94,11 @@ $(OBJDIR)/%.frago: %.frag
 	@mv $$(dirname $<)/$$(basename $@) $@
 
 $(OBJDIR)/%.ttfo: %.ttf
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
+
+$(OBJDIR)/%.ho: %.h
 	@mkdir -p $$(dirname $@)
 	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
 	@mv $$(dirname $<)/$$(basename $@) $@

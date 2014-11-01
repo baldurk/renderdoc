@@ -28,6 +28,7 @@
 	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
 	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
 
+DECLARE_EMBED(debuguniforms_h);
 DECLARE_EMBED(blit_vert);
 DECLARE_EMBED(blit_frag);
 DECLARE_EMBED(texdisplay_frag);

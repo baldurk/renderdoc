@@ -273,22 +273,22 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			float rangeScale;
 			switch (tex.format.rawType)
 			{
-			case eGL_STENCIL_INDEX1:
-				rangeScale = 1.0f;
-				break;
-			case eGL_STENCIL_INDEX4:
-				rangeScale = 16.0f;
-				break;
-			default:
-				RDCWARN("Unexpected raw format for stencil visualization");
-			case eGL_DEPTH24_STENCIL8:
-			case eGL_DEPTH32F_STENCIL8:
-			case eGL_STENCIL_INDEX8:
-				rangeScale = 256.0f;
-				break;
-			case eGL_STENCIL_INDEX16:
-				rangeScale = 65536.0f;
-				break;
+				case eGL_STENCIL_INDEX1:
+					rangeScale = 1.0f;
+					break;
+				case eGL_STENCIL_INDEX4:
+					rangeScale = 16.0f;
+					break;
+				default:
+					RDCWARN("Unexpected raw format for stencil visualization");
+				case eGL_DEPTH24_STENCIL8:
+				case eGL_DEPTH32F_STENCIL8:
+				case eGL_STENCIL_INDEX8:
+					rangeScale = 256.0f;
+					break;
+				case eGL_STENCIL_INDEX16:
+					rangeScale = 65536.0f;
+					break;
 			}
 			cfg.rangemin *= rangeScale;
 			cfg.rangemax *= rangeScale;
@@ -300,12 +300,14 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	{
 		switch (tex.format.compType)
 		{
-		case eCompType_UInt:
-			resType |= TEXDISPLAY_UINT_TEX;
-			break;
-		case eCompType_SNorm:
-			resType |= TEXDISPLAY_SINT_TEX;
-			break;
+			case eCompType_UInt:
+				resType |= TEXDISPLAY_UINT_TEX;
+				break;
+			case eCompType_SNorm:
+				resType |= TEXDISPLAY_SINT_TEX;
+				break;
+			default:
+				break;
 		}
 	}
 	
