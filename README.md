@@ -15,13 +15,19 @@ Quick Links:
 API Support
 --------------
 
-|                | Status                            | Windows                  | Linux                           |
-| -------------- | --------------------------------- | ------------------------ | ------------------------------- |
-| D3D11          | Well supported, all features.     | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL 3.1+    | *Work in progress, not complete.* | :heavy_check_mark:       | :heavy_check_mark: No native UI |
-| OpenGL Pre-3.1 | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D10          | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D9           | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+|                  | Status                            | Windows                  | Linux                           |
+| ---------------- | --------------------------------- | ------------------------ | ------------------------------- |
+| D3D11            | Well supported, all features.     | :heavy_check_mark:       | :heavy_multiplication_x:        |
+| OpenGL 3.2 core+ | *Work in progress, not complete.* | :heavy_check_mark:       | :heavy_check_mark: No native UI |
+| OpenGL Pre-3.2   | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D10            | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D9             | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+
+* D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge.
+* OpenGL currently is only aiming for support of the 3.2 Core profile and above (up to 4.5) - this means no compatibility features will be deliberately supported.
+* Currently only some entry points and functionality is supported on OpenGL, improving this to match D3D11 and support the full OpenGL API is on-going. Only Core and ARB extensions will be definitely supported, other extensions like EXT and per-vendor will be supported case-by-case as desired.
+* At the moment we assume that a 4.3 or higher core profile is supported by the machine, even if the captured program only uses 3.2, and we use extensions for this assumption as relevant.
+* Linux and Windows are both supported for OpenGL, although the UI only runs on Windows currently.
 
 Downloads
 --------------
