@@ -62,6 +62,16 @@ BINDING(0) uniform texdisplay
   float Slice;
 };
 
+BINDING(0) uniform FontUniforms
+{
+	vec2  TextPosition;
+	float txtpadding;
+	float TextSize;
+
+	vec2  CharacterSize;
+	vec2  FontScreenAspect;
+};
+
 // some constants available to both C++ and GLSL for configuring display
 #define CUBEMAP_FACE_POS_X 0
 #define CUBEMAP_FACE_NEG_X 1

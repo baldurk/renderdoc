@@ -37,7 +37,7 @@
 
 #include "d3d11_renderstate.h"
 
-#include "3rdparty/stb/stb_truetype.h"
+#include "stb/stb_truetype.h"
 
 #include <d3dcompiler.h>
 

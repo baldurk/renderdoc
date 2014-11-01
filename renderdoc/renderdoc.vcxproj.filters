@@ -559,6 +559,12 @@
     <None Include="data\glsl\mesh.vert">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\text.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\text.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

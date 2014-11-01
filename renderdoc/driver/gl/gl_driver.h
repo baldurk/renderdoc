@@ -253,6 +253,37 @@ class WrappedOpenGL
 		void BeginCaptureFrame();
 		void FinishCapture();
 		void EndCaptureFrame();
+		
+		struct FontData
+		{
+			FontData()
+				: built(false), ready(false),
+				Program(0),
+				GeneralUBO(0), StringUBO(0), GlyphUBO(0),
+				GlyphTexture(0),
+				DummyVAO(0)
+			{}
+
+			bool built;
+			bool ready;
+
+			GLuint Program;
+			GLuint GeneralUBO, StringUBO, GlyphUBO;
+			GLuint GlyphTexture;
+			GLuint DummyVAO;
+
+			float CharSize;
+			float CharAspect;
+		};
+
+		map<void*, FontData> m_Fonts;
+
+		static const int FONT_TEX_WIDTH = 256;
+		static const int FONT_TEX_HEIGHT = 128;
+		static const int FONT_MAX_CHARS = 256;
+
+		void RenderOverlayText(float x, float y, const char *fmt, ...);
+		void RenderOverlayStr(float x, float y, const char *str);
 
 		vector<string> glExts;
 		string glExtsString;

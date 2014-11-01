@@ -117,6 +117,8 @@ RESOURCE_generic_vert      TYPE_EMBED   "glsl/generic.vert"
 RESOURCE_generic_frag      TYPE_EMBED   "glsl/generic.frag"
 RESOURCE_mesh_vert         TYPE_EMBED   "glsl/mesh.vert"
 RESOURCE_debuguniforms_h   TYPE_EMBED   "glsl/debuguniforms.h"
+RESOURCE_text_vert         TYPE_EMBED   "glsl/text.vert"
+RESOURCE_text_frag         TYPE_EMBED   "glsl/text.frag"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 

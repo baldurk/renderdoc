@@ -33,6 +33,9 @@
 #include "maths/vec.h"
 
 #include "jpeg-compressor/jpge.h"
+#include "stb/stb_truetype.h"
+
+#include "data/glsl/debuguniforms.h"
 
 const char *GLChunkNames[] =
 {
@@ -500,6 +503,23 @@ void *WrappedOpenGL::GetCtx()
 
 void WrappedOpenGL::DeleteContext(void *contextHandle)
 {
+	FontData &font = m_Fonts[contextHandle];
+
+	if(font.built && font.ready)
+	{
+		if(font.Program)
+			m_Real.glDeleteProgram(font.Program);
+		if(font.GeneralUBO)
+			m_Real.glDeleteBuffers(1, &font.GeneralUBO);
+		if(font.GlyphUBO)
+			m_Real.glDeleteBuffers(1, &font.GlyphUBO);
+		if(font.StringUBO)
+			m_Real.glDeleteBuffers(1, &font.StringUBO);
+		if(font.GlyphTexture)
+			m_Real.glDeleteTextures(1, &font.GlyphTexture);
+	}
+
+	m_Fonts.erase(contextHandle);
 }
 
 void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams)
@@ -513,6 +533,139 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 	m_ActiveContexts[Threading::GetCurrentID()] = contextHandle;
 	// TODO: support multiple GL contexts more explicitly
 	Keyboard::AddInputWindow(windowHandle);
+
+	if(contextHandle)
+	{
+		FontData &font = m_Fonts[contextHandle];
+
+		if(!font.built)
+		{
+			font.built = true;
+
+			const GLHookSet &gl = m_Real;
+
+			if(gl.glGenTextures && gl.glTextureStorage2DEXT && gl.glTextureSubImage2DEXT &&
+				gl.glGenVertexArrays && gl.glBindVertexArray &&
+				gl.glGenBuffers && gl.glNamedBufferStorageEXT &&
+				gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
+				gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
+			{
+				gl.glGenTextures(1, &font.GlyphTexture);
+				gl.glTextureStorage2DEXT(font.GlyphTexture, eGL_TEXTURE_2D, 1, eGL_R8, FONT_TEX_WIDTH, FONT_TEX_HEIGHT);
+
+				GLuint curvao = 0;
+				gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
+
+				gl.glGenVertexArrays(1, &font.DummyVAO);
+				gl.glBindVertexArray(font.DummyVAO);
+
+				string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
+				byte *ttfdata = (byte *)ttfstring.c_str();
+
+				const int firstChar = int(' ') + 1;
+				const int lastChar = 127;
+				const int numChars = lastChar-firstChar;
+
+				byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
+
+				const float pixelHeight = 20.0f;
+
+				stbtt_bakedchar chardata[numChars];
+				int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
+
+				font.CharSize = pixelHeight;
+				font.CharAspect = chardata->xadvance / pixelHeight;
+
+				stbtt_fontinfo f = {0};
+				stbtt_InitFont(&f, ttfdata, 0);
+
+				int ascent = 0;
+				stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
+
+				float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
+
+				gl.glTextureSubImage2DEXT(font.GlyphTexture, eGL_TEXTURE_2D, 0, 0, 0, FONT_TEX_WIDTH, FONT_TEX_HEIGHT,
+					eGL_RED, eGL_UNSIGNED_BYTE, (void *)buf);
+
+				delete[] buf;
+
+				Vec4f glyphData[2*(numChars+1)];
+
+				for(int i=0; i < numChars; i++)
+				{
+					stbtt_bakedchar *b = chardata+i;
+
+					float x = b->xoff;
+					float y = b->yoff + maxheight;
+
+					glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
+					glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
+				}
+
+				gl.glGenBuffers(1, &font.GlyphUBO);
+				gl.glNamedBufferStorageEXT(font.GlyphUBO, sizeof(glyphData), glyphData, 0);
+
+				gl.glGenBuffers(1, &font.GeneralUBO);
+				gl.glNamedBufferStorageEXT(font.GeneralUBO, sizeof(FontUniforms), NULL, GL_MAP_WRITE_BIT);
+
+				gl.glGenBuffers(1, &font.StringUBO);
+				gl.glNamedBufferStorageEXT(font.StringUBO, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, GL_MAP_WRITE_BIT);
+
+				string textvs = GetEmbeddedResource(debuguniforms_h);
+				textvs += GetEmbeddedResource(text_vert);
+				string textfs = GetEmbeddedResource(text_frag);
+
+				GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
+				GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+
+				const char *src = textvs.c_str();
+				gl.glShaderSource(vs, 1, &src, NULL);
+				src = textfs.c_str();
+				gl.glShaderSource(fs, 1, &src, NULL);
+
+				gl.glCompileShader(vs);
+				gl.glCompileShader(fs);
+
+				char buffer[1024] = {0};
+				GLint status = 0;
+
+				gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
+				if(status == 0)
+				{
+					gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
+					RDCERR("Shader error: %hs", buffer);
+				}
+
+				gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
+				if(status == 0)
+				{
+					gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
+					RDCERR("Shader error: %hs", buffer);
+				}
+
+				font.Program = gl.glCreateProgram();
+
+				gl.glAttachShader(font.Program, vs);
+				gl.glAttachShader(font.Program, fs);
+
+				gl.glLinkProgram(font.Program);
+
+				gl.glGetProgramiv(font.Program, eGL_LINK_STATUS, &status);
+				if(status == 0)
+				{
+					gl.glGetProgramInfoLog(font.Program, 1024, NULL, buffer);
+					RDCERR("Link error: %hs", buffer);
+				}
+
+				gl.glDeleteShader(vs);
+				gl.glDeleteShader(fs);
+
+				font.ready = true;
+
+				gl.glBindVertexArray(curvao);
+			}
+		}
+	}
 }
 
 void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
@@ -520,6 +673,108 @@ void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
 	// TODO: support multiple window handles
 	m_InitParams.width = w;
 	m_InitParams.height = h;
+}
+
+void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
+{
+	static char tmpBuf[4096];
+
+	va_list args;
+	va_start(args, fmt);
+	StringFormat::vsnprintf( tmpBuf, 4095, fmt, args );
+	tmpBuf[4095] = '\0';
+	va_end(args);
+
+	RenderOverlayStr(x, y, tmpBuf);
+}
+
+void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
+{
+	if(char *t = strchr((char *)text, '\n'))
+	{
+		*t = 0;
+		RenderOverlayStr(x, y, text);
+		RenderOverlayStr(x, y+1.0f, t+1);
+		*t = '\n';
+		return;
+	}
+
+	if(strlen(text) == 0)
+		return;
+
+	const GLHookSet &gl = m_Real;
+	
+	RDCASSERT(strlen(text) < FONT_MAX_CHARS);
+
+	FontData &font = m_Fonts[GetCtx()];
+
+	if(!font.built || !font.ready) return;
+
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.GeneralUBO);
+
+	FontUniforms *ubo = (FontUniforms *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(FontUniforms), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	ubo->TextPosition.x = x;
+	ubo->TextPosition.y = y;
+
+	ubo->FontScreenAspect.x = 1.0f/float(m_InitParams.width);
+	ubo->FontScreenAspect.y = 1.0f/float(m_InitParams.height);
+
+	ubo->TextSize = font.CharSize;
+	ubo->FontScreenAspect.x *= font.CharAspect;
+
+	ubo->CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
+	ubo->CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
+
+	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+	size_t len = strlen(text);
+
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.StringUBO);
+	uint32_t *texs = (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len*4*sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	
+	for(size_t i=0; i < len; i++)
+	{
+		texs[i*4+0] = text[i] - ' ';
+		texs[i*4+1] = text[i] - ' ';
+		texs[i*4+2] = text[i] - ' ';
+		texs[i*4+3] = text[i] - ' ';
+	}
+
+	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+	// set blend state
+	gl.glEnable(eGL_BLEND);
+	gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
+	gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+
+	// set depth & stencil
+	gl.glDisable(eGL_DEPTH_TEST);
+	gl.glDisable(eGL_DEPTH_CLAMP);
+	gl.glDisable(eGL_STENCIL_TEST);
+	gl.glDisable(eGL_CULL_FACE);
+
+	// set viewport & scissor
+	gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+	gl.glDisablei(eGL_SCISSOR_TEST, 0);
+	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+	
+	// bind UBOs
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.GeneralUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, font.GlyphUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, font.StringUBO);
+
+	// bind empty VAO just for valid rendering
+	gl.glBindVertexArray(font.DummyVAO);
+	
+	// bind textures
+	gl.glActiveTexture(eGL_TEXTURE0);
+	gl.glBindTexture(eGL_TEXTURE_2D, font.GlyphTexture);
+	
+	// bind program
+	gl.glUseProgram(font.Program);
+
+	// draw string
+	gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);
 }
 
 void WrappedOpenGL::Present(void *windowHandle)
@@ -558,14 +813,78 @@ void WrappedOpenGL::Present(void *windowHandle)
 			m_AvgFrametime /= double(m_FrameTimes.size());
 
 			m_FrameTimes.clear();
+		}
 
-			RDCLOG("Frame: %d. F12/PrtScr to capture. %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
-				m_FrameCounter, m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
-			for(size_t i=0; i < m_FrameRecord.size(); i++)
-				RDCLOG("Captured Frame %d. Multiple frame capture not supported.\n", m_FrameRecord[i].frameInfo.frameNumber);
+		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
+
+		if((overlay & eOverlay_Enabled) && m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+		{
+			RDCLOG("Doing GL overlay");
+
+			GLRenderState old(&m_Real, m_pSerialiser, m_State);
+
+			old.FetchState();
+
+			// TODO: handle selecting active window amongst many
+			{
+				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
+
+				string overlayText = "";
+
+				for(size_t i=0; i < keys.size(); i++)
+				{
+					if(i > 0)
+						overlayText += ", ";
+
+					overlayText += ToStr::Get(keys[i]);
+				}
+
+				if(!keys.empty())
+					overlayText += " to capture.";
+
+				if(overlay & eOverlay_FrameNumber)
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("Frame: %d.", m_FrameCounter);
+				}
+				if(overlay & eOverlay_FrameRate)
+				{
+					if(!overlayText.empty()) overlayText += " ";
+					overlayText += StringFormat::Fmt("%.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+						m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+				}
+
+				float y=0.0f;
+
+				if(!overlayText.empty())
+				{
+					RenderOverlayText(0.0f, y, overlayText.c_str());
+					y += 1.0f;
+				}
+
+				if(overlay & eOverlay_CaptureList)
+				{
+					RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
+					y += 1.0f;
+
+					uint64_t now = Timing::GetUnixTimestamp();
+					for(size_t i=0; i < m_FrameRecord.size(); i++)
+					{
+						if(now - m_FrameRecord[i].frameInfo.captureTime < 20)
+						{
+							RenderOverlayText(0.0f, y, "Captured frame %d.\n", m_FrameRecord[i].frameInfo.frameNumber);
+							y += 1.0f;
+						}
+					}
+				}
+
 #if !defined(RELEASE)
-			RDCLOG("%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				RenderOverlayText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
+				y += 1.0f;
 #endif
+			}
+
+			old.ApplyState();
 		}
 	}
 
@@ -731,6 +1050,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 		FetchFrameRecord record;
 		record.frameInfo.frameNumber = m_FrameCounter+1;
+		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
 		m_FrameRecord.push_back(record);
 
 		GetResourceManager()->ClearReferencedResources();

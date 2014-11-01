@@ -303,13 +303,13 @@
     <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="core\core.cpp" />
     <ClCompile Include="core\image_viewer.cpp" />
-		<ClCompile Include="core\remote_access.cpp" />
+    <ClCompile Include="core\remote_access.cpp" />
     <ClCompile Include="core\remote_replay.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_analyse.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_common.cpp" />
-		<ClCompile Include="driver\d3d11\d3d11_context.cpp" />
+    <ClCompile Include="driver\d3d11\d3d11_context.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_context1_wrap.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_context_wrap.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_debug.cpp" />
@@ -378,6 +378,8 @@
     <None Include="data\glsl\generic.vert" />
     <None Include="data\glsl\mesh.vert" />
     <None Include="data\glsl\texdisplay.frag" />
+    <None Include="data\glsl\text.frag" />
+    <None Include="data\glsl\text.vert" />
     <None Include="data\hlsl\debugcommon.hlsl" />
     <None Include="data\hlsl\debugdisplay.hlsl" />
     <None Include="data\hlsl\debugtext.hlsl" />
