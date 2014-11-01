@@ -70,7 +70,6 @@ void GLRenderState::FetchState()
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
-			eGL_SCISSOR_TEST,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 		};
@@ -153,7 +152,10 @@ void GLRenderState::FetchState()
 		m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
+	{
 		m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
+		Scissors[i].enabled = (m_Real->glIsEnabledi(eGL_SCISSOR_TEST, i) == GL_TRUE);
+	}
 
 	m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
 	m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&ReadFBO);
@@ -256,7 +258,6 @@ void GLRenderState::ApplyState()
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
-			eGL_SCISSOR_TEST,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 		};
@@ -329,7 +330,15 @@ void GLRenderState::ApplyState()
 
 	m_Real->glViewportArrayv(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
-	m_Real->glScissorArrayv(0, ARRAY_COUNT(Scissors), &Scissors[0].x);
+	for (GLuint s = 0; s < (GLuint)ARRAY_COUNT(Scissors); ++s)
+	{
+		m_Real->glScissorIndexedv(s, &Scissors[s].x);
+	
+		if (Scissors[s].enabled)
+			m_Real->glEnablei(eGL_SCISSOR_TEST, s);
+		else
+			m_Real->glDisablei(eGL_SCISSOR_TEST, s);
+	}
 
 	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
 	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);

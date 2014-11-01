@@ -240,6 +240,9 @@
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
     </ClInclude>
+    <ClInclude Include="data\glsl\debuguniforms.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
     <ClInclude Include="driver\gl\gl_renderstate.h">
       <Filter>Drivers\OpenGL</Filter>
     </ClInclude>

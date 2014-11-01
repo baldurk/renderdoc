@@ -120,6 +120,47 @@ namespace renderdoc
         public Buffer[] UniformBuffers;
 
         [StructLayout(LayoutKind.Sequential)]
+        public class Rasterizer
+        {
+            [StructLayout(LayoutKind.Sequential)]
+            public class Viewport
+            {
+                public float Left, Bottom;
+                public float Width, Height;
+                public double MinDepth, MaxDepth;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public Viewport[] Viewports;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class Scissor
+            {
+                public Int32 Left, Bottom;
+                public Int32 Width, Height;
+                public bool Enabled;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public Scissor[] Scissors;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class RasterizerState
+            {
+                public TriangleFillMode FillMode;
+                public TriangleCullMode CullMode;
+                public bool FrontCCW;
+                public float DepthBias;
+                public float SlopeScaledDepthBias;
+                public bool DepthClamp;
+                public bool MultisampleEnable;
+                public bool AntialiasedLineEnable;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public RasterizerState m_State;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public Rasterizer m_RS;
+
+        [StructLayout(LayoutKind.Sequential)]
         public class FrameBuffer
         {
             public ResourceId FBO;

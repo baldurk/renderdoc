@@ -351,6 +351,7 @@ namespace renderdoc
     {
         Solid = 0,
         Wireframe,
+        Point
     };
 
     public enum TriangleCullMode
@@ -358,6 +359,7 @@ namespace renderdoc
         None = 0,
         Front,
         Back,
+        FrontAndBack,
     };
 
     public enum ReplayCreateStatus

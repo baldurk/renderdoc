@@ -18,6 +18,7 @@
 #define RESOURCE_generic_vert       205
 #define RESOURCE_generic_frag       206
 #define RESOURCE_mesh_vert          207
+#define RESOURCE_debuguniforms_h    208
 
 #define RESOURCE_sourcecodepro_ttf  301
 

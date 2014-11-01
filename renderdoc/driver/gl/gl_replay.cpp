@@ -1093,6 +1093,90 @@ void GLReplay::SavePipelineState()
 		}
 	}
 
+
+	// Vertex post processing and rasterization
+
+	RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Viewports) == ARRAY_COUNT(rs.DepthRanges), "GL Viewport count does not match depth ranges count");
+	create_array_uninit(pipe.m_Rasterizer.Viewports, ARRAY_COUNT(rs.Viewports));
+	for (int32_t v = 0; v < pipe.m_Rasterizer.Viewports.count; ++v)
+	{
+		pipe.m_Rasterizer.Viewports[v].Left = rs.Viewports[v].x;
+		pipe.m_Rasterizer.Viewports[v].Bottom = rs.Viewports[v].y;
+		pipe.m_Rasterizer.Viewports[v].Width = rs.Viewports[v].width;
+		pipe.m_Rasterizer.Viewports[v].Height = rs.Viewports[v].height;
+		pipe.m_Rasterizer.Viewports[v].MinDepth = rs.DepthRanges[v].nearZ;
+		pipe.m_Rasterizer.Viewports[v].MaxDepth = rs.DepthRanges[v].farZ;
+	}
+
+	create_array_uninit(pipe.m_Rasterizer.Scissors, ARRAY_COUNT(rs.Scissors));
+	for (int32_t s = 0; s < pipe.m_Rasterizer.Scissors.count; ++s)
+	{
+		pipe.m_Rasterizer.Scissors[s].Left = rs.Scissors[s].x;
+		pipe.m_Rasterizer.Scissors[s].Bottom = rs.Scissors[s].y;
+		pipe.m_Rasterizer.Scissors[s].Width = rs.Scissors[s].width;
+		pipe.m_Rasterizer.Scissors[s].Height = rs.Scissors[s].height;
+		pipe.m_Rasterizer.Scissors[s].Enabled = rs.Scissors[s].enabled;
+	}
+
+	int polygonOffsetEnableEnum;
+	switch (rs.PolygonMode)
+	{
+	default:
+		RDCWARN("Unexpected value for POLYGON_MODE");
+	case eGL_FILL:
+		pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
+		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
+		break;
+	case eGL_LINES:
+		pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
+		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
+		break;
+	case eGL_POINT:
+		pipe.m_Rasterizer.m_State.FillMode = eFill_Point;
+		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetPoint;
+		break;
+	}
+	if (rs.Enabled[polygonOffsetEnableEnum])
+	{
+		pipe.m_Rasterizer.m_State.DepthBias = rs.PolygonOffset[1];
+		pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = rs.PolygonOffset[0];
+	}
+	else
+	{
+		pipe.m_Rasterizer.m_State.DepthBias = 0.0f;
+		pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = 0.0f;
+	}
+
+	if (rs.Enabled[GLRenderState::eEnabled_CullFace])
+	{
+		switch (rs.CullFace)
+		{
+		default:
+			RDCWARN("Unexpected value for CULL_FACE");
+		case eGL_BACK:
+			pipe.m_Rasterizer.m_State.CullMode = eCull_Back;
+			break;
+		case eGL_FRONT:
+			pipe.m_Rasterizer.m_State.CullMode = eCull_Front;
+			break;
+		case eGL_FRONT_AND_BACK:
+			pipe.m_Rasterizer.m_State.CullMode = eCull_FrontAndBack;
+			break;
+		}
+	}
+	else
+	{
+		pipe.m_Rasterizer.m_State.CullMode = eCull_None;
+	}
+	
+	RDCASSERT(rs.FrontFace == eGL_CCW || rs.FrontFace == eGL_CW);
+	pipe.m_Rasterizer.m_State.FrontCCW = rs.FrontFace == eGL_CCW;
+	pipe.m_Rasterizer.m_State.DepthClamp = rs.Enabled[GLRenderState::eEnabled_DepthClamp];
+	pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
+	pipe.m_Rasterizer.m_State.AntialiasedLineEnable = rs.Enabled[GLRenderState::eEnabled_LineSmooth];
+
+	// Frame buffer
+
 	GLuint curFBO = 0;
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
 	

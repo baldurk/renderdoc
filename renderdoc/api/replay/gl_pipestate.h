@@ -89,6 +89,43 @@ struct GLPipelineState
 	};
 	rdctype::array<Buffer> UniformBuffers;
 
+	struct Rasterizer
+	{
+		struct Viewport
+		{
+			Viewport() : Left(0.0f), Bottom(0.0f), Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f) {}
+			float Left, Bottom;
+			float Width, Height;
+			double MinDepth, MaxDepth;
+		};
+		rdctype::array<Viewport> Viewports;
+
+		struct Scissor
+		{
+			Scissor() : Left(0), Bottom(0), Width(0), Height(0), Enabled(false) {}
+			int32_t Left, Bottom;
+			int32_t Width, Height;
+			bool32 Enabled;
+		};
+		rdctype::array<Scissor> Scissors;
+
+		struct RasterizerState
+		{
+			RasterizerState()
+				: FillMode(eFill_Solid), CullMode(eCull_None), FrontCCW(false), DepthBias(0),
+				  SlopeScaledDepthBias(0.0f), DepthClamp(false),
+				  MultisampleEnable(false), AntialiasedLineEnable(false) {}
+			TriangleFillMode FillMode;
+			TriangleCullMode CullMode;
+			bool32 FrontCCW;
+			float DepthBias;
+			float SlopeScaledDepthBias;
+			bool32 DepthClamp;
+			bool32 MultisampleEnable;
+			bool32 AntialiasedLineEnable;
+		} m_State;
+	} m_Rasterizer;
+
 	struct FrameBuffer
 	{
 		FrameBuffer() : FBO(), Depth(), Stencil() {}

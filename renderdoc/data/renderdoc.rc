@@ -116,6 +116,7 @@ RESOURCE_checkerboard_frag TYPE_EMBED   "glsl/checkerboard.frag"
 RESOURCE_generic_vert      TYPE_EMBED   "glsl/generic.vert"
 RESOURCE_generic_frag      TYPE_EMBED   "glsl/generic.frag"
 RESOURCE_mesh_vert         TYPE_EMBED   "glsl/mesh.vert"
+RESOURCE_debuguniforms_h   TYPE_EMBED   "glsl/debuguniforms.h"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
