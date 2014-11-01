@@ -813,7 +813,7 @@ void WrappedOpenGL::AttemptCapture()
 
 bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 {
-	GLRenderState state(&m_Real, m_pSerialiser);
+	GLRenderState state(&m_Real, m_pSerialiser, m_State);
 
 	if(m_State >= WRITING)
 	{

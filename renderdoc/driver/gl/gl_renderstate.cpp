@@ -25,9 +25,10 @@
 #include "gl_renderstate.h"
 #include "gl_driver.h"
 
-GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser)
+GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state)
 	: m_Real(funcs)
 	, m_pSerialiser(ser)
+	, m_State(state)
 {
 	Clear();
 }
@@ -352,17 +353,20 @@ void GLRenderState::ApplyState()
 			numDBs++;
 			DBs[i] = DrawBuffers[i];
 
-			// since we are faking the default framebuffer with our own
-			// to see the results, replace back/front/left/right with color attachment 0
-			if(DBs[i] == eGL_BACK_LEFT || DBs[i] == eGL_BACK_RIGHT ||
-				 DBs[i] == eGL_FRONT_LEFT || DBs[i] == eGL_FRONT_RIGHT)
-				DBs[i] = eGL_COLOR_ATTACHMENT0;
-			
-			// These aren't valid for glDrawBuffers but can be returned when we call glGet,
-			// assume they mean left implicitly
-			if(DBs[i] == eGL_BACK ||
-				 DBs[i] == eGL_FRONT)
-				DBs[i] = eGL_COLOR_ATTACHMENT0;
+			if(m_State < WRITING)
+			{
+				// since we are faking the default framebuffer with our own
+				// to see the results, replace back/front/left/right with color attachment 0
+				if(DBs[i] == eGL_BACK_LEFT || DBs[i] == eGL_BACK_RIGHT ||
+					DBs[i] == eGL_FRONT_LEFT || DBs[i] == eGL_FRONT_RIGHT)
+					DBs[i] = eGL_COLOR_ATTACHMENT0;
+
+				// These aren't valid for glDrawBuffers but can be returned when we call glGet,
+				// assume they mean left implicitly
+				if(DBs[i] == eGL_BACK ||
+					DBs[i] == eGL_FRONT)
+					DBs[i] = eGL_COLOR_ATTACHMENT0;
+			}
 		}
 		else
 		{

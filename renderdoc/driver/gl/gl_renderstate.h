@@ -31,7 +31,7 @@
 
 struct GLRenderState
 {
-	GLRenderState(const GLHookSet *funcs, Serialiser *ser);
+	GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state);
 	~GLRenderState();
 
 	void FetchState();
@@ -205,5 +205,6 @@ struct GLRenderState
 	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 private:
 	Serialiser *m_pSerialiser;
+	LogState m_State;
 	const GLHookSet *m_Real;
 };
