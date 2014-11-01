@@ -266,6 +266,7 @@ class OpenGLHook : LibraryHook
 		}
 
 		PFNGLXCREATECONTEXTPROC glXCreateContext_real;
+		PFNGLXDESTROYCONTEXTPROC glXDestroyContext_real;
 		PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB_real;
 		PFNGLXGETPROCADDRESSPROC glXGetProcAddress_real;
 		PFNGLXMAKECURRENTPROC glXMakeCurrent_real;
@@ -313,6 +314,14 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	OpenGLHook::glhooks.GetDriver()->CreateContext(NULL, ret, shareList, init);
 
 	return ret;
+}
+
+__attribute__ ((visibility ("default")))
+void glXDestroyContext(Display *dpy, GLXContext ctx)
+{
+	OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+
+	OpenGLHook::glhooks.glXDestroyContext_real(dpy, ctx);
 }
 
 __attribute__ ((visibility ("default")))
@@ -393,6 +402,7 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 	
 	if(glXGetProcAddress_real == NULL)          glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(libGLdlsymHandle, "glXGetProcAddress");
 	if(glXCreateContext_real == NULL)           glXCreateContext_real = (PFNGLXCREATECONTEXTPROC)dlsym(libGLdlsymHandle, "glXCreateContext");
+	if(glXDestroyContext_real == NULL)           glXDestroyContext_real = (PFNGLXDESTROYCONTEXTPROC)dlsym(libGLdlsymHandle, "glXDestroyContext");
 	if(glXCreateContextAttribsARB_real == NULL) glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)dlsym(libGLdlsymHandle, "glXCreateContextAttribsARB");
 	if(glXMakeCurrent_real == NULL)             glXMakeCurrent_real = (PFNGLXMAKECURRENTPROC)dlsym(libGLdlsymHandle, "glXMakeCurrent");
 	if(glXSwapBuffers_real == NULL)             glXSwapBuffers_real = (PFNGLXSWAPBUFFERSPROC)dlsym(libGLdlsymHandle, "glXSwapBuffers");
@@ -427,6 +437,7 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	// handle a few functions that we only export as real functions, just
 	// in case
 	if(!strcmp(func, "glXCreateContext"))           return (__GLXextFuncPtr)&glXCreateContext;
+	if(!strcmp(func, "glXDestroyContext"))          return (__GLXextFuncPtr)&glXDestroyContext;
 	if(!strcmp(func, "glXCreateContextAttribsARB")) return (__GLXextFuncPtr)&glXCreateContextAttribsARB;
 	if(!strcmp(func, "glXMakeCurrent"))             return (__GLXextFuncPtr)&glXMakeCurrent;
 	if(!strcmp(func, "glXSwapBuffers"))             return (__GLXextFuncPtr)&glXSwapBuffers;

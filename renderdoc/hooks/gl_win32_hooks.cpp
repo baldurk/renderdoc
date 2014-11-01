@@ -261,6 +261,7 @@ class OpenGLHook : LibraryHook
 		}
 
 		Hook<HGLRC (WINAPI*)(HDC)> wglCreateContext_hook;
+		Hook<BOOL (WINAPI*)(HGLRC)> wglDeleteContext_hook;
 		Hook<HGLRC (WINAPI*)(HDC,int)> wglCreateLayerContext_hook;
 		Hook<BOOL (WINAPI*)(HDC, HGLRC)> wglMakeCurrent_hook;
 		Hook<PROC (WINAPI*)(const char*)> wglGetProcAddress_hook;
@@ -314,6 +315,13 @@ class OpenGLHook : LibraryHook
 			return ret;
 		}
 
+		static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
+		{
+			glhooks.GetDriver()->DeleteContext(rc);
+
+			return glhooks.wglDeleteContext_hook()(rc);
+		}
+
 		static HGLRC WINAPI wglCreateLayerContext_hooked(HDC dc, int iLayerPlane)
 		{
 			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
@@ -351,9 +359,14 @@ class OpenGLHook : LibraryHook
 		{
 			BOOL ret = glhooks.wglMakeCurrent_hook()(dc, rc);
 
-			glhooks.GetDriver()->ActivateContext(WindowFromDC(dc), rc);
+			if(rc && glhooks.m_Contexts.find(rc) == glhooks.m_Contexts.end())
+			{
+				glhooks.m_Contexts.insert(rc);
 
-			glhooks.GetRealFunctions();
+				glhooks.PopulateHooks();
+			}
+
+			glhooks.GetDriver()->ActivateContext(WindowFromDC(dc), rc);
 
 			return ret;
 		}
@@ -367,7 +380,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->WindowSize(w, r.right-r.left, r.bottom-r.top);
 
-			glhooks.GetDriver()->Present(dc);
+			glhooks.GetDriver()->Present(w);
 
 			return glhooks.SwapBuffers_hook()(dc);
 		}
@@ -449,11 +462,14 @@ class OpenGLHook : LibraryHook
 		bool m_HasHooks;
 		bool m_EnabledHooks;
 
+		set<HGLRC> m_Contexts;
+
 		bool SetupHooks(GLHookSet &GL)
 		{
 			bool success = true;
 			
 			success &= wglCreateContext_hook.Initialize("wglCreateContext", DLL_NAME, wglCreateContext_hooked);
+			success &= wglDeleteContext_hook.Initialize("wglDeleteContext", DLL_NAME, wglDeleteContext_hooked);
 			success &= wglCreateLayerContext_hook.Initialize("wglCreateLayerContext", DLL_NAME, wglCreateLayerContext_hooked);
 			success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
 			success &= wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);

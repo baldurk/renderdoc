@@ -284,6 +284,7 @@ class WrappedOpenGL
 		FetchAPIEvent GetEvent(uint32_t eventID);
 
 		void CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams);
+		void DeleteContext(void *contextHandle);
 		void ActivateContext(void *windowHandle, void *contextHandle);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
 		void Present(void *windowHandle);

@@ -498,6 +498,10 @@ void *WrappedOpenGL::GetCtx()
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
 
+void WrappedOpenGL::DeleteContext(void *contextHandle)
+{
+}
+
 void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams)
 {
 	// TODO: support multiple GL contexts more explicitly
