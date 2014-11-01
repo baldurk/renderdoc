@@ -38,6 +38,7 @@
 namespace Keyboard { extern Display *CurrentXDisplay; }
 
 typedef GLXContext (*PFNGLXCREATECONTEXTPROC)(Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct);
+typedef void (*PFNGLXDESTROYCONTEXTPROC)(Display *dpy, GLXContext ctx);
 typedef const char *(*PFNGLXQUERYEXTENSIONSSTRING)(Display *dpy, int screen);
 typedef Bool (*PFNGLXMAKECURRENTPROC)(Display *dpy, GLXDrawable drawable, GLXContext ctx);
 typedef void (*PFNGLXSWAPBUFFERSPROC)(Display *dpy, GLXDrawable drawable);

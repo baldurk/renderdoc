@@ -216,6 +216,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
 		case eGL_STENCIL_INDEX8:
 		case eGL_STENCIL_INDEX16:
 			return eGL_STENCIL;
+		default:
+			break;
 	}
 
 	RDCERR("Unhandled Base Format case!");
@@ -314,6 +316,8 @@ GLenum GetDataType(GLenum internalFormat)
 			return eGL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 		case eGL_STENCIL_INDEX8:
 			return eGL_UNSIGNED_BYTE;
+		default:
+			break;
 	}
 
 	RDCERR("Unhandled Data Type case!");
