@@ -95,6 +95,9 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	{
 		ivec3 size = textureSize(texUInt2DArray, mipLevel);
 		if (pos.x < 0 || pos.y < 0 || pos.x > size.x || pos.y > size.y) discard;
+		
+		if (flipY)
+			pos.y = size.y - pos.y;
 
 		col = texelFetch(texUInt2DArray, ivec3(pos, slice), mipLevel);
 	}
@@ -102,6 +105,9 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	{
 		ivec3 size = textureSize(texUInt3D, mipLevel);
 		if (pos.x < 0 || pos.y < 0 || pos.x > size.x || pos.y > size.y) discard;
+		
+		if (flipY)
+			pos.y = size.y - pos.y;
 
 		col = texelFetch(texUInt3D, ivec3(pos, slice), mipLevel);
 	}
@@ -113,7 +119,7 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 {
 	ivec4 col;
 	if (type == RESTYPE_TEX1D)
-{
+	{
 		int size = textureSize(texSInt1D, mipLevel);
 		if (pos.x < 0 || pos.y < 0 || pos.x > size) discard;
 
@@ -140,6 +146,9 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	{
 		ivec3 size = textureSize(texSInt2DArray, mipLevel);
 		if (pos.x < 0 || pos.y < 0 || pos.x > size.x || pos.y > size.y) discard;
+		
+		if (flipY)
+			pos.y = size.y - pos.y;
 
 		col = texelFetch(texSInt2DArray, ivec3(pos, slice), mipLevel);
 	}
@@ -147,6 +156,9 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	{
 		ivec3 size = textureSize(texSInt3D, mipLevel);
 		if (pos.x < 0 || pos.y < 0 || pos.x > size.x || pos.y > size.y) discard;
+		
+		if (flipY)
+			pos.y = size.y - pos.y;
 
 		col = texelFetch(texSInt3D, ivec3(pos, slice), mipLevel);
 	}
@@ -285,7 +297,7 @@ void main(void)
 		else if (sintTex)
 			color_out = intBitsToFloat(scol);
 		else
-		color_out = col;
+			color_out = col;
 		return;
 	}
 
