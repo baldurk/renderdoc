@@ -56,13 +56,16 @@ os/linux/linux_process.o \
 os/linux/linux_stringio.o \
 os/linux/linux_threading.o \
 hooks/linux_libentry.o
-SHADERS=data/glsl/blit.frago \
+DATA=data/glsl/blit.frago \
 data/glsl/blit.verto \
 data/glsl/texdisplay.frago \
 data/glsl/checkerboard.frago \
 data/glsl/generic.frago \
 data/glsl/generic.verto \
-data/glsl/mesh.verto
+data/glsl/mesh.verto \
+data/glsl/text.verto \
+data/glsl/text.frago \
+data/sourcecodepro.ttfo
 
 .PHONY: all
 all: librenderdoc.so
@@ -89,12 +92,17 @@ $(OBJDIR)/%.frago: %.frag
 	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
 	@mv $$(dirname $<)/$$(basename $@) $@
 
+$(OBJDIR)/%.ttfo: %.ttf
+	@mkdir -p $$(dirname $@)
+	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
+	@mv $$(dirname $<)/$$(basename $@) $@
+
 OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
-OBJDIR_SHADERS=$(addprefix $(OBJDIR)/, $(SHADERS))
+OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 
 -include $(OBJDIR_OBJECTS:.o=.d)
 
-librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_SHADERS)
+librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA)
 	g++ -o librenderdoc.so $^ $(LDFLAGS)
 
 .PHONY: clean

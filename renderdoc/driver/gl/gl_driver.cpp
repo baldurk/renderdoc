@@ -704,7 +704,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
 	const GLHookSet &gl = m_Real;
 	
-	RDCASSERT(strlen(text) < FONT_MAX_CHARS);
+	RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
 
 	FontData &font = m_Fonts[GetCtx()];
 

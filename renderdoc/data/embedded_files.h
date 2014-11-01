@@ -35,5 +35,8 @@ DECLARE_EMBED(checkerboard_frag);
 DECLARE_EMBED(mesh_vert);
 DECLARE_EMBED(generic_vert);
 DECLARE_EMBED(generic_frag);
+DECLARE_EMBED(text_frag);
+DECLARE_EMBED(text_vert);
+DECLARE_EMBED(sourcecodepro_ttf);
 
 #undef DECLARE_EMBED
