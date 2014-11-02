@@ -6614,8 +6614,10 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 			{
 				D3D11_MAPPED_SUBRESOURCE mappedResource;
 
+				UINT flags = MapFlags & ~D3D11_MAP_FLAG_DO_NOT_WAIT;
+
 				HRESULT hr = m_pRealContext->Map(m_pDevice->GetResourceManager()->UnwrapResource(res), mapIdx.subresource,
-					MapType, MapFlags, &mappedResource);
+					MapType, flags, &mappedResource);
 
 				RDCASSERT(mappedResource.pData);
 
