@@ -93,7 +93,11 @@ namespace renderdocui.Controls
         public void SetRange(float min, float max)
         {
             m_RangeMin = min;
-            m_RangeMax = Math.Max((min+float.Epsilon)*(1.0f+m_MinRangeSize), max);
+            if (min < 0.0f)
+                m_RangeMax = Math.Max((min - float.Epsilon) * (1.0f - m_MinRangeSize), max);
+            else
+                m_RangeMax = Math.Max((min + float.Epsilon) * (1.0f + m_MinRangeSize), max);
+
             m_BlackPoint = m_RangeMin;
             m_WhitePoint = m_RangeMax;
 
