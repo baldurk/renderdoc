@@ -817,6 +817,96 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
 }
 
+void GLReplay::CopyProgramUniforms(WrappedOpenGL &gl, GLuint progSrc, GLuint progDst)
+{
+	// copy across uniforms
+	GLint numUniforms = 0;
+	gl.glGetProgramiv(progSrc, eGL_ACTIVE_UNIFORMS, &numUniforms);
+
+	for(GLint i=0; i < numUniforms; i++)
+	{
+		char uniName[1024] = {};
+		GLint uniSize = 0;
+		GLenum uniType = eGL_NONE;
+		gl.glGetActiveUniform(progSrc, i, 1024, NULL, &uniSize, &uniType, uniName);
+
+		double dv[16];
+		float *fv = (float *)dv;
+		int32_t *iv = (int32_t *)dv;
+		uint32_t *uv = (uint32_t *)dv;
+
+		bool isArray = false;
+
+		if(uniSize > 1)
+		{
+			isArray = true;
+
+			size_t len = strlen(uniName);
+
+			if(uniName[len-3] == '[' && uniName[len-2] == '0' && uniName[len-1] == ']')
+				uniName[len-3] = 0;
+		}
+		else
+		{
+			uniSize = 1;
+		}
+
+		for(GLint arr=0; arr < uniSize; arr++)
+		{
+			string name = uniName;
+
+			if(isArray)
+				name += StringFormat::Fmt("[%d]", arr);
+
+			GLint origloc = gl.glGetUniformLocation(progSrc, name.c_str());
+			GLint newloc = gl.glGetUniformLocation(progDst, name.c_str());
+
+			if(origloc != -1 && newloc != -1)
+			{
+				if(uniType == eGL_FLOAT_MAT4)
+				{
+					gl.glGetUniformfv(progSrc, origloc, fv);
+					gl.glProgramUniformMatrix4fv(progDst, newloc, 1, false, fv);
+				}
+				else if(uniType == eGL_FLOAT)
+				{
+					gl.glGetUniformfv(progSrc, origloc, fv);
+					gl.glProgramUniform1fv(progDst, newloc, 1, fv);
+				}
+				else if(uniType == eGL_FLOAT_VEC2)
+				{
+					gl.glGetUniformfv(progSrc, origloc, fv);
+					gl.glProgramUniform2fv(progDst, newloc, 1, fv);
+				}
+				else if(uniType == eGL_FLOAT_VEC3)
+				{
+					gl.glGetUniformfv(progSrc, origloc, fv);
+					gl.glProgramUniform3fv(progDst, newloc, 1, fv);
+				}
+				else if(uniType == eGL_FLOAT_VEC4)
+				{
+					gl.glGetUniformfv(progSrc, origloc, fv);
+					gl.glProgramUniform4fv(progDst, newloc, 1, fv);
+				}
+				else if(uniType == eGL_INT)
+				{
+					gl.glGetUniformiv(progSrc, origloc, iv);
+					gl.glProgramUniform1iv(progDst, newloc, 1, iv);
+				}
+				else if(uniType == eGL_UNSIGNED_INT)
+				{
+					gl.glGetUniformuiv(progSrc, origloc, uv);
+					gl.glProgramUniform1uiv(progDst, newloc, 1, uv);
+				}
+				else
+				{
+					RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
+				}
+			}
+		}
+	}
+}
+
 ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
 {
 	WrappedOpenGL &gl = *m_pDriver;
@@ -911,53 +1001,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	{
 		gl.glUseProgram(progDetails.colOutProg);
 		
-		{
-			// copy across uniforms
-			GLint numUniforms = 0;
-			gl.glGetProgramiv(curProg, eGL_ACTIVE_UNIFORMS, &numUniforms);
-
-			for(GLint i=0; i < numUniforms; i++)
-			{
-				char uniName[1024] = {};
-				GLint uniSize = 0;
-				GLenum uniType = eGL_NONE;
-				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
-
-				GLint origloc = gl.glGetUniformLocation(curProg, uniName);
-				GLint newloc = gl.glGetUniformLocation(progDetails.colOutProg, uniName);
-
-				double dv[16];
-				float *fv = (float *)dv;
-
-				if(uniSize > 1)
-				{
-					RDCERR("Array elements beyond [0] not being copied to new program");
-				}
-
-				if(origloc != -1 && newloc != -1)
-				{
-					if(uniType == eGL_FLOAT_MAT4)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniformMatrix4fv(newloc, 1, false, fv);
-					}
-					else if(uniType == eGL_FLOAT_VEC3)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniform3fv(newloc, 1, fv);
-					}
-					else if(uniType == eGL_FLOAT_VEC4)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniform4fv(newloc, 1, fv);
-					}
-					else
-					{
-						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
-					}
-				}
-			}
-		}
+		CopyProgramUniforms(gl, curProg, progDetails.colOutProg);
 		
 		float black[] = { 0.0f, 0.0f, 0.0f, 0.5f };
 		gl.glClearBufferfv(eGL_COLOR, 0, black);
@@ -974,53 +1018,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	{
 		gl.glUseProgram(progDetails.colOutProg);
 		
-		{
-			// copy across uniforms
-			GLint numUniforms = 0;
-			gl.glGetProgramiv(curProg, eGL_ACTIVE_UNIFORMS, &numUniforms);
-
-			for(GLint i=0; i < numUniforms; i++)
-			{
-				char uniName[1024] = {};
-				GLint uniSize = 0;
-				GLenum uniType = eGL_NONE;
-				gl.glGetActiveUniform(curProg, i, 1024, NULL, &uniSize, &uniType, uniName);
-
-				GLint origloc = gl.glGetUniformLocation(curProg, uniName);
-				GLint newloc = gl.glGetUniformLocation(progDetails.colOutProg, uniName);
-
-				double dv[16];
-				float *fv = (float *)dv;
-
-				if(uniSize > 1)
-				{
-					RDCERR("Array elements beyond [0] not being copied to new program");
-				}
-
-				if(origloc != -1 && newloc != -1)
-				{
-					if(uniType == eGL_FLOAT_MAT4)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniformMatrix4fv(newloc, 1, false, fv);
-					}
-					else if(uniType == eGL_FLOAT_VEC3)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniform3fv(newloc, 1, fv);
-					}
-					else if(uniType == eGL_FLOAT_VEC4)
-					{
-						gl.glGetUniformfv(curProg, origloc, fv);
-						gl.glUniform4fv(newloc, 1, fv);
-					}
-					else
-					{
-						RDCERR("Uniform type '%hs' not being copied to new program", ToStr::Get(uniType).c_str());
-					}
-				}
-			}
-		}
+		CopyProgramUniforms(gl, curProg, progDetails.colOutProg);
 		
 		float wireCol[] = { 200.0f/255.0f, 255.0f/255.0f, 0.0f/255.0f, 0.0f };
 		gl.glClearBufferfv(eGL_COLOR, 0, wireCol);

@@ -137,6 +137,8 @@ class GLReplay : public IReplayDriver
 
 		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 
+		void CopyProgramUniforms(WrappedOpenGL &gl, GLuint progSrc, GLuint progDst);
+
 		struct OutputWindow : public GLWindowingData
 		{
 			struct
