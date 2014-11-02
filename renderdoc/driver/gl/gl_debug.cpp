@@ -558,8 +558,6 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
 {
-	FetchTexture tex = GetTexture(cfg.texid);
-
 	MakeCurrentReplayContext(m_DebugCtx);
 	
 	WrappedOpenGL &gl = *m_pDriver;
@@ -597,7 +595,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	}
 
 	RDCGLenum dsTexMode = eGL_NONE;
-	if (tex.creationFlags & eTextureCreate_DSV)
+	if(IsDepthStencilFormat(texDetails.internalFormat))
 	{
 		if (!cfg.Red && cfg.Green)
 		{
@@ -606,7 +604,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			// Stencil texture sampling is not normalized in OpenGL
 			resType |= TEXDISPLAY_UINT_TEX;
 			float rangeScale;
-			switch (tex.format.rawType)
+			switch (texDetails.internalFormat)
 			{
 				case eGL_STENCIL_INDEX1:
 					rangeScale = 1.0f;
@@ -633,17 +631,10 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	}
 	else
 	{
-		switch (tex.format.compType)
-		{
-			case eCompType_UInt:
+		if(IsUIntFormat(texDetails.internalFormat))
 				resType |= TEXDISPLAY_UINT_TEX;
-				break;
-			case eCompType_SInt:
+		if(IsSIntFormat(texDetails.internalFormat))
 				resType |= TEXDISPLAY_SINT_TEX;
-				break;
-			default:
-				break;
-		}
 	}
 	
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));

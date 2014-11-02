@@ -324,3 +324,59 @@ GLenum GetDataType(GLenum internalFormat)
 
 	return eGL_NONE;
 }
+
+bool IsDepthStencilFormat(GLenum internalFormat)
+{
+	GLenum fmt = GetBaseFormat(internalFormat);
+
+	return (fmt == eGL_DEPTH_COMPONENT || fmt == eGL_STENCIL || fmt == eGL_DEPTH_STENCIL);
+}
+
+bool IsUIntFormat(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_R8UI:
+		case eGL_RG8UI:
+		case eGL_RGB8UI:
+		case eGL_RGBA8UI:
+		case eGL_R16UI:
+		case eGL_RG16UI:
+		case eGL_RGB16UI:
+		case eGL_RGBA16UI:
+		case eGL_R32UI:
+		case eGL_RG32UI:
+		case eGL_RGB32UI:
+		case eGL_RGBA32UI:
+		case eGL_RGB10_A2UI:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}
+
+bool IsSIntFormat(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_R8I:
+		case eGL_RG8I:
+		case eGL_RGB8I:
+		case eGL_RGBA8I:
+		case eGL_R16I:
+		case eGL_RG16I:
+		case eGL_RGB16I:
+		case eGL_RGBA16I:
+		case eGL_R32I:
+		case eGL_RG32I:
+		case eGL_RGB32I:
+		case eGL_RGBA32I:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}

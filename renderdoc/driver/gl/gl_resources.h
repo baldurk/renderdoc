@@ -33,6 +33,10 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
 
+bool IsDepthStencilFormat(GLenum internalFormat);
+bool IsUIntFormat(GLenum internalFormat);
+bool IsSIntFormat(GLenum internalFormat);
+
 enum GLNamespace
 {
 	eResUnknown = 0,
