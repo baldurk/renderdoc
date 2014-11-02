@@ -178,8 +178,10 @@ class GLReplay : public IReplayDriver
 			// min/max data
 			GLuint minmaxTileResult;       // tile result buffer
 			GLuint minmaxResult;           // Vec4f[2] final result buffer
+			GLuint histogramBuf;           // uint32_t * num buckets buffer
 			GLuint minmaxResultProgram[3]; // float/uint/sint tile result -> final result program
 			GLuint minmaxTileProgram[32];  // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> tile result buf program
+			GLuint histogramProgram[32];   // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> histogram result buf program
 
 			// program that does a blit of texture from input to output,
 			// no transformation or scaling

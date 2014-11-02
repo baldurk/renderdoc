@@ -254,6 +254,17 @@ void GLReplay::InitDebugData()
 					DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(glsl.c_str());
 				}
 
+				{
+					string glsl = glslheader;
+					glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+					glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+					glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+					glsl += string("#define RENDERDOC_HistogramCS 1\n");
+					glsl += histogramglsl;
+
+					DebugData.histogramProgram[idx] = CreateCShaderProgram(glsl.c_str());
+				}
+
 				if(t == 1)
 				{
 					string glsl = glslheader;
@@ -270,6 +281,7 @@ void GLReplay::InitDebugData()
 
 		gl.glGenBuffers(1, &DebugData.minmaxTileResult);
 		gl.glGenBuffers(1, &DebugData.minmaxResult);
+		gl.glGenBuffers(1, &DebugData.histogramBuf);
 		
 		const uint32_t maxTexDim = 16384;
 		const uint32_t blockPixSize = HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK;
@@ -279,6 +291,7 @@ void GLReplay::InitDebugData()
 
 		gl.glNamedBufferStorageEXT(DebugData.minmaxTileResult, byteSize, NULL, 0);
 		gl.glNamedBufferStorageEXT(DebugData.minmaxResult, sizeof(Vec4f)*2, NULL, GL_MAP_READ_BIT);
+		gl.glNamedBufferStorageEXT(DebugData.histogramBuf, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, NULL, GL_MAP_READ_BIT);
 	}
 
 	MakeCurrentReplayContext(&m_ReplayCtx);
@@ -400,6 +413,106 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
 bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
 {
+	if(minval >= maxval) return false;
+
+	if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
+		return false;
+
+	auto &texDetails = m_pDriver->m_Textures[texid];
+
+	FetchTexture details = GetTexture(texid);
+
+	const GLHookSet &gl = m_pDriver->GetHookset();
+
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+	HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
+	                                                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+	cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width>>mip, 1U);
+	cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height>>mip, 1U);
+	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
+	cdata->HistogramSlice = (float)sliceFace;
+	cdata->HistogramMip = mip;
+	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
+	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
+	cdata->HistogramMin = minval;
+	cdata->HistogramMax = maxval;
+	cdata->HistogramChannels = 0;
+	if(channels[0]) cdata->HistogramChannels |= 0x1;
+	if(channels[1]) cdata->HistogramChannels |= 0x2;
+	if(channels[2]) cdata->HistogramChannels |= 0x4;
+	if(channels[3]) cdata->HistogramChannels |= 0x8;
+	cdata->HistogramFlags = 0;
+
+	int texSlot = 0;
+	int intIdx = 0;
+
+	switch (texDetails.curType)
+	{
+		case eGL_TEXTURE_1D:
+			texSlot = RESTYPE_TEX1D;
+			break;
+		default:
+			RDCWARN("Unexpected texture type");
+		case eGL_TEXTURE_2D:
+			texSlot = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_3D:
+			texSlot = RESTYPE_TEX3D;
+			break;
+		case eGL_TEXTURE_CUBE_MAP:
+			texSlot = RESTYPE_TEXCUBE;
+			break;
+		case eGL_TEXTURE_1D_ARRAY:
+			texSlot = RESTYPE_TEX1DARRAY;
+			break;
+		case eGL_TEXTURE_2D_ARRAY:
+			texSlot = RESTYPE_TEX2DARRAY;
+			break;
+		case eGL_TEXTURE_CUBE_MAP_ARRAY:
+			texSlot = RESTYPE_TEXCUBEARRAY;
+			break;
+	}
+
+	if(details.format.compType == eCompType_UInt)
+	{
+		texSlot |= TEXDISPLAY_UINT_TEX;
+		intIdx = 1;
+	}
+	if(details.format.compType == eCompType_SInt)
+	{
+		texSlot |= TEXDISPLAY_SINT_TEX;
+		intIdx = 2;
+	}
+
+	if(details.dimension == 3)
+		cdata->HistogramSlice = float(sliceFace)/float(details.depth);
+
+	int blocksX = (int)ceil(cdata->HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int blocksY = (int)ceil(cdata->HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+
+	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
+	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+	gl.glBindSampler(texSlot, DebugData.pointSampler);
+
+	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
+
+	GLuint zero = 0;
+	gl.glClearBufferData(eGL_SHADER_STORAGE_BUFFER, eGL_R32UI, eGL_RED, eGL_UNSIGNED_INT, &zero);
+
+	gl.glUseProgram(DebugData.histogramProgram[texSlot]);
+	gl.glDispatchCompute(blocksX, blocksY, 1);
+
+	gl.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	histogram.clear();
+	histogram.resize(HGRAM_NUM_BUCKETS);
+
+	gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.histogramBuf);
+	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, &histogram[0]);
+
 	return true;
 }
 
