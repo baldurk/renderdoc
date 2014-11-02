@@ -37,7 +37,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 
 	uint3 texDim = uint3(HistogramTextureResolution);
 
-	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 	uint2 topleft = (gid.xy*HGRAM_TILES_PER_BLOCK + tid.xy)*HGRAM_PIXELS_PER_TILE;
 
@@ -151,8 +151,8 @@ void RENDERDOC_ResultMinMaxCS()
 {
 	uint3 texDim = uint3(HistogramTextureResolution);
 
-	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
-	uint blocksY = (int)ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	uint blocksY = (int)ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 #if UINT_TEX
 	uint4 minvalU = MinMaxResultSourceUInt[0];

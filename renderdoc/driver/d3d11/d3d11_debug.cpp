@@ -1088,7 +1088,7 @@ bool D3D11DebugManager::InitDebugRendering()
 		D3D11_BUFFER_DESC bDesc;
 
 		const uint32_t maxTexDim = 16384;
-		const uint32_t blockPixSize = HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE;
+		const uint32_t blockPixSize = HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK;
 		const uint32_t maxBlocksNeeded = (maxTexDim*maxTexDim)/(blockPixSize*blockPixSize);
 
 		bDesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
@@ -1954,8 +1954,8 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 
 	m_pImmediateContext->CSSetShader(m_DebugRender.HistogramCS[details.texType][intIdx], NULL, 0);
 
-	int tilesX = (int)ceil(cdata.HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
-	int tilesY = (int)ceil(cdata.HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	int tilesX = (int)ceil(cdata.HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int tilesY = (int)ceil(cdata.HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 	m_pImmediateContext->Dispatch(tilesX, tilesY, 1);
 	
@@ -2042,8 +2042,8 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 
 	m_pImmediateContext->CSSetShader(m_DebugRender.TileMinMaxCS[details.texType][intIdx], NULL, 0);
 
-	int blocksX = (int)ceil(cdata.HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
-	int blocksY = (int)ceil(cdata.HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	int blocksX = (int)ceil(cdata.HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int blocksY = (int)ceil(cdata.HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 	m_pImmediateContext->Dispatch(blocksX, blocksY, 1);
 
@@ -2081,33 +2081,6 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 		m_pImmediateContext->Unmap(m_DebugRender.resultStageBuff, 0);
 	}
 	
-	/*
-	// debugging - copy out tile results
-	const uint32_t maxTexDim = 16384;
-	const uint32_t blockPixSize = HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE;
-	const uint32_t maxBlocksNeeded = (maxTexDim*maxTexDim)/(blockPixSize*blockPixSize);
-
-	D3D11_BUFFER_DESC bdesc;
-	bdesc.BindFlags = 0;
-	bdesc.Usage = D3D11_USAGE_STAGING;
-	bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-	bdesc.MiscFlags = 0;
-	bdesc.StructureByteStride = 0;
-	bdesc.ByteWidth = 2*4*sizeof(float)*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK*maxBlocksNeeded;
-
-	ID3D11Buffer *test = NULL;
-
-	m_pDevice->CreateBuffer(&bdesc, NULL, &test);
-	
-	m_pImmediateContext->CopyResource(test, m_DebugRender.tileResultBuff);
-	
-	m_pImmediateContext->Map(test, 0, D3D11_MAP_READ, 0, &mapped);
-
-	m_pImmediateContext->Unmap(test, 0);
-	
-	SAFE_RELEASE(test);
-	*/
-
 	return true;
 }
 
