@@ -1378,6 +1378,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case PROGRAMUNIFORM_VECTOR:
 		Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
 		break;
+	case PROGRAMUNIFORM_MATRIX:
+		Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
+		break;
 	case LINKPROGRAM:
 		Serialise_glLinkProgram(0);
 		break;
