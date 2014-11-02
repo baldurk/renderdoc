@@ -123,6 +123,9 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 {
 	m_Real.glBindTexture(target, texture);
+
+	if(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
+		return;
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
