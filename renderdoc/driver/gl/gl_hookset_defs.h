@@ -152,7 +152,7 @@
     HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
-	HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC, glProgramUniformMatrix4fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC, glProgramUniformMatrix4fv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
     HookExtension(PFNGLPROGRAMUNIFORM1FVPROC, glProgramUniform1fv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IVPROC, glProgramUniform1iv); \
@@ -233,6 +233,7 @@
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
     HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HookExtension(PFNGLGETCOMPRESSEDTEXIMAGEPROC, glGetCompressedTexImage); \
+    HookExtension(PFNGLBINDIMAGETEXTUREPROC, glBindImageTexture); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
     HookExtension(PFNGLDELETESAMPLERSPROC, glDeleteSamplers); \
@@ -244,6 +245,7 @@
     HookExtension(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HookExtension(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
     HookExtension(PFNGLPATCHPARAMETERFVPROC, glPatchParameterfv); \
+    HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
     HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
@@ -395,7 +397,7 @@
     HookWrapper1(void, glStencilMask, GLuint, mask); \
     HookWrapper3(void, glStencilOp, GLenum, fail, GLenum, zfail, GLenum, zpass); \
     HookWrapper1(void, glDisable, GLenum, cap); \
-    HookWrapper1(void, glDrawBuffer, GLenum, mode); \
+    HookWrapper1(void, glDrawBuffer, GLenum, buf); \
     HookWrapper4(void, glDrawElements, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices); \
     HookWrapper3(void, glDrawArrays, GLenum, mode, GLint, first, GLsizei, count); \
     HookWrapper1(void, glEnable, GLenum, cap); \
@@ -422,7 +424,7 @@
     HookWrapper2(void, glPolygonMode, GLenum, face, GLenum, mode); \
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
     HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
-    HookWrapper1(void, glReadBuffer, GLenum, mode); \
+    HookWrapper1(void, glReadBuffer, GLenum, src); \
     HookWrapper4(void, glScissor, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper8(void, glTexImage1D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper9(void, glTexImage2D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
@@ -503,7 +505,7 @@
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
-	HookWrapper5(void, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
     HookWrapper4(void, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper4(void, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
@@ -583,6 +585,7 @@
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper3(void, glGetCompressedTexImage, GLenum, target, GLint, level, void *, img); \
+    HookWrapper7(void, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
     HookWrapper2(void, glDeleteSamplers, GLsizei, count, const GLuint *, samplers); \
@@ -594,6 +597,7 @@
     HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper2(void, glPatchParameterfv, GLenum, pname, const GLfloat *, values); \
+    HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \

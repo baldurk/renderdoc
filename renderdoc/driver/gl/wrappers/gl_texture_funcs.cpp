@@ -176,6 +176,45 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)
+{
+	SERIALISE_ELEMENT(uint32_t, Unit, unit);
+	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(bool, Layered, layered == GL_TRUE);
+	SERIALISE_ELEMENT(int32_t, Layer, layer);
+	SERIALISE_ELEMENT(GLenum, Access, access);
+	SERIALISE_ELEMENT(GLenum, Format, format);
+	
+	if(m_State <= EXECUTING)
+	{
+		GLResource tex = GetResourceManager()->GetLiveResource(texid);
+
+		m_Real.glBindImageTexture(Unit, tex.name, Level, Layered, Layer, Access, Format);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)
+{
+	m_Real.glBindImageTexture(unit, texture, level, layered, layer, access, format);
+	
+	if(m_State >= WRITING)
+	{
+		Chunk *chunk = NULL;
+
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_TEXTURE);
+			Serialise_glBindImageTexture(unit, texture, level, layered, layer, access, format);
+
+			chunk = scope.Get();
+		}
+		
+		m_ContextRecord->AddChunk(chunk);
+	}
+}
+
 bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuint origtexture, GLenum internalformat, GLuint minlevel, GLuint numlevels, GLuint minlayer, GLuint numlayers)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);

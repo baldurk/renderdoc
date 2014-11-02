@@ -26,6 +26,54 @@
 #include "common/string_utils.h"
 #include "../gl_driver.h"
 
+bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
+{
+	SERIALISE_ELEMENT(uint32_t, X, num_groups_x);
+	SERIALISE_ELEMENT(uint32_t, Y, num_groups_y);
+	SERIALISE_ELEMENT(uint32_t, Z, num_groups_z);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDispatchCompute(X, Y, Z);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DISPATCH_COMPUTE, desc);
+		string name = "glDispatchCompute(" +
+						ToStr::Get(X) + ", " +
+						ToStr::Get(Y) + ", " +
+						ToStr::Get(Z) + ")";
+
+		FetchDrawcall draw;
+		draw.name = widen(name);
+		draw.flags |= eDraw_Dispatch;
+
+		draw.debugMessages = debugMessages;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
+{
+	m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE);
+		Serialise_glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);

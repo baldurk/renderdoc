@@ -43,6 +43,7 @@ const char *GLChunkNames[] =
 
 	"glGenTextures",
 	"glBindTexture",
+	"glBindImageTexture",
 	"glActiveTexture",
 	"glTexStorage1D",
 	"glTexStorage2D",
@@ -139,6 +140,7 @@ const char *GLChunkNames[] =
 	"glVertexBindingDivisor",
 	"glUniformMatrix*",
 	"glUniformVector*",
+	"glDispatchCompute",
 	"glDrawArrays",
 	"glDrawArraysInstanced",
 	"glDrawArraysInstancedBaseInstance",
@@ -1423,6 +1425,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_TEXTURE:
 		Serialise_glBindTexture(eGL_NONE, 0);
 		break;
+	case BIND_IMAGE_TEXTURE:
+		Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE);
+		break;
 	case TEXSTORAGE1D:
 		Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0);
 		break;
@@ -1699,6 +1704,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case UNIFORM_VECTOR:
 		Serialise_glUniformVector(0, 0, NULL, UNIFORM_UNKNOWN);
+		break;
+	case DISPATCH_COMPUTE:
+		Serialise_glDispatchCompute(0, 0, 0);
 		break;
 	case DRAWARRAYS:
 		Serialise_glDrawArrays(eGL_NONE, 0, 0);
