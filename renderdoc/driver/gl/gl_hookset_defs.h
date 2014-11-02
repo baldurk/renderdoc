@@ -251,6 +251,7 @@
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
     HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
     HookExtension(PFNGLCLEARBUFFERFIPROC, glClearBufferfi); \
+    HookExtension(PFNGLCLEARBUFFERDATAPROC, glClearBufferData); \
     HookExtension(PFNGLSCISSORARRAYVPROC, glScissorArrayv); \
     HookExtension(PFNGLSCISSORINDEXEDPROC, glScissorIndexed); \
     HookExtension(PFNGLSCISSORINDEXEDVPROC, glScissorIndexedv); \
@@ -604,6 +605,7 @@
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
+    HookWrapper5(void, glClearBufferData, GLenum, target, GLenum, internalformat, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper3(void, glScissorArrayv, GLuint, first, GLsizei, count, const GLint *, v); \
     HookWrapper5(void, glScissorIndexed, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glScissorIndexedv, GLuint, index, const GLint *, v); \

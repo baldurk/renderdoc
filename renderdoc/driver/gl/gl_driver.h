@@ -526,6 +526,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribBinding(GLuint attribindex, GLuint bindingindex));

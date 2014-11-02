@@ -98,6 +98,7 @@ const char *GLChunkNames[] =
 	"glClearBufferiv",
 	"glClearBufferuiv",
 	"glClearBufferfi",
+	"glClearBufferData",
 	"glPolygonMode",
 	"glPolygonOffset",
 	"glCullFace",
@@ -1577,6 +1578,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case CLEARBUFFERFI:
 		Serialise_glClearBufferfi(eGL_NONE, 0, 0, 0);
+		break;
+	case CLEARBUFFERDATA:
+		Serialise_glClearBufferData(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case POLYGON_MODE:
 		Serialise_glPolygonMode(eGL_NONE, eGL_NONE);

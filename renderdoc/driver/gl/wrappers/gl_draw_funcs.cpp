@@ -930,6 +930,91 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 	}
 }
 
+bool WrappedOpenGL::Serialise_glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
+	SERIALISE_ELEMENT(GLenum, Format, format);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+
+	uint64_t val[4] = {0};
+
+	if(m_State >= WRITING)
+	{
+		size_t s = 1;
+		switch(Format)
+		{
+			default:
+				RDCWARN("Unexpected format %x, defaulting to single component", Format);
+			case eGL_RED:
+			case eGL_DEPTH_COMPONENT:
+				s = 1; break;
+			case eGL_RG:
+			case eGL_DEPTH_STENCIL:
+				s = 2; break;
+			case eGL_RGB:
+			case eGL_BGR:
+				s = 3; break;
+			case eGL_RGBA:
+			case eGL_BGRA:
+				s = 4; break;
+		}
+		switch(Type)
+		{
+			case eGL_UNSIGNED_BYTE:
+			case eGL_BYTE:
+				s *= 1; break;
+			case eGL_UNSIGNED_SHORT:
+			case eGL_SHORT:
+				s *= 2; break;
+			case eGL_UNSIGNED_INT:
+			case eGL_INT:
+			case eGL_FLOAT:
+				s *= 4; break;
+			default:
+				RDCWARN("Unexpected type %x, defaulting to 1 byte single component type", Format);
+			case eGL_UNSIGNED_BYTE_3_3_2:
+			case eGL_UNSIGNED_BYTE_2_3_3_REV:
+				s = 1; break;
+			case eGL_UNSIGNED_SHORT_5_6_5:
+			case eGL_UNSIGNED_SHORT_5_6_5_REV:
+			case eGL_UNSIGNED_SHORT_4_4_4_4:
+			case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
+			case eGL_UNSIGNED_SHORT_5_5_5_1:
+			case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
+			case eGL_UNSIGNED_INT_8_8_8_8:
+			case eGL_UNSIGNED_INT_8_8_8_8_REV:
+				s = 2; break;
+			case eGL_UNSIGNED_INT_10_10_10_2:
+			case eGL_UNSIGNED_INT_2_10_10_10_REV:
+				s = 4; break;
+		}
+		memcpy(val, data, s);
+	}
+
+	m_pSerialiser->Serialise<4>("data", val);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearBufferData(Target, InternalFormat, Format, Type, (const void *)&val[0]);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data)
+{
+	m_Real.glClearBufferData(target, internalformat, format, type, data);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
+		Serialise_glClearBufferData(target, internalformat, format, type, data);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 {
 	SERIALISE_ELEMENT(uint32_t, Mask, mask);
