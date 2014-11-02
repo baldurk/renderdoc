@@ -246,6 +246,7 @@
     HookExtension(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
     HookExtension(PFNGLPATCHPARAMETERFVPROC, glPatchParameterfv); \
     HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
+    HookExtension(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
     HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
@@ -598,6 +599,7 @@
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper2(void, glPatchParameterfv, GLenum, pname, const GLfloat *, values); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
+    HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \

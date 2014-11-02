@@ -74,6 +74,31 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 	}
 }
 
+bool WrappedOpenGL::Serialise_glMemoryBarrier(GLbitfield barriers)
+{
+	SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMemoryBarrier(Barriers);
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
+{
+	m_Real.glMemoryBarrier(barriers);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER);
+		Serialise_glMemoryBarrier(barriers);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);
