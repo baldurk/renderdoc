@@ -819,8 +819,6 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 		if((overlay & eOverlay_Enabled) && m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
 		{
-			RDCLOG("Doing GL overlay");
-
 			GLRenderState old(&m_Real, m_pSerialiser, m_State);
 
 			old.FetchState();
