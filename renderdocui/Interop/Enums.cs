@@ -279,9 +279,9 @@ namespace renderdoc
 
     public enum DebugMessageSeverity
     {
-        Corruption = 0,
-        Error,
-        Warning,
+        High = 0,
+        Medium,
+        Low,
         Info,
     };
 

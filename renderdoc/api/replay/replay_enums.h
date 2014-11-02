@@ -275,9 +275,9 @@ enum DebugMessageCategory
 
 enum DebugMessageSeverity
 {
-	eDbgSeverity_Corruption	= 0,
-	eDbgSeverity_Error,
-	eDbgSeverity_Warning,
+	eDbgSeverity_High	= 0,
+	eDbgSeverity_Medium,
+	eDbgSeverity_Low,
 	eDbgSeverity_Info,
 };
 

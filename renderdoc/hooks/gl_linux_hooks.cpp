@@ -328,7 +328,47 @@ void glXDestroyContext(Display *dpy, GLXContext ctx)
 __attribute__ ((visibility ("default")))
 GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXContext shareList, Bool direct, const int *attribList)
 {
-	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribList);
+	const int *attribs = attribList;
+	vector<int> attribVec;
+
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+	{
+		bool flagsNext = false;
+		bool flagsFound = false;
+		const int *a = attribList;
+		while(*a)
+		{
+			int val = *a;
+
+			if(flagsNext)
+			{
+				val |= GLX_CONTEXT_DEBUG_BIT_ARB;
+				flagsNext = false;
+			}
+
+			if(val == GLX_CONTEXT_FLAGS_ARB)
+			{
+				flagsNext = true;
+				flagsFound = true;
+			}
+
+			attribVec.push_back(val);
+
+			a++;
+		}
+
+		if(!flagsFound)
+		{
+			attribVec.push_back(GLX_CONTEXT_FLAGS_ARB);
+			attribVec.push_back(GLX_CONTEXT_DEBUG_BIT_ARB);
+		}
+
+		attribVec.push_back(0);
+
+		attribs = &attribVec[0];
+	}
+
+	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
 
 	XVisualInfo *vis = OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);	
 	

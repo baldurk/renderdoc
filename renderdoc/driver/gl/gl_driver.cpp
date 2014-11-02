@@ -193,6 +193,8 @@ const char *GLChunkNames[] =
 	"glPushDebugGroup",
 	"glDebugMessageInsert",
 	"glPopDebugGroup",
+	
+	"DebugMessageList",
 
 	"Capture",
 	"BeginCapture",
@@ -536,13 +538,19 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 
 	if(contextHandle)
 	{
+		const GLHookSet &gl = m_Real;
+
+		if(gl.glDebugMessageCallback && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+		{
+			gl.glDebugMessageCallback(&DebugSnoopStatic, this);
+			gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+		}
+
 		FontData &font = m_Fonts[contextHandle];
 
 		if(!font.built)
 		{
 			font.built = true;
-
-			const GLHookSet &gl = m_Real;
 
 			if(gl.glGenTextures && gl.glTextureStorage2DEXT && gl.glTextureSubImage2DEXT &&
 				gl.glGenVertexArrays && gl.glBindVertexArray &&
@@ -1112,6 +1120,8 @@ void WrappedOpenGL::AttemptCapture()
 {
 	m_State = WRITING_CAPFRAME;
 
+	m_DebugMessages.clear();
+
 	{
 		RDCDEBUG("Immediate Context %llu Attempting capture", GetContextResourceID());
 
@@ -1163,8 +1173,83 @@ void WrappedOpenGL::FinishCapture()
 {
 	m_State = WRITING_IDLE;
 
+	m_DebugMessages.clear();
+
 	//m_SuccessfulCapture = false;
 }
+
+vector<DebugMessage> WrappedOpenGL::Serialise_DebugMessages()
+{
+	SCOPED_SERIALISE_CONTEXT(DEBUG_MESSAGES);
+
+	vector<DebugMessage> debugMessages;
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		debugMessages = m_DebugMessages;
+		m_DebugMessages.clear();
+	}
+
+	SERIALISE_ELEMENT(bool, HasCallstack, RenderDoc::Inst().GetCaptureOptions().CaptureCallstacksOnlyDraws != 0);
+
+	if(HasCallstack)
+	{
+		if(m_State >= WRITING)
+		{
+			Callstack::Stackwalk *call = Callstack::Collect();
+
+			RDCASSERT(call->NumLevels() < 0xff);
+
+			size_t numLevels = call->NumLevels();
+			uint64_t *stack = call->GetAddrs();
+
+			m_pSerialiser->Serialise("callstack", stack, numLevels);
+
+			delete call;
+		}
+		else
+		{
+			size_t numLevels = 0;
+			uint64_t *stack = NULL;
+
+			m_pSerialiser->Serialise("callstack", stack, numLevels);
+
+			m_pSerialiser->SetCallstack(stack, numLevels);
+
+			SAFE_DELETE_ARRAY(stack);
+		}
+	}
+
+	SERIALISE_ELEMENT(uint32_t, NumMessages, (uint32_t)debugMessages.size());
+
+	for(uint32_t i=0; i < NumMessages; i++)
+	{
+		ScopedContext scope(m_pSerialiser, NULL, "DebugMessage", "DebugMessage", 0, false);
+
+		string desc;
+		if(m_State >= WRITING)
+			desc = debugMessages[i].description.elems;
+
+		SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
+		SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
+		SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
+		SERIALISE_ELEMENT(string, Description, desc);
+
+		if(m_State == READING)
+		{
+			DebugMessage msg;
+			msg.category = (DebugMessageCategory)Category;
+			msg.severity = (DebugMessageSeverity)Severity;
+			msg.messageID = ID;
+			msg.description = Description;
+
+			debugMessages.push_back(msg);
+		}
+	}
+
+	return debugMessages;
+}
+		
 
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message)
 {
@@ -1172,6 +1257,57 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 	{
 		RDCLOG("Got a Debug message from %hs, type %hs, ID %d, severity %hs:\n'%hs'",
 					ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
+	}
+
+	if(m_State == WRITING_CAPFRAME &&
+	   type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
+	{
+		DebugMessage msg;
+
+		msg.messageID = id;
+		msg.description = string(message, message+length);
+
+		switch(severity)
+		{
+			case eGL_DEBUG_SEVERITY_HIGH:
+				msg.severity = eDbgSeverity_High; break;
+			case eGL_DEBUG_SEVERITY_MEDIUM:
+				msg.severity = eDbgSeverity_Medium; break;
+			case eGL_DEBUG_SEVERITY_LOW:
+				msg.severity = eDbgSeverity_Low; break;
+			case eGL_DEBUG_SEVERITY_NOTIFICATION:
+			default:
+				msg.severity = eDbgSeverity_Info; break;
+		}
+
+		if(source == eGL_DEBUG_SOURCE_APPLICATION || type == eGL_DEBUG_TYPE_MARKER)
+		{
+			msg.category = eDbgCategory_Application_Defined;
+		}
+		else if(source == eGL_DEBUG_SOURCE_SHADER_COMPILER)
+		{
+			msg.category = eDbgCategory_Shaders;
+		}
+		else
+		{
+			switch(type)
+			{
+				case eGL_DEBUG_TYPE_DEPRECATED_BEHAVIOR:
+					msg.category = eDbgCategory_Deprecated; break;
+				case eGL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:
+					msg.category = eDbgCategory_Undefined; break;
+				case eGL_DEBUG_TYPE_PORTABILITY:
+					msg.category = eDbgCategory_Portability; break;
+				case eGL_DEBUG_TYPE_PERFORMANCE:
+					msg.category = eDbgCategory_Performance; break;
+				case eGL_DEBUG_TYPE_ERROR:
+				case eGL_DEBUG_TYPE_OTHER:
+				default:
+					msg.category = eDbgCategory_Miscellaneous; break;
+			}
+		}
+
+		m_DebugMessages.push_back(msg);
 	}
 
 	if(m_RealDebugFunc)

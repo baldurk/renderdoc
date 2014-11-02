@@ -644,7 +644,7 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 
 		DebugMessage msg;
 		msg.category = eDbgCategory_Miscellaneous;
-		msg.severity = eDbgSeverity_Error;
+		msg.severity = eDbgSeverity_Medium;
 
 		switch(message->Category)
 		{
@@ -691,13 +691,13 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 		switch(message->Severity)
 		{
 			case D3D11_MESSAGE_SEVERITY_CORRUPTION:
-				msg.severity = eDbgSeverity_Corruption;
+				msg.severity = eDbgSeverity_High;
 				break;
 			case D3D11_MESSAGE_SEVERITY_ERROR:
-				msg.severity = eDbgSeverity_Error;
+				msg.severity = eDbgSeverity_Medium;
 				break;
 			case D3D11_MESSAGE_SEVERITY_WARNING:
-				msg.severity = eDbgSeverity_Warning;
+				msg.severity = eDbgSeverity_Low;
 				break;
 			case D3D11_MESSAGE_SEVERITY_INFO:
 				msg.severity = eDbgSeverity_Info;

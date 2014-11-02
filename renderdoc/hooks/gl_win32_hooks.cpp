@@ -333,8 +333,48 @@ class OpenGLHook : LibraryHook
 
 		static HGLRC WINAPI wglCreateContextAttribsARB_hooked(HDC dc, HGLRC hShareContext, const int *attribList)
 		{
-			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribList);
+			const int *attribs = attribList;
+			vector<int> attribVec;
+
+			if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+			{
+				bool flagsNext = false;
+				bool flagsFound = false;
+				const int *a = attribList;
+				while(*a)
+				{
+					int val = *a;
+
+					if(flagsNext)
+					{
+						val |= WGL_CONTEXT_DEBUG_BIT_ARB;
+						flagsNext = false;
+					}
+
+					if(val == WGL_CONTEXT_FLAGS_ARB)
+					{
+						flagsNext = true;
+						flagsFound = true;
+					}
+					
+					attribVec.push_back(val);
+
+					a++;
+				}
+
+				if(!flagsFound)
+				{
+					attribVec.push_back(WGL_CONTEXT_FLAGS_ARB);
+					attribVec.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);
+				}
+
+				attribVec.push_back(0);
+
+				attribs = &attribVec[0];
+			}
 			
+			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
+
 			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, hShareContext, GetInitParamsForDC(dc));
 
 			return ret;

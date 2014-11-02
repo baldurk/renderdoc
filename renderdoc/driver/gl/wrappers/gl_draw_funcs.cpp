@@ -38,6 +38,8 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -56,6 +58,8 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall;
+
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 
@@ -91,6 +95,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -110,6 +116,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 
@@ -146,6 +154,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -166,6 +176,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 
@@ -201,6 +213,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -220,6 +234,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -259,6 +275,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -278,6 +296,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -316,6 +336,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -336,6 +358,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -374,6 +398,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -394,6 +420,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -433,6 +461,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -454,6 +484,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -493,6 +525,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -514,6 +548,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -554,6 +590,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -576,6 +614,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
 
 		m_LastDrawMode = Mode;
 		m_LastIndexSize = Type;
@@ -624,6 +664,8 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -635,6 +677,8 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Clear;
+		
+		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -680,6 +724,8 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -691,6 +737,8 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Clear;
+		
+		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -728,6 +776,8 @@ bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, 
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -739,6 +789,8 @@ bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, 
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Clear;
+		
+		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -770,6 +822,8 @@ bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, G
 		m_Real.glClearBufferfi(buf, draw, d, s);
 	
 	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -781,6 +835,8 @@ bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, G
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Clear;
+		
+		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -810,6 +866,8 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
 	if(m_State == READING)
 	{
 		AddEvent(CLEARBUFFERF, desc);
@@ -833,6 +891,8 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Clear;
+		
+		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
