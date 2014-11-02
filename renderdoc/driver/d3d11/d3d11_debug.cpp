@@ -3273,6 +3273,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 	vertexData.TextureResolution.x = 1.0f/vertexData.ScreenAspect.x;
 	vertexData.TextureResolution.y = 1.0f;
 
+	vertexData.LineStrip = 0;
+
 	if(cfg.rangemax <= cfg.rangemin) cfg.rangemax += 0.00001f;
 
 	pixelData.Channels.x = cfg.Red ? 1.0f : 0.0f;
@@ -3592,6 +3594,8 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 	vertCBuffer.TextureResolution.x = xdim;
 	vertCBuffer.TextureResolution.y = ydim;
 
+	vertCBuffer.LineStrip = 1;
+
 	vconst = MakeCBuffer((float *)&vertCBuffer, sizeof(vertCBuffer));
 
 	m_pImmediateContext->HSSetShader(NULL, NULL, 0);
@@ -3642,6 +3646,8 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	vertexData.TextureResolution.x = 1.0f;
 	vertexData.TextureResolution.y = 1.0f;
+
+	vertexData.LineStrip = 0;
 	
 	FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
 
@@ -4459,6 +4465,8 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
 	DebugVertexCBuffer vertexData;
+
+	vertexData.LineStrip = 0;
 
 	D3D11PipelineState pipeState = m_WrappedDevice->GetReplay()->GetD3D11PipelineState();
 	D3D11RenderState *curRS = m_WrappedDevice->GetImmediateContext()->GetCurrentPipelineState();

@@ -63,7 +63,8 @@ cbuffer DebugVertexCBuffer REG(b0)
 	row_major float4x4 ModelViewProj;
 	
 	float Scale;
-	float3 dummy1;
+	uint LineStrip;
+	float2 dummy1;
 };
 
 cbuffer DebugGeometryCBuffer REG(b0)
