@@ -249,6 +249,7 @@
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="core\socket_helpers.h" />
     <ClInclude Include="data\glsl\debuguniforms.h" />
+    <ClInclude Include="data\glsl\texsample.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\version.h" />
@@ -376,6 +377,7 @@
     <None Include="data\glsl\checkerboard.frag" />
     <None Include="data\glsl\generic.frag" />
     <None Include="data\glsl\generic.vert" />
+    <None Include="data\glsl\histogram.comp" />
     <None Include="data\glsl\mesh.vert" />
     <None Include="data\glsl\texdisplay.frag" />
     <None Include="data\glsl\text.frag" />

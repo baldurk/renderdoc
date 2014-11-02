@@ -50,7 +50,7 @@ class GLReplay : public IReplayDriver
 		FetchBuffer GetBuffer(ResourceId id);
 
 		vector<ResourceId> GetTextures();
-		FetchTexture GetTexture(ResourceId id);
+		FetchTexture GetTexture(ResourceId id) { return m_CachedTextures[id]; }
 
 		ShaderReflection *GetShader(ResourceId id);
 		
@@ -175,6 +175,12 @@ class GLReplay : public IReplayDriver
 			string genericvsSource;
 			string genericfsSource;
 
+			// min/max data
+			GLuint minmaxTileResult;       // tile result buffer
+			GLuint minmaxResult;           // Vec4f[2] final result buffer
+			GLuint minmaxResultProgram[3]; // float/uint/sint tile result -> final result program
+			GLuint minmaxTileProgram[32];  // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> tile result buf program
+
 			// program that does a blit of texture from input to output,
 			// no transformation or scaling
 			GLuint blitProg;
@@ -209,6 +215,7 @@ class GLReplay : public IReplayDriver
 		void InitDebugData();
 		
 		GLuint CreateShaderProgram(const char *vs, const char *ps);
+		GLuint CreateCShaderProgram(const char *cs);
 
 		void InitOutputWindow(OutputWindow &outwin);
 		void CreateOutputWindowBackbuffer(OutputWindow &outwin);
@@ -224,6 +231,10 @@ class GLReplay : public IReplayDriver
 		map<uint64_t, OutputWindow> m_OutputWindows;
 
 		bool m_Proxy;
+		
+		void CacheTexture(ResourceId id);
+
+		map<ResourceId, FetchTexture> m_CachedTextures;
 
 		WrappedOpenGL *m_pDriver;
 

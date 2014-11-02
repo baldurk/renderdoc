@@ -30,6 +30,7 @@
 #define vec2 Vec2f
 #define vec3 Vec3f
 #define vec4 Vec4f
+#define uint uint32_t
 
 #define BINDING(b)
 
@@ -72,6 +73,22 @@ BINDING(0) uniform FontUniforms
 	vec2  FontScreenAspect;
 };
 
+BINDING(0) uniform HistogramCBufferData
+{
+	uint HistogramChannels;
+	float HistogramMin;
+	float HistogramMax;
+	uint HistogramFlags;
+	
+	float HistogramSlice;
+	int HistogramMip;
+	int HistogramSample;
+	uint Padding2;
+
+	vec3 HistogramTextureResolution;
+	float Padding3;
+};
+
 // some constants available to both C++ and GLSL for configuring display
 #define CUBEMAP_FACE_POS_X 0
 #define CUBEMAP_FACE_NEG_X 1
@@ -92,4 +109,18 @@ BINDING(0) uniform FontUniforms
 #define TEXDISPLAY_UINT_TEX   0x8
 #define TEXDISPLAY_SINT_TEX   0x10
 #define TEXDISPLAY_DEPTH_TEX  0x20
+
+
+// histogram/minmax is calculated in blocks of NxN each with MxM tiles.
+// e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.
+// 1 compute thread = 1 tile, 1 compute group = 1 block
+//
+// NOTE because of this a block can cover more than the texture (think of a 1280x720
+// texture covered by 2x1 blocks)
+//
+// these values are in each dimension
+#define HGRAM_PIXELS_PER_TILE  64
+#define HGRAM_TILES_PER_BLOCK  32
+
+#define HGRAM_NUM_BUCKETS	   256
 

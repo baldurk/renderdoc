@@ -30,6 +30,48 @@
 
 #include "common/string_utils.h"
 
+GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
+{
+	if(m_pDriver == NULL) return 0;
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+	
+	WrappedOpenGL &gl = *m_pDriver;
+
+	GLuint cs = gl.glCreateShader(eGL_COMPUTE_SHADER);
+
+	gl.glShaderSource(cs, 1, &csSrc, NULL);
+
+	gl.glCompileShader(cs);
+
+	char buffer[1024];
+	GLint status = 0;
+
+	gl.glGetShaderiv(cs, eGL_COMPILE_STATUS, &status);
+	if(status == 0)
+	{
+		gl.glGetShaderInfoLog(cs, 1024, NULL, buffer);
+		RDCERR("Shader error: %hs", buffer);
+	}
+
+	GLuint ret = gl.glCreateProgram();
+
+	gl.glAttachShader(ret, cs);
+
+	gl.glLinkProgram(ret);
+	
+	gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
+	if(status == 0)
+	{
+		gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
+		RDCERR("Link error: %hs", buffer);
+	}
+
+	gl.glDeleteShader(cs);
+
+	return ret;
+}
+
 GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 {
 	if(m_pDriver == NULL) return 0;
@@ -49,20 +91,20 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 	gl.glCompileShader(vs);
 	gl.glCompileShader(fs);
 
-	char buffer[4096];
+	char buffer[1024];
 	GLint status = 0;
 
 	gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
 	if(status == 0)
 	{
-		gl.glGetShaderInfoLog(vs, 4096, NULL, buffer);
+		gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
 		RDCERR("Shader error: %hs", buffer);
 	}
 
 	gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
 	if(status == 0)
 	{
-		gl.glGetShaderInfoLog(fs, 4096, NULL, buffer);
+		gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
 		RDCERR("Shader error: %hs", buffer);
 	}
 
@@ -89,6 +131,8 @@ void GLReplay::InitDebugData()
 		uint64_t id = MakeOutputWindow(NULL, true);
 
 		m_DebugCtx = &m_OutputWindows[id];
+
+		MakeCurrentReplayContext(m_DebugCtx);
 	}
 
 	DebugData.outWidth = 0.0f; DebugData.outHeight = 0.0f;
@@ -99,6 +143,7 @@ void GLReplay::InitDebugData()
 	DebugData.blitProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.blitfsSource.c_str());
 
 	string texfs = GetEmbeddedResource(debuguniforms_h);
+	texfs += GetEmbeddedResource(texsample_h);
 	texfs += GetEmbeddedResource(texdisplay_frag);
 
 	DebugData.texDisplayProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), texfs.c_str());
@@ -153,7 +198,10 @@ void GLReplay::InitDebugData()
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
 		gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-		gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(texdisplay), NULL, eGL_DYNAMIC_DRAW);
+		gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);
+		RDCCOMPILE_ASSERT(sizeof(texdisplay) < 512, "texdisplay UBO too large");
+		RDCCOMPILE_ASSERT(sizeof(FontUniforms) < 512, "texdisplay UBO too large");
+		RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) < 512, "texdisplay UBO too large");
 	}
 
 	DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
@@ -174,11 +222,185 @@ void GLReplay::InitDebugData()
 
 	gl.glGenVertexArrays(1, &DebugData.emptyVAO);
 	gl.glBindVertexArray(DebugData.emptyVAO);
+	
+	// histogram/minmax data
+	{
+		string glslheader = GetEmbeddedResource(debuguniforms_h);
+
+		string histogramglsl = GetEmbeddedResource(texsample_h);
+		histogramglsl += GetEmbeddedResource(histogram_comp);
+
+		RDCEraseEl(DebugData.minmaxTileProgram);
+		RDCEraseEl(DebugData.histogramProgram);
+		RDCEraseEl(DebugData.minmaxResultProgram);
+
+		for(int t=1; t <= TEXDISPLAY_TYPEMASK; t++)
+		{
+			// float, uint, sint
+			for(int i=0; i < 3; i++)
+			{
+				int idx = t;
+				if(i == 1) idx |= TEXDISPLAY_UINT_TEX;
+				if(i == 2) idx |= TEXDISPLAY_SINT_TEX;
+
+				{
+					string glsl = glslheader;
+					glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+					glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+					glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+					glsl += string("#define RENDERDOC_TileMinMaxCS 1\n");
+					glsl += histogramglsl;
+
+					DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(glsl.c_str());
+				}
+
+				if(t == 1)
+				{
+					string glsl = glslheader;
+					glsl += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+					glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+					glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+					glsl += string("#define RENDERDOC_ResultMinMaxCS 1\n");
+					glsl += histogramglsl;
+
+					DebugData.minmaxResultProgram[i] = CreateCShaderProgram(glsl.c_str());
+				}
+			}
+		}
+
+		gl.glGenBuffers(1, &DebugData.minmaxTileResult);
+		gl.glGenBuffers(1, &DebugData.minmaxResult);
+		
+		const uint32_t maxTexDim = 16384;
+		const uint32_t blockPixSize = HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK;
+		const uint32_t maxBlocksNeeded = (maxTexDim*maxTexDim)/(blockPixSize*blockPixSize);
+
+		const size_t byteSize = 2*sizeof(Vec4f)*HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK*maxBlocksNeeded;
+
+		gl.glNamedBufferStorageEXT(DebugData.minmaxTileResult, byteSize, NULL, 0);
+		gl.glNamedBufferStorageEXT(DebugData.minmaxResult, sizeof(Vec4f)*2, NULL, GL_MAP_READ_BIT);
+	}
 
 	MakeCurrentReplayContext(&m_ReplayCtx);
 
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
 	gl.glBindVertexArray(DebugData.meshVAO);
+}
+
+bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
+{
+	if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
+		return false;
+	
+	auto &texDetails = m_pDriver->m_Textures[texid];
+
+	FetchTexture details = GetTexture(texid);
+
+	const GLHookSet &gl = m_pDriver->GetHookset();
+	
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+	HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
+	                                                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+	cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width>>mip, 1U);
+	cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height>>mip, 1U);
+	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
+	cdata->HistogramSlice = (float)sliceFace;
+	cdata->HistogramMip = (int)mip;
+	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
+	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
+	cdata->HistogramMin = 0.0f;
+	cdata->HistogramMax = 1.0f;
+	cdata->HistogramChannels = 0xf;
+	
+	int texSlot = 0;
+	int intIdx = 0;
+	
+	switch (texDetails.curType)
+	{
+		case eGL_TEXTURE_1D:
+			texSlot = RESTYPE_TEX1D;
+			break;
+		default:
+			RDCWARN("Unexpected texture type");
+		case eGL_TEXTURE_2D:
+			texSlot = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_3D:
+			texSlot = RESTYPE_TEX3D;
+			break;
+		case eGL_TEXTURE_CUBE_MAP:
+			texSlot = RESTYPE_TEXCUBE;
+			break;
+		case eGL_TEXTURE_1D_ARRAY:
+			texSlot = RESTYPE_TEX1DARRAY;
+			break;
+		case eGL_TEXTURE_2D_ARRAY:
+			texSlot = RESTYPE_TEX2DARRAY;
+			break;
+		case eGL_TEXTURE_CUBE_MAP_ARRAY:
+			texSlot = RESTYPE_TEXCUBEARRAY;
+			break;
+	}
+
+	if(details.format.compType == eCompType_UInt)
+	{
+		texSlot |= TEXDISPLAY_UINT_TEX;
+		intIdx = 1;
+	}
+	if(details.format.compType == eCompType_SInt)
+	{
+		texSlot |= TEXDISPLAY_SINT_TEX;
+		intIdx = 2;
+	}
+	
+	if(details.dimension == 3)
+		cdata->HistogramSlice = float(sliceFace)/float(details.depth);
+	
+	int blocksX = (int)ceil(cdata->HistogramTextureResolution.x/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	int blocksY = (int)ceil(cdata->HistogramTextureResolution.y/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+
+	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
+	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+	gl.glBindSampler(texSlot, DebugData.pointSampler);
+	
+	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxTileResult);
+
+	gl.glUseProgram(DebugData.minmaxTileProgram[texSlot]);
+	gl.glDispatchCompute(blocksX, blocksY, 1);
+
+	gl.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxResult);
+	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 1, DebugData.minmaxTileResult);
+	
+	gl.glUseProgram(DebugData.minmaxResultProgram[intIdx]);
+	gl.glDispatchCompute(1, 1, 1);
+
+	gl.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+
+	Vec4f minmax[2];
+	gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.minmaxResult);
+	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(minmax), minmax);
+
+	minval[0] = minmax[0].x;
+	minval[1] = minmax[0].y;
+	minval[2] = minmax[0].z;
+	minval[3] = minmax[0].w;
+
+	maxval[0] = minmax[1].x;
+	maxval[1] = minmax[1].y;
+	maxval[2] = minmax[1].z;
+	maxval[3] = minmax[1].w;
+
+	return true;
+}
+
+bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+{
+	return true;
 }
 
 void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
@@ -236,29 +458,29 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	int resType;
 	switch (texDetails.curType)
 	{
-	case eGL_TEXTURE_1D:
-		resType = RESTYPE_TEX1D;
-		break;
-	default:
-		RDCWARN("Unexpected texture type");
-	case eGL_TEXTURE_2D:
-		resType = RESTYPE_TEX2D;
-		break;
-	case eGL_TEXTURE_3D:
-		resType = RESTYPE_TEX3D;
-		break;
-	case eGL_TEXTURE_CUBE_MAP:
-		resType = RESTYPE_TEXCUBE;
-		break;
-	case eGL_TEXTURE_1D_ARRAY:
-		resType = RESTYPE_TEX1DARRAY;
-		break;
-	case eGL_TEXTURE_2D_ARRAY:
-		resType = RESTYPE_TEX2DARRAY;
-		break;
-	case eGL_TEXTURE_CUBE_MAP_ARRAY:
-		resType = RESTYPE_TEXCUBEARRAY;
-		break;
+		case eGL_TEXTURE_1D:
+			resType = RESTYPE_TEX1D;
+			break;
+		default:
+			RDCWARN("Unexpected texture type");
+		case eGL_TEXTURE_2D:
+			resType = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_3D:
+			resType = RESTYPE_TEX3D;
+			break;
+		case eGL_TEXTURE_CUBE_MAP:
+			resType = RESTYPE_TEXCUBE;
+			break;
+		case eGL_TEXTURE_1D_ARRAY:
+			resType = RESTYPE_TEX1DARRAY;
+			break;
+		case eGL_TEXTURE_2D_ARRAY:
+			resType = RESTYPE_TEX2DARRAY;
+			break;
+		case eGL_TEXTURE_CUBE_MAP_ARRAY:
+			resType = RESTYPE_TEXCUBEARRAY;
+			break;
 	}
 
 	RDCGLenum dsTexMode = eGL_NONE;

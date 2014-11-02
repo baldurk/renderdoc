@@ -95,7 +95,10 @@ vector<ResourceId> GLReplay::GetTextures()
 	vector<ResourceId> ret;
 	
 	for(auto it=m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
+	{
 		ret.push_back(it->first);
+		CacheTexture(it->first);
+	}
 
 	return ret;
 }
@@ -309,7 +312,7 @@ bool GLReplay::IsRenderOutput(ResourceId id)
 	return false;
 }
 
-FetchTexture GLReplay::GetTexture(ResourceId id)
+void GLReplay::CacheTexture(ResourceId id)
 {
 	FetchTexture tex;
 	
@@ -321,7 +324,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 	{
 		RDCERR("Details for invalid texture id %llu requested", id);
 		RDCEraseEl(tex);
-		return tex;
+		return;
 	}
 	
 	WrappedOpenGL &gl = *m_pDriver;
@@ -478,7 +481,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 		}
 	}
 
-	return tex;
+	m_CachedTextures[id] = tex;
 }
 
 FetchBuffer GLReplay::GetBuffer(ResourceId id)
@@ -1424,18 +1427,6 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 }
 
 #pragma endregion
-
-bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
-{
-	RDCUNIMPLEMENTED("GetMinMax");
-	return false;
-}
-
-bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
-{
-	RDCUNIMPLEMENTED("GetHistogram");
-	return false;
-}
 
 void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 {

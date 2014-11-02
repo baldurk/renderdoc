@@ -57,6 +57,7 @@ os/linux/linux_stringio.o \
 os/linux/linux_threading.o \
 hooks/linux_libentry.o
 DATA=data/glsl/debuguniforms.ho \
+data/glsl/texsample.ho \
 data/glsl/blit.frago \
 data/glsl/blit.verto \
 data/glsl/texdisplay.frago \
@@ -66,6 +67,7 @@ data/glsl/generic.verto \
 data/glsl/mesh.verto \
 data/glsl/text.verto \
 data/glsl/text.frago \
+data/glsl/histogram.compo \
 data/sourcecodepro.ttfo
 
 .PHONY: all
@@ -83,25 +85,28 @@ $(OBJDIR)/%.o: %.c
 
 # objcopy needs to be run in with paths in current directory
 # to produce the right symbol names
+OBJGEN = \
+mkdir -p $$(dirname $@); \
+cd $$(dirname $<); \
+objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@); \
+cd - > /dev/null 2>&1; \
+mv $$(dirname $<)/$$(basename $@) $@;
+
 $(OBJDIR)/%.verto: %.vert
-	@mkdir -p $$(dirname $@)
-	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
-	@mv $$(dirname $<)/$$(basename $@) $@
-
+	@echo Object building $@
+	@$(OBJGEN)
 $(OBJDIR)/%.frago: %.frag
-	@mkdir -p $$(dirname $@)
-	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
-	@mv $$(dirname $<)/$$(basename $@) $@
-
+	@echo Object building $@
+	@$(OBJGEN)
+$(OBJDIR)/%.compo: %.comp
+	@echo Object building $@
+	@$(OBJGEN)
 $(OBJDIR)/%.ttfo: %.ttf
-	@mkdir -p $$(dirname $@)
-	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
-	@mv $$(dirname $<)/$$(basename $@) $@
-
+	@echo Object building $@
+	@$(OBJGEN)
 $(OBJDIR)/%.ho: %.h
-	@mkdir -p $$(dirname $@)
-	cd $$(dirname $<) && objcopy --input binary --output elf64-x86-64 --binary-architecture i386 $$(basename $<) $$(basename $@)
-	@mv $$(dirname $<)/$$(basename $@) $@
+	@echo Object building $@
+	@$(OBJGEN)
 
 OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))

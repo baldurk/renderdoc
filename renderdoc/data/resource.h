@@ -21,6 +21,8 @@
 #define RESOURCE_debuguniforms_h    208
 #define RESOURCE_text_vert          209
 #define RESOURCE_text_frag          210
+#define RESOURCE_texsample_h        211
+#define RESOURCE_histogram_comp     212
 
 #define RESOURCE_sourcecodepro_ttf  301
 

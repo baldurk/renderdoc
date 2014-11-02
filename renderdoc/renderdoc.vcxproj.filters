@@ -303,6 +303,9 @@
     <ClInclude Include="3rdparty\stb\stb_truetype.h">
       <Filter>3rdparty\stb</Filter>
     </ClInclude>
+    <ClInclude Include="data\glsl\texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -563,6 +566,9 @@
       <Filter>Resources\glsl</Filter>
     </None>
     <None Include="data\glsl\text.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\histogram.comp">
       <Filter>Resources\glsl</Filter>
     </None>
   </ItemGroup>
