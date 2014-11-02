@@ -139,6 +139,9 @@ cbuffer HistogramCBufferData REG(b0)
 #define TEXDISPLAY_SINT_TEX      0x0800
 #define TEXDISPLAY_GAMMA_CURVE   0x1000
 
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.192092896e-07f
+#endif
 
 // histogram/minmax is calculated in blocks of NxN each with MxM tiles.
 // e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.

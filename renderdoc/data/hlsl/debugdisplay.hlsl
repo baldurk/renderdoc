@@ -137,7 +137,7 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
 		   return float4(1, 0, 0, 1);
 
-		if(col.r > 1 || col.g > 1 || col.b > 1 || col.a > 1)
+		if(col.r > (1+FLT_EPSILON) || col.g > (1+FLT_EPSILON) || col.b > (1+FLT_EPSILON) || col.a > (1+FLT_EPSILON))
 		   return float4(0, 1, 0, 1);
 		
 		col = float4(dot(col.xyz, float3(0.2126, 0.7152, 0.0722)).xxx, 1);
