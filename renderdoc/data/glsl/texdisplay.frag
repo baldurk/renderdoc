@@ -98,9 +98,47 @@ void main(void)
 	col = ((col - RangeMinimum)*InverseRangeSize);
 
 	col = mix(vec4(0,0,0,1), col, Channels);
+	
+	// show nans, infs and negatives
+	if((OutputDisplayFormat & TEXDISPLAY_NANS) > 0)
+	{
+		if(isnan(col.r) || isnan(col.g) || isnan(col.b) || isnan(col.a))
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+		   
+		if(isinf(col.r) || isinf(col.g) || isinf(col.b) || isinf(col.a))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
 
-	// TODO: check OutputDisplayFormat to see if we should highlight NaNs or clipping
-	// else
+		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		{
+		   color_out = vec4(0, 0, 1, 1);
+		   return;
+		}
+		
+		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+	}
+	else if((OutputDisplayFormat & TEXDISPLAY_CLIPPING) > 0)
+	{
+		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+
+		if(col.r > (1+FLT_EPSILON) || col.g > (1+FLT_EPSILON) || col.b > (1+FLT_EPSILON) || col.a > (1+FLT_EPSILON))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
+		
+		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+	}
+	else
 	{
 		// if only one channel is selected
 		if(dot(Channels, 1.0f.xxxx) == 1.0f.xxxx)

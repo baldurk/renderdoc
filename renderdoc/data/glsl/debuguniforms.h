@@ -109,7 +109,12 @@ BINDING(0) uniform HistogramCBufferData
 #define TEXDISPLAY_UINT_TEX   0x8
 #define TEXDISPLAY_SINT_TEX   0x10
 #define TEXDISPLAY_DEPTH_TEX  0x20
+#define TEXDISPLAY_NANS       0x40
+#define TEXDISPLAY_CLIPPING   0x80
 
+#ifndef FLT_EPSILON
+#define FLT_EPSILON 1.192092896e-07f
+#endif
 
 // histogram/minmax is calculated in blocks of NxN each with MxM tiles.
 // e.g. a tile is 32x32 pixels, then this is arranged in blocks of 32x32 tiles.

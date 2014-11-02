@@ -725,6 +725,12 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	if(dsTexMode != eGL_NONE)
 		ubo->OutputDisplayFormat |= TEXDISPLAY_DEPTH_TEX;
+	
+	if(cfg.overlay == eTexOverlay_NaN)
+		ubo->OutputDisplayFormat |= TEXDISPLAY_NANS;
+
+	if(cfg.overlay == eTexOverlay_Clipping)
+		ubo->OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
 
 	ubo->RawOutput = cfg.rawoutput ? 1 : 0;
 
