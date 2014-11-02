@@ -264,7 +264,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	RDCGLenum dsTexMode = eGL_NONE;
 	if (tex.creationFlags & eTextureCreate_DSV)
 	{
-		if (cfg.Green)
+		if (!cfg.Red && cfg.Green)
 		{
 			dsTexMode = eGL_STENCIL_INDEX;
 
