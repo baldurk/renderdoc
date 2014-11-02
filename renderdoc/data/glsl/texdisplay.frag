@@ -268,6 +268,7 @@ void main(void)
 {
 	bool uintTex = (OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
 	bool sintTex = (OutputDisplayFormat & TEXDISPLAY_SINT_TEX) != 0;
+	bool depthTex = (OutputDisplayFormat & TEXDISPLAY_DEPTH_TEX) != 0;
 
 	vec4 col;
 	uvec4 ucol;
@@ -287,7 +288,7 @@ void main(void)
 	}
 	else
 	{
-		col = SampleTextureFloat4(scr / Scale, OutputDisplayFormat & TEXDISPLAY_TYPEMASK, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0), int(MipLevel), Slice);
+		col = SampleTextureFloat4(scr / Scale, OutputDisplayFormat & TEXDISPLAY_TYPEMASK, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0 && !depthTex), int(MipLevel), Slice);
 	}
 
 	if(RawOutput != 0)

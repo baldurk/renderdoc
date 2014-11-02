@@ -91,4 +91,5 @@ BINDING(0) uniform FontUniforms
 #define TEXDISPLAY_TYPEMASK   0x7
 #define TEXDISPLAY_UINT_TEX   0x8
 #define TEXDISPLAY_SINT_TEX   0x10
+#define TEXDISPLAY_DEPTH_TEX  0x20
 

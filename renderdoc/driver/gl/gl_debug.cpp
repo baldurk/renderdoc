@@ -388,6 +388,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	ubo->OutputDisplayFormat = resType;
 
+	if(dsTexMode != eGL_NONE)
+		ubo->OutputDisplayFormat |= TEXDISPLAY_DEPTH_TEX;
+
 	ubo->RawOutput = cfg.rawoutput ? 1 : 0;
 
 	ubo->TextureResolutionPS.x = float(tex_x);
