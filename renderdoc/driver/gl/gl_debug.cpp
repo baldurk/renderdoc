@@ -303,7 +303,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			case eCompType_UInt:
 				resType |= TEXDISPLAY_UINT_TEX;
 				break;
-			case eCompType_SNorm:
+			case eCompType_SInt:
 				resType |= TEXDISPLAY_SINT_TEX;
 				break;
 			default:
