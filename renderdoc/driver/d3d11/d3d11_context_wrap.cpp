@@ -4650,12 +4650,6 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion( ID3D11Resource *pDstReso
 			// GPU dirty. Just let initial state handle this.
 			
 			m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pDstResource));
-
-			RDCASSERT(
-				(WrappedID3D11Texture1D::IsAlloc(pDstResource) && WrappedID3D11Texture1D::IsAlloc(pSrcResource)) ||
-				(WrappedID3D11Texture2D::IsAlloc(pDstResource) && WrappedID3D11Texture2D::IsAlloc(pSrcResource)) ||
-				(WrappedID3D11Texture3D::IsAlloc(pDstResource) && WrappedID3D11Texture3D::IsAlloc(pSrcResource))
-				);
 		}
 	}
 
