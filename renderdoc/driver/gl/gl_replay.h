@@ -185,6 +185,8 @@ class GLReplay : public IReplayDriver
 			GLuint minmaxTileProgram[32];  // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> tile result buf program
 			GLuint histogramProgram[32];   // RESTYPE indexed (see debuguniforms.h, 1d/2d/3d etc | uint/sint) src tex -> histogram result buf program
 
+			GLuint replayQuadProg;
+
 			// program that does a blit of texture from input to output,
 			// no transformation or scaling
 			GLuint blitProg;

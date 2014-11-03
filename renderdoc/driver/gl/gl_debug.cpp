@@ -298,6 +298,8 @@ void GLReplay::InitDebugData()
 
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
 	gl.glBindVertexArray(DebugData.meshVAO);
+	
+	DebugData.replayQuadProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.genericfsSource.c_str());
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)
@@ -919,7 +921,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	GLuint curDrawFBO = 0;
 	GLuint curReadFBO = 0;
 	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
-	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+	gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
 
 	void *ctx = m_ReplayCtx.ctx;
 	
@@ -1014,6 +1016,142 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		
 		gl.glUseProgram(curProg);
 	}
+	else if(overlay == eTexOverlay_DepthBoth || overlay == eTexOverlay_StencilBoth)
+	{
+		gl.glUseProgram(progDetails.colOutProg);
+		
+		CopyProgramUniforms(gl, curProg, progDetails.colOutProg);
+		
+		float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		gl.glClearBufferfv(eGL_COLOR, 0, black);
+
+		GLint depthTest = GL_FALSE;
+		gl.glGetIntegerv(eGL_DEPTH_TEST, (GLint*)&depthTest);
+		GLint depthMask = GL_FALSE;
+		gl.glGetIntegerv(eGL_DEPTH_WRITEMASK, (GLint*)&depthMask);
+		
+		GLint stencilTest = GL_FALSE;
+		gl.glGetIntegerv(eGL_STENCIL_TEST, (GLint*)&stencilTest);
+		GLuint stencilMaskFront = 0xff;
+		gl.glGetIntegerv(eGL_STENCIL_WRITEMASK, (GLint*)&stencilMaskFront);
+		GLuint stencilMaskBack = 0xff;
+		gl.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, (GLint*)&stencilMaskBack);
+		
+		gl.glDisable(eGL_DEPTH_TEST);
+		gl.glDepthMask(GL_FALSE);
+		gl.glDisable(eGL_STENCIL_TEST);
+		gl.glStencilMask(0);
+
+		GLint colLoc = gl.glGetUniformLocation(progDetails.colOutProg, "RENDERDOC_GenericFS_Color");
+		float red[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, red);
+
+		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		GLuint curDepth = 0, curStencil = 0;
+
+		gl.glGetNamedFramebufferAttachmentParameterivEXT(curDrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
+		gl.glGetNamedFramebufferAttachmentParameterivEXT(curDrawFBO, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
+
+		GLuint depthCopy = 0, stencilCopy = 0;
+
+		// TODO fetch mip in use
+		// TODO handle non-2D and fetch slice
+		GLint mip = 0;
+
+		// create matching depth for existing FBO
+		if(curDepth != 0)
+		{
+			GLuint curTex = 0;
+			gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&curTex);
+
+			GLenum fmt;
+			gl.glGetTextureLevelParameterivEXT(curDepth, eGL_TEXTURE_2D, mip, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+
+			gl.glGenTextures(1, &depthCopy);
+			gl.glBindTexture(eGL_TEXTURE_2D, depthCopy);
+			gl.glTexStorage2D(eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+
+			gl.glBindTexture(eGL_TEXTURE_2D, curTex);
+		}
+
+		// create matching separate stencil if relevant
+		if(curStencil != curDepth && curStencil != 0)
+		{
+			GLuint curTex = 0;
+			gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&curTex);
+
+			GLenum fmt;
+			gl.glGetTextureLevelParameterivEXT(curStencil, eGL_TEXTURE_2D, mip, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+
+			gl.glGenTextures(1, &stencilCopy);
+			gl.glBindTexture(eGL_TEXTURE_2D, stencilCopy);
+			gl.glTexStorage2D(eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+
+			gl.glBindTexture(eGL_TEXTURE_2D, curTex);
+		}
+
+		// bind depth/stencil to overlay FBO
+		if(curDepth != 0 && curDepth == curStencil)
+			gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy, mip);
+		else if(curDepth != 0)
+			gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip);
+		else if(curStencil != 0)
+			gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip);
+
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curDrawFBO);
+
+		float green[] = { 0.0f, 1.0f, 0.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, green);
+
+		if(overlay == eTexOverlay_DepthBoth)
+		{
+			gl.glEnable(eGL_DEPTH_TEST);
+			gl.glDepthMask(GL_TRUE);
+		}
+		else
+		{
+			gl.glEnable(eGL_STENCIL_TEST);
+			gl.glStencilMask(0xff);
+		}
+
+		// get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
+		gl.glBlitFramebuffer(0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight,
+		                     0, 0, DebugData.overlayTexWidth, DebugData.overlayTexHeight,
+												 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+
+		ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		// unset and delete temp depth/stencil
+		gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+		if(depthCopy != 0)   gl.glDeleteTextures(1, &depthCopy);
+		if(stencilCopy != 0) gl.glDeleteTextures(1, &stencilCopy);
+
+		if(depthTest)
+			gl.glEnable(eGL_DEPTH_TEST);
+		else
+			gl.glDisable(eGL_DEPTH_TEST);
+
+		gl.glDepthMask(depthMask ? GL_TRUE : GL_FALSE);
+		
+		if(stencilTest)
+			gl.glEnable(eGL_STENCIL_TEST);
+		else
+			gl.glDisable(eGL_STENCIL_TEST);
+
+		gl.glStencilMaskSeparate(eGL_FRONT, stencilMaskFront);
+		gl.glStencilMaskSeparate(eGL_BACK, stencilMaskBack);
+
+		gl.glUseProgram(curProg);
+	}
 	else if(overlay == eTexOverlay_Wireframe)
 	{
 		gl.glUseProgram(progDetails.colOutProg);
@@ -1042,6 +1180,75 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		if(polyMode != eGL_LINE)
 			gl.glPolygonMode(eGL_FRONT_AND_BACK, polyMode);
 		
+		gl.glUseProgram(curProg);
+	}
+	else if(overlay == eTexOverlay_ViewportScissor)
+	{
+		float col[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+		GLint depthTest = GL_FALSE;
+		gl.glGetIntegerv(eGL_DEPTH_TEST, (GLint*)&depthTest);
+		GLint depthMask = GL_FALSE;
+		gl.glGetIntegerv(eGL_DEPTH_WRITEMASK, (GLint*)&depthMask);
+		
+		GLint stencilTest = GL_FALSE;
+		gl.glGetIntegerv(eGL_STENCIL_TEST, (GLint*)&stencilTest);
+		GLuint stencilMaskFront = 0;
+		gl.glGetIntegerv(eGL_STENCIL_WRITEMASK, (GLint*)&stencilMaskFront);
+		GLuint stencilMaskBack = 0;
+		gl.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, (GLint*)&stencilMaskBack);
+		
+		GLint cullMask = GL_FALSE;
+		gl.glGetIntegerv(eGL_CULL_FACE, (GLint*)&cullMask);
+		GLint scissorTest = GL_FALSE;
+		gl.glGetIntegeri_v(eGL_SCISSOR_TEST, 0, (GLint*)&scissorTest);
+		
+		gl.glDisable(eGL_DEPTH_TEST);
+		gl.glDepthMask(GL_FALSE);
+		gl.glDisable(eGL_STENCIL_TEST);
+		gl.glStencilMaskSeparate(eGL_FRONT, 0);
+		gl.glStencilMaskSeparate(eGL_BACK, 0);
+		gl.glDisable(eGL_CULL_FACE);
+		gl.glDisablei(eGL_SCISSOR_TEST, 0);
+		
+		gl.glUseProgram(DebugData.replayQuadProg);
+		
+		GLint colLoc = gl.glGetUniformLocation(DebugData.replayQuadProg, "RENDERDOC_GenericFS_Color");
+		float viewportConsts[] = { 0.15f, 0.3f, 0.6f, 0.3f };
+		gl.glUniform4fv(colLoc, 1, viewportConsts);
+
+		gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+		
+		gl.glEnablei(eGL_SCISSOR_TEST, 0);
+		
+		float scissorConsts[] = { 0.5f, 0.6f, 0.8f, 0.3f };
+		gl.glUniform4fv(colLoc, 1, scissorConsts);
+
+		gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+		
+		if(depthTest)
+			gl.glEnable(eGL_DEPTH_TEST);
+		else
+			gl.glDisable(eGL_DEPTH_TEST);
+		gl.glDepthMask(depthMask ? GL_TRUE : GL_FALSE);
+		
+		if(stencilTest)
+			gl.glEnable(eGL_STENCIL_TEST);
+		else
+			gl.glDisable(eGL_STENCIL_TEST);
+		gl.glStencilMaskSeparate(eGL_FRONT, stencilMaskFront);
+		gl.glStencilMaskSeparate(eGL_BACK, stencilMaskBack);
+
+		if(cullMask)
+			gl.glEnable(eGL_CULL_FACE);
+		else
+			gl.glDisable(eGL_CULL_FACE);
+		if(scissorTest)
+			gl.glEnablei(eGL_SCISSOR_TEST, 0);
+		else
+			gl.glDisablei(eGL_SCISSOR_TEST, 0);
+
 		gl.glUseProgram(curProg);
 	}
 	
