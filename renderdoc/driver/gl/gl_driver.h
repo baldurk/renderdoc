@@ -558,14 +558,45 @@ class WrappedOpenGL
 		{
 			UNIFORM_UNKNOWN,
 
-			VEC1FV,
-			VEC1IV,
-			VEC1UIV,
-			VEC2FV,
-			VEC3FV,
-			VEC4FV,
+			VEC1fv,
+			VEC1iv,
+			VEC1uiv,
+			VEC1dv,
 
-			MAT4FV,
+			VEC2fv,
+			VEC2iv,
+			VEC2uiv,
+			VEC2dv,
+
+			VEC3fv,
+			VEC3iv,
+			VEC3uiv,
+			VEC3dv,
+
+			VEC4fv,
+			VEC4iv,
+			VEC4uiv,
+			VEC4dv,
+
+			MAT2fv,
+			MAT2x3fv,
+			MAT2x4fv,
+			MAT3fv,
+			MAT3x2fv,
+			MAT3x4fv,
+			MAT4fv,
+			MAT4x2fv,
+			MAT4x3fv,
+			
+			MAT2dv,
+			MAT2x3dv,
+			MAT2x4dv,
+			MAT3dv,
+			MAT3x2dv,
+			MAT3x4dv,
+			MAT4dv,
+			MAT4x2dv,
+			MAT4x3dv,
 		};
 
 		bool Serialise_glUniformMatrix(GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type);
@@ -574,25 +605,111 @@ class WrappedOpenGL
 		bool Serialise_glProgramUniformMatrix(GLuint program, GLint location, GLsizei count, GLboolean transpose, const void *value, UniformType type);
 		bool Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count, const void *value, UniformType type);
 
-		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1f(GLint location, GLfloat value));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1i(GLint location, GLint value));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1ui(GLint location, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1f(GLint location, GLfloat v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1i(GLint location, GLint v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1ui(GLint location, GLuint v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1d(GLint location, GLdouble v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2f(GLint location, GLfloat v0, GLfloat v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2i(GLint location, GLint v0, GLint v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2ui(GLint location, GLuint v0, GLuint v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2d(GLint location, GLdouble v0, GLdouble v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3i(GLint location, GLint v0, GLint v1, GLint v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3ui(GLint location, GLuint v0, GLuint v1, GLuint v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3d(GLint location, GLdouble v0, GLdouble v1, GLdouble v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4f(GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4i(GLint location, GLint v0, GLint v1, GLint v2, GLint v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4ui(GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4d(GLint location, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3));
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1iv(GLint location, GLsizei count, const GLint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1uiv(GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1fv(GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform1dv(GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2iv(GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2uiv(GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2fv(GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform2dv(GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3iv(GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3uiv(GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3fv(GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform3dv(GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4iv(GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4uiv(GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4fv(GLint location, GLsizei count, const GLfloat *value));
-		
-		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniform4dv(GLint location, GLsizei count, const GLdouble *value));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1f(GLuint program, GLint location, GLfloat v0));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1i(GLuint program, GLint location, GLint v0));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1ui(GLuint program, GLint location, GLuint v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1d(GLuint program, GLint location, GLdouble v0));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2f(GLuint program, GLint location, GLfloat v0, GLfloat v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2i(GLuint program, GLint location, GLint v0, GLint v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2ui(GLuint program, GLint location, GLuint v0, GLuint v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2d(GLuint program, GLint location, GLdouble v0, GLdouble v1));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3f(GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3i(GLuint program, GLint location, GLint v0, GLint v1, GLint v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3ui(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3d(GLuint program, GLint location, GLdouble v0, GLdouble v1, GLdouble v2));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4f(GLuint program, GLint location, GLfloat v0, GLfloat v1, GLfloat v2, GLfloat v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4i(GLuint program, GLint location, GLint v0, GLint v1, GLint v2, GLint v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4ui(GLuint program, GLint location, GLuint v0, GLuint v1, GLuint v2, GLuint v3));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4d(GLuint program, GLint location, GLdouble v0, GLdouble v1, GLdouble v2, GLdouble v3));
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1iv(GLuint program, GLint location, GLsizei count, const GLint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1uiv(GLuint program, GLint location, GLsizei count, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform1dv(GLuint program, GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2iv(GLuint program, GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2uiv(GLuint program, GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform2dv(GLuint program, GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3iv(GLuint program, GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3uiv(GLuint program, GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform3dv(GLuint program, GLint location, GLsizei count, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4iv(GLuint program, GLint location, GLsizei count, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4uiv(GLuint program, GLint location, GLsizei count, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4fv(GLuint program, GLint location, GLsizei count, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniform4dv(GLuint program, GLint location, GLsizei count, const GLdouble *value));
+		
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2x3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2x4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3x2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3x4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4x2fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4x3fv(GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2x3dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix2x4dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3x2dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix3x4dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4x2dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformMatrix4x3dv(GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2x3fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2x4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3x2fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3x4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x2fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3fv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2x3dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix2x4dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3x2dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix3x4dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));

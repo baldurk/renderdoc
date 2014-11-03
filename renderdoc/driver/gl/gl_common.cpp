@@ -281,6 +281,63 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 }
 
 template<>
+string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
+{
+	switch(el)
+	{
+		case WrappedOpenGL::UNIFORM_UNKNOWN: return "unk";
+
+#define VEC2STR(suffix) case WrappedOpenGL::CONCAT(VEC, suffix): return STRINGIZE(suffix);
+		VEC2STR(1fv)
+		VEC2STR(1iv)
+		VEC2STR(1uiv)
+		VEC2STR(1dv)
+		VEC2STR(2fv)
+		VEC2STR(2iv)
+		VEC2STR(2uiv)
+		VEC2STR(2dv)
+		VEC2STR(3fv)
+		VEC2STR(3iv)
+		VEC2STR(3uiv)
+		VEC2STR(3dv)
+		VEC2STR(4fv)
+		VEC2STR(4iv)
+		VEC2STR(4uiv)
+		VEC2STR(4dv)
+#undef VEC2STR
+
+#define MAT2STR(suffix) case WrappedOpenGL::CONCAT(MAT, suffix): return STRINGIZE(suffix);
+		MAT2STR(2fv)
+		MAT2STR(2x3fv)
+		MAT2STR(2x4fv)
+		MAT2STR(3fv)
+		MAT2STR(3x2fv)
+		MAT2STR(3x4fv)
+		MAT2STR(4fv)
+		MAT2STR(4x2fv)
+		MAT2STR(4x3fv)
+		MAT2STR(2dv)
+		MAT2STR(2x3dv)
+		MAT2STR(2x4dv)
+		MAT2STR(3dv)
+		MAT2STR(3x2dv)
+		MAT2STR(3x4dv)
+		MAT2STR(4dv)
+		MAT2STR(4x2dv)
+		MAT2STR(4x3dv)
+#undef MAT2STR
+
+		default:
+			break;
+	}
+
+	char tostrBuf[256] = {0};
+	StringFormat::snprintf(tostrBuf, 255, "WrappedOpenGL::UniformType<%d>", el);
+
+	return tostrBuf;
+}
+
+template<>
 string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 {
 #undef GLenum

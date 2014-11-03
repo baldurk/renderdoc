@@ -152,14 +152,6 @@
     HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
-    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC, glProgramUniformMatrix4fv); \
-    HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
-    HookExtension(PFNGLPROGRAMUNIFORM1FVPROC, glProgramUniform1fv); \
-    HookExtension(PFNGLPROGRAMUNIFORM1IVPROC, glProgramUniform1iv); \
-    HookExtension(PFNGLPROGRAMUNIFORM1UIVPROC, glProgramUniform1uiv); \
-    HookExtension(PFNGLPROGRAMUNIFORM2FVPROC, glProgramUniform2fv); \
-    HookExtension(PFNGLPROGRAMUNIFORM3FVPROC, glProgramUniform3fv); \
-    HookExtension(PFNGLPROGRAMUNIFORM4FVPROC, glProgramUniform4fv); \
     HookExtension(PFNGLUSEPROGRAMPROC, glUseProgram); \
     HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
     HookExtension(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
@@ -271,16 +263,106 @@
     HookExtension(PFNGLGETUNIFORMUIVPROC, glGetUniformuiv); \
     HookExtension(PFNGLGETUNIFORMDVPROC, glGetUniformdv); \
     HookExtension(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
-    HookExtension(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv); \
-    HookExtension(PFNGLUNIFORM1FPROC, glUniform1f); \
-    HookExtension(PFNGLUNIFORM1IPROC, glUniform1i); \
-    HookExtension(PFNGLUNIFORM1UIPROC, glUniform1ui); \
-    HookExtension(PFNGLUNIFORM1FVPROC, glUniform1fv); \
-    HookExtension(PFNGLUNIFORM1IVPROC, glUniform1iv); \
+    HookExtension(PFNGLUNIFORM1FPROC,   glUniform1f); \
+    HookExtension(PFNGLUNIFORM1IPROC,   glUniform1i); \
+    HookExtension(PFNGLUNIFORM1UIPROC,  glUniform1ui); \
+    HookExtension(PFNGLUNIFORM1DPROC,   glUniform1d); \
+    HookExtension(PFNGLUNIFORM2FPROC,   glUniform2f); \
+    HookExtension(PFNGLUNIFORM2IPROC,   glUniform2i); \
+    HookExtension(PFNGLUNIFORM2UIPROC,  glUniform2ui); \
+    HookExtension(PFNGLUNIFORM2DPROC,   glUniform2d); \
+    HookExtension(PFNGLUNIFORM3FPROC,   glUniform3f); \
+    HookExtension(PFNGLUNIFORM3IPROC,   glUniform3i); \
+    HookExtension(PFNGLUNIFORM3UIPROC,  glUniform3ui); \
+    HookExtension(PFNGLUNIFORM3DPROC,   glUniform3d); \
+    HookExtension(PFNGLUNIFORM4FPROC,   glUniform4f); \
+    HookExtension(PFNGLUNIFORM4IPROC,   glUniform4i); \
+    HookExtension(PFNGLUNIFORM4UIPROC,  glUniform4ui); \
+    HookExtension(PFNGLUNIFORM4DPROC,   glUniform4d); \
+    HookExtension(PFNGLUNIFORM1FVPROC,  glUniform1fv); \
+    HookExtension(PFNGLUNIFORM1IVPROC,  glUniform1iv); \
     HookExtension(PFNGLUNIFORM1UIVPROC, glUniform1uiv); \
-    HookExtension(PFNGLUNIFORM2FVPROC, glUniform2fv); \
-    HookExtension(PFNGLUNIFORM3FVPROC, glUniform3fv); \
-    HookExtension(PFNGLUNIFORM4FVPROC, glUniform4fv); \
+    HookExtension(PFNGLUNIFORM1DVPROC,  glUniform1dv); \
+    HookExtension(PFNGLUNIFORM2FVPROC,  glUniform2fv); \
+    HookExtension(PFNGLUNIFORM2IVPROC,  glUniform2iv); \
+    HookExtension(PFNGLUNIFORM2UIVPROC, glUniform2uiv); \
+    HookExtension(PFNGLUNIFORM2DVPROC,  glUniform2dv); \
+    HookExtension(PFNGLUNIFORM3FVPROC,  glUniform3fv); \
+    HookExtension(PFNGLUNIFORM3IVPROC,  glUniform3iv); \
+    HookExtension(PFNGLUNIFORM3UIVPROC, glUniform3uiv); \
+    HookExtension(PFNGLUNIFORM3DVPROC,  glUniform3dv); \
+    HookExtension(PFNGLUNIFORM4FVPROC,  glUniform4fv); \
+    HookExtension(PFNGLUNIFORM4IVPROC,  glUniform4iv); \
+    HookExtension(PFNGLUNIFORM4UIVPROC, glUniform4uiv); \
+    HookExtension(PFNGLUNIFORM4DVPROC,  glUniform4dv); \
+    HookExtension(PFNGLUNIFORMMATRIX2FVPROC,   glUniformMatrix2fv); \
+    HookExtension(PFNGLUNIFORMMATRIX2X3FVPROC, glUniformMatrix2x3fv); \
+    HookExtension(PFNGLUNIFORMMATRIX2X4FVPROC, glUniformMatrix2x4fv); \
+    HookExtension(PFNGLUNIFORMMATRIX3FVPROC,   glUniformMatrix3fv); \
+    HookExtension(PFNGLUNIFORMMATRIX3X2FVPROC, glUniformMatrix3x2fv); \
+    HookExtension(PFNGLUNIFORMMATRIX3X4FVPROC, glUniformMatrix3x4fv); \
+    HookExtension(PFNGLUNIFORMMATRIX4FVPROC,   glUniformMatrix4fv); \
+    HookExtension(PFNGLUNIFORMMATRIX4X2FVPROC, glUniformMatrix4x2fv); \
+    HookExtension(PFNGLUNIFORMMATRIX4X3FVPROC, glUniformMatrix4x3fv); \
+    HookExtension(PFNGLUNIFORMMATRIX2DVPROC,   glUniformMatrix2dv); \
+    HookExtension(PFNGLUNIFORMMATRIX2X3DVPROC, glUniformMatrix2x3dv); \
+    HookExtension(PFNGLUNIFORMMATRIX2X4DVPROC, glUniformMatrix2x4dv); \
+    HookExtension(PFNGLUNIFORMMATRIX3DVPROC,   glUniformMatrix3dv); \
+    HookExtension(PFNGLUNIFORMMATRIX3X2DVPROC, glUniformMatrix3x2dv); \
+    HookExtension(PFNGLUNIFORMMATRIX3X4DVPROC, glUniformMatrix3x4dv); \
+    HookExtension(PFNGLUNIFORMMATRIX4DVPROC,   glUniformMatrix4dv); \
+    HookExtension(PFNGLUNIFORMMATRIX4X2DVPROC, glUniformMatrix4x2dv); \
+    HookExtension(PFNGLUNIFORMMATRIX4X3DVPROC, glUniformMatrix4x3dv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1FPROC,   glProgramUniform1f); \
+    HookExtension(PFNGLPROGRAMUNIFORM1IPROC,   glProgramUniform1i); \
+    HookExtension(PFNGLPROGRAMUNIFORM1UIPROC,  glProgramUniform1ui); \
+    HookExtension(PFNGLPROGRAMUNIFORM1DPROC,   glProgramUniform1d); \
+    HookExtension(PFNGLPROGRAMUNIFORM2FPROC,   glProgramUniform2f); \
+    HookExtension(PFNGLPROGRAMUNIFORM2IPROC,   glProgramUniform2i); \
+    HookExtension(PFNGLPROGRAMUNIFORM2UIPROC,  glProgramUniform2ui); \
+    HookExtension(PFNGLPROGRAMUNIFORM2DPROC,   glProgramUniform2d); \
+    HookExtension(PFNGLPROGRAMUNIFORM3FPROC,   glProgramUniform3f); \
+    HookExtension(PFNGLPROGRAMUNIFORM3IPROC,   glProgramUniform3i); \
+    HookExtension(PFNGLPROGRAMUNIFORM3UIPROC,  glProgramUniform3ui); \
+    HookExtension(PFNGLPROGRAMUNIFORM3DPROC,   glProgramUniform3d); \
+    HookExtension(PFNGLPROGRAMUNIFORM4FPROC,   glProgramUniform4f); \
+    HookExtension(PFNGLPROGRAMUNIFORM4IPROC,   glProgramUniform4i); \
+    HookExtension(PFNGLPROGRAMUNIFORM4UIPROC,  glProgramUniform4ui); \
+    HookExtension(PFNGLPROGRAMUNIFORM4DPROC,   glProgramUniform4d); \
+    HookExtension(PFNGLPROGRAMUNIFORM1FVPROC,  glProgramUniform1fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1IVPROC,  glProgramUniform1iv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1UIVPROC, glProgramUniform1uiv); \
+    HookExtension(PFNGLPROGRAMUNIFORM1DVPROC,  glProgramUniform1dv); \
+    HookExtension(PFNGLPROGRAMUNIFORM2FVPROC,  glProgramUniform2fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM2IVPROC,  glProgramUniform2iv); \
+    HookExtension(PFNGLPROGRAMUNIFORM2UIVPROC, glProgramUniform2uiv); \
+    HookExtension(PFNGLPROGRAMUNIFORM2DVPROC,  glProgramUniform2dv); \
+    HookExtension(PFNGLPROGRAMUNIFORM3FVPROC,  glProgramUniform3fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM3IVPROC,  glProgramUniform3iv); \
+    HookExtension(PFNGLPROGRAMUNIFORM3UIVPROC, glProgramUniform3uiv); \
+    HookExtension(PFNGLPROGRAMUNIFORM3DVPROC,  glProgramUniform3dv); \
+    HookExtension(PFNGLPROGRAMUNIFORM4FVPROC,  glProgramUniform4fv); \
+    HookExtension(PFNGLPROGRAMUNIFORM4IVPROC,  glProgramUniform4iv); \
+    HookExtension(PFNGLPROGRAMUNIFORM4UIVPROC, glProgramUniform4uiv); \
+    HookExtension(PFNGLPROGRAMUNIFORM4DVPROC,  glProgramUniform4dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2FVPROC,   glProgramUniformMatrix2fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC, glProgramUniformMatrix2x3fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC, glProgramUniformMatrix2x4fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3FVPROC,   glProgramUniformMatrix3fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC, glProgramUniformMatrix3x2fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC, glProgramUniformMatrix3x4fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC,   glProgramUniformMatrix4fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC, glProgramUniformMatrix4x2fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC, glProgramUniformMatrix4x3fv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2DVPROC,   glProgramUniformMatrix2dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC, glProgramUniformMatrix2x3dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC, glProgramUniformMatrix2x4dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3DVPROC,   glProgramUniformMatrix3dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC, glProgramUniformMatrix3x2dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC, glProgramUniformMatrix3x4dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4DVPROC,   glProgramUniformMatrix4dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC, glProgramUniformMatrix4x2dv); \
+    HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv); \
     HookExtension(PFNGLDRAWRANGEELEMENTSPROC, glDrawRangeElements); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
@@ -507,14 +589,6 @@
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
-    HookWrapper5(void, glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
-    HookWrapper4(void, glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
-    HookWrapper4(void, glProgramUniform1uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
-    HookWrapper4(void, glProgramUniform2fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glProgramUniform3fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glProgramUniform4fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
     HookWrapper1(void, glUseProgram, GLuint, program); \
     HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
@@ -625,16 +699,106 @@
     HookWrapper3(void, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
     HookWrapper3(void, glGetUniformdv, GLuint, program, GLint, location, GLdouble *, params); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
-    HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper2(void, glUniform1f, GLint, location, GLfloat, v0); \
-    HookWrapper2(void, glUniform1i, GLint, location, GLint, v0); \
-    HookWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
-    HookWrapper3(void, glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper3(void, glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper2(void,   glUniform1f, GLint, location, GLfloat, v0); \
+    HookWrapper2(void,   glUniform1i, GLint, location, GLint, v0); \
+    HookWrapper2(void,  glUniform1ui, GLint, location, GLuint, v0); \
+    HookWrapper2(void,   glUniform1d, GLint, location, GLdouble, x); \
+    HookWrapper3(void,   glUniform2f, GLint, location, GLfloat, v0, GLfloat, v1); \
+    HookWrapper3(void,   glUniform2i, GLint, location, GLint, v0, GLint, v1); \
+    HookWrapper3(void,  glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
+    HookWrapper3(void,   glUniform2d, GLint, location, GLdouble, x, GLdouble, y); \
+    HookWrapper4(void,   glUniform3f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
+    HookWrapper4(void,   glUniform3i, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
+    HookWrapper4(void,  glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
+    HookWrapper4(void,   glUniform3d, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z); \
+    HookWrapper5(void,   glUniform4f, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
+    HookWrapper5(void,   glUniform4i, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
+    HookWrapper5(void,  glUniform4ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
+    HookWrapper5(void,   glUniform4d, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+    HookWrapper3(void,  glUniform1fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void,  glUniform1iv, GLint, location, GLsizei, count, const GLint *, value); \
     HookWrapper3(void, glUniform1uiv, GLint, location, GLsizei, count, const GLuint *, value); \
-    HookWrapper3(void, glUniform2fv, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper3(void, glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper3(void, glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void,  glUniform1dv, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper3(void,  glUniform2fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void,  glUniform2iv, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper3(void, glUniform2uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper3(void,  glUniform2dv, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper3(void,  glUniform3fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void,  glUniform3iv, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper3(void, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper3(void,  glUniform3dv, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper3(void,  glUniform4fv, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper3(void,  glUniform4iv, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper3(void, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper3(void,  glUniform4dv, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper4(void,   glUniformMatrix2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix2x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix2x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void,   glUniformMatrix3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix3x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix3x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void,   glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix4x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glUniformMatrix4x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void,   glUniformMatrix2dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix2x3dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix2x4dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void,   glUniformMatrix3dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix3x2dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix3x4dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void,   glUniformMatrix4dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix4x2dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper4(void, glUniformMatrix4x3dv, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper3(void,   glProgramUniform1f, GLuint, program, GLint, location, GLfloat, v0); \
+    HookWrapper3(void,   glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
+    HookWrapper3(void,  glProgramUniform1ui, GLuint, program, GLint, location, GLuint, v0); \
+    HookWrapper3(void,   glProgramUniform1d, GLuint, program, GLint, location, GLdouble, v0); \
+    HookWrapper4(void,   glProgramUniform2f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1); \
+    HookWrapper4(void,   glProgramUniform2i, GLuint, program, GLint, location, GLint, v0, GLint, v1); \
+    HookWrapper4(void,  glProgramUniform2ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1); \
+    HookWrapper4(void,   glProgramUniform2d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1); \
+    HookWrapper5(void,   glProgramUniform3f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
+    HookWrapper5(void,   glProgramUniform3i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
+    HookWrapper5(void,  glProgramUniform3ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
+    HookWrapper5(void,   glProgramUniform3d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2); \
+    HookWrapper6(void,   glProgramUniform4f, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
+    HookWrapper6(void,   glProgramUniform4i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
+    HookWrapper6(void,  glProgramUniform4ui, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
+    HookWrapper6(void,   glProgramUniform4d, GLuint, program, GLint, location, GLdouble, v0, GLdouble, v1, GLdouble, v2, GLdouble, v3); \
+    HookWrapper4(void,  glProgramUniform1fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void,  glProgramUniform1iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper4(void, glProgramUniform1uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper4(void,  glProgramUniform1dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper4(void,  glProgramUniform2fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void,  glProgramUniform2iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper4(void, glProgramUniform2uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper4(void,  glProgramUniform2dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper4(void,  glProgramUniform3fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void,  glProgramUniform3iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper4(void, glProgramUniform3uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper4(void,  glProgramUniform3dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper4(void,  glProgramUniform4fv, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
+    HookWrapper4(void,  glProgramUniform4iv, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
+    HookWrapper4(void, glProgramUniform4uiv, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
+    HookWrapper4(void,  glProgramUniform4dv, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix2x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix2x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix3x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix3x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix4x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void, glProgramUniformMatrix4x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix2x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix2x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix3x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix3x4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void,   glProgramUniformMatrix4dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix4x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
+    HookWrapper5(void, glProgramUniformMatrix4x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper6(void, glDrawRangeElements, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \

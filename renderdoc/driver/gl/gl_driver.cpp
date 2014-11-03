@@ -203,27 +203,6 @@ const char *GLChunkNames[] =
 	"EndCapture",
 };
 
-template<>
-string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
-{
-	switch(el)
-	{
-		case WrappedOpenGL::UNIFORM_UNKNOWN: return "unk";
-		case WrappedOpenGL::VEC1FV: return "1fv";
-		case WrappedOpenGL::VEC1IV: return "1iv";
-		case WrappedOpenGL::VEC1UIV: return "1uiv";
-		case WrappedOpenGL::VEC2FV: return "2fv";
-		case WrappedOpenGL::VEC3FV: return "3fv";
-		case WrappedOpenGL::VEC4FV: return "4fv";
-		case WrappedOpenGL::MAT4FV: return "4fv";
-	}
-
-	char tostrBuf[256] = {0};
-	StringFormat::snprintf(tostrBuf, 255, "WrappedOpenGL::UniformType<%d>", el);
-
-	return tostrBuf;
-}
-
 GLInitParams::GLInitParams()
 {
 	SerialiseVersion = GL_SERIALISE_VERSION;
