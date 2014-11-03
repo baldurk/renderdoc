@@ -139,8 +139,6 @@ const char *GLChunkNames[] =
 	"glBindVertexArray",
 	"glBindVertexBuffer",
 	"glVertexBindingDivisor",
-	"glUniformMatrix*",
-	"glUniformVector*",
 	"glDispatchCompute",
 	"glMemoryBarrier",
 	"glDrawArrays",
@@ -1703,12 +1701,6 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case VERTEXDIVISOR:
 		Serialise_glVertexBindingDivisor(0, 0);
-		break;
-	case UNIFORM_MATRIX:
-		Serialise_glUniformMatrix(0, 0, 0, NULL, UNIFORM_UNKNOWN);
-		break;
-	case UNIFORM_VECTOR:
-		Serialise_glUniformVector(0, 0, NULL, UNIFORM_UNKNOWN);
 		break;
 	case DISPATCH_COMPUTE:
 		Serialise_glDispatchCompute(0, 0, 0);
