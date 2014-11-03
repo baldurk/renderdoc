@@ -114,20 +114,23 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 	else if(sintTex)
 		col = (float4)(scol);
 
+	float4 pre_range_col = col;
+
 	col = ((col - RangeMinimum)*InverseRangeSize);
 
 	col = lerp(float4(0,0,0,1), col, Channels);
+	pre_range_col = lerp(float4(0,0,0,1), pre_range_col, Channels);
 
 	// show nans, infs and negatives
 	if(OutputDisplayFormat & TEXDISPLAY_NANS)
 	{
-		if(isnan(col.r) || isnan(col.g) || isnan(col.b) || isnan(col.a))
+		if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) || isnan(pre_range_col.a))
 		   return float4(1, 0, 0, 1);
 		   
-		if(isinf(col.r) || isinf(col.g) || isinf(col.b) || isinf(col.a))
+		if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) || isinf(pre_range_col.a))
 		   return float4(0, 1, 0, 1);
 
-		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		if(pre_range_col.r < 0 || pre_range_col.g < 0 || pre_range_col.b < 0 || pre_range_col.a < 0)
 		   return float4(0, 0, 1, 1);
 		
 		col = float4(dot(col.xyz, float3(0.2126, 0.7152, 0.0722)).xxx, 1);

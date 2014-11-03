@@ -95,26 +95,29 @@ void main(void)
 	else if (sintTex)
 		col = vec4(scol);
 
+	vec4 pre_range_col = col;
+
 	col = ((col - RangeMinimum)*InverseRangeSize);
 
 	col = mix(vec4(0,0,0,1), col, Channels);
+	pre_range_col = mix(vec4(0,0,0,1), pre_range_col, Channels);
 	
 	// show nans, infs and negatives
 	if((OutputDisplayFormat & TEXDISPLAY_NANS) > 0)
 	{
-		if(isnan(col.r) || isnan(col.g) || isnan(col.b) || isnan(col.a))
+		if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) || isnan(pre_range_col.a))
 		{
 		   color_out = vec4(1, 0, 0, 1);
 		   return;
 		}
 		   
-		if(isinf(col.r) || isinf(col.g) || isinf(col.b) || isinf(col.a))
+		if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) || isinf(pre_range_col.a))
 		{
 		   color_out = vec4(0, 1, 0, 1);
 		   return;
 		}
 
-		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		if(pre_range_col.r < 0 || pre_range_col.g < 0 || pre_range_col.b < 0 || pre_range_col.a < 0)
 		{
 		   color_out = vec4(0, 0, 1, 1);
 		   return;
