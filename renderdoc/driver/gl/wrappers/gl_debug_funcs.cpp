@@ -27,11 +27,6 @@
 #include "../gl_driver.h"
 
 
-void WrappedOpenGL::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label)
-{
-	m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
-}
-
 bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
 {
 	ResourceId liveid;

@@ -32,6 +32,17 @@ GLenum WrappedOpenGL::glGetError()
 	return m_Real.glGetError();
 }
 
+GLenum WrappedOpenGL::glGetGraphicsResetStatus()
+{
+	return m_Real.glGetGraphicsResetStatus();
+}
+
+GLuint WrappedOpenGL::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum *sources, GLenum *types, GLuint *ids,
+                                           GLenum *severities, GLsizei *lengths, GLchar *messageLog)
+{
+	return m_Real.glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths, messageLog);
+}
+
 void WrappedOpenGL::glFlush()
 {
 	m_Real.glFlush();
@@ -47,9 +58,69 @@ GLboolean WrappedOpenGL::glIsEnabled(GLenum cap)
 	return m_Real.glIsEnabled(cap);
 }
 
-GLboolean WrappedOpenGL::glIsEnabledi(GLenum cap, GLuint index)
+GLboolean WrappedOpenGL::glIsTexture(GLuint texture)
 {
-	return m_Real.glIsEnabledi(cap, index);
+	return m_Real.glIsTexture(texture);
+}
+
+GLboolean WrappedOpenGL::glIsEnabledi(GLenum target, GLuint index)
+{
+	return m_Real.glIsEnabledi(target, index);
+}
+
+GLboolean WrappedOpenGL::glIsBuffer(GLuint buffer)
+{
+	return m_Real.glIsBuffer(buffer);
+}
+
+GLboolean WrappedOpenGL::glIsFramebuffer(GLuint framebuffer)
+{
+	return m_Real.glIsFramebuffer(framebuffer);
+}
+
+GLboolean WrappedOpenGL::glIsProgram(GLuint program)
+{
+	return m_Real.glIsProgram(program);
+}
+
+GLboolean WrappedOpenGL::glIsProgramPipeline(GLuint pipeline)
+{
+	return m_Real.glIsProgramPipeline(pipeline);
+}
+
+GLboolean WrappedOpenGL::glIsQuery(GLuint id)
+{
+	return m_Real.glIsQuery(id);
+}
+
+GLboolean WrappedOpenGL::glIsRenderbuffer(GLuint renderbuffer)
+{
+	return m_Real.glIsRenderbuffer(renderbuffer);
+}
+
+GLboolean WrappedOpenGL::glIsSampler(GLuint sampler)
+{
+	return m_Real.glIsSampler(sampler);
+}
+
+GLboolean WrappedOpenGL::glIsShader(GLuint shader)
+{
+	return m_Real.glIsShader(shader);
+}
+
+GLboolean WrappedOpenGL::glIsSync(GLsync sync)
+{
+	return m_Real.glIsSync(sync);
+}
+
+GLboolean WrappedOpenGL::glIsTransformFeedback(GLuint id)
+{
+	return m_Real.glIsTransformFeedback(id);
+}
+
+GLboolean WrappedOpenGL::glIsVertexArray(GLuint array)
+{
+	return m_Real.glIsVertexArray(array);
 }
 
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
@@ -60,6 +131,11 @@ void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
 void WrappedOpenGL::glGetDoublev(GLenum pname, GLdouble *params)
 {
 	m_Real.glGetDoublev(pname, params);
+}
+
+void WrappedOpenGL::glGetPointerv(GLenum pname, void **params)
+{
+	m_Real.glGetPointerv(pname, params);
 }
 
 void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
@@ -77,6 +153,11 @@ void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
 void WrappedOpenGL::glGetBooleanv(GLenum pname, GLboolean *data)
 {
 	m_Real.glGetBooleanv(pname, data);
+}
+
+void WrappedOpenGL::glGetInteger64v(GLenum pname, GLint64 *data)
+{
+	m_Real.glGetInteger64v(pname, data);
 }
 
 void WrappedOpenGL::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
@@ -129,6 +210,46 @@ void WrappedOpenGL::glGetTexParameteriv(GLenum target, GLenum pname, GLint *para
 	m_Real.glGetTexParameteriv(target, pname, params);
 }
 
+void WrappedOpenGL::glGetTextureLevelParameterfv(GLuint texture, GLint level, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetTextureLevelParameterfv(texture, level, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureLevelParameteriv(GLuint texture, GLint level, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureLevelParameteriv(texture, level, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterIiv(GLuint texture, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureParameterIiv(texture, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterIuiv(GLuint texture, GLenum pname, GLuint *params)
+{
+	m_Real.glGetTextureParameterIuiv(texture, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterfv(GLuint texture, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetTextureParameterfv(texture, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameteriv(GLuint texture, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureParameteriv(texture, pname, params);
+}
+
+void WrappedOpenGL::glGetTexParameterIiv(GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetTexParameterIiv(target, pname, params);
+}
+
+void WrappedOpenGL::glGetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
+{
+	m_Real.glGetTexParameterIuiv(target, pname, params);
+}
+
 void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
 	m_Real.glGetTexImage(target, level, format, type, pixels);
@@ -142,6 +263,36 @@ void WrappedOpenGL::glGetTextureImageEXT(GLuint texture, GLenum target, GLint le
 void WrappedOpenGL::glGetCompressedTexImage(GLenum target, GLint level, void *img)
 {
 	m_Real.glGetCompressedTexImage(target, level, img);
+}
+
+void WrappedOpenGL::glGetnCompressedTexImage(GLenum target, GLint lod, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetnCompressedTexImage(target, lod, bufSize, pixels);
+}
+
+void WrappedOpenGL::glGetCompressedTextureImage(GLuint texture, GLint level, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetCompressedTextureImage(texture, level, bufSize, pixels);
+}
+
+void WrappedOpenGL::glGetCompressedTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetCompressedTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, bufSize, pixels);
+}
+
+void WrappedOpenGL::glGetnTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetnTexImage(target, level, format, type, bufSize, pixels);
+}
+
+void WrappedOpenGL::glGetTextureImage(GLuint texture, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetTextureImage(texture, level, format, type, bufSize, pixels);
+}
+
+void WrappedOpenGL::glGetTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
+{
+	m_Real.glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level, void *img)
@@ -159,24 +310,44 @@ void WrappedOpenGL::glGetInternalformati64v(GLenum target, GLenum internalformat
 	m_Real.glGetInternalformati64v(target, internalformat, pname, bufSize, params);
 }
 
+void WrappedOpenGL::glGetSamplerParameterIiv(GLuint sampler, GLenum pname, GLint *params)
+{
+	m_Real.glGetSamplerParameterIiv(sampler, pname, params);
+}
+
+void WrappedOpenGL::glGetSamplerParameterIuiv(GLuint sampler, GLenum pname, GLuint *params)
+{
+	m_Real.glGetSamplerParameterIuiv(sampler, pname, params);
+}
+
+void WrappedOpenGL::glGetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetSamplerParameterfv(sampler, pname, params);
+}
+
+void WrappedOpenGL::glGetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
+{
+	m_Real.glGetSamplerParameteriv(sampler, pname, params);
+}
+
+void WrappedOpenGL::glGetBufferParameteri64v(GLenum target, GLenum pname, GLint64 *params)
+{
+	m_Real.glGetBufferParameteri64v(target, pname, params);
+}
+
 void WrappedOpenGL::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
 {
 	m_Real.glGetBufferParameteriv(target, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint *params)
+void WrappedOpenGL::glGetBufferPointerv(GLenum target, GLenum pname, void **params)
 {
-	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
+	m_Real.glGetBufferPointerv(target, pname, params);
 }
 
 void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
 	m_Real.glGetBufferSubData(target, offset, size, data);
-}
-
-void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
-{
-	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
 void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
@@ -187,6 +358,31 @@ void WrappedOpenGL::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
 void WrappedOpenGL::glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params)
 {
 	m_Real.glGetQueryObjectui64v(id, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryIndexediv(GLenum target, GLuint index, GLenum pname, GLint *params)
+{
+	m_Real.glGetQueryIndexediv(target, index, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryObjecti64v(GLuint id, GLenum pname, GLint64 *params)
+{
+	m_Real.glGetQueryObjecti64v(id, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryObjectiv(GLuint id, GLenum pname, GLint *params)
+{
+	m_Real.glGetQueryObjectiv(id, pname, params);
+}
+
+void WrappedOpenGL::glGetQueryiv(GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetQueryiv(target, pname, params);
+}
+
+void WrappedOpenGL::glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values)
+{
+	m_Real.glGetSynciv(sync, pname, bufSize, length, values);
 }
 
 const GLubyte *WrappedOpenGL::glGetString(GLenum name)
@@ -215,11 +411,6 @@ void WrappedOpenGL::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum 
 	m_Real.glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
-{
-	m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment, pname, params);
-}
-
 GLenum WrappedOpenGL::glCheckFramebufferStatus(GLenum target)
 {
 	return m_Real.glCheckFramebufferStatus(target);
@@ -240,6 +431,31 @@ void WrappedOpenGL::glGetVertexAttribPointerv(GLuint index, GLenum pname, void *
 	m_Real.glGetVertexAttribPointerv(index, pname, pointer);
 }
 
+GLint WrappedOpenGL::glGetFragDataIndex(GLuint program, const GLchar *name)
+{
+	return m_Real.glGetFragDataIndex(program, name);
+}
+
+GLint WrappedOpenGL::glGetFragDataLocation(GLuint program, const GLchar *name)
+{
+	return m_Real.glGetFragDataLocation(program, name);
+}
+
+void WrappedOpenGL::glGetMultisamplefv(GLenum pname, GLuint index, GLfloat *val)
+{
+	m_Real.glGetMultisamplefv(pname, index, val);
+}
+
+void WrappedOpenGL::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label)
+{
+	m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
+}
+
+void WrappedOpenGL::glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label)
+{
+	m_Real.glGetObjectPtrLabel(ptr, bufSize, length, label);
+}
+
 void WrappedOpenGL::glGetShaderiv(GLuint shader, GLenum pname, GLint *params)
 {
 	m_Real.glGetShaderiv(shader, pname, params);
@@ -250,9 +466,34 @@ void WrappedOpenGL::glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *
 	m_Real.glGetShaderInfoLog(shader, bufSize, length, infoLog);
 }
 
+void WrappedOpenGL::glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype, GLint *range, GLint *precision)
+{
+	m_Real.glGetShaderPrecisionFormat(shadertype, precisiontype, range, precision);
+}
+
+void WrappedOpenGL::glGetShaderSource(GLuint shader, GLsizei bufSize, GLsizei *length, GLchar *source)
+{
+	m_Real.glGetShaderSource(shader, bufSize, length, source);
+}
+
+void WrappedOpenGL::glGetAttachedShaders(GLuint program, GLsizei maxCount, GLsizei *count, GLuint *shaders)
+{
+	m_Real.glGetAttachedShaders(program, maxCount, count, shaders);
+}
+
 void WrappedOpenGL::glGetProgramiv(GLuint program, GLenum pname, GLint *params)
 {
 	m_Real.glGetProgramiv(program, pname, params);
+}
+
+void WrappedOpenGL::glGetProgramStageiv(GLuint program, GLenum shadertype, GLenum pname, GLint *values)
+{
+	m_Real.glGetProgramStageiv(program, shadertype, pname, values);
+}
+
+void WrappedOpenGL::glGetProgramBinary(GLuint program, GLsizei bufSize, GLsizei *length, GLenum *binaryFormat, void *binary)
+{
+	m_Real.glGetProgramBinary(program, bufSize, length, binaryFormat, binary);
 }
 
 void WrappedOpenGL::glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length, GLchar *infoLog)
@@ -290,6 +531,16 @@ void WrappedOpenGL::glGetProgramResourceName(GLuint program, GLenum programInter
 	m_Real.glGetProgramResourceName(program, programInterface, index, bufSize, length, name);
 }
 
+GLint WrappedOpenGL::glGetProgramResourceLocation(GLuint program, GLenum programInterface, const GLchar *name)
+{
+	return m_Real.glGetProgramResourceLocation(program, programInterface, name);
+}
+
+GLint WrappedOpenGL::glGetProgramResourceLocationIndex(GLuint program, GLenum programInterface, const GLchar *name)
+{
+	return m_Real.glGetProgramResourceLocationIndex(program, programInterface, name);
+}
+
 GLint WrappedOpenGL::glGetUniformLocation(GLuint program, const GLchar *name)
 {
 	return m_Real.glGetUniformLocation(program, name);
@@ -308,6 +559,36 @@ GLuint WrappedOpenGL::glGetUniformBlockIndex(GLuint program, const GLchar *unifo
 GLint WrappedOpenGL::glGetAttribLocation(GLuint program, const GLchar *name)
 {
 	return m_Real.glGetAttribLocation(program, name);
+}
+
+GLuint WrappedOpenGL::glGetSubroutineIndex(GLuint program, GLenum shadertype, const GLchar *name)
+{
+	return m_Real.glGetSubroutineIndex(program, shadertype, name);
+}
+
+GLint WrappedOpenGL::glGetSubroutineUniformLocation(GLuint program, GLenum shadertype, const GLchar *name)
+{
+	return m_Real.glGetSubroutineUniformLocation(program, shadertype, name);
+}
+
+void WrappedOpenGL::glGetUniformSubroutineuiv(GLenum shadertype, GLint location, GLuint *params)
+{
+	m_Real.glGetUniformSubroutineuiv(shadertype, location, params);
+}
+
+void WrappedOpenGL::glGetActiveSubroutineName(GLuint program, GLenum shadertype, GLuint index, GLsizei bufsize, GLsizei *length, GLchar *name)
+{
+	m_Real.glGetActiveSubroutineName(program, shadertype, index, bufsize, length, name);
+}
+
+void WrappedOpenGL::glGetActiveSubroutineUniformName(GLuint program, GLenum shadertype, GLuint index, GLsizei bufsize, GLsizei *length, GLchar *name)
+{
+	m_Real.glGetActiveSubroutineUniformName(program, shadertype, index, bufsize, length, name);
+}
+
+void WrappedOpenGL::glGetActiveSubroutineUniformiv(GLuint program, GLenum shadertype, GLuint index, GLenum pname, GLint *values)
+{
+	m_Real.glGetActiveSubroutineUniformiv(program, shadertype, index, pname, values);
 }
 
 void WrappedOpenGL::glGetActiveUniform(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
@@ -330,6 +611,11 @@ void WrappedOpenGL::glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufS
 	m_Real.glGetActiveAttrib(program, index, bufSize, length, size, type, name);
 }
 
+void WrappedOpenGL::glGetActiveAtomicCounterBufferiv(GLuint program, GLuint bufferIndex, GLenum pname, GLint *params)
+{
+	m_Real.glGetActiveAtomicCounterBufferiv(program, bufferIndex, pname, params);
+}
+
 void WrappedOpenGL::glGetUniformfv(GLuint program, GLint location, GLfloat *params)
 {
 	m_Real.glGetUniformfv(program, location, params);
@@ -350,7 +636,148 @@ void WrappedOpenGL::glGetUniformdv(GLuint program, GLint location, GLdouble *par
 	m_Real.glGetUniformdv(program, location, params);
 }
 
+void WrappedOpenGL::glGetnUniformdv(GLuint program, GLint location, GLsizei bufSize, GLdouble *params)
+{
+	m_Real.glGetnUniformdv(program, location, bufSize, params);
+}
+
+void WrappedOpenGL::glGetnUniformfv(GLuint program, GLint location, GLsizei bufSize, GLfloat *params)
+{
+	m_Real.glGetnUniformfv(program, location, bufSize, params);
+}
+
+void WrappedOpenGL::glGetnUniformiv(GLuint program, GLint location, GLsizei bufSize, GLint *params)
+{
+	m_Real.glGetnUniformiv(program, location, bufSize, params);
+}
+
+void WrappedOpenGL::glGetnUniformuiv(GLuint program, GLint location, GLsizei bufSize, GLuint *params)
+{
+	m_Real.glGetnUniformuiv(program, location, bufSize, params);
+}
+
+void WrappedOpenGL::glGetVertexArrayiv(GLuint vaobj, GLenum pname, GLint *param)
+{
+	m_Real.glGetVertexArrayiv(vaobj, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexArrayIndexed64iv(GLuint vaobj, GLuint index, GLenum pname, GLint64 *param)
+{
+	m_Real.glGetVertexArrayIndexed64iv(vaobj, index, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexArrayIndexediv(GLuint vaobj, GLuint index, GLenum pname, GLint *param)
+{
+	m_Real.glGetVertexArrayIndexediv(vaobj, index, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexAttribIiv(GLuint index, GLenum pname, GLint *params)
+{
+	m_Real.glGetVertexAttribIiv(index, pname, params);
+}
+
+void WrappedOpenGL::glGetVertexAttribIuiv(GLuint index, GLenum pname, GLuint *params)
+{
+	m_Real.glGetVertexAttribIuiv(index, pname, params);
+}
+
+void WrappedOpenGL::glGetVertexAttribLdv(GLuint index, GLenum pname, GLdouble *params)
+{
+	m_Real.glGetVertexAttribLdv(index, pname, params);
+}
+
+void WrappedOpenGL::glGetVertexAttribdv(GLuint index, GLenum pname, GLdouble *params)
+{
+	m_Real.glGetVertexAttribdv(index, pname, params);
+}
+
+void WrappedOpenGL::glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetVertexAttribfv(index, pname, params);
+}
+
+
 void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
 {
 	m_Real.glReadPixels(x, y, width, height, format, type, pixels);
+}
+
+void WrappedOpenGL::glGetTransformFeedbackVarying(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLsizei *size, GLenum *type, GLchar *name)
+{
+	m_Real.glGetTransformFeedbackVarying(program, index, bufSize, length, size, type, name);
+}
+
+void WrappedOpenGL::glGetTransformFeedbacki64_v(GLuint xfb, GLenum pname, GLuint index, GLint64 *param)
+{
+	m_Real.glGetTransformFeedbacki64_v(xfb, pname, index, param);
+}
+
+void WrappedOpenGL::glGetTransformFeedbacki_v(GLuint xfb, GLenum pname, GLuint index, GLint *param)
+{
+	m_Real.glGetTransformFeedbacki_v(xfb, pname, index, param);
+}
+
+void WrappedOpenGL::glGetTransformFeedbackiv(GLuint xfb, GLenum pname, GLint *param)
+{
+	m_Real.glGetTransformFeedbackiv(xfb, pname, param);
+}
+
+void WrappedOpenGL::glGetFramebufferParameteriv(GLenum target, GLenum pname, GLint *param)
+{
+	m_Real.glGetFramebufferParameteriv(target, pname, param);
+}
+
+void WrappedOpenGL::glGetRenderbufferParameteriv(GLenum target, GLenum pname, GLint *param)
+{
+	m_Real.glGetRenderbufferParameteriv(target, pname, param);
+}
+
+void WrappedOpenGL::glGetNamedBufferParameteri64v(GLuint buffer, GLenum pname, GLint64 *params)
+{
+	m_Real.glGetNamedBufferParameteri64v(buffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedBufferPointerv(GLuint buffer, GLenum pname, void **params)
+{
+	m_Real.glGetNamedBufferPointerv(buffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedFramebufferParameteriv(GLuint framebuffer, GLenum pname, GLint *param)
+{
+	m_Real.glGetNamedFramebufferParameteriv(framebuffer, pname, param);
+}
+
+void WrappedOpenGL::glGetNamedFramebufferAttachmentParameteriv(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedFramebufferAttachmentParameteriv(framebuffer, attachment, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedRenderbufferParameteriv(renderbuffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedBufferParameteriv(GLuint buffer, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
+{
+	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
+}
+
+void WrappedOpenGL::glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
+{
+	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
+}
+
+void WrappedOpenGL::glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment, pname, params);
 }
