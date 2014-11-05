@@ -1118,19 +1118,23 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 {
 	m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-			Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+				Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1166,19 +1170,23 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 {
 	m_Real.glVertexAttribIPointer(index, size, type, stride, pointer);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
-			Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
+				Serialise_glVertexAttribIPointer(index, size, type, stride, pointer);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1210,19 +1218,23 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 {
 	m_Real.glVertexAttribBinding(attribindex, bindingindex);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
-			Serialise_glVertexAttribBinding(attribindex, bindingindex);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
+				Serialise_glVertexAttribBinding(attribindex, bindingindex);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1258,19 +1270,23 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 {
 	m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
-			Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
+				Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1305,19 +1321,23 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 {
 	m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
-			Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
+				Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1348,19 +1368,23 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 {
 	m_Real.glEnableVertexAttribArray(index);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
-			Serialise_glEnableVertexAttribArray(index);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
+				Serialise_glEnableVertexAttribArray(index);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
@@ -1391,19 +1415,23 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 {
 	m_Real.glDisableVertexAttribArray(index);
 	
-	GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : (m_VertexArrayRecord ? m_VertexArrayRecord : m_DeviceRecord);
 	if(m_State >= WRITING)
 	{
-		if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
-			return;
-		if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
-			GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
+		if(r)
 		{
-			SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
-			Serialise_glDisableVertexAttribArray(index);
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
 
-			r->AddChunk(scope.Get());
+			{
+				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
+				Serialise_glDisableVertexAttribArray(index);
+
+				r->AddChunk(scope.Get());
+			}
 		}
 	}
 }
