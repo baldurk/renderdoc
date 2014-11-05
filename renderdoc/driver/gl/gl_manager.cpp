@@ -103,8 +103,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 bool GLResourceManager::Force_InitialState(GLResource res)
 {
-	// hack for now, these should be tracked through the normal dirty/ref tracking process.
-	if(res.Namespace == eResVertexArray) return true;
 	return false;
 }
 
