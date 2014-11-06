@@ -113,6 +113,8 @@ const char *GLChunkNames[] =
 	"glBlendColor",
 	"glBlendFuncSeparate",
 	"glBlendFuncSeparatei",
+	"glBlendEquation",
+	"glBlendEquationi",
 	"glBlendEquationSeparate",
 	"glBlendEquationSeparatei",
 	"glStencilOp",
@@ -1600,6 +1602,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BLEND_FUNC_SEPI:
 		Serialise_glBlendFuncSeparatei(0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+		break;
+	case BLEND_EQ:
+		Serialise_glBlendEquation(eGL_NONE);
+		break;
+	case BLEND_EQI:
+		Serialise_glBlendEquationi(0, eGL_NONE);
 		break;
 	case BLEND_EQ_SEP:
 		Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE);

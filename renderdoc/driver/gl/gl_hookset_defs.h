@@ -238,6 +238,8 @@
     HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
     HookExtension(PFNGLBLENDFUNCSEPARATEPROC, glBlendFuncSeparate); \
     HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
+    HookExtension(PFNGLBLENDEQUATIONPROC, glBlendEquation); \
+    HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
     HookExtension(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
@@ -761,6 +763,8 @@
     HookWrapper3(void, glBlendFunci, GLuint, buf, GLenum, src, GLenum, dst); \
     HookWrapper4(void, glBlendFuncSeparate, GLenum, sfactorRGB, GLenum, dfactorRGB, GLenum, sfactorAlpha, GLenum, dfactorAlpha); \
     HookWrapper5(void, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
+    HookWrapper1(void, glBlendEquation, GLenum, mode); \
+    HookWrapper2(void, glBlendEquationi, GLuint, buf, GLenum, mode); \
     HookWrapper2(void, glBlendEquationSeparate, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
     HookWrapper4(void, glStencilFuncSeparate, GLenum, face, GLenum, func, GLint, ref, GLuint, mask); \

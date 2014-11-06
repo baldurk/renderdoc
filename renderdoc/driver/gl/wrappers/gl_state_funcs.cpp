@@ -165,6 +165,57 @@ void WrappedOpenGL::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum d
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBlendEquation(GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendEquation(m);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendEquation(GLenum mode)
+{
+	m_Real.glBlendEquation(mode);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_EQ);
+		Serialise_glBlendEquation(mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlendEquationi(GLuint buf, GLenum mode)
+{
+	SERIALISE_ELEMENT(uint32_t, b, buf);
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBlendEquationi(b, m);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendEquationi(GLuint buf, GLenum mode)
+{
+	m_Real.glBlendEquationi(buf, mode);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_EQI);
+		Serialise_glBlendEquationi(buf, mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 {
 	SERIALISE_ELEMENT(GLenum, m1, modeRGB);
