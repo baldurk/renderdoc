@@ -134,6 +134,10 @@ const char *GLChunkNames[] =
 	"glDepthBoundsEXT",
 	"glPatchParameteri",
 	"glPatchParameterfv",
+	"glPointParameterf",
+	"glPointParameterfv",
+	"glPointParameteri",
+	"glPointParameteriv",
 	"glViewport",
 	"glViewportArrayv",
 	"glScissor",
@@ -1667,6 +1671,18 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case PATCH_PARAMFV:
 		Serialise_glPatchParameterfv(eGL_NONE, NULL);
+		break;
+	case POINT_PARAMF:
+		Serialise_glPointParameterf(eGL_NONE, 0.0f);
+		break;
+	case POINT_PARAMFV:
+		Serialise_glPointParameterfv(eGL_NONE, NULL);
+		break;
+	case POINT_PARAMI:
+		Serialise_glPointParameteri(eGL_NONE, 0);
+		break;
+	case POINT_PARAMIV:
+		Serialise_glPointParameteriv(eGL_NONE, NULL);
 		break;
 	case VIEWPORT:
 		Serialise_glViewport(0, 0, 0, 0);

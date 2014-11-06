@@ -240,6 +240,7 @@
     HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
     HookExtension(PFNGLBLENDEQUATIONPROC, glBlendEquation); \
     HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
+    HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiARB); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
     HookExtension(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
@@ -343,6 +344,10 @@
     HookExtension(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HookExtension(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
     HookExtension(PFNGLPATCHPARAMETERFVPROC, glPatchParameterfv); \
+    HookExtension(PFNGLPOINTPARAMETERFPROC, glPointParameterf); \
+    HookExtension(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv); \
+    HookExtension(PFNGLPOINTPARAMETERIPROC, glPointParameteri); \
+    HookExtension(PFNGLPOINTPARAMETERIVPROC, glPointParameteriv); \
     HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HookExtension(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
@@ -867,6 +872,10 @@
     HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper2(void, glPatchParameterfv, GLenum, pname, const GLfloat *, values); \
+    HookWrapper2(void, glPointParameterf, GLenum, pname, GLfloat, param); \
+    HookWrapper2(void, glPointParameterfv, GLenum, pname, const GLfloat *, params); \
+    HookWrapper2(void, glPointParameteri, GLenum, pname, GLint, param); \
+    HookWrapper2(void, glPointParameteriv, GLenum, pname, const GLint *, params); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \

@@ -370,6 +370,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffset(GLfloat factor, GLfloat units));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameteri(GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameterfv(GLenum pname, const GLfloat *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameterf(GLenum pname, GLfloat param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameterfv(GLenum pname, const GLfloat *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameteri(GLenum pname, GLint param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameteriv(GLenum pname, const GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels));

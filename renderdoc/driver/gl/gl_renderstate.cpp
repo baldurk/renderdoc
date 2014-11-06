@@ -101,6 +101,9 @@ void GLRenderState::FetchState()
 		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&VertexBuffers[i].Divisor);
 	}
 	
+	m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
+	m_Real->glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint*)&PointSpriteOrigin);
+	
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
@@ -282,6 +285,9 @@ void GLRenderState::ApplyState()
 		m_Real->glBindVertexBuffer(i, VertexBuffers[i].Buffer, (GLintptr)VertexBuffers[i].Offset, (GLsizei)VertexBuffers[i].Stride);
 		m_Real->glVertexBindingDivisor(i, VertexBuffers[i].Divisor);
 	}
+	
+	m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
+	m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
 
 	m_Real->glUseProgram(Program);
 	m_Real->glBindProgramPipeline(Pipeline);
@@ -432,6 +438,9 @@ void GLRenderState::Clear()
 	RDCEraseEl(VAO);
 	RDCEraseEl(VertexBuffers);
 	
+	RDCEraseEl(PointFadeThresholdSize);
+	RDCEraseEl(PointSpriteOrigin);
+	
 	RDCEraseEl(Program);
 	RDCEraseEl(Pipeline);
 
@@ -511,6 +520,9 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		if(state < WRITING && ID != ResourceId()) VertexBuffers[i].Buffer = rm->GetLiveResource(ID).name;
 	}
 	
+	m_pSerialiser->Serialise("GL_POINT_FADE_THRESHOLD_SIZE", PointFadeThresholdSize);
+	m_pSerialiser->Serialise("GL_POINT_SPRITE_COORD_ORIGIN", PointSpriteOrigin);
+
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{
 		ResourceId ID = ResourceId();

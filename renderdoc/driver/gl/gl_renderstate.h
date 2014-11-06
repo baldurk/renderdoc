@@ -106,6 +106,9 @@ struct GLRenderState
 	} VertexBuffers[16];
 	GLuint VAO;
 
+	float PointFadeThresholdSize;
+	GLenum PointSpriteOrigin;
+
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
 	{

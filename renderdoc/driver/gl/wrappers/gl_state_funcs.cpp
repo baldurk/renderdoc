@@ -952,6 +952,110 @@ void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glPointParameteri(GLenum pname, GLint param)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(int32_t, Param, param);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPointParameteri(PName, Param);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPointParameteri(GLenum pname, GLint param)
+{
+	m_Real.glPointParameteri(pname, param);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POINT_PARAMI);
+		Serialise_glPointParameteri(pname, param);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPointParameteriv(GLenum pname, const GLint *params)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(int32_t, Param, *params);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPointParameteriv(PName, &Param);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPointParameteriv(GLenum pname, const GLint *params)
+{
+	m_Real.glPointParameteriv(pname, params);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POINT_PARAMIV);
+		Serialise_glPointParameteriv(pname, params);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPointParameterf(GLenum pname, GLfloat param)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(float, Param, param);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPointParameterf(PName, Param);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPointParameterf(GLenum pname, GLfloat param)
+{
+	m_Real.glPointParameterf(pname, param);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POINT_PARAMF);
+		Serialise_glPointParameterf(pname, param);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPointParameterfv(GLenum pname, const GLfloat *params)
+{
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(float, Param, *params);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPointParameterfv(PName, &Param);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPointParameterfv(GLenum pname, const GLfloat *params)
+{
+	m_Real.glPointParameterfv(pname, params);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POINT_PARAMFV);
+		Serialise_glPointParameterfv(pname, params);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
 	SERIALISE_ELEMENT(int32_t, X, x);
