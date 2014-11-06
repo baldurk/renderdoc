@@ -762,7 +762,7 @@ void WrappedOpenGL::glGetNamedBufferParameteriv(GLuint buffer, GLenum pname, GLi
 	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
+void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data)
 {
 	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
