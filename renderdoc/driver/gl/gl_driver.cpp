@@ -188,12 +188,16 @@ const char *GLChunkNames[] =
 	"glUnmapBuffer",
 	"glGenVertexArrays",
 	"glBindVertexArray",
+	"glVertexAttrib*",
 	"glVertexAttribPointer",
 	"glVertexAttribIPointer",
+	"glVertexAttribLPointer",
 	"glEnableVertexAttribArray",
 	"glDisableVertexAttribArray",
 	"glVertexAttribFormat",
 	"glVertexAttribIFormat",
+	"glVertexAttribLFormat",
+	"glVertexAttribDivisor",
 	"glVertexAttribBinding",
 	
 	
@@ -1702,7 +1706,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BINDVERTEXBUFFER:
 		Serialise_glBindVertexBuffer(0, 0, 0, 0);
 		break;
-	case VERTEXDIVISOR:
+	case VERTEXBINDINGDIVISOR:
 		Serialise_glVertexBindingDivisor(0, 0);
 		break;
 	case DISPATCH_COMPUTE:
@@ -1834,17 +1838,29 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case VERTEXATTRIBIPOINTER:
 		Serialise_glVertexAttribIPointer(0, 0, eGL_NONE, 0, NULL);
 		break;
+	case VERTEXATTRIBLPOINTER:
+		Serialise_glVertexAttribLPointer(0, 0, eGL_NONE, 0, NULL);
+		break;
 	case ENABLEVERTEXATTRIBARRAY:
 		Serialise_glEnableVertexAttribArray(0);
 		break;
 	case DISABLEVERTEXATTRIBARRAY:
 		Serialise_glDisableVertexAttribArray(0);
 		break;
+	case VERTEXATTRIB_GENERIC:
+		Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_packed);
+		break;
 	case VERTEXATTRIBFORMAT:
 		Serialise_glVertexAttribFormat(0, 0, eGL_NONE, 0, 0);
 		break;
 	case VERTEXATTRIBIFORMAT:
 		Serialise_glVertexAttribIFormat(0, 0, eGL_NONE, 0);
+		break;
+	case VERTEXATTRIBLFORMAT:
+		Serialise_glVertexAttribLFormat(0, 0, eGL_NONE, 0);
+		break;
+	case VERTEXATTRIBDIVISOR:
+		Serialise_glVertexAttribDivisor(0, 0);
 		break;
 	case VERTEXATTRIBBINDING:
 		Serialise_glVertexAttribBinding(0, 0);

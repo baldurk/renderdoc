@@ -322,11 +322,86 @@
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
     HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
     HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
+    HookExtension(PFNGLVERTEXATTRIB1DPROC, glVertexAttrib1d); \
+    HookExtension(PFNGLVERTEXATTRIB1DVPROC, glVertexAttrib1dv); \
+    HookExtension(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
+    HookExtension(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \
+    HookExtension(PFNGLVERTEXATTRIB1SPROC, glVertexAttrib1s); \
+    HookExtension(PFNGLVERTEXATTRIB1SVPROC, glVertexAttrib1sv); \
+    HookExtension(PFNGLVERTEXATTRIB2DPROC, glVertexAttrib2d); \
+    HookExtension(PFNGLVERTEXATTRIB2DVPROC, glVertexAttrib2dv); \
+    HookExtension(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f); \
+    HookExtension(PFNGLVERTEXATTRIB2FVPROC, glVertexAttrib2fv); \
+    HookExtension(PFNGLVERTEXATTRIB2SPROC, glVertexAttrib2s); \
+    HookExtension(PFNGLVERTEXATTRIB2SVPROC, glVertexAttrib2sv); \
+    HookExtension(PFNGLVERTEXATTRIB3DPROC, glVertexAttrib3d); \
+    HookExtension(PFNGLVERTEXATTRIB3DVPROC, glVertexAttrib3dv); \
+    HookExtension(PFNGLVERTEXATTRIB3FPROC, glVertexAttrib3f); \
+    HookExtension(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
+    HookExtension(PFNGLVERTEXATTRIB3SPROC, glVertexAttrib3s); \
+    HookExtension(PFNGLVERTEXATTRIB3SVPROC, glVertexAttrib3sv); \
+    HookExtension(PFNGLVERTEXATTRIB4NBVPROC, glVertexAttrib4Nbv); \
+    HookExtension(PFNGLVERTEXATTRIB4NIVPROC, glVertexAttrib4Niv); \
+    HookExtension(PFNGLVERTEXATTRIB4NSVPROC, glVertexAttrib4Nsv); \
+    HookExtension(PFNGLVERTEXATTRIB4NUBPROC, glVertexAttrib4Nub); \
+    HookExtension(PFNGLVERTEXATTRIB4NUBVPROC, glVertexAttrib4Nubv); \
+    HookExtension(PFNGLVERTEXATTRIB4NUIVPROC, glVertexAttrib4Nuiv); \
+    HookExtension(PFNGLVERTEXATTRIB4NUSVPROC, glVertexAttrib4Nusv); \
+    HookExtension(PFNGLVERTEXATTRIB4BVPROC, glVertexAttrib4bv); \
+    HookExtension(PFNGLVERTEXATTRIB4DPROC, glVertexAttrib4d); \
+    HookExtension(PFNGLVERTEXATTRIB4DVPROC, glVertexAttrib4dv); \
+    HookExtension(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
+    HookExtension(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
+    HookExtension(PFNGLVERTEXATTRIB4IVPROC, glVertexAttrib4iv); \
+    HookExtension(PFNGLVERTEXATTRIB4SPROC, glVertexAttrib4s); \
+    HookExtension(PFNGLVERTEXATTRIB4SVPROC, glVertexAttrib4sv); \
+    HookExtension(PFNGLVERTEXATTRIB4UBVPROC, glVertexAttrib4ubv); \
+    HookExtension(PFNGLVERTEXATTRIB4UIVPROC, glVertexAttrib4uiv); \
+    HookExtension(PFNGLVERTEXATTRIB4USVPROC, glVertexAttrib4usv); \
+    HookExtension(PFNGLVERTEXATTRIBI1IPROC, glVertexAttribI1i); \
+    HookExtension(PFNGLVERTEXATTRIBI1IVPROC, glVertexAttribI1iv); \
+    HookExtension(PFNGLVERTEXATTRIBI1UIPROC, glVertexAttribI1ui); \
+    HookExtension(PFNGLVERTEXATTRIBI1UIVPROC, glVertexAttribI1uiv); \
+    HookExtension(PFNGLVERTEXATTRIBI2IPROC, glVertexAttribI2i); \
+    HookExtension(PFNGLVERTEXATTRIBI2IVPROC, glVertexAttribI2iv); \
+    HookExtension(PFNGLVERTEXATTRIBI2UIPROC, glVertexAttribI2ui); \
+    HookExtension(PFNGLVERTEXATTRIBI2UIVPROC, glVertexAttribI2uiv); \
+    HookExtension(PFNGLVERTEXATTRIBI3IPROC, glVertexAttribI3i); \
+    HookExtension(PFNGLVERTEXATTRIBI3IVPROC, glVertexAttribI3iv); \
+    HookExtension(PFNGLVERTEXATTRIBI3UIPROC, glVertexAttribI3ui); \
+    HookExtension(PFNGLVERTEXATTRIBI3UIVPROC, glVertexAttribI3uiv); \
+    HookExtension(PFNGLVERTEXATTRIBI4BVPROC, glVertexAttribI4bv); \
+    HookExtension(PFNGLVERTEXATTRIBI4IPROC, glVertexAttribI4i); \
+    HookExtension(PFNGLVERTEXATTRIBI4IVPROC, glVertexAttribI4iv); \
+    HookExtension(PFNGLVERTEXATTRIBI4SVPROC, glVertexAttribI4sv); \
+    HookExtension(PFNGLVERTEXATTRIBI4UBVPROC, glVertexAttribI4ubv); \
+    HookExtension(PFNGLVERTEXATTRIBI4UIPROC, glVertexAttribI4ui); \
+    HookExtension(PFNGLVERTEXATTRIBI4UIVPROC, glVertexAttribI4uiv); \
+    HookExtension(PFNGLVERTEXATTRIBI4USVPROC, glVertexAttribI4usv); \
+    HookExtension(PFNGLVERTEXATTRIBL1DPROC, glVertexAttribL1d); \
+    HookExtension(PFNGLVERTEXATTRIBL1DVPROC, glVertexAttribL1dv); \
+    HookExtension(PFNGLVERTEXATTRIBL2DPROC, glVertexAttribL2d); \
+    HookExtension(PFNGLVERTEXATTRIBL2DVPROC, glVertexAttribL2dv); \
+    HookExtension(PFNGLVERTEXATTRIBL3DPROC, glVertexAttribL3d); \
+    HookExtension(PFNGLVERTEXATTRIBL3DVPROC, glVertexAttribL3dv); \
+    HookExtension(PFNGLVERTEXATTRIBL4DPROC, glVertexAttribL4d); \
+    HookExtension(PFNGLVERTEXATTRIBL4DVPROC, glVertexAttribL4dv); \
+    HookExtension(PFNGLVERTEXATTRIBP1UIPROC, glVertexAttribP1ui); \
+    HookExtension(PFNGLVERTEXATTRIBP1UIVPROC, glVertexAttribP1uiv); \
+    HookExtension(PFNGLVERTEXATTRIBP2UIPROC, glVertexAttribP2ui); \
+    HookExtension(PFNGLVERTEXATTRIBP2UIVPROC, glVertexAttribP2uiv); \
+    HookExtension(PFNGLVERTEXATTRIBP3UIPROC, glVertexAttribP3ui); \
+    HookExtension(PFNGLVERTEXATTRIBP3UIVPROC, glVertexAttribP3uiv); \
+    HookExtension(PFNGLVERTEXATTRIBP4UIPROC, glVertexAttribP4ui); \
+    HookExtension(PFNGLVERTEXATTRIBP4UIVPROC, glVertexAttribP4uiv); \
     HookExtension(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer); \
     HookExtension(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
+    HookExtension(PFNGLVERTEXATTRIBLPOINTERPROC, glVertexAttribLPointer); \
     HookExtension(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
     HookExtension(PFNGLVERTEXATTRIBFORMATPROC, glVertexAttribFormat); \
     HookExtension(PFNGLVERTEXATTRIBIFORMATPROC, glVertexAttribIFormat); \
+    HookExtension(PFNGLVERTEXATTRIBLFORMATPROC, glVertexAttribLFormat); \
+    HookExtension(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
     HookExtension(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
@@ -850,11 +925,86 @@
     HookWrapper2(void, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
     HookWrapper1(void, glBindVertexArray, GLuint, array); \
     HookWrapper2(void, glDeleteVertexArrays, GLsizei, n, const GLuint *, arrays); \
+    HookWrapper2(void, glVertexAttrib1d, GLuint, index, GLdouble, x); \
+    HookWrapper2(void, glVertexAttrib1dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
+    HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper2(void, glVertexAttrib1s, GLuint, index, GLshort, x); \
+    HookWrapper2(void, glVertexAttrib1sv, GLuint, index, const GLshort *, v); \
+    HookWrapper3(void, glVertexAttrib2d, GLuint, index, GLdouble, x, GLdouble, y); \
+    HookWrapper2(void, glVertexAttrib2dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper3(void, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
+    HookWrapper2(void, glVertexAttrib2fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper3(void, glVertexAttrib2s, GLuint, index, GLshort, x, GLshort, y); \
+    HookWrapper2(void, glVertexAttrib2sv, GLuint, index, const GLshort *, v); \
+    HookWrapper4(void, glVertexAttrib3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
+    HookWrapper2(void, glVertexAttrib3dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper4(void, glVertexAttrib3f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
+    HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper4(void, glVertexAttrib3s, GLuint, index, GLshort, x, GLshort, y, GLshort, z); \
+    HookWrapper2(void, glVertexAttrib3sv, GLuint, index, const GLshort *, v); \
+    HookWrapper2(void, glVertexAttrib4Nbv, GLuint, index, const GLbyte *, v); \
+    HookWrapper2(void, glVertexAttrib4Niv, GLuint, index, const GLint *, v); \
+    HookWrapper2(void, glVertexAttrib4Nsv, GLuint, index, const GLshort *, v); \
+    HookWrapper5(void, glVertexAttrib4Nub, GLuint, index, GLubyte, x, GLubyte, y, GLubyte, z, GLubyte, w); \
+    HookWrapper2(void, glVertexAttrib4Nubv, GLuint, index, const GLubyte *, v); \
+    HookWrapper2(void, glVertexAttrib4Nuiv, GLuint, index, const GLuint *, v); \
+    HookWrapper2(void, glVertexAttrib4Nusv, GLuint, index, const GLushort *, v); \
+    HookWrapper2(void, glVertexAttrib4bv, GLuint, index, const GLbyte *, v); \
+    HookWrapper5(void, glVertexAttrib4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+    HookWrapper2(void, glVertexAttrib4dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+    HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper2(void, glVertexAttrib4iv, GLuint, index, const GLint *, v); \
+    HookWrapper5(void, glVertexAttrib4s, GLuint, index, GLshort, x, GLshort, y, GLshort, z, GLshort, w); \
+    HookWrapper2(void, glVertexAttrib4sv, GLuint, index, const GLshort *, v); \
+    HookWrapper2(void, glVertexAttrib4ubv, GLuint, index, const GLubyte *, v); \
+    HookWrapper2(void, glVertexAttrib4uiv, GLuint, index, const GLuint *, v); \
+    HookWrapper2(void, glVertexAttrib4usv, GLuint, index, const GLushort *, v); \
+    HookWrapper2(void, glVertexAttribI1i, GLuint, index, GLint, x); \
+    HookWrapper2(void, glVertexAttribI1iv, GLuint, index, const GLint *, v); \
+    HookWrapper2(void, glVertexAttribI1ui, GLuint, index, GLuint, x); \
+    HookWrapper2(void, glVertexAttribI1uiv, GLuint, index, const GLuint *, v); \
+    HookWrapper3(void, glVertexAttribI2i, GLuint, index, GLint, x, GLint, y); \
+    HookWrapper2(void, glVertexAttribI2iv, GLuint, index, const GLint *, v); \
+    HookWrapper3(void, glVertexAttribI2ui, GLuint, index, GLuint, x, GLuint, y); \
+    HookWrapper2(void, glVertexAttribI2uiv, GLuint, index, const GLuint *, v); \
+    HookWrapper4(void, glVertexAttribI3i, GLuint, index, GLint, x, GLint, y, GLint, z); \
+    HookWrapper2(void, glVertexAttribI3iv, GLuint, index, const GLint *, v); \
+    HookWrapper4(void, glVertexAttribI3ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z); \
+    HookWrapper2(void, glVertexAttribI3uiv, GLuint, index, const GLuint *, v); \
+    HookWrapper2(void, glVertexAttribI4bv, GLuint, index, const GLbyte *, v); \
+    HookWrapper5(void, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+    HookWrapper2(void, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
+    HookWrapper2(void, glVertexAttribI4sv, GLuint, index, const GLshort *, v); \
+    HookWrapper2(void, glVertexAttribI4ubv, GLuint, index, const GLubyte *, v); \
+    HookWrapper5(void, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+    HookWrapper2(void, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
+    HookWrapper2(void, glVertexAttribI4usv, GLuint, index, const GLushort *, v); \
+    HookWrapper2(void, glVertexAttribL1d, GLuint, index, GLdouble, x); \
+    HookWrapper2(void, glVertexAttribL1dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper3(void, glVertexAttribL2d, GLuint, index, GLdouble, x, GLdouble, y); \
+    HookWrapper2(void, glVertexAttribL2dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper4(void, glVertexAttribL3d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z); \
+    HookWrapper2(void, glVertexAttribL3dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper5(void, glVertexAttribL4d, GLuint, index, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
+    HookWrapper2(void, glVertexAttribL4dv, GLuint, index, const GLdouble *, v); \
+    HookWrapper4(void, glVertexAttribP1ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
+    HookWrapper4(void, glVertexAttribP1uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
+    HookWrapper4(void, glVertexAttribP2ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
+    HookWrapper4(void, glVertexAttribP2uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
+    HookWrapper4(void, glVertexAttribP3ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
+    HookWrapper4(void, glVertexAttribP3uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
+    HookWrapper4(void, glVertexAttribP4ui, GLuint, index, GLenum, type, GLboolean, normalized, GLuint, value); \
+    HookWrapper4(void, glVertexAttribP4uiv, GLuint, index, GLenum, type, GLboolean, normalized, const GLuint *, value); \
     HookWrapper6(void, glVertexAttribPointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
     HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
+    HookWrapper5(void, glVertexAttribLPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
     HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper5(void, glVertexAttribFormat, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
     HookWrapper4(void, glVertexAttribIFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
+    HookWrapper4(void, glVertexAttribLFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
+    HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \

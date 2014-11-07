@@ -101,6 +101,13 @@ void GLRenderState::FetchState()
 		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&VertexBuffers[i].Divisor);
 	}
 	
+	// the spec says that you can only query for the format that was previously set, or you get
+	// undefined results. Ie. if someone set ints, this might return anything. However there's also
+	// no way to query for the type so we just have to hope for the best and hope most people are
+	// sane and don't use these except for a default "all 0s" attrib.
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(GenericVertexAttribs); i++)
+		m_Real->glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
+	
 	m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
 	m_Real->glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint*)&PointSpriteOrigin);
 	
@@ -285,6 +292,11 @@ void GLRenderState::ApplyState()
 		m_Real->glBindVertexBuffer(i, VertexBuffers[i].Buffer, (GLintptr)VertexBuffers[i].Offset, (GLsizei)VertexBuffers[i].Stride);
 		m_Real->glVertexBindingDivisor(i, VertexBuffers[i].Divisor);
 	}
+	
+	// See FetchState(). The spec says that you have to SET the right format for the shader too,
+	// but we couldn't query for the format so we can't set it here.
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(GenericVertexAttribs); i++)
+		m_Real->glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
 	
 	m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
 	m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
@@ -518,6 +530,11 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_VERTEX_BINDING_OFFSET", VertexBuffers[i].Offset);
 		m_pSerialiser->Serialise("GL_VERTEX_BINDING_STRIDE", VertexBuffers[i].Stride);
 		if(state < WRITING && ID != ResourceId()) VertexBuffers[i].Buffer = rm->GetLiveResource(ID).name;
+	}
+	
+	for(size_t i=0; i < ARRAY_COUNT(GenericVertexAttribs); i++)
+	{
+		m_pSerialiser->Serialise<4>("GL_CURRENT_VERTEX_ATTRIB", &GenericVertexAttribs[i].x);
 	}
 	
 	m_pSerialiser->Serialise("GL_POINT_FADE_THRESHOLD_SIZE", PointFadeThresholdSize);

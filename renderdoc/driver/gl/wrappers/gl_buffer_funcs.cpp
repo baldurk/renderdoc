@@ -1191,6 +1191,58 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 	}
 }
 
+bool WrappedOpenGL::Serialise_glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(int32_t, Size, size);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribLPointer(Index, Size, Type, Stride, (const void *)Offset);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
+{
+	m_Real.glVertexAttribLPointer(index, size, type, stride, pointer);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
+
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLPOINTER);
+				Serialise_glVertexAttribLPointer(index, size, type, stride, pointer);
+
+				r->AddChunk(scope.Get());
+			}
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
 {
 	SERIALISE_ELEMENT(uint32_t, aidx, attribindex);
@@ -1335,6 +1387,106 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
 				Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+
+				r->AddChunk(scope.Get());
+			}
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, attribindex);
+	SERIALISE_ELEMENT(int32_t, Size, size);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribLFormat(Index, Size, Type, Offset);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset)
+{
+	m_Real.glVertexAttribLFormat(attribindex, size, type, relativeoffset);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
+
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
+				Serialise_glVertexAttribLFormat(attribindex, size, type, relativeoffset);
+
+				r->AddChunk(scope.Get());
+			}
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor)
+{
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(uint32_t, Divisor, divisor);
+	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	
+	if(m_State < WRITING)
+	{
+		if(id != ResourceId())
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			m_Real.glBindVertexArray(res.name);
+		}
+		else
+		{
+			m_Real.glBindVertexArray(0);
+		}
+
+		m_Real.glVertexAttribDivisor(Index, Divisor);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
+{
+	m_Real.glVertexAttribDivisor(index, divisor);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
+
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
+				Serialise_glVertexAttribDivisor(index, divisor);
 
 				r->AddChunk(scope.Get());
 			}
@@ -1580,7 +1732,7 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(VERTEXDIVISOR);
+		SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
 		Serialise_glVertexBindingDivisor(bindingindex, divisor);
 
 		m_ContextRecord->AddChunk(scope.Get());
@@ -1602,5 +1754,278 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 	for(GLsizei i=0; i < n; i++)
 		GetResourceManager()->UnregisterResource(VertexArrayRes(GetCtx(), arrays[i]));
 }
+
+#pragma endregion
+
+#pragma region Horrible glVertexAttrib variants
+
+bool WrappedOpenGL::Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized, const void *value, int attribtype)
+{
+	SERIALISE_ELEMENT(uint32_t, idx, index);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+	SERIALISE_ELEMENT(int, Type, attribtype);
+	SERIALISE_ELEMENT(bool, norm, normalized == GL_TRUE);
+	SERIALISE_ELEMENT(GLenum, packedType, type);
+
+	AttribType attr = AttribType(Type & Attrib_typemask);
+	
+	size_t elemSize = 1;
+	switch(attr)
+	{
+			case Attrib_GLdouble:
+				elemSize = 8;
+				break;
+			case Attrib_GLfloat:
+			case Attrib_GLint:
+			case Attrib_GLuint:
+			case Attrib_packed:
+				elemSize = 4;
+				break;
+			case Attrib_GLshort:
+			case Attrib_GLushort:
+				elemSize = 2;
+				break;
+			case Attrib_GLbyte:
+			case Attrib_GLubyte:
+				elemSize = 1;
+				break;
+	}
+
+	size_t valueSize = elemSize*Count;
+	if(Type == Attrib_packed)
+		valueSize = sizeof(uint32_t);
+	
+	if(m_State >= WRITING)
+	{
+		m_pSerialiser->RawWriteBytes(value, valueSize);
+	}
+	else if(m_State <= EXECUTING)
+	{
+		value = m_pSerialiser->RawReadBytes(valueSize);
+
+		if(Type == Attrib_packed)
+		{
+			     if(Count == 1) m_Real.glVertexAttribP1uiv(idx, packedType, norm, (GLuint*)value);
+			else if(Count == 2) m_Real.glVertexAttribP2uiv(idx, packedType, norm, (GLuint*)value);
+			else if(Count == 3) m_Real.glVertexAttribP3uiv(idx, packedType, norm, (GLuint*)value);
+			else if(Count == 4) m_Real.glVertexAttribP4uiv(idx, packedType, norm, (GLuint*)value);
+		}
+		else if(Type & Attrib_I)
+		{
+			if(Count == 1)
+			{
+				     if(attr == Attrib_GLint)  m_Real.glVertexAttribI1iv(idx, (GLint*)value);
+				else if(attr == Attrib_GLuint) m_Real.glVertexAttribI1uiv(idx, (GLuint*)value);
+			}
+			else if(Count == 2)
+			{
+				     if(attr == Attrib_GLint)  m_Real.glVertexAttribI2iv(idx, (GLint*)value);
+				else if(attr == Attrib_GLuint) m_Real.glVertexAttribI2uiv(idx, (GLuint*)value);
+			}
+			else if(Count == 2)
+			{
+				     if(attr == Attrib_GLint)  m_Real.glVertexAttribI3iv(idx, (GLint*)value);
+				else if(attr == Attrib_GLuint) m_Real.glVertexAttribI3uiv(idx, (GLuint*)value);
+			}
+			else
+			{
+				     if(attr == Attrib_GLbyte)   m_Real.glVertexAttribI4bv(idx, (GLbyte*)value);
+				else if(attr == Attrib_GLint)    m_Real.glVertexAttribI4iv(idx, (GLint*)value);
+				else if(attr == Attrib_GLshort)  m_Real.glVertexAttribI4sv(idx, (GLshort*)value);
+				else if(attr == Attrib_GLubyte)  m_Real.glVertexAttribI4ubv(idx, (GLubyte*)value);
+				else if(attr == Attrib_GLuint)   m_Real.glVertexAttribI4uiv(idx, (GLuint*)value);
+				else if(attr == Attrib_GLushort) m_Real.glVertexAttribI4usv(idx, (GLushort*)value);
+			}
+		}
+		else if(Type & Attrib_L)
+		{
+			     if(Count == 1) m_Real.glVertexAttribL1dv(idx, (GLdouble*)value);
+			else if(Count == 2) m_Real.glVertexAttribL2dv(idx, (GLdouble*)value);
+			else if(Count == 3) m_Real.glVertexAttribL3dv(idx, (GLdouble*)value);
+			else if(Count == 4) m_Real.glVertexAttribL4dv(idx, (GLdouble*)value);
+		}
+		else if(Type & Attrib_N)
+		{
+			     if(attr == Attrib_GLbyte)   m_Real.glVertexAttrib4Nbv(idx, (GLbyte*)value);
+			else if(attr == Attrib_GLint)    m_Real.glVertexAttrib4Niv(idx, (GLint*)value);
+			else if(attr == Attrib_GLshort)  m_Real.glVertexAttrib4Nsv(idx, (GLshort*)value);
+			else if(attr == Attrib_GLubyte)  m_Real.glVertexAttrib4Nubv(idx, (GLubyte*)value);
+			else if(attr == Attrib_GLuint)   m_Real.glVertexAttrib4Nuiv(idx, (GLuint*)value);
+			else if(attr == Attrib_GLushort) m_Real.glVertexAttrib4Nusv(idx, (GLushort*)value);
+		}
+		else
+		{
+			if(Count == 1)
+			{
+				     if(attr == Attrib_GLdouble) m_Real.glVertexAttrib1dv(idx, (GLdouble*)value);
+				else if(attr == Attrib_GLfloat)  m_Real.glVertexAttrib1fv(idx, (GLfloat*)value);
+				else if(attr == Attrib_GLshort)  m_Real.glVertexAttrib1sv(idx, (GLshort*)value);
+			}
+			else if(Count == 2)
+			{
+				     if(attr == Attrib_GLdouble) m_Real.glVertexAttrib2dv(idx, (GLdouble*)value);
+				else if(attr == Attrib_GLfloat)  m_Real.glVertexAttrib2fv(idx, (GLfloat*)value);
+				else if(attr == Attrib_GLshort)  m_Real.glVertexAttrib2sv(idx, (GLshort*)value);
+			}
+			else if(Count == 3)
+			{
+				     if(attr == Attrib_GLdouble) m_Real.glVertexAttrib3dv(idx, (GLdouble*)value);
+				else if(attr == Attrib_GLfloat)  m_Real.glVertexAttrib3fv(idx, (GLfloat*)value);
+				else if(attr == Attrib_GLshort)  m_Real.glVertexAttrib3sv(idx, (GLshort*)value);
+			}
+			else
+			{
+				     if(attr == Attrib_GLdouble) m_Real.glVertexAttrib4dv(idx, (GLdouble*)value);
+				else if(attr == Attrib_GLfloat)  m_Real.glVertexAttrib4fv(idx, (GLfloat*)value);
+				else if(attr == Attrib_GLbyte)   m_Real.glVertexAttrib4bv(idx, (GLbyte*)value);
+				else if(attr == Attrib_GLint)    m_Real.glVertexAttrib4iv(idx, (GLint*)value);
+				else if(attr == Attrib_GLshort)  m_Real.glVertexAttrib4sv(idx, (GLshort*)value);
+				else if(attr == Attrib_GLubyte)  m_Real.glVertexAttrib4ubv(idx, (GLubyte*)value);
+				else if(attr == Attrib_GLuint)   m_Real.glVertexAttrib4uiv(idx, (GLuint*)value);
+				else if(attr == Attrib_GLushort) m_Real.glVertexAttrib4usv(idx, (GLushort*)value);
+			}
+		}
+	}
+
+	return true;
+}
+
+#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype, ...) \
+void WrappedOpenGL::CONCAT(glVertexAttrib, suffix)(GLuint index, __VA_ARGS__) \
+{ \
+	m_Real.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST); \
+\
+	if(m_State >= WRITING_CAPFRAME) \
+	{ \
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC); \
+		const paramtype vals[] = { ARRAYLIST }; \
+		Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, vals, TypeOr | CONCAT(Attrib_, paramtype)); \
+\
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+}
+
+#define ARRAYLIST x
+
+ATTRIB_FUNC(1, 1f,   0,         GLfloat,  GLfloat  x)
+ATTRIB_FUNC(1, 1s,   0,         GLshort,  GLshort  x)
+ATTRIB_FUNC(1, 1d,   0,         GLdouble, GLdouble x)
+ATTRIB_FUNC(1, L1d,  Attrib_L,  GLdouble, GLdouble x)
+ATTRIB_FUNC(1, I1i,  Attrib_I,  GLint,    GLint    x)
+ATTRIB_FUNC(1, I1ui, Attrib_I,  GLuint,   GLuint   x)
+
+#undef ARRAYLIST
+#define ARRAYLIST x, y
+
+ATTRIB_FUNC(2, 2f,   0,         GLfloat,  GLfloat  x, GLfloat  y)
+ATTRIB_FUNC(2, 2s,   0,         GLshort,  GLshort  x, GLshort  y)
+ATTRIB_FUNC(2, 2d,   0,         GLdouble, GLdouble x, GLdouble y)
+ATTRIB_FUNC(2, L2d,  Attrib_L,  GLdouble, GLdouble x, GLdouble y)
+ATTRIB_FUNC(2, I2i,  Attrib_I,  GLint,    GLint    x, GLint    y)
+ATTRIB_FUNC(2, I2ui, Attrib_I,  GLuint,   GLuint   x, GLuint   y)
+
+#undef ARRAYLIST
+#define ARRAYLIST x, y, z
+
+ATTRIB_FUNC(3, 3f,   0,         GLfloat,  GLfloat  x, GLfloat  y, GLfloat  z)
+ATTRIB_FUNC(3, 3s,   0,         GLshort,  GLshort  x, GLshort  y, GLshort  z)
+ATTRIB_FUNC(3, 3d,   0,         GLdouble, GLdouble x, GLdouble y, GLdouble z)
+ATTRIB_FUNC(3, L3d,  Attrib_L,  GLdouble, GLdouble x, GLdouble y, GLdouble z)
+ATTRIB_FUNC(3, I3i,  Attrib_I,  GLint,    GLint    x, GLint    y, GLint    z)
+ATTRIB_FUNC(3, I3ui, Attrib_I,  GLuint,   GLuint   x, GLuint   y, GLuint   z)
+
+#undef ARRAYLIST
+#define ARRAYLIST x, y, z, w
+
+ATTRIB_FUNC(4, 4f,   0,         GLfloat,  GLfloat  x, GLfloat  y, GLfloat  z, GLfloat  w)
+ATTRIB_FUNC(4, 4s,   0,         GLshort,  GLshort  x, GLshort  y, GLshort  z, GLshort  w)
+ATTRIB_FUNC(4, 4d,   0,         GLdouble, GLdouble x, GLdouble y, GLdouble z, GLdouble w)
+ATTRIB_FUNC(4, L4d,  Attrib_L,  GLdouble, GLdouble x, GLdouble y, GLdouble z, GLdouble w)
+ATTRIB_FUNC(4, I4i,  Attrib_I,  GLint,    GLint    x, GLint    y, GLint    z, GLint    w)
+ATTRIB_FUNC(4, I4ui, Attrib_I,  GLuint,   GLuint   x, GLuint   y, GLuint   z, GLuint   w)
+ATTRIB_FUNC(4, 4Nub, Attrib_N,  GLubyte,  GLubyte  x, GLubyte  y, GLubyte  z, GLubyte  w)
+
+#undef ATTRIB_FUNC
+#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype) \
+void WrappedOpenGL::CONCAT(glVertexAttrib, suffix)(GLuint index, const paramtype *value) \
+{ \
+	m_Real.CONCAT(glVertexAttrib, suffix)(index, value); \
+\
+	if(m_State >= WRITING_CAPFRAME) \
+	{ \
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC); \
+		Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, value, TypeOr | CONCAT(Attrib_, paramtype)); \
+\
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+}
+
+ATTRIB_FUNC(1, 1dv,   0,        GLdouble)
+ATTRIB_FUNC(2, 2dv,   0,        GLdouble)
+ATTRIB_FUNC(3, 3dv,   0,        GLdouble)
+ATTRIB_FUNC(4, 4dv,   0,        GLdouble)
+ATTRIB_FUNC(1, 1sv,   0,        GLshort)
+ATTRIB_FUNC(2, 2sv,   0,        GLshort)
+ATTRIB_FUNC(3, 3sv,   0,        GLshort)
+ATTRIB_FUNC(4, 4sv,   0,        GLshort)
+ATTRIB_FUNC(1, 1fv,   0,        GLfloat)
+ATTRIB_FUNC(2, 2fv,   0,        GLfloat)
+ATTRIB_FUNC(3, 3fv,   0,        GLfloat)
+ATTRIB_FUNC(4, 4fv,   0,        GLfloat)
+ATTRIB_FUNC(4, 4bv,   0,        GLbyte)
+ATTRIB_FUNC(4, 4iv,   0,        GLint)
+ATTRIB_FUNC(4, 4uiv,  0,        GLuint)
+ATTRIB_FUNC(4, 4usv,  0,        GLushort)
+ATTRIB_FUNC(4, 4ubv,  0,        GLubyte)
+
+ATTRIB_FUNC(1, L1dv,  Attrib_L, GLdouble)
+ATTRIB_FUNC(2, L2dv,  Attrib_L, GLdouble)
+ATTRIB_FUNC(3, L3dv,  Attrib_L, GLdouble)
+ATTRIB_FUNC(4, L4dv,  Attrib_L, GLdouble)
+
+ATTRIB_FUNC(1, I1iv,  Attrib_I, GLint)
+ATTRIB_FUNC(1, I1uiv, Attrib_I, GLuint)
+ATTRIB_FUNC(2, I2iv,  Attrib_I, GLint)
+ATTRIB_FUNC(2, I2uiv, Attrib_I, GLuint)
+ATTRIB_FUNC(3, I3iv,  Attrib_I, GLint)
+ATTRIB_FUNC(3, I3uiv, Attrib_I, GLuint)
+
+ATTRIB_FUNC(4, I4bv,  Attrib_I, GLbyte)
+ATTRIB_FUNC(4, I4iv,  Attrib_I, GLint)
+ATTRIB_FUNC(4, I4sv,  Attrib_I, GLshort)
+ATTRIB_FUNC(4, I4ubv, Attrib_I, GLubyte)
+ATTRIB_FUNC(4, I4uiv, Attrib_I, GLuint)
+ATTRIB_FUNC(4, I4usv, Attrib_I, GLushort)
+
+ATTRIB_FUNC(4, 4Nbv,  Attrib_N, GLbyte)
+ATTRIB_FUNC(4, 4Niv,  Attrib_N, GLint)
+ATTRIB_FUNC(4, 4Nsv,  Attrib_N, GLshort)
+ATTRIB_FUNC(4, 4Nubv, Attrib_N, GLubyte)
+ATTRIB_FUNC(4, 4Nuiv, Attrib_N, GLuint)
+ATTRIB_FUNC(4, 4Nusv, Attrib_N, GLushort)
+
+#undef ATTRIB_FUNC
+#define ATTRIB_FUNC(count, suffix, funcparam, passparam) \
+void WrappedOpenGL::CONCAT(CONCAT(glVertexAttribP, count), suffix)(GLuint index, GLenum type, GLboolean normalized, funcparam) \
+{ \
+	m_Real.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value); \
+\
+	if(m_State >= WRITING_CAPFRAME) \
+	{ \
+		SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC); \
+		Serialise_glVertexAttrib(index, count, type, normalized, passparam, Attrib_packed); \
+\
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+}
+
+ATTRIB_FUNC(1, ui, GLuint value, &value)
+ATTRIB_FUNC(2, ui, GLuint value, &value)
+ATTRIB_FUNC(3, ui, GLuint value, &value)
+ATTRIB_FUNC(4, ui, GLuint value, &value)
+ATTRIB_FUNC(1, uiv, const GLuint *value, value)
+ATTRIB_FUNC(2, uiv, const GLuint *value, value)
+ATTRIB_FUNC(3, uiv, const GLuint *value, value)
+ATTRIB_FUNC(4, uiv, const GLuint *value, value)
 
 #pragma endregion

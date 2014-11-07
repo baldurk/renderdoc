@@ -496,11 +496,108 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data));
+		
+		enum AttribType
+		{
+			Attrib_GLdouble = 0x01,
+			Attrib_GLfloat  = 0x02,
+			Attrib_GLshort  = 0x03,
+			Attrib_GLushort = 0x04,
+			Attrib_GLbyte   = 0x05,
+			Attrib_GLubyte  = 0x06,
+			Attrib_GLint    = 0x07,
+			Attrib_GLuint   = 0x08,
+			Attrib_packed   = 0x09,
+			Attrib_typemask = 0x0f,
+
+			Attrib_L        = 0x10,
+			Attrib_I        = 0x20,
+			Attrib_N        = 0x40,
+		};
+
+		bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized, const void *value, int attribtype);
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1d(GLuint index, GLdouble x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1f(GLuint index, GLfloat x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1fv(GLuint index, const GLfloat *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1s(GLuint index, GLshort x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1sv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2d(GLuint index, GLdouble x, GLdouble y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2f(GLuint index, GLfloat x, GLfloat y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2fv(GLuint index, const GLfloat *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2s(GLuint index, GLshort x, GLshort y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib2sv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3d(GLuint index, GLdouble x, GLdouble y, GLdouble z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3f(GLuint index, GLfloat x, GLfloat y, GLfloat z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3fv(GLuint index, const GLfloat *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3s(GLuint index, GLshort x, GLshort y, GLshort z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib3sv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nbv(GLuint index, const GLbyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Niv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nsv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nub(GLuint index, GLubyte x, GLubyte y, GLubyte z, GLubyte w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nubv(GLuint index, const GLubyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nuiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4Nusv(GLuint index, const GLushort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4bv(GLuint index, const GLbyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4d(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4f(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4fv(GLuint index, const GLfloat *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4iv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4s(GLuint index, GLshort x, GLshort y, GLshort z, GLshort w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4sv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4ubv(GLuint index, const GLubyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4uiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib4usv(GLuint index, const GLushort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI1i(GLuint index, GLint x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI1iv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI1ui(GLuint index, GLuint x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI1uiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI2i(GLuint index, GLint x, GLint y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI2iv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI2ui(GLuint index, GLuint x, GLuint y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI2uiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI3i(GLuint index, GLint x, GLint y, GLint z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI3iv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI3ui(GLuint index, GLuint x, GLuint y, GLuint z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI3uiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4bv(GLuint index, const GLbyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4i(GLuint index, GLint x, GLint y, GLint z, GLint w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4iv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4sv(GLuint index, const GLshort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4ubv(GLuint index, const GLubyte *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4ui(GLuint index, GLuint x, GLuint y, GLuint z, GLuint w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4uiv(GLuint index, const GLuint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribI4usv(GLuint index, const GLushort *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL1d(GLuint index, GLdouble x));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL1dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL2d(GLuint index, GLdouble x, GLdouble y));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL2dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL3d(GLuint index, GLdouble x, GLdouble y, GLdouble z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL3dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL4d(GLuint index, GLdouble x, GLdouble y, GLdouble z, GLdouble w));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribL4dv(GLuint index, const GLdouble *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP1ui(GLuint index, GLenum type, GLboolean normalized, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP1uiv(GLuint index, GLenum type, GLboolean normalized, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP2ui(GLuint index, GLenum type, GLboolean normalized, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP2uiv(GLuint index, GLenum type, GLboolean normalized, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP3ui(GLuint index, GLenum type, GLboolean normalized, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP3uiv(GLuint index, GLenum type, GLboolean normalized, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP4ui(GLuint index, GLenum type, GLboolean normalized, GLuint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribP4uiv(GLuint index, GLenum type, GLboolean normalized, const GLuint *value));
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribBinding(GLuint attribindex, GLuint bindingindex));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type, GLboolean normalized, GLuint relativeoffset));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum type, GLuint relativeoffset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttribDivisor(GLuint index, GLuint divisor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEnableVertexAttribArray(GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDisableVertexAttribArray(GLuint index));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));

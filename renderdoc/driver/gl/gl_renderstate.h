@@ -29,6 +29,8 @@
 #include "gl_hookset.h"
 #include "gl_manager.h"
 
+#include "maths/vec.h"
+
 struct GLRenderState
 {
 	GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state);
@@ -105,6 +107,8 @@ struct GLRenderState
 		uint32_t Divisor;
 	} VertexBuffers[16];
 	GLuint VAO;
+
+	Vec4f GenericVertexAttribs[32];
 
 	float PointFadeThresholdSize;
 	GLenum PointSpriteOrigin;
