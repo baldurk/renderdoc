@@ -408,6 +408,174 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCopyTexImage1D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(GLenum, Format, internalformat);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, Width, width);
+	SERIALISE_ELEMENT(int32_t, Border, border);
+	
+	if(m_State < WRITING)
+		m_Real.glCopyTexImage1D(Target, Level, Format, X, Y, Width, Border);
+	return true;
+}
+
+void WrappedOpenGL::glCopyTexImage1D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border)
+{
+	m_Real.glCopyTexImage1D(target, level, internalformat, x, y, width, border);
+	
+	if(m_State == WRITING_IDLE)
+	{
+		if(m_TextureRecord[m_TextureUnit])
+			GetResourceManager()->MarkDirtyResource(m_TextureRecord[m_TextureUnit]->GetResourceID());
+	}
+	else if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_IMAGE1D);
+		Serialise_glCopyTexImage1D(target, level, internalformat, x, y, width, border);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(GLenum, Format, internalformat);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, Width, width);
+	SERIALISE_ELEMENT(int32_t, Height, height);
+	SERIALISE_ELEMENT(int32_t, Border, border);
+	
+	if(m_State < WRITING)
+		m_Real.glCopyTexImage2D(Target, Level, Format, X, Y, Width, Height, Border);
+	return true;
+}
+
+void WrappedOpenGL::glCopyTexImage2D(GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border)
+{
+	m_Real.glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+	
+	if(m_State == WRITING_IDLE)
+	{
+		if(m_TextureRecord[m_TextureUnit])
+			GetResourceManager()->MarkDirtyResource(m_TextureRecord[m_TextureUnit]->GetResourceID());
+	}
+	else if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_IMAGE2D);
+		Serialise_glCopyTexImage2D(target, level, internalformat, x, y, width, height, border);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCopyTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, Width, width);
+	
+	if(m_State < WRITING)
+		m_Real.glCopyTexSubImage1D(Target, Level, Xoffset, X, Y, Width);
+	return true;
+}
+
+void WrappedOpenGL::glCopyTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width)
+{
+	m_Real.glCopyTexSubImage1D(target, level, xoffset, x, y, width);
+	
+	if(m_State == WRITING_IDLE)
+	{
+		if(m_TextureRecord[m_TextureUnit])
+			GetResourceManager()->MarkDirtyResource(m_TextureRecord[m_TextureUnit]->GetResourceID());
+	}
+	else if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE1D);
+		Serialise_glCopyTexSubImage1D(target, level, xoffset, x, y, width);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
+	SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, Width, width);
+	SERIALISE_ELEMENT(int32_t, Height, height);
+	
+	if(m_State < WRITING)
+		m_Real.glCopyTexSubImage2D(Target, Level, Xoffset, Yoffset, X, Y, Width, Height);
+	return true;
+}
+
+void WrappedOpenGL::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	m_Real.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+	
+	if(m_State == WRITING_IDLE)
+	{
+		if(m_TextureRecord[m_TextureUnit])
+			GetResourceManager()->MarkDirtyResource(m_TextureRecord[m_TextureUnit]->GetResourceID());
+	}
+	else if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE2D);
+		Serialise_glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
+	SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
+	SERIALISE_ELEMENT(int32_t, Zoffset, zoffset);
+	SERIALISE_ELEMENT(int32_t, X, x);
+	SERIALISE_ELEMENT(int32_t, Y, y);
+	SERIALISE_ELEMENT(int32_t, Width, width);
+	SERIALISE_ELEMENT(int32_t, Height, height);
+	
+	if(m_State < WRITING)
+		m_Real.glCopyTexSubImage3D(Target, Level, Xoffset, Yoffset, Zoffset, X, Y, Width, Height);
+	return true;
+}
+
+void WrappedOpenGL::glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	m_Real.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+	
+	if(m_State == WRITING_IDLE)
+	{
+		if(m_TextureRecord[m_TextureUnit])
+			GetResourceManager()->MarkDirtyResource(m_TextureRecord[m_TextureUnit]->GetResourceID());
+	}
+	else if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE3D);
+		Serialise_glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);

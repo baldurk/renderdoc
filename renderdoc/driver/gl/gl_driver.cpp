@@ -62,6 +62,11 @@ const char *GLChunkNames[] =
 	"glTexParameteriv",
 	"glGenerateMipmap",
 	"glCopyImageSubData",
+	"glCopyTexImage1D",
+	"glCopyTexImage2D",
+	"glCopyTexSubImage1D",
+	"glCopyTexSubImage2D",
+	"glCopyTexSubImage3D",
 	"glTextureView",
 
 	"glCreateShader",
@@ -1469,6 +1474,21 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case COPY_SUBIMAGE:
 		Serialise_glCopyImageSubData(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
+		break;
+	case COPY_IMAGE1D:
+		Serialise_glCopyTexImage1D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+		break;
+	case COPY_IMAGE2D:
+		Serialise_glCopyTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
+		break;
+	case COPY_SUBIMAGE1D:
+		Serialise_glCopyTexSubImage1D(eGL_NONE, 0, 0, 0, 0, 0);
+		break;
+	case COPY_SUBIMAGE2D:
+		Serialise_glCopyTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
+		break;
+	case COPY_SUBIMAGE3D:
+		Serialise_glCopyTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
 		break;
 	case TEXTURE_VIEW:
 		Serialise_glTextureView(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
