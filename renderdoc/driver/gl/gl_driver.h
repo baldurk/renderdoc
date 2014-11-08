@@ -503,7 +503,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data));
-		
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data));
+
 		enum AttribType
 		{
 			Attrib_GLdouble = 0x01,
