@@ -897,6 +897,32 @@ void WrappedOpenGL::glSampleMaski(GLuint maskNumber, GLbitfield mask)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glSampleCoverage(GLfloat value, GLboolean invert)
+{
+	SERIALISE_ELEMENT(float, Value, value);
+	SERIALISE_ELEMENT(bool, Invert, invert != 0);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glSampleCoverage(Value, Invert ? GL_TRUE : GL_FALSE);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glSampleCoverage(GLfloat value, GLboolean invert)
+{
+	m_Real.glSampleCoverage(value, invert);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(SAMPLE_COVERAGE);
+		Serialise_glSampleCoverage(value, invert);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glPatchParameteri(GLenum pname, GLint value)
 {
 	SERIALISE_ELEMENT(GLenum, PName, pname);

@@ -39,6 +39,7 @@ GLRenderState::~GLRenderState()
 
 void GLRenderState::FetchState()
 {
+	GLint boolread = 0;
 	// TODO check GL_MAX_*
 	// TODO check the extensions/core version for these is around
 	
@@ -216,6 +217,8 @@ void GLRenderState::FetchState()
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
 
 	m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
+	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
+	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&boolread); SampleCoverageInvert = (boolread != 0);
 
 	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
 	
@@ -425,6 +428,7 @@ void GLRenderState::ApplyState()
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
 
 	m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
+	m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
 
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
 	
@@ -483,6 +487,8 @@ void GLRenderState::Clear()
 	RDCEraseEl(StencilBack);
 	RDCEraseEl(ColorMasks);
 	RDCEraseEl(SampleMask);
+	RDCEraseEl(SampleCoverage);
+	RDCEraseEl(SampleCoverageInvert);
 	RDCEraseEl(ColorClearValue);
 
 	RDCEraseEl(Hints);
@@ -681,6 +687,8 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
 	
 	m_pSerialiser->Serialise<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
+	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_VALUE", SampleCoverage);
+	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_INVERT", SampleCoverageInvert);
 
 	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
 

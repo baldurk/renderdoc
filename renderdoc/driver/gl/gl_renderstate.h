@@ -191,6 +191,8 @@ struct GLRenderState
 	} ColorMasks[8];
 
 	uint32_t SampleMask[2];
+	float SampleCoverage;
+	bool SampleCoverageInvert;
 
 	struct
 	{

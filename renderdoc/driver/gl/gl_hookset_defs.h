@@ -245,6 +245,7 @@
     HookExtension(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
     HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
     HookExtension(PFNGLSAMPLEMASKIPROC, glSampleMaski); \
+    HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HookExtension(PFNGLDEPTHRANGEPROC, glDepthRange); \
     HookExtension(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HookExtension(PFNGLDEPTHRANGEARRAYVPROC, glDepthRangeArrayv); \
@@ -842,6 +843,7 @@
     HookWrapper4(void, glStencilOpSeparate, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper2(void, glSampleMaski, GLuint, maskNumber, GLbitfield, mask); \
+    HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper2(void, glDepthRange, GLdouble, near, GLdouble, far); \
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
