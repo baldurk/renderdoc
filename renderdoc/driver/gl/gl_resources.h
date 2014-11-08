@@ -37,6 +37,8 @@ bool IsDepthStencilFormat(GLenum internalFormat);
 bool IsUIntFormat(GLenum internalFormat);
 bool IsSIntFormat(GLenum internalFormat);
 
+GLenum TextureBinding(GLenum target);
+
 enum GLNamespace
 {
 	eResUnknown = 0,

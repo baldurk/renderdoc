@@ -48,12 +48,20 @@ const char *GLChunkNames[] =
 	"glTexStorage1D",
 	"glTexStorage2D",
 	"glTexStorage3D",
+	"glTexStorage2DMultisample",
+	"glTexImage1D",
+	"glTexImage2D",
+	"glTexImage3D",
 	"glTexSubImage1D",
 	"glTexSubImage2D",
 	"glTexSubImage3D",
+	"glCompressedTexImage1D",
+	"glCompressedTexImage2D",
+	"glCompressedTexImage3D",
 	"glCompressedTexSubImage1D",
 	"glCompressedTexSubImage2D",
 	"glCompressedTexSubImage3D",
+	"glTexBuffer",
 	"glTexBufferRange",
 	"glPixelStore",
 	"glTexParameterf",
@@ -1442,6 +1450,18 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case TEXSTORAGE3D:
 		Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0);
 		break;
+	case TEXSTORAGE2DMS:
+		Serialise_glTextureStorage2DMultisampleEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
+		break;
+	case TEXIMAGE1D:
+		Serialise_glTextureImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		break;
+	case TEXIMAGE2D:
+		Serialise_glTextureImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		break;
+	case TEXIMAGE3D:
+		Serialise_glTextureImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		break;
 	case TEXSUBIMAGE1D:
 		Serialise_glTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
@@ -1451,6 +1471,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case TEXSUBIMAGE3D:
 		Serialise_glTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
+	case TEXIMAGE1D_COMPRESSED:
+		Serialise_glCompressedTextureImage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, NULL);
+		break;
+	case TEXIMAGE2D_COMPRESSED:
+		Serialise_glCompressedTextureImage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
+		break;
+	case TEXIMAGE3D_COMPRESSED:
+		Serialise_glCompressedTextureImage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
+		break;
 	case TEXSUBIMAGE1D_COMPRESSED:
 		Serialise_glCompressedTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, eGL_NONE, 0, NULL);
 		break;
@@ -1459,6 +1488,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case TEXSUBIMAGE3D_COMPRESSED:
 		Serialise_glCompressedTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
+		break;
+	case TEXBUFFER:
+		Serialise_glTextureBufferEXT(0, eGL_NONE, eGL_NONE, 0);
 		break;
 	case TEXBUFFER_RANGE:
 		Serialise_glTextureBufferRangeEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);

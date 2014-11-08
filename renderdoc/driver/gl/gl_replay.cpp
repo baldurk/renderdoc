@@ -996,49 +996,43 @@ void GLReplay::SavePipelineState()
 
 					switch(refls[s]->Resources[r].resType)
 					{
-					case eResType_None:
-						t = eGL_NONE;
-						break;
-					case eResType_Buffer:
-						t = eGL_TEXTURE_BINDING_BUFFER;
-						break;
-					case eResType_Texture1D:
-						t = eGL_TEXTURE_BINDING_1D;
-						target = eGL_TEXTURE_1D;
-						break;
-					case eResType_Texture1DArray:
-						t = eGL_TEXTURE_BINDING_1D_ARRAY;
-						target = eGL_TEXTURE_1D_ARRAY;
-						break;
-					case eResType_Texture2D:
-						t = eGL_TEXTURE_BINDING_2D;
-						target = eGL_TEXTURE_2D;
-						break;
-					case eResType_Texture2DArray:
-						t = eGL_TEXTURE_BINDING_2D_ARRAY;
-						target = eGL_TEXTURE_2D_ARRAY;
-						break;
-					case eResType_Texture2DMS:
-						t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
-						target = eGL_TEXTURE_2D_MULTISAMPLE;
-						break;
-					case eResType_Texture2DMSArray:
-						t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
-						target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-						break;
-					case eResType_Texture3D:
-						t = eGL_TEXTURE_BINDING_3D;
-						target = eGL_TEXTURE_3D;
-						break;
-					case eResType_TextureCube:
-						t = eGL_TEXTURE_BINDING_CUBE_MAP;
-						target = eGL_TEXTURE_CUBE_MAP;
-						break;
-					case eResType_TextureCubeArray:
-						t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
-						target = eGL_TEXTURE_CUBE_MAP_ARRAY;
-						break;
+						case eResType_None:
+							target = eGL_NONE;
+							break;
+						case eResType_Buffer:
+							target = eGL_TEXTURE_BUFFER;
+							break;
+						case eResType_Texture1D:
+							target = eGL_TEXTURE_1D;
+							break;
+						case eResType_Texture1DArray:
+							target = eGL_TEXTURE_1D_ARRAY;
+							break;
+						case eResType_Texture2D:
+							target = eGL_TEXTURE_2D;
+							break;
+						case eResType_Texture2DArray:
+							target = eGL_TEXTURE_2D_ARRAY;
+							break;
+						case eResType_Texture2DMS:
+							target = eGL_TEXTURE_2D_MULTISAMPLE;
+							break;
+						case eResType_Texture2DMSArray:
+							target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+							break;
+						case eResType_Texture3D:
+							target = eGL_TEXTURE_3D;
+							break;
+						case eResType_TextureCube:
+							target = eGL_TEXTURE_CUBE_MAP;
+							break;
+						case eResType_TextureCubeArray:
+							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
+							break;
 					}
+					
+					if(target != eGL_NONE)
+						t = TextureBinding(target);
 
 					if(binding == eGL_NONE)
 					{
