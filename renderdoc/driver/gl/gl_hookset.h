@@ -214,13 +214,13 @@ struct GLHookSet
 	PFNGLGETNAMEDRENDERBUFFERPARAMETERIVPROC glGetNamedRenderbufferParameteriv;
 	PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;
 	PFNGLBLENDCOLORPROC glBlendColor;
-	PFNGLBLENDFUNCIPROC glBlendFunci;
-	PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate;
-	PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;
+	PFNGLBLENDFUNCIPROC glBlendFunci; // aliases glBlendFunciARB
+	PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate; // aliases glBlendFuncSeparateARB
+	PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei; // aliases glBlendFuncSeparateiARB
 	PFNGLBLENDEQUATIONPROC glBlendEquation;
 	PFNGLBLENDEQUATIONIPROC glBlendEquationi; // aliases glBlendEquationiARB
-	PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;
-	PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;
+	PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate; // aliases glBlendEquationSeparateARB
+	PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei; // aliases glBlendEquationSeparateiARB
 	PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
 	PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
 	PFNGLSTENCILOPSEPARATEPROC glStencilOpSeparate;
@@ -250,7 +250,7 @@ struct GLHookSet
 	PFNGLDELETEPROGRAMPIPELINESPROC glDeleteProgramPipelines;
 	PFNGLVALIDATEPROGRAMPIPELINEPROC glValidateProgramPipeline;
 	PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback; // aliases glDebugMessageCallbackARB
-	PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl;
+	PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl; // aliases glDebugMessageControlARB
 	PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;
 	PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;
 	PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;

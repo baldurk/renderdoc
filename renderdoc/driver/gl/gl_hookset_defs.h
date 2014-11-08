@@ -226,13 +226,18 @@
     HookExtension(PFNGLCHECKFRAMEBUFFERSTATUSPROC, glCheckFramebufferStatus); \
     HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
+    HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciARB); \
     HookExtension(PFNGLBLENDFUNCSEPARATEPROC, glBlendFuncSeparate); \
+    HookExtensionAlias(PFNGLBLENDFUNCSEPARATEPROC, glBlendFuncSeparate, glBlendFuncSeparateARB); \
     HookExtension(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
+    HookExtensionAlias(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei, glBlendFuncSeparateiARB); \
     HookExtension(PFNGLBLENDEQUATIONPROC, glBlendEquation); \
     HookExtension(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
     HookExtensionAlias(PFNGLBLENDEQUATIONIPROC, glBlendEquationi, glBlendEquationiARB); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
+    HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, glBlendEquationSeparateARB); \
     HookExtension(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
+    HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei, glBlendEquationSeparateiARB); \
     HookExtension(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
     HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \
     HookExtension(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
@@ -264,6 +269,7 @@
     HookExtension(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback); \
     HookExtensionAlias(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback, glDebugMessageCallbackARB); \
     HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
+    HookExtensionAlias(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl, glDebugMessageControlARB); \
     HookExtension(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
     HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
