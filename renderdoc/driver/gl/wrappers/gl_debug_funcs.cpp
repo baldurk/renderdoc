@@ -81,6 +81,19 @@ void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length
 	}
 }
 
+void WrappedOpenGL::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
+{
+	m_Real.glObjectPtrLabel(ptr, length, label);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
+		ResourceId id = GetResourceManager()->GetSyncID((GLsync)ptr);
+		Serialise_glObjectLabel(eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name, length, label);
+
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
+}
 
 void WrappedOpenGL::glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
 {

@@ -285,6 +285,7 @@
     HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
+    HookExtension(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
     HookExtension(PFNGLENABLEIPROC, glEnablei); \
     HookExtension(PFNGLDISABLEIPROC, glDisablei); \
     HookExtension(PFNGLISENABLEDIPROC, glIsEnabledi); \
@@ -905,6 +906,7 @@
     HookWrapper4(void, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
     HookWrapper0(void, glPopDebugGroup); \
     HookWrapper4(void, glObjectLabel, GLenum, identifier, GLuint, name, GLsizei, length, const GLchar *, label); \
+    HookWrapper3(void, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
     HookWrapper2(void, glEnablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glDisablei, GLenum, target, GLuint, index); \
     HookWrapper2(GLboolean, glIsEnabledi, GLenum, target, GLuint, index); \

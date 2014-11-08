@@ -429,6 +429,7 @@ class WrappedOpenGL
 		GLenum glCheckFramebufferStatus(GLenum target);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageControl(GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled));
