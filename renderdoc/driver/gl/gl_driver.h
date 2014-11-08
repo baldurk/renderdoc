@@ -433,6 +433,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenQueries(GLsizei n, GLuint *ids));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBeginQuery(GLenum target, GLuint id));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEndQuery(GLenum target));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glQueryCounter(GLuint id, GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteQueries(GLsizei n, const GLuint *ids));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glActiveTexture(GLenum texture));

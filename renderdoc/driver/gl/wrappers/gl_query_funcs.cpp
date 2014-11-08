@@ -253,6 +253,32 @@ void WrappedOpenGL::glEndQuery(GLenum target)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glQueryCounter(GLuint query, GLenum target)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), query)));
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	
+	if(m_State < WRITING)
+	{
+		glQueryCounter(GetResourceManager()->GetLiveResource(id).name, Target);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
+{
+	m_Real.glQueryCounter(query, target);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(QUERY_COUNTER);
+		Serialise_glQueryCounter(query, target);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
 {
 	m_Real.glDeleteQueries(n, ids);

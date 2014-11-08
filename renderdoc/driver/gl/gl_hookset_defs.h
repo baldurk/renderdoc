@@ -307,6 +307,7 @@
     HookExtension(PFNGLGENQUERIESPROC, glGenQueries); \
     HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
     HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
+    HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
     HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
     HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
@@ -903,6 +904,7 @@
     HookWrapper2(void, glGenQueries, GLsizei, n, GLuint *, ids); \
     HookWrapper2(void, glBeginQuery, GLenum, target, GLuint, id); \
     HookWrapper1(void, glEndQuery, GLenum, target); \
+    HookWrapper2(void, glQueryCounter, GLuint, id, GLenum, target); \
     HookWrapper2(void, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
     HookWrapper4(void, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
     HookWrapper4(void, glBufferStorage, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
