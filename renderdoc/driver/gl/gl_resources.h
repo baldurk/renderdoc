@@ -38,6 +38,7 @@ bool IsUIntFormat(GLenum internalFormat);
 bool IsSIntFormat(GLenum internalFormat);
 
 GLenum TextureBinding(GLenum target);
+bool IsProxyTarget(GLenum target);
 
 enum GLNamespace
 {

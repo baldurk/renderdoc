@@ -912,6 +912,9 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 {
 	m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -945,6 +948,9 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
 	m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
+
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1022,6 +1028,9 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 {
 	m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1055,6 +1064,9 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1133,6 +1145,9 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 {
 	m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1166,6 +1181,9 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
 	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget((GLenum)internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1223,6 +1241,9 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 {
 	m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1256,6 +1277,9 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
 	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1314,6 +1338,9 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 {
 	m_Real.glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1347,6 +1374,9 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
 	m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1406,6 +1436,9 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 {
 	m_Real.glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1439,6 +1472,9 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
 	m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1501,6 +1537,9 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 {
 	m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1531,6 +1570,9 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
 {
 	m_Real.glTexStorage1D(target, levels, internalformat, width);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1590,6 +1632,9 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 {
 	m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1620,6 +1665,9 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
 	m_Real.glTexStorage2D(target, levels, internalformat, width, height);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1680,6 +1728,9 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 {
 	m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1710,6 +1761,9 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
 {
 	m_Real.glTexStorage3D(target, levels, internalformat, width, height, depth);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1770,6 +1824,9 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
 {
 	m_Real.glTextureStorage2DMultisampleEXT(texture, target, samples, internalformat, width, height, fixedsamplelocations);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1800,6 +1857,9 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
 void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
 {
 	m_Real.glTexStorage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1834,6 +1894,9 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
 {
 	m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1905,6 +1968,9 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 {
 	m_Real.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1923,6 +1989,9 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels)
 {
 	m_Real.glTexSubImage1D(target, level, xoffset, width, format, type, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -1979,6 +2048,9 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 {
 	m_Real.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -1997,6 +2069,9 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels)
 {
 	m_Real.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -2055,6 +2130,9 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 {
 	m_Real.glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -2073,6 +2151,9 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels)
 {
 	m_Real.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -2116,6 +2197,9 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 {
 	m_Real.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -2134,6 +2218,9 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	m_Real.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -2179,6 +2266,9 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 {
 	m_Real.glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -2197,6 +2287,9 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	m_Real.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{
@@ -2244,6 +2337,9 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 {
 	m_Real.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
 	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
+	
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
@@ -2262,6 +2358,9 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *pixels)
 {
 	m_Real.glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(format)) return;
 	
 	if(m_State >= WRITING)
 	{

@@ -412,3 +412,23 @@ GLenum TextureBinding(GLenum target)
 	RDCERR("Unexpected target %x", target);
 	return eGL_NONE;
 }
+
+bool IsProxyTarget(GLenum target)
+{
+	switch(target)
+	{
+		case eGL_PROXY_TEXTURE_1D:
+		case eGL_PROXY_TEXTURE_1D_ARRAY:
+		case eGL_PROXY_TEXTURE_2D:
+		case eGL_PROXY_TEXTURE_2D_ARRAY:
+		case eGL_PROXY_TEXTURE_2D_MULTISAMPLE:
+		case eGL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
+		case eGL_PROXY_TEXTURE_RECTANGLE:
+		case eGL_PROXY_TEXTURE_3D:
+		case eGL_PROXY_TEXTURE_CUBE_MAP:
+		case eGL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
+			return true;
+	}
+
+	return false;
+}
