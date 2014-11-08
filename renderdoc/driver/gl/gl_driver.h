@@ -491,6 +491,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramParameteri(GLuint program, GLenum pname, GLint value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindAttribLocation(GLuint program, GLuint index, const GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindFragDataLocation(GLuint program, GLuint color, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgram(GLuint program));
@@ -512,6 +513,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glUnmapBuffer(GLenum target));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchComputeIndirect(GLintptr indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMemoryBarrier(GLbitfield barriers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value));
@@ -935,6 +937,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type, const void * indices, GLsizei instancecount, GLint basevertex));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const void * indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArrays(GLenum mode, const GLint *first, const GLsizei *count, GLsizei drawcount));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElements(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysIndirect(GLenum mode, const void *indirect));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteBuffers(GLsizei n, const GLuint *buffers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteVertexArrays(GLsizei n, const GLuint *arrays));
 

@@ -87,6 +87,7 @@ const char *GLChunkNames[] =
 	"glUseProgram",
 	"glProgramParameter",
 	"glBindAttribLocation",
+	"glBindFragDataLocation",
 	"glUniformBlockBinding",
 	"glProgramUniformMatrix*",
 	"glProgramUniformVector*",
@@ -162,17 +163,22 @@ const char *GLChunkNames[] =
 	"glBindVertexBuffer",
 	"glVertexBindingDivisor",
 	"glDispatchCompute",
+	"glDispatchComputeIndirect",
 	"glMemoryBarrier",
 	"glDrawArrays",
+	"glDrawArraysIndirect",
 	"glDrawArraysInstanced",
 	"glDrawArraysInstancedBaseInstance",
 	"glDrawElements",
+	"glDrawElementsIndirect",
 	"glDrawRangeElements",
 	"glDrawElementsInstanced",
 	"glDrawElementsInstancedBaseInstance",
 	"glDrawElementsBaseVertex",
 	"glDrawElementsInstancedBaseVertex",
 	"glDrawElementsInstancedBaseVertexBaseInstance",
+	"glMultiDrawArrays",
+	"glMultiDrawElements",
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
@@ -1565,6 +1571,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BINDATTRIB_LOCATION:
 		Serialise_glBindAttribLocation(0, 0, NULL);
 		break;
+	case BINDFRAGDATA_LOCATION:
+		Serialise_glBindFragDataLocation(0, 0, NULL);
+		break;
 	case UNIFORM_BLOCKBIND:
 		Serialise_glUniformBlockBinding(0, 0, 0);
 		break;
@@ -1784,11 +1793,17 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DISPATCH_COMPUTE:
 		Serialise_glDispatchCompute(0, 0, 0);
 		break;
+	case DISPATCH_COMPUTE_INDIRECT:
+		Serialise_glDispatchComputeIndirect(0);
+		break;
 	case MEMORY_BARRIER:
 		Serialise_glMemoryBarrier(0);
 		break;
 	case DRAWARRAYS:
 		Serialise_glDrawArrays(eGL_NONE, 0, 0);
+		break;
+	case DRAWARRAYS_INDIRECT:
+		Serialise_glDrawArraysIndirect(eGL_NONE, 0);
 		break;
 	case DRAWARRAYS_INSTANCED:
 		Serialise_glDrawArraysInstanced(eGL_NONE, 0, 0, 0);
@@ -1798,6 +1813,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DRAWELEMENTS:
 		Serialise_glDrawElements(eGL_NONE, 0, eGL_NONE, NULL);
+		break;
+	case DRAWELEMENTS_INDIRECT:
+		Serialise_glDrawElementsIndirect(eGL_NONE, eGL_NONE, 0);
 		break;
 	case DRAWRANGEELEMENTS:
 		Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL);
@@ -1816,6 +1834,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
 		Serialise_glDrawElementsInstancedBaseVertexBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
+		break;
+	case MULTI_DRAWARRAYS:
+		Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0);
+		break;
+	case MULTI_DRAWELEMENTS:
+		Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
 		break;
 		
 	case GEN_FRAMEBUFFERS:
