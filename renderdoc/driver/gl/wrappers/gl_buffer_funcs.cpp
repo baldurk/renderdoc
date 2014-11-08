@@ -783,8 +783,8 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 
 		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
 
-		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
-			RDCUNIMPLEMENTED("haven't implemented coherent/persistant glMap calls");
+		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT|GL_MAP_FLUSH_EXPLICIT_BIT|GL_MAP_UNSYNCHRONIZED_BIT)) != 0)
+			RDCUNIMPLEMENTED("haven't implemented coherent/persistant/flush explicit/unsynchronized glMap calls");
 
 		if((access & GL_MAP_READ_BIT) != 0)
 		{
@@ -1057,6 +1057,16 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 	}
 
 	return m_Real.glUnmapBuffer(target);
+}
+
+void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
+{
+	m_Real.glFlushMappedBufferRange(target, offset, length);
+
+	if(m_State >= WRITING)
+	{
+		RDCUNIMPLEMENTED("Persistant/unsynchronised/explicit flash maps are not yet supported");
+	}
 }
 
 #pragma endregion

@@ -494,6 +494,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapBuffer(GLenum target, GLenum access));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length));
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glUnmapBuffer(GLenum target));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z));

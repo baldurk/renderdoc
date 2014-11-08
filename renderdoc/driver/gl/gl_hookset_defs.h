@@ -322,6 +322,7 @@
     HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
     HookExtension(PFNGLMAPBUFFERPROC, glMapBuffer); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
+    HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
     HookExtension(PFNGLDELETEBUFFERSPROC, glDeleteBuffers); \
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
@@ -925,6 +926,7 @@
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper2(void *, glMapBuffer, GLenum, target, GLenum, access); \
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
+    HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
     HookWrapper2(void, glDeleteBuffers, GLsizei, n, const GLuint *, buffers); \
     HookWrapper2(void, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
