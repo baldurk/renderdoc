@@ -193,6 +193,8 @@
     HookExtension(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex); \
     HookExtension(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation); \
     HookExtension(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
+    HookExtension(PFNGLGETACTIVEUNIFORMNAMEPROC, glGetActiveUniformName); \
+    HookExtension(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
     HookExtension(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
     HookExtension(PFNGLGETACTIVEUNIFORMSIVPROC, glGetActiveUniformsiv); \
     HookExtension(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
@@ -798,6 +800,8 @@
     HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
     HookWrapper2(GLint, glGetAttribLocation, GLuint, program, const GLchar *, name); \
     HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper5(void, glGetActiveUniformName, GLuint, program, GLuint, uniformIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformName); \
+    HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
     HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
     HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \

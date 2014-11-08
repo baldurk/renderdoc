@@ -601,9 +601,19 @@ void WrappedOpenGL::glGetActiveUniformsiv(GLuint program, GLsizei uniformCount, 
 	m_Real.glGetActiveUniformsiv(program, uniformCount, uniformIndices, pname, params);
 }
 
+void WrappedOpenGL::glGetActiveUniformName(GLuint program, GLuint uniformIndex, GLsizei bufSize, GLsizei *length, GLchar *uniformName)
+{
+	m_Real.glGetActiveUniformName(program, uniformIndex, bufSize, length, uniformName);
+}
+
 void WrappedOpenGL::glGetActiveUniformBlockiv(GLuint program, GLuint uniformBlockIndex, GLenum pname, GLint *params)
 {
 	m_Real.glGetActiveUniformBlockiv(program, uniformBlockIndex, pname, params);
+}
+
+void WrappedOpenGL::glGetActiveUniformBlockName(GLuint program, GLuint uniformBlockIndex, GLsizei bufSize, GLsizei *length, GLchar *uniformBlockName)
+{
+	m_Real.glGetActiveUniformBlockName(program, uniformBlockIndex, bufSize, length, uniformBlockName);
 }
 
 void WrappedOpenGL::glGetActiveAttrib(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name)
