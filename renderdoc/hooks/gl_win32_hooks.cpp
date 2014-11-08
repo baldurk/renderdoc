@@ -483,7 +483,6 @@ class OpenGLHook : LibraryHook
 				return (PROC)&wglGetPixelFormatAttribivARB_hooked;
 			}
 
-			HookCheckWGLExtensions();
 			HookCheckGLExtensions();
 
 			// claim not to know this extension!
@@ -541,14 +540,12 @@ class OpenGLHook : LibraryHook
 #define HookExtensionAlias(funcPtrType, function, alias)
 
 			DLLExportHooks();
-			HookCheckWGLExtensions();
 			HookCheckGLExtensions();
 
 			return true;
 		}
 
 		DefineDLLExportHooks();
-		DefineWGLExtensionHooks();
 		DefineGLExtensionHooks();
 };
 

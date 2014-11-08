@@ -88,16 +88,6 @@
 
 
 
-// wgl extensions
-#define HookCheckWGLExtensions() \
-
-
-
-// glx extensions
-#define HookCheckGLXExtensions() \
-
-
-
 // gl extensions
 #define HookCheckGLExtensions() \
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
@@ -698,16 +688,6 @@
     HookWrapper3(void, glTexParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glTexParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
     HookWrapper4(void, glViewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-
-
-
-// wgl extensions
-#define DefineWGLExtensionHooks() \
-
-
-
-// glx extensions
-#define DefineGLXExtensionHooks() \
 
 
 

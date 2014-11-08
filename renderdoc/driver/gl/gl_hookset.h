@@ -86,7 +86,7 @@ struct GLHookSet
 	PFNGLVIEWPORTPROC glViewport;
 	// --
 
-	// ++ gl
+	// ++ glext
 	PFNGLACTIVETEXTUREPROC glActiveTexture;
 	PFNGLTEXSTORAGE1DPROC glTexStorage1D;
 	PFNGLTEXSTORAGE2DPROC glTexStorage2D;
@@ -562,12 +562,6 @@ struct GLHookSet
 	PFNGLTEXTURESUBIMAGE2DEXTPROC glTextureSubImage2DEXT;
 	PFNGLTEXTURESUBIMAGE3DEXTPROC glTextureSubImage3DEXT;
 	PFNGLUNMAPNAMEDBUFFEREXTPROC glUnmapNamedBufferEXT;
-	// --
-
-	// ++ wgl
-	// --
-
-	// ++ glx
 	// --
 };
 
