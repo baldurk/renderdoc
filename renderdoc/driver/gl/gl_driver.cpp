@@ -168,13 +168,20 @@ const char *GLChunkNames[] =
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
+	"glFramebufferTexture1D",
 	"glFramebufferTexture2D",
+	"glFramebufferTexture3D",
+	"glFramebufferRenderbuffer",
 	"glFramebufferTextureLayer",
 	"glReadBuffer",
 	"glBindFramebuffer",
 	"glDrawBuffer",
 	"glDrawBuffers",
 	"glBlitFramebuffer",
+
+	"glGenRenderbuffers",
+	"glRenderbufferStorage",
+	"glRenderbufferStorageMultisample",
 
 	"glGenSamplers",
 	"glSamplerParameteri",
@@ -294,6 +301,7 @@ WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
 	m_VertexArrayRecord = NULL;
 	m_DrawFramebufferRecord = NULL;
 	m_ReadFramebufferRecord = NULL;
+	m_Renderbuffer = ResourceId();
 	m_TextureUnit = 0;
 	m_Program = 0;
 	
@@ -1784,8 +1792,17 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case FRAMEBUFFER_TEX:
 		Serialise_glNamedFramebufferTextureEXT(0, eGL_NONE, 0, 0);
 		break;
+	case FRAMEBUFFER_TEX1D:
+		Serialise_glNamedFramebufferTexture1DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
+		break;
 	case FRAMEBUFFER_TEX2D:
 		Serialise_glNamedFramebufferTexture2DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
+		break;
+	case FRAMEBUFFER_TEX3D:
+		Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
+		break;
+	case FRAMEBUFFER_RENDBUF:
+		Serialise_glNamedFramebufferRenderbufferEXT(0, eGL_NONE, eGL_NONE, 0);
 		break;
 	case FRAMEBUFFER_TEXLAYER:
 		Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_NONE, 0, 0, 0);
@@ -1806,6 +1823,16 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
 		break;
 		
+	case GEN_RENDERBUFFERS:
+		Serialise_glGenRenderbuffers(0, NULL);
+		break;
+	case RENDERBUFFER_STORAGE:
+		Serialise_glRenderbufferStorage(eGL_NONE, eGL_NONE, 0, 0);
+		break;
+	case RENDERBUFFER_STORAGEMS:
+		Serialise_glRenderbufferStorageMultisample(eGL_NONE, 0, eGL_NONE, 0, 0);
+		break;
+
 	case GEN_SAMPLERS:
 		Serialise_glGenSamplers(0, NULL);
 		break;

@@ -115,6 +115,7 @@ class WrappedOpenGL
 		GLResourceRecord *m_VertexArrayRecord;
 		GLResourceRecord *m_DrawFramebufferRecord;
 		GLResourceRecord *m_ReadFramebufferRecord;
+		ResourceId m_Renderbuffer;
 		GLint m_TextureUnit;
 		GLuint m_Program;
 
@@ -179,12 +180,13 @@ class WrappedOpenGL
 		
 		struct TextureData
 		{
-			TextureData() : width(0), height(0), depth(0), creationFlags(0), internalFormat(eGL_NONE) {}
+			TextureData() : width(0), height(0), depth(0), creationFlags(0), internalFormat(eGL_NONE), renderbuffer(false) {}
 			GLResource resource;
 			GLenum curType;
 			GLint width, height, depth;
 			uint32_t creationFlags;
 			GLenum internalFormat;
+			bool renderbuffer;
 		};
 
 		map<ResourceId, TextureData> m_Textures;
@@ -410,9 +412,17 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffers(GLsizei n, const GLenum *bufs));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindFramebuffer(GLenum target, GLuint framebuffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture1D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTexture3D(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferRenderbuffer(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture, GLint level, GLint layer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGenRenderbuffers(GLsizei n, GLuint *renderbuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindRenderbuffer(GLenum target, GLuint renderbuffer));
 
 		GLenum glCheckFramebufferStatus(GLenum target);
 
@@ -947,7 +957,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum attachment, GLenum textarget, GLuint texture, GLint level));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum attachment, GLenum textarget, GLuint texture, GLint level));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLint zoffset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void *pixels));
