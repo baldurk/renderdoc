@@ -195,8 +195,20 @@ private:
 			return E_UNEXPECTED;
 		}
 
+		// Hack for D3DGear which crashes if ppDevice is NULL
+		ID3D11Device *dummydev = NULL;
+		bool dummyUsed = false;
+		if(ppDevice == NULL)
+		{
+			ppDevice = &dummydev;
+			dummyUsed = true;
+		}
+
 		HRESULT ret = createFunc(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels,
 															SDKVersion, pUsedSwapDesc, ppSwapChain, ppDevice, pFeatureLevel, ppImmediateContext);
+
+		SAFE_RELEASE(dummydev);
+		if(dummyUsed) ppDevice = NULL;
 
 		RDCDEBUG("Called real createdevice...");
 		
