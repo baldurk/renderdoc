@@ -704,6 +704,92 @@ void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
 	m_InitParams.height = h;
 }
 
+// TODO this could be a general class for use elsewhere (ie. code that wants
+// to push and pop would set state through the class, which records dirty bits
+// and then restores).
+struct RenderTextState
+{
+	bool enableBits[8];
+	GLenum EquationRGB, EquationAlpha;
+	GLenum SourceRGB, SourceAlpha;
+	GLenum DestinationRGB, DestinationAlpha;
+	GLenum PolygonMode;
+	GLfloat Viewport[4];
+	GLenum ActiveTexture;
+	GLuint tex0;
+	GLuint ubo[3];
+	GLuint prog;
+	GLuint VAO;
+
+	void Push(const GLHookSet &gl)
+	{
+		enableBits[0] = gl.glIsEnabled(eGL_BLEND) != 0;
+		enableBits[1] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
+		enableBits[2] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
+		enableBits[3] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
+		enableBits[4] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
+		enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+		
+		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint*)&EquationRGB);
+		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint*)&EquationAlpha);
+
+		gl.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint*)&SourceRGB);
+		gl.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint*)&SourceAlpha);
+
+		gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint*)&DestinationRGB);
+		gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint*)&DestinationAlpha);
+		
+		GLenum dummy[2];
+		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
+		// and back faces.
+		gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+		PolygonMode = dummy[0];
+		
+		gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewport[0]);
+
+		gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
+		gl.glActiveTexture(eGL_TEXTURE0);
+		gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&tex0);
+
+		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint*)&ubo[0]);
+		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint*)&ubo[1]);
+		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint*)&ubo[2]);
+
+		gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+		
+		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+	}
+
+	void Pop(const GLHookSet &gl)
+	{
+		if(enableBits[0]) gl.glEnable(eGL_BLEND); else gl.glDisable(eGL_BLEND);
+		if(enableBits[1]) gl.glEnable(eGL_DEPTH_TEST); else gl.glDisable(eGL_DEPTH_TEST);
+		if(enableBits[2]) gl.glEnable(eGL_DEPTH_CLAMP); else gl.glDisable(eGL_DEPTH_CLAMP);
+		if(enableBits[3]) gl.glEnable(eGL_STENCIL_TEST); else gl.glDisable(eGL_STENCIL_TEST);
+		if(enableBits[4]) gl.glEnable(eGL_CULL_FACE); else gl.glDisable(eGL_CULL_FACE);
+		if(enableBits[5]) gl.glEnablei(eGL_SCISSOR_TEST, 0); else gl.glDisablei(eGL_SCISSOR_TEST, 0);
+		
+		gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+		gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
+
+		gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+		
+		gl.glViewportIndexedf(0, Viewport[0], Viewport[1], Viewport[2], Viewport[3]);
+		
+		gl.glActiveTexture(eGL_TEXTURE0);
+		gl.glBindTexture(eGL_TEXTURE_2D, tex0);
+		gl.glActiveTexture(ActiveTexture);
+		
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
+
+		gl.glUseProgram(prog);
+		
+		gl.glBindVertexArray(VAO);
+	}
+};
+
 void WrappedOpenGL::RenderOverlayText(float x, float y, const char *fmt, ...)
 {
 	static char tmpBuf[4096];
@@ -770,6 +856,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	}
 
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// Make sure if you change any other state in here, that you also update the push
+	// and pop functions above (RenderTextState)
 
 	// set blend state
 	gl.glEnable(eGL_BLEND);
@@ -848,9 +938,9 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 		if((overlay & eOverlay_Enabled) && m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
 		{
-			GLRenderState old(&m_Real, m_pSerialiser, m_State);
+			RenderTextState textState;
 
-			old.FetchState();
+			textState.Push(m_Real);
 
 			// TODO: handle selecting active window amongst many
 			{
@@ -911,7 +1001,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 #endif
 			}
 
-			old.ApplyState();
+			textState.Pop(m_Real);
 		}
 	}
 
