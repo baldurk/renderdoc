@@ -157,6 +157,16 @@ private:
 	set<IUnknown*> m_HighTrafficResources;
 	map<MappedResource, MapIntercept> m_OpenMaps;
 
+	struct StreamOutData
+	{
+		StreamOutData() : query(NULL), running(false), numPrims(0) {}
+		ID3D11Query *query;
+		bool running;
+		uint64_t numPrims;
+	};
+	
+	map<ResourceId, StreamOutData> m_StreamOutCounters;
+
 	map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
 	WrappedID3D11Device* m_pDevice;

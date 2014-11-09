@@ -1952,6 +1952,50 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(UINT NumBuffers_, ID3D11
 			setoffs[b] = Offsets[b];
 		}
 
+		// end stream-out queries for outgoing targets
+		for(UINT b=0; b < 4; b++)
+		{
+			ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+			if(buf)
+			{
+				ResourceId id = GetIDForResource(buf);
+
+				m_pRealContext->End(m_StreamOutCounters[id].query);
+				m_StreamOutCounters[id].running = false;
+			}
+		}
+
+		// start new queries for incoming targets
+		for(UINT b=0; b < 4; b++)
+		{
+			ID3D11Buffer *buf = setbufs[b];
+
+			if(buf)
+			{
+				ResourceId id = GetIDForResource(buf);
+
+				// release any previous query as the hidden counter is overwritten
+				SAFE_RELEASE(m_StreamOutCounters[id].query);
+
+				D3D11_QUERY queryTypes[] = {
+					D3D11_QUERY_SO_STATISTICS_STREAM0,
+					D3D11_QUERY_SO_STATISTICS_STREAM1,
+					D3D11_QUERY_SO_STATISTICS_STREAM2,
+					D3D11_QUERY_SO_STATISTICS_STREAM3,
+				};
+
+				D3D11_QUERY_DESC qdesc;
+				qdesc.MiscFlags = 0;
+				qdesc.Query = queryTypes[b];
+
+				m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+
+				m_pRealContext->Begin(m_StreamOutCounters[id].query);
+				m_StreamOutCounters[id].running = true;
+			}
+		}
+
 		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, setbufs, 0, 4);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, setoffs, 0, 4);
 	}
@@ -1994,6 +2038,50 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 	{
 		setbufs[b] = ppSOTargets[b];
 		setoffs[b] = pOffsets[b];
+	}
+
+	// end stream-out queries for outgoing targets
+	for(UINT b=0; b < 4; b++)
+	{
+		ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+		if(buf)
+		{
+			ResourceId id = GetIDForResource(buf);
+
+			m_pRealContext->End(m_StreamOutCounters[id].query);
+			m_StreamOutCounters[id].running = false;
+		}
+	}
+
+	// start new queries for incoming targets
+	for(UINT b=0; b < 4; b++)
+	{
+		ID3D11Buffer *buf = setbufs[b];
+
+		if(buf)
+		{
+			ResourceId id = GetIDForResource(buf);
+
+			// release any previous query as the hidden counter is overwritten
+			SAFE_RELEASE(m_StreamOutCounters[id].query);
+
+			D3D11_QUERY queryTypes[] = {
+				D3D11_QUERY_SO_STATISTICS_STREAM0,
+				D3D11_QUERY_SO_STATISTICS_STREAM1,
+				D3D11_QUERY_SO_STATISTICS_STREAM2,
+				D3D11_QUERY_SO_STATISTICS_STREAM3,
+			};
+			
+			D3D11_QUERY_DESC qdesc;
+			qdesc.MiscFlags = 0;
+			qdesc.Query = queryTypes[b];
+
+			m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+
+			m_pRealContext->Begin(m_StreamOutCounters[id].query);
+			m_StreamOutCounters[id].running = true;
+		}
 	}
 
 	// "If less than four [buffers] are defined by the call, the remaining buffer slots are set to NULL."
@@ -3498,9 +3586,58 @@ void WrappedID3D11DeviceContext::Draw(UINT VertexCount, UINT StartVertexLocation
 
 bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
 {
+	uint64_t numVerts = 0;
+
 	if(m_State <= EXECUTING)
 	{
-		m_pRealContext->DrawAuto();
+		// spec says that only the first vertex buffer is used
+		if(m_CurrentPipelineState->IA.VBs[0] == NULL)
+		{
+			RDCERR("DrawAuto() with VB 0 set to NULL!");
+		}
+		else
+		{
+			ResourceId id = GetIDForResource(m_CurrentPipelineState->IA.VBs[0]);
+
+			StreamOutData &data = m_StreamOutCounters[id];
+
+			// if we have a query, the stream-out data for this DrawAuto was generated
+			// in the captured frame, so we can do a legitimate DrawAuto()
+			if(data.query)
+			{
+				// shouldn't still be bound on output
+				RDCASSERT(!data.running);
+				
+				D3D11_QUERY_DATA_SO_STATISTICS numPrims;
+
+				HRESULT hr = S_FALSE;
+
+				do 
+				{
+					hr = m_pRealContext->GetData(data.query, &numPrims, sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
+				} while(hr == S_FALSE);
+
+				if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
+					numVerts = numPrims.NumPrimitivesWritten;
+				else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
+					numVerts = numPrims.NumPrimitivesWritten*2;
+				else
+					numVerts = numPrims.NumPrimitivesWritten*3;
+
+				m_pRealContext->DrawAuto();
+			}
+			else
+			{
+				if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_POINTLIST)
+					numVerts = data.numPrims;
+				else if(m_CurrentPipelineState->IA.Topo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST)
+					numVerts = data.numPrims*2;
+				else
+					numVerts = data.numPrims*3;
+
+				m_pRealContext->Draw((UINT)numVerts, 0);
+			}
+		}
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -3510,15 +3647,16 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
 	if(m_State == READING)
 	{
 		AddEvent(DRAW_AUTO, desc);
-		string name = "DrawAuto()";
-
-		// Not implemented. Need to D3D11_QUERY_SO_STATISTICS to find out the
-		// index count etc to fill out FetchDrawcall
-		RDCUNIMPLEMENTED("Not fetching draw data for DrawAuto() display");
+		string name = "DrawAuto(<" + ToStr::Get(numVerts) + ">)";
 
 		FetchDrawcall draw;
 		draw.name = widen(name);
 		draw.flags |= eDraw_Drawcall|eDraw_Auto;
+		draw.numIndices = (uint32_t)numVerts;
+		draw.vertexOffset = 0;
+		draw.indexOffset = 0;
+		draw.instanceOffset = 0;
+		draw.numInstances = 1;
 
 		draw.debugMessages = debugMessages;
 

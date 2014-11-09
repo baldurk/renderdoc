@@ -4192,7 +4192,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_pImmediateContext->SOSetTargets( 1, &m_SOBuffer, &offset );
 
 		m_pImmediateContext->Begin(m_SOStatsQuery);
-		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		// trying to stream out a stream-out-auto based drawcall would be bad!
+		// instead just draw the number of verts we pre-calculated
+		if(drawcall->flags & eDraw_Auto)
+			m_pImmediateContext->Draw(drawcall->numIndices, 0);
+		else
+			m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
 		m_pImmediateContext->End(m_SOStatsQuery);
 
 		m_pImmediateContext->GSSetShader(NULL, NULL, 0);

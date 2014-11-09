@@ -178,6 +178,11 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 	
 	if(m_pRealContext->GetType() != D3D11_DEVICE_CONTEXT_IMMEDIATE)
 		m_pDevice->RemoveDeferredContext(this);
+	
+	for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
+	{
+		SAFE_RELEASE(it->second.query);
+	}
 
 	if(m_State >= WRITING)
 	{
@@ -224,6 +229,110 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
 		}
 		m_DoStateVerify = true;
 		VerifyState();
+	}
+
+	// stream-out hidden counters need to be saved, in case their results are used
+	// for a DrawAuto() somewhere. Each buffer used as a stream-out target has a hidden
+	// counter saved with it that stores the number of primitives written, which is then
+	// used for a DrawAuto(). If the stream-out happens in frame we don't need to worry,
+	// but if it references a buffer from before we need to have that counter available
+	// on replay to 'fake' the DrawAuto() just as a Draw() with known values
+	if(m_State >= WRITING)
+	{
+		// this may break API guarantees, but we need to fetch the hidden counters
+		// so we need to restart any queries for currently set SO targets.
+		// Potentially to be more correct we could defer fetching the results of queries
+		// that are still running until they get detached (as they must be detached
+		// before being used for any DrawAuto calls - if we're in CAPFRAME we could
+		// serialise the data then. If they're never detached, we don't need the results)
+
+		bool restart[4] = { false };
+
+		for(UINT b=0; b < 4; b++)
+		{
+			ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+
+			if(buf)
+			{
+				ResourceId id = GetIDForResource(buf);
+
+				m_pRealContext->End(m_StreamOutCounters[id].query);
+				m_StreamOutCounters[id].running = false;
+
+				restart[b] = true;
+			}
+		}
+		
+		D3D11_QUERY_DATA_SO_STATISTICS numPrims;
+
+		// readback all known counters
+		SERIALISE_ELEMENT(uint32_t, numStreamOutCounters, (uint32_t)m_StreamOutCounters.size());
+		for(auto it = m_StreamOutCounters.begin(); it != m_StreamOutCounters.end(); ++it)
+		{
+			SERIALISE_ELEMENT(ResourceId, id, it->first);
+			
+			RDCEraseEl(numPrims);
+
+			HRESULT hr = S_FALSE;
+
+			do 
+			{
+				hr = m_pRealContext->GetData(it->second.query, &numPrims, sizeof(D3D11_QUERY_DATA_SO_STATISTICS), 0);
+			} while(hr == S_FALSE);
+
+			if(hr != S_OK)
+			{
+				numPrims.NumPrimitivesWritten = 0;
+				RDCERR("Couldn't retrieve hidden buffer counter for streamout on buffer %llx", id);
+			}
+
+			SERIALISE_ELEMENT(uint64_t, hiddenCounter, (uint64_t)numPrims.NumPrimitivesWritten);
+		}
+			
+		// restart any counters we were forced to stop
+		for(UINT b=0; b < 4; b++)
+		{
+			ID3D11Buffer *buf = m_CurrentPipelineState->SO.Buffers[b];
+			
+			if(buf && restart[b])
+			{
+				ResourceId id = GetIDForResource(buf);
+
+				// release any previous query as the hidden counter is overwritten
+				SAFE_RELEASE(m_StreamOutCounters[id].query);
+
+				D3D11_QUERY queryTypes[] = {
+					D3D11_QUERY_SO_STATISTICS_STREAM0,
+					D3D11_QUERY_SO_STATISTICS_STREAM1,
+					D3D11_QUERY_SO_STATISTICS_STREAM2,
+					D3D11_QUERY_SO_STATISTICS_STREAM3,
+				};
+
+				D3D11_QUERY_DESC qdesc;
+				qdesc.MiscFlags = 0;
+				qdesc.Query = queryTypes[b];
+
+				m_pDevice->GetReal()->CreateQuery(&qdesc, &m_StreamOutCounters[id].query);
+
+				m_pRealContext->Begin(m_StreamOutCounters[id].query);
+				m_StreamOutCounters[id].running = true;
+			}
+		}
+	}
+	else
+	{
+		// read in the known stream-out counters at the start of the frame.
+		// any stream-out that happens in the captured frame will be replayed
+		// and those counters will override this value when it comes to a
+		// DrawAuto()
+		SERIALISE_ELEMENT(uint32_t, numStreamOutCounters, 0);
+		for(uint32_t i=0; i < numStreamOutCounters; i++)
+		{
+			SERIALISE_ELEMENT(ResourceId, id, ResourceId());
+			SERIALISE_ELEMENT(uint64_t, hiddenCounter, 0);
+			
+			m_StreamOutCounters[m_pDevice->GetResourceManager()->GetLiveID(id)].numPrims = hiddenCounter;
+		}
 	}
 
 	return true;
