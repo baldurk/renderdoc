@@ -1943,8 +1943,17 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(UINT NumBuffers_, ID3D11
 
 	if(m_State <= EXECUTING)
 	{
-		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, Buffers, 0, NumBuffers);
-		m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, Offsets, 0, NumBuffers);
+		ID3D11Buffer *setbufs[4] = {0};
+		UINT setoffs[4] = {0};
+
+		for(UINT b=0; b < NumBuffers; b++)
+		{
+			setbufs[b] = Buffers[b];
+			setoffs[b] = Offsets[b];
+		}
+
+		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, setbufs, 0, 4);
+		m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, setoffs, 0, 4);
 	}
 	
 	for(UINT i=0; i < NumBuffers; i++)
@@ -1978,9 +1987,19 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 
-	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, ppSOTargets, 0, NumBuffers);
-	m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, pOffsets, 0, NumBuffers);
+	ID3D11Buffer *setbufs[4] = {0};
+	UINT setoffs[4] = {0};
 	
+	for(UINT b=0; b < NumBuffers; b++)
+	{
+		setbufs[b] = ppSOTargets[b];
+		setoffs[b] = pOffsets[b];
+	}
+
+	// "If less than four [buffers] are defined by the call, the remaining buffer slots are set to NULL."
+	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->SO.Buffers, setbufs, 0, 4);
+	m_CurrentPipelineState->Change(m_CurrentPipelineState->SO.Offsets, setoffs, 0, 4);
+
 	ID3D11Buffer *bufs[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] = {0};
 	for(UINT i=0; i < NumBuffers; i++)
 	{
