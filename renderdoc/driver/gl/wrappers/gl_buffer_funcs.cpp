@@ -439,16 +439,29 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 		GLResourceRecord *record = m_BufferRecord[BufferIdx(target)];
 		RDCASSERT(record);
 
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
-		Serialise_glNamedBufferSubDataEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																      offset, size, data);
+		Serialise_glNamedBufferSubDataEXT(res.name, offset, size, data);
 
 		Chunk *chunk = scope.Get();
 
 		if(m_State == WRITING_CAPFRAME)
 			m_ContextRecord->AddChunk(chunk);
 		else
+		{
 			record->AddChunk(chunk);
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 60)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
