@@ -3685,7 +3685,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			vsProgram += "}";
 
 			UINT texSlot = (UINT)op.operands[2].indices[0].index;
-			UINT sampSlot = op.operands.size() >= 4 ? (UINT)op.operands[3].indices[0].index : 0U;
+			UINT sampSlot = 0;
+			
+			if(op.operands.size() >= 4 && !op.operands[3].indices.empty())
+				sampSlot = (UINT)op.operands[3].indices[0].index;
 			
 			if(op.operation == OPCODE_SAMPLE ||
 				op.operation == OPCODE_SAMPLE_B ||
