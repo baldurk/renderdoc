@@ -530,6 +530,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 			ret.creationFlags = eBufferCreate_CB;
 			break;
 		case eGL_PIXEL_PACK_BUFFER:
+		case eGL_PIXEL_UNPACK_BUFFER:
 		case eGL_COPY_WRITE_BUFFER:
 			break;
 		default:
