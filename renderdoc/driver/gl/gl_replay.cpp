@@ -330,6 +330,22 @@ void GLReplay::CacheTexture(ResourceId id)
 	WrappedOpenGL &gl = *m_pDriver;
 	
 	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+	
+	if(res.curType == eGL_NONE)
+	{
+		tex.customName = false;
+		tex.format = ResourceFormat();
+		tex.dimension = 0;
+		tex.width = tex.height = tex.depth = 0;
+		tex.cubemap = false;
+		tex.mips = 0;
+		tex.arraysize = 0;
+		tex.numSubresources = 0;
+		tex.creationFlags = 0;
+		tex.msQual = tex.msSamp = 0;
+		tex.byteSize = 0;
+		return;
+	}
 
 	gl.glBindTexture(res.curType, res.resource.name);
 
