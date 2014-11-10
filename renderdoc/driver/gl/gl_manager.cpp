@@ -436,8 +436,8 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			{
 				for(int i=0; i < mips; i++)
 				{
-					uint32_t w = RDCMAX(width>>i, 4U);
-					uint32_t h = RDCMAX(height>>i, 4U);
+					uint32_t w = RDCMAX(width>>i, 1U);
+					uint32_t h = RDCMAX(height>>i, 1U);
 					uint32_t d = RDCMAX(depth>>i, 1U);
 						
 					GLenum targets[] = {
@@ -465,11 +465,11 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 						m_pSerialiser->SerialiseBuffer("image", buf, size);
 
 						if(dim == 1)
-							gl.glCompressedTextureSubImage1DEXT(tex, targets[trg], i, 0, width, internalformat, (GLsizei)size, buf);
+							gl.glCompressedTextureSubImage1DEXT(tex, targets[trg], i, 0, w, internalformat, (GLsizei)size, buf);
 						else if(dim == 2)
-							gl.glCompressedTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, width, height, internalformat, (GLsizei)size, buf);
+							gl.glCompressedTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, w, h, internalformat, (GLsizei)size, buf);
 						else if(dim == 3)
-							gl.glCompressedTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, width, height, depth, internalformat, (GLsizei)size, buf);
+							gl.glCompressedTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, w, h, d, internalformat, (GLsizei)size, buf);
 
 						delete[] buf;
 					}
@@ -510,11 +510,11 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 						m_pSerialiser->SerialiseBuffer("image", buf, size);
 
 						if(dim == 1)
-							gl.glTextureSubImage1DEXT(tex, targets[trg], i, 0, width, fmt, type, buf);
+							gl.glTextureSubImage1DEXT(tex, targets[trg], i, 0, w, fmt, type, buf);
 						else if(dim == 2)
-							gl.glTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, width, height, fmt, type, buf);
+							gl.glTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, w, h, fmt, type, buf);
 						else if(dim == 3)
-							gl.glTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, width, height, depth, fmt, type, buf);
+							gl.glTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, w, h, d, fmt, type, buf);
 
 						delete[] buf;
 					}
