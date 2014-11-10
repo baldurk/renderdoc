@@ -106,7 +106,10 @@ void GLRenderState::FetchState()
 	// undefined results. Ie. if someone set ints, this might return anything. However there's also
 	// no way to query for the type so we just have to hope for the best and hope most people are
 	// sane and don't use these except for a default "all 0s" attrib.
-	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(GenericVertexAttribs); i++)
+
+	GLuint maxNumAttribs = 0;
+	m_Real->glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
+	for(GLuint i=0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
 		m_Real->glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
 	
 	m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
