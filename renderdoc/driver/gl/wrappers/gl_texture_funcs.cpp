@@ -2056,7 +2056,13 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
 		m_Real.glTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, Format, Type, buf ? buf : (const void *)bufoffs);
+
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2162,7 +2168,13 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 	
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
 		m_Real.glTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
+
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2270,7 +2282,13 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 	
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+	
 		m_Real.glTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf ? buf : (const void *)bufoffs);
+		
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2363,7 +2381,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
 		m_Real.glCompressedTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, fmt, byteSize, buf ? buf : (const void *)bufoffs);
+
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2458,7 +2482,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 	
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
 		m_Real.glCompressedTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf ? buf : (const void *)bufoffs);
+
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2555,7 +2585,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 	
 	if(m_State == READING)
 	{
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
 		m_Real.glCompressedTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf ? buf : (const void *)bufoffs);
+
+		if(!UnpackBufBound)
+			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
