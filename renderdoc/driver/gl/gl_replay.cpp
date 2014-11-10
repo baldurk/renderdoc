@@ -428,24 +428,6 @@ void GLReplay::CacheTexture(ResourceId id)
 			RDCERR("Unexpected texture enum %hs", ToStr::Get(res.curType).c_str());
 	}
 	
-	GLint immut = 0;
-	gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-	
-	if(immut)
-	{
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
-		tex.mips = (uint32_t)immut;
-	}
-	else
-	{
-		// assuming complete texture
-		GLint mips = 1;
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_MAX_LEVEL, &mips);
-		tex.mips = (uint32_t)mips;
-	}
-
-	tex.numSubresources = tex.mips*tex.arraysize;
-	
 	// surely this will be the same for each level... right? that would be insane if it wasn't
 	GLint fmt = 0;
 	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
@@ -472,6 +454,42 @@ void GLReplay::CacheTexture(ResourceId id)
 	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
 		tex.creationFlags |= eTextureCreate_SwapBuffer;
 
+	if(res.curType == eGL_TEXTURE_BUFFER)
+	{
+		tex.dimension = 1;
+		tex.width = tex.height = tex.depth = 1;
+		tex.cubemap = false;
+		tex.mips = 1;
+		tex.arraysize = 1;
+		tex.numSubresources = 1;
+		tex.creationFlags = eTextureCreate_SRV;
+		tex.msQual = tex.msSamp = 0;
+		tex.byteSize = 0;
+
+		gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.width);
+		tex.byteSize = tex.width/(tex.format.compByteWidth*tex.format.compCount);
+
+		return;
+	}
+
+	GLint immut = 0;
+	gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+	
+	if(immut)
+	{
+		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
+		tex.mips = (uint32_t)immut;
+	}
+	else
+	{
+		// assuming complete texture
+		GLint mips = 1;
+		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_MAX_LEVEL, &mips);
+		tex.mips = (uint32_t)mips;
+	}
+
+	tex.numSubresources = tex.mips*tex.arraysize;
+	
 	GLint compressed;
 	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_COMPRESSED, &compressed);
 	tex.byteSize = 0;
