@@ -866,12 +866,13 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 
 		record->AddChunk(scope.Get());
 	}
-	else
+
 	{
 		m_Textures[m_Renderbuffer].width = width;
 		m_Textures[m_Renderbuffer].height = height;
 		m_Textures[m_Renderbuffer].depth = 1;
 		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
+		m_Textures[m_Renderbuffer].dimension = 2;
 		m_Textures[m_Renderbuffer].internalFormat = internalformat;
 	}
 }
@@ -914,12 +915,13 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
 
 		record->AddChunk(scope.Get());
 	}
-	else
+
 	{
 		m_Textures[m_Renderbuffer].width = width;
 		m_Textures[m_Renderbuffer].height = height;
-		m_Textures[m_Renderbuffer].depth = 1;
+		m_Textures[m_Renderbuffer].depth = samples;
 		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
+		m_Textures[m_Renderbuffer].dimension = 2;
 		m_Textures[m_Renderbuffer].internalFormat = internalformat;
 	}
 }

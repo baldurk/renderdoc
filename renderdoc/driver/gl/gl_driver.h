@@ -180,9 +180,10 @@ class WrappedOpenGL
 		
 		struct TextureData
 		{
-			TextureData() : width(0), height(0), depth(0), creationFlags(0), internalFormat(eGL_NONE), renderbuffer(false) {}
+			TextureData() : dimension(0), width(0), height(0), depth(0), creationFlags(0), internalFormat(eGL_NONE), renderbuffer(false) {}
 			GLResource resource;
 			GLenum curType;
+			GLint dimension;
 			GLint width, height, depth;
 			uint32_t creationFlags;
 			GLenum internalFormat;
