@@ -235,6 +235,8 @@
         <ComponentRef Id='RenderDocCPP' />
         <ComponentRef Id='RenderDocCMD' />
 
+        <ComponentRef Id='IronPython' />
+
         <ComponentRef Id='LICENSE' />
 
         <ComponentRef Id='pdblocateEXE' />
