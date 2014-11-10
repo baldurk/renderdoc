@@ -275,8 +275,8 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			{
 				for(int i=0; i < mips; i++)
 				{
-					int w = RDCMAX(details.width>>i, 4);
-					int h = RDCMAX(details.height>>i, 4);
+					int w = RDCMAX(details.width>>i, 1);
+					int h = RDCMAX(details.height>>i, 1);
 					int d = RDCMAX(details.depth>>i, 1);
 					
 					GLenum targets[] = {
@@ -482,8 +482,8 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 				for(int i=0; i < mips; i++)
 				{
-					uint32_t w = RDCMAX(width>>i, 4U);
-					uint32_t h = RDCMAX(height>>i, 4U);
+					uint32_t w = RDCMAX(width>>i, 1U);
+					uint32_t h = RDCMAX(height>>i, 1U);
 					uint32_t d = RDCMAX(depth>>i, 1U);
 					
 					GLenum targets[] = {
