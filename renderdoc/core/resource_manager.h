@@ -817,7 +817,7 @@ void ResourceManager<ResourceType, RecordType>::PrepareInitialContents()
 
 		if(record == NULL || record->SpecialResource) continue;
 		
-		RDCDEBUG("Dirty Resource %llu - %p", id, res);
+		RDCDEBUG("Dirty Resource %llu", id);
 
 		Prepare_InitialState(res);
 	}
@@ -856,7 +856,7 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 
 		if(record == NULL || record->SpecialResource) continue;
 
-		RDCDEBUG("Dirty Resource %llu - %p", id, res);
+		RDCDEBUG("Dirty Resource %llu", id);
 
 		if(!Need_InitialStateChunk(res))
 		{
@@ -1001,7 +1001,7 @@ bool ResourceManager<ResourceType, RecordType>::AddWrapper(ResourceType wrap, Re
 
 	if(m_WrapperMap[real] != (ResourceType)RecordType::NullResource)
 	{
-		RDCERR("Overriding wrapper for 0x%p - to 0x%p", real, wrap);
+		RDCERR("Overriding wrapper for resource");
 		ret = false;
 	}
 
