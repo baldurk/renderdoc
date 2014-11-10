@@ -545,7 +545,7 @@ bool WrappedOpenGL::Serialise_glReadBuffer(GLenum mode)
 		}
 		else
 		{
-			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, m_FakeBB_FBO);
 		}
 
 		m_Real.glReadBuffer(m);
