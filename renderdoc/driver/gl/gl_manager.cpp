@@ -303,6 +303,11 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 						size_t size = compSize;
 
+						// cubemaps return the compressed image size for the whole texture, but we read it
+						// face by face
+						if(details.curType == eGL_TEXTURE_CUBE_MAP)
+							size /= 6;
+
 						byte *buf = new byte[size];
 
 						gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
