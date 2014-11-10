@@ -113,9 +113,7 @@
   <para>To use the range control you can drag the white and black points to make fine adjustments or type values to change the values
   of the white and black points (by default 0 and 1 respectively). There are also some useful controls to the right of
   the range control itself, which are detailed again in the <link xlink:href="2c540574-0b81-4a40-8119-ba0283fddf41" /> page.</para>
-<mediaLink>
-<image xlink:href="QuickStart9"/>
-</mediaLink></listItem>
+</listItem>
 </list>
 
               </content>
