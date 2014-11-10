@@ -90,6 +90,7 @@ class WrappedOpenGL
 		const GLHookSet &m_Real;
 
 		friend class GLReplay;
+		friend class GLResourceManager;
 
 		const GLHookSet &GetHookset() { return m_Real; }
 
