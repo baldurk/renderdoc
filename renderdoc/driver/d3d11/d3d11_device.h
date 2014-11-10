@@ -63,7 +63,11 @@ struct D3D11InitParams : public RDCInitParams
 	UINT NumFeatureLevels;
 	D3D_FEATURE_LEVEL FeatureLevels[16];
 	
-	static const uint32_t D3D11_SERIALISE_VERSION = 0x0000004;
+	static const uint32_t D3D11_SERIALISE_VERSION = 0x0000005;
+
+	// backwards compatibility for old logs described at the declaration of this array
+	static const uint32_t D3D11_NUM_SUPPORTED_OLD_VERSIONS = 1;
+	static const uint32_t D3D11_OLD_VERSIONS[D3D11_NUM_SUPPORTED_OLD_VERSIONS];
 
 	// version number internal to d3d11 stream
 	uint32_t SerialiseVersion;
@@ -159,7 +163,7 @@ private:
 	D3D11DebugManager *m_DebugManager;
 	D3D11ResourceManager *m_ResourceManager;
 	
-	RDCInitParams *m_InitParams;
+	D3D11InitParams m_InitParams;
 
 	ID3D11Device* m_pDevice;
 #if defined(INCLUDE_D3D_11_1)
@@ -213,6 +217,8 @@ public:
 
 	WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitParams *params);
 	void SetLogFile(const wchar_t *logfile);
+	void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
+	uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
 	virtual ~WrappedID3D11Device();
 
 	////////////////////////////////////////////////////////////////

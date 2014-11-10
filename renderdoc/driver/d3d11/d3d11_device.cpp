@@ -200,14 +200,34 @@ D3D11InitParams::D3D11InitParams()
 	RDCEraseEl(FeatureLevels);
 }
 
+// handling for these versions is scattered throughout the code (as relevant to enable/disable bits of serialisation
+// and set some defaults if necessary).
+// Here we list which non-current versions we support, and what changed
+const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SUPPORTED_OLD_VERSIONS] = {
+	0x0000004, // from 0x4 to 0x5, we added the stream-out hidden counters in the context's Serialise_BeginCaptureFrame
+};
+
 ReplayCreateStatus D3D11InitParams::Serialise()
 {
 	SERIALISE_ELEMENT(uint32_t, ver, D3D11_SERIALISE_VERSION); SerialiseVersion = ver;
 
 	if(ver != D3D11_SERIALISE_VERSION)
 	{
-		RDCERR("Incompatible D3D11 serialise version, expected %d got %d", D3D11_SERIALISE_VERSION, ver);
-		return eReplayCreate_APIIncompatibleVersion;
+		bool oldsupported = false;
+		for(uint32_t i=0; i < D3D11_NUM_SUPPORTED_OLD_VERSIONS; i++)
+		{
+			if(ver == D3D11_OLD_VERSIONS[i])
+			{
+				oldsupported = true;
+				RDCWARN("Old D3D11 serialise version %d, latest is %d. Loading with possibly degraded features/support.", ver, D3D11_SERIALISE_VERSION);
+			}
+		}
+
+		if(!oldsupported)
+		{
+			RDCERR("Incompatible D3D11 serialise version, expected %d got %d", D3D11_SERIALISE_VERSION, ver);
+			return eReplayCreate_APIIncompatibleVersion;
+		}
 	}
 
 	SERIALISE_ELEMENT(D3D_DRIVER_TYPE, driverType, DriverType); DriverType = driverType;
@@ -358,7 +378,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		RDCDEBUG("Couldn't get ID3D11InfoQueue.");
 	}
 
-	m_InitParams = params;
+	m_InitParams = *params;
 
 	SetContextFilter(ResourceId(), 0, 0);
 
@@ -386,8 +406,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 
 WrappedID3D11Device::~WrappedID3D11Device()
 {
-	SAFE_DELETE(m_InitParams);
-
 	if(m_pCurrentWrappedDevice == this)
 		m_pCurrentWrappedDevice = NULL;
 
@@ -2669,7 +2687,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 			}
 		}
 
-		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, m_InitParams, jpgbuf, len, thwidth, thheight);
+		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
 
 		SAFE_DELETE_ARRAY(jpgbuf);
 		SAFE_DELETE(thpixels);

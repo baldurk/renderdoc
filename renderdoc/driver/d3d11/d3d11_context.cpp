@@ -319,7 +319,8 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
 			}
 		}
 	}
-	else
+	// version 5 added this set of data, we can assume for older logs there's just no counters
+	else if(m_pDevice->GetLogVersion() >= 0x000005)
 	{
 		// read in the known stream-out counters at the start of the frame.
 		// any stream-out that happens in the captured frame will be replayed

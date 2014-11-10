@@ -1641,11 +1641,8 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 			return status;
 	}
 
-	if(initParams.SerialiseVersion != D3D11InitParams::D3D11_SERIALISE_VERSION)
-	{
-		RDCERR("Incompatible D3D11 serialise version, expected %d got %d", D3D11InitParams::D3D11_SERIALISE_VERSION, initParams.SerialiseVersion);
-		return eReplayCreate_APIIncompatibleVersion;
-	}
+	// initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the FillInitParams
+	// (which calls D3D11InitParams::Serialise) would have failed above, so no need to check it here.
 
 	if(initParams.SDKVersion != D3D11_SDK_VERSION)
 	{
@@ -1699,10 +1696,12 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 
 		if(SUCCEEDED(hr))
 		{
-			if(logfile)	((WrappedID3D11Device *)device)->SetLogFile(logfile);
+			WrappedID3D11Device *wrappedDev = (WrappedID3D11Device *)device;
+			if(logfile)	wrappedDev->SetLogFile(logfile);
+			wrappedDev->SetLogVersion(initParams.SerialiseVersion);
 
 			RDCLOG("Created device.");
-			D3D11Replay *replay = ((WrappedID3D11Device *)device)->GetReplay();
+			D3D11Replay *replay = wrappedDev->GetReplay();
 
 			replay->SetProxy(logfile == NULL);
 

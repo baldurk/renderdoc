@@ -228,15 +228,15 @@ private:
 
 			if(!WrappedID3D11Device::IsAlloc(*ppDevice))
 			{
-				D3D11InitParams *params = new D3D11InitParams;
-				params->DriverType = DriverType;
-				params->Flags = Flags;
-				params->SDKVersion = SDKVersion;
-				params->NumFeatureLevels = FeatureLevels;
+				D3D11InitParams params;
+				params.DriverType = DriverType;
+				params.Flags = Flags;
+				params.SDKVersion = SDKVersion;
+				params.NumFeatureLevels = FeatureLevels;
 				if(FeatureLevels > 0)
-					memcpy(params->FeatureLevels, pFeatureLevels, sizeof(D3D_FEATURE_LEVEL)*FeatureLevels);
+					memcpy(params.FeatureLevels, pFeatureLevels, sizeof(D3D_FEATURE_LEVEL)*FeatureLevels);
 
-				WrappedID3D11Device *wrap = new WrappedID3D11Device(*ppDevice, params);
+				WrappedID3D11Device *wrap = new WrappedID3D11Device(*ppDevice, &params);
 
 				RDCDEBUG("created wrapped device.");
 
