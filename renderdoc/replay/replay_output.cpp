@@ -521,7 +521,7 @@ void ReplayOutput::DisplayTex()
 		texDisplay.CustomShader = ResourceId();
 		texDisplay.scale = m_RenderData.texDisplay.scale;
 		texDisplay.HDRMul = -1.0f;
-		texDisplay.FlipY = false;
+		texDisplay.FlipY = m_RenderData.texDisplay.FlipY;
 		texDisplay.rangemin = 0.0f;
 		texDisplay.rangemax = 1.0f;
 
