@@ -303,7 +303,7 @@ void GLRenderState::ApplyState()
 	// but we couldn't query for the format so we can't set it here.
 	GLuint maxNumAttribs = 0;
 	m_Real->glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, (GLint *)&maxNumAttribs);
-	for(GLuint i=0; i < RDCMAX(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
+	for(GLuint i=0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
 		m_Real->glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
 	
 	m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
