@@ -320,10 +320,26 @@ void GLReplay::CacheTexture(ResourceId id)
 	
 	auto &res = m_pDriver->m_Textures[id];
 
-	if(res.resource.Namespace == eResUnknown)
+	if(res.resource.Namespace == eResUnknown || res.curType == eGL_NONE)
 	{
-		RDCERR("Details for invalid texture id %llu requested", id);
-		RDCEraseEl(tex);
+		if(res.resource.Namespace == eResUnknown)
+			RDCERR("Details for invalid texture id %llu requested", id);
+
+		tex.name = L"<Uninitialised Texture>";
+		tex.customName = false;
+		tex.format = ResourceFormat();
+		tex.dimension = 1;
+		tex.width = tex.height = tex.depth = 1;
+		tex.cubemap = false;
+		tex.mips = 1;
+		tex.arraysize = 1;
+		tex.numSubresources = 1;
+		tex.creationFlags = 0;
+		tex.msQual = 0;
+		tex.msSamp = 1;
+		tex.byteSize = 1;
+
+		m_CachedTextures[id] = tex;
 		return;
 	}
 	
@@ -331,22 +347,6 @@ void GLReplay::CacheTexture(ResourceId id)
 	
 	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	
-	if(res.curType == eGL_NONE)
-	{
-		tex.customName = false;
-		tex.format = ResourceFormat();
-		tex.dimension = 0;
-		tex.width = tex.height = tex.depth = 0;
-		tex.cubemap = false;
-		tex.mips = 0;
-		tex.arraysize = 0;
-		tex.numSubresources = 0;
-		tex.creationFlags = 0;
-		tex.msQual = tex.msSamp = 0;
-		tex.byteSize = 0;
-		return;
-	}
-
 	gl.glBindTexture(res.curType, res.resource.name);
 
 	GLenum levelQueryType = res.curType;
@@ -468,7 +468,8 @@ void GLReplay::CacheTexture(ResourceId id)
 
 		gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.width);
 		tex.byteSize = tex.width/(tex.format.compByteWidth*tex.format.compCount);
-
+		
+		m_CachedTextures[id] = tex;
 		return;
 	}
 
