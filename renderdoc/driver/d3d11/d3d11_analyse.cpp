@@ -5344,7 +5344,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	for(size_t h=0; h < history.size(); h++)
 	{
 		PixelModification &hs = history[h];
-		RDCLOG("\nHistory %u @ frag %u from prim %u in %u (depth culled %u):\n" \
+		RDCDEBUG("\nHistory %u @ frag %u from prim %u in %u (depth culled %u):\n" \
 			"pre {%f,%f,%f,%f} {%f,%d}\n" \
 			"+ shad {%f,%f,%f,%f} {%f,%d}\n" \
 			"-> post {%f,%f,%f,%f} {%f,%d}",
