@@ -449,6 +449,10 @@ class OpenGLHook : LibraryHook
 		static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 		{
 			PROC realFunc = glhooks.wglGetProcAddress_realfunc(func);
+			
+#if 0
+			RDCDEBUG("Checking for extension - %hs - real function is %p", func, realFunc);
+#endif
 
 			// if the real RC doesn't support this function, don't bother hooking
 			if(realFunc == NULL)
