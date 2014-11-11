@@ -107,9 +107,12 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_GREEN_INTEGER:
 		case eGL_BLUE:
 		case eGL_BLUE_INTEGER:
+		case eGL_DEPTH_COMPONENT:
+		case eGL_STENCIL_INDEX:
 			return ((w*elemSize + alignAdd) & alignMask)*h*d;
 		case eGL_RG:
 		case eGL_RG_INTEGER:
+		case eGL_DEPTH_STENCIL:
 			return ((w*elemSize*2 + alignAdd) & alignMask)*h*d;
 		case eGL_RGB:
 		case eGL_RGB_INTEGER:
