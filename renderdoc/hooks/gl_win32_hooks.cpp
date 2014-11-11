@@ -482,6 +482,10 @@ class OpenGLHook : LibraryHook
 				glhooks.wglGetPixelFormatAttribivARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)realFunc;
 				return (PROC)&wglGetPixelFormatAttribivARB_hooked;
 			}
+			if(!strcmp(func, "wglSwapIntervalEXT"))
+			{
+				return realFunc;
+			}
 
 			HookCheckGLExtensions();
 
