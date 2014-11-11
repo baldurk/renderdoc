@@ -91,6 +91,7 @@
 // gl extensions
 #define HookCheckGLExtensions() \
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
+    HookExtensionAlias(PFNGLACTIVETEXTUREPROC, glActiveTexture, glActiveTextureARB); \
     HookExtension(PFNGLTEXSTORAGE1DPROC, glTexStorage1D); \
     HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
     HookExtension(PFNGLTEXSTORAGE3DPROC, glTexStorage3D); \
@@ -301,7 +302,9 @@
     HookExtension(PFNGLISTRANSFORMFEEDBACKPROC, glIsTransformFeedback); \
     HookExtension(PFNGLISVERTEXARRAYPROC, glIsVertexArray); \
     HookExtension(PFNGLGENBUFFERSPROC, glGenBuffers); \
+    HookExtensionAlias(PFNGLGENBUFFERSPROC, glGenBuffers, glGenBuffersARB); \
     HookExtension(PFNGLBINDBUFFERPROC, glBindBuffer); \
+    HookExtensionAlias(PFNGLBINDBUFFERPROC, glBindBuffer, glBindBufferARB); \
     HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
     HookExtension(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer); \
@@ -327,6 +330,7 @@
     HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
     HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
+    HookExtensionAlias(PFNGLBUFFERDATAPROC, glBufferData, glBufferDataARB); \
     HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
     HookExtension(PFNGLBUFFERSUBDATAPROC, glBufferSubData); \
     HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
@@ -335,10 +339,13 @@
     HookExtension(PFNGLBINDBUFFERSBASEPROC, glBindBuffersBase); \
     HookExtension(PFNGLBINDBUFFERSRANGEPROC, glBindBuffersRange); \
     HookExtension(PFNGLMAPBUFFERPROC, glMapBuffer); \
+    HookExtensionAlias(PFNGLMAPBUFFERPROC, glMapBuffer, glMapBufferARB); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
     HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
+    HookExtensionAlias(PFNGLUNMAPBUFFERPROC, glUnmapBuffer, glUnmapBufferARB); \
     HookExtension(PFNGLDELETEBUFFERSPROC, glDeleteBuffers); \
+    HookExtensionAlias(PFNGLDELETEBUFFERSPROC, glDeleteBuffers, glDeleteBuffersARB); \
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
     HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
     HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
@@ -445,7 +452,9 @@
     HookExtension(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
     HookExtension(PFNGLPATCHPARAMETERFVPROC, glPatchParameterfv); \
     HookExtension(PFNGLPOINTPARAMETERFPROC, glPointParameterf); \
+    HookExtensionAlias(PFNGLPOINTPARAMETERFPROC, glPointParameterf, glPointParameterfARB); \
     HookExtension(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv); \
+    HookExtensionAlias(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv, glPointParameterfvARB); \
     HookExtension(PFNGLPOINTPARAMETERIPROC, glPointParameteri); \
     HookExtension(PFNGLPOINTPARAMETERIVPROC, glPointParameteriv); \
     HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
