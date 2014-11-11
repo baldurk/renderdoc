@@ -1465,3 +1465,187 @@ void WrappedOpenGL::glClear(GLbitfield mask)
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
+
+bool WrappedOpenGL::Serialise_glClearTexImage(GLuint texture, GLint level, GLenum format, GLenum type, const void *data)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(GLenum, Format, format);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+
+	uint64_t val[4] = {0};
+
+	if(m_State >= WRITING)
+	{
+		size_t s = 1;
+		switch(Format)
+		{
+			default:
+				RDCWARN("Unexpected format %x, defaulting to single component", Format);
+			case eGL_RED:
+			case eGL_DEPTH_COMPONENT:
+				s = 1; break;
+			case eGL_RG:
+			case eGL_DEPTH_STENCIL:
+				s = 2; break;
+			case eGL_RGB:
+			case eGL_BGR:
+				s = 3; break;
+			case eGL_RGBA:
+			case eGL_BGRA:
+				s = 4; break;
+		}
+		switch(Type)
+		{
+			case eGL_UNSIGNED_BYTE:
+			case eGL_BYTE:
+				s *= 1; break;
+			case eGL_UNSIGNED_SHORT:
+			case eGL_SHORT:
+				s *= 2; break;
+			case eGL_UNSIGNED_INT:
+			case eGL_INT:
+			case eGL_FLOAT:
+				s *= 4; break;
+			default:
+				RDCWARN("Unexpected type %x, defaulting to 1 byte single component type", Format);
+			case eGL_UNSIGNED_BYTE_3_3_2:
+			case eGL_UNSIGNED_BYTE_2_3_3_REV:
+				s = 1; break;
+			case eGL_UNSIGNED_SHORT_5_6_5:
+			case eGL_UNSIGNED_SHORT_5_6_5_REV:
+			case eGL_UNSIGNED_SHORT_4_4_4_4:
+			case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
+			case eGL_UNSIGNED_SHORT_5_5_5_1:
+			case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
+			case eGL_UNSIGNED_INT_8_8_8_8:
+			case eGL_UNSIGNED_INT_8_8_8_8_REV:
+				s = 2; break;
+			case eGL_UNSIGNED_INT_10_10_10_2:
+			case eGL_UNSIGNED_INT_2_10_10_10_REV:
+				s = 4; break;
+		}
+		memcpy(val, data, s);
+	}
+
+	m_pSerialiser->Serialise<4>("data", val);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearTexImage(GetResourceManager()->GetLiveResource(id).name, Level, Format, Type, (const void *)&val[0]);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, GLenum type, const void *data)
+{
+	m_Real.glClearTexImage(texture, level, format, type, data);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARTEXIMAGE);
+		Serialise_glClearTexImage(texture, level, format, type, data);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClearTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *data)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	SERIALISE_ELEMENT(int32_t, Level, level);
+	SERIALISE_ELEMENT(int32_t, Xoffs, xoffset);
+	SERIALISE_ELEMENT(int32_t, Yoffs, yoffset);
+	SERIALISE_ELEMENT(int32_t, Zoffs, zoffset);
+	SERIALISE_ELEMENT(int32_t, w, width);
+	SERIALISE_ELEMENT(int32_t, h, height);
+	SERIALISE_ELEMENT(int32_t, d, depth);
+	SERIALISE_ELEMENT(GLenum, Format, format);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+
+	uint64_t val[4] = {0};
+
+	if(m_State >= WRITING)
+	{
+		size_t s = 1;
+		switch(Format)
+		{
+			default:
+				RDCWARN("Unexpected format %x, defaulting to single component", Format);
+			case eGL_RED:
+			case eGL_DEPTH_COMPONENT:
+				s = 1; break;
+			case eGL_RG:
+			case eGL_DEPTH_STENCIL:
+				s = 2; break;
+			case eGL_RGB:
+			case eGL_BGR:
+				s = 3; break;
+			case eGL_RGBA:
+			case eGL_BGRA:
+				s = 4; break;
+		}
+		switch(Type)
+		{
+			case eGL_UNSIGNED_BYTE:
+			case eGL_BYTE:
+				s *= 1; break;
+			case eGL_UNSIGNED_SHORT:
+			case eGL_SHORT:
+				s *= 2; break;
+			case eGL_UNSIGNED_INT:
+			case eGL_INT:
+			case eGL_FLOAT:
+				s *= 4; break;
+			default:
+				RDCWARN("Unexpected type %x, defaulting to 1 byte single component type", Format);
+			case eGL_UNSIGNED_BYTE_3_3_2:
+			case eGL_UNSIGNED_BYTE_2_3_3_REV:
+				s = 1; break;
+			case eGL_UNSIGNED_SHORT_5_6_5:
+			case eGL_UNSIGNED_SHORT_5_6_5_REV:
+			case eGL_UNSIGNED_SHORT_4_4_4_4:
+			case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
+			case eGL_UNSIGNED_SHORT_5_5_5_1:
+			case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
+			case eGL_UNSIGNED_INT_8_8_8_8:
+			case eGL_UNSIGNED_INT_8_8_8_8_REV:
+				s = 2; break;
+			case eGL_UNSIGNED_INT_10_10_10_2:
+			case eGL_UNSIGNED_INT_2_10_10_10_REV:
+				s = 4; break;
+		}
+		memcpy(val, data, s);
+	}
+
+	m_pSerialiser->Serialise<4>("data", val);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearTexSubImage(GetResourceManager()->GetLiveResource(id).name, Level, Xoffs, Yoffs, Zoffs, w, h, d, Format, Type, (const void *)&val[0]);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *data)
+{
+	m_Real.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARTEXSUBIMAGE);
+		Serialise_glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	}
+}
