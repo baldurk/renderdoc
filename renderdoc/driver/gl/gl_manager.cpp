@@ -71,6 +71,16 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	
 		gl.glGetNamedBufferSubDataEXT(res.name, 0, length, record->GetDataPtr());
 	}
+	else if(res.Namespace == eResProgram)
+	{
+		ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+
+		m_pSerialiser->Serialise("Id", Id);
+
+		SerialiseProgramUniforms(gl, m_pSerialiser, res.name, true);
+
+		SetInitialChunk(Id, scope.Get());
+	}
 	else if(res.Namespace == eResTexture)
 	{
 		WrappedOpenGL::TextureData &details = m_GL->m_Textures[Id];
@@ -207,6 +217,37 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 	if(res.Namespace == eResBuffer)
 	{
 		// Nothing to serialize
+	}
+	else if(res.Namespace == eResProgram)
+	{
+		// Prepare_InitialState sets the serialise chunk directly on write,
+		// so we should never come in here except for when reading
+		RDCASSERT(m_State < WRITING);
+		
+		WrappedOpenGL::ProgramData &details = m_GL->m_Programs[GetLiveID(Id)];
+		
+		GLuint initProg = gl.glCreateProgram();
+
+		for(size_t i=0; i < details.shaders.size(); i++)
+		{
+			const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
+
+			GLuint shad = gl.glCreateShader(shadDetails.type);
+			for(size_t s=0; s < shadDetails.sources.size(); s++)
+			{
+				const char *src = shadDetails.sources[s].c_str();
+				gl.glShaderSource(shad, 1, &src, NULL);
+			}
+			gl.glCompileShader(shad);
+			gl.glAttachShader(initProg, shad);
+			gl.glDeleteShader(shad);
+		}
+
+		gl.glLinkProgram(initProg);
+
+		SerialiseProgramUniforms(gl, m_pSerialiser, initProg, false);
+		
+		SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
 	}
 	else if(res.Namespace == eResTexture)
 	{
@@ -626,6 +667,10 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i, 0, 0, 0, w, h, d);
 		}
+	}
+	else if(live.Namespace == eResProgram)
+	{
+		CopyProgramUniforms(gl, initial.resource.name, live.name);
 	}
 	else if(live.Namespace == eResVertexArray)
 	{

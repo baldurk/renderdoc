@@ -70,6 +70,7 @@ struct GLWindowingData
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);
 
 class WrappedOpenGL;
+struct GLHookSet;
 
 size_t BufferIdx(GLenum buf);
 GLenum BufferEnum(size_t idx);
@@ -83,6 +84,9 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 
 #include "serialise/serialiser.h"
 #include "core/core.h"
+
+void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
+void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing);
 
 enum GLChunkType
 {

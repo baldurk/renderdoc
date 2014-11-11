@@ -258,22 +258,16 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCPARAMS, __VA_ARG
 { \
 	m_Real.CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCARGPASS, ARRAYLIST); \
 \
-	if(m_State >= WRITING) \
+	if(m_State == WRITING_CAPFRAME) \
 	{ \
-		GLResourceRecord *record = m_ContextRecord; \
-\
-		/* TODO grab this at capture time as initial state for program resources */ \
-		if(m_State == WRITING_IDLE) \
-			record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), PROGRAM)); \
-\
-		if(record) \
-		{ \
-			SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR); \
-			const paramtype vals[] = { ARRAYLIST }; \
-			Serialise_glProgramUniformVector(PROGRAM, location, 1, vals, CONCAT(CONCAT(VEC, count), CONCAT(suffix, v))); \
-\
-			record->AddChunk(scope.Get()); \
-		} \
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR); \
+		const paramtype vals[] = { ARRAYLIST }; \
+		Serialise_glProgramUniformVector(PROGRAM, location, 1, vals, CONCAT(CONCAT(VEC, count), CONCAT(suffix, v))); \
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+	else if(m_State == WRITING_IDLE) \
+	{ \
+		GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM)); \
 	} \
 }
 
@@ -362,21 +356,15 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCPA
 { \
 	m_Real.CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCARGPASS, count, value); \
 \
-	if(m_State >= WRITING) \
+	if(m_State == WRITING_CAPFRAME) \
 	{ \
-		GLResourceRecord *record = m_ContextRecord; \
-\
-		/* TODO grab this at capture time as initial state for program resources */ \
-		if(m_State == WRITING_IDLE) \
-			record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), PROGRAM)); \
-\
-		if(record) \
-		{ \
-			SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR); \
-			Serialise_glProgramUniformVector(PROGRAM, location, count, value, CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v))); \
-\
-			record->AddChunk(scope.Get()); \
-		} \
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_VECTOR); \
+		Serialise_glProgramUniformVector(PROGRAM, location, count, value, CONCAT(CONCAT(VEC, unicount), CONCAT(suffix, v))); \
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+	else if(m_State == WRITING_IDLE) \
+	{ \
+		GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM)); \
 	} \
 }
 
@@ -444,21 +432,15 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCPARAMS, GLsizei co
 { \
 	m_Real.CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCARGPASS, count, transpose, value); \
 \
-	if(m_State >= WRITING) \
+	if(m_State == WRITING_CAPFRAME) \
 	{ \
-		GLResourceRecord *record = m_ContextRecord; \
-\
-		/* TODO grab this at capture time as initial state for program resources */ \
-		if(m_State == WRITING_IDLE) \
-			record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), PROGRAM)); \
-\
-		if(record) \
-		{ \
-			SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_MATRIX); \
-			Serialise_glProgramUniformMatrix(PROGRAM, location, count, transpose, value, CONCAT(CONCAT(MAT, dim), suffix)); \
-\
-			record->AddChunk(scope.Get()); \
-		} \
+		SCOPED_SERIALISE_CONTEXT(PROGRAMUNIFORM_MATRIX); \
+		Serialise_glProgramUniformMatrix(PROGRAM, location, count, transpose, value, CONCAT(CONCAT(MAT, dim), suffix)); \
+		m_ContextRecord->AddChunk(scope.Get()); \
+	} \
+	else if(m_State == WRITING_IDLE) \
+	{ \
+		GetResourceManager()->MarkDirtyResource(ProgramRes(GetCtx(), PROGRAM)); \
 	} \
 }
 

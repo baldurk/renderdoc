@@ -280,6 +280,402 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	return ret;
 }
 
+template<const bool CopyUniforms, const bool SerialiseUniforms>
+static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc, GLuint progDst, bool writing)
+{
+	const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && writing);
+	const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && !writing);
+
+	RDCCOMPILE_ASSERT( (CopyUniforms && !SerialiseUniforms) || (!CopyUniforms && SerialiseUniforms), "Invalid call to ForAllProgramUniforms");
+
+	GLint numUniforms = 0;
+	if(ReadSourceProgram)
+		gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
+
+	if(SerialiseUniforms)
+	{
+		// get accurate count of uniforms not in UBOs
+		GLint numSerialisedUniforms = 0;
+
+		for(GLint i=0; writing && i < numUniforms; i++)
+		{
+			GLenum prop = eGL_BLOCK_INDEX;
+			GLint blockIdx;
+			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, 1, &prop, 1, NULL, (GLint *)&blockIdx);
+
+			if(blockIdx >= 0) continue;
+
+			numSerialisedUniforms++;
+		}
+
+		ser->Serialise("numUniforms", numSerialisedUniforms);
+
+		if(!writing)
+			numUniforms = numSerialisedUniforms;
+	}
+	
+	const size_t numProps = 5;
+	GLenum resProps[numProps] = { eGL_BLOCK_INDEX, eGL_TYPE, eGL_NAME_LENGTH, eGL_ARRAY_SIZE, eGL_LOCATION, };
+	
+	for(GLint i=0; i < numUniforms; i++)
+	{
+		GLenum type = eGL_NONE;
+		int32_t arraySize = 0;
+		int32_t srcLocation = 0;
+		string basename;
+		bool isArray = false;
+
+		if(ReadSourceProgram)
+		{
+			GLint values[numProps];
+			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM, i, numProps, resProps, numProps, NULL, values);
+
+			// we don't need to consider uniforms within UBOs
+			if(values[0] >= 0) continue;
+
+			type = (GLenum)values[1];
+			arraySize = values[3];
+			srcLocation = values[4];
+		
+			char n[1024] = {0};
+			gl.glGetProgramResourceName(progSrc, eGL_UNIFORM, i, values[2], NULL, n);
+			basename = n;
+
+			if(arraySize > 1)
+			{
+				isArray = true;
+
+				size_t len = strlen(n);
+
+				if(n[len-3] == '[' && n[len-2] == '0' && n[len-1] == ']')
+					n[len-3] = 0;
+			}
+			else
+			{
+				arraySize = 1;
+			}
+		}
+
+		if(SerialiseUniforms)
+		{
+			ser->Serialise("type", type);
+			ser->Serialise("arraySize", arraySize);
+			ser->Serialise("srcLocation", srcLocation);
+			ser->Serialise("basename", basename);
+			ser->Serialise("isArray", isArray);
+		}
+		
+		double dv[16];
+		float *fv = (float *)dv;
+		int32_t *iv = (int32_t *)dv;
+		uint32_t *uiv = (uint32_t *)dv;
+
+		for(GLint arr=0; arr < arraySize; arr++)
+		{
+			string name = basename;
+
+			if(isArray)
+				name += StringFormat::Fmt("[%d]", arr);
+
+			GLint newloc = 0;
+			if(WriteDestProgram)
+				newloc = gl.glGetUniformLocation(progDst, name.c_str());
+
+			if(CopyUniforms && newloc == -1)
+				continue;
+
+			if(ReadSourceProgram)
+			{
+				switch(type)
+				{
+					case eGL_FLOAT_MAT4:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT4x3:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT4x2:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT3:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT3x4:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT3x2:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT2:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT2x4:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_MAT2x3:             gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_DOUBLE_MAT4:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT4x3:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT4x2:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT3:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT3x4:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT3x2:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT2:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT2x4:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_MAT2x3:            gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_FLOAT:                    gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_VEC2:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_VEC3:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_FLOAT_VEC4:               gl.glGetUniformfv(progSrc, srcLocation, fv); break;
+					case eGL_DOUBLE:                   gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_VEC2:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_VEC3:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+					case eGL_DOUBLE_VEC4:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
+
+						// treat all samplers as just an int (since they just store their binding value)
+					case GL_SAMPLER_1D:
+					case GL_SAMPLER_2D:
+					case GL_SAMPLER_3D:
+					case GL_SAMPLER_CUBE:
+					case GL_SAMPLER_1D_SHADOW:
+					case GL_SAMPLER_2D_SHADOW:
+					case GL_SAMPLER_1D_ARRAY:
+					case GL_SAMPLER_2D_ARRAY:
+					case GL_SAMPLER_1D_ARRAY_SHADOW:
+					case GL_SAMPLER_2D_ARRAY_SHADOW:
+					case GL_SAMPLER_2D_MULTISAMPLE:
+					case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_SAMPLER_CUBE_SHADOW:
+					case GL_SAMPLER_BUFFER:
+					case GL_SAMPLER_2D_RECT:
+					case GL_SAMPLER_2D_RECT_SHADOW:
+					case GL_INT_SAMPLER_1D:
+					case GL_INT_SAMPLER_2D:
+					case GL_INT_SAMPLER_3D:
+					case GL_INT_SAMPLER_CUBE:
+					case GL_INT_SAMPLER_1D_ARRAY:
+					case GL_INT_SAMPLER_2D_ARRAY:
+					case GL_INT_SAMPLER_2D_MULTISAMPLE:
+					case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_INT_SAMPLER_BUFFER:
+					case GL_INT_SAMPLER_2D_RECT:
+					case GL_UNSIGNED_INT_SAMPLER_1D:
+					case GL_UNSIGNED_INT_SAMPLER_2D:
+					case GL_UNSIGNED_INT_SAMPLER_3D:
+					case GL_UNSIGNED_INT_SAMPLER_CUBE:
+					case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_BUFFER:
+					case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
+					case GL_IMAGE_1D:
+					case GL_IMAGE_2D:
+					case GL_IMAGE_3D:
+					case GL_IMAGE_2D_RECT:
+					case GL_IMAGE_CUBE:
+					case GL_IMAGE_BUFFER:
+					case GL_IMAGE_1D_ARRAY:
+					case GL_IMAGE_2D_ARRAY:
+					case GL_IMAGE_2D_MULTISAMPLE:
+					case GL_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case GL_INT_IMAGE_1D:
+					case GL_INT_IMAGE_2D:
+					case GL_INT_IMAGE_3D:
+					case GL_INT_IMAGE_2D_RECT:
+					case GL_INT_IMAGE_CUBE:
+					case GL_INT_IMAGE_BUFFER:
+					case GL_INT_IMAGE_1D_ARRAY:
+					case GL_INT_IMAGE_2D_ARRAY:
+					case GL_INT_IMAGE_2D_MULTISAMPLE:
+					case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_1D:
+					case GL_UNSIGNED_INT_IMAGE_2D:
+					case GL_UNSIGNED_INT_IMAGE_3D:
+					case GL_UNSIGNED_INT_IMAGE_2D_RECT:
+					case GL_UNSIGNED_INT_IMAGE_CUBE:
+					case GL_UNSIGNED_INT_IMAGE_BUFFER:
+					case GL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT:                      gl.glGetUniformiv(progSrc, srcLocation, iv); break;
+					case eGL_INT_VEC2:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
+					case eGL_INT_VEC3:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
+					case eGL_INT_VEC4:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
+					case eGL_UNSIGNED_INT:
+					case eGL_BOOL:                     gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+					case eGL_UNSIGNED_INT_VEC2:
+					case eGL_BOOL_VEC2:                gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+					case eGL_UNSIGNED_INT_VEC3:
+					case eGL_BOOL_VEC3:                gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+					case eGL_UNSIGNED_INT_VEC4:
+					case eGL_BOOL_VEC4:                gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
+					default:
+						RDCERR("Unhandled uniform type '%hs'", ToStr::Get(type).c_str());
+				}
+			}
+
+			if(SerialiseUniforms)
+				ser->Serialise<16>("data", dv);
+
+			if(WriteDestProgram)
+			{
+				switch(type)
+				{
+					case eGL_FLOAT_MAT4:               gl.glProgramUniformMatrix4fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT4x3:             gl.glProgramUniformMatrix4x3fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT4x2:             gl.glProgramUniformMatrix4x2fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT3:               gl.glProgramUniformMatrix3fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT3x4:             gl.glProgramUniformMatrix3x4fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT3x2:             gl.glProgramUniformMatrix3x2fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT2:               gl.glProgramUniformMatrix2fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT2x4:             gl.glProgramUniformMatrix2x4fv(progDst, newloc, 1, false, fv); break;
+					case eGL_FLOAT_MAT2x3:             gl.glProgramUniformMatrix2x3fv(progDst, newloc, 1, false, fv); break;
+					case eGL_DOUBLE_MAT4:              gl.glProgramUniformMatrix4dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT4x3:            gl.glProgramUniformMatrix4x3dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT4x2:            gl.glProgramUniformMatrix4x2dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT3:              gl.glProgramUniformMatrix3dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT3x4:            gl.glProgramUniformMatrix3x4dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT3x2:            gl.glProgramUniformMatrix3x2dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT2:              gl.glProgramUniformMatrix2dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT2x4:            gl.glProgramUniformMatrix2x4dv(progDst, newloc, 1, false, dv); break;
+					case eGL_DOUBLE_MAT2x3:            gl.glProgramUniformMatrix2x3dv(progDst, newloc, 1, false, dv); break;
+					case eGL_FLOAT:                    gl.glProgramUniform1fv(progDst, newloc, 1, fv); break;
+					case eGL_FLOAT_VEC2:               gl.glProgramUniform2fv(progDst, newloc, 1, fv); break;
+					case eGL_FLOAT_VEC3:               gl.glProgramUniform3fv(progDst, newloc, 1, fv); break;
+					case eGL_FLOAT_VEC4:               gl.glProgramUniform4fv(progDst, newloc, 1, fv); break;
+					case eGL_DOUBLE:                   gl.glProgramUniform1dv(progDst, newloc, 1, dv); break;
+					case eGL_DOUBLE_VEC2:              gl.glProgramUniform2dv(progDst, newloc, 1, dv); break;
+					case eGL_DOUBLE_VEC3:              gl.glProgramUniform3dv(progDst, newloc, 1, dv); break;
+					case eGL_DOUBLE_VEC4:              gl.glProgramUniform4dv(progDst, newloc, 1, dv); break;
+
+						// treat all samplers as just an int (since they just store their binding value)
+					case GL_SAMPLER_1D:
+					case GL_SAMPLER_2D:
+					case GL_SAMPLER_3D:
+					case GL_SAMPLER_CUBE:
+					case GL_SAMPLER_1D_SHADOW:
+					case GL_SAMPLER_2D_SHADOW:
+					case GL_SAMPLER_1D_ARRAY:
+					case GL_SAMPLER_2D_ARRAY:
+					case GL_SAMPLER_1D_ARRAY_SHADOW:
+					case GL_SAMPLER_2D_ARRAY_SHADOW:
+					case GL_SAMPLER_2D_MULTISAMPLE:
+					case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_SAMPLER_CUBE_SHADOW:
+					case GL_SAMPLER_BUFFER:
+					case GL_SAMPLER_2D_RECT:
+					case GL_SAMPLER_2D_RECT_SHADOW:
+					case GL_INT_SAMPLER_1D:
+					case GL_INT_SAMPLER_2D:
+					case GL_INT_SAMPLER_3D:
+					case GL_INT_SAMPLER_CUBE:
+					case GL_INT_SAMPLER_1D_ARRAY:
+					case GL_INT_SAMPLER_2D_ARRAY:
+					case GL_INT_SAMPLER_2D_MULTISAMPLE:
+					case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_INT_SAMPLER_BUFFER:
+					case GL_INT_SAMPLER_2D_RECT:
+					case GL_UNSIGNED_INT_SAMPLER_1D:
+					case GL_UNSIGNED_INT_SAMPLER_2D:
+					case GL_UNSIGNED_INT_SAMPLER_3D:
+					case GL_UNSIGNED_INT_SAMPLER_CUBE:
+					case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case GL_UNSIGNED_INT_SAMPLER_BUFFER:
+					case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
+					case GL_IMAGE_1D:
+					case GL_IMAGE_2D:
+					case GL_IMAGE_3D:
+					case GL_IMAGE_2D_RECT:
+					case GL_IMAGE_CUBE:
+					case GL_IMAGE_BUFFER:
+					case GL_IMAGE_1D_ARRAY:
+					case GL_IMAGE_2D_ARRAY:
+					case GL_IMAGE_2D_MULTISAMPLE:
+					case GL_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case GL_INT_IMAGE_1D:
+					case GL_INT_IMAGE_2D:
+					case GL_INT_IMAGE_3D:
+					case GL_INT_IMAGE_2D_RECT:
+					case GL_INT_IMAGE_CUBE:
+					case GL_INT_IMAGE_BUFFER:
+					case GL_INT_IMAGE_1D_ARRAY:
+					case GL_INT_IMAGE_2D_ARRAY:
+					case GL_INT_IMAGE_2D_MULTISAMPLE:
+					case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_1D:
+					case GL_UNSIGNED_INT_IMAGE_2D:
+					case GL_UNSIGNED_INT_IMAGE_3D:
+					case GL_UNSIGNED_INT_IMAGE_2D_RECT:
+					case GL_UNSIGNED_INT_IMAGE_CUBE:
+					case GL_UNSIGNED_INT_IMAGE_BUFFER:
+					case GL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT:                      gl.glProgramUniform1iv(progDst, newloc, 1, iv); break;
+					case eGL_INT_VEC2:                 gl.glProgramUniform2iv(progDst, newloc, 1, iv); break;
+					case eGL_INT_VEC3:                 gl.glProgramUniform3iv(progDst, newloc, 1, iv); break;
+					case eGL_INT_VEC4:                 gl.glProgramUniform4iv(progDst, newloc, 1, iv); break;
+					case eGL_UNSIGNED_INT:
+					case eGL_BOOL:                     gl.glProgramUniform1uiv(progDst, newloc, 1, uiv); break;
+					case eGL_UNSIGNED_INT_VEC2:
+					case eGL_BOOL_VEC2:                gl.glProgramUniform2uiv(progDst, newloc, 1, uiv); break;
+					case eGL_UNSIGNED_INT_VEC3:
+					case eGL_BOOL_VEC3:                gl.glProgramUniform3uiv(progDst, newloc, 1, uiv); break;
+					case eGL_UNSIGNED_INT_VEC4:
+					case eGL_BOOL_VEC4:                gl.glProgramUniform4uiv(progDst, newloc, 1, uiv); break;
+					default:
+						RDCERR("Unhandled uniform type '%hs'", ToStr::Get(type).c_str());
+				}
+			}
+		}
+	}
+
+	GLint numUBOs = 0;
+	if(ReadSourceProgram)
+		gl.glGetProgramInterfaceiv(progSrc, eGL_UNIFORM_BLOCK, eGL_ACTIVE_RESOURCES, &numUBOs);
+
+	if(SerialiseUniforms)
+		ser->Serialise("numUBOs", numUBOs);
+	
+	for(GLint i=0; i < numUBOs; i++)
+	{
+		GLenum prop = eGL_BUFFER_BINDING;
+		uint32_t bind = 0;
+		if(ReadSourceProgram)
+			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
+
+		if(SerialiseUniforms)
+			ser->Serialise("bind", bind);
+
+		if(WriteDestProgram)
+			gl.glUniformBlockBinding(progDst, i, bind);
+	}
+
+	GLint numSSBOs = 0;
+	if(ReadSourceProgram)
+		gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
+	
+	if(SerialiseUniforms)
+		ser->Serialise("numSSBOs", numSSBOs);
+	
+	for(GLint i=0; i < numSSBOs; i++)
+	{
+		GLenum prop = eGL_BUFFER_BINDING;
+		uint32_t bind = 0;
+		if(ReadSourceProgram)
+			gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
+
+		if(SerialiseUniforms)
+			ser->Serialise("bind", bind);
+
+		if(WriteDestProgram)
+			gl.glShaderStorageBlockBinding(progDst, i, bind);
+	}
+}
+
+void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst)
+{
+	const bool CopyUniforms = true;
+	const bool SerialiseUniforms = false;
+	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, NULL, progSrc, progDst, false);
+}
+
+void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing)
+{
+	const bool CopyUniforms = false;
+	const bool SerialiseUniforms = true;
+	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, writing);
+}
+
 template<>
 string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
 {
