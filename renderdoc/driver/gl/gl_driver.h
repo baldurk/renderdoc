@@ -329,7 +329,9 @@ class WrappedOpenGL
 		void Present(void *windowHandle);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture(GLenum target, GLuint texture));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTextures(GLuint first, GLsizei count, const GLuint *textures));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFunc(GLenum sfactor, GLenum dfactor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendFunci(GLuint buf, GLenum sfactor, GLenum dfactor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha));
@@ -394,6 +396,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameteriv(GLenum target, GLenum pname, const GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenSamplers(GLsizei count, GLuint *samplers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindSampler(GLuint unit, GLuint sampler));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteSamplers(GLsizei n, const GLuint *ids));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameteri(GLuint sampler, GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param));
@@ -509,6 +512,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBufferBase(GLenum target, GLuint index, GLuint buffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBuffersBase(GLenum target, GLuint first, GLsizei count, const GLuint *buffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindBuffersRange(GLenum target, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizeiptr *sizes));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapBuffer(GLenum target, GLenum access));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length));
@@ -523,6 +528,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearTexImage(GLuint texture, GLint level, GLenum format, GLenum type, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *data));
 
 		enum AttribType
 		{
@@ -630,6 +637,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenVertexArrays(GLsizei n, GLuint *arrays));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexArray(GLuint array));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexBindingDivisor(GLuint bindingindex, GLuint divisor));
 
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsEnabled(GLenum cap));

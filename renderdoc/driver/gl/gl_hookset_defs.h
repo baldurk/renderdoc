@@ -332,6 +332,8 @@
     HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
+    HookExtension(PFNGLBINDBUFFERSBASEPROC, glBindBuffersBase); \
+    HookExtension(PFNGLBINDBUFFERSRANGEPROC, glBindBuffersRange); \
     HookExtension(PFNGLMAPBUFFERPROC, glMapBuffer); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
     HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
@@ -425,10 +427,14 @@
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
+    HookExtension(PFNGLBINDVERTEXBUFFERSPROC, glBindVertexBuffers); \
     HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HookExtension(PFNGLBINDIMAGETEXTUREPROC, glBindImageTexture); \
+    HookExtension(PFNGLBINDIMAGETEXTURESPROC, glBindImageTextures); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
+    HookExtension(PFNGLBINDSAMPLERSPROC, glBindSamplers); \
+    HookExtension(PFNGLBINDTEXTURESPROC, glBindTextures); \
     HookExtension(PFNGLDELETESAMPLERSPROC, glDeleteSamplers); \
     HookExtension(PFNGLSAMPLERPARAMETERIPROC, glSamplerParameteri); \
     HookExtension(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
@@ -961,6 +967,8 @@
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
+    HookWrapper4(void, glBindBuffersBase, GLenum, target, GLuint, first, GLsizei, count, const GLuint *, buffers); \
+    HookWrapper6(void, glBindBuffersRange, GLenum, target, GLuint, first, GLsizei, count, const GLuint *, buffers, const GLintptr *, offsets, const GLsizeiptr *, sizes); \
     HookWrapper2(void *, glMapBuffer, GLenum, target, GLenum, access); \
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
@@ -1054,10 +1062,14 @@
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
+    HookWrapper5(void, glBindVertexBuffers, GLuint, first, GLsizei, count, const GLuint *, buffers, const GLintptr *, offsets, const GLsizei *, strides); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper7(void, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
+    HookWrapper3(void, glBindImageTextures, GLuint, first, GLsizei, count, const GLuint *, textures); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
+    HookWrapper3(void, glBindSamplers, GLuint, first, GLsizei, count, const GLuint *, samplers); \
+    HookWrapper3(void, glBindTextures, GLuint, first, GLsizei, count, const GLuint *, textures); \
     HookWrapper2(void, glDeleteSamplers, GLsizei, count, const GLuint *, samplers); \
     HookWrapper3(void, glSamplerParameteri, GLuint, sampler, GLenum, pname, GLint, param); \
     HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \

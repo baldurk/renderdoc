@@ -176,6 +176,69 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindTextures(GLuint first, GLsizei count, const GLuint *textures)
+{
+	SERIALISE_ELEMENT(uint32_t, First, first);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+
+	GLuint *texs = NULL;
+	if(m_State <= EXECUTING) texs = new GLuint[Count];
+	
+	for(int32_t i=0; i < Count; i++)
+	{
+		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])));
+		
+		if(m_State <= EXECUTING)
+		{
+			if(id != ResourceId())
+			{
+				texs[i] = GetResourceManager()->GetLiveResource(id).name;
+				if(m_State == READING)
+					m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_SRV;
+			}
+			else
+			{
+				texs[i] = 0;
+			}
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindTextures(First, Count, texs);
+
+		delete[] texs;
+	}
+
+	return true;
+}
+
+// glBindTextures doesn't provide a target, so can't be used to "init" a texture from glGenTextures
+// which makes our lives a bit easier
+void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *textures)
+{
+	m_Real.glBindTextures(first, count, textures);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_TEXTURES);
+		Serialise_glBindTextures(first, count, textures);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+
+	if(m_State >= WRITING)
+	{
+		for(GLsizei i=0; i < count; i++)
+		{
+			if(textures[i] == 0)
+				m_TextureRecord[first + i] = 0;
+			else
+				m_TextureRecord[first + i] = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), textures[i]));
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)
 {
 	SERIALISE_ELEMENT(uint32_t, Unit, unit);
@@ -191,6 +254,9 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GL
 		GLResource tex = GetResourceManager()->GetLiveResource(texid);
 
 		m_Real.glBindImageTexture(Unit, tex.name, Level, Layered, Layer, Access, Format);
+
+		if(m_State == READING)
+			m_Textures[GetResourceManager()->GetLiveID(texid)].creationFlags |= eTextureCreate_UAV;
 	}
 
 	return true;
@@ -212,6 +278,56 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
 		}
 		
 		m_ContextRecord->AddChunk(chunk);
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
+{
+	SERIALISE_ELEMENT(uint32_t, First, first);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+
+	GLuint *texs = NULL;
+	if(m_State <= EXECUTING) texs = new GLuint[Count];
+	
+	for(int32_t i=0; i < Count; i++)
+	{
+		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])));
+		
+		if(m_State <= EXECUTING)
+		{
+			if(id != ResourceId())
+			{
+				texs[i] = GetResourceManager()->GetLiveResource(id).name;
+				if(m_State == READING)
+					m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_UAV;
+			}
+			else
+			{
+				texs[i] = 0;
+			}
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindImageTextures(First, Count, texs);
+
+		delete[] texs;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
+{
+	m_Real.glBindImageTextures(first, count, textures);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_TEXTURES);
+		Serialise_glBindImageTextures(first, count, textures);
+		
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 

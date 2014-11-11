@@ -563,7 +563,7 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(GLenum target, GLuint index, GLui
 
 void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
-	if(m_State >= WRITING)
+	if(m_State >= WRITING && index == 0)
 	{
 		size_t idx = BufferIdx(target);
 
@@ -610,7 +610,7 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(GLenum target, GLuint index, GLu
 
 void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
-	if(m_State >= WRITING)
+	if(m_State >= WRITING && index == 0)
 	{
 		size_t idx = BufferIdx(target);
 
@@ -629,6 +629,130 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 	}
 
 	m_Real.glBindBufferRange(target, index, buffer, offset, size);
+}
+
+bool WrappedOpenGL::Serialise_glBindBuffersBase(GLenum target, GLuint first, GLsizei count, const GLuint *buffers)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, First, first);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+
+	GLuint *bufs = NULL;
+	if(m_State <= EXECUTING) bufs = new GLuint[Count];
+	
+	for(int32_t i=0; i < Count; i++)
+	{
+		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
+		
+		if(m_State <= EXECUTING)
+		{
+			if(id != ResourceId())
+				bufs[i] = GetResourceManager()->GetLiveResource(id).name;
+			else
+				bufs[i] = 0;
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindBuffersBase(Target, First, Count, bufs);
+
+		delete[] bufs;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count, const GLuint *buffers)
+{
+	m_Real.glBindBuffersBase(target, first, count, buffers);
+
+	if(m_State >= WRITING && first == 0 && count > 0)
+	{
+		size_t idx = BufferIdx(target);
+
+		if(buffers[0] == 0)
+			m_BufferRecord[idx] = NULL;
+		else
+			m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+	}
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_BASE);
+		Serialise_glBindBuffersBase(target, first, count, buffers);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindBuffersRange(GLenum target, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizeiptr *sizes)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, First, first);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+	
+	GLuint *bufs = NULL;
+	GLintptr *offs = NULL;
+	GLsizeiptr *sz = NULL;
+	
+	if(m_State <= EXECUTING)
+	{
+		bufs = new GLuint[Count];
+		offs = new GLintptr[Count];
+		sz = new GLsizeiptr[Count];
+	}
+	
+	for(int32_t i=0; i < Count; i++)
+	{
+		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
+		SERIALISE_ELEMENT(uint64_t, offset, (uint64_t)offsets[i]);
+		SERIALISE_ELEMENT(uint64_t, size, (uint64_t)sizes[i]);
+		
+		if(m_State <= EXECUTING)
+		{
+			if(id != ResourceId())
+				bufs[i] = GetResourceManager()->GetLiveResource(id).name;
+			else
+				bufs[i] = 0;
+			offs[i] = (GLintptr)offset;
+			sz[i] = (GLsizeiptr)sizes;
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindBuffersRange(Target, First, Count, bufs, offs, sz);
+
+		delete[] bufs;
+		delete[] offs;
+		delete[] sz;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizeiptr *sizes)
+{
+	m_Real.glBindBuffersRange(target, first, count, buffers, offsets, sizes);
+
+	if(m_State >= WRITING && first == 0 && count > 0)
+	{
+		size_t idx = BufferIdx(target);
+
+		if(buffers[0] == 0)
+			m_BufferRecord[idx] = NULL;
+		else
+			m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+	}
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_RANGE);
+		Serialise_glBindBuffersRange(target, first, count, buffers, offsets, sizes);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 #pragma endregion
@@ -1699,7 +1823,7 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(BINDVERTEXARRAY);
+		SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
 		Serialise_glBindVertexArray(array);
 
 		m_ContextRecord->AddChunk(scope.Get());
@@ -1731,8 +1855,66 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(BINDVERTEXBUFFER);
+		SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
 		Serialise_glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
+{
+	SERIALISE_ELEMENT(uint32_t, First, first);
+	SERIALISE_ELEMENT(int32_t, Count, count);
+
+	GLuint *bufs = NULL;
+	GLintptr *offs = NULL;
+	GLsizei *str = NULL;
+	
+	if(m_State <= EXECUTING)
+	{
+		bufs = new GLuint[Count];
+		offs = new GLintptr[Count];
+		str = new GLsizei[Count];
+	}
+	
+	for(int32_t i=0; i < Count; i++)
+	{
+		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
+		SERIALISE_ELEMENT(uint64_t, offset, (uint64_t)offsets[i]);
+		SERIALISE_ELEMENT(uint64_t, stride, (uint64_t)strides[i]);
+		
+		if(m_State <= EXECUTING)
+		{
+			if(id != ResourceId())
+				bufs[i] = GetResourceManager()->GetLiveResource(id).name;
+			else
+				bufs[i] = 0;
+			offs[i] = (GLintptr)offset;
+			str[i] = (GLsizei)stride;
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindVertexBuffers(First, Count, bufs, offs, str);
+
+		delete[] bufs;
+		delete[] offs;
+		delete[] str;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
+{
+	m_Real.glBindVertexBuffers(first, count, buffers, offsets, strides);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
+		Serialise_glBindVertexBuffers(first, count, buffers, offsets, strides);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

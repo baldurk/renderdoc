@@ -43,7 +43,9 @@ const char *GLChunkNames[] =
 
 	"glGenTextures",
 	"glBindTexture",
+	"glBindTextures",
 	"glBindImageTexture",
+	"glBindImageTextures",
 	"glActiveTexture",
 	"glTexStorage1D",
 	"glTexStorage2D",
@@ -115,6 +117,8 @@ const char *GLChunkNames[] =
 	"glClearBufferfi",
 	"glClearBufferData",
 	"glClearBufferSubData",
+	"glClearTexImage",
+	"glClearTexSubImage",
 	"glPolygonMode",
 	"glPolygonOffset",
 	"glCullFace",
@@ -159,8 +163,8 @@ const char *GLChunkNames[] =
 	"glViewportArrayv",
 	"glScissor",
 	"glScissorArrayv",
-	"glBindVertexArray",
 	"glBindVertexBuffer",
+	"glBindVertexBuffers",
 	"glVertexBindingDivisor",
 	"glDispatchCompute",
 	"glDispatchComputeIndirect",
@@ -205,11 +209,14 @@ const char *GLChunkNames[] =
 	"glSamplerParameterIiv",
 	"glSamplerParameterIuiv",
 	"glBindSampler",
+	"glBindSamplers",
 
 	"glGenBuffers",
 	"glBindBuffer",
 	"glBindBufferBase",
 	"glBindBufferRange",
+	"glBindBuffersBase",
+	"glBindBuffersRange",
 	"glBufferStorage",
 	"glBufferData",
 	"glBufferSubData",
@@ -1534,8 +1541,14 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_TEXTURE:
 		Serialise_glBindTexture(eGL_NONE, 0);
 		break;
+	case BIND_TEXTURES:
+		Serialise_glBindTextures(0, 0, NULL);
+		break;
 	case BIND_IMAGE_TEXTURE:
 		Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE);
+		break;
+	case BIND_IMAGE_TEXTURES:
+		Serialise_glBindImageTextures(0, 0, NULL);
 		break;
 	case TEXSTORAGE1D:
 		Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0);
@@ -1871,11 +1884,11 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case SCISSOR_ARRAY:
 		Serialise_glScissorArrayv(0, 0, 0);
 		break;
-	case BINDVERTEXARRAY:
-		Serialise_glBindVertexArray(0);
-		break;
-	case BINDVERTEXBUFFER:
+	case BIND_VERTEXBUFFER:
 		Serialise_glBindVertexBuffer(0, 0, 0, 0);
+		break;
+	case BIND_VERTEXBUFFERS:
+		Serialise_glBindVertexBuffers(0, 0, NULL, NULL, NULL);
 		break;
 	case VERTEXBINDINGDIVISOR:
 		Serialise_glVertexBindingDivisor(0, 0);
@@ -2003,6 +2016,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BIND_SAMPLER:
 		Serialise_glBindSampler(0, 0);
 		break;
+	case BIND_SAMPLERS:
+		Serialise_glBindSamplers(0, 0, NULL);
+		break;
 		
 	case GEN_BUFFER:
 		Serialise_glGenBuffers(0, NULL);
@@ -2015,6 +2031,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BIND_BUFFER_RANGE:
 		Serialise_glBindBufferRange(eGL_NONE, 0, 0, 0, 0);
+		break;
+	case BIND_BUFFERS_BASE:
+		Serialise_glBindBuffersBase(eGL_NONE, 0, 0, NULL);
+		break;
+	case BIND_BUFFERS_RANGE:
+		Serialise_glBindBuffersRange(eGL_NONE, 0, 0, NULL, NULL, NULL);
 		break;
 	case BUFFERSTORAGE:
 		Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0);
