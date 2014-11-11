@@ -96,7 +96,7 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
 	
 	if(m_State == WRITING_IDLE)
 	{
-		m_TextureRecord[m_TextureUnit]->datatype = Target;
+		m_TextureRecord[m_TextureUnit]->datatype = TextureBinding(Target);
 	}
 	else if(m_State < WRITING)
 	{
@@ -158,7 +158,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 		if(r->datatype)
 		{
 			// it's illegal to retype a texture
-			RDCASSERT(r->datatype == target);
+			RDCASSERT(r->datatype == TextureBinding(target));
 		}
 		else
 		{
@@ -378,10 +378,7 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 		record->AddParent(origrecord);
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 	else
 	{
@@ -1044,10 +1041,7 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1084,10 +1078,7 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 		record->AddChunk(scope.Get());
 
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1165,12 +1156,9 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 																		target, level, internalformat, width, height, border, format, type, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1205,12 +1193,9 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 																		target, level, internalformat, width, height, border, format, type, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1289,12 +1274,9 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 																		target, level, internalformat, width, height, depth, border, format, type, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1329,12 +1311,9 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 																		target, level, internalformat, width, height, depth, border, format, type, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1402,12 +1381,9 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 																		target, level, internalformat, width, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1442,12 +1418,9 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
 																		target, level, internalformat, width, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1516,12 +1489,9 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 																		target, level, internalformat, width, height, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1556,12 +1526,9 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
 																		target, level, internalformat, width, height, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1631,12 +1598,9 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 																		target, level, internalformat, width, height, depth, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1671,12 +1635,9 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 																		target, level, internalformat, width, height, depth, border, imageSize, pixels);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	if(level == 0)
@@ -1738,12 +1699,9 @@ void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei
 		Serialise_glTextureStorage1DEXT(texture, target, levels, internalformat, width);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -1775,12 +1733,9 @@ void WrappedOpenGL::glTexStorage1D(GLenum target, GLsizei levels, GLenum interna
 																		target, levels, internalformat, width);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -1838,12 +1793,9 @@ void WrappedOpenGL::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei
 		Serialise_glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -1875,12 +1827,9 @@ void WrappedOpenGL::glTexStorage2D(GLenum target, GLsizei levels, GLenum interna
 																		target, levels, internalformat, width, height);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -1939,12 +1888,9 @@ void WrappedOpenGL::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei
 		Serialise_glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -1976,12 +1922,9 @@ void WrappedOpenGL::glTexStorage3D(GLenum target, GLsizei levels, GLenum interna
 																		target, levels, internalformat, width, height, depth);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -2040,12 +1983,9 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
 		Serialise_glTextureStorage2DMultisampleEXT(texture, target, samples, internalformat, width, height, fixedsamplelocations);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -2077,12 +2017,9 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 																		target, samples, internalformat, width, height, fixedsamplelocations);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{
@@ -2118,12 +2055,9 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
 		                                           target, samples, internalformat, width, height, fixedsamplelocations);
 
 		record->AddChunk(scope.Get());
-
+		
 		// illegal to re-type textures
-		if(record->datatype == eGL_NONE)
-			record->datatype = target;
-		else
-			RDCASSERT(record->datatype == target);
+		record->VerifyDataType(target);
 	}
 
 	{

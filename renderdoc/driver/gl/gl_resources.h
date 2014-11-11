@@ -146,6 +146,16 @@ struct GLResourceRecord : public ResourceRecord
 		byte *ptr;
 	} Map;
 
+	void VerifyDataType(GLenum target)
+	{
+#if !defined(RELEASE)
+		if(datatype == eGL_NONE)
+			datatype = TextureBinding(target);
+		else
+			RDCASSERT(datatype == TextureBinding(target));
+#endif
+	}
+
 	GLenum datatype;
 	GLenum usage;
 
