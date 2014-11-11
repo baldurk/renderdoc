@@ -327,6 +327,7 @@ class ResourceManager : public ResourceRecordHandler
 		
 		InitialContentData GetInitialContents(ResourceId id);
 		void SetInitialContents(ResourceId id, InitialContentData contents);
+		void SetInitialChunk(ResourceId id, Chunk *chunk);
 
 		// generate chunks for initial contents and insert.
 		void InsertInitialContentsChunks(Serialiser *fileSer);
@@ -418,6 +419,9 @@ class ResourceManager : public ResourceRecordHandler
 
 		// used during capture or replay - holds initial contents
 		map<ResourceId, InitialContentData> m_InitialContents;
+		// on capture, if a chunk was prepared in Prepare_InitialContents and added, don't re-serialise.
+		// Some initial contents may not need the delayed readback.
+		map<ResourceId, Chunk*> m_InitialChunks;
 
 		// used during capture or replay - map of resources currently alive with their real IDs, used in capture and replay.
 		map<ResourceId, ResourceType> m_CurrentResourceMap;
@@ -471,7 +475,7 @@ void ResourceManager<ResourceType, RecordType>::Shutdown()
 	{
 		auto it = m_InitialContents.begin();
 		ResourceTypeRelease(it->second.resource);
-		SAFE_DELETE_ARRAY(it->second.blob);
+		Serialiser::FreeAlignedBuffer(it->second.blob);
 		if(!m_InitialContents.empty())
 			m_InitialContents.erase(m_InitialContents.begin());
 	}
@@ -626,11 +630,32 @@ void ResourceManager<ResourceType, RecordType>::SetInitialContents(ResourceId id
 	if(it != m_InitialContents.end())
 	{
 		ResourceTypeRelease(it->second.resource);
-		SAFE_DELETE_ARRAY(it->second.blob);
+		Serialiser::FreeAlignedBuffer(it->second.blob);
 		m_InitialContents.erase(it);
 	}
 	
 	m_InitialContents[id] = contents;
+}
+
+template<typename ResourceType, typename RecordType>
+void ResourceManager<ResourceType, RecordType>::SetInitialChunk(ResourceId id, Chunk *chunk)
+{
+	SCOPED_LOCK(m_Lock);
+
+	RDCASSERT(id != ResourceId());
+
+	auto it = m_InitialChunks.find(id);
+
+	RDCASSERT(chunk->GetChunkType() == INITIAL_CONTENTS);
+	
+	if(it != m_InitialChunks.end())
+	{
+		RDCERR("Initial chunk set for ID %llu twice", id);
+		delete chunk;
+		return;
+	}
+	
+	m_InitialChunks[id] = chunk;
 }
 
 template<typename ResourceType, typename RecordType>
@@ -721,7 +746,7 @@ void ResourceManager<ResourceType, RecordType>::CreateInitialContents()
 		if(neededInitials.find(id) == neededInitials.end())
 		{
 			ResourceTypeRelease(it->second.resource);
-			SAFE_DELETE_ARRAY(it->second.blob);
+			Serialiser::FreeAlignedBuffer(it->second.blob);
 			++it;
 			m_InitialContents.erase(id);
 		}
@@ -865,11 +890,20 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 			continue;
 		}
 
-		ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+		auto preparedChunk = m_InitialChunks.find(id);
+		if(preparedChunk != m_InitialChunks.end())
+		{
+			fileSerialiser->Insert(preparedChunk->second);
+			m_InitialChunks.erase(preparedChunk);
+		}
+		else
+		{
+			ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
-		Serialise_InitialState(res);
+			Serialise_InitialState(res);
 
-		fileSerialiser->Insert(scope.Get(true));
+			fileSerialiser->Insert(scope.Get(true));
+		}
 	}
 
 	for(auto it=m_CurrentResourceMap.begin(); it != m_CurrentResourceMap.end(); ++it)
@@ -878,13 +912,29 @@ void ResourceManager<ResourceType, RecordType>::InsertInitialContentsChunks(Seri
 
 		if(Force_InitialState(it->second))
 		{
-			ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
+			auto preparedChunk = m_InitialChunks.find(it->first);
+			if(preparedChunk != m_InitialChunks.end())
+			{
+				fileSerialiser->Insert(preparedChunk->second);
+				m_InitialChunks.erase(preparedChunk);
+			}
+			else
+			{
+				ScopedContext scope(m_pSerialiser, NULL, "Initial Contents", "Initial Contents", INITIAL_CONTENTS, false);
 
-			Serialise_InitialState(it->second);
+				Serialise_InitialState(it->second);
 
-			fileSerialiser->Insert(scope.Get(true));
+				fileSerialiser->Insert(scope.Get(true));
+			}
 		}
 	}
+
+	// delete/cleanup any chunks that weren't used (maybe the resource was not
+	// referenced).
+	for(auto it=m_InitialChunks.begin(); it != m_InitialChunks.end(); ++it)
+		delete it->second;
+
+	m_InitialChunks.clear();
 }
 
 template<typename ResourceType, typename RecordType>

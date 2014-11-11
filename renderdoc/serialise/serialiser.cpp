@@ -367,6 +367,8 @@ byte *Serialiser::AllocAlignedBuffer(size_t size)
 
 void Serialiser::FreeAlignedBuffer(byte *buf)
 {
+	if(buf == NULL) return;
+
 	byte **realPointer = (byte **)buf;
 	byte *rawAlloc = realPointer[-1];
 

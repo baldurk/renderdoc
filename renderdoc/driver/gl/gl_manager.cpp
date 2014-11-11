@@ -148,7 +148,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 		gl.glBindVertexArray(res.name);
 
-		VertexArrayInitialData *data = (VertexArrayInitialData *)new byte[sizeof(VertexArrayInitialData)*16];
+		VertexArrayInitialData *data = (VertexArrayInitialData *)Serialiser::AllocAlignedBuffer(sizeof(VertexArrayInitialData)*16);
 
 		for(GLuint i=0; i < 16; i++)
 		{
@@ -565,7 +565,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 		if(m_State < WRITING)
 		{
-			byte *blob = new byte[sizeof(data)];
+			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
 			memcpy(blob, data, sizeof(data));
 
 			SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
