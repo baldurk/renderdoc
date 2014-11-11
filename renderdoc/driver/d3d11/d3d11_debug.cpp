@@ -4676,7 +4676,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			{
 				const D3D11_INPUT_ELEMENT_DESC &layout = curLayout[i];
 
-				if((!_stricmp(layout.SemanticName, "POSITION") || !_stricmp(layout.SemanticName, "SV_Position")) &&
+				if((!_stricmp(layout.SemanticName, "POSITION") ||
+					  !_stricmp(layout.SemanticName, "POS") ||
+					  !_stricmp(layout.SemanticName, "SV_Position")) &&
 						layout.SemanticIndex == 0) // need to get name from input config
 				{
 					D3D11_INPUT_ELEMENT_DESC el = layout;
