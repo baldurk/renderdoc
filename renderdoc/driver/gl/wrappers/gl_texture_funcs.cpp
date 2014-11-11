@@ -2200,7 +2200,7 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{
@@ -2312,7 +2312,7 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{
@@ -2426,7 +2426,7 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{
@@ -2525,7 +2525,7 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{
@@ -2626,7 +2626,7 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{
@@ -2729,7 +2729,7 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 	{
 		if(m_State == WRITING_IDLE && unpackbuf != 0)
 		{
-			GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+			GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 		}
 		else
 		{

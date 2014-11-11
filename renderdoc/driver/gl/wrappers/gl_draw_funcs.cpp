@@ -1551,7 +1551,7 @@ void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, 
 	}
 	else if(m_State == WRITING_IDLE)
 	{
-		GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 	}
 }
 
@@ -1646,6 +1646,6 @@ void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffse
 	}
 	else if(m_State == WRITING_IDLE)
 	{
-		GetResourceManager()->MarkDirtyResource(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
 	}
 }
