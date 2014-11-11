@@ -428,6 +428,12 @@ void GLReplay::CacheTexture(ResourceId id)
 			RDCERR("Unexpected texture enum %hs", ToStr::Get(res.curType).c_str());
 	}
 	
+	tex.creationFlags = res.creationFlags;
+	if(tex.format.compType == eCompType_Depth)
+		tex.creationFlags |= eTextureCreate_DSV;
+	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
+		tex.creationFlags |= eTextureCreate_SwapBuffer;
+
 	// surely this will be the same for each level... right? that would be insane if it wasn't
 	GLint fmt = 0;
 	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
@@ -442,17 +448,36 @@ void GLReplay::CacheTexture(ResourceId id)
 
 	if(str == "")
 	{
+		const char *suffix = "";
+		const char *ms = "";
+
+		if(tex.msSamp > 1)
+			ms = "MS";
+
+		if(tex.creationFlags & eTextureCreate_RTV)
+			suffix = " RTV";
+		if(tex.creationFlags & eTextureCreate_DSV)
+			suffix = " DSV";
+
 		tex.customName = false;
-		str = StringFormat::Fmt("Texture%dD %llu", tex.dimension, tex.ID);
+
+		if(tex.cubemap)
+		{
+			if(tex.arraysize > 6)
+				str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
+			else
+				str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
+		}
+		else
+		{
+			if(tex.arraysize > 1)
+				str = StringFormat::Fmt("Texture%dD%sArray%s %llu", tex.dimension, ms, suffix, tex.ID);
+			else
+				str = StringFormat::Fmt("Texture%dD%s%s %llu", tex.dimension, ms, suffix, tex.ID);
+		}
 	}
 
 	tex.name = widen(str);
-
-	tex.creationFlags = res.creationFlags;
-	if(tex.format.compType == eCompType_Depth)
-		tex.creationFlags |= eTextureCreate_DSV;
-	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
-		tex.creationFlags |= eTextureCreate_SwapBuffer;
 
 	if(res.curType == eGL_TEXTURE_BUFFER)
 	{
