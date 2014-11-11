@@ -466,6 +466,7 @@
     HookExtension(PFNGLVIEWPORTINDEXEDFVPROC, glViewportIndexedfv); \
     HookExtension(PFNGLVIEWPORTARRAYVPROC, glViewportArrayv); \
     HookExtension(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
+    HookExtension(PFNGLSHADERSTORAGEBLOCKBINDINGPROC, glShaderStorageBlockBinding); \
     HookExtension(PFNGLUNIFORM1FPROC,   glUniform1f); \
     HookExtension(PFNGLUNIFORM1IPROC,   glUniform1i); \
     HookExtension(PFNGLUNIFORM1UIPROC,  glUniform1ui); \
@@ -1101,6 +1102,7 @@
     HookWrapper2(void, glViewportIndexedfv, GLuint, index, const GLfloat *, v); \
     HookWrapper3(void, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
+    HookWrapper3(void, glShaderStorageBlockBinding, GLuint, program, GLuint, storageBlockIndex, GLuint, storageBlockBinding); \
     HookWrapper2(void,   glUniform1f, GLint, location, GLfloat, v0); \
     HookWrapper2(void,   glUniform1i, GLint, location, GLint, v0); \
     HookWrapper2(void,  glUniform1ui, GLint, location, GLuint, v0); \

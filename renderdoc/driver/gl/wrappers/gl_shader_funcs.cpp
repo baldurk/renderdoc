@@ -506,6 +506,37 @@ void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockInd
 	}
 }
 
+bool WrappedOpenGL::Serialise_glShaderStorageBlockBinding(GLuint program, GLuint storageBlockIndex, GLuint storageBlockBinding)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+	SERIALISE_ELEMENT(uint32_t, index, storageBlockIndex);
+	SERIALISE_ELEMENT(uint32_t, binding, storageBlockBinding);
+
+	if(m_State == READING)
+	{
+		m_Real.glShaderStorageBlockBinding(GetResourceManager()->GetLiveResource(id).name, index, binding);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glShaderStorageBlockBinding(GLuint program, GLuint storageBlockIndex, GLuint storageBlockBinding)
+{
+	m_Real.glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(STORAGE_BLOCKBIND);
+			Serialise_glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name_)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));

@@ -91,6 +91,7 @@ const char *GLChunkNames[] =
 	"glBindAttribLocation",
 	"glBindFragDataLocation",
 	"glUniformBlockBinding",
+	"glShaderStorageBlockBinding",
 	"glProgramUniformMatrix*",
 	"glProgramUniformVector*",
 	"glLinkProgram",
@@ -1679,6 +1680,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case UNIFORM_BLOCKBIND:
 		Serialise_glUniformBlockBinding(0, 0, 0);
+		break;
+	case STORAGE_BLOCKBIND:
+		Serialise_glShaderStorageBlockBinding(0, 0, 0);
 		break;
 	case PROGRAMUNIFORM_VECTOR:
 		Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);

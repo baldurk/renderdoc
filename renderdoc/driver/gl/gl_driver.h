@@ -495,6 +495,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glLinkProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramParameteri(GLuint program, GLenum pname, GLint value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glShaderStorageBlockBinding(GLuint program, GLuint storageBlockIndex, GLuint storageBlockBinding));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindAttribLocation(GLuint program, GLuint index, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindFragDataLocation(GLuint program, GLuint color, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgram(GLuint program));
