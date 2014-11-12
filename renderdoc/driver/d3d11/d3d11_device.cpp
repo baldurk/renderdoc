@@ -264,6 +264,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 #if defined(INCLUDE_D3D_11_1)
 	m_pDevice1 = NULL;
 	m_pDevice->QueryInterface(__uuidof(ID3D11Device1), (void **)&m_pDevice1);
+
+	m_pDevice2 = NULL;
+	m_pDevice->QueryInterface(__uuidof(ID3D11Device2), (void **)&m_pDevice2);
 #endif
 
 	m_Replay.SetDevice(this);
@@ -417,6 +420,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
 #if defined(INCLUDE_D3D_11_1)
 	SAFE_RELEASE(m_pDevice1);
+	SAFE_RELEASE(m_pDevice2);
 #endif
 	
 	SAFE_RELEASE(m_pImmediateContext);
@@ -484,12 +488,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	// DEFINE_GUID(IID_IDirect3DDevice9, 0xd0223b96, 0xbf7a, 0x43fd, 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb);
 	static const GUID IDirect3DDevice9_uuid = { 0xd0223b96, 0xbf7a, 0x43fd, { 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb } };
 
-	//DEFINE_GUID(IID_ID3D11Device2,0x9d06dffa,0xd1e5,0x4d07,0x83,0xa8,0x1b,0xb1,0x23,0xf2,0xf8,0x41);
-	static const GUID ID3D11Device2_uuid = { 0x9d06dffa, 0xd1e5, 0x4d07, { 0x83, 0xa8, 0x1b, 0xb1, 0x23, 0xf2, 0xf8, 0x41 } };
-
-	//1fbad429-66ab-41cc-9617-667ac10e4459
-	static const GUID ID3D11ShaderTraceFactory_uuid = { 0x1fbad429, 0x66ab, 0x41cc, { 0x96, 0x17, 0x66, 0x7a, 0xc1, 0x0e, 0x44, 0x59 } };
-
 	if(riid == __uuidof(IDXGIDevice))
 	{
 		m_pDevice->QueryInterface(riid, ppvObject);
@@ -549,14 +547,13 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		*ppvObject = (ID3D11Device1 *)this;
 		return S_OK;
 	}
-#endif
-	else if(riid == ID3D11Device2_uuid)
+	else if(riid == __uuidof(ID3D11Device2))
 	{
-		RDCWARN("Trying to get ID3D11Device2. DX11.2 not supported at this time.");
-		*ppvObject = NULL;
-		return E_NOINTERFACE;
+		AddRef();
+		*ppvObject = (ID3D11Device2 *)this;
+		RDCWARN("Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
+		return S_OK;
 	}
-#if defined(INCLUDE_D3D_11_1)
 	else if(riid == __uuidof(ID3D11ShaderTraceFactory))
 	{
 		RDCWARN("Trying to get ID3D11ShaderTraceFactory. Not supported at this time.");

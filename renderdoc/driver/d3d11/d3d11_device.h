@@ -33,8 +33,11 @@
 #include "core/core.h"
 #include "api/replay/renderdoc_replay.h"
 
+#include "d3d11_common.h"
+
 #if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>
+#include <d3d11_2.h>
 #endif
 
 #include "d3d11_manager.h"
@@ -132,13 +135,13 @@ struct DummyID3D11InfoQueue : public ID3D11InfoQueue
 class WrappedID3D11ClassLinkage;
 enum CaptureFailReason;
 
-class WrappedID3D11Device :
-	public IFrameCapturer,
 #if defined(INCLUDE_D3D_11_1)
-	public ID3D11Device1
+#define D3DDEVICEPARENT ID3D11Device2
 #else
-	public ID3D11Device
+#define D3DDEVICEPARENT ID3D11Device
 #endif
+
+class WrappedID3D11Device : public IFrameCapturer, public D3DDEVICEPARENT
 {
 private:
 	// since enumeration creates a lot of devices, save
@@ -168,6 +171,7 @@ private:
 	ID3D11Device* m_pDevice;
 #if defined(INCLUDE_D3D_11_1)
 	ID3D11Device1* m_pDevice1;
+	ID3D11Device2* m_pDevice2;
 #endif
 	ID3D11InfoQueue *m_pInfoQueue;
 	WrappedID3D11DeviceContext* m_pImmediateContext;
@@ -509,10 +513,10 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(virtual UINT STDMETHODCALLTYPE, GetExceptionMode( void));
 
+#if defined(INCLUDE_D3D_11_1)
 	//////////////////////////////
 	// implement ID3D11Device1
 	
-#if defined(INCLUDE_D3D_11_1)
 	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext));
 	
 	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreateDeferredContext1( 
@@ -546,5 +550,30 @@ public:
 			DWORD dwDesiredAccess,
 			REFIID returnedInterface,
 			void **ppResource));
+	
+	//////////////////////////////
+	// implement ID3D11Device2
+
+	virtual void STDMETHODCALLTYPE GetImmediateContext2( 
+			ID3D11DeviceContext2 **ppImmediateContext);
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateDeferredContext2( 
+			UINT ContextFlags,
+			ID3D11DeviceContext2 **ppDeferredContext);
+	
+	virtual void STDMETHODCALLTYPE GetResourceTiling( 
+			ID3D11Resource *pTiledResource,
+			UINT *pNumTilesForEntireResource,
+			D3D11_PACKED_MIP_DESC *pPackedMipDesc,
+			D3D11_TILE_SHAPE *pStandardTileShapeForNonPackedMips,
+			UINT *pNumSubresourceTilings,
+			UINT FirstSubresourceTilingToGet,
+			D3D11_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips);
+	
+	virtual HRESULT STDMETHODCALLTYPE CheckMultisampleQualityLevels1( 
+			DXGI_FORMAT Format,
+			UINT SampleCount,
+			UINT Flags,
+			UINT *pNumQualityLevels);
 #endif
 };

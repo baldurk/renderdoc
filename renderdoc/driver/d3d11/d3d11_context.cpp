@@ -41,7 +41,7 @@ WRAPPED_POOL_INST(WrappedID3D11CommandList);
 INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::BeginEvent(LPCWSTR Name)
 {
 	if(m_Context)
-		return m_Context->BeginEvent(0, Name);
+		return m_Context->PushEvent(0, Name);
 
 	return -1;
 }
@@ -49,7 +49,7 @@ INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::BeginEvent(LPCWSTR Name)
 INT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::EndEvent()
 {
 	if(m_Context)
-		return m_Context->EndEvent();
+		return m_Context->PopEvent();
 
 	return -1;
 }
@@ -103,6 +103,9 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 	
 	m_pRealContext1 = NULL;
 	m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext1), (void **)&m_pRealContext1);
+
+	m_pRealContext2 = NULL;
+	m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext2), (void **)&m_pRealContext2);
 #endif
 
 #if defined(RELEASE)
@@ -191,6 +194,7 @@ WrappedID3D11DeviceContext::~WrappedID3D11DeviceContext()
 
 #if defined(INCLUDE_D3D_11_1)
 	SAFE_RELEASE(m_pRealContext1);
+	SAFE_RELEASE(m_pRealContext2);
 #endif
 
 	SAFE_DELETE(m_CurrentPipelineState);
@@ -874,14 +878,14 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 		break;
 #endif
 
-	case BEGIN_EVENT:
-		context->Serialise_BeginEvent(0, L"");
+	case PUSH_EVENT:
+		context->Serialise_PushEvent(0, L"");
 		break;
 	case SET_MARKER:
 		context->Serialise_SetMarker(0, L"");
 		break;
-	case END_EVENT:
-		context->Serialise_EndEvent();
+	case POP_EVENT:
+		context->Serialise_PopEvent();
 		break;
 
 	case CONTEXT_CAPTURE_FOOTER:
@@ -924,12 +928,12 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 	{
 		// no push/pop necessary
 	}
-	else if(context->m_State == READING && chunk == BEGIN_EVENT)
+	else if(context->m_State == READING && chunk == PUSH_EVENT)
 	{
 		// push down the drawcallstack to the latest drawcall
 		context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
 	}
-	else if(context->m_State == READING && chunk == END_EVENT)
+	else if(context->m_State == READING && chunk == POP_EVENT)
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
 		RDCASSERT(context->m_DrawcallStack.size() > 1);
@@ -1311,9 +1315,6 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID riid, void **ppvObject )
 {
-	//DEFINE_GUID(IID_ID3D11DeviceContext2,0x420d5b32,0xb90c,0x4da4,0xbe,0xf0,0x35,0x9f,0x6a,0x24,0xa8,0x3a);
-	static const GUID ID3D11DeviceContext2_uuid = { 0x420d5b32, 0xb90c, 0x4da4, { 0xbe, 0xf0, 0x35, 0x9f, 0x6a, 0x24, 0xa8, 0x3a } };
-
 	if(riid == __uuidof(ID3D11DeviceContext))
 	{
 		*ppvObject = (ID3D11DeviceContext *)this;
@@ -1333,6 +1334,13 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 		AddRef();
 		return S_OK;
 	}
+	else if(riid == __uuidof(ID3D11DeviceContext2))
+	{
+		*ppvObject = (ID3D11DeviceContext2 *)this;
+		AddRef();
+		RDCWARN("Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
+		return S_OK;
+	}
 	else if(riid == __uuidof(ID3DUserDefinedAnnotation))
 	{
 		*ppvObject = (ID3DUserDefinedAnnotation *)&m_UserAnnotation;
@@ -1340,12 +1348,6 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 		return S_OK;
 	}
 #endif
-	else if(riid == ID3D11DeviceContext2_uuid)
-	{
-		RDCWARN("Trying to get ID3D11DeviceContext2. DX11.2 not supported at this time.");
-		*ppvObject = NULL;
-		return E_NOINTERFACE;
-	}
 	else
 	{
 		string guid = ToStr::Get(riid);

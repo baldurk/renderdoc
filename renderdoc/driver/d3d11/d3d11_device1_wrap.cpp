@@ -28,6 +28,9 @@
 #include "d3d11_context.h"
 
 #if defined(INCLUDE_D3D_11_1)
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// ID3D11Device1 interface
+
 void WrappedID3D11Device::GetImmediateContext1(ID3D11DeviceContext1 **ppImmediateContext)
 {
 	if(m_pDevice1 == NULL) return;
@@ -229,4 +232,66 @@ HRESULT WrappedID3D11Device::OpenSharedResourceByName(LPCWSTR lpName, DWORD dwDe
 	RDCUNIMPLEMENTED("Not wrapping OpenSharedResourceByName");
 	return m_pDevice1->OpenSharedResourceByName(lpName, dwDesiredAccess, returnedInterface, ppResource);
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+// ID3D11Device2 interface
+
+void WrappedID3D11Device::GetImmediateContext2(ID3D11DeviceContext2 **ppImmediateContext)
+{
+	if(m_pDevice2 == NULL) return;
+
+	if(ppImmediateContext)
+	{
+		m_pImmediateContext->AddRef();
+		*ppImmediateContext = (ID3D11DeviceContext2 *)m_pImmediateContext;
+	}
+}
+
+HRESULT WrappedID3D11Device::CreateDeferredContext2(UINT ContextFlags, ID3D11DeviceContext2 **ppDeferredContext)
+{
+	if(m_pDevice2 == NULL) return E_NOINTERFACE;
+	if(ppDeferredContext == NULL) return m_pDevice2->CreateDeferredContext2(ContextFlags, NULL);
+
+	ID3D11DeviceContext *defCtx = NULL;
+	HRESULT ret = CreateDeferredContext(ContextFlags, &defCtx);
+
+	if(SUCCEEDED(ret))
+	{
+		WrappedID3D11DeviceContext *wrapped = (WrappedID3D11DeviceContext *)defCtx;
+		*ppDeferredContext = (ID3D11DeviceContext2 *)wrapped;
+	}
+	else
+	{
+		SAFE_RELEASE(defCtx);
+	}
+
+	return ret;
+}
+	
+void WrappedID3D11Device::GetResourceTiling( 
+		ID3D11Resource *pTiledResource,
+		UINT *pNumTilesForEntireResource,
+		D3D11_PACKED_MIP_DESC *pPackedMipDesc,
+		D3D11_TILE_SHAPE *pStandardTileShapeForNonPackedMips,
+		UINT *pNumSubresourceTilings,
+		UINT FirstSubresourceTilingToGet,
+		D3D11_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips)
+{
+	if(m_pDevice2 == NULL) return;
+
+	m_pDevice2->GetResourceTiling(pTiledResource, pNumTilesForEntireResource, pPackedMipDesc, pStandardTileShapeForNonPackedMips,
+	                              pNumSubresourceTilings, FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips);
+}
+
+HRESULT WrappedID3D11Device::CheckMultisampleQualityLevels1( 
+		DXGI_FORMAT Format,
+		UINT SampleCount,
+		UINT Flags,
+		UINT *pNumQualityLevels)
+{
+	if(m_pDevice2 == NULL) return E_NOINTERFACE;
+
+	return m_pDevice2->CheckMultisampleQualityLevels1(Format, SampleCount, Flags, pNumQualityLevels);
+}
+
 #endif

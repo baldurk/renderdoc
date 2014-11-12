@@ -54,7 +54,7 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t
 	return true;
 }
 
-bool WrappedID3D11DeviceContext::Serialise_BeginEvent(uint32_t col, const wchar_t *name_)
+bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t *name_)
 {
 	SERIALISE_ELEMENT(uint32_t, colour, col);
 
@@ -74,7 +74,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginEvent(uint32_t col, const wchar_
 	return true;
 }
 
-bool WrappedID3D11DeviceContext::Serialise_EndEvent()
+bool WrappedID3D11DeviceContext::Serialise_PopEvent()
 {
 	if(m_State == READING && !m_CurEvents.empty())
 	{
@@ -100,13 +100,13 @@ void WrappedID3D11DeviceContext::SetMarker(uint32_t col, const wchar_t *name)
 	}
 }
 
-int WrappedID3D11DeviceContext::BeginEvent(uint32_t col, const wchar_t *name)
+int WrappedID3D11DeviceContext::PushEvent(uint32_t col, const wchar_t *name)
 {
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
+		SCOPED_SERIALISE_CONTEXT(PUSH_EVENT);
 		m_pSerialiser->Serialise("context", m_ResourceID);	
-		Serialise_BeginEvent(col, name);
+		Serialise_PushEvent(col, name);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -114,13 +114,13 @@ int WrappedID3D11DeviceContext::BeginEvent(uint32_t col, const wchar_t *name)
 	return m_MarkerIndentLevel++;
 }
 
-int WrappedID3D11DeviceContext::EndEvent()
+int WrappedID3D11DeviceContext::PopEvent()
 {
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(END_EVENT);
+		SCOPED_SERIALISE_CONTEXT(POP_EVENT);
 		m_pSerialiser->Serialise("context", m_ResourceID);	
-		Serialise_EndEvent();
+		Serialise_PopEvent();
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -202,10 +202,10 @@ void WrappedID3D11DeviceContext::DrainAnnotationQueue()
 				SetMarker(a.m_Col, a.m_Name.c_str());
 				break;
 			case Annotation::ANNOT_BEGINEVENT:
-				BeginEvent(a.m_Col, a.m_Name.c_str());
+				PushEvent(a.m_Col, a.m_Name.c_str());
 				break;
 			case Annotation::ANNOT_ENDEVENT:
-				EndEvent();
+				PopEvent();
 				break;
 		}
 	}

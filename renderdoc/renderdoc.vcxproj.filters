@@ -521,6 +521,9 @@
     <ClCompile Include="core\image_viewer.cpp">
       <Filter>Core</Filter>
     </ClCompile>
+    <ClCompile Include="driver\d3d11\d3d11_context2_wrap.cpp">
+      <Filter>Drivers\D3D11</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

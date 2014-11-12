@@ -28,8 +28,11 @@
 #include "core/core.h"
 #include "api/replay/renderdoc_replay.h"
 
+#include "d3d11_common.h"
+
 #if defined(INCLUDE_D3D_11_1)
 #include <d3d11_1.h>
+#include <d3d11_2.h>
 #endif
 
 #include "d3d11_manager.h"
@@ -127,12 +130,13 @@ struct DrawcallTreeNode
 	}
 };
 
-class WrappedID3D11DeviceContext : public RefCounter,
 #if defined(INCLUDE_D3D_11_1)
-	public ID3D11DeviceContext1
+#define D3DCONTEXTPARENT ID3D11DeviceContext2
 #else
-	public ID3D11DeviceContext
+#define D3DCONTEXTPARENT ID3D11DeviceContext
 #endif
+
+class WrappedID3D11DeviceContext : public RefCounter, public D3DCONTEXTPARENT
 {
 private:
 	friend class WrappedID3D11DeviceContext;
@@ -174,6 +178,8 @@ private:
 #if defined(INCLUDE_D3D_11_1)
 	ID3D11DeviceContext1* m_pRealContext1;
 	bool m_SetCBuffer1;
+
+	ID3D11DeviceContext2* m_pRealContext2;
 #endif
 
 	set<D3D11ResourceRecord *> m_DeferredRecords;
@@ -236,8 +242,8 @@ private:
 	////////////////////////////////////////////////////////////////
 	// implement InterceptorSystem privately, since it is not thread safe (like all other context functions)
 	IMPLEMENT_FUNCTION_SERIALISED(void, SetMarker(uint32_t col, const wchar_t *name));
-	IMPLEMENT_FUNCTION_SERIALISED(int, BeginEvent(uint32_t col, const wchar_t *name));
-	IMPLEMENT_FUNCTION_SERIALISED(int, EndEvent());
+	IMPLEMENT_FUNCTION_SERIALISED(int, PushEvent(uint32_t col, const wchar_t *name));
+	IMPLEMENT_FUNCTION_SERIALISED(int, PopEvent());
 public:
 	static const int AllocPoolCount = 2048;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
@@ -963,5 +969,59 @@ public:
 			ID3D11View *pResourceView,
 			const D3D11_RECT *pRects,
 			UINT NumRects));
+	
+	//////////////////////////////
+	// implement ID3D11DeviceContext2
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, UpdateTileMappings( 
+			ID3D11Resource *pTiledResource,
+			UINT NumTiledResourceRegions,
+			const D3D11_TILED_RESOURCE_COORDINATE *pTiledResourceRegionStartCoordinates,
+			const D3D11_TILE_REGION_SIZE *pTiledResourceRegionSizes,
+			ID3D11Buffer *pTilePool,
+			UINT NumRanges,
+			const UINT *pRangeFlags,
+			const UINT *pTilePoolStartOffsets,
+			const UINT *pRangeTileCounts,
+			UINT Flags));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CopyTileMappings( 
+			ID3D11Resource *pDestTiledResource,
+			const D3D11_TILED_RESOURCE_COORDINATE *pDestRegionStartCoordinate,
+			ID3D11Resource *pSourceTiledResource,
+			const D3D11_TILED_RESOURCE_COORDINATE *pSourceRegionStartCoordinate,
+			const D3D11_TILE_REGION_SIZE *pTileRegionSize,
+			UINT Flags));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, CopyTiles( 
+			ID3D11Resource *pTiledResource,
+			const D3D11_TILED_RESOURCE_COORDINATE *pTileRegionStartCoordinate,
+			const D3D11_TILE_REGION_SIZE *pTileRegionSize,
+			ID3D11Buffer *pBuffer,
+			UINT64 BufferStartOffsetInBytes,
+			UINT Flags));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, UpdateTiles( 
+			ID3D11Resource *pDestTiledResource,
+			const D3D11_TILED_RESOURCE_COORDINATE *pDestTileRegionStartCoordinate,
+			const D3D11_TILE_REGION_SIZE *pDestTileRegionSize,
+			const void *pSourceTileData,
+			UINT Flags));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, ResizeTilePool( 
+			ID3D11Buffer *pTilePool,
+			UINT64 NewSizeInBytes));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, TiledResourceBarrier( 
+			ID3D11DeviceChild *pTiledResourceOrViewAccessBeforeBarrier,
+			ID3D11DeviceChild *pTiledResourceOrViewAccessAfterBarrier));
+	
+	virtual BOOL STDMETHODCALLTYPE IsAnnotationEnabled();
+	
+	virtual void STDMETHODCALLTYPE SetMarkerInt(LPCWSTR pLabel, INT Data);
+	
+	virtual void STDMETHODCALLTYPE BeginEventInt(LPCWSTR pLabel, INT Data);
+	
+	virtual void STDMETHODCALLTYPE EndEvent();
 #endif
 };

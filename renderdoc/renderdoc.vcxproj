@@ -312,6 +312,7 @@
     <ClCompile Include="driver\d3d11\d3d11_common.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_context.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_context1_wrap.cpp" />
+    <ClCompile Include="driver\d3d11\d3d11_context2_wrap.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_context_wrap.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_debug.cpp" />
     <ClCompile Include="driver\d3d11\d3d11_device.cpp" />
