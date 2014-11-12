@@ -266,7 +266,7 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
 {
 	m_Real.glBindImageTexture(unit, texture, level, layered, layer, access, format);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		Chunk *chunk = NULL;
 
@@ -322,7 +322,7 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
 {
 	m_Real.glBindImageTextures(first, count, textures);
 	
-	if(m_State >= WRITING)
+	if(m_State >= WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_TEXTURES);
 		Serialise_glBindImageTextures(first, count, textures);
