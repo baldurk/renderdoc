@@ -148,13 +148,24 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 {
 	ResourceFormat ret;
 
-	ret.compByteWidth = 1;
-	ret.compCount = 4;
-	ret.compType = eCompType_Float;
-
 	ret.rawType = (uint32_t)fmt;
 	ret.special = false;
 	ret.specialFormat = eSpecial_Unknown;
+	ret.strname = widen(ToStr::Get(fmt)).substr(3); // 3 == strlen("GL_")
+
+	// special handling for formats that don't query neatly
+	if(fmt == eGL_LUMINANCE8_EXT)
+	{
+		ret.compByteWidth = 1;
+		ret.compCount = 1;
+		ret.compType = eCompType_UNorm;
+		ret.srgbCorrected = false;
+		return ret;
+	}
+
+	ret.compByteWidth = 1;
+	ret.compCount = 4;
+	ret.compType = eCompType_Float;
 	
 	GLint data[8];
 	GLenum *edata = (GLenum *)data;
@@ -274,8 +285,6 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 		// not colour or depth!
 		RDCERR("Unexpected texture type, not colour or depth");
 	}
-
-	ret.strname = widen(ToStr::Get(fmt)).substr(3); // 3 == strlen("GL_")
 
 	return ret;
 }
