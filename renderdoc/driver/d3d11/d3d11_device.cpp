@@ -2953,7 +2953,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
-				string overlayText = "";
+				string overlayText = "D3D11. ";
 
 				for(size_t i=0; i < keys.size(); i++)
 				{

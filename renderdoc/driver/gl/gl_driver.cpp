@@ -954,7 +954,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
-				string overlayText = "";
+				string overlayText = "OpenGL. ";
 
 				for(size_t i=0; i < keys.size(); i++)
 				{
