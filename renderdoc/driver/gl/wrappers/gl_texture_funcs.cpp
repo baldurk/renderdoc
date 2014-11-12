@@ -496,7 +496,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 												    dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
 												    srcWidth, srcHeight, srcDepth);
 	
-	if(m_State >= WRITING)
+	if(m_State == WRITING_CAPFRAME)
 	{
 		GLResourceRecord *srcrecord = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
 		GLResourceRecord *dstrecord = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
@@ -509,15 +509,11 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
 		Chunk *chunk = scope.Get();
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(chunk);
-		}
-		else
-		{
-			dstrecord->AddChunk(chunk);
-			dstrecord->AddParent(srcrecord);
-		}
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), dstName));
 	}
 }
 
