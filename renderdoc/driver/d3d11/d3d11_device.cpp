@@ -506,6 +506,24 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		*ppvObject = new WrappedIDXGIDevice1(real, this);
 		return S_OK;
 	}
+#if defined(INCLUDE_DXGI_1_2)
+	else if(riid == __uuidof(IDXGIDevice2))
+	{
+		m_pDevice->QueryInterface(riid, ppvObject);
+
+		IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIDevice2(real, this);
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice3))
+	{
+		m_pDevice->QueryInterface(riid, ppvObject);
+
+		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIDevice3(real, this);
+		return S_OK;
+	}
+#endif
 	else if(riid == __uuidof(ID3D11Device))
 	{
 		AddRef();

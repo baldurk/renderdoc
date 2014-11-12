@@ -33,18 +33,22 @@
 
 WRAPPED_POOL_INST(WrappedIDXGIDevice);
 WRAPPED_POOL_INST(WrappedIDXGIDevice1);
+WRAPPED_POOL_INST(WrappedIDXGIDevice2);
+WRAPPED_POOL_INST(WrappedIDXGIDevice3);
 
-HRESULT WrappedIDXGIFactory::CreateSwapChain( 
-	/* [annotation][in] */ 
-	__in  IUnknown *pDevice,
-	/* [annotation][in] */ 
-	__in  DXGI_SWAP_CHAIN_DESC *pDesc,
-	/* [annotation][out] */ 
-	__out  IDXGISwapChain **ppSwapChain)
+HRESULT WrappedIDXGIFactory::staticCreateSwapChain(IDXGIFactory *factory,
+	IUnknown *pDevice,
+	DXGI_SWAP_CHAIN_DESC *pDesc,
+	IDXGISwapChain **ppSwapChain)
 {
 	if(WrappedID3D11Device::IsAlloc(pDevice) ||
 		WrappedIDXGIDevice::IsAlloc(pDevice) ||
-		WrappedIDXGIDevice1::IsAlloc(pDevice))
+		WrappedIDXGIDevice1::IsAlloc(pDevice) ||
+#if defined(INCLUDE_DXGI_1_2)
+		WrappedIDXGIDevice2::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice3::IsAlloc(pDevice)
+#endif
+		)
 	{
 		WrappedID3D11Device *wrapDevice = (WrappedID3D11Device *)pDevice;
 		
@@ -52,16 +56,22 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(
 			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice *)(IDXGIDevice *)pDevice)->GetD3DDevice();
 		if(WrappedIDXGIDevice1::IsAlloc(pDevice))
 			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice1 *)(IDXGIDevice1 *)pDevice)->GetD3DDevice();
+#if defined(INCLUDE_DXGI_1_2)
+		if(WrappedIDXGIDevice2::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice2 *)(IDXGIDevice2 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice3::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice3 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
+#endif
 
 		if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen && pDesc)
 		{
 			pDesc->Windowed = TRUE;
 		}
 
-		HRESULT ret = m_pReal->CreateSwapChain(wrapDevice->GetReal(), pDesc, ppSwapChain);
+		HRESULT ret = factory->CreateSwapChain(wrapDevice->GetReal(), pDesc, ppSwapChain);
 	
 		if(SUCCEEDED(ret))
-			*ppSwapChain = new WrappedIDXGISwapChain(*ppSwapChain, wrapDevice);
+			*ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
 
 		return ret;
 	}
@@ -70,20 +80,25 @@ HRESULT WrappedIDXGIFactory::CreateSwapChain(
 		RDCERR("Creating swap chain with non-hooked device!");
 	}
 
-	return m_pReal->CreateSwapChain(pDevice, pDesc, ppSwapChain);
+	return factory->CreateSwapChain(pDevice, pDesc, ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory1::CreateSwapChain( 
-	/* [annotation][in] */ 
-	__in  IUnknown *pDevice,
-	/* [annotation][in] */ 
-	__in  DXGI_SWAP_CHAIN_DESC *pDesc,
-	/* [annotation][out] */ 
-	__out  IDXGISwapChain **ppSwapChain)
+#if defined(INCLUDE_DXGI_1_2)
+
+HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForHwnd( IDXGIFactory2 *factory,
+	IUnknown *pDevice,
+	HWND hWnd,
+	const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+	const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+	IDXGIOutput *pRestrictToOutput,
+	IDXGISwapChain1 **ppSwapChain)
 {
 	if(WrappedID3D11Device::IsAlloc(pDevice) ||
 		WrappedIDXGIDevice::IsAlloc(pDevice) ||
-		WrappedIDXGIDevice1::IsAlloc(pDevice))
+		WrappedIDXGIDevice1::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice2::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice3::IsAlloc(pDevice)
+		)
 	{
 		WrappedID3D11Device *wrapDevice = (WrappedID3D11Device *)pDevice;
 		
@@ -91,16 +106,69 @@ HRESULT WrappedIDXGIFactory1::CreateSwapChain(
 			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice *)(IDXGIDevice *)pDevice)->GetD3DDevice();
 		if(WrappedIDXGIDevice1::IsAlloc(pDevice))
 			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice1 *)(IDXGIDevice1 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice2::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice2 *)(IDXGIDevice2 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice3::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice3 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
 
-		if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen && pDesc)
+		if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen && pFullscreenDesc)
 		{
-			pDesc->Windowed = TRUE;
+			pFullscreenDesc = NULL;
 		}
 
-		HRESULT ret = m_pReal->CreateSwapChain(wrapDevice->GetReal(), pDesc, ppSwapChain);
+		HRESULT ret = factory->CreateSwapChainForHwnd(wrapDevice->GetReal(), hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
 	
 		if(SUCCEEDED(ret))
-			*ppSwapChain = new WrappedIDXGISwapChain(*ppSwapChain, wrapDevice);
+			*ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, hWnd, wrapDevice);
+
+		return ret;
+	}
+	else
+	{
+		RDCERR("Creating swap chain with non-hooked device!");
+	}
+	
+	return factory->CreateSwapChainForHwnd(pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+}
+
+HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForCoreWindow( IDXGIFactory2 *factory,
+	IUnknown *pDevice,
+	IUnknown *pWindow,
+	const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+	IDXGIOutput *pRestrictToOutput,
+	IDXGISwapChain1 **ppSwapChain)
+{
+	if(WrappedID3D11Device::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice1::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice2::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice3::IsAlloc(pDevice)
+		)
+	{
+		WrappedID3D11Device *wrapDevice = (WrappedID3D11Device *)pDevice;
+		
+		if(WrappedIDXGIDevice::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice *)(IDXGIDevice *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice1::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice1 *)(IDXGIDevice1 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice2::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice2 *)(IDXGIDevice2 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice3::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice3 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
+
+		if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+		{
+			RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForCoreWindow");
+		}
+
+		HRESULT ret = factory->CreateSwapChainForCoreWindow(wrapDevice->GetReal(), pWindow, pDesc, pRestrictToOutput, ppSwapChain);
+	
+		if(SUCCEEDED(ret)) 
+		{
+			HWND wnd = NULL;
+			(*ppSwapChain)->GetHwnd(&wnd);
+			*ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, wnd, wrapDevice);
+		}
 
 		return ret;
 	}
@@ -109,14 +177,69 @@ HRESULT WrappedIDXGIFactory1::CreateSwapChain(
 		RDCERR("Creating swap chain with non-hooked device!");
 	}
 
-	return m_pReal->CreateSwapChain(pDevice, pDesc, ppSwapChain);
+	return factory->CreateSwapChainForCoreWindow(pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
 }
 
-WrappedIDXGISwapChain::WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11Device *device)
-	: RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_iRefcount(1)
+HRESULT WrappedIDXGIFactory2::staticCreateSwapChainForComposition( IDXGIFactory2 *factory,
+	IUnknown *pDevice,
+	const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+	IDXGIOutput *pRestrictToOutput,
+	IDXGISwapChain1 **ppSwapChain)
+{
+	if(WrappedID3D11Device::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice1::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice2::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice3::IsAlloc(pDevice)
+		)
+	{
+		WrappedID3D11Device *wrapDevice = (WrappedID3D11Device *)pDevice;
+		
+		if(WrappedIDXGIDevice::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice *)(IDXGIDevice *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice1::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice1 *)(IDXGIDevice1 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice2::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice2 *)(IDXGIDevice2 *)pDevice)->GetD3DDevice();
+		if(WrappedIDXGIDevice3::IsAlloc(pDevice))
+			wrapDevice = (WrappedID3D11Device *)((WrappedIDXGIDevice3 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
+
+		if(!RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+		{
+			RDCWARN("Impossible to disallow fullscreen on call to CreateSwapChainForComposition");
+		}
+
+		HRESULT ret = factory->CreateSwapChainForComposition(wrapDevice->GetReal(), pDesc, pRestrictToOutput, ppSwapChain);
+	
+		if(SUCCEEDED(ret)) 
+		{
+			HWND wnd = NULL;
+			(*ppSwapChain)->GetHwnd(&wnd);
+			*ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, wnd, wrapDevice);
+		}
+
+		return ret;
+	}
+	else
+	{
+		RDCERR("Creating swap chain with non-hooked device!");
+	}
+
+	return factory->CreateSwapChainForComposition(pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+}
+
+#endif
+
+WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain* real, HWND wnd, WrappedID3D11Device *device)
+	: RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_iRefcount(1), m_Wnd(wnd)
 {
 	DXGI_SWAP_CHAIN_DESC desc;
 	real->GetDesc(&desc);
+	
+#if defined(INCLUDE_DXGI_1_2)
+	m_pReal2 = NULL;
+	real->QueryInterface(__uuidof(IDXGISwapChain2), (void **)&m_pReal2);
+#endif
 
 	int bufCount = desc.BufferCount;
 
@@ -144,18 +267,16 @@ WrappedIDXGISwapChain::WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11
 		}
 	}
 
-	RenderDoc::Inst().AddFrameCapturer(desc.OutputWindow, m_pDevice);
+	if(m_Wnd) RenderDoc::Inst().AddFrameCapturer(m_Wnd, m_pDevice);
 
 	SAFE_ADDREF(m_pDevice);
 }
 
-WrappedIDXGISwapChain::~WrappedIDXGISwapChain()
+WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 {
 	m_pDevice->ReleaseSwapchainResources(this);
 	
-	DXGI_SWAP_CHAIN_DESC desc;
-	m_pReal->GetDesc(&desc);
-	RenderDoc::Inst().RemoveFrameCapturer(desc.OutputWindow);
+	if(m_Wnd) RenderDoc::Inst().RemoveFrameCapturer(m_Wnd);
 
 	SAFE_RELEASE(m_pReal);
 	for(int i=0; i < MAX_NUM_BACKBUFFERS; i++)
@@ -169,7 +290,7 @@ WrappedIDXGISwapChain::~WrappedIDXGISwapChain()
 	SAFE_RELEASE(m_pDevice);
 }
 
-HRESULT WrappedIDXGISwapChain::ResizeBuffers( 
+HRESULT WrappedIDXGISwapChain2::ResizeBuffers( 
 	/* [in] */ UINT BufferCount,
 	/* [in] */ UINT Width,
 	/* [in] */ UINT Height,
@@ -226,7 +347,7 @@ HRESULT WrappedIDXGISwapChain::ResizeBuffers(
 	return ret;
 }
 
-HRESULT WrappedIDXGISwapChain::SetFullscreenState( 
+HRESULT WrappedIDXGISwapChain2::SetFullscreenState( 
 	/* [in] */ BOOL Fullscreen,
 	/* [in] */ IDXGIOutput *pTarget)
 {
@@ -236,14 +357,14 @@ HRESULT WrappedIDXGISwapChain::SetFullscreenState(
 	return S_OK;
 }
 
-HRESULT WrappedIDXGISwapChain::GetFullscreenState( 
+HRESULT WrappedIDXGISwapChain2::GetFullscreenState( 
 	/* [out] */ BOOL *pFullscreen,
 	/* [out] */ IDXGIOutput **ppTarget)
 {
 	return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
 }
 
-HRESULT WrappedIDXGISwapChain::GetBuffer( 
+HRESULT WrappedIDXGISwapChain2::GetBuffer( 
 	/* [in] */ UINT Buffer,
 	/* [in] */ REFIID riid,
 	/* [out][in] */ void **ppSurface)
@@ -286,7 +407,7 @@ HRESULT WrappedIDXGISwapChain::GetBuffer(
 	return ret;
 }
 
-HRESULT WrappedIDXGISwapChain::GetDevice( 
+HRESULT WrappedIDXGISwapChain2::GetDevice( 
 	/* [in] */ REFIID riid,
 	/* [retval][out] */ void **ppDevice)
 {
@@ -318,7 +439,7 @@ HRESULT WrappedIDXGISwapChain::GetDevice(
 	return ret;
 }
 
-HRESULT WrappedIDXGISwapChain::Present( 
+HRESULT WrappedIDXGISwapChain2::Present( 
 		/* [in] */ UINT SyncInterval,
 		/* [in] */ UINT Flags)
 {
@@ -330,6 +451,18 @@ HRESULT WrappedIDXGISwapChain::Present(
 	m_pDevice->Present(this, SyncInterval, Flags);
 
 	return m_pReal->Present(SyncInterval, Flags);
+}
+
+HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS *pPresentParameters)
+{
+	if(!RenderDoc::Inst().GetCaptureOptions().AllowVSync)
+	{
+		SyncInterval = 0;
+	}
+
+	m_pDevice->Present(this, SyncInterval, Flags);
+
+	return m_pReal2->Present1(SyncInterval, Flags, pPresentParameters);
 }
 
 bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
@@ -377,6 +510,26 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
 		*ppvObject = new WrappedIDXGIFactory1(real);
 		return true;
 	}
+#if defined(INCLUDE_DXGI_1_2)
+	else if(riid == __uuidof(IDXGIAdapter2))
+	{
+		IDXGIAdapter2 *real = (IDXGIAdapter2 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIAdapter2(real);
+		return true;
+	}
+	else if(riid == __uuidof(IDXGIFactory2))
+	{
+		IDXGIFactory2 *real = (IDXGIFactory2 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIFactory2(real);
+		return true;
+	}
+	else if(riid == __uuidof(IDXGIFactory3))
+	{
+		IDXGIFactory3 *real = (IDXGIFactory3 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIFactory3(real);
+		return true;
+	}
+#endif
 	else
 	{
 		string guid = ToStr::Get(riid);
@@ -407,6 +560,31 @@ HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void
 
 	return ret;
 }
+	
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain2::QueryInterface(REFIID riid, void **ppvObject)
+{
+	if(riid == __uuidof(IDXGISwapChain))
+	{
+		AddRef();
+		*ppvObject = (IDXGISwapChain *)this;
+		return S_OK;
+	}
+#if defined(INCLUDE_DXGI_1_2)
+	else if(riid == __uuidof(IDXGISwapChain1))
+	{
+		AddRef();
+		*ppvObject = (IDXGISwapChain1 *)this;
+		return S_OK;
+	}
+#endif
+	else
+	{
+		string guid = ToStr::Get(riid);
+		RDCWARN("Querying IDXGISwapChain for interface: %hs", guid.c_str());
+	}
+
+	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+}
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice::QueryInterface( REFIID riid, void **ppvObject )
 {
@@ -433,6 +611,30 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface( REFIID riid, void
 		*ppvObject = m_pD3DDevice;
 		return S_OK;
 	}
+	else if(riid == __uuidof(IDXGIDevice1))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice1 *)this;
+		return S_OK;
+	}
+#if defined(INCLUDE_DXGI_1_2)
+	else if(riid == __uuidof(IDXGIDevice2))
+	{
+		m_pReal->QueryInterface(riid, ppvObject);
+
+		IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIDevice2(real, m_pD3DDevice);
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice3))
+	{
+		m_pReal->QueryInterface(riid, ppvObject);
+
+		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+		return S_OK;
+	}
+#endif
 	else
 	{
 		string guid = ToStr::Get(riid);
@@ -441,3 +643,80 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface( REFIID riid, void
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
+
+#if defined(INCLUDE_DXGI_1_2)
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface( REFIID riid, void **ppvObject )
+{
+	if(riid == __uuidof(ID3D11Device))
+	{
+		m_pD3DDevice->AddRef();
+		*ppvObject = m_pD3DDevice;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice1))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice1 *)this;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice2))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice2 *)this;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice3))
+	{
+		m_pReal->QueryInterface(riid, ppvObject);
+
+		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+		*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+		return S_OK;
+	}
+	else
+	{
+		string guid = ToStr::Get(riid);
+		RDCWARN("Querying IDXGIDevice2 for interface: %hs", guid.c_str());
+	}
+
+	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface( REFIID riid, void **ppvObject )
+{
+	if(riid == __uuidof(ID3D11Device))
+	{
+		m_pD3DDevice->AddRef();
+		*ppvObject = m_pD3DDevice;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice1))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice1 *)this;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice2))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice2 *)this;
+		return S_OK;
+	}
+	else if(riid == __uuidof(IDXGIDevice3))
+	{
+		AddRef();
+		*ppvObject = (IDXGIDevice3 *)this;
+		return S_OK;
+	}
+	else
+	{
+		string guid = ToStr::Get(riid);
+		RDCWARN("Querying IDXGIDevice3 for interface: %hs", guid.c_str());
+	}
+
+	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
+}
+
+#endif
+

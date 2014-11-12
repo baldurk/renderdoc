@@ -244,7 +244,7 @@ private:
 				wrap->GetImmediateContext(ppImmediateContext);
 
 				if(ppSwapChain && *ppSwapChain)
-					*ppSwapChain = new WrappedIDXGISwapChain(*ppSwapChain, wrap);
+					*ppSwapChain = new WrappedIDXGISwapChain2(*ppSwapChain, pSwapChainDesc ? pSwapChainDesc->OutputWindow : NULL, wrap);
 			}
 		}
 		else if(SUCCEEDED(ret))

@@ -28,6 +28,9 @@
 #include <dxgi.h>
 #include <d3d11.h>
 
+// if you don't have the windows 8.1 SDK, remove this define to exclude the DXGI1.2+ functionality
+#define INCLUDE_DXGI_1_2
+
 #include "common/common.h"
 #include "common/wrapped_pool.h"
 
@@ -98,20 +101,37 @@ public:
 class WrappedID3D11Device;
 struct ID3D11Resource;
 
-class WrappedIDXGISwapChain : public IDXGISwapChain, public RefCountDXGIObject
+#if defined(INCLUDE_DXGI_1_2)
+#include <dxgi1_2.h>
+#include <dxgi1_3.h>
+#endif
+
+#if defined(INCLUDE_DXGI_1_2)
+#define SWAPCHAINPARENT IDXGISwapChain2
+#else
+#define SWAPCHAINPARENT IDXGISwapChain
+#endif
+
+class WrappedIDXGISwapChain2 : public SWAPCHAINPARENT, public RefCountDXGIObject
 {
 	IDXGISwapChain* m_pReal;
+#if defined(INCLUDE_DXGI_1_2)
+	IDXGISwapChain2* m_pReal2;
+#endif
 	WrappedID3D11Device *m_pDevice;
 	unsigned int m_iRefcount;
+
+	HWND m_Wnd;
 
   static const int MAX_NUM_BACKBUFFERS = 4;
 
   ID3D11Resource *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
 public:
-	WrappedIDXGISwapChain(IDXGISwapChain* real, WrappedID3D11Device *device);
-	virtual ~WrappedIDXGISwapChain();
+	WrappedIDXGISwapChain2(IDXGISwapChain* real, HWND wnd, WrappedID3D11Device *device);
+	virtual ~WrappedIDXGISwapChain2();
 	
-	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT;
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 	
 	//////////////////////////////
 	// implement IDXGIDeviceSubObject
@@ -176,6 +196,137 @@ public:
 	{
 		return m_pReal->GetLastPresentCount(pLastPresentCount);
 	}
+
+#if defined(INCLUDE_DXGI_1_2)
+	//////////////////////////////
+	// implement IDXGISwapChain1
+	
+	virtual HRESULT STDMETHODCALLTYPE GetDesc1( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_SWAP_CHAIN_DESC1 *pDesc)
+	{
+		return m_pReal2->GetDesc1(pDesc);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetFullscreenDesc( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pDesc)
+	{
+		return m_pReal2->GetFullscreenDesc(pDesc);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetHwnd( 
+		/* [annotation][out] */ 
+		_Out_  HWND *pHwnd)
+	{
+		return m_pReal2->GetHwnd(pHwnd);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetCoreWindow( 
+		/* [annotation][in] */ 
+		_In_  REFIID refiid,
+		/* [annotation][out] */ 
+		_Out_  void **ppUnk)
+	{
+		return m_pReal2->GetCoreWindow(refiid, ppUnk);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE Present1( 
+		/* [in] */ UINT SyncInterval,
+		/* [in] */ UINT PresentFlags,
+		/* [annotation][in] */ 
+		_In_  const DXGI_PRESENT_PARAMETERS *pPresentParameters);
+	
+	virtual BOOL STDMETHODCALLTYPE IsTemporaryMonoSupported( void)
+	{
+		return m_pReal2->IsTemporaryMonoSupported();
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetRestrictToOutput( 
+		/* [annotation][out] */ 
+		_Out_  IDXGIOutput **ppRestrictToOutput)
+	{
+		return m_pReal2->GetRestrictToOutput(ppRestrictToOutput);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE SetBackgroundColor( 
+		/* [annotation][in] */ 
+		_In_  const DXGI_RGBA *pColor)
+	{
+		return m_pReal2->SetBackgroundColor(pColor);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetBackgroundColor( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_RGBA *pColor)
+	{
+		return m_pReal2->GetBackgroundColor(pColor);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE SetRotation( 
+		/* [annotation][in] */ 
+		_In_  DXGI_MODE_ROTATION Rotation)
+	{
+		return m_pReal2->SetRotation(Rotation);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetRotation( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_MODE_ROTATION *pRotation)
+	{
+		return m_pReal2->GetRotation(pRotation);
+	}
+
+	//////////////////////////////
+	// implement IDXGISwapChain2
+
+	virtual HRESULT STDMETHODCALLTYPE SetSourceSize( 
+		UINT Width,
+		UINT Height)
+	{
+		return m_pReal2->SetSourceSize(Width, Height);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetSourceSize( 
+		/* [annotation][out] */ 
+		_Out_  UINT *pWidth,
+		/* [annotation][out] */ 
+		_Out_  UINT *pHeight)
+	{
+		return m_pReal2->GetSourceSize(pWidth, pHeight);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency( 
+		UINT MaxLatency)
+	{
+		return m_pReal2->SetMaximumFrameLatency(MaxLatency);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetMaximumFrameLatency( 
+		/* [annotation][out] */ 
+		_Out_  UINT *pMaxLatency)
+	{
+		return m_pReal2->GetMaximumFrameLatency(pMaxLatency);
+	}
+	
+	virtual HANDLE STDMETHODCALLTYPE GetFrameLatencyWaitableObject( void)
+	{
+		return m_pReal2->GetFrameLatencyWaitableObject();
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE SetMatrixTransform( 
+		const DXGI_MATRIX_3X2_F *pMatrix)
+	{
+		return m_pReal2->SetMatrixTransform(pMatrix);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetMatrixTransform( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_MATRIX_3X2_F *pMatrix)
+	{
+		return m_pReal2->GetMatrixTransform(pMatrix);
+	}
+#endif
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -329,7 +480,10 @@ public:
 		/* [annotation][in] */ 
 		__in  DXGI_SWAP_CHAIN_DESC *pDesc,
 		/* [annotation][out] */ 
-		__out  IDXGISwapChain **ppSwapChain);
+		__out  IDXGISwapChain **ppSwapChain)
+	{
+		return WrappedIDXGIFactory::staticCreateSwapChain(m_pReal, pDevice, pDesc, ppSwapChain);
+	}
 
 	virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter( 
 		/* [in] */ HMODULE Module,
@@ -340,6 +494,11 @@ public:
 		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter(*ppAdapter);
 		return ret;
 	}
+
+	static HRESULT staticCreateSwapChain(IDXGIFactory *factory,
+		IUnknown *pDevice,
+		DXGI_SWAP_CHAIN_DESC *pDesc,
+		IDXGISwapChain **ppSwapChain);
 };
 
 // version 1
@@ -516,7 +675,10 @@ public:
 		/* [annotation][in] */ 
 		__in  DXGI_SWAP_CHAIN_DESC *pDesc,
 		/* [annotation][out] */ 
-		__out  IDXGISwapChain **ppSwapChain);
+		__out  IDXGISwapChain **ppSwapChain)
+	{
+		return WrappedIDXGIFactory::staticCreateSwapChain(m_pReal, pDevice, pDesc, ppSwapChain);
+	}
 
 	virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter( 
 		/* [in] */ HMODULE Module,
@@ -546,3 +708,753 @@ public:
 		return m_pReal->IsCurrent();
 	}
 };
+
+#if defined(INCLUDE_DXGI_1_2)
+
+class WrappedIDXGIDevice2 : public IDXGIDevice2, public RefCountDXGIObject
+{
+	IDXGIDevice2* m_pReal;
+	ID3D11Device* m_pD3DDevice;
+public:
+	WrappedIDXGIDevice2(IDXGIDevice2* real, ID3D11Device *d3d) :
+	  RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d) { m_pD3DDevice->AddRef(); }
+	virtual ~WrappedIDXGIDevice2() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
+	
+	static const public int AllocPoolCount = 4;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice2, AllocPoolCount);
+
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+
+	ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+
+	//////////////////////////////
+	// implement IDXGIDevice
+	
+	virtual HRESULT STDMETHODCALLTYPE GetAdapter( 
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **pAdapter)
+	{
+		HRESULT ret = m_pReal->GetAdapter(pAdapter);
+		if(SUCCEEDED(ret)) *pAdapter = new WrappedIDXGIAdapter(*pAdapter);
+		return ret;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSurface( 
+		/* [annotation][in] */ 
+		__in  const DXGI_SURFACE_DESC *pDesc,
+		/* [in] */ UINT NumSurfaces,
+		/* [in] */ DXGI_USAGE Usage,
+		/* [annotation][in] */ 
+		__in_opt  const DXGI_SHARED_RESOURCE *pSharedResource,
+		/* [annotation][out] */ 
+		__out  IDXGISurface **ppSurface)
+	{
+		return m_pReal->CreateSurface(pDesc, NumSurfaces, Usage, pSharedResource, ppSurface);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE QueryResourceResidency( 
+		/* [annotation][size_is][in] */ 
+		__in_ecount(NumResources)  IUnknown *const *ppResources,
+		/* [annotation][size_is][out] */ 
+		__out_ecount(NumResources)  DXGI_RESIDENCY *pResidencyStatus,
+		/* [in] */ UINT NumResources)
+	{
+		return m_pReal->QueryResourceResidency(ppResources, pResidencyStatus, NumResources);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE SetGPUThreadPriority( 
+		/* [in] */ INT Priority)
+	{
+		return m_pReal->SetGPUThreadPriority(Priority);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetGPUThreadPriority( 
+		/* [annotation][retval][out] */ 
+		__out  INT *pPriority)
+	{
+		return m_pReal->GetGPUThreadPriority(pPriority);
+	}
+
+	//////////////////////////////
+	// implement IDXGIDevice1
+
+	virtual HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency( 
+		/* [in] */ UINT MaxLatency)
+	{
+		return m_pReal->SetMaximumFrameLatency(MaxLatency);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetMaximumFrameLatency( 
+		/* [annotation][out] */ 
+		__out  UINT *pMaxLatency)
+	{
+		return m_pReal->GetMaximumFrameLatency(pMaxLatency);
+	}
+	
+	//////////////////////////////
+	// implement IDXGIDevice2
+	virtual HRESULT STDMETHODCALLTYPE OfferResources( 
+		/* [annotation][in] */ 
+		_In_  UINT NumResources,
+		/* [annotation][size_is][in] */ 
+		_In_reads_(NumResources)  IDXGIResource *const *ppResources,
+		/* [annotation][in] */ 
+		_In_  DXGI_OFFER_RESOURCE_PRIORITY Priority)
+	{
+		return m_pReal->OfferResources(NumResources, ppResources, Priority);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE ReclaimResources( 
+		/* [annotation][in] */ 
+		_In_  UINT NumResources,
+		/* [annotation][size_is][in] */ 
+		_In_reads_(NumResources)  IDXGIResource *const *ppResources,
+		/* [annotation][size_is][out] */ 
+		_Out_writes_all_opt_(NumResources)  BOOL *pDiscarded)
+	{
+		return m_pReal->ReclaimResources(NumResources, ppResources, pDiscarded);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE EnqueueSetEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent)
+	{
+		return m_pReal->EnqueueSetEvent(hEvent);
+	}
+};
+class WrappedIDXGIDevice3 : public IDXGIDevice3, public RefCountDXGIObject
+{
+	IDXGIDevice3* m_pReal;
+	ID3D11Device* m_pD3DDevice;
+public:
+	WrappedIDXGIDevice3(IDXGIDevice3* real, ID3D11Device *d3d) :
+	  RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d) { m_pD3DDevice->AddRef(); }
+	virtual ~WrappedIDXGIDevice3() { SAFE_RELEASE(m_pReal); SAFE_RELEASE(m_pD3DDevice); }
+	
+	static const public int AllocPoolCount = 4;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice3, AllocPoolCount);
+
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+
+	ID3D11Device *GetD3DDevice() { return m_pD3DDevice; }
+
+	//////////////////////////////
+	// implement IDXGIDevice
+	
+	virtual HRESULT STDMETHODCALLTYPE GetAdapter( 
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **pAdapter)
+	{
+		HRESULT ret = m_pReal->GetAdapter(pAdapter);
+		if(SUCCEEDED(ret)) *pAdapter = new WrappedIDXGIAdapter(*pAdapter);
+		return ret;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSurface( 
+		/* [annotation][in] */ 
+		__in  const DXGI_SURFACE_DESC *pDesc,
+		/* [in] */ UINT NumSurfaces,
+		/* [in] */ DXGI_USAGE Usage,
+		/* [annotation][in] */ 
+		__in_opt  const DXGI_SHARED_RESOURCE *pSharedResource,
+		/* [annotation][out] */ 
+		__out  IDXGISurface **ppSurface)
+	{
+		return m_pReal->CreateSurface(pDesc, NumSurfaces, Usage, pSharedResource, ppSurface);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE QueryResourceResidency( 
+		/* [annotation][size_is][in] */ 
+		__in_ecount(NumResources)  IUnknown *const *ppResources,
+		/* [annotation][size_is][out] */ 
+		__out_ecount(NumResources)  DXGI_RESIDENCY *pResidencyStatus,
+		/* [in] */ UINT NumResources)
+	{
+		return m_pReal->QueryResourceResidency(ppResources, pResidencyStatus, NumResources);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE SetGPUThreadPriority( 
+		/* [in] */ INT Priority)
+	{
+		return m_pReal->SetGPUThreadPriority(Priority);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetGPUThreadPriority( 
+		/* [annotation][retval][out] */ 
+		__out  INT *pPriority)
+	{
+		return m_pReal->GetGPUThreadPriority(pPriority);
+	}
+
+	//////////////////////////////
+	// implement IDXGIDevice1
+
+	virtual HRESULT STDMETHODCALLTYPE SetMaximumFrameLatency( 
+		/* [in] */ UINT MaxLatency)
+	{
+		return m_pReal->SetMaximumFrameLatency(MaxLatency);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetMaximumFrameLatency( 
+		/* [annotation][out] */ 
+		__out  UINT *pMaxLatency)
+	{
+		return m_pReal->GetMaximumFrameLatency(pMaxLatency);
+	}
+	
+	//////////////////////////////
+	// implement IDXGIDevice2
+
+	virtual HRESULT STDMETHODCALLTYPE OfferResources( 
+		/* [annotation][in] */ 
+		_In_  UINT NumResources,
+		/* [annotation][size_is][in] */ 
+		_In_reads_(NumResources)  IDXGIResource *const *ppResources,
+		/* [annotation][in] */ 
+		_In_  DXGI_OFFER_RESOURCE_PRIORITY Priority)
+	{
+		return m_pReal->OfferResources(NumResources, ppResources, Priority);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE ReclaimResources( 
+		/* [annotation][in] */ 
+		_In_  UINT NumResources,
+		/* [annotation][size_is][in] */ 
+		_In_reads_(NumResources)  IDXGIResource *const *ppResources,
+		/* [annotation][size_is][out] */ 
+		_Out_writes_all_opt_(NumResources)  BOOL *pDiscarded)
+	{
+		return m_pReal->ReclaimResources(NumResources, ppResources, pDiscarded);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE EnqueueSetEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent)
+	{
+		return m_pReal->EnqueueSetEvent(hEvent);
+	}
+	
+	//////////////////////////////
+	// implement IDXGIDevice3
+	
+	virtual void STDMETHODCALLTYPE Trim()
+	{
+		m_pReal->Trim();
+	}
+};
+
+class WrappedIDXGIAdapter2 : public IDXGIAdapter2, public RefCountDXGIObject
+{
+	IDXGIAdapter2* m_pReal;
+	unsigned int m_iRefcount;
+public:
+	WrappedIDXGIAdapter2(IDXGIAdapter2* real) : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1) {}
+	virtual ~WrappedIDXGIAdapter2() { SAFE_RELEASE(m_pReal); }
+	
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT;
+	
+	//////////////////////////////
+	// implement IDXGIAdapter
+
+	virtual HRESULT STDMETHODCALLTYPE EnumOutputs( 
+		/* [in] */ UINT Output,
+		/* [annotation][out][in] */ 
+		__out  IDXGIOutput **ppOutput)
+	{
+		return m_pReal->EnumOutputs(Output, ppOutput);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetDesc( 
+		/* [annotation][out] */ 
+		__out  DXGI_ADAPTER_DESC *pDesc)
+	{
+		return m_pReal->GetDesc(pDesc);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CheckInterfaceSupport( 
+		/* [annotation][in] */ 
+		__in  REFGUID InterfaceName,
+		/* [annotation][out] */ 
+		__out  LARGE_INTEGER *pUMDVersion)
+	{
+		return m_pReal->CheckInterfaceSupport(InterfaceName, pUMDVersion);
+	}
+
+	//////////////////////////////
+	// implement IDXGIAdapter1
+
+	virtual HRESULT STDMETHODCALLTYPE GetDesc1( 
+		/* [out] */ DXGI_ADAPTER_DESC1 *pDesc)
+	{
+		return m_pReal->GetDesc1(pDesc);
+	}
+	
+	//////////////////////////////
+	// implement IDXGIAdapter2
+
+	virtual HRESULT STDMETHODCALLTYPE GetDesc2( 
+		/* [annotation][out] */ 
+		_Out_  DXGI_ADAPTER_DESC2 *pDesc)
+	{
+		return m_pReal->GetDesc2(pDesc);
+	}
+};
+
+class WrappedIDXGIFactory2 : public IDXGIFactory2, public RefCountDXGIObject
+{
+	IDXGIFactory2* m_pReal;
+	unsigned int m_iRefcount;
+public:
+	WrappedIDXGIFactory2(IDXGIFactory2* real) : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1) {}
+	virtual ~WrappedIDXGIFactory2() { SAFE_RELEASE(m_pReal); }
+	
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT;
+	
+	//////////////////////////////
+	// implement IDXGIFactory
+
+	virtual HRESULT STDMETHODCALLTYPE EnumAdapters( 
+		/* [in] */ UINT Adapter,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **ppAdapter)
+	{
+		HRESULT ret = m_pReal->EnumAdapters(Adapter, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter(*ppAdapter);
+		return ret;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE MakeWindowAssociation( 
+		HWND WindowHandle,
+		UINT Flags)
+	{
+		return m_pReal->MakeWindowAssociation(WindowHandle, Flags);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetWindowAssociation( 
+		/* [annotation][out] */ 
+		__out  HWND *pWindowHandle)
+	{
+		return m_pReal->GetWindowAssociation(pWindowHandle);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChain( 
+		/* [annotation][in] */ 
+		__in  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		__in  DXGI_SWAP_CHAIN_DESC *pDesc,
+		/* [annotation][out] */ 
+		__out  IDXGISwapChain **ppSwapChain)
+	{
+		return WrappedIDXGIFactory::staticCreateSwapChain(m_pReal, pDevice, pDesc, ppSwapChain);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter( 
+		/* [in] */ HMODULE Module,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **ppAdapter)
+	{
+		HRESULT ret = m_pReal->CreateSoftwareAdapter(Module, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter(*ppAdapter);
+		return ret;
+	}
+
+	//////////////////////////////
+	// implement IDXGIFactory1
+
+	virtual HRESULT STDMETHODCALLTYPE EnumAdapters1( 
+		/* [in] */ UINT Adapter,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter1 **ppAdapter)
+	{
+		HRESULT ret = m_pReal->EnumAdapters1(Adapter, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter1(*ppAdapter);
+		return ret;
+	}
+
+	virtual BOOL STDMETHODCALLTYPE IsCurrent( void)
+	{
+		return m_pReal->IsCurrent();
+	}
+
+	//////////////////////////////
+	// implement IDXGIFactory2
+	
+	virtual BOOL STDMETHODCALLTYPE IsWindowedStereoEnabled( void)
+	{
+		return m_pReal->IsWindowedStereoEnabled();
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  HWND hWnd,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForHwnd(m_pReal, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pWindow,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForCoreWindow(m_pReal, pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetSharedResourceAdapterLuid( 
+		/* [annotation] */ 
+		_In_  HANDLE hResource,
+		/* [annotation] */ 
+		_Out_  LUID *pLuid)
+	{
+		return m_pReal->GetSharedResourceAdapterLuid(hResource, pLuid);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusWindow( 
+		/* [annotation][in] */ 
+		_In_  HWND WindowHandle,
+		/* [annotation][in] */ 
+		_In_  UINT wMsg,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusWindow(WindowHandle, wMsg, pdwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterStereoStatusEvent(hEvent, pdwCookie);
+	}
+	
+	virtual void STDMETHODCALLTYPE UnregisterStereoStatus( 
+		/* [annotation][in] */ 
+		_In_  DWORD dwCookie)
+	{
+		return m_pReal->UnregisterStereoStatus(dwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusWindow( 
+		/* [annotation][in] */ 
+		_In_  HWND WindowHandle,
+		/* [annotation][in] */ 
+		_In_  UINT wMsg,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusWindow(WindowHandle, wMsg, pdwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusEvent(hEvent, pdwCookie);
+	}
+	
+	virtual void STDMETHODCALLTYPE UnregisterOcclusionStatus( 
+		/* [annotation][in] */ 
+		_In_  DWORD dwCookie)
+	{
+		return m_pReal->UnregisterOcclusionStatus(dwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Outptr_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForComposition(m_pReal, pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	// static functions to share implementation between this and WrappedIDXGIFactory3
+	
+	static HRESULT staticCreateSwapChainForHwnd( IDXGIFactory2 *factory,
+		IUnknown *pDevice,
+		HWND hWnd,
+		const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+		IDXGIOutput *pRestrictToOutput,
+		IDXGISwapChain1 **ppSwapChain);
+	
+	static HRESULT staticCreateSwapChainForCoreWindow( IDXGIFactory2 *factory,
+		IUnknown *pDevice,
+		IUnknown *pWindow,
+		const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		IDXGIOutput *pRestrictToOutput,
+		IDXGISwapChain1 **ppSwapChain);
+	
+	static HRESULT staticCreateSwapChainForComposition( IDXGIFactory2 *factory,
+		IUnknown *pDevice,
+		const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		IDXGIOutput *pRestrictToOutput,
+		IDXGISwapChain1 **ppSwapChain);
+};
+
+class WrappedIDXGIFactory3 : public IDXGIFactory3, public RefCountDXGIObject
+{
+	IDXGIFactory3* m_pReal;
+	unsigned int m_iRefcount;
+public:
+	WrappedIDXGIFactory3(IDXGIFactory3* real) : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1) {}
+	virtual ~WrappedIDXGIFactory3() { SAFE_RELEASE(m_pReal); }
+	
+	IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT;
+	
+	//////////////////////////////
+	// implement IDXGIFactory
+
+	virtual HRESULT STDMETHODCALLTYPE EnumAdapters( 
+		/* [in] */ UINT Adapter,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **ppAdapter)
+	{
+		HRESULT ret = m_pReal->EnumAdapters(Adapter, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter(*ppAdapter);
+		return ret;
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE MakeWindowAssociation( 
+		HWND WindowHandle,
+		UINT Flags)
+	{
+		return m_pReal->MakeWindowAssociation(WindowHandle, Flags);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE GetWindowAssociation( 
+		/* [annotation][out] */ 
+		__out  HWND *pWindowHandle)
+	{
+		return m_pReal->GetWindowAssociation(pWindowHandle);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChain( 
+		/* [annotation][in] */ 
+		__in  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		__in  DXGI_SWAP_CHAIN_DESC *pDesc,
+		/* [annotation][out] */ 
+		__out  IDXGISwapChain **ppSwapChain)
+	{
+		return WrappedIDXGIFactory::staticCreateSwapChain(m_pReal, pDevice, pDesc, ppSwapChain);
+	}
+
+	virtual HRESULT STDMETHODCALLTYPE CreateSoftwareAdapter( 
+		/* [in] */ HMODULE Module,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter **ppAdapter)
+	{
+		HRESULT ret = m_pReal->CreateSoftwareAdapter(Module, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter(*ppAdapter);
+		return ret;
+	}
+
+	//////////////////////////////
+	// implement IDXGIFactory1
+
+	virtual HRESULT STDMETHODCALLTYPE EnumAdapters1( 
+		/* [in] */ UINT Adapter,
+		/* [annotation][out] */ 
+		__out  IDXGIAdapter1 **ppAdapter)
+	{
+		HRESULT ret = m_pReal->EnumAdapters1(Adapter, ppAdapter);
+		if(SUCCEEDED(ret)) *ppAdapter = new WrappedIDXGIAdapter1(*ppAdapter);
+		return ret;
+	}
+
+	virtual BOOL STDMETHODCALLTYPE IsCurrent( void)
+	{
+		return m_pReal->IsCurrent();
+	}
+
+	//////////////////////////////
+	// implement IDXGIFactory2
+	
+	virtual BOOL STDMETHODCALLTYPE IsWindowedStereoEnabled( void)
+	{
+		return m_pReal->IsWindowedStereoEnabled();
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForHwnd( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  HWND hWnd,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForHwnd(m_pReal, pDevice, hWnd, pDesc, pFullscreenDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForCoreWindow( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pWindow,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForCoreWindow(m_pReal, pDevice, pWindow, pDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE GetSharedResourceAdapterLuid( 
+		/* [annotation] */ 
+		_In_  HANDLE hResource,
+		/* [annotation] */ 
+		_Out_  LUID *pLuid)
+	{
+		return m_pReal->GetSharedResourceAdapterLuid(hResource, pLuid);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusWindow( 
+		/* [annotation][in] */ 
+		_In_  HWND WindowHandle,
+		/* [annotation][in] */ 
+		_In_  UINT wMsg,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusWindow(WindowHandle, wMsg, pdwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterStereoStatusEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterStereoStatusEvent(hEvent, pdwCookie);
+	}
+	
+	virtual void STDMETHODCALLTYPE UnregisterStereoStatus( 
+		/* [annotation][in] */ 
+		_In_  DWORD dwCookie)
+	{
+		return m_pReal->UnregisterStereoStatus(dwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusWindow( 
+		/* [annotation][in] */ 
+		_In_  HWND WindowHandle,
+		/* [annotation][in] */ 
+		_In_  UINT wMsg,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusWindow(WindowHandle, wMsg, pdwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE RegisterOcclusionStatusEvent( 
+		/* [annotation][in] */ 
+		_In_  HANDLE hEvent,
+		/* [annotation][out] */ 
+		_Out_  DWORD *pdwCookie)
+	{
+		return m_pReal->RegisterOcclusionStatusEvent(hEvent, pdwCookie);
+	}
+	
+	virtual void STDMETHODCALLTYPE UnregisterOcclusionStatus( 
+		/* [annotation][in] */ 
+		_In_  DWORD dwCookie)
+	{
+		return m_pReal->UnregisterOcclusionStatus(dwCookie);
+	}
+	
+	virtual HRESULT STDMETHODCALLTYPE CreateSwapChainForComposition( 
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Outptr_  IDXGISwapChain1 **ppSwapChain)
+	{
+		return WrappedIDXGIFactory2::staticCreateSwapChainForComposition(m_pReal, pDevice, pDesc, pRestrictToOutput, ppSwapChain);
+	}
+	
+	// static functions to share implementation between this and WrappedIDXGIFactory3
+	
+	static HRESULT staticCreateSwapChainForHwnd( IDXGIFactory2 *factory,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  HWND hWnd,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain);
+	
+	static HRESULT staticCreateSwapChainForCoreWindow( IDXGIFactory2 *factory,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pWindow,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Out_  IDXGISwapChain1 **ppSwapChain);
+	
+	static HRESULT staticCreateSwapChainForComposition( IDXGIFactory2 *factory,
+		/* [annotation][in] */ 
+		_In_  IUnknown *pDevice,
+		/* [annotation][in] */ 
+		_In_  const DXGI_SWAP_CHAIN_DESC1 *pDesc,
+		/* [annotation][in] */ 
+		_In_opt_  IDXGIOutput *pRestrictToOutput,
+		/* [annotation][out] */ 
+		_Outptr_  IDXGISwapChain1 **ppSwapChain);
+	
+	//////////////////////////////
+	// implement IDXGIFactory3
+	
+    virtual UINT STDMETHODCALLTYPE GetCreationFlags( void)
+	{
+		return m_pReal->GetCreationFlags();
+	}
+};
+
+#endif
