@@ -2334,6 +2334,8 @@ void D3D11DebugManager::FillTimers(uint32_t frameID, uint32_t &eventStart, rdcty
 		
 		if(reuseIdx == -1)
 		{
+			timer->before = timer->after = NULL;
+
 			hr = m_pDevice->CreateQuery(&qdesc, &timer->before);
 			RDCASSERT(SUCCEEDED(hr));
 			hr = m_pDevice->CreateQuery(&qdesc, &timer->after);
@@ -2344,9 +2346,16 @@ void D3D11DebugManager::FillTimers(uint32_t frameID, uint32_t &eventStart, rdcty
 
 		m_pImmediateContext->Flush();
 		
-		m_pImmediateContext->End(timer->before);
-		m_WrappedDevice->ReplayLog(frameID, eventStart, d.eventID, eReplay_OnlyDraw);
-		m_pImmediateContext->End(timer->after);
+		if(timer->before && timer->after)
+		{
+			m_pImmediateContext->End(timer->before);
+			m_WrappedDevice->ReplayLog(frameID, eventStart, d.eventID, eReplay_OnlyDraw);
+			m_pImmediateContext->End(timer->after);
+		}
+		else
+		{
+			m_WrappedDevice->ReplayLog(frameID, eventStart, d.eventID, eReplay_OnlyDraw);
+		}
 		
 		eventStart = d.eventID+1;
 	}
@@ -2411,16 +2420,23 @@ void D3D11DebugManager::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 
 			for(size_t i=0; i < timers.size(); i++)
 			{
-				hr = m_pImmediateContext->GetData(timers[i].before, &a, sizeof(UINT64), 0);
-				RDCASSERT(hr == S_OK);
+				if(timers[i].before && timers[i].after)
+				{
+					hr = m_pImmediateContext->GetData(timers[i].before, &a, sizeof(UINT64), 0);
+					RDCASSERT(hr == S_OK);
 
-				UINT64 b=0;
-				hr = m_pImmediateContext->GetData(timers[i].after, &b, sizeof(UINT64), 0);
-				RDCASSERT(hr == S_OK);
+					UINT64 b=0;
+					hr = m_pImmediateContext->GetData(timers[i].after, &b, sizeof(UINT64), 0);
+					RDCASSERT(hr == S_OK);
 
-				timers[i].drawcall->duration = (double(b-a)/ticksToSecs);
+					timers[i].drawcall->duration = (double(b-a)/ticksToSecs);
 
-				a = b;
+					a = b;
+				}
+				else
+				{
+					timers[i].drawcall->duration = 0.0;
+				}
 			}
 		}
 	}
