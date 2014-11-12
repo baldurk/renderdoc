@@ -201,7 +201,13 @@ void WrappedOpenGL::glDeleteShader(GLuint shader)
 {
 	m_Real.glDeleteShader(shader);
 	
-	GetResourceManager()->UnregisterResource(ShaderRes(GetCtx(), shader));
+	GLResource res = ShaderRes(GetCtx(), shader);
+	if(GetResourceManager()->HasCurrentResource(res))
+	{
+		if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+		GetResourceManager()->UnregisterResource(res);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glAttachShader(GLuint program, GLuint shader)
@@ -638,7 +644,13 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
 {
 	m_Real.glDeleteProgram(program);
 	
-	GetResourceManager()->UnregisterResource(ProgramRes(GetCtx(), program));
+	GLResource res = ProgramRes(GetCtx(), program);
+	if(GetResourceManager()->HasCurrentResource(res))
+	{
+		if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+		GetResourceManager()->UnregisterResource(res);
+	}
 }
 
 bool WrappedOpenGL::Serialise_glUseProgram(GLuint program)
@@ -825,10 +837,18 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 
 void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
 {
-	m_Real.glDeleteProgramPipelines(n, pipelines);
-	
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(ProgramPipeRes(GetCtx(), pipelines[i]));
+	{
+		GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteProgramPipelines(n, pipelines);
 }
 
 #pragma endregion

@@ -1946,18 +1946,34 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 
 void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
 {
-	m_Real.glDeleteBuffers(n, buffers);
-	
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(BufferRes(GetCtx(), buffers[i]));
+	{
+		GLResource res = BufferRes(GetCtx(), buffers[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteBuffers(n, buffers);
 }
 
 void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 {
-	m_Real.glDeleteVertexArrays(n, arrays);
-	
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(VertexArrayRes(GetCtx(), arrays[i]));
+	{
+		GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteVertexArrays(n, arrays);
 }
 
 #pragma endregion

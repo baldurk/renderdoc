@@ -83,10 +83,18 @@ void WrappedOpenGL::glGenTextures(GLsizei n, GLuint* textures)
 
 void WrappedOpenGL::glDeleteTextures(GLsizei n, const GLuint *textures)
 {
-	m_Real.glDeleteTextures(n, textures);
-
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(TextureRes(GetCtx(), textures[i]));
+	{
+		GLResource res = TextureRes(GetCtx(), textures[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteTextures(n, textures);
 }
 
 bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
@@ -2754,6 +2762,7 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 		Serialise_glTextureBufferRangeEXT(texture, target, internalformat, buffer, offset, size);
 
 		record->AddChunk(scope.Get());
+		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 	}
 }
 
@@ -2771,6 +2780,7 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 																		  target, internalformat, buffer, offset, size);
 
 		record->AddChunk(scope.Get());
+		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 	}
 }
 
@@ -2811,6 +2821,7 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 		Serialise_glTextureBufferEXT(texture, target, internalformat, buffer);
 
 		record->AddChunk(scope.Get());
+		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 	}
 }
 
@@ -2828,6 +2839,7 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 																		  target, internalformat, buffer);
 
 		record->AddChunk(scope.Get());
+		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 	}
 }
 

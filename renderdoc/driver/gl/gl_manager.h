@@ -79,6 +79,17 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return id;
 		}
 
+		using ResourceManager::HasCurrentResource;
+
+		bool HasCurrentResource(GLResource res)
+		{
+			auto it = m_CurrentResourceIds.find(res);
+			if(it != m_CurrentResourceIds.end())
+				return true;
+
+			return false;
+		}
+
 		void UnregisterResource(GLResource res)
 		{
 			auto it = m_CurrentResourceIds.find(res);
@@ -105,6 +116,13 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			m_GLResourceRecords[res] = ret;
 
 			return ret;
+		}
+		
+		using ResourceManager::HasResourceRecord;
+
+		bool HasResourceRecord(GLResource res)
+		{
+			return ResourceManager::HasResourceRecord(GetID(res));
 		}
 
 		using ResourceManager::GetResourceRecord;

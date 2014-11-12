@@ -354,8 +354,16 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 
 void WrappedOpenGL::glDeleteSamplers(GLsizei n, const GLuint *ids)
 {
-	m_Real.glDeleteSamplers(n, ids);
-
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(SamplerRes(GetCtx(), ids[i]));
+	{
+		GLResource res = SamplerRes(GetCtx(), ids[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteSamplers(n, ids);
 }

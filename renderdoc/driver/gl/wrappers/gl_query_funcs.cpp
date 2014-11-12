@@ -149,7 +149,8 @@ void WrappedOpenGL::glDeleteSync(GLsync sync)
 
 	ResourceId id = GetResourceManager()->GetSyncID(sync);
 
-	GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
+	if(GetResourceManager()->HasCurrentResource(id))
+		GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
 }
 
 bool WrappedOpenGL::Serialise_glGenQueries(GLsizei n, GLuint* ids)
@@ -281,8 +282,16 @@ void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
 
 void WrappedOpenGL::glDeleteQueries(GLsizei n, const GLuint *ids)
 {
-	m_Real.glDeleteQueries(n, ids);
-
 	for(GLsizei i=0; i < n; i++)
-		GetResourceManager()->UnregisterResource(QueryRes(GetCtx(), ids[i]));
+	{
+		GLResource res = QueryRes(GetCtx(), ids[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+
+	m_Real.glDeleteQueries(n, ids);
 }
