@@ -708,6 +708,8 @@ namespace renderdocui.Windows
 
         private PointF m_CurrentMarker = new PointF(-1, -1);
 
+        private bool m_FailedPaint = false;
+
         private void panel_Paint(object sender, PaintEventArgs e)
         {
             if(ClientRectangle.Width <= 0 || ClientRectangle.Height <= 0)
@@ -715,7 +717,24 @@ namespace renderdocui.Windows
 
             Cursor = Cursors.Arrow;
 
-            var bmp = new Bitmap(ClientRectangle.Width, ClientRectangle.Height);
+            Bitmap bmp = null;
+
+            try
+            {
+                bmp = new Bitmap(ClientRectangle.Width, ClientRectangle.Height);
+            }
+            catch (System.ArgumentException)
+            {
+                // out of memory or huge bitmap. Clear to black rather than crashing
+                e.Graphics.Clear(Color.Black);
+
+                if(!m_FailedPaint)
+                {
+                    renderdoc.StaticExports.LogText("Failed to paint TimelineBar - System.ArgumentException");
+                    m_FailedPaint = true;
+                }
+                return;
+            }
 
             var g = Graphics.FromImage(bmp);
 
