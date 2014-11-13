@@ -4900,11 +4900,18 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			m_HighlightCache.EID = events.back();
 			m_HighlightCache.buf = cfg.positionBuf;
 			m_HighlightCache.stage = stage;
+			
+			ID3D11Buffer *idxBuf = curRS->IA.IndexBuffer;
+			DXGI_FORMAT idxFmt = curRS->IA.IndexFormat;
+			UINT idxOffs = curRS->IA.IndexOffset;
+			bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+			UINT bytesize = index16 ? 2 : 4; 
 
 			if(cfg.type == eMeshDataStage_VSIn)
 			{
 				m_HighlightCache.data = GetBufferData(cfg.positionBuf, 0, 0);
 				m_HighlightCache.topo = curRS->IA.Topo;
+				idxOffs += drawcall->indexOffset*bytesize;
 			}
 			else
 			{
@@ -4912,7 +4919,14 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 				m_HighlightCache.data.resize(postvs.buf.count);
 				memcpy(&m_HighlightCache.data[0], postvs.buf.elems, postvs.buf.count);
 
-				m_HighlightCache.topo = GetPostVSBuffers(frameID, events.back()).GetStage(stage).topo;
+				const PostVSData::StageData &stagedata = GetPostVSBuffers(frameID, events.back()).GetStage(stage);
+
+				m_HighlightCache.topo = stagedata.topo;
+				idxBuf = stagedata.idxBuf;
+				idxFmt = stagedata.idxFmt;
+				idxOffs = 0;
+				index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+				bytesize = index16 ? 2 : 4; 
 			}
 
 			if((drawcall->flags & eDraw_UseIBuffer) == 0)
@@ -4924,14 +4938,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			{
 				m_HighlightCache.useidx = true;
 
-				ID3D11Buffer *idxBuf = curRS->IA.IndexBuffer;
-				DXGI_FORMAT idxFmt = curRS->IA.IndexFormat;
-				UINT idxOffs = curRS->IA.IndexOffset;
-
-				bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
-				UINT bytesize = index16 ? 2 : 4; 
-
-				vector<byte> idxdata = GetBufferData(idxBuf, idxOffs + drawcall->indexOffset*bytesize, drawcall->numIndices*bytesize);
+				vector<byte> idxdata = GetBufferData(idxBuf, idxOffs, drawcall->numIndices*bytesize);
 
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
 				uint32_t *idx32 = (uint32_t *)&idxdata[0];
