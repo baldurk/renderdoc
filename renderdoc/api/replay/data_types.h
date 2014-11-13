@@ -46,6 +46,22 @@ struct ResourceFormat
 		srgbCorrected = false;
 	}
 	
+	bool operator ==(const ResourceFormat &r) const
+	{
+		if(special || r.special)
+			return special == r.special && specialFormat == r.specialFormat;
+
+		return compCount == r.compCount && 
+			compByteWidth == r.compByteWidth &&
+			compType == r.compType &&
+			srgbCorrected == r.srgbCorrected;
+	}
+
+	bool operator !=(const ResourceFormat &r) const
+	{
+		return !(*this == r);
+	}
+	
 	uint32_t rawType;
 
 	// indicates it's not a type represented with the members below

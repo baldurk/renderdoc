@@ -343,8 +343,7 @@ namespace renderdoc
         None = 0,
         Solid,
         Lit,
-        Tex,
-        VertCol,
+        Secondary,
     };
 
     public enum TriangleFillMode

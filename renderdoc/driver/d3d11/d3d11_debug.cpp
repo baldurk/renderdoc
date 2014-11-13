@@ -781,9 +781,30 @@ bool D3D11DebugManager::InitDebugRendering()
 	m_DebugRender.MeshVSBytelen = (uint32_t)bytecode.size();
 	memcpy(m_DebugRender.MeshVSBytecode, &bytecode[0], bytecode.size());
 	
-	inputDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	D3D11_INPUT_ELEMENT_DESC inputDescHomog[2];
 
-	m_DebugRender.WireframeHomogVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeHomogVS", "vs_4_0", 1, &inputDesc, &m_DebugRender.GenericHomogLayout);
+	inputDescHomog[0].SemanticName = "pos";
+	inputDescHomog[0].SemanticIndex = 0;
+	inputDescHomog[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	inputDescHomog[0].InputSlot = 0;
+	inputDescHomog[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	inputDescHomog[0].AlignedByteOffset = 0;
+	inputDescHomog[0].InstanceDataStepRate = 0;
+
+	inputDescHomog[1].SemanticName = "sec";
+	inputDescHomog[1].SemanticIndex = 0;
+	inputDescHomog[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	inputDescHomog[1].InputSlot = 0;
+	inputDescHomog[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+	inputDescHomog[1].AlignedByteOffset = 0;
+	inputDescHomog[1].InstanceDataStepRate = 0;
+
+	m_DebugRender.WireframeHomogVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeHomogVS", "vs_4_0", 2, inputDescHomog, &m_DebugRender.GenericHomogLayout, &bytecode);
+	
+	m_DebugRender.MeshHomogVSBytecode = new byte[bytecode.size()];
+	m_DebugRender.MeshHomogVSBytelen = (uint32_t)bytecode.size();
+	memcpy(m_DebugRender.MeshHomogVSBytecode, &bytecode[0], bytecode.size());
+	
 	m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
 	m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 	m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
@@ -1252,6 +1273,7 @@ void D3D11DebugManager::ShutdownStreamOut()
 	SAFE_RELEASE(m_SolidHelpersRS);
 
 	SAFE_RELEASE(m_MeshDisplayLayout);
+	SAFE_RELEASE(m_PostMeshDisplayLayout);
 
 	SAFE_RELEASE(m_FrustumHelper);
 	SAFE_RELEASE(m_AxisHelper);
@@ -1261,8 +1283,7 @@ void D3D11DebugManager::ShutdownStreamOut()
 bool D3D11DebugManager::InitStreamOut()
 {
 	m_MeshDisplayLayout = NULL;
-	m_MeshDisplayNULLVB = 0;
-	m_PrevMeshInputLayout = NULL;
+	m_PostMeshDisplayLayout = NULL;
 
 	D3D11_BUFFER_DESC bufferDesc =
 	{
@@ -4391,16 +4412,16 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 		vert = m_HighlightCache.indices[vert];
 	}
 
-	data += vert*cfg.positionStride;
+	data += vert*cfg.position.stride;
 
 	float *out = &ret.x;
 
 	ResourceFormat fmt;
-	fmt.compByteWidth = cfg.positionCompByteWidth;
-	fmt.compCount = cfg.positionCompCount;
-	fmt.compType = cfg.positionCompType;
+	fmt.compByteWidth = cfg.position.compByteWidth;
+	fmt.compCount = cfg.position.compCount;
+	fmt.compType = cfg.position.compType;
 
-	if(cfg.positionFormat == eSpecial_R10G10B10A2)
+	if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
 	{
 		if(data+4 >= end)
 		{
@@ -4415,7 +4436,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 		ret.w = v.w;
 		return ret;
 	}
-	else if(cfg.positionFormat == eSpecial_R11G11B10)
+	else if(cfg.position.specialFormat == eSpecial_R11G11B10)
 	{
 		if(data+4 >= end)
 		{
@@ -4429,7 +4450,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 		ret.z = v.z;
 		return ret;
 	}
-	else if(cfg.positionFormat == eSpecial_B8G8R8A8)
+	else if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
 	{
 		if(data+4 >= end)
 		{
@@ -4442,21 +4463,21 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 		fmt.compType = eCompType_UNorm;
 	}
 	
-	if(data + cfg.positionCompCount*cfg.positionCompByteWidth >= end)
+	if(data + cfg.position.compCount*cfg.position.compByteWidth >= end)
 	{
 		valid = false;
 		return ret;
 	}
 
-	for(uint32_t i=0; i < cfg.positionCompCount; i++)
+	for(uint32_t i=0; i < cfg.position.compCount; i++)
 	{
 		*out = ConvertComponent(fmt, data);
 
-		data += cfg.positionCompByteWidth;
+		data += cfg.position.compByteWidth;
 		out++;
 	}
 
-	if(cfg.positionFormat == eSpecial_B8G8R8A8)
+	if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
 	{
 		FloatVector reversed;
 		reversed.x = ret.x;
@@ -4541,6 +4562,81 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		*/
 		m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 	
+	ResourceFormat resFmt;
+	resFmt.compByteWidth = cfg.position.compByteWidth;
+	resFmt.compCount = cfg.position.compCount;
+	resFmt.compType = cfg.position.compType;
+	resFmt.special = false;
+	if(cfg.position.specialFormat != eSpecial_Unknown)
+	{
+		resFmt.special = true;
+		resFmt.specialFormat = cfg.position.specialFormat;
+	}
+	
+	ResourceFormat resFmt2;
+	resFmt2.compByteWidth = cfg.second.compByteWidth;
+	resFmt2.compCount = cfg.second.compCount;
+	resFmt2.compType = cfg.second.compType;
+	resFmt2.special = false;
+	if(cfg.second.specialFormat != eSpecial_Unknown)
+	{
+		resFmt2.special = true;
+		resFmt2.specialFormat = cfg.second.specialFormat;
+	}
+	
+	if(m_PrevMeshFmt != resFmt || m_PrevMeshFmt2 != resFmt2)
+	{
+		SAFE_RELEASE(m_MeshDisplayLayout);
+		SAFE_RELEASE(m_PostMeshDisplayLayout);
+
+		D3D11_INPUT_ELEMENT_DESC layoutdesc[2];
+
+		layoutdesc[0].SemanticName = "pos";
+		layoutdesc[0].SemanticIndex = 0;
+		layoutdesc[0].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		if(cfg.position.buf != ResourceId() &&
+				(cfg.position.specialFormat != eSpecial_Unknown || cfg.position.compCount > 0)
+			)
+			layoutdesc[0].Format = MakeDXGIFormat(resFmt);
+		layoutdesc[0].AlignedByteOffset = 0; // offset will be handled by vertex buffer offset
+		layoutdesc[0].InputSlot = 0;
+		layoutdesc[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		layoutdesc[0].InstanceDataStepRate = 0;
+
+		layoutdesc[1].SemanticName = "sec";
+		layoutdesc[1].SemanticIndex = 0;
+		layoutdesc[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		if(cfg.second.buf != ResourceId() &&
+				(cfg.second.specialFormat != eSpecial_Unknown || cfg.second.compCount > 0)
+			)
+			layoutdesc[1].Format = MakeDXGIFormat(resFmt2);
+		layoutdesc[1].AlignedByteOffset = 0;
+		layoutdesc[1].InputSlot = 1;
+		layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		layoutdesc[1].InstanceDataStepRate = 0;
+
+		HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshVSBytecode, m_DebugRender.MeshVSBytelen, &m_MeshDisplayLayout);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
+			m_MeshDisplayLayout = NULL;
+		}
+		
+		layoutdesc[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+		hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode, m_DebugRender.MeshHomogVSBytelen, &m_PostMeshDisplayLayout);
+
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create m_PostMeshDisplayLayout %08x", hr);
+			m_PostMeshDisplayLayout = NULL;
+		}
+	}
+	
+	m_PrevMeshFmt = resFmt;
+	m_PrevMeshFmt2 = resFmt2;
+
 	if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
 		(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
 	{
@@ -4582,16 +4678,17 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
 
 		m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
-		m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
+		m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
 
 		{
-			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
-
 			if(events.size() > 1)
 			{
+				pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
 				pixelData.WireframeColour = Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
 				FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 			}
+				
+			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
 
 			for(size_t i=0; i < events.size()-1; i++)
 			{
@@ -4624,8 +4721,13 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 				}
 			}
 
-			pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
-			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+			m_pImmediateContext->IASetInputLayout(m_PostMeshDisplayLayout);
+
+			if(m_PostMeshDisplayLayout == NULL)
+			{
+				RDCWARN("Couldn't get a mesh display layout");
+				return;
+			}
 
 			PostVSData data = GetPostVSBuffers(frameID, events.back());
 			const PostVSData::StageData &stage = data.GetStage(cfg.type);
@@ -4638,18 +4740,71 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 				ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
 				m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
+
+				UINT offset = cfg.second.offset;
+				m_pImmediateContext->IASetVertexBuffers(1, 1, &buf, (UINT *)&stage.vertStride, &offset);
+				
 				if(stage.useIndices)
 				{
 					buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
 					m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
-
-					m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
 				}
-				else
+
+				// draw solid shaded mode
+				if(cfg.solidShadeMode != eShade_None)
 				{
-					m_pImmediateContext->Draw(stage.numVerts, 0);
+					m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+
+					pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
+					if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+						pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+					pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
+					FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+					if(cfg.solidShadeMode == eShade_Lit)
+					{
+						DebugGeometryCBuffer geomData;
+
+						geomData.InvProj = projMat.Inverse();
+
+						FillCBuffer(m_DebugRender.GenericGSCBuffer, (float *)&geomData, sizeof(DebugGeometryCBuffer));
+						m_pImmediateContext->GSSetConstantBuffers(0, 1, &m_DebugRender.GenericGSCBuffer);
+
+						m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
+					}
+
+					if(stage.useIndices)
+						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+					else
+						m_pImmediateContext->Draw(stage.numVerts, 0);
+
+					if(cfg.solidShadeMode == eShade_Lit)
+						m_pImmediateContext->GSSetShader(NULL, NULL, 0);
+				}
+
+				// draw wireframe mode
+				if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw)
+				{
+					m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
+
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
+
+					pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+					if(cfg.solidShadeMode == eShade_None)
+						pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
+					else
+						pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
+					FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+					if(stage.useIndices)
+						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
+					else
+						m_pImmediateContext->Draw(stage.numVerts, 0);
 				}
 			}
+			
+			if(cfg.solidShadeMode == eShade_Lit)
+				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 		}
 	}
 	else
@@ -4658,141 +4813,29 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
 		m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
 		m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
-
-		if(m_PrevMeshInputLayout != curRS->IA.Layout)
-		{
-			SAFE_RELEASE(m_MeshDisplayLayout);
-
-			m_PrevMeshInputLayout = curRS->IA.Layout;
-
-			const vector<D3D11_INPUT_ELEMENT_DESC> curLayout = m_WrappedDevice->GetLayoutDesc(curRS->IA.Layout);
-
-			vector<D3D11_INPUT_ELEMENT_DESC> layoutdesc;
-
-			byte elems = 0;
-
-			int buffers[3] = {0,0,0};
-
-			for(size_t i=0; i < curLayout.size(); i++)
-			{
-				const D3D11_INPUT_ELEMENT_DESC &layout = curLayout[i];
-
-				if((!_stricmp(layout.SemanticName, "POSITION") ||
-					  !_stricmp(layout.SemanticName, "POS") ||
-					  !_stricmp(layout.SemanticName, "SV_Position")) &&
-						layout.SemanticIndex == 0) // need to get name from input config
-				{
-					D3D11_INPUT_ELEMENT_DESC el = layout;
-					el.SemanticName = "pos"; // these are the known values since they match WireframeVS
-					el.SemanticIndex = 0;
-
-					layoutdesc.push_back(el);
-
-					buffers[0] = layout.InputSlot;
-
-					elems |= 0x1;
-				}
-				else if(!_stricmp(layout.SemanticName, "TEXCOORD") && layout.SemanticIndex == 0)
-				{
-					D3D11_INPUT_ELEMENT_DESC el = layout;
-					el.SemanticName = "tex"; // these are the known values since they match WireframeVS
-					el.SemanticIndex = 0;
-
-					layoutdesc.push_back(el);
-
-					buffers[1] = layout.InputSlot;
-
-					elems |= 0x2;
-				}
-				else if(!_stricmp(layout.SemanticName, "COLOR") && layout.SemanticIndex == 0)
-				{
-					D3D11_INPUT_ELEMENT_DESC el = layout;
-					el.SemanticName = "col"; // these are the known values since they match WireframeVS
-					el.SemanticIndex = 0;
-
-					layoutdesc.push_back(el);
-
-					buffers[2] = layout.InputSlot;
-
-					elems |= 0x4;
-				}
-			}
-
-			for(m_MeshDisplayNULLVB = 0; m_MeshDisplayNULLVB < 4; m_MeshDisplayNULLVB++)
-			{
-				bool used = false;
-
-				for(int i=0; i < 3; i++)
-				{
-					if(elems & (1<<i) && buffers[i] == m_MeshDisplayNULLVB)
-					{
-						used = true;
-						break;
-					}
-				}
-
-				if(!used)
-					break;
-			}
-
-			if((elems & 0x1) == 0)
-			{
-				RDCWARN("No position element!");
-				return;
-			}
-
-			if((elems & 0x2) == 0)
-			{
-				D3D11_INPUT_ELEMENT_DESC el;
-				el.SemanticName = "tex"; // these are the known values since they match WireframeVS
-				el.SemanticIndex = 0;
-				el.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				el.AlignedByteOffset = 0;
-				el.InputSlot = m_MeshDisplayNULLVB;
-				el.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-				el.InstanceDataStepRate = 0;
-
-				layoutdesc.push_back(el);
-			}
-
-			if((elems & 0x4) == 0)
-			{
-				D3D11_INPUT_ELEMENT_DESC el;
-				el.SemanticName = "col"; // these are the known values since they match WireframeVS
-				el.SemanticIndex = 0;
-				el.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-				el.AlignedByteOffset = 0;
-				el.InputSlot = m_MeshDisplayNULLVB;
-				el.InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
-				el.InstanceDataStepRate = 0;
-
-				layoutdesc.push_back(el);
-			}
-
-			RDCASSERT(layoutdesc.size() == 3);
-
-			if(layoutdesc.size() != 3)
-				return;
-
-			HRESULT hr = m_pDevice->CreateInputLayout(&layoutdesc[0], 3, m_DebugRender.MeshVSBytecode, m_DebugRender.MeshVSBytelen, &m_MeshDisplayLayout);
-
-			if(FAILED(hr))
-			{
-				RDCERR("Failed to create rendermesh input layout %08x", hr);
-				return;
-			}
-		}
-
+		
 		if(m_MeshDisplayLayout == NULL)
 		{
 			RDCWARN("Couldn't get a mesh display layout");
 			return;
 		}
 		
+		ID3D11Buffer *vbs[2] = { NULL, NULL };
+		UINT str[] = { cfg.position.stride, cfg.second.stride };
+		UINT offs[] = { cfg.position.offset, cfg.second.offset };
+
+		auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
+
+		if(it != WrappedID3D11Buffer::m_BufferList.end())
+			vbs[0] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+		it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.buf);
+
+		if(it != WrappedID3D11Buffer::m_BufferList.end())
+			vbs[1] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+		m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
 		m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
-		ID3D11Buffer *vb = NULL;
-		UINT dummy = 4;
-		m_pImmediateContext->IASetVertexBuffers(m_MeshDisplayNULLVB, 1, &vb, &dummy, &dummy);
 
 		// draw solid shaded mode
 		if(cfg.solidShadeMode != eShade_None && pipeState.m_IA.Topology < eTopology_PatchList_1CPs)
@@ -4800,6 +4843,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
 			pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
+			if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+				pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
 			pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
@@ -4842,7 +4887,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
 		}
 	}
-
+	
 	m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
 	// set up state for drawing helpers
@@ -4895,10 +4940,10 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		if(cfg.type == eMeshDataStage_VSOut && pipeState.m_HS.Shader != ResourceId())
 			stage = eMeshDataStage_VSIn;
 
-		if(m_HighlightCache.EID != events.back() || m_HighlightCache.buf != cfg.positionBuf || stage != m_HighlightCache.stage)
+		if(m_HighlightCache.EID != events.back() || m_HighlightCache.buf != cfg.position.buf || stage != m_HighlightCache.stage)
 		{
 			m_HighlightCache.EID = events.back();
-			m_HighlightCache.buf = cfg.positionBuf;
+			m_HighlightCache.buf = cfg.position.buf;
 			m_HighlightCache.stage = stage;
 			
 			ID3D11Buffer *idxBuf = curRS->IA.IndexBuffer;
@@ -4909,7 +4954,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 			if(cfg.type == eMeshDataStage_VSIn)
 			{
-				m_HighlightCache.data = GetBufferData(cfg.positionBuf, 0, 0);
+				m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
 				m_HighlightCache.topo = curRS->IA.Topo;
 				idxOffs += drawcall->indexOffset*bytesize;
 			}
@@ -4959,8 +5004,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		byte *data = &m_HighlightCache.data[0]; // buffer start
 		byte *dataEnd = data + m_HighlightCache.data.size();
 
-		data += cfg.positionOffset; // to start of position data
-		data += drawcall->vertexOffset*cfg.positionStride; // to first vertex
+		data += cfg.position.offset; // to start of position data
+		data += drawcall->vertexOffset*cfg.position.stride; // to first vertex
 		
 		///////////////////////////////////////////////////////////////
 		// vectors to be set from buffers, depending on topology

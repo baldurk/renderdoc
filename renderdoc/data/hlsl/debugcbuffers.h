@@ -127,10 +127,10 @@ cbuffer HistogramCBufferData REG(b0)
 #define RESTYPE_CUBE             0x8
 #define RESTYPE_TEX2D_MS         0x9
 
-#define MESHDISPLAY_SOLID        0x1
-#define MESHDISPLAY_FACELIT      0x2
-#define MESHDISPLAY_TEXCOORD     0x3
-#define MESHDISPLAY_COLOR        0x4
+#define MESHDISPLAY_SOLID           0x1
+#define MESHDISPLAY_FACELIT         0x2
+#define MESHDISPLAY_SECONDARY       0x3
+#define MESHDISPLAY_SECONDARY_ALPHA 0x4
 
 #define TEXDISPLAY_TYPEMASK      0xF
 #define TEXDISPLAY_NANS          0x0100

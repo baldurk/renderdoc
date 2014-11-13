@@ -95,7 +95,14 @@ namespace renderdocui.Windows
         // visible data in the UI.
         private class UIState
         {
+            public UIState(MeshDataStage stage)
+            {
+                m_Stage = stage;
+            }
+
             public Input m_Input = null;
+
+            public MeshDataStage m_Stage = MeshDataStage.VSIn;
 
             public Dataset m_Data = null;
             public Stream[] m_Stream = null;
@@ -135,9 +142,9 @@ namespace renderdocui.Windows
         }
 
         // one UI state for each stage
-        private UIState m_VSIn = new UIState();
-        private UIState m_VSOut = new UIState();
-        private UIState m_GSOut = new UIState();
+        private UIState m_VSIn = new UIState(MeshDataStage.VSIn);
+        private UIState m_VSOut = new UIState(MeshDataStage.VSOut);
+        private UIState m_GSOut = new UIState(MeshDataStage.GSOut);
 
         // this points to the 'highlighted'/current UI state.
         private UIState m_ContextUIState = null;
@@ -444,8 +451,6 @@ namespace renderdocui.Windows
                     var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                     var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
 
-                    UpdateMeshPositionBuffer();
-
                     if (curReq != m_ReqID)
                         return;
 
@@ -454,20 +459,21 @@ namespace renderdocui.Windows
                         if (curReq != m_ReqID)
                             return;
 
-                        UI_SetColumns(MeshDataStage.VSIn, m_VSIn.m_Input.BufferFormats);
+                        UI_AutoFetchRenderComponents(MeshDataStage.VSIn, true);
+                        UI_AutoFetchRenderComponents(MeshDataStage.VSOut, true);
+                        UI_AutoFetchRenderComponents(MeshDataStage.GSOut, true);
+                        UI_AutoFetchRenderComponents(MeshDataStage.VSIn, false);
+                        UI_AutoFetchRenderComponents(MeshDataStage.VSOut, false);
+                        UI_AutoFetchRenderComponents(MeshDataStage.GSOut, false);
+                        UI_UpdateMeshRenderComponents();
+
+                        UI_SetAllColumns();
+
                         UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn);
-
                         if (m_VSOut.m_Input != null)
-                        {
-                            UI_SetColumns(MeshDataStage.VSOut, m_VSOut.m_Input.BufferFormats);
                             UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut);
-                        }
-
                         if (m_GSOut.m_Input != null)
-                        {
-                            UI_SetColumns(MeshDataStage.GSOut, m_GSOut.m_Input.BufferFormats);
                             UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut);
-                        }
                     }));
                 });
             }
@@ -514,17 +520,33 @@ namespace renderdocui.Windows
 
                 if (MeshView)
                 {
+                    MeshDataStage[] stages = new MeshDataStage[] { MeshDataStage.VSIn, MeshDataStage.VSOut, MeshDataStage.GSOut };
+
+                    FormatElement[] prevPos = new FormatElement[3];
+                    FormatElement[] prevSecond = new FormatElement[3];
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        prevPos[i] = GetPosHighlightFormatElement(stages[i]);
+                        prevSecond[i] = GetSecondHighlightFormatElement(stages[i]);
+                    }
+
                     m_VSIn.m_Input = GetCurrentMeshInput(draw, MeshDataStage.VSIn);
                     m_VSOut.m_Input = GetCurrentMeshInput(draw, MeshDataStage.VSOut);
                     m_GSOut.m_Input = GetCurrentMeshInput(draw, MeshDataStage.GSOut);
+
+                    for(int i=0; i < 3; i++)
+                    {
+                        FormatElement curPos = GetPosHighlightFormatElement(stages[i]);
+                        FormatElement curSecond = GetSecondHighlightFormatElement(stages[i]);
+                        if (prevPos[i] != curPos) UI_AutoFetchRenderComponents(stages[i], true);
+                        if (prevSecond[i] != curSecond) UI_AutoFetchRenderComponents(stages[i], false);
+                    }
                 }
 
                 var contentsVSIn = RT_FetchBufferContents(MeshDataStage.VSIn, r, m_VSIn.m_Input);
                 var contentsVSOut = RT_FetchBufferContents(MeshDataStage.VSOut, r, m_VSOut.m_Input);
                 var contentsGSOut = RT_FetchBufferContents(MeshDataStage.GSOut, r, m_GSOut.m_Input);
-
-                if (MeshView)
-                    UpdateMeshPositionBuffer();
 
                 if (curReq != m_ReqID)
                     return;
@@ -534,32 +556,24 @@ namespace renderdocui.Windows
                     if (curReq != m_ReqID)
                         return;
 
+                    if (MeshView)
+                        UI_UpdateMeshRenderComponents();
+
                     m_VSIn.AbortThread();
                     m_VSOut.AbortThread();
                     m_GSOut.AbortThread();
 
+                    UI_SetAllColumns();
+
                     if (m_VSIn.m_Input != null)
-                    {
-                        UI_SetColumns(MeshDataStage.VSIn, m_VSIn.m_Input.BufferFormats);
                         UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn);
-                    }
-
                     if (m_VSOut.m_Input != null)
-                    {
-                        UI_SetColumns(MeshDataStage.VSOut, m_VSOut.m_Input.BufferFormats);
                         UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut);
-                    }
-
                     if (m_GSOut.m_Input != null)
-                    {
-                        UI_SetColumns(MeshDataStage.GSOut, m_GSOut.m_Input.BufferFormats);
                         UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut);
-                    }
-                }));
 
-                RT_UpdateRenderOutput(r);
-                if (m_Output != null)
-                    m_Output.Display();
+                    render.Invalidate();
+                }));
             });
         }
 
@@ -1022,6 +1036,49 @@ namespace renderdocui.Windows
             }
         }
 
+        private void UI_UpdateMeshColumns(MeshDataStage type, FormatElement[] el)
+        {
+            bool active = (type == m_MeshDisplay.type);
+            bool input = (type == MeshDataStage.VSIn);
+            var bufView = GetUIState(type).m_GridView;
+
+            if (bufView.ColumnCount == 0)
+                return;
+
+            int colidx = 2; // skip VTX and IDX columns
+            Color defaultCol = bufView.Columns[0].DefaultCellStyle.BackColor;
+
+            for (int e = 0; e < el.Length; e++)
+            {
+                for (int i = 0; i < el[e].format.compCount; i++)
+                {
+                    if (colidx >= bufView.ColumnCount)
+                        return;
+
+                    DataGridViewColumn col = bufView.Columns[colidx];
+                    colidx++;
+
+                    if (e == CurPosElement && active)
+                    {
+                        if (i != 3 || !input)
+                            col.DefaultCellStyle.BackColor = Color.SkyBlue;
+                        else
+                            col.DefaultCellStyle.BackColor = Color.LightCyan;
+                    }
+                    else if (e == CurSecondElement && active && m_MeshDisplay.solidShadeMode == SolidShadeMode.Secondary)
+                    {
+                        if ((m_MeshDisplay.secondary.showAlpha && i == 3) ||
+                            (!m_MeshDisplay.secondary.showAlpha && i != 3))
+                            col.DefaultCellStyle.BackColor = Color.LightGreen;
+                        else
+                            col.DefaultCellStyle.BackColor = Color.FromArgb(200, 238, 200);
+                    }
+                    else
+                        col.DefaultCellStyle.BackColor = defaultCol;
+                }
+            }
+        }
+
         private void UI_SetMeshColumns(MeshDataStage type, FormatElement[] el)
         {
             var bufView = GetUIState(type).m_GridView;
@@ -1066,13 +1123,14 @@ namespace renderdocui.Windows
                     col.ReadOnly = true;
                     col.SortMode = DataGridViewColumnSortMode.Programmatic;
                     col.DefaultCellStyle.Padding = new Padding(0, 2, 0, 2);
-
                     bufView.Columns.Add(col);
                 }
 
                 if (e < el.Length-1)
                     bufView.Columns[bufView.Columns.Count - 1].DividerWidth = 10;
             }
+
+            UI_UpdateMeshColumns(type, el);
         }
 
         private void UI_SetRawColumns(FormatElement[] el)
@@ -1121,6 +1179,26 @@ namespace renderdocui.Windows
                 UI_SetMeshColumns(type, el);
             else
                 UI_SetRawColumns(el);
+        }
+
+        private void UI_SetAllColumns()
+        {
+            if (m_VSIn.m_Input != null)
+                UI_SetColumns(MeshDataStage.VSIn, m_VSIn.m_Input.BufferFormats);
+            if (m_VSOut.m_Input != null)
+                UI_SetColumns(MeshDataStage.VSOut, m_VSOut.m_Input.BufferFormats);
+            if (m_GSOut.m_Input != null)
+                UI_SetColumns(MeshDataStage.GSOut, m_GSOut.m_Input.BufferFormats);
+        }
+
+        private void UI_UpdateAllColumns()
+        {
+            if (m_VSIn.m_Input != null)
+                UI_UpdateMeshColumns(MeshDataStage.VSIn, m_VSIn.m_Input.BufferFormats);
+            if (m_VSOut.m_Input != null)
+                UI_UpdateMeshColumns(MeshDataStage.VSOut, m_VSOut.m_Input.BufferFormats);
+            if (m_GSOut.m_Input != null)
+                UI_UpdateMeshColumns(MeshDataStage.GSOut, m_GSOut.m_Input.BufferFormats);
         }
 
         #endregion
@@ -1690,7 +1768,6 @@ namespace renderdocui.Windows
             }
 
             m_CurrentCamera.Apply();
-            m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
             render.Invalidate();
         }
 
@@ -1721,7 +1798,6 @@ namespace renderdocui.Windows
             camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
 
             m_CurrentCamera.Apply();
-            m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
             render.Invalidate();
         }
 
@@ -1734,7 +1810,6 @@ namespace renderdocui.Windows
             if (m_CurrentCamera.Dirty)
             {
                 m_CurrentCamera.Apply();
-                m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
                 render.Invalidate();
             }
         }
@@ -1800,7 +1875,6 @@ namespace renderdocui.Windows
             UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
 
             m_CurrentCamera.Apply();
-            m_Core.Renderer.BeginInvoke(RT_UpdateRenderOutput);
             render.Invalidate();
         }
 
@@ -1841,7 +1915,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r);  if (m_Output != null) m_Output.Display(); });
         }
 
         private void BufferViewer_Load(object sender, EventArgs e)
@@ -1935,18 +2009,25 @@ namespace renderdocui.Windows
             }
         }
 
-        private void tabControl1_SelectedIndexChanged(object sender, EventArgs e)
+        private void meshStageDraw_SelectedIndexChanged(object sender, EventArgs e)
         {
-            previewTable.Parent = previewTab.SelectedTab;
+            if (previewTab.SelectedIndex == 0)
+                m_MeshDisplay.type = MeshDataStage.VSIn;
+            else if (previewTab.SelectedIndex == 1)
+                m_MeshDisplay.type = MeshDataStage.VSOut;
+            else if (previewTab.SelectedIndex == 2)
+                m_MeshDisplay.type = MeshDataStage.GSOut;
+
+            drawRange.Enabled = (m_MeshDisplay.type != MeshDataStage.VSIn);
+
+            UI_UpdateMeshRenderComponents();
 
             if (previewTab.SelectedIndex == 0)
             {
-                m_MeshDisplay.type = MeshDataStage.VSIn;
                 controlType.SelectedIndex = 0;
             }
             else if (previewTab.SelectedIndex == 1)
             {
-                m_MeshDisplay.type = MeshDataStage.VSOut;
                 if (m_Core.CurPipelineState.IsTessellationEnabled)
                     controlType.SelectedIndex = 0;
                 else
@@ -1954,50 +2035,186 @@ namespace renderdocui.Windows
             }
             else if (previewTab.SelectedIndex == 2)
             {
-                m_MeshDisplay.type = MeshDataStage.GSOut;
                 controlType.SelectedIndex = 1;
             }
-
-            UpdateMeshPositionBuffer();
 
             enableCameraControls();
 
             controlType_SelectedIndexChanged(sender, e);
+
+            previewTable.Parent = previewTab.SelectedTab;
         }
 
-        private void UpdateMeshPositionBuffer()
+        private int[] m_PosElement = new int[] { -1, -1, -1, -1 };
+        private int[] m_SecondElement = new int[] { -1, -1, -1, -1 };
+        private bool[] m_SecondShowAlpha = new bool[] { false, false, false, false };
+
+        private int CurPosElement { get { return m_PosElement[(int)m_MeshDisplay.type]; } }
+        private int CurSecondElement { get { return m_SecondElement[(int)m_MeshDisplay.type]; } }
+        private bool CurSecondShowAlpha { get { return m_SecondShowAlpha[(int)m_MeshDisplay.type]; } }
+
+        private FormatElement GetPosHighlightFormatElement(MeshDataStage stage)
         {
             var ui = GetUIState(m_MeshDisplay.type);
 
-            FormatElement pos = null;
+            int idx = m_PosElement[(int)stage];
 
-            if (ui.m_Input != null && ui.m_Input.BufferFormats != null)
+            if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
+                idx == -1 || idx >= ui.m_Input.BufferFormats.Length)
+                return null;
+
+            return ui.m_Input.BufferFormats[idx];
+        }
+
+        private FormatElement GetSecondHighlightFormatElement(MeshDataStage stage)
+        {
+            var ui = GetUIState(m_MeshDisplay.type);
+
+            int idx = m_SecondElement[(int)stage];
+
+            if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
+                idx == -1 || idx >= ui.m_Input.BufferFormats.Length)
+                return null;
+
+            return ui.m_Input.BufferFormats[idx];
+        }
+
+        private void UI_AutoFetchRenderComponents(MeshDataStage stage, bool pos)
+        {
+            var ui = GetUIState(stage);
+
+            if (pos)
             {
-                foreach (var el in ui.m_Input.BufferFormats)
+                int posEl = -1;
+
+                if (ui.m_Input != null && ui.m_Input.BufferFormats != null)
                 {
                     // prioritise SV_Position over general POSITION
-                    if (el.name.ToUpperInvariant() == "SV_POSITION")
-                        pos = el;
-                    if (el.name.ToUpperInvariant() == "POSITION" && pos == null)
-                        pos = el;
-                }
-            }
+                    for (int i = 0; i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
 
-            if (pos == null)
-            {
-                m_MeshDisplay.positionBuf = ResourceId.Null;
+                        if (el.name.ToUpperInvariant() == "SV_POSITION")
+                        {
+                            posEl = i;
+                            break;
+                        }
+                    }
+                    for (int i = 0; posEl == -1 && i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
+
+                        if (el.name.ToUpperInvariant() == "POSITION" ||
+                            el.name.ToUpperInvariant() == "POSITION0" ||
+                            el.name.ToUpperInvariant() == "POS" ||
+                            el.name.ToUpperInvariant() == "POS0")
+                        {
+                            posEl = i;
+                            break;
+                        }
+                    }
+                }
+
+                m_PosElement[(int)stage] = posEl;
             }
             else
             {
-                m_MeshDisplay.positionBuf = m_VSIn.m_Input.Buffers[pos.buffer];
-                m_MeshDisplay.positionOffset = pos.offset + ui.m_Input.Offsets[pos.buffer];
-                m_MeshDisplay.positionStride = ui.m_Input.Strides[pos.buffer];
+                int secondEl = -1;
 
-                m_MeshDisplay.positionCompByteWidth = pos.format.compByteWidth;
-                m_MeshDisplay.positionCompCount = pos.format.compCount;
-                m_MeshDisplay.positionCompType = pos.format.compType;
-                m_MeshDisplay.positionFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
+                if (ui.m_Input != null && ui.m_Input.BufferFormats != null)
+                {
+                    // prioritise TEXCOORD over general COLOR
+                    for (int i = 0; i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
+
+                        if (el.name.ToUpperInvariant() == "TEXCOORD" ||
+                            el.name.ToUpperInvariant() == "TEXCOORD0" ||
+                            el.name.ToUpperInvariant() == "TEX" ||
+                            el.name.ToUpperInvariant() == "TEX0" ||
+                            el.name.ToUpperInvariant() == "UV" ||
+                            el.name.ToUpperInvariant() == "UV0")
+                        {
+                            secondEl = i;
+                            break;
+                        }
+                    }
+                    for (int i = 0; secondEl == -1 && i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
+
+                        if (el.name.ToUpperInvariant() == "COLOR" ||
+                            el.name.ToUpperInvariant() == "COLOR0" ||
+                            el.name.ToUpperInvariant() == "COL" ||
+                            el.name.ToUpperInvariant() == "COL0")
+                        {
+                            secondEl = i;
+                            break;
+                        }
+                    }
+                }
+
+                m_SecondElement[(int)stage] = secondEl;
             }
+        }
+
+        private void UI_UpdateMeshRenderComponents()
+        {
+            var ui = GetUIState(m_MeshDisplay.type);
+
+            if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
+                CurPosElement == -1 || CurPosElement >= ui.m_Input.BufferFormats.Length)
+            {
+                m_MeshDisplay.position.buf = ResourceId.Null;
+                m_MeshDisplay.position.offset = 0;
+                m_MeshDisplay.position.stride = 0;
+                m_MeshDisplay.position.compByteWidth = 0;
+                m_MeshDisplay.position.compCount = 0;
+                m_MeshDisplay.position.compType = FormatComponentType.None;
+                m_MeshDisplay.position.specialFormat = SpecialFormat.Unknown;
+                m_MeshDisplay.position.showAlpha = false;
+            }
+            else
+            {
+                FormatElement pos = ui.m_Input.BufferFormats[CurPosElement];
+
+                m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
+                m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer];
+                m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
+                m_MeshDisplay.position.compByteWidth = pos.format.compByteWidth;
+                m_MeshDisplay.position.compCount = pos.format.compCount;
+                m_MeshDisplay.position.compType = pos.format.compType;
+                m_MeshDisplay.position.specialFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
+                m_MeshDisplay.position.showAlpha = false;
+            }
+
+            if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
+                CurSecondElement == -1 || CurSecondElement >= ui.m_Input.BufferFormats.Length)
+            {
+                m_MeshDisplay.secondary.buf = ResourceId.Null;
+                m_MeshDisplay.secondary.offset = 0;
+                m_MeshDisplay.secondary.stride = 0;
+                m_MeshDisplay.secondary.compByteWidth = 0;
+                m_MeshDisplay.secondary.compCount = 0;
+                m_MeshDisplay.secondary.compType = FormatComponentType.None;
+                m_MeshDisplay.secondary.specialFormat = SpecialFormat.Unknown;
+                m_MeshDisplay.secondary.showAlpha = false;
+            }
+            else
+            {
+                FormatElement tex = ui.m_Input.BufferFormats[CurSecondElement];
+
+                m_MeshDisplay.secondary.buf = m_VSIn.m_Input.Buffers[tex.buffer];
+                m_MeshDisplay.secondary.offset = tex.offset + ui.m_Input.Offsets[tex.buffer];
+                m_MeshDisplay.secondary.stride = ui.m_Input.Strides[tex.buffer];
+                m_MeshDisplay.secondary.compByteWidth = tex.format.compByteWidth;
+                m_MeshDisplay.secondary.compCount = tex.format.compCount;
+                m_MeshDisplay.secondary.compType = tex.format.compType;
+                m_MeshDisplay.secondary.specialFormat = tex.format.special ? tex.format.specialFormat : SpecialFormat.Unknown;
+                m_MeshDisplay.secondary.showAlpha = CurSecondShowAlpha;
+            }
+
+            UI_UpdateAllColumns();
         }
 
         private void camGuess_PropChanged()
@@ -2049,10 +2266,7 @@ namespace renderdocui.Windows
 
             farGuess.Text = far > -float.MaxValue ? far.ToString("G") : "";
 
-
-
-
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            render.Invalidate();
         }
 
         private void camGuess_KeyPress(object sender, KeyPressEventArgs e)
@@ -2073,26 +2287,32 @@ namespace renderdocui.Windows
         {
             m_MeshDisplay.thisDrawOnly = (drawRange.SelectedIndex == 0);
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            render.Invalidate();
         }
 
         private void solidShading_SelectedIndexChanged(object sender, EventArgs e)
         {
             m_MeshDisplay.solidShadeMode = (SolidShadeMode)solidShading.SelectedIndex;
 
-            wireframeDraw.Enabled = (solidShading.SelectedIndex != 0);
-
             if (solidShading.SelectedIndex == 0 && !wireframeDraw.Checked)
                 wireframeDraw.Checked = true;
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            UI_UpdateAllColumns();
+
+            render.Invalidate();
         }
 
         private void wireframeDraw_CheckedChanged(object sender, EventArgs e)
         {
+            if (solidShading.SelectedIndex == 0 && !wireframeDraw.Checked)
+            {
+                wireframeDraw.Checked = true;
+                return;
+            }
+
             m_MeshDisplay.wireframeDraw = wireframeDraw.Checked;
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            render.Invalidate();
         }
 
         private void instanceIdx_KeyDown(object sender, KeyEventArgs e)
@@ -2124,9 +2344,79 @@ namespace renderdocui.Windows
             }
         }
 
-        private void bufferView_MouseClick(object sender, MouseEventArgs e)
+        private int m_ContextColumn = 0;
+
+        private void resetSelectedColumnsToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            if (m_Core.LogLoaded)
+            UI_AutoFetchRenderComponents(m_ContextUIState.m_Stage, true);
+            UI_AutoFetchRenderComponents(m_ContextUIState.m_Stage, false);
+        }
+
+        private void selectColumnAsPositionToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_PosElement[(int)m_ContextUIState.m_Stage] = m_ContextColumn;
+
+            UI_UpdateMeshRenderComponents();
+            render.Invalidate();
+        }
+
+        private void selectColumnAsSecondaryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_SecondElement[(int)m_ContextUIState.m_Stage] = m_ContextColumn;
+            m_SecondShowAlpha[(int)m_ContextUIState.m_Stage] = false;
+
+            UI_UpdateMeshRenderComponents();
+            render.Invalidate();
+        }
+
+        private void selectAlphaAsSecondaryToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            m_SecondElement[(int)m_ContextUIState.m_Stage] = m_ContextColumn;
+            m_SecondShowAlpha[(int)m_ContextUIState.m_Stage] = true;
+
+            UI_UpdateMeshRenderComponents();
+            render.Invalidate();
+        }
+
+        private void bufferView_ColumnHeaderMouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (m_Core.LogLoaded && MeshView)
+            {
+                m_ContextUIState = GetUIState(sender);
+                bool input = (m_ContextUIState == m_VSIn);
+
+                if (e.Button == MouseButtons.Right &&
+                    m_ContextUIState.m_Input != null &&
+                    m_ContextUIState.m_Input.BufferFormats != null)
+                {
+                    selectColumnAsPositionToolStripMenuItem.Visible = input;
+                    selectAlphaAsSecondaryToolStripMenuItem.Visible = true;
+
+                    m_ContextColumn = 0;
+                    int colidx = 2; // skip VTX and IDX columns
+
+                    for (int el = 0; el < m_ContextUIState.m_Input.BufferFormats.Length; el++)
+                    {
+                        for (int i = 0; i < m_ContextUIState.m_Input.BufferFormats[el].format.compCount; i++)
+                        {
+                            if (colidx == e.ColumnIndex)
+                            {
+                                m_ContextColumn = el;
+                                selectAlphaAsSecondaryToolStripMenuItem.Visible = (m_ContextUIState.m_Input.BufferFormats[el].format.compCount >= 4);
+                            }
+
+                            colidx++;
+                        }
+                    }
+
+                    columnContextMenu.Show(Cursor.Position);
+                }
+            }
+        }
+
+        private void bufferView_MouseClick(object sender, DataGridViewCellMouseEventArgs e)
+        {
+            if (m_Core.LogLoaded && e.RowIndex >= 0)
             {
                 m_ContextUIState = GetUIState(sender);
 
@@ -2140,7 +2430,7 @@ namespace renderdocui.Windows
                         vsInBufferView.SelectedRows.Count == 1;
                     setInstanceToolStripMenuItem.Enabled = (m_Core.CurDrawcall != null && m_Core.CurDrawcall.numInstances > 1);
 
-                    rightclickMenu.Show(((DataGridView)sender).PointToScreen(e.Location));
+                    rightclickMenu.Show(Cursor.Position);
                 }
             }
         }
@@ -2380,7 +2670,7 @@ namespace renderdocui.Windows
         private void ClearHighlightVerts()
         {
             m_MeshDisplay.highlightVert = ~0U;
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            render.Invalidate();
         }
 
         private void UpdateHighlightVerts(UIState ui)
@@ -2394,7 +2684,7 @@ namespace renderdocui.Windows
             else
                 m_MeshDisplay.highlightVert = ~0U;
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            render.Invalidate();
         }
 
         #endregion

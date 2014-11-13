@@ -35,21 +35,21 @@
             System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label5;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BufferViewer));
-            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin3 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
-            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin3 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient7 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient15 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin3 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient3 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient16 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient8 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient17 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient3 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient18 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient19 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient9 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient20 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient21 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
+            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin1 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient1 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient2 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient3 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient4 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient5 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient3 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             this.previewTable = new System.Windows.Forms.TableLayoutPanel();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.render = new renderdocui.Controls.NoScrollPanel();
@@ -114,6 +114,12 @@
             this.instLabel = new System.Windows.Forms.ToolStripLabel();
             this.instanceIdxToolitem = new System.Windows.Forms.ToolStripTextBox();
             this.gsOutBufferView = new System.Windows.Forms.DataGridView();
+            this.columnContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.resetSelectedColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.selectColumnAsPositionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectColumnAsSecondaryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectAlphaAsSecondaryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             label7 = new System.Windows.Forms.Label();
             label6 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
@@ -134,6 +140,7 @@
             this.flowLayoutPanel2.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsOutBufferView)).BeginInit();
+            this.columnContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // label7
@@ -469,8 +476,7 @@
             "None",
             "Solid Colour",
             "Flat Shaded",
-            "TEXCOORD0",
-            "COLOR0"});
+            "Secondary"});
             this.solidShading.Name = "solidShading";
             this.solidShading.Size = new System.Drawing.Size(121, 25);
             this.solidShading.SelectedIndexChanged += new System.EventHandler(this.solidShading_SelectedIndexChanged);
@@ -573,7 +579,7 @@
             this.previewTab.SelectedIndex = 0;
             this.previewTab.Size = new System.Drawing.Size(559, 313);
             this.previewTab.TabIndex = 1;
-            this.previewTab.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
+            this.previewTab.SelectedIndexChanged += new System.EventHandler(this.meshStageDraw_SelectedIndexChanged);
             // 
             // tabPage1
             // 
@@ -624,13 +630,14 @@
             this.vsInBufferView.Size = new System.Drawing.Size(246, 85);
             this.vsInBufferView.TabIndex = 10;
             this.vsInBufferView.VirtualMode = true;
+            this.vsInBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.vsInBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.vsInBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsInBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsInBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
             this.vsInBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsInBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsInBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.vsInBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
             // 
             // csvSaveDialog
             // 
@@ -662,13 +669,14 @@
             this.vsOutBufferView.Size = new System.Drawing.Size(206, 85);
             this.vsOutBufferView.TabIndex = 11;
             this.vsOutBufferView.VirtualMode = true;
+            this.vsOutBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.vsOutBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.vsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
             this.vsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.vsOutBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
             // 
             // dockPanel
             // 
@@ -680,52 +688,52 @@
             this.dockPanel.Location = new System.Drawing.Point(3, 34);
             this.dockPanel.Name = "dockPanel";
             this.dockPanel.Size = new System.Drawing.Size(834, 462);
-            dockPanelGradient7.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient7.StartColor = System.Drawing.SystemColors.ControlLight;
-            autoHideStripSkin3.DockStripGradient = dockPanelGradient7;
-            tabGradient15.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient15.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient15.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            autoHideStripSkin3.TabGradient = tabGradient15;
-            autoHideStripSkin3.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            dockPanelSkin3.AutoHideStripSkin = autoHideStripSkin3;
-            tabGradient16.EndColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient16.StartColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient16.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient3.ActiveTabGradient = tabGradient16;
-            dockPanelGradient8.EndColor = System.Drawing.SystemColors.Control;
-            dockPanelGradient8.StartColor = System.Drawing.SystemColors.Control;
-            dockPaneStripGradient3.DockStripGradient = dockPanelGradient8;
-            tabGradient17.EndColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient17.StartColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient17.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient3.InactiveTabGradient = tabGradient17;
-            dockPaneStripSkin3.DocumentGradient = dockPaneStripGradient3;
-            dockPaneStripSkin3.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            tabGradient18.EndColor = System.Drawing.SystemColors.ActiveCaption;
-            tabGradient18.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient18.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
-            tabGradient18.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
-            dockPaneStripToolWindowGradient3.ActiveCaptionGradient = tabGradient18;
-            tabGradient19.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient19.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient19.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripToolWindowGradient3.ActiveTabGradient = tabGradient19;
-            dockPanelGradient9.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient9.StartColor = System.Drawing.SystemColors.ControlLight;
-            dockPaneStripToolWindowGradient3.DockStripGradient = dockPanelGradient9;
-            tabGradient20.EndColor = System.Drawing.SystemColors.InactiveCaption;
-            tabGradient20.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient20.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
-            tabGradient20.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
-            dockPaneStripToolWindowGradient3.InactiveCaptionGradient = tabGradient20;
-            tabGradient21.EndColor = System.Drawing.Color.Transparent;
-            tabGradient21.StartColor = System.Drawing.Color.Transparent;
-            tabGradient21.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            dockPaneStripToolWindowGradient3.InactiveTabGradient = tabGradient21;
-            dockPaneStripSkin3.ToolWindowGradient = dockPaneStripToolWindowGradient3;
-            dockPanelSkin3.DockPaneStripSkin = dockPaneStripSkin3;
-            this.dockPanel.Skin = dockPanelSkin3;
+            dockPanelGradient1.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient1.StartColor = System.Drawing.SystemColors.ControlLight;
+            autoHideStripSkin1.DockStripGradient = dockPanelGradient1;
+            tabGradient1.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient1.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient1.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            autoHideStripSkin1.TabGradient = tabGradient1;
+            autoHideStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            dockPanelSkin1.AutoHideStripSkin = autoHideStripSkin1;
+            tabGradient2.EndColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient2.StartColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient2.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient1.ActiveTabGradient = tabGradient2;
+            dockPanelGradient2.EndColor = System.Drawing.SystemColors.Control;
+            dockPanelGradient2.StartColor = System.Drawing.SystemColors.Control;
+            dockPaneStripGradient1.DockStripGradient = dockPanelGradient2;
+            tabGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient3.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient1.InactiveTabGradient = tabGradient3;
+            dockPaneStripSkin1.DocumentGradient = dockPaneStripGradient1;
+            dockPaneStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            tabGradient4.EndColor = System.Drawing.SystemColors.ActiveCaption;
+            tabGradient4.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient4.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
+            tabGradient4.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
+            dockPaneStripToolWindowGradient1.ActiveCaptionGradient = tabGradient4;
+            tabGradient5.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient5.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient5.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripToolWindowGradient1.ActiveTabGradient = tabGradient5;
+            dockPanelGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
+            dockPaneStripToolWindowGradient1.DockStripGradient = dockPanelGradient3;
+            tabGradient6.EndColor = System.Drawing.SystemColors.InactiveCaption;
+            tabGradient6.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient6.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
+            tabGradient6.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
+            dockPaneStripToolWindowGradient1.InactiveCaptionGradient = tabGradient6;
+            tabGradient7.EndColor = System.Drawing.Color.Transparent;
+            tabGradient7.StartColor = System.Drawing.Color.Transparent;
+            tabGradient7.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            dockPaneStripToolWindowGradient1.InactiveTabGradient = tabGradient7;
+            dockPaneStripSkin1.ToolWindowGradient = dockPaneStripToolWindowGradient1;
+            dockPanelSkin1.DockPaneStripSkin = dockPaneStripSkin1;
+            this.dockPanel.Skin = dockPanelSkin1;
             this.dockPanel.TabIndex = 12;
             // 
             // tableLayoutPanel1
@@ -749,7 +757,7 @@
             this.flowLayoutPanel2.Controls.Add(this.toolStrip1);
             this.flowLayoutPanel2.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(759, 25);
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(728, 25);
             this.flowLayoutPanel2.TabIndex = 0;
             // 
             // toolStrip1
@@ -774,7 +782,7 @@
             this.instanceIdxToolitem});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(759, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(728, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -929,13 +937,58 @@
             this.gsOutBufferView.Size = new System.Drawing.Size(206, 85);
             this.gsOutBufferView.TabIndex = 14;
             this.gsOutBufferView.VirtualMode = true;
+            this.gsOutBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.gsOutBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.gsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.gsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.gsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
             this.gsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.gsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.gsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.gsOutBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
+            // 
+            // columnContextMenu
+            // 
+            this.columnContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.resetSelectedColumnsToolStripMenuItem,
+            this.toolStripSeparator5,
+            this.selectColumnAsPositionToolStripMenuItem,
+            this.selectColumnAsSecondaryToolStripMenuItem,
+            this.selectAlphaAsSecondaryToolStripMenuItem});
+            this.columnContextMenu.Name = "columnContextMenu";
+            this.columnContextMenu.Size = new System.Drawing.Size(202, 98);
+            // 
+            // resetSelectedColumnsToolStripMenuItem
+            // 
+            this.resetSelectedColumnsToolStripMenuItem.Name = "resetSelectedColumnsToolStripMenuItem";
+            this.resetSelectedColumnsToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.resetSelectedColumnsToolStripMenuItem.Text = "Reset Selected Columns";
+            this.resetSelectedColumnsToolStripMenuItem.Click += new System.EventHandler(this.resetSelectedColumnsToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(198, 6);
+            // 
+            // selectColumnAsPositionToolStripMenuItem
+            // 
+            this.selectColumnAsPositionToolStripMenuItem.Name = "selectColumnAsPositionToolStripMenuItem";
+            this.selectColumnAsPositionToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectColumnAsPositionToolStripMenuItem.Text = "Select as Position";
+            this.selectColumnAsPositionToolStripMenuItem.Click += new System.EventHandler(this.selectColumnAsPositionToolStripMenuItem_Click);
+            // 
+            // selectColumnAsSecondaryToolStripMenuItem
+            // 
+            this.selectColumnAsSecondaryToolStripMenuItem.Name = "selectColumnAsSecondaryToolStripMenuItem";
+            this.selectColumnAsSecondaryToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectColumnAsSecondaryToolStripMenuItem.Text = "Select as Secondary";
+            this.selectColumnAsSecondaryToolStripMenuItem.Click += new System.EventHandler(this.selectColumnAsSecondaryToolStripMenuItem_Click);
+            // 
+            // selectAlphaAsSecondaryToolStripMenuItem
+            // 
+            this.selectAlphaAsSecondaryToolStripMenuItem.Name = "selectAlphaAsSecondaryToolStripMenuItem";
+            this.selectAlphaAsSecondaryToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectAlphaAsSecondaryToolStripMenuItem.Text = "Select Alpha as Secondary";
+            this.selectAlphaAsSecondaryToolStripMenuItem.Click += new System.EventHandler(this.selectAlphaAsSecondaryToolStripMenuItem_Click);
             // 
             // BufferViewer
             // 
@@ -973,6 +1026,7 @@
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsOutBufferView)).EndInit();
+            this.columnContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -1043,6 +1097,12 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.DataGridView gsOutBufferView;
         private System.Windows.Forms.ToolStripButton highlightVerts;
+        private System.Windows.Forms.ContextMenuStrip columnContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem resetSelectedColumnsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripMenuItem selectColumnAsPositionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectColumnAsSecondaryToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectAlphaAsSecondaryToolStripMenuItem;
 
     }
 }

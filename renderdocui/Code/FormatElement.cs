@@ -58,6 +58,41 @@ namespace renderdocui.Code
             hex = h;
         }
 
+        public override bool Equals(Object obj)
+        {
+            return obj is FormatElement && this == (FormatElement)obj;
+        }
+        public override int GetHashCode()
+        {
+            int hash = name.GetHashCode() * 17;
+            hash = hash * 17 + buffer.GetHashCode();
+            hash = hash * 17 + offset.GetHashCode();
+            hash = hash * 17 + format.GetHashCode();
+            hash = hash * 17 + perinstance.GetHashCode();
+            hash = hash * 17 + rowmajor.GetHashCode();
+            hash = hash * 17 + matrixdim.GetHashCode();
+            hash = hash * 17 + hex.GetHashCode();
+            return hash;
+        }
+        public static bool operator ==(FormatElement x, FormatElement y)
+        {
+            if ((object)x == null) return false;
+            if ((object)y == null) return false;
+
+            return x.name == y.name &&
+                x.buffer == y.buffer &&
+                x.offset == y.offset &&
+                x.format == y.format &&
+                x.perinstance == y.perinstance &&
+                x.rowmajor == y.rowmajor &&
+                x.matrixdim == y.matrixdim &&
+                x.hex == y.hex;
+        }
+        public static bool operator !=(FormatElement x, FormatElement y)
+        {
+            return !(x == y);
+        }
+
         public uint ByteSize
         {
             get

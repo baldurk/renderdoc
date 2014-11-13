@@ -132,11 +132,22 @@ namespace renderdoc
         }
         public override int GetHashCode()
         {
-            return rawType.GetHashCode();
+            int hash = specialFormat.GetHashCode() * 17;
+            hash = hash * 17 + compCount.GetHashCode();
+            hash = hash * 17 + compByteWidth.GetHashCode();
+            hash = hash * 17 + compType.GetHashCode();
+            hash = hash * 17 + srgbCorrected.GetHashCode();
+            return hash;
         }
         public static bool operator ==(ResourceFormat x, ResourceFormat y)
         {
-            return x.rawType == y.rawType;
+            if (x.special || y.special)
+                return x.special == y.special && x.specialFormat == y.specialFormat;
+
+            return x.compCount == y.compCount &&
+                x.compByteWidth == y.compByteWidth &&
+                x.compType == y.compType &&
+                x.srgbCorrected == y.srgbCorrected;
         }
         public static bool operator !=(ResourceFormat x, ResourceFormat y)
         {
@@ -342,6 +353,19 @@ namespace renderdoc
     };
 
     [StructLayout(LayoutKind.Sequential)]
+    public struct MeshFormat
+    {
+        public ResourceId buf;
+        public UInt32 offset;
+        public UInt32 stride;
+        public UInt32 compCount;
+        public UInt32 compByteWidth;
+        public FormatComponentType compType;
+        public SpecialFormat specialFormat;
+        public bool showAlpha;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
     public class MeshDisplay
     {
         public MeshDataStage type = MeshDataStage.Unknown;
@@ -357,13 +381,8 @@ namespace renderdoc
         public bool thisDrawOnly = true;
 
         public UInt32 highlightVert;
-        public ResourceId positionBuf;
-        public UInt32 positionOffset;
-        public UInt32 positionStride;
-        public UInt32 positionCompCount;
-        public UInt32 positionCompByteWidth;
-        public FormatComponentType positionCompType;
-        public SpecialFormat positionFormat;
+        public MeshFormat position;
+        public MeshFormat secondary;
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();

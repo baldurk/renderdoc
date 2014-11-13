@@ -29,6 +29,18 @@ struct OutputConfig
 	OutputType m_Type;
 };
 
+struct MeshFormat
+{
+	ResourceId buf;
+	uint32_t offset;
+	uint32_t stride;
+	uint32_t compCount;
+	uint32_t compByteWidth;
+	FormatComponentType compType;
+	SpecialFormat specialFormat;
+	bool showAlpha;
+};
+
 struct MeshDisplay
 {
 	MeshDataStage type;
@@ -43,13 +55,8 @@ struct MeshDisplay
 	bool32 thisDrawOnly;
 
 	uint32_t highlightVert;
-	ResourceId positionBuf;
-	uint32_t positionOffset;
-	uint32_t positionStride;
-	uint32_t positionCompCount;
-	uint32_t positionCompByteWidth;
-	FormatComponentType positionCompType;
-	SpecialFormat positionFormat;
+	MeshFormat position;
+	MeshFormat second;
 
 	FloatVector prevMeshColour;
 	FloatVector currentMeshColour;

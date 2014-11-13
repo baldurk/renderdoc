@@ -338,8 +338,7 @@ enum SolidShadeMode
 	eShade_None = 0,
 	eShade_Solid,
 	eShade_Lit,
-	eShade_Tex,
-	eShade_VertCol,
+	eShade_Secondary,
 };
 
 enum TriangleFillMode

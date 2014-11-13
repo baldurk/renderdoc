@@ -183,14 +183,19 @@ struct wireframeV2F
 {
 	float4 pos : SV_Position;
 	float3 norm : Normal;
-	float3 color : COLOR;
-	float2 tex : TEXCOORD0;
+	float4 secondary : Secondary;
 };
 
-wireframeV2F RENDERDOC_WireframeHomogVS(float4 pos : POSITION, uint vid : SV_VertexID)
+struct meshA2V
+{
+	float4 pos : pos;
+	float4 secondary : sec;
+};
+
+wireframeV2F RENDERDOC_WireframeHomogVS(meshA2V IN, uint vid : SV_VertexID)
 {
 	wireframeV2F OUT = (wireframeV2F)0;
-	OUT.pos = mul(pos, ModelViewProj);
+	OUT.pos = mul(IN.pos, ModelViewProj);
 	
 	float2 psprite[4] =
 	{
@@ -201,25 +206,18 @@ wireframeV2F RENDERDOC_WireframeHomogVS(float4 pos : POSITION, uint vid : SV_Ver
 	};
 
 	OUT.pos.xy += SpriteSize.xy*0.01f*psprite[vid%4]*OUT.pos.w;
+	OUT.secondary = IN.secondary;
 	
 	return OUT;
 }
-
-struct meshA2V
-{
-	float3 pos : pos;
-	float2 tex : tex;
-	float3 color : col;
-};
 
 wireframeV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 {
 	wireframeV2F OUT = (wireframeV2F)0;
 
-	OUT.pos = mul(float4(IN.pos, 1), ModelViewProj);
+	OUT.pos = mul(float4(IN.pos.xyz, 1), ModelViewProj);
 	OUT.norm = float3(0, 0, 1);
-	OUT.color = IN.color;
-	OUT.tex = IN.tex;
+	OUT.secondary = IN.secondary;
 	
 	return OUT;
 }
@@ -237,8 +235,7 @@ void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wiref
     {
         output.pos = input[i].pos;
         output.norm = faceNormal;
-        output.color = input[i].color;
-        output.tex = input[i].tex;
+        output.secondary = input[i].secondary;
         TriStream.Append(output);
     }
     TriStream.RestartStrip();
@@ -248,10 +245,10 @@ float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
 {
 	uint type = OutputDisplayFormat;
 	
-	if(type == MESHDISPLAY_TEXCOORD)
-		return float4(IN.tex.xy, 0, 1);
-	else if(type == MESHDISPLAY_COLOR)
-		return float4(IN.color.xyz, 1);
+	if(type == MESHDISPLAY_SECONDARY)
+		return float4(IN.secondary.xyz, 1);
+	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
+		return float4(IN.secondary.www, 1);
 	else if(type == MESHDISPLAY_FACELIT)
 	{
 		float3 lightDir = normalize(float3(0, -0.3f, -1));
@@ -297,9 +294,7 @@ wireframeV2F RENDERDOC_FullscreenVS(uint id : SV_VertexID)
 	};
 
 	OUT.pos = pos[id];
-	OUT.tex = uv[id];
-	OUT.norm = float3(0, 0, 1);
-	OUT.color = float3(1, 1, 1);
+	OUT.secondary = float4(uv[id].xy, 0, 1);
 
 	return OUT;
 }

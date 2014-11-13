@@ -321,12 +321,13 @@ class D3D11DebugManager
 		ID3D11RasterizerState *m_WireframeHelpersRS, *m_WireframeHelpersCullCCWRS, *m_WireframeHelpersCullCWRS;
 		ID3D11RasterizerState *m_SolidHelpersRS;
 		
-		// this gets updated to pull the elements we want out of the buffers
+		// these gets updated to pull the elements selected out of the buffers
 		ID3D11InputLayout *m_MeshDisplayLayout;
-		int m_MeshDisplayNULLVB;
+		ID3D11InputLayout *m_PostMeshDisplayLayout;
 
-		// whenever this changes (just a dumb pointer, not ref-owned)
-		ID3D11InputLayout *m_PrevMeshInputLayout;
+		// whenever these change
+		ResourceFormat m_PrevMeshFmt;
+		ResourceFormat m_PrevMeshFmt2;
 		
 		ID3D11Buffer *m_AxisHelper;
 		ID3D11Buffer *m_FrustumHelper;
@@ -459,6 +460,7 @@ class D3D11DebugManager
 				SAFE_RELEASE(histogramUAV);
 
 				SAFE_DELETE_ARRAY(MeshVSBytecode);
+				SAFE_DELETE_ARRAY(MeshHomogVSBytecode);
 
 				SAFE_RELEASE(PickPixelRT);
 				SAFE_RELEASE(PickPixelStageTex);
@@ -505,6 +507,9 @@ class D3D11DebugManager
 
 			byte *MeshVSBytecode;
 			uint32_t MeshVSBytelen;
+
+			byte *MeshHomogVSBytecode;
+			uint32_t MeshHomogVSBytelen;
 
 			int publicCBufIdx;
 
