@@ -469,11 +469,11 @@ namespace renderdocui.Windows
 
                         UI_SetAllColumns();
 
-                        UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn);
+                        UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn, 0);
                         if (m_VSOut.m_Input != null)
-                            UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut);
+                            UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut, 0);
                         if (m_GSOut.m_Input != null)
-                            UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut);
+                            UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, 0);
                     }));
                 });
             }
@@ -506,6 +506,12 @@ namespace renderdocui.Windows
                 m_GSOut.AbortThread();
                 return;
             }
+
+            int[] horizscroll = new int[] {
+                m_VSIn.m_GridView.HorizontalScrollingOffset,
+                m_VSOut.m_GridView.HorizontalScrollingOffset,
+                m_GSOut.m_GridView.HorizontalScrollingOffset,
+            };
 
             int curReq = m_ReqID;
 
@@ -566,11 +572,11 @@ namespace renderdocui.Windows
                     UI_SetAllColumns();
 
                     if (m_VSIn.m_Input != null)
-                        UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn);
+                        UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn, horizscroll[0]);
                     if (m_VSOut.m_Input != null)
-                        UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut);
+                        UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut, horizscroll[1]);
                     if (m_GSOut.m_Input != null)
-                        UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut);
+                        UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, horizscroll[2]);
 
                     render.Invalidate();
                 }));
@@ -675,7 +681,7 @@ namespace renderdocui.Windows
 
                 this.BeginInvoke(new Action(() =>
                 {
-                    UI_SetRowsData(MeshDataStage.VSIn, contents);
+                    UI_SetRowsData(MeshDataStage.VSIn, contents, 0);
                     UI_SetColumns(MeshDataStage.VSIn, input.BufferFormats);
                 }));
             });
@@ -1205,7 +1211,7 @@ namespace renderdocui.Windows
 
         #region Setting Row Data
 
-        private void UI_SetRowsData(MeshDataStage type, Dataset data)
+        private void UI_SetRowsData(MeshDataStage type, Dataset data, int horizScroll)
         {
             var state = GetUIState(type);
 
@@ -1260,18 +1266,18 @@ namespace renderdocui.Windows
 
                     this.BeginInvoke(new Action(() =>
                     {
-                        UI_ShowRows(state);
+                        UI_ShowRows(state, horizScroll);
                     }));
                 }
                 else
                 {
                     state.m_RawData = new byte[state.m_RawStride * data.IndexCount];
-                    UI_FillRawData(state);
+                    UI_FillRawData(state, horizScroll);
                 }
             }
         }
 
-        private void UI_FillRawData(UIState state)
+        private void UI_FillRawData(UIState state, int horizScroll)
         {
             var data = state.m_Data;
 
@@ -1420,7 +1426,7 @@ namespace renderdocui.Windows
                     state.m_MinBounds = minBounds;
                     state.m_MaxBounds = maxBounds;
 
-                    UI_ShowRows(state);
+                    UI_ShowRows(state, horizScroll);
                 }));
             }));
 
@@ -1431,7 +1437,7 @@ namespace renderdocui.Windows
 
         private bool SuppressCaching = false;
 
-        private void UI_ShowRows(UIState state)
+        private void UI_ShowRows(UIState state, int horizScroll)
         {
             var bufView = state.m_GridView;
 
@@ -1454,6 +1460,8 @@ namespace renderdocui.Windows
                 ScrollToRow(bufView, RowOffset);
 
                 SuppressCaching = false;
+
+                bufView.HorizontalScrollingOffset = horizScroll;
             }
 
             if (vsInBufferView.Focused && m_Core.LogLoaded)
@@ -2488,7 +2496,7 @@ namespace renderdocui.Windows
                     {
                         if (m_VSIn.m_Input != null)
                         {
-                            UI_SetRowsData(MeshDataStage.VSIn, contents);
+                            UI_SetRowsData(MeshDataStage.VSIn, contents, 0);
                         }
                     }));
                 });
