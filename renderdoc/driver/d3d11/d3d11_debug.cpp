@@ -770,9 +770,9 @@ bool D3D11DebugManager::InitDebugRendering()
 
 	vector<byte> bytecode;
 
-	m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0", 1, &inputDesc, &m_DebugRender.GenericLayout);
+	m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
 	m_DebugRender.TexDisplayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
-	m_DebugRender.WireframeVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeVS", "vs_4_0");
+	m_DebugRender.WireframeVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeVS", "vs_4_0", 1, &inputDesc, &m_DebugRender.GenericLayout);
 	m_DebugRender.MeshVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 0, NULL, NULL, &bytecode);
 	m_DebugRender.MeshGS = MakeGShader(displayhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
 	m_DebugRender.MeshPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
@@ -3605,7 +3605,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 	m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
 	m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
-	m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+	m_pImmediateContext->IASetInputLayout(NULL);
 	m_pImmediateContext->IASetVertexBuffers(0, 1, &m_DebugRender.OutlineStripVB, &stride, &offs);
 
 	m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
@@ -3664,6 +3664,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 	// can't just clear state because we need to keep things like render targets.
 	{
 		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		m_pImmediateContext->IASetInputLayout(NULL);
 
 		m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
