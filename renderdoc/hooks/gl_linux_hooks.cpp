@@ -515,6 +515,8 @@ void *dlopen(const char *filename, int flag)
 	if(filename && ret && strstr(filename, "libGL.so"))
 	{
 		RDCDEBUG("Redirecting dlopen to ourselves");
+		libGLdlsymHandle = ret;
+		OpenGLHook::glhooks.CreateHooks("libGL.so");
 		ret = realdlopen("librenderdoc.so", flag);
 	}
 
