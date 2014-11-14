@@ -283,6 +283,8 @@ class OpenGLHook : LibraryHook
 		vector<string> glXExts;
 		string glXExtsString;
 
+		set<GLXContext> m_Contexts;
+
 		bool m_PopulatedHooks;
 		bool m_HasHooks;
 		bool m_EnabledHooks;
@@ -397,9 +399,14 @@ Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx)
 {
 	Bool ret = OpenGLHook::glhooks.glXMakeCurrent_real(dpy, drawable, ctx);
 	
-	OpenGLHook::glhooks.GetDriver()->ActivateContext((void *)drawable, ctx);
+	if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
+	{
+		OpenGLHook::glhooks.m_Contexts.insert(ctx);
+
+		OpenGLHook::glhooks.PopulateHooks();
+	}
 	
-	OpenGLHook::glhooks.GetRealFunctions();
+	OpenGLHook::glhooks.GetDriver()->ActivateContext((void *)drawable, ctx);
 
 	return ret;
 }
