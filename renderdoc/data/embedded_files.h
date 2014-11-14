@@ -29,10 +29,12 @@
 	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
 
 DECLARE_EMBED(debuguniforms_h);
+DECLARE_EMBED(texsample_h);
 DECLARE_EMBED(blit_vert);
 DECLARE_EMBED(blit_frag);
 DECLARE_EMBED(texdisplay_frag);
 DECLARE_EMBED(checkerboard_frag);
+DECLARE_EMBED(histogram_comp);
 DECLARE_EMBED(mesh_vert);
 DECLARE_EMBED(generic_vert);
 DECLARE_EMBED(generic_frag);

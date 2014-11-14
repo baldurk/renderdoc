@@ -2006,6 +2006,7 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(GLuint index, int count, GLenum typ
 			case Attrib_GLushort:
 				elemSize = 2;
 				break;
+			default:
 			case Attrib_GLbyte:
 			case Attrib_GLubyte:
 				elemSize = 1;

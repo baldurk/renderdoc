@@ -416,6 +416,8 @@ GLenum TextureBinding(GLenum target)
 			return eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
 		case eGL_TEXTURE_BUFFER:
 			return eGL_TEXTURE_BINDING_BUFFER;
+		default:
+			break;
 	}
 
 	RDCERR("Unexpected target %x", target);
@@ -437,6 +439,8 @@ bool IsProxyTarget(GLenum target)
 		case eGL_PROXY_TEXTURE_CUBE_MAP:
 		case eGL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
 			return true;
+		default:
+			break;
 	}
 
 	return false;
