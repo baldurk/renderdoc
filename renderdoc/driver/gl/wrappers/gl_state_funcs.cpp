@@ -269,6 +269,31 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
 	}
 }
 
+bool WrappedOpenGL::Serialise_glLogicOp(GLenum opcode)
+{
+	SERIALISE_ELEMENT(GLenum, Op, opcode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glLogicOp(Op);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glLogicOp(GLenum opcode)
+{
+	m_Real.glLogicOp(opcode);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(LOGIC_OP);
+		Serialise_glLogicOp(opcode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)
 {
 	SERIALISE_ELEMENT(GLenum, f, func);
@@ -453,6 +478,31 @@ void WrappedOpenGL::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GL
 	{
 		SCOPED_SERIALISE_CONTEXT(CLEAR_COLOR);
 		Serialise_glClearColor(red, green, blue, alpha);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClearStencil(GLint stencil)
+{
+	SERIALISE_ELEMENT(uint32_t, s, (uint32_t)stencil);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClearStencil((GLint)s);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClearStencil(GLint stencil)
+{
+	m_Real.glClearStencil(stencil);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEAR_STENCIL);
+		Serialise_glClearStencil(stencil);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -974,6 +1024,56 @@ void WrappedOpenGL::glPatchParameterfv(GLenum pname, const GLfloat *values)
 		SCOPED_SERIALISE_CONTEXT(PATCH_PARAMFV);
 		Serialise_glPatchParameterfv(pname, values);
 		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glLineWidth(GLfloat width)
+{
+	SERIALISE_ELEMENT(GLfloat, w, width);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glLineWidth(w);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glLineWidth(GLfloat width)
+{
+	m_Real.glLineWidth(width);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(LINE_WIDTH);
+		Serialise_glLineWidth(width);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPointSize(GLfloat size)
+{
+	SERIALISE_ELEMENT(GLfloat, s, size);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPointSize(s);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPointSize(GLfloat size)
+{
+	m_Real.glPointSize(size);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POINT_SIZE);
+		Serialise_glPointSize(size);
+
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }

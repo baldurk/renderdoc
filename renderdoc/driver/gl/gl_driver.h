@@ -341,6 +341,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationi(GLuint buf, GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glLogicOp(GLenum opcode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glStencilFunc(GLenum func, GLint ref, GLuint mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glStencilMask(GLuint mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glStencilOp(GLenum fail, GLenum zfail, GLenum zpass));
@@ -354,6 +355,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClear(GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLclampd depth));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearStencil(GLint stencil));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCullFace(GLenum cap));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthFunc(GLenum func));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDepthMask(GLboolean flag));
@@ -381,6 +383,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameterfv(GLenum pname, const GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameteri(GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameteriv(GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPointSize(GLfloat size));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glLineWidth(GLfloat width));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels));

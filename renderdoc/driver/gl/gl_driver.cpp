@@ -111,6 +111,7 @@ const char *GLChunkNames[] =
 
 	"glClearColor",
 	"glClearDepth",
+	"glClearStencil",
 	"glClear",
 	"glClearBufferfv",
 	"glClearBufferiv",
@@ -138,6 +139,7 @@ const char *GLChunkNames[] =
 	"glBlendEquationi",
 	"glBlendEquationSeparate",
 	"glBlendEquationSeparatei",
+	"glLogicOp",
 	"glStencilOp",
 	"glStencilOpSeparate",
 	"glStencilFunc",
@@ -156,6 +158,8 @@ const char *GLChunkNames[] =
 	"glDepthBoundsEXT",
 	"glPatchParameteri",
 	"glPatchParameterfv",
+	"glLineWidth",
+	"glPointSize",
 	"glPointParameterf",
 	"glPointParameterfv",
 	"glPointParameteri",
@@ -1733,6 +1737,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case CLEAR_DEPTH:
 		Serialise_glClearDepth(0);
 		break;
+	case CLEAR_STENCIL:
+		Serialise_glClearStencil(0);
+		break;
 	case CLEAR:
 		Serialise_glClear(0);
 		break;
@@ -1809,6 +1816,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE);
 		break;
 
+	case LOGIC_OP:
+		Serialise_glLogicOp(eGL_NONE);
+		break;
+
 	case STENCIL_OP:
 		Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE);
 		break;
@@ -1863,6 +1874,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case PATCH_PARAMFV:
 		Serialise_glPatchParameterfv(eGL_NONE, NULL);
+		break;
+	case LINE_WIDTH:
+		Serialise_glLineWidth(0.0f);
+		break;
+	case POINT_SIZE:
+		Serialise_glPointSize(0.0f);
 		break;
 	case POINT_PARAMF:
 		Serialise_glPointParameterf(eGL_NONE, 0.0f);

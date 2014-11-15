@@ -36,6 +36,7 @@
     HookInit(glClear); \
     HookInit(glClearColor); \
     HookInit(glClearDepth); \
+    HookInit(glClearStencil); \
     HookInit(glColorMask); \
     HookInit(glCullFace); \
     HookInit(glDepthFunc); \
@@ -68,10 +69,13 @@
     HookInit(glGetPointerv); \
     HookInit(glGetString); \
     HookInit(glHint); \
+    HookInit(glLogicOp); \
     HookInit(glPixelStorei); \
     HookInit(glPixelStoref); \
     HookInit(glPolygonMode); \
     HookInit(glPolygonOffset); \
+    HookInit(glPointSize); \
+    HookInit(glLineWidth); \
     HookInit(glReadPixels); \
     HookInit(glReadBuffer); \
     HookInit(glScissor); \
@@ -638,6 +642,7 @@
     HookExtension(PFNGLCLEARPROC, glClear); \
     HookExtension(PFNGLCLEARCOLORPROC, glClearColor); \
     HookExtension(PFNGLCLEARDEPTHPROC, glClearDepth); \
+    HookExtension(PFNGLCLEARSTENCILPROC, glClearStencil); \
     HookExtension(PFNGLCOLORMASKPROC, glColorMask); \
     HookExtension(PFNGLCULLFACEPROC, glCullFace); \
     HookExtension(PFNGLDEPTHFUNCPROC, glDepthFunc); \
@@ -670,10 +675,13 @@
     HookExtension(PFNGLGETPOINTERVPROC, glGetPointerv); \
     HookExtension(PFNGLGETSTRINGPROC, glGetString); \
     HookExtension(PFNGLHINTPROC, glHint); \
+    HookExtension(PFNGLLOGICOPPROC, glLogicOp); \
     HookExtension(PFNGLPIXELSTOREIPROC, glPixelStorei); \
     HookExtension(PFNGLPIXELSTOREFPROC, glPixelStoref); \
     HookExtension(PFNGLPOLYGONMODEPROC, glPolygonMode); \
     HookExtension(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
+    HookExtension(PFNGLPOINTSIZEPROC, glPointSize); \
+    HookExtension(PFNGLLINEWIDTHPROC, glLineWidth); \
     HookExtension(PFNGLREADPIXELSPROC, glReadPixels); \
     HookExtension(PFNGLREADBUFFERPROC, glReadBuffer); \
     HookExtension(PFNGLSCISSORPROC, glScissor); \
@@ -697,6 +705,7 @@
     HookWrapper1(void, glClear, GLbitfield, mask); \
     HookWrapper4(void, glClearColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glClearDepth, GLdouble, depth); \
+    HookWrapper1(void, glClearStencil, GLint, s); \
     HookWrapper4(void, glColorMask, GLboolean, red, GLboolean, green, GLboolean, blue, GLboolean, alpha); \
     HookWrapper1(void, glCullFace, GLenum, mode); \
     HookWrapper1(void, glDepthFunc, GLenum, func); \
@@ -729,10 +738,13 @@
     HookWrapper2(void, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper1(const GLubyte *, glGetString, GLenum, name); \
     HookWrapper2(void, glHint, GLenum, target, GLenum, mode); \
+    HookWrapper1(void, glLogicOp, GLenum, opcode); \
     HookWrapper2(void, glPixelStorei, GLenum, pname, GLint, param); \
     HookWrapper2(void, glPixelStoref, GLenum, pname, GLfloat, param); \
     HookWrapper2(void, glPolygonMode, GLenum, face, GLenum, mode); \
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
+    HookWrapper1(void, glPointSize, GLfloat, size); \
+    HookWrapper1(void, glLineWidth, GLfloat, width); \
     HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
     HookWrapper1(void, glReadBuffer, GLenum, src); \
     HookWrapper4(void, glScissor, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \

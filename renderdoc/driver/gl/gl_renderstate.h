@@ -112,6 +112,8 @@ struct GLRenderState
 
 	float PointFadeThresholdSize;
 	GLenum PointSpriteOrigin;
+	float LineWidth;
+	float PointSize;
 
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
@@ -184,6 +186,7 @@ struct GLRenderState
 		GLenum depthFail;
 		GLenum pass;
 	} StencilBack, StencilFront;
+	uint32_t StencilClearValue;
 
 	struct
 	{
@@ -193,6 +196,8 @@ struct GLRenderState
 	uint32_t SampleMask[2];
 	float SampleCoverage;
 	bool SampleCoverageInvert;
+
+	GLenum LogicOp;
 
 	struct
 	{

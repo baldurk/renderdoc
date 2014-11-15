@@ -114,6 +114,8 @@ void GLRenderState::FetchState()
 	
 	m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
 	m_Real->glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint*)&PointSpriteOrigin);
+	m_Real->glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
+	m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
 	
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
@@ -215,6 +217,8 @@ void GLRenderState::FetchState()
 		m_Real->glGetIntegerv(eGL_STENCIL_PASS_DEPTH_PASS, (GLint *)&StencilFront.pass);
 		m_Real->glGetIntegerv(eGL_STENCIL_BACK_PASS_DEPTH_PASS, (GLint *)&StencilBack.pass);
 	}
+
+	m_Real->glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, (GLint *)&StencilClearValue);
 	
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
@@ -222,6 +226,8 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&boolread); SampleCoverageInvert = (boolread != 0);
+	
+	m_Real->glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
 
 	m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
 	
@@ -308,6 +314,8 @@ void GLRenderState::ApplyState()
 	
 	m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
 	m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
+	m_Real->glLineWidth(LineWidth);
+	m_Real->glPointSize(PointSize);
 
 	m_Real->glUseProgram(Program);
 	m_Real->glBindProgramPipeline(Pipeline);
@@ -428,12 +436,16 @@ void GLRenderState::ApplyState()
 		m_Real->glStencilOpSeparate(eGL_FRONT, StencilFront.stencilFail, StencilFront.depthFail, StencilFront.pass);
 		m_Real->glStencilOpSeparate(eGL_BACK, StencilBack.stencilFail, StencilBack.depthFail, StencilBack.pass);
 	}
+
+	m_Real->glClearStencil((GLint)StencilClearValue);
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(ColorMasks); i++)
 		m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue, ColorMasks[i].alpha);
 
 	m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
 	m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
+
+	m_Real->glLogicOp(LogicOp);
 
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
 	
@@ -461,6 +473,8 @@ void GLRenderState::Clear()
 	
 	RDCEraseEl(PointFadeThresholdSize);
 	RDCEraseEl(PointSpriteOrigin);
+	RDCEraseEl(LineWidth);
+	RDCEraseEl(PointSize);
 	
 	RDCEraseEl(Program);
 	RDCEraseEl(Pipeline);
@@ -490,10 +504,12 @@ void GLRenderState::Clear()
 	RDCEraseEl(DepthFunc);
 	RDCEraseEl(StencilFront);
 	RDCEraseEl(StencilBack);
+	RDCEraseEl(StencilClearValue);
 	RDCEraseEl(ColorMasks);
 	RDCEraseEl(SampleMask);
 	RDCEraseEl(SampleCoverage);
 	RDCEraseEl(SampleCoverageInvert);
+	RDCEraseEl(LogicOp);
 	RDCEraseEl(ColorClearValue);
 
 	RDCEraseEl(Hints);
@@ -550,6 +566,8 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	
 	m_pSerialiser->Serialise("GL_POINT_FADE_THRESHOLD_SIZE", PointFadeThresholdSize);
 	m_pSerialiser->Serialise("GL_POINT_SPRITE_COORD_ORIGIN", PointSpriteOrigin);
+	m_pSerialiser->Serialise("GL_LINE_WIDTH", LineWidth);
+	m_pSerialiser->Serialise("GL_POINT_SIZE", PointSize);
 
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{
@@ -688,12 +706,16 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_STENCIL_BACK_PASS_DEPTH_PASS", StencilBack.pass);
 	}
 
+	m_pSerialiser->Serialise("GL_STENCIL_CLEAR_VALUE", StencilClearValue);
+
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
 		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
 	
 	m_pSerialiser->Serialise<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_VALUE", SampleCoverage);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_INVERT", SampleCoverageInvert);
+
+	m_pSerialiser->Serialise("GL_LOGIC_OP_MODE", LogicOp);
 
 	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
 
