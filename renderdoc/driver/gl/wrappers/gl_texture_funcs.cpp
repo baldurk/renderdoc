@@ -1003,7 +1003,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 
 	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, 1, 1, Format, Type, align);
 
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, pixels != NULL);
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
 	
 	if(m_State == READING)
 	{
@@ -1119,8 +1120,9 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
 
 	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, Height, 1, Format, Type, align);
-
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, pixels != NULL);
+	
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
 	
 	if(m_State == READING)
 	{
@@ -1238,7 +1240,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 
 	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, Height, Depth, Format, Type, align);
 
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, pixels != NULL);
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
 	
 	if(m_State == READING)
 	{
@@ -1345,7 +1348,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(int32_t, Border, border);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, pixels != NULL);
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
 	
 	if(m_State == READING)
 	{
@@ -1453,7 +1457,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(int32_t, Border, border);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, pixels != NULL);
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
 	
 	if(m_State == READING)
 	{
@@ -1562,7 +1567,8 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(int32_t, Border, border);
 	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, pixels != NULL);
+	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
 	
 	if(m_State == READING)
 	{
