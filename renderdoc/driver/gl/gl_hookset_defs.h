@@ -607,6 +607,8 @@
     HookExtension(PFNGLGETNAMEDBUFFERPARAMETERIVEXTPROC, glGetNamedBufferParameterivEXT); \
     HookExtension(PFNGLGETNAMEDFRAMEBUFFERATTACHMENTPARAMETERIVEXTPROC, glGetNamedFramebufferAttachmentParameterivEXT); \
     HookExtension(PFNGLGETTEXTUREIMAGEEXTPROC, glGetTextureImageEXT); \
+    HookExtension(PFNGLGETTEXTUREPARAMETERIVEXTPROC, glGetTextureParameterivEXT); \
+    HookExtension(PFNGLGETTEXTUREPARAMETERFVEXTPROC, glGetTextureParameterfvEXT); \
     HookExtension(PFNGLGETTEXTURELEVELPARAMETERIVEXTPROC, glGetTextureLevelParameterivEXT); \
     HookExtension(PFNGLMAPNAMEDBUFFEREXTPROC, glMapNamedBufferEXT); \
     HookExtension(PFNGLMAPNAMEDBUFFERRANGEEXTPROC, glMapNamedBufferRangeEXT); \
@@ -1251,6 +1253,8 @@
     HookWrapper3(void, glGetNamedBufferParameterivEXT, GLuint, buffer, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetNamedFramebufferAttachmentParameterivEXT, GLuint, framebuffer, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper6(void, glGetTextureImageEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, format, GLenum, type, void *, pixels); \
+    HookWrapper4(void, glGetTextureParameterivEXT, GLuint, texture, GLenum, target, GLenum, pname, GLint *, params); \
+    HookWrapper4(void, glGetTextureParameterfvEXT, GLuint, texture, GLenum, target, GLenum, pname, GLfloat *, params); \
     HookWrapper5(void, glGetTextureLevelParameterivEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, pname, GLint *, params); \
     HookWrapper2(void *, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
     HookWrapper4(void *, glMapNamedBufferRangeEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \

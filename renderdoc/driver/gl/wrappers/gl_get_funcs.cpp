@@ -190,6 +190,16 @@ void WrappedOpenGL::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum 
 	m_Real.glGetTexLevelParameteriv(target, level, pname, params);
 }
 
+void WrappedOpenGL::glGetTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureParameterivEXT(texture, target, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetTextureParameterfvEXT(texture, target, pname, params);
+}
+
 void WrappedOpenGL::glGetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLint *params)
 {
 	m_Real.glGetTextureLevelParameterivEXT(texture, target, level, pname, params);

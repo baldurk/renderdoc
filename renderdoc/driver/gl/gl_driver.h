@@ -974,6 +974,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapNamedBufferEXT(GLuint buffer, GLenum access));
 		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access));
