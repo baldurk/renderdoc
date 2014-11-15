@@ -2851,7 +2851,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
 	SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
 	SERIALISE_ELEMENT(GLenum, fmt, internalformat);
 	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(TextureRes(GetCtx(), buffer)));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	
 	if(m_State == READING)
 	{
@@ -2911,7 +2911,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(GLenum, fmt, internalformat);
 	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(TextureRes(GetCtx(), buffer)));
+	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	
 	if(m_State == READING)
 	{
