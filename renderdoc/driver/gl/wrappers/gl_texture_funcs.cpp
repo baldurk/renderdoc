@@ -714,16 +714,30 @@ void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum
 	
 	if(m_State >= WRITING)
 	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
 		Serialise_glTextureParameteriEXT(texture, target, pname, param);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -736,14 +750,29 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
 		RDCASSERT(record);
 
-		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
-		Serialise_glTextureParameteriEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																		 target, pname, param);
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
+		Serialise_glTextureParameteriEXT(res.name, target, pname, param);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -771,16 +800,30 @@ void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenu
 	
 	if(m_State >= WRITING)
 	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
 		Serialise_glTextureParameterivEXT(texture, target, pname, params);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -792,15 +835,30 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 	{
 		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
 		RDCASSERT(record);
+		
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
-		Serialise_glTextureParameterivEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																		  target, pname, params);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		Serialise_glTextureParameterivEXT(res.name, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -825,16 +883,30 @@ void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum
 	
 	if(m_State >= WRITING)
 	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
 		Serialise_glTextureParameterfEXT(texture, target, pname, param);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -846,15 +918,30 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 	{
 		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
 		RDCASSERT(record);
+		
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
-		Serialise_glTextureParameterfEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																		 target, pname, param);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		Serialise_glTextureParameterfEXT(res.name, target, pname, param);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -882,16 +969,30 @@ void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenu
 	
 	if(m_State >= WRITING)
 	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
 		Serialise_glTextureParameterfvEXT(texture, target, pname, params);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 
@@ -903,15 +1004,30 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 	{
 		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
 		RDCASSERT(record);
+		
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
-		Serialise_glTextureParameterfvEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																		  target, pname, params);
-
-		if(m_State == WRITING_IDLE)
-			record->AddChunk(scope.Get());
-		else
+		Serialise_glTextureParameterfvEXT(res.name, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
 	}
 }
 

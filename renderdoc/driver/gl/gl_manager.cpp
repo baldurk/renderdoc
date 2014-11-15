@@ -41,6 +41,56 @@ struct VertexArrayInitialData
 	uint32_t size;
 };
 
+template<>
+void Serialiser::Serialise(const char *name, VertexArrayInitialData &el)
+{
+	ScopedContext scope(this, this, name, "VertexArrayInitialData", 0, true);
+	Serialise("enabled", el.enabled);
+	Serialise("vbslot", el.vbslot);
+	Serialise("offset", el.offset);
+	Serialise("type", el.type);
+	Serialise("normalized", el.normalized);
+	Serialise("integer", el.integer);
+	Serialise("size", el.size);
+}
+
+struct TextureStateInitialData
+{
+	TextureStateInitialData()
+	{
+		RDCEraseEl(*this);
+	}
+
+	int32_t baseLevel, maxLevel;
+	float minLod, maxLod;
+	GLenum depthMode;
+	GLenum compareFunc, compareMode;
+	GLenum minFilter, magFilter;
+	GLenum swizzle[4];
+	GLenum wrap[3];
+	float border[4];
+	float lodBias;
+};
+
+template<>
+void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
+{
+	ScopedContext scope(this, this, name, "TextureStateInitialData", 0, true);
+	Serialise("baseLevel", el.baseLevel);
+	Serialise("maxLevel", el.maxLevel);
+	Serialise("minLod", el.minLod);
+	Serialise("maxLod", el.maxLod);
+	Serialise("depthMode", el.depthMode);
+	Serialise("compareFunc", el.compareFunc);
+	Serialise("compareMode", el.compareMode);
+	Serialise("minFilter", el.minFilter);
+	Serialise("magFilter", el.magFilter);
+	Serialise<4>("swizzle", el.swizzle);
+	Serialise<3>("wrap", el.wrap);
+	Serialise<4>("border", el.border);
+	Serialise("lodBias", el.lodBias);
+}
+
 bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *record)
 {
 	if(id == m_GL->GetContextResourceID())
@@ -147,7 +197,27 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
 		}
 		
-		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, NULL));
+		TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
+		
+		{
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)&state->swizzle[0]);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
+			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
+			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
+			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
+			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR, &state->border[0]);
+			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+		}
+
+		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
 		
 		gl.glBindTexture(details.curType, oldtex);
 	}
@@ -301,6 +371,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&imgmips);
 			else
 				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&imgmips);
+			
+			TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
+
+			SERIALISE_ELEMENT(TextureStateInitialData, stateData, *state);
 
 			SERIALISE_ELEMENT(uint32_t, width, details.width);
 			SERIALISE_ELEMENT(uint32_t, height, details.height);
@@ -445,6 +519,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glPixelStorei(eGL_UNPACK_SKIP_IMAGES, 0);
 			gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
+			TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
+
+			m_pSerialiser->Serialise("state", *state);
+
 			SERIALISE_ELEMENT(uint32_t, width, 0);
 			SERIALISE_ELEMENT(uint32_t, height, 0);
 			SERIALISE_ELEMENT(uint32_t, depth, 0);
@@ -567,7 +645,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				}
 			}
 			
-			SetInitialContents(Id, InitialContentData(TextureRes(m_GL->GetCtx(), tex), 0, NULL));
+			SetInitialContents(Id, InitialContentData(TextureRes(m_GL->GetCtx(), tex), 0, (byte *)state));
 
 			gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
 			
@@ -594,15 +672,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 		}
 
 		for(GLuint i=0; i < 16; i++)
-		{
-			m_pSerialiser->Serialise("data[].enabled", data[i].enabled);
-			m_pSerialiser->Serialise("data[].vbslot", data[i].vbslot);
-			m_pSerialiser->Serialise("data[].offset", data[i].offset);
-			m_pSerialiser->Serialise("data[].type", data[i].type);
-			m_pSerialiser->Serialise("data[].normalized", data[i].normalized);
-			m_pSerialiser->Serialise("data[].integer", data[i].integer);
-			m_pSerialiser->Serialise("data[].size", data[i].size);
-		}
+			m_pSerialiser->Serialise("data[]", data[i]);
 
 		if(m_State < WRITING)
 		{
@@ -666,6 +736,26 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 				d *= 6;
 
 			gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i, 0, 0, 0, w, h, d);
+		}
+
+		TextureStateInitialData *state = (TextureStateInitialData *)initial.blob;
+
+		{
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)state->swizzle);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
+			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
+			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
+			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
+			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_BORDER_COLOR, state->border);
+			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
 		}
 	}
 	else if(live.Namespace == eResProgram)
