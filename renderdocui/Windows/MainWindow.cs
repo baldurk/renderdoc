@@ -1000,6 +1000,13 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.OK)
             {
+                if (!File.Exists(m_Core.LogFileName))
+                {
+                    MessageBox.Show("Logfile " + m_Core.LogFileName + " couldn't be found, cannot save.", "File not found",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return false;
+                }
+
                 File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
 
                 OwnTemporaryLog = false;
