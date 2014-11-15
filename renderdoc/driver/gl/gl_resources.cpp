@@ -143,27 +143,29 @@ GLenum GetBaseFormat(GLenum internalFormat)
 		case eGL_R16:
 		case eGL_R16_SNORM:
 		case eGL_R16F:
-		case eGL_R8I:
-		case eGL_R8UI:
-		case eGL_R16I:
-		case eGL_R16UI:
-		case eGL_R32I:
-		case eGL_R32UI:
 		case eGL_R32F:
 			return eGL_RED;
+		case eGL_R8I:
+		case eGL_R16I:
+		case eGL_R32I:
+		case eGL_R32UI:
+		case eGL_R16UI:
+		case eGL_R8UI:
+			return eGL_RED_INTEGER;
 		case eGL_RG8:
 		case eGL_RG8_SNORM:
 		case eGL_RG16:
 		case eGL_RG16_SNORM:
 		case eGL_RG16F:
 		case eGL_RG32F:
+			return eGL_RG;
 		case eGL_RG8I:
 		case eGL_RG8UI:
 		case eGL_RG16I:
 		case eGL_RG16UI:
 		case eGL_RG32I:
 		case eGL_RG32UI:
-			return eGL_RG;
+			return eGL_RG_INTEGER;
 		case eGL_R3_G3_B2:
 		case eGL_RGB4:
 		case eGL_RGB5:
@@ -179,33 +181,35 @@ GLenum GetBaseFormat(GLenum internalFormat)
 		case eGL_RGB32F:
 		case eGL_R11F_G11F_B10F:
 		case eGL_RGB9_E5:
+			return eGL_RGB;
 		case eGL_RGB8I:
 		case eGL_RGB8UI:
 		case eGL_RGB16I:
 		case eGL_RGB16UI:
 		case eGL_RGB32I:
 		case eGL_RGB32UI:
-			return eGL_RGB;
+			return eGL_RGB_INTEGER;
 		case eGL_RGBA2:
 		case eGL_RGBA4:
 		case eGL_RGB5_A1:
 		case eGL_RGBA8:
 		case eGL_RGBA8_SNORM:
 		case eGL_RGB10_A2:
-		case eGL_RGB10_A2UI:
 		case eGL_RGBA12:
 		case eGL_RGBA16:
 		case eGL_RGBA16_SNORM:
 		case eGL_SRGB8_ALPHA8:
 		case eGL_RGBA16F:
 		case eGL_RGBA32F:
+			return eGL_RGBA;
+		case eGL_RGB10_A2UI:
 		case eGL_RGBA8I:
 		case eGL_RGBA8UI:
 		case eGL_RGBA16I:
 		case eGL_RGBA16UI:
 		case eGL_RGBA32UI:
 		case eGL_RGBA32I:
-			return eGL_RGBA;
+			return eGL_RGBA_INTEGER;
 		case eGL_DEPTH_COMPONENT16:
 		case eGL_DEPTH_COMPONENT24:
 		case eGL_DEPTH_COMPONENT32:
