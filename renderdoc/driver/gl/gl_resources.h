@@ -29,9 +29,12 @@
 
 #include "driver/gl/gl_common.h"
 
+struct GLHookSet;
+
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
+GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat);
 
 bool IsDepthStencilFormat(GLenum internalFormat);
 bool IsUIntFormat(GLenum internalFormat);

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
+#include "gl_hookset.h"
 #include "gl_resources.h"
 
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align)
@@ -326,6 +326,74 @@ GLenum GetDataType(GLenum internalFormat)
 	RDCERR("Unhandled Data Type case!");
 
 	return eGL_NONE;
+}
+
+GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_RED:
+		case eGL_RG:
+		case eGL_RGB:
+		case eGL_RGBA:
+		case eGL_DEPTH_COMPONENT:
+		case eGL_DEPTH_STENCIL:
+			break;
+		default:
+			return internalFormat; // already explicitly sized
+	}
+	
+	GLint red, depth;
+	gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &red);
+	gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE, sizeof(GLint), &depth);
+
+	switch(internalFormat)
+	{
+		case eGL_RED:
+			if(red == 32)
+				return eGL_R32F;
+			else if(red == 16)
+				return eGL_R16;
+			else
+				return eGL_R8;
+		case eGL_RG:
+			if(red == 32)
+				return eGL_RG32F;
+			else if(red == 16)
+				return eGL_RG16;
+			else
+				return eGL_RG8;
+		case eGL_RGB:
+			if(red == 32)
+				return eGL_RGB32F;
+			else if(red == 16)
+				return eGL_RGB16;
+			else
+				return eGL_RGB8;
+		case eGL_RGBA:
+			if(red == 32)
+				return eGL_RGBA32F;
+			else if(red == 16)
+				return eGL_RGBA16;
+			else
+				return eGL_RGBA8;
+		case eGL_DEPTH_COMPONENT:
+			if(depth == 32)
+				return eGL_DEPTH_COMPONENT32F;
+			else if(depth == 16)
+				return eGL_DEPTH_COMPONENT16;
+			else
+				return eGL_DEPTH_COMPONENT24;
+		case eGL_DEPTH_STENCIL:
+			if(depth == 32)
+				return eGL_DEPTH32F_STENCIL8;
+			else
+				return eGL_DEPTH24_STENCIL8;
+		default:
+			break;
+	}
+
+	return internalFormat;
 }
 
 bool IsDepthStencilFormat(GLenum internalFormat)
