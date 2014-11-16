@@ -159,9 +159,14 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 		if(immut)
+		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
+		}
 		else
+		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&mips);
+			mips++;
+		}
 
 		gl.glBindTexture(details.curType, tex);
 
@@ -198,6 +203,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		}
 		
 		TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
+
+		RDCEraseMem(state, sizeof(TextureStateInitialData));
 		
 		{
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
@@ -726,9 +733,14 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 		if(immut)
+		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
+		}
 		else
+		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&mips);
+			mips++;
+		}
 
 		// copy over mips
 		for(int i=0; i < mips; i++)
