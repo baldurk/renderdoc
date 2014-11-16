@@ -93,13 +93,52 @@ void GLRenderState::FetchState()
 	m_Real->glActiveTexture(ActiveTexture);
 	
 	m_Real->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
-	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
-	{
-		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&VertexBuffers[i].Buffer);
+	
+	static int hackAMDBugVBBinding = -1;
 
-		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&VertexBuffers[i].Stride);
-		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&VertexBuffers[i].Offset);
-		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&VertexBuffers[i].Divisor);
+	if(hackAMDBugVBBinding == -1)
+	{
+		GLenum err = m_Real->glGetError();
+		while(err != eGL_NONE) err = m_Real->glGetError();
+		GLint dummy = 0;
+		m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
+		err = m_Real->glGetError();
+
+		hackAMDBugVBBinding = (err == eGL_NONE ? 0 : 1);
+
+		if(hackAMDBugVBBinding)
+			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
+	}
+
+	if(VAO != 0)
+	{
+		GLuint hackVAO = 0;
+		if(hackAMDBugVBBinding)
+		{
+			// create 'pass through' VAO so we can use GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING to fetch buffers
+			m_Real->glGenVertexArrays(1, &hackVAO);
+			m_Real->glBindVertexArray(hackVAO);
+			for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+				m_Real->glVertexAttribBinding(i, i);
+		}
+
+		for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+		{
+			if(hackAMDBugVBBinding)
+				m_Real->glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&VertexBuffers[i].Buffer);
+			else
+				m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&VertexBuffers[i].Buffer);
+
+			m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&VertexBuffers[i].Stride);
+			m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&VertexBuffers[i].Offset);
+			m_Real->glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&VertexBuffers[i].Divisor);
+		}
+
+		if(hackAMDBugVBBinding)
+		{
+			m_Real->glBindVertexArray(VAO);
+			m_Real->glDeleteVertexArrays(1, &hackVAO);
+		}
 	}
 	
 	// the spec says that you can only query for the format that was previously set, or you get
@@ -238,9 +277,11 @@ void GLRenderState::FetchState()
 	m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
 	
 	{
-		GLenum dummy[2];
-		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
-		// and back faces.
+		// This was listed in docs as enumeration[2] even though polygon mode can't be set independently for front
+		// and back faces for a while, so pass large enough array to be sure.
+		// AMD driver claims this doesn't exist anymore in core, so don't return any value, set to
+		// default GL_FILL to be safe
+		GLenum dummy[2] = { eGL_FILL, eGL_FILL };
 		m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
 		PolygonMode = dummy[0];
 	}
@@ -301,10 +342,13 @@ void GLRenderState::ApplyState()
 	m_Real->glActiveTexture(ActiveTexture);
 
 	m_Real->glBindVertexArray(VAO);
-	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+	if(VAO != 0)
 	{
-		m_Real->glBindVertexBuffer(i, VertexBuffers[i].Buffer, (GLintptr)VertexBuffers[i].Offset, (GLsizei)VertexBuffers[i].Stride);
-		m_Real->glVertexBindingDivisor(i, VertexBuffers[i].Divisor);
+		for(GLuint i=0; i < (GLuint)ARRAY_COUNT(VertexBuffers); i++)
+		{
+			m_Real->glBindVertexBuffer(i, VertexBuffers[i].Buffer, (GLintptr)VertexBuffers[i].Offset, (GLsizei)VertexBuffers[i].Stride);
+			m_Real->glVertexBindingDivisor(i, VertexBuffers[i].Divisor);
+		}
 	}
 	
 	// See FetchState(). The spec says that you have to SET the right format for the shader too,
