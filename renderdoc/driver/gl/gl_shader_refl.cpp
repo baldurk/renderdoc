@@ -766,7 +766,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 			// construct a parent variable
 			DynShaderConstant parentVar;
-			RDCEraseEl(parentVar);
 			parentVar.name = base;
 			parentVar.reg.vec = var.reg.vec;
 			parentVar.reg.comp = 0;
