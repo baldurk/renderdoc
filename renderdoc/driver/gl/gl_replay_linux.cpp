@@ -120,7 +120,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
 	attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
 
-	GLXContext ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
+	GLXContext ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], m_ReplayCtx.ctx, true, attribs);
 
 	if(ctx == NULL)
 	{
