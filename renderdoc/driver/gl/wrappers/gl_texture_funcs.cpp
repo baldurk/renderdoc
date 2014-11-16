@@ -1132,7 +1132,7 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = Target;
 			m_Textures[liveId].dimension = 1;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, target, IntFormat);
+			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
 		}
 
 		m_Real.glTextureImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Border, Format, Type, buf);
@@ -1250,7 +1250,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = Target;
 			m_Textures[liveId].dimension = 2;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, target, IntFormat);
+			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
 		}
 
 		m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Border, Format, Type, buf);
@@ -1369,7 +1369,7 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = Depth;
 			m_Textures[liveId].curType = Target;
 			m_Textures[liveId].dimension = 3;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, target, IntFormat);
+			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
 		}
 
 		m_Real.glTextureImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Depth, Border, Format, Type, buf);
