@@ -496,6 +496,45 @@ GLenum TextureBinding(GLenum target)
 	return eGL_NONE;
 }
 
+GLenum TextureTarget(GLenum target)
+{
+	switch(target)
+	{
+		case eGL_TEXTURE_BINDING_1D:
+			return eGL_TEXTURE_1D;
+		case eGL_TEXTURE_BINDING_1D_ARRAY:
+			return eGL_TEXTURE_1D_ARRAY;
+		case eGL_TEXTURE_BINDING_2D:
+			return eGL_TEXTURE_2D;
+		case eGL_TEXTURE_BINDING_2D_ARRAY:
+			return eGL_TEXTURE_2D_ARRAY;
+		case eGL_TEXTURE_BINDING_2D_MULTISAMPLE:
+			return eGL_TEXTURE_2D_MULTISAMPLE;
+		case eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY:
+			return eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+		case eGL_TEXTURE_BINDING_RECTANGLE:
+			return eGL_TEXTURE_RECTANGLE;
+		case eGL_TEXTURE_BINDING_3D:
+			return eGL_TEXTURE_3D;
+		case eGL_TEXTURE_BINDING_CUBE_MAP:
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+			return eGL_TEXTURE_CUBE_MAP;
+		case eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY:
+			return eGL_TEXTURE_CUBE_MAP_ARRAY;
+		case eGL_TEXTURE_BINDING_BUFFER:
+			return eGL_TEXTURE_BUFFER;
+		default:
+			break;
+	}
+
+	return target;
+}
+
 bool IsProxyTarget(GLenum target)
 {
 	switch(target)
