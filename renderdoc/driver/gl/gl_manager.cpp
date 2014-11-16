@@ -360,7 +360,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			GLuint prevtex = 0;
 			gl.glGetIntegerv(TextureBinding(details.curType), (GLint *)&prevtex);
 
-			gl.glBindTexture(TextureTarget(details.curType), res.name);
+			gl.glBindTexture(details.curType, res.name);
 			
 			int imgmips = 0;
 			GLint isComp = 0;
@@ -392,7 +392,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SERIALISE_ELEMENT(uint32_t, height, details.height);
 			SERIALISE_ELEMENT(uint32_t, depth, details.depth);
 			SERIALISE_ELEMENT(uint32_t, dim, details.dimension);
-			SERIALISE_ELEMENT(GLenum, t, TextureTarget(details.curType));
+			SERIALISE_ELEMENT(GLenum, t, details.curType);
 			SERIALISE_ELEMENT(GLenum, f, details.internalFormat);
 			SERIALISE_ELEMENT(int, mips, imgmips);
 			
