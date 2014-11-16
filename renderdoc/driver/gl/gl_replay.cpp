@@ -248,7 +248,8 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 
 	WrappedOpenGL &gl = *m_pDriver;
 
-	gl.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
+	// go directly to real function so we don't try to bind the 'fake' backbuffer FBO.
+	gl.m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
 	gl.glViewport(0, 0, outw.width, outw.height);
 	
 	gl.glUseProgram(DebugData.blitProg);
