@@ -144,7 +144,7 @@ void main(void)
 	else
 	{
 		// if only one channel is selected
-		if(dot(Channels, 1.0f.xxxx) == 1.0f.xxxx)
+		if(dot(Channels, 1.0f.xxxx) == 1.0f)
 		{
 			// if it's alpha, just move it into rgb
 			// otherwise, select the channel that's on and replicate it across all channels
