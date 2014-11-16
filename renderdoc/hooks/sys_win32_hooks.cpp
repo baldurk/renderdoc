@@ -25,6 +25,7 @@
 
 #include "core/core.h"
 #include "api/replay/renderdoc_replay.h"
+#include "common/string_utils.h"
 
 #include "hooks.h"
 
@@ -129,11 +130,42 @@ class SysHook : LibraryHook
 			{
 				RDCDEBUG("Intercepting CreateProcessA");
 
-				// inherit logfile and capture options
-				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
-										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+				bool inject = true;
 
-				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
+				// sanity check to make sure we're not going to go into an infinity loop injecting into ourselves.
+				if(lpApplicationName)
+				{
+					string app = lpApplicationName;
+					app = strlower(app);
+
+					if(app.find("renderdoccmd.exe") != string::npos ||
+					   app.find("renderdocui.vshost.exe") != string::npos ||
+					   app.find("renderdocui.exe") != string::npos)
+					{
+						inject = false;
+					}
+				}
+				if(lpCommandLine)
+				{
+					string cmd = lpCommandLine;
+					cmd = strlower(cmd);
+
+					if(cmd.find("renderdoccmd.exe") != string::npos ||
+					   cmd.find("renderdocui.vshost.exe") != string::npos ||
+					   cmd.find("renderdocui.exe") != string::npos)
+					{
+						inject = false;
+					}
+				}
+
+				if(inject)
+				{
+					// inherit logfile and capture options
+					uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+						RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+					RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
+				}
 			}
 
 			ResumeThread(lpProcessInformation->hThread);
@@ -185,11 +217,42 @@ class SysHook : LibraryHook
 			{
 				RDCDEBUG("Intercepting CreateProcessW");
 
-				// inherit logfile and capture options
-				uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
-										RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+				bool inject = true;
 
-				RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
+				// sanity check to make sure we're not going to go into an infinity loop injecting into ourselves.
+				if(lpApplicationName)
+				{
+					wstring app = lpApplicationName;
+					app = strlower(app);
+
+					if(app.find(L"renderdoccmd.exe") != wstring::npos ||
+					   app.find(L"renderdocui.vshost.exe") != wstring::npos ||
+					   app.find(L"renderdocui.exe") != wstring::npos)
+					{
+						inject = false;
+					}
+				}
+				if(lpCommandLine)
+				{
+					wstring cmd = lpCommandLine;
+					cmd = strlower(cmd);
+
+					if(cmd.find(L"renderdoccmd.exe") != wstring::npos ||
+					   cmd.find(L"renderdocui.vshost.exe") != wstring::npos ||
+					   cmd.find(L"renderdocui.exe") != wstring::npos)
+					{
+						inject = false;
+					}
+				}
+
+				if(inject)
+				{
+					// inherit logfile and capture options
+					uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+											RenderDoc::Inst().GetLogFile(), &RenderDoc::Inst().GetCaptureOptions(), false);
+
+					RenderDoc::Inst().AddChildProcess((uint32_t)lpProcessInformation->dwProcessId, ident);
+				}
 			}
 			
 			ResumeThread(lpProcessInformation->hThread);
