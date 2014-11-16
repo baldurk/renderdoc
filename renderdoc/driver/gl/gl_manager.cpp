@@ -368,9 +368,14 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 			if(immut)
+			{
 				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&imgmips);
+			}
 			else
+			{
 				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&imgmips);
+				imgmips++;
+			}
 			
 			TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
 

@@ -511,9 +511,9 @@ void GLReplay::CacheTexture(ResourceId id)
 	else
 	{
 		// assuming complete texture
-		GLint mips = 1;
+		GLint mips = 0;
 		gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &mips);
-		tex.mips = (uint32_t)mips;
+		tex.mips = (uint32_t)mips + 1;
 	}
 
 	tex.numSubresources = tex.mips*tex.arraysize;
