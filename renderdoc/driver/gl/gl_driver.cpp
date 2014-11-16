@@ -579,6 +579,21 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 			gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
 		}
 
+		if(gl.glGetIntegerv)
+		{
+			GLint mj = 0, mn = 0;
+			gl.glGetIntegerv(eGL_MAJOR_VERSION, &mj);
+			gl.glGetIntegerv(eGL_MINOR_VERSION, &mn);
+
+			int ver = mj*10 + mn;
+
+			if(ver > GLCoreVersion)
+			{
+				GLCoreVersion = ver;
+				UpdateExtensionSupport(gl);
+			}
+		}
+
 		FontData &font = m_Fonts[contextHandle];
 
 		if(!font.built)

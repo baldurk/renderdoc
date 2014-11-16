@@ -43,6 +43,32 @@ namespace TrackedResource
 	}
 };
 
+namespace ExtensionSupport
+{
+	static vector<string> extensions;
+};
+
+int GLCoreVersion = 0;
+
+void UpdateExtensionSupport(const GLHookSet &gl)
+{
+	ExtensionSupport::extensions.clear();
+	GLint numExts = 0;
+	gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
+	ExtensionSupport::extensions.resize(numExts);
+	for(int i=0; i < numExts; i++)
+		ExtensionSupport::extensions[i] = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
+}
+
+bool ExtensionSupported(const char *ext)
+{
+	for(size_t i=0; i < ExtensionSupport::extensions.size(); i++)
+		if(ExtensionSupport::extensions[i] == ext)
+			return true;
+
+	return false;
+}
+
 size_t BufferIdx(GLenum buf)
 {
 	switch(buf)

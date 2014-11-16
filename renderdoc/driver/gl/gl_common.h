@@ -82,6 +82,10 @@ GLenum ShaderEnum(size_t idx);
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 
+extern int GLCoreVersion;
+void UpdateExtensionSupport(const GLHookSet &gl);
+bool ExtensionSupported(const char *ext);
+
 #include "serialise/serialiser.h"
 #include "core/core.h"
 
