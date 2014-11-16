@@ -347,9 +347,11 @@ void GLReplay::CacheTexture(ResourceId id)
 	
 	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	
-	gl.glBindTexture(res.curType, res.resource.name);
+	GLenum target = TextureTarget(res.curType);
 
-	GLenum levelQueryType = res.curType;
+	gl.glBindTexture(target, res.resource.name);
+
+	GLenum levelQueryType = target;
 	if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
 		levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
@@ -382,7 +384,7 @@ void GLReplay::CacheTexture(ResourceId id)
 	tex.width = tex.height = tex.depth = tex.arraysize = 1;
 	tex.cubemap = false;
 
-	switch(res.curType)
+	switch(target)
 	{
 		case eGL_TEXTURE_1D:
 		case eGL_TEXTURE_BUFFER:
@@ -401,9 +403,9 @@ void GLReplay::CacheTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
-			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
-			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP);
-			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
+			tex.depth = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
+			tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP);
+			tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
 			break;
 		case eGL_TEXTURE_2D_ARRAY:
 		case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
@@ -411,10 +413,10 @@ void GLReplay::CacheTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
-			tex.depth = (res.curType == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
+			tex.depth = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.arraysize = depth;
-			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP_ARRAY);
-			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
+			tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP_ARRAY);
+			tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
 			break;
 		case eGL_TEXTURE_3D:
 			tex.dimension = 3;
@@ -425,7 +427,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 		default:
 			tex.dimension = 2;
-			RDCERR("Unexpected texture enum %hs", ToStr::Get(res.curType).c_str());
+			RDCERR("Unexpected texture enum %hs", ToStr::Get(target).c_str());
 	}
 	
 	tex.creationFlags = res.creationFlags;
@@ -438,7 +440,7 @@ void GLReplay::CacheTexture(ResourceId id)
 	GLint fmt = 0;
 	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
-	tex.format = MakeResourceFormat(gl, res.curType, (GLenum)fmt);
+	tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
 	
 	string str = "";
 	char name[128] = {0};
@@ -479,7 +481,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 	tex.name = widen(str);
 
-	if(res.curType == eGL_TEXTURE_BUFFER)
+	if(target == eGL_TEXTURE_BUFFER)
 	{
 		tex.dimension = 1;
 		tex.width = tex.height = tex.depth = 1;
@@ -499,18 +501,18 @@ void GLReplay::CacheTexture(ResourceId id)
 	}
 
 	GLint immut = 0;
-	gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+	gl.glGetTexParameteriv(target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 	
 	if(immut)
 	{
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
+		gl.glGetTexParameteriv(target, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
 		tex.mips = (uint32_t)immut;
 	}
 	else
 	{
 		// assuming complete texture
 		GLint mips = 1;
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_MAX_LEVEL, &mips);
+		gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &mips);
 		tex.mips = (uint32_t)mips;
 	}
 

@@ -353,7 +353,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			GLuint prevtex = 0;
 			gl.glGetIntegerv(TextureBinding(details.curType), (GLint *)&prevtex);
 
-			gl.glBindTexture(details.curType, res.name);
+			gl.glBindTexture(TextureTarget(details.curType), res.name);
 			
 			int imgmips = 0;
 			GLint isComp = 0;
@@ -380,7 +380,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SERIALISE_ELEMENT(uint32_t, height, details.height);
 			SERIALISE_ELEMENT(uint32_t, depth, details.depth);
 			SERIALISE_ELEMENT(uint32_t, dim, details.dimension);
-			SERIALISE_ELEMENT(GLenum, t, details.curType);
+			SERIALISE_ELEMENT(GLenum, t, TextureTarget(details.curType));
 			SERIALISE_ELEMENT(GLenum, f, details.internalFormat);
 			SERIALISE_ELEMENT(int, mips, imgmips);
 			
@@ -405,7 +405,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 					int count = ARRAY_COUNT(targets);
 						
-					if(details.curType != eGL_TEXTURE_CUBE_MAP)
+					if(t != eGL_TEXTURE_CUBE_MAP)
 					{
 						targets[0] = details.curType;
 						count = 1;
@@ -420,7 +420,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 						// cubemaps return the compressed image size for the whole texture, but we read it
 						// face by face
-						if(details.curType == eGL_TEXTURE_CUBE_MAP)
+						if(t == eGL_TEXTURE_CUBE_MAP)
 							size /= 6;
 
 						byte *buf = new byte[size];
@@ -461,9 +461,9 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 					int count = ARRAY_COUNT(targets);
 						
-					if(details.curType != eGL_TEXTURE_CUBE_MAP)
+					if(t != eGL_TEXTURE_CUBE_MAP)
 					{
-						targets[0] = details.curType;
+						targets[0] = t;
 						count = 1;
 					}
 
@@ -478,7 +478,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				delete[] buf;
 			}
 			
-			gl.glBindTexture(details.curType, prevtex);
+			gl.glBindTexture(t, prevtex);
 
 			gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
 
