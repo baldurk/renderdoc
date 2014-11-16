@@ -131,17 +131,19 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Query]);
 	m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING,            (GLint*)&BufferBindings[eBufIdx_Texture]);
 
-	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum start; GLenum size; } idxBufs[] =
+	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum start; GLenum size; GLenum maxcount; } idxBufs[] =
 	{
-		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER_BINDING, eGL_ATOMIC_COUNTER_BUFFER_START, eGL_ATOMIC_COUNTER_BUFFER_SIZE, },
-		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER_BINDING, eGL_SHADER_STORAGE_BUFFER_START, eGL_SHADER_STORAGE_BUFFER_SIZE, },
-		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, eGL_TRANSFORM_FEEDBACK_BUFFER_START, eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, },
-		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, eGL_UNIFORM_BUFFER_START, eGL_UNIFORM_BUFFER_SIZE, },
+		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER_BINDING, eGL_ATOMIC_COUNTER_BUFFER_START, eGL_ATOMIC_COUNTER_BUFFER_SIZE, eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, },
+		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER_BINDING, eGL_SHADER_STORAGE_BUFFER_START, eGL_SHADER_STORAGE_BUFFER_SIZE, eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, },
+		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, eGL_TRANSFORM_FEEDBACK_BUFFER_START, eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, },
+		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER_BINDING, eGL_UNIFORM_BUFFER_START, eGL_UNIFORM_BUFFER_SIZE, eGL_MAX_UNIFORM_BUFFER_BINDINGS, },
 	};
 
 	for(GLuint b=0; b < (GLuint)ARRAY_COUNT(idxBufs); b++)
 	{
-		for(int i=0; i < idxBufs[b].count; i++)
+		GLint maxCount = 0;
+		m_Real->glGetIntegerv(idxBufs[b].maxcount, &maxCount);
+		for(int i=0; i < idxBufs[b].count && i < maxCount; i++)
 		{
 			m_Real->glGetIntegeri_v(idxBufs[b].binding, i, (GLint*)&idxBufs[b].bufs[i].name);
 			m_Real->glGetInteger64i_v(idxBufs[b].start, i, (GLint64*)&idxBufs[b].bufs[i].start);
@@ -331,16 +333,19 @@ void GLRenderState::ApplyState()
 	m_Real->glBindBuffer(eGL_QUERY_BUFFER,              BufferBindings[eBufIdx_Query]);
 	m_Real->glBindBuffer(eGL_TEXTURE_BUFFER,            BufferBindings[eBufIdx_Texture]);
 
-	struct { IdxRangeBuffer *bufs; int count; GLenum binding; } idxBufs[] =
+	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum maxcount; } idxBufs[] =
 	{
-		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER, },
-		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER, },
-		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER, },
-		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER, },
+		{ AtomicCounter, ARRAY_COUNT(AtomicCounter), eGL_ATOMIC_COUNTER_BUFFER, eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, },
+		{ ShaderStorage, ARRAY_COUNT(ShaderStorage), eGL_SHADER_STORAGE_BUFFER, eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, },
+		{ TransformFeedback, ARRAY_COUNT(TransformFeedback), eGL_TRANSFORM_FEEDBACK_BUFFER, eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, },
+		{ UniformBinding, ARRAY_COUNT(UniformBinding), eGL_UNIFORM_BUFFER, eGL_MAX_UNIFORM_BUFFER_BINDINGS, },
 	};
 
 	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
-		for(int i=0; i < idxBufs[b].count; i++)
+	{
+		GLint maxCount = 0;
+		m_Real->glGetIntegerv(idxBufs[b].maxcount, &maxCount);
+		for(int i=0; i < idxBufs[b].count && i < maxCount; i++)
 		{
 			if(idxBufs[b].bufs[i].name == 0 ||
 					(idxBufs[b].bufs[i].start == 0 && idxBufs[b].bufs[i].size == 0)
@@ -349,6 +354,7 @@ void GLRenderState::ApplyState()
 			else
 				m_Real->glBindBufferRange(idxBufs[b].binding, i, idxBufs[b].bufs[i].name, (GLintptr)idxBufs[b].bufs[i].start, (GLsizeiptr)idxBufs[b].bufs[i].size);
 		}
+	}
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Blends); i++)
 	{
