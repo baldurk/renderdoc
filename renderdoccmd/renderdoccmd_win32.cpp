@@ -207,66 +207,22 @@ wstring GetUsername()
 	return username;
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 {
-	if(renderer == NULL) return;
+	HWND wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
+	                          CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720, NULL, NULL, hInstance, NULL);
 
-	HWND wnd = 0;
-
-	wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
-		NULL, NULL, hInstance, NULL);
-
-	if(wnd == NULL)
-	{
-		return;
-	}
+	if(wnd == NULL)	return;
 
 	ShowWindow(wnd, SW_SHOW);
 	UpdateWindow(wnd);
 
-	rdctype::array<FetchTexture> texs;
-	ReplayRenderer_GetTextures(renderer, &texs);
-
 	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, wnd);
 
-	ReplayRenderer_SetFrameEvent(renderer, 0, 10000000);
-
-	OutputConfig c;
-	c.m_Type = eOutputType_TexDisplay;
+	OutputConfig c = { eOutputType_TexDisplay };
 
 	ReplayOutput_SetOutputConfig(out, c);
-
-	for(int32_t i=0; i < texs.count; i++)
-	{
-		if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
-		{
-			TextureDisplay d;
-			d.texid = texs[i].ID;
-			d.mip = 0;
-			d.sampleIdx = ~0U;
-			d.overlay = eTexOverlay_None;
-			d.CustomShader = ResourceId();
-			d.HDRMul = -1.0f;
-			d.linearDisplayAsGamma = true;
-			d.FlipY = false;
-			d.rangemin = 0.0f;
-			d.rangemax = 1.0f;
-			d.scale = 1.0f;
-			d.offx = 0.0f;
-			d.offy = 0.0f;
-			d.sliceFace = 0;
-			d.rawoutput = false;
-			d.lightBackgroundColour = d.darkBackgroundColour = 
-				FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
-			d.Red = d.Green = d.Blue = true;
-			d.Alpha = false;
-
-			ReplayOutput_SetTextureDisplay(out, d);
-
-			break;
-		}
-	}
+	ReplayOutput_SetTextureDisplay(out, displayCfg);
 
 	MSG msg;
 	ZeroMemory(&msg, sizeof(msg));
@@ -281,13 +237,10 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 		}
 
 		// If the message is WM_QUIT, exit the while loop
-		if(msg.message == WM_QUIT)
-			break;
+		if(msg.message == WM_QUIT) break;
 
+		// set to random event beyond the end of the frame to ensure output is marked as dirty
 		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
-
-		ReplayOutput_SetOutputConfig(out, c);
-
 		ReplayOutput_Display(out);
 
 		Sleep(40);

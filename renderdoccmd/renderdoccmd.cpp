@@ -67,9 +67,48 @@ bool argequal(const wchar_t *a, const wchar_t *b)
 	return *a == 0 && *b == 0;
 }
 
-// defined in *_specific.cpp
-void DisplayRendererPreview(ReplayRenderer *renderer);
+// defined in platform .cpps
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg);
 wstring GetUsername();
+
+void DisplayRendererPreview(ReplayRenderer *renderer)
+{
+	if(renderer == NULL) return;
+
+	rdctype::array<FetchTexture> texs;
+	ReplayRenderer_GetTextures(renderer, &texs);
+	
+	TextureDisplay d;
+
+	for(int32_t i=0; i < texs.count; i++)
+	{
+		if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
+		{
+			d.texid = texs[i].ID;
+			d.mip = 0;
+			d.sampleIdx = ~0U;
+			d.overlay = eTexOverlay_None;
+			d.CustomShader = ResourceId();
+			d.HDRMul = -1.0f;
+			d.linearDisplayAsGamma = true;
+			d.FlipY = false;
+			d.rangemin = 0.0f;
+			d.rangemax = 1.0f;
+			d.scale = 1.0f;
+			d.offx = 0.0f;
+			d.offy = 0.0f;
+			d.sliceFace = 0;
+			d.rawoutput = false;
+			d.lightBackgroundColour = d.darkBackgroundColour = 
+				FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+			d.Red = d.Green = d.Blue = true;
+			d.Alpha = false;
+			break;
+		}
+	}
+
+	DisplayRendererPreview(renderer, d);
+}
 
 int renderdoccmd(int argc, wchar_t **argv)
 {

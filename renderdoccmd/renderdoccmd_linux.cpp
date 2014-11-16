@@ -28,6 +28,11 @@
 #include <locale.h>
 #include <iconv.h>
 
+#include <X11/X.h>
+#include <X11/keysym.h>
+#include <X11/Xlib.h>
+#include <GL/glx.h>
+
 #include <unistd.h>
 
 #include <replay/renderdoc_replay.h>
@@ -42,11 +47,76 @@ wstring GetUsername()
 	return wstring(buf, buf+strlen(buf));
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer)
+void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 {
-	if(renderer == NULL) return;
+	Display *dpy = XOpenDisplay(NULL);
 
-	// TODO!
+	if(dpy == NULL) return;
+
+	static int visAttribs[] = { 
+		GLX_X_RENDERABLE, True,
+		GLX_DRAWABLE_TYPE, GLX_WINDOW_BIT,
+		GLX_RENDER_TYPE, GLX_RGBA_BIT,
+		GLX_X_VISUAL_TYPE, GLX_TRUE_COLOR,
+		GLX_RED_SIZE, 8,
+		GLX_GREEN_SIZE, 8,
+		GLX_BLUE_SIZE, 8,
+		GLX_ALPHA_SIZE, 8,
+		GLX_DOUBLEBUFFER, True,
+		0
+	};
+	int numCfgs = 0;
+	GLXFBConfig *fbcfg = glXChooseFBConfig(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+
+	if(fbcfg == NULL)
+	{
+		XCloseDisplay(dpy);
+		return;
+	}
+
+	XVisualInfo *vInfo = glXGetVisualFromFBConfig(dpy, fbcfg[0]);
+
+	XSetWindowAttributes swa = {0};
+	swa.event_mask = StructureNotifyMask;
+	swa.colormap = XCreateColormap(dpy, RootWindow(dpy, vInfo->screen), vInfo->visual, AllocNone);
+
+	Window win = XCreateWindow(dpy, RootWindow(dpy, vInfo->screen), 200, 200, 1280, 720,
+	                           0, vInfo->depth, InputOutput, vInfo->visual,
+	                           CWBorderPixel | CWColormap | CWEventMask, &swa);
+
+	XStoreName(dpy, win, "renderdoccmd");
+	XMapWindow(dpy, win);
+
+	GLXWindow glwnd = glXCreateWindow(dpy, fbcfg[0], win, NULL);
+
+	void *displayAndDrawable[] = { (void *)dpy, (void *)glwnd };
+
+	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, displayAndDrawable);
+
+	OutputConfig c = { eOutputType_TexDisplay };
+
+	ReplayOutput_SetOutputConfig(out, c);
+	ReplayOutput_SetTextureDisplay(out, displayCfg);
+
+	bool done = false;
+	while(!done)
+	{
+		while(XPending(dpy) > 0)
+		{
+			XEvent event = {0};
+			XNextEvent(dpy, &event);
+			switch(event.type)
+			{
+				case ButtonPress: done = true;
+				default:          break;
+			}
+		}
+
+		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+		ReplayOutput_Display(out);
+
+		usleep(40000);
+	}
 }
 
 // symbol defined in libGL but not librenderdoc.
