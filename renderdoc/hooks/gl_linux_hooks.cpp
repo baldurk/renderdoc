@@ -49,7 +49,7 @@ typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *even
 void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
 #define HookInit(function) \
-	GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function));
+	if(GL.function == NULL) GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function));
 
 #define HookExtension(funcPtrType, function) \
 	if(!strcmp(func, STRINGIZE(function))) \
@@ -239,6 +239,8 @@ class OpenGLHook : LibraryHook
 		{
 			LibraryHooks::GetInstance().RegisterHook("libGL.so", this);
 			
+			RDCEraseEl(GL);
+
 			// TODO: need to check against implementation to ensure we don't claim to support
 			// an extension that it doesn't!
 
@@ -261,8 +263,6 @@ class OpenGLHook : LibraryHook
 
 		bool CreateHooks(const char *libName)
 		{
-			RDCEraseEl(GL);
-
 			if(!m_EnabledHooks)
 				return false;
 
@@ -488,8 +488,6 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 	if(glXGetConfig_real == NULL)               glXGetConfig_real = (PFNGLXGETCONFIGPROC)dlsym(libGLdlsymHandle, "glXGetConfig");
 	if(glXGetVisualFromFBConfig_real == NULL)   glXGetVisualFromFBConfig_real = (PFNGLXGETVISUALFROMFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXGetVisualFromFBConfig");
 	if(glXQueryExtension_real == NULL)               glXQueryExtension_real = (PFNGLXQUERYEXTENSIONPROC)dlsym(libGLdlsymHandle, "glXQueryExtension");
-	
-	DLLExportHooks();
 
 	return success;
 }
@@ -571,7 +569,7 @@ bool OpenGLHook::PopulateHooks()
 	glXGetProcAddress_real((const GLubyte *)"glXCreateContextAttribsARB");
 	
 #undef HookInit
-#define HookInit(function) if(GL.function == NULL) GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, "glXGetProcAddress");
+#define HookInit(function) if(GL.function == NULL) { GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); glXGetProcAddress((const GLubyte *)STRINGIZE(function)); }
 	
 	// cheeky
 #undef HookExtension
