@@ -232,8 +232,8 @@ class RenderDoc
 
 		void Tick();
 
-		void AddFrameCapturer(void *wnd, IFrameCapturer *cap) { if(wnd != NULL && cap != NULL) m_WindowFrameCapturers[wnd] = cap; }
-		void RemoveFrameCapturer(void *wnd) { m_WindowFrameCapturers.erase(wnd); }
+		void AddFrameCapturer(void *wnd, IFrameCapturer *cap);
+		void RemoveFrameCapturer(void *wnd);
 		
 		void StartFrameCapture(void *wnd);
 		void SetActiveWindow(void *wnd);
@@ -306,7 +306,14 @@ class RenderDoc
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
 		map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
-		map<void*, IFrameCapturer*> m_WindowFrameCapturers;
+		struct FrameCap
+		{
+			FrameCap() : FrameCapturer(NULL), RefCount(1) {}
+			IFrameCapturer *FrameCapturer;
+			int RefCount;
+		};
+
+		map<void*, FrameCap> m_WindowFrameCapturers;
 
 		volatile bool m_RemoteServerThreadShutdown;
 		volatile bool m_RemoteClientThreadShutdown;

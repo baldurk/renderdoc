@@ -282,7 +282,7 @@ void RenderDoc::StartFrameCapture(void *wnd)
 		return;
 	}
 
-	it->second->StartFrameCapture(wnd);
+	it->second.FrameCapturer->StartFrameCapture(wnd);
 }
 
 void RenderDoc::SetActiveWindow(void *wnd)
@@ -294,7 +294,7 @@ void RenderDoc::SetActiveWindow(void *wnd)
 		return;
 	}
 
-	it->second->SetActiveWindow(wnd);
+	it->second.FrameCapturer->SetActiveWindow(wnd);
 }
 
 bool RenderDoc::EndFrameCapture(void *wnd)
@@ -306,7 +306,7 @@ bool RenderDoc::EndFrameCapture(void *wnd)
 		return false;
 	}
 
-	return it->second->EndFrameCapture(wnd);
+	return it->second.FrameCapturer->EndFrameCapture(wnd);
 }
 
 void RenderDoc::Tick()
@@ -659,5 +659,43 @@ void RenderDoc::SuccessfullyWrittenLog()
 	{
 		SCOPED_LOCK(m_CaptureLock);
 		m_Captures.push_back(cap);
+	}
+}
+
+void RenderDoc::AddFrameCapturer(void *wnd, IFrameCapturer *cap)
+{
+	if(wnd == NULL || cap == NULL)
+	{
+		RDCERR("Invalid FrameCapturer combination: %#p / %#p", wnd, cap);
+		return;
+	}
+	
+	auto it = m_WindowFrameCapturers.find(wnd);
+	if(it != m_WindowFrameCapturers.end())
+	{
+		if(it->second.FrameCapturer != cap)
+			RDCERR("New different FrameCapturer being registered for known window!");
+
+		it->second.RefCount++;
+	}
+	else
+	{
+		m_WindowFrameCapturers[wnd].FrameCapturer = cap;
+	}
+}
+
+void RenderDoc::RemoveFrameCapturer(void *wnd)
+{
+	auto it = m_WindowFrameCapturers.find(wnd);
+	if(it != m_WindowFrameCapturers.end())
+	{
+		it->second.RefCount--;
+
+		if(it->second.RefCount <= 0)
+			m_WindowFrameCapturers.erase(it);
+	}
+	else
+	{
+		RDCERR("Removing FrameCapturer for unknown window!");
 	}
 }
