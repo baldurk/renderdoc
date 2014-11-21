@@ -3482,6 +3482,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		return history;
 
 	details.texFmt = GetNonSRGBFormat(details.texFmt);
+	details.texFmt = GetTypedFormat(details.texFmt);
 	
 	SCOPED_TIMER("D3D11DebugManager::PixelHistory");
 
