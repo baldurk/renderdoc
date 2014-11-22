@@ -367,7 +367,9 @@
     <ClCompile Include="replay\replay_output.cpp" />
     <ClCompile Include="replay\replay_renderer.cpp" />
     <ClCompile Include="replay\type_helpers.cpp" />
+    <ClCompile Include="serialise\grisu2.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
+    <ClCompile Include="serialise\utf8printf.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc" />

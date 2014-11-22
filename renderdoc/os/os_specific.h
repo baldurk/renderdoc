@@ -202,19 +202,30 @@ namespace Keyboard
 	bool GetKeyState(int key);
 };
 
+// implemented per-platform
 namespace StringFormat
 {
-	int snprintf(char *str, size_t bufSize, const char *format, ...);
-	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...);
-	int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
 	void sntimef(char *str, size_t bufSize, const char *format);
-	void wcsncpy(wchar_t *dst, const wchar_t *src, size_t count);
 
+	// forwards to vsnprintf below, needed to be here due to va_copy differences
 	string Fmt(const char *format, ...);
-	wstring WFmt(const wchar_t *format, ...);
 
 	string Wide2UTF8(const wstring &s);
 	wstring UTF82Wide(const string &s);
+
+	// TODO remove
+	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...);
+	wstring WFmt(const wchar_t *format, ...);
+};
+
+// utility functions, implemented in os_specific.cpp, not per-platform (assuming standard stdarg.h)
+// forwarded to custom printf implementation in utf8printf.cpp
+namespace StringFormat
+{
+	int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
+	int snprintf(char *str, size_t bufSize, const char *format, ...);
+
+	int Wide2UTF8(wchar_t chr, char mbchr[4]);
 };
 
 namespace OSUtility

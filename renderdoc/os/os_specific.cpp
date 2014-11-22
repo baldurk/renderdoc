@@ -26,7 +26,72 @@
 #include "os/os_specific.h"
 #include "common/string_utils.h"
 
+#include <stdarg.h>
+
 using std::string;
+
+int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args);
+
+namespace StringFormat
+{
+
+int snprintf(char *str, size_t bufSize, const char *fmt, ...)
+{
+	va_list args;
+	va_start(args, fmt);
+
+	int ret = StringFormat::vsnprintf(str, bufSize, fmt, args);
+
+	va_end(args);
+
+	return ret;
+}
+
+int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
+{
+	return ::utf8printf(str, bufSize, format, args);
+}
+
+int Wide2UTF8(wchar_t chr, char mbchr[4])
+{
+	//U+00000 -> U+00007F 1 byte  0xxxxxxx
+	//U+00080 -> U+0007FF 2 bytes 110xxxxx 10xxxxxx
+	//U+00800 -> U+00FFFF 3 bytes 1110xxxx 10xxxxxx 10xxxxxx
+	//U+10000 -> U+1FFFFF 4 bytes 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+	if(chr > 0x10FFFF)
+		chr = 0xFFFD; // replacement character
+
+	if(chr <= 0x7f)
+	{
+		mbchr[0] = (char)chr;
+		return 1;
+	}
+	else if(chr <= 0x7ff)
+	{
+		mbchr[1] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[0] = 0xC0 | (char)(chr & 0x1f);
+		return 2;
+	}
+	else if(chr <= 0xffff)
+	{
+		mbchr[2] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[1] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[0] = 0xE0 | (char)(chr & 0x0f);chr >>= 4;
+		return 3;
+	}
+	else
+	{
+		// invalid codepoints above 0x10FFFF were replaced above
+		mbchr[3] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[2] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[1] = 0x80 | (char)(chr & 0x3f);chr >>= 6;
+		mbchr[0] = 0xF0 | (char)(chr & 0x07);chr >>= 3;
+		return 4;
+	}
+}
+
+}; // namespace StringFormat
 
 wstring Callstack::AddressDetails::formattedString(const char *commonPath)
 {

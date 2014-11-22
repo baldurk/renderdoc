@@ -85,6 +85,9 @@
     <Filter Include="3rdparty\lz4">
       <UniqueIdentifier>{043f5a32-683e-4b56-bcc6-512444b40d70}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Common\Strings">
+      <UniqueIdentifier>{ce0b860f-38b7-48af-b49d-7dcb23378f82}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -523,6 +526,12 @@
     </ClCompile>
     <ClCompile Include="driver\d3d11\d3d11_context2_wrap.cpp">
       <Filter>Drivers\D3D11</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\grisu2.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\utf8printf.cpp">
+      <Filter>Common\Strings</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

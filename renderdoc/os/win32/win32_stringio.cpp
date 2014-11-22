@@ -265,68 +265,16 @@ namespace FileIO
 
 namespace StringFormat
 {
-	int snprintf(char *str, size_t bufSize, const char *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
-
-		int ret = vsnprintf(str, bufSize, fmt, args);
-
-		va_end(args);
-
-		return ret;
-	}
-	
+	///////////////////////////////////////////////////////////////////////////
 	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...)
 	{
 		va_list args;
 		va_start(args, format);
 
-		int ret =  ::_vsnwprintf_s(str, bufSize, bufSize, format, args);
+		int ret =  ::_vsnwprintf_s(str, bufSize, bufSize-1, format, args);
 
 		va_end(args);
 
-		return ret;
-	}
-
-	int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
-	{
-		return ::vsnprintf_s(str, bufSize, bufSize, format, args);
-	}
-
-	void sntimef(char *str, size_t bufSize, const char *format)
-	{
-		time_t tim;
-		time(&tim);
-
-		tm tmv;
-		localtime_s(&tmv, &tim);
-
-		strftime(str, bufSize, format, &tmv);
-	}
-
-	void wcsncpy(wchar_t *dst, const wchar_t *src, size_t count)
-	{
-		::wcsncpy_s(dst, count, src, count);
-	}
-
-	string Fmt(const char *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		int size = _vscprintf(format, args)+1;
-
-		char *buf = new char[size];
-
-		StringFormat::vsnprintf(buf, size, format, args);
-
-		va_end(args);
-
-		string ret = buf;
-
-		delete[] buf;
-		
 		return ret;
 	}
 
@@ -344,6 +292,44 @@ namespace StringFormat
 		va_end(args);
 
 		wstring ret = buf;
+
+		delete[] buf;
+		
+		return ret;
+	}
+	///////////////////////////////////////////////////////////////////////////
+	
+	void sntimef(char *str, size_t bufSize, const char *format)
+	{
+		time_t tim;
+		time(&tim);
+
+		tm tmv;
+		localtime_s(&tmv, &tim);
+
+		strftime(str, bufSize, format, &tmv);
+	}
+		
+	string Fmt(const char *format, ...)
+	{
+		va_list args;
+		va_start(args, format);
+
+		va_list args2;
+		//va_copy(args2, args); // not implemented on VS2010
+		args2 = args;
+
+		int size = StringFormat::vsnprintf(NULL, 0, format, args2);
+
+		char *buf = new char[size+1];
+		buf[size] = 0;
+
+		StringFormat::vsnprintf(buf, size, format, args);
+
+		va_end(args);
+		va_end(args2);
+
+		string ret = buf;
 
 		delete[] buf;
 		
