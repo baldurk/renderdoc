@@ -267,6 +267,35 @@ void rdclog_flush()
 {
 }
 
+void rdclogprint_int(const char *str)
+{
+	static Threading::CriticalSection lock;
+
+	SCOPED_LOCK(lock);
+
+#if defined(OUTPUT_LOG_TO_DEBUG_OUT)
+	OSUtility::WriteOutput(OSUtility::Output_DebugMon, str);
+#endif
+#if defined(OUTPUT_LOG_TO_STDOUT)
+	OSUtility::WriteOutput(OSUtility::Output_StdOut, str);
+#endif
+#if defined(OUTPUT_LOG_TO_STDERR)
+	OSUtility::WriteOutput(OSUtility::Output_StdErr, str);
+#endif
+#if defined(OUTPUT_LOG_TO_DISK)
+	if(!logfile().empty())
+	{
+		FILE *f = FileIO::fopen(logfile().c_str(), L"a");
+		if(f)
+		{
+			// strlen used as byte length - str is UTF-8 so this is NOT number of characters
+			FileIO::fwrite(str, 1, strlen(str), f);
+			FileIO::fclose(f);
+		}
+	}
+#endif
+}
+
 void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...)
 {
 	if(type <= RDCLog_First || type >= RDCLog_NumTypes)
@@ -307,7 +336,7 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 	char *output = outputBuffer;
 	size_t available = outBufSize;
 	
-	int numWritten = StringFormat::snprintf(output, available, "%hs %hs%hs%hs - ", name, timestamp, location, typestr[type]);
+	int numWritten = StringFormat::snprintf(output, available, "%s %s%s%s - ", name, timestamp, location, typestr[type]);
 
 	if(numWritten < 0)
 	{
@@ -333,31 +362,6 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 
 	*output = '\n';
 	*(output+1) = 0;
-	
-	{
-		static Threading::CriticalSection lock;
 
-		SCOPED_LOCK(lock);
-
-#if defined(OUTPUT_LOG_TO_DEBUG_OUT)
-		OSUtility::DebugOutputA(outputBuffer);
-#endif
-#if defined(OUTPUT_LOG_TO_STDOUT)
-		fprintf(stdout, "%hs", outputBuffer); fflush(stdout);
-#endif
-#if defined(OUTPUT_LOG_TO_STDERR)
-		fprintf(stderr, "%hs", outputBuffer); fflush(stderr);
-#endif
-#if defined(OUTPUT_LOG_TO_DISK)
-		if(!logfile().empty())
-		{
-			FILE *f = FileIO::fopen(logfile().c_str(), L"a");
-			if(f)
-			{
-				FileIO::fwrite(outputBuffer, 1, strlen(outputBuffer), f);
-				FileIO::fclose(f);
-			}
-		}
-#endif
-	}
+	rdclogprint_int(outputBuffer);
 }

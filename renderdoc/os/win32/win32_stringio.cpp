@@ -389,3 +389,17 @@ namespace StringFormat
 	}
 };
 
+namespace OSUtility
+{
+	void WriteOutput(int channel, const char *str)
+	{
+		wstring wstr = StringFormat::UTF82Wide(string(str));
+
+		if(channel == OSUtility::Output_DebugMon)
+			OutputDebugStringW(wstr.c_str());
+		else if(channel == OSUtility::Output_StdOut)
+			fwprintf(stdout, L"%ls", wstr.c_str());
+		else if(channel == OSUtility::Output_StdErr)
+			fwprintf(stderr, L"%ls", wstr.c_str());
+	}
+};

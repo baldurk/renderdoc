@@ -40,7 +40,7 @@ namespace OSUtility
 	inline void ForceCrash() { *((int *)NULL) = 0; }
 	inline void DebugBreak() { __debugbreak(); }
 	inline bool DebuggerPresent() { return ::IsDebuggerPresent() == TRUE; }
-	inline void DebugOutputA(const char *str) { OutputDebugStringA(str); }
+	void WriteOutput(int channel, const char *str);
 };
 
 namespace Threading

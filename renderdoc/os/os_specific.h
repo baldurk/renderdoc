@@ -233,12 +233,14 @@ namespace OSUtility
 	inline void ForceCrash();
 	inline void DebugBreak();
 	inline bool DebuggerPresent();
-	inline void DebugOutputA(const char *str);
+	enum { Output_DebugMon, Output_StdOut, Output_StdErr };
+	void WriteOutput(int channel, const char *str);
 };
 
 // must #define:
 // __PRETTY_FUNCTION_SIGNATURE__ - undecorated function signature
 // GetEmbeddedResource(name_with_underscores_ext) - function/inline that returns the given file in a std::string
+// OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to preserve callstacks
 
 #ifdef RENDERDOC_PLATFORM
 // "win32_specific.h" (in directory os/)

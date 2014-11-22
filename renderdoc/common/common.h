@@ -125,8 +125,16 @@ enum LogType
 #define RDCWARN(...) do { } while(0)
 #define RDCERR(...) do { } while(0)
 #define RDCFATAL(...) do { RDCDUMP(); exit(0); } while(0)
+#define RDCDUMPMSG(message) do { RDCDUMP(); exit(0); } while(0)
 #else
+// perform any operations necessary to flush the log
 void rdclog_flush();
+
+// actual low-level print to log output streams defined (useful for if we need to print
+// fatal error messages from within the more complex log function).
+void rdclogprint_int(const char *str);
+
+// printf() style main logger function
 void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...);
 
 #define rdclog(type, ...) rdclog_int(type, __FILE__, __LINE__, __VA_ARGS__)
@@ -155,6 +163,7 @@ void rdclog_delete();
 #endif
 
 #define RDCFATAL(...) do { rdclog(RDCLog_Fatal, __VA_ARGS__); rdclog_flush(); RDCDUMP(); exit(0); } while(0)
+#define RDCDUMPMSG(message) do { rdclogprint_int(message); rdclog_flush(); RDCDUMP(); exit(0); } while(0)
 #endif
 
 //
