@@ -1658,13 +1658,20 @@ namespace renderdocui.Windows
 
         private void ScrollToRow(DataGridView view, int r)
         {
-            int row = Math.Max(0, Math.Min(r, view.RowCount - 1));
-
-            if (row < view.RowCount)
+            try
             {
-                view.FirstDisplayedScrollingRowIndex = row;
-                view.ClearSelection();
-                view.Rows[row].Selected = true;
+                int row = Math.Max(0, Math.Min(r, view.RowCount - 1));
+
+                if (row < view.RowCount)
+                {
+                    view.FirstDisplayedScrollingRowIndex = row;
+                    view.ClearSelection();
+                    view.Rows[row].Selected = true;
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                // this can happen when the window is too small, all we can do is ignore it.
             }
         }
 
