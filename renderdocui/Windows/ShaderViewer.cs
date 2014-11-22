@@ -1468,7 +1468,7 @@ namespace renderdocui.Windows
 
         private void watchRegs_AfterLabelEdit(object sender, LabelEditEventArgs e)
         {
-            if (e.Label.Length == 0 && e.Item < watchRegs.Items.Count - 1)
+            if ((e.Label == null || e.Label.Length == 0) && e.Item < watchRegs.Items.Count - 1)
                 watchRegs.Items.RemoveAt(e.Item);
             else if (e.Label != null && e.Label.Length > 0 && e.Item == watchRegs.Items.Count - 1)
                 watchRegs.Items.Add(new ListViewItem(new string[] { "", "", "" }));
