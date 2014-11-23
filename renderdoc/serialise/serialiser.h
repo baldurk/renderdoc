@@ -41,7 +41,6 @@
 #include <set>
 using std::set;
 using std::string;
-using std::wstring;
 
 // template helpers
 template <class T>
@@ -172,7 +171,7 @@ class Serialiser
 		// Init and error handling
 
 		Serialiser(size_t length, const byte *memoryBuf, bool fileheader);
-		Serialiser(const wchar_t *path, Mode mode, bool debugMode = false);
+		Serialiser(const char *path, Mode mode, bool debugMode = false);
 		~Serialiser();
 
 		bool HasError() { return m_HasError; }
@@ -365,7 +364,7 @@ class Serialiser
 			if(name != NULL && m_DebugTextWriting)
 			{
 				for(size_t i=0; i < Num; i++)
-					DebugPrint("%hs[%d] = %hs\n", name, i, ToStr::Get<T>(el[i]).c_str());
+					DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
 			}
 		}
 
@@ -382,7 +381,7 @@ class Serialiser
 			}
 			
 			if(name != NULL && m_DebugTextWriting)
-				DebugPrint("%hs: %hs\n", name, ToStr::Get<T>(el).c_str());
+				DebugPrint("%s: %s\n", name, ToStr::Get<T>(el).c_str());
 		}
 
 		template<typename X>
@@ -424,14 +423,6 @@ class Serialiser
 				for(int32_t i=0; i < sz; i++)
 					Serialise("", el.elems[i]);
 			}
-		}
-		
-		void Serialise(const char *name, rdctype::wstr &el)
-		{
-			wstring str;
-			if(m_Mode == WRITING && el.elems != NULL) str = el.elems;
-			SerialiseString(name, str);
-			if(m_Mode == READING) el = str;
 		}
 		
 		void Serialise(const char *name, rdctype::str &el)
@@ -489,7 +480,6 @@ class Serialiser
 
 		// not sure if I still neeed these specialisations anymore.
 		void SerialiseString(const char *name, string &el);
-		void SerialiseString(const char *name, wstring &el);
 
 		// serialise a buffer. 
 		//
@@ -709,7 +699,7 @@ class Serialiser
 		Threading::ThreadHandle m_ResolverThread;
 		volatile bool m_ResolverThreadKillSignal;
 
-		wstring m_Filename;
+		string m_Filename;
 
 		// raw binary buffer
 		uint64_t m_BufferSize;
@@ -750,7 +740,6 @@ class Serialiser
 };
 
 template<> void Serialiser::Serialise(const char *name, string &el);
-template<> void Serialiser::Serialise(const char *name, wstring &el);
 
 // floats need aligned reads
 template<> void Serialiser::ReadInto(float &f);

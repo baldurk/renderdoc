@@ -26,7 +26,7 @@
 #include "common/common.h"				// only dependencies are RDCASSERT, so this code is easy to detach from RenderDoc
 #include "dxbc_inspect.h"
 #include "dxbc_disassemble.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include <d3d11shader.h>
 
@@ -502,7 +502,7 @@ void DXBCFile::MakeDisassembly()
 						}
 						else
 						{
-							RDCWARN("Couldn't find filename '%hs' in #line directive in debug info", filename);
+							RDCWARN("Couldn't find filename '%s' in #line directive in debug info", filename);
 
 							// make a dummy file to write into that won't be used.
 							fileNames.push_back(filename);
@@ -605,7 +605,7 @@ void DXBCFile::MakeDisassembly()
 					m_Disassembly += "      "; // "0000: "
 					for(int in=0; in < indent; in++)
 						m_Disassembly += "  ";
-					m_Disassembly += StringFormat::Fmt("%hs:%d\n", m_DebugInfo->Files[fileID].first.c_str(), lineNum+1);
+					m_Disassembly += StringFormat::Fmt("%s:%d\n", m_DebugInfo->Files[fileID].first.c_str(), lineNum+1);
 				}
 
 				if(line != "")

@@ -138,34 +138,4 @@ struct str : public rdctype::array<char>
 	}
 };
 
-struct wstr : public rdctype::array<wchar_t>
-{
-	wstr &operator =(const std::wstring &in);
-	wstr &operator =(const wchar_t *const in);
-	
-	wstr() : rdctype::array<wchar_t>() {}
-	wstr(const wstr &o) { elems = 0; count = 0; *this = o; }
-	wstr &operator =(const wstr &o)
-	{
-		// do nothing if we're self-assigning
-		if(this == &o) return *this;
-
-		Delete();
-		count = o.count;
-		if(count == 0)
-		{
-			elems = (wchar_t*)allocate(sizeof(wchar_t));
-			elems[0] = 0;
-		}
-		else
-		{
-			elems = (wchar_t*)allocate(sizeof(wchar_t)*(o.count+1));
-			memcpy(elems, o.elems, sizeof(wchar_t)*o.count);
-			elems[count] = 0;
-		}
-
-		return *this;
-	}
-};
-
 }; // namespace rdctype

@@ -27,7 +27,7 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 GLReplay::GLReplay()
 {
@@ -326,7 +326,7 @@ void GLReplay::CacheTexture(ResourceId id)
 		if(res.resource.Namespace == eResUnknown)
 			RDCERR("Details for invalid texture id %llu requested", id);
 
-		tex.name = L"<Uninitialised Texture>";
+		tex.name = "<Uninitialised Texture>";
 		tex.customName = false;
 		tex.format = ResourceFormat();
 		tex.dimension = 1;
@@ -428,7 +428,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 		default:
 			tex.dimension = 2;
-			RDCERR("Unexpected texture enum %hs", ToStr::Get(target).c_str());
+			RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
 	}
 	
 	tex.creationFlags = res.creationFlags;
@@ -480,7 +480,7 @@ void GLReplay::CacheTexture(ResourceId id)
 		}
 	}
 
-	tex.name = widen(str);
+	tex.name = str;
 
 	if(target == eGL_TEXTURE_BUFFER)
 	{
@@ -597,7 +597,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 		case eGL_COPY_WRITE_BUFFER:
 			break;
 		default:
-			RDCERR("Unexpected buffer type %hs", ToStr::Get(res.curType).c_str());
+			RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str());
 	}
 
 	GLint size;
@@ -623,7 +623,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 		str = StringFormat::Fmt("Buffer %llu", ret.ID);
 	}
 
-	ret.name = widen(str);
+	ret.name = str;
 
 	return ret;
 }
@@ -769,15 +769,15 @@ void GLReplay::SavePipelineState()
 			break;
 		case eGL_UNSIGNED_BYTE:
 			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 1;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_BYTE";
+			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_BYTE";
 			break;
 		case eGL_UNSIGNED_SHORT:
 			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 2;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_SHORT";
+			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_SHORT";
 			break;
 		case eGL_UNSIGNED_INT:
 			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 4;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_INT";
+			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_INT";
 			break;
 	}
 
@@ -831,68 +831,68 @@ void GLReplay::SavePipelineState()
 			case eGL_BYTE:
 				fmt.compByteWidth = 1;
 				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_BYTE%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
+				fmt.strname = StringFormat::Fmt("GL_BYTE%d", fmt.compCount) + (normalized ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_BYTE:
 				fmt.compByteWidth = 1;
 				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_BYTE%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount) + (normalized ? "" : "_UNORM");
 				break;
 			case eGL_SHORT:
 				fmt.compByteWidth = 2;
 				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_SHORT%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
+				fmt.strname = StringFormat::Fmt("GL_SHORT%d", fmt.compCount) + (normalized ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_SHORT:
 				fmt.compByteWidth = 2;
 				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_SHORT%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount) + (normalized ? "" : "_UNORM");
 				break;
 			case eGL_INT:
 				fmt.compByteWidth = 4;
 				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_INT%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
+				fmt.strname = StringFormat::Fmt("GL_INT%d", fmt.compCount) + (normalized ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_INT:
 				fmt.compByteWidth = 4;
 				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_INT%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount) + (normalized ? "" : "_UNORM");
 				break;
 			case eGL_FLOAT:
 				fmt.compByteWidth = 4;
 				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::WFmt(L"GL_FLOAT%d", fmt.compCount);
+				fmt.strname = StringFormat::Fmt("GL_FLOAT%d", fmt.compCount);
 				break;
 			case eGL_DOUBLE:
 				fmt.compByteWidth = 8;
 				fmt.compType = eCompType_Double;
-				fmt.strname = StringFormat::WFmt(L"GL_DOUBLE%d", fmt.compCount);
+				fmt.strname = StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount);
 				break;
 			case eGL_HALF_FLOAT:
 				fmt.compByteWidth = 2;
 				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::WFmt(L"GL_HALF_FLOAT%d", fmt.compCount);
+				fmt.strname = StringFormat::Fmt("GL_HALF_FLOAT%d", fmt.compCount);
 				break;
 			case eGL_INT_2_10_10_10_REV:
 				fmt.special = true;
 				fmt.specialFormat = eSpecial_R10G10B10A2;
 				fmt.compCount = 4;
 				fmt.compType = eCompType_UInt;
-				fmt.strname = L"GL_INT_2_10_10_10_REV";
+				fmt.strname = "GL_INT_2_10_10_10_REV";
 				break;
 			case eGL_UNSIGNED_INT_2_10_10_10_REV:
 				fmt.special = true;
 				fmt.specialFormat = eSpecial_R10G10B10A2;
 				fmt.compCount = 4;
 				fmt.compType = eCompType_SInt;
-				fmt.strname = L"eGL_UNSIGNED_INT_2_10_10_10_REV";
+				fmt.strname = "eGL_UNSIGNED_INT_2_10_10_10_REV";
 				break;
 			case eGL_UNSIGNED_INT_10F_11F_11F_REV:
 				fmt.special = true;
 				fmt.specialFormat = eSpecial_R11G11B10;
 				fmt.compCount = 3;
 				fmt.compType = eCompType_SInt;
-				fmt.strname = L"eGL_UNSIGNED_INT_10F_11F_11F_REV";
+				fmt.strname = "eGL_UNSIGNED_INT_10F_11F_11F_REV";
 				break;
 		}
 
@@ -1107,7 +1107,7 @@ void GLReplay::SavePipelineState()
 					}
 					else if(binding != t)
 					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %hs and %hs", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
 					}
 				}
 			}
@@ -1366,7 +1366,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 				for(uint32_t a=0; a < desc.elements; a++)
 				{
 					ShaderVariable arrEl = var;
-					arrEl.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
+					arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
 					
 					vector<ShaderVariable> ov;
 					FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".", variables[i].type.members, ov, data);
@@ -1393,7 +1393,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 
 			if(idx == GL_INVALID_INDEX)
 			{
-				RDCERR("Can't find program resource index for %hs", fullname.c_str());
+				RDCERR("Can't find program resource index for %s", fullname.c_str());
 			}
 			else
 			{
@@ -1419,7 +1419,7 @@ void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferB
 					for(uint32_t a=0; a < desc.elements; a++)
 					{
 						ShaderVariable el = var;
-						el.name = StringFormat::Fmt("%hs[%u]", var.name.elems, a);
+						el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
 
 						FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
 							values[0] + values[2] * a, values[1], data, el);
@@ -1595,6 +1595,6 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 const GLHookSet &GetRealFunctions();
 
 // defined in gl_replay_<platform>.cpp
-ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver **driver);
+ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
-static DriverRegistration GLDriverRegistration(RDC_OpenGL, L"OpenGL", &GL_CreateReplayDevice);
+static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);

@@ -39,17 +39,16 @@
 #include <string>
 #include <vector>
 using std::string;
-using std::wstring;
 using std::vector;
 
 struct CaptureOptions;
 
 namespace Process
 {
-	void StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts);
-	uint32_t InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
-	uint32_t CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-										const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit);
+	void StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts);
+	uint32_t InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit);
+	uint32_t CreateAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+										const char *logfile, const CaptureOptions *opts, bool waitForExit);
 	void *GetFunctionAddress(const char *module, const char *function);
 	uint32_t GetCurrentPID();
 };
@@ -119,7 +118,7 @@ namespace Network
 	};
 
 	Socket *CreateServerSocket(const char *addr, uint16_t port, int queuesize);
-	Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS);
+	Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS);
 	
 	void Init();
 	void Shutdown();
@@ -147,11 +146,11 @@ namespace Callstack
 	{
 		AddressDetails() : line(0) {}
 
-		wstring function;
-		wstring filename;
+		string function;
+		string filename;
 		uint32_t line;
 
-		wstring formattedString(const char *commonPath = NULL);
+		string formattedString(const char *commonPath = NULL);
 	};
 
 	class StackResolver
@@ -166,24 +165,24 @@ namespace Callstack
 	Stackwalk *Collect();
 	Stackwalk *Load(uint64_t *calls, size_t numLevels);
 
-	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, wstring pdbSearchPaths, volatile bool *killSignal);
+	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal);
 
 	bool GetLoadedModules(char *&buf, size_t &size);
 }; // namespace Callstack
 
 namespace FileIO
 {
-	void GetDefaultFiles(const wchar_t *logBaseName, wstring &capture_filename, wstring &logging_filename, wstring &target);
-	wstring GetAppFolderFilename(wstring filename);
+	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target);
+	string GetAppFolderFilename(string filename);
 
-	void GetExecutableFilename(wstring &selfName);
+	void GetExecutableFilename(string &selfName);
 	
-	uint64_t GetModifiedTimestamp(const wchar_t *filename);
+	uint64_t GetModifiedTimestamp(const char *filename);
 	
-	void CopyFileW(const wchar_t *from, const wchar_t *to, bool allowOverwrite);
-	void UnlinkFileW(const wchar_t *path);
+	void Copy(const char *from, const char *to, bool allowOverwrite);
+	void Delete(const char *path);
 
-	FILE *fopen(const wchar_t *filename, const wchar_t *mode);
+	FILE *fopen(const char *filename, const char *mode);
 
 	size_t fread(void *buf, size_t elementSize, size_t count, FILE *f);
 	size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f);
@@ -210,12 +209,7 @@ namespace StringFormat
 	// forwards to vsnprintf below, needed to be here due to va_copy differences
 	string Fmt(const char *format, ...);
 
-	string Wide2UTF8(const wstring &s);
-	wstring UTF82Wide(const string &s);
-
-	// TODO remove
-	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...);
-	wstring WFmt(const wchar_t *format, ...);
+	string Wide2UTF8(const std::wstring &s);
 };
 
 // utility functions, implemented in os_specific.cpp, not per-platform (assuming standard stdarg.h)

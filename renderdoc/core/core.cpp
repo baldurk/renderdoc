@@ -24,7 +24,7 @@
 
 
 #include "core/core.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "serialise/serialiser.h"
 #include "replay/replay_driver.h"
 
@@ -139,7 +139,7 @@ void RenderDoc::UnloadCrashHandler()
 
 RenderDoc::RenderDoc()
 {
-	m_LogFile = L"";
+	m_LogFile = "";
 	m_MarkerIndentLevel = 0;
 	m_CurrentDriver = RDC_Unknown;
 
@@ -203,40 +203,40 @@ void RenderDoc::Initialise()
 	// set default capture log - useful for when hooks aren't setup
 	// through the UI (and a log file isn't set manually)
 	{
-		wstring capture_filename, logging_filename;
+		string capture_filename, logging_filename;
 
-		const wchar_t *base = L"RenderDoc_app";
+		const char *base = "RenderDoc_app";
 		if(IsReplayApp())
-			base = L"RenderDoc_replay";
+			base = "RenderDoc_replay";
 		
 		FileIO::GetDefaultFiles(base, capture_filename, logging_filename, m_Target);
 
 		if(m_LogFile.empty())
 			SetLogFile(capture_filename.c_str());
 
-		wstring existingLog = RDCGETLOGFILE();
-		FileIO::CopyFileW(existingLog.c_str(), logging_filename.c_str(), true);
+		string existingLog = RDCGETLOGFILE();
+		FileIO::Copy(existingLog.c_str(), logging_filename.c_str(), true);
 		RDCLOGFILE(logging_filename.c_str());
 	}
 
 	if(IsReplayApp())
-		RDCLOG("RenderDoc v%hs (%hs) loaded in replay application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
+		RDCLOG("RenderDoc v%s (%s) loaded in replay application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
 	else
-		RDCLOG("RenderDoc v%hs (%hs) capturing application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
+		RDCLOG("RenderDoc v%s (%s) capturing application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
 
 	Keyboard::Init();
 	
 	m_ExHandler = NULL;
 
 	{
-		wstring curFile;
+		string curFile;
 		FileIO::GetExecutableFilename(curFile);
 
-		wstring f = strlower(curFile);
+		string f = strlower(curFile);
 
 		// only create crash handler when we're not in renderdoccmd.exe (to prevent infinite loop as
 		// the crash handler itself launches renderdoccmd.exe)
-		if(f.find(L"renderdoccmd.exe") == wstring::npos)
+		if(f.find("renderdoccmd.exe") == string::npos)
 		{
 			RecreateCrashHandler();
 		}
@@ -254,12 +254,12 @@ RenderDoc::~RenderDoc()
 	{
 		if(m_Captures[i].retrieved)
 		{
-			RDCLOG("Removing remotely retrieved capture %ls", m_Captures[i].path.c_str());
-			FileIO::UnlinkFileW(m_Captures[i].path.c_str());
+			RDCLOG("Removing remotely retrieved capture %s", m_Captures[i].path.c_str());
+			FileIO::Delete(m_Captures[i].path.c_str());
 		}
 		else
 		{
-			RDCLOG("'Leaking' unretrieved capture %ls", m_Captures[i].path.c_str());
+			RDCLOG("'Leaking' unretrieved capture %s", m_Captures[i].path.c_str());
 		}
 	}
 
@@ -368,7 +368,7 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 	const bool debugSerialiser = true;
 #endif
 
-	m_CurrentLogFile = StringFormat::WFmt(L"%ls_frame%u.rdc", m_LogFile.c_str(), frameNum);
+	m_CurrentLogFile = StringFormat::Fmt("%s_frame%u.rdc", m_LogFile.c_str(), frameNum);
 
 	Serialiser *fileSerialiser = new Serialiser(m_CurrentLogFile.c_str(), Serialiser::WRITING, debugSerialiser);
 	
@@ -414,13 +414,13 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 	return fileSerialiser;
 }
 
-ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &driverType, wstring &driverName, RDCInitParams *params)
+ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &driverType, string &driverName, RDCInitParams *params)
 {
 	Serialiser ser(logFile, Serialiser::READING, true);
 
 	if(ser.HasError())
 	{
-		FILE *f = FileIO::fopen(logFile, L"rb");
+		FILE *f = FileIO::fopen(logFile, "rb");
 		if(f)
 		{
 			int x = 0, y = 0, comp = 0;
@@ -436,12 +436,12 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 			if(ret == 1 && x > 0 && y > 0 && comp > 0)
 			{
 				driverType = RDC_Image;
-				driverName = L"Image";
+				driverName = "Image";
 				return eReplayCreate_Success;
 			}
 		}
 
-		RDCERR("Couldn't open '%ls'", logFile);
+		RDCERR("Couldn't open '%s'", logFile);
 
 		switch(ser.ErrorCode())
 		{
@@ -461,7 +461,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 
 		if(chunkType != THUMBNAIL_DATA)
 		{
-			RDCERR("Malformed logfile '%ls', first chunk isn't thumbnail data", logFile);
+			RDCERR("Malformed logfile '%s', first chunk isn't thumbnail data", logFile);
 			return eReplayCreate_FileCorrupted;
 		}
 
@@ -475,7 +475,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 
 		if(chunkType != CREATE_PARAMS)
 		{
-			RDCERR("Malformed logfile '%ls', second chunk isn't create params", logFile);
+			RDCERR("Malformed logfile '%s', second chunk isn't create params", logFile);
 			return eReplayCreate_FileCorrupted;
 		}
 
@@ -486,7 +486,7 @@ ReplayCreateStatus RenderDoc::FillInitParams(const wchar_t *logFile, RDCDriver &
 
 		if(chunkType != DRIVER_INIT_PARAMS)
 		{
-			RDCERR("Malformed logfile '%ls', chunk doesn't contain driver init params", logFile);
+			RDCERR("Malformed logfile '%s', chunk doesn't contain driver init params", logFile);
 			return eReplayCreate_FileCorrupted;
 		}
 
@@ -515,29 +515,29 @@ bool RenderDoc::HasRemoteDriver(RDCDriver driver) const
 	return HasReplayDriver(driver);
 }
 
-void RenderDoc::RegisterReplayProvider(RDCDriver driver, const wchar_t *name, ReplayDriverProvider provider)
+void RenderDoc::RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider)
 {
 	if(HasReplayDriver(driver))
-		RDCERR("Re-registering provider for %ls (was %ls)", name, m_DriverNames[driver].c_str());
+		RDCERR("Re-registering provider for %s (was %s)", name, m_DriverNames[driver].c_str());
 	if(HasRemoteDriver(driver))
-		RDCWARN("Registering local provider %ls for existing remote provider %ls", name, m_DriverNames[driver].c_str());
+		RDCWARN("Registering local provider %s for existing remote provider %s", name, m_DriverNames[driver].c_str());
 		
 	m_DriverNames[driver] = name;
 	m_ReplayDriverProviders[driver] = provider;
 }
 
-void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const wchar_t *name, RemoteDriverProvider provider)
+void RenderDoc::RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider)
 {
 	if(HasRemoteDriver(driver))
-		RDCERR("Re-registering provider for %ls (was %ls)", name, m_DriverNames[driver].c_str());
+		RDCERR("Re-registering provider for %s (was %s)", name, m_DriverNames[driver].c_str());
 	if(HasReplayDriver(driver))
-		RDCWARN("Registering remote provider %ls for existing local provider %ls", name, m_DriverNames[driver].c_str());
+		RDCWARN("Registering remote provider %s for existing local provider %s", name, m_DriverNames[driver].c_str());
 		
 	m_DriverNames[driver] = name;
 	m_RemoteDriverProviders[driver] = provider;
 }
 
-ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const wchar_t *logfile, IReplayDriver **driver)
+ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const char *logfile, IReplayDriver **driver)
 {
 	if(driver == NULL) return eReplayCreate_InternalError;
 	
@@ -553,7 +553,7 @@ ReplayCreateStatus RenderDoc::CreateReplayDriver(RDCDriver driverType, const wch
 	return eReplayCreate_APIUnsupported;
 }
 
-ReplayCreateStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const wchar_t *logfile, IRemoteDriver **driver)
+ReplayCreateStatus RenderDoc::CreateRemoteDriver(RDCDriver driverType, const char *logfile, IRemoteDriver **driver)
 {
 	if(driver == NULL) return eReplayCreate_InternalError;
 
@@ -588,23 +588,23 @@ void RenderDoc::SetCurrentDriver(RDCDriver driver)
 	m_CurrentDriverName = m_DriverNames[driver];
 }
 
-void RenderDoc::GetCurrentDriver(RDCDriver &driver, wstring &name)
+void RenderDoc::GetCurrentDriver(RDCDriver &driver, string &name)
 {
 	driver = m_CurrentDriver;
 	name = m_CurrentDriverName;
 }
 
-map<RDCDriver, wstring> RenderDoc::GetReplayDrivers()
+map<RDCDriver, string> RenderDoc::GetReplayDrivers()
 {
-	map<RDCDriver, wstring> ret;
+	map<RDCDriver, string> ret;
 	for(auto it=m_ReplayDriverProviders.begin(); it != m_ReplayDriverProviders.end(); ++it)
 		ret[it->first] = m_DriverNames[it->first];
 	return ret;
 }
 
-map<RDCDriver, wstring> RenderDoc::GetRemoteDrivers()
+map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
 {
-	map<RDCDriver, wstring> ret;
+	map<RDCDriver, string> ret;
 
 	for(auto it=m_RemoteDriverProviders.begin(); it != m_RemoteDriverProviders.end(); ++it)
 		ret[it->first] = m_DriverNames[it->first];
@@ -621,11 +621,11 @@ void RenderDoc::SetCaptureOptions(const CaptureOptions *opts)
 	m_Options = *opts;
 }
 
-void RenderDoc::SetLogFile(const wchar_t *logFile)
+void RenderDoc::SetLogFile(const char *logFile)
 {
 	m_LogFile = logFile;
 
-	if(m_LogFile.substr(m_LogFile.length()-4) == L".rdc")
+	if(m_LogFile.substr(m_LogFile.length()-4) == ".rdc")
 		m_LogFile = m_LogFile.substr(0, m_LogFile.length()-4);
 }
 
@@ -653,7 +653,7 @@ void RenderDoc::SetProgress(LoadProgressSection section, float delta)
 
 void RenderDoc::SuccessfullyWrittenLog()
 {
-	RDCLOG("Written to disk: %ls", m_CurrentLogFile.c_str());	
+	RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());	
 
 	CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp());
 	{

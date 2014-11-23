@@ -32,7 +32,7 @@ namespace renderdoc
     {
         public UInt32 rows, columns;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         public VarType type;
@@ -226,14 +226,14 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class SigParameter
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string varName;
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string semanticName;
 
         public UInt32 semanticIndex;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string semanticIdxName;
 
         public bool needSemanticIndex;
@@ -317,7 +317,7 @@ namespace renderdoc
             public UInt32 cols;
             public UInt32 elements;
             public bool rowMajorStorage;
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string name;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -332,7 +332,7 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderConstant
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -351,7 +351,7 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ConstantBlock
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
@@ -371,7 +371,7 @@ namespace renderdoc
 
         public ShaderResourceType resType;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType variableType;
@@ -381,16 +381,16 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderDebugChunk
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string entryFunc;
 
         public UInt32 compileFlags;
 
         public struct DebugFile
         {
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string filename;
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string filetext;
         };
 
@@ -404,7 +404,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderDebugChunk DebugInfo;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string Disassembly;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
@@ -421,7 +421,7 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public struct Interface
         {
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string Name;
         };
 

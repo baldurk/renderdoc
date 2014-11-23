@@ -48,7 +48,7 @@ class CrashHandler : public ICrashHandler
 
 			///////////////////
 
-			wchar_t tempPath[MAX_PATH] = {0};
+			char tempPath[MAX_PATH] = {0};
 			GetTempPathW(MAX_PATH-1, tempPath);
 
 			wstring dumpFolder = tempPath;
@@ -66,12 +66,12 @@ class CrashHandler : public ICrashHandler
 
 				HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
 
-				wchar_t radpath[MAX_PATH] = {0};
+				char radpath[MAX_PATH] = {0};
 				GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH-1);
 
 				size_t len = wcslen(radpath);
 
-				wchar_t *slash = wcsrchr(radpath, L'\\');
+				char *slash = wcsrchr(radpath, L'\\');
 
 				if(slash)
 				{
@@ -94,7 +94,7 @@ class CrashHandler : public ICrashHandler
 				cmdline += radpath;
 				cmdline += L"/renderdoccmd.exe\" --crashhandle";
 				
-				wchar_t *paramsAlloc = new wchar_t[512];
+				char *paramsAlloc = new char[512];
 
 				wcscpy_s(paramsAlloc, 511, cmdline.c_str());
 
@@ -106,12 +106,17 @@ class CrashHandler : public ICrashHandler
 			}
 
 			static google_breakpad::CustomInfoEntry breakpadCustomInfo[] = {
-				google_breakpad::CustomInfoEntry(L"version", RENDERDOC_VERSION_STRING_W),
-				google_breakpad::CustomInfoEntry(L"logpath", RDCGETLOGFILE()),
-				google_breakpad::CustomInfoEntry(L"gitcommit", WIDEN(GIT_COMMIT_HASH)),
+				google_breakpad::CustomInfoEntry(L"version", L""),
+				google_breakpad::CustomInfoEntry(L"logpath", L""),
+				google_breakpad::CustomInfoEntry(L"gitcommit", L""),
 			};
 
-			breakpadCustomInfo[1].set_value(RDCGETLOGFILE());
+			wstring wideStr = StringFormat::UTF82Wide(string(RENDERDOC_VERSION_STRING));
+			breakpadCustomInfo[0].set_value(wideStr.c_str());
+			wideStr = StringFormat::UTF82Wide(string(RDCGETLOGFILE()));
+			breakpadCustomInfo[1].set_value(wideStr.c_str());
+			wideStr = StringFormat::UTF82Wide(string(GIT_COMMIT_HASH));
+			breakpadCustomInfo[2].set_value(wideStr.c_str());
 
 			google_breakpad::CustomClientInfo custom = { &breakpadCustomInfo[0], ARRAY_COUNT(breakpadCustomInfo) };
 

@@ -69,7 +69,7 @@ struct ResourceFormat
 	bool32 special;
 	SpecialFormat specialFormat;
 
-	rdctype::wstr strname;
+	rdctype::str strname;
 
 	uint32_t compCount;
 	uint32_t compByteWidth;
@@ -81,7 +81,7 @@ struct ResourceFormat
 struct FetchBuffer
 {
 	ResourceId ID;
-	rdctype::wstr name;
+	rdctype::str name;
 	bool32 customName;
 	uint32_t length;
 	uint32_t structureSize;
@@ -91,7 +91,7 @@ struct FetchBuffer
 
 struct FetchTexture
 {
-	rdctype::wstr name;
+	rdctype::str name;
 	bool32 customName;
 	ResourceFormat format;
 	uint32_t dimension;
@@ -123,7 +123,7 @@ struct FetchAPIEvent
 
 	rdctype::array<uint64_t> callstack;
 
-	rdctype::wstr eventDesc;
+	rdctype::str eventDesc;
 
 	uint64_t fileOffset;
 };
@@ -175,7 +175,7 @@ struct FetchDrawcall
 
 	uint32_t eventID, drawcallID;
 
-	rdctype::wstr name;
+	rdctype::str name;
 
 	uint32_t flags;
 

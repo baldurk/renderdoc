@@ -24,7 +24,7 @@
 
 
 #include "os/os_specific.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include <vector>
 #include <string>
@@ -60,7 +60,7 @@ class Win32Callstack : public Callstack::Stackwalk
 class Win32CallstackResolver : public Callstack::StackResolver
 {
 	public:
-		Win32CallstackResolver(char *moduleDB, size_t DBSize, wstring pdbSearchPaths, volatile bool *killSignal);
+		Win32CallstackResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal);
 		~Win32CallstackResolver();
 
 		Callstack::AddressDetails GetAddr(uint64_t addr);
@@ -365,20 +365,20 @@ Win32Callstack::~Win32Callstack()
 
 wstring Win32CallstackResolver::pdbBrowse(wstring startingPoint)
 {
-	OPENFILENAME ofn;
+	OPENFILENAMEW ofn;
 	RDCEraseMem(&ofn, sizeof(ofn));
 
 	wchar_t outBuf[MAX_PATH*2];
 	wcscpy_s(outBuf, startingPoint.c_str());
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
-	ofn.lpstrTitle = _T("Locate PDB File");
-	ofn.lpstrFilter = _T("PDB File\0*.pdb\0");
+	ofn.lpstrTitle = L"Locate PDB File";
+	ofn.lpstrFilter = L"PDB File\0*.pdb\0";
 	ofn.lpstrFile = outBuf;
 	ofn.nMaxFile = MAX_PATH*2-1;
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST; // | OFN_ENABLEINCLUDENOTIFY | OFN_ENABLEHOOK
 
-	BOOL ret = GetOpenFileName(&ofn);
+	BOOL ret = GetOpenFileNameW(&ofn);
 
 	if(ret == FALSE)
 		return L"";
@@ -519,9 +519,9 @@ Win32CallstackResolver::AddrInfo Win32CallstackResolver::GetAddrInfoForModule(ui
 	return info == NULL ? AddrInfo() : *info;
 }
 
-Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, wstring pdbSearchPaths, volatile bool *killSignal)
+Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal)
 {
-	wstring configPath = FileIO::GetAppFolderFilename(L"config.ini");
+	wstring configPath = StringFormat::UTF82Wide(FileIO::GetAppFolderFilename("config.ini"));
 	{
 		FILE *f = NULL;
 		_wfopen_s(&f, configPath.c_str(), L"a");
@@ -533,7 +533,9 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, ws
 	wstring ignores = inputBuf;
 	split(ignores, pdbIgnores, L';');
 
-	split(pdbSearchPaths, pdbRememberedPaths, L';');
+	wstring widepdbsearch = StringFormat::UTF82Wide(pdbSearchPaths);
+
+	split(widepdbsearch, pdbRememberedPaths, L';');
 
 	EnumModChunk *chunk = (EnumModChunk *)moduleDB;
 	WCHAR *modName = (WCHAR *)(moduleDB+sizeof(EnumModChunk));
@@ -586,8 +588,22 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, ws
 		if(defaultPdb == L"")
 		{
 			defaultPdb = strlower(basename(m.name));
-			strreplace<wchar_t>(defaultPdb, L".dll", L".pdb");
-			strreplace<wchar_t>(defaultPdb, L".exe", L".pdb");
+
+			size_t it = defaultPdb.find(L".dll");
+			if(it != wstring::npos)
+			{
+				defaultPdb[it+1] = L'p';
+				defaultPdb[it+2] = L'd';
+				defaultPdb[it+3] = L'b';
+			}
+
+			it = defaultPdb.find(L".exe");
+			if(it != wstring::npos)
+			{
+				defaultPdb[it+1] = L'p';
+				defaultPdb[it+2] = L'd';
+				defaultPdb[it+3] = L'b';
+			}
 			failed = true;
 		}
 
@@ -656,15 +672,10 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, ws
 				m.name.find(L"dbghelp") != wstring::npos)
 				continue;
 
-#if defined(UNICODE)
 			wchar_t text[1024];
 			wsprintf(text, L"Do you want to permanently ignore this file?\nPath: %ls", m.name.c_str());
-#else
-			char text[1024];
-			wsprintf(text, "Do you want to permanently ignore this file?\nPath: %hs", m.name.c_str());
-#endif
 
-			int ret = MessageBox(NULL, text, _T("Ignore this pdb?"), MB_YESNO);
+			int ret = MessageBoxW(NULL, text, L"Ignore this pdb?", MB_YESNO);
 
 			if(ret == IDYES)
 				pdbIgnores.push_back(m.name);
@@ -722,8 +733,8 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
 	}
 
 	Callstack::AddressDetails ret;
-	ret.filename = info.fileName;
-	ret.function = info.funcName;
+	ret.filename = StringFormat::Wide2UTF8(wstring(info.fileName));
+	ret.function = StringFormat::Wide2UTF8(wstring(info.funcName));
 	ret.line = info.lineNum;
 
 	return ret;
@@ -749,7 +760,7 @@ namespace Callstack
 		return new Win32Callstack(calls, numLevels);
 	}
 
-	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, wstring pdbSearchPaths, volatile bool *killSignal)
+	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal)
 	{
 		return new Win32CallstackResolver(moduleDB, DBSize, pdbSearchPaths, killSignal);
 	}

@@ -239,7 +239,6 @@
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\dds_readwrite.h" />
     <ClInclude Include="common\globalconfig.h" />
-    <ClInclude Include="common\string_utils.h" />
     <ClInclude Include="common\threading.h" />
     <ClInclude Include="common\timing.h" />
     <ClInclude Include="common\wrapped_pool.h" />
@@ -294,6 +293,7 @@
     <ClInclude Include="replay\replay_renderer.h" />
     <ClInclude Include="replay\type_helpers.h" />
     <ClInclude Include="serialise\serialiser.h" />
+    <ClInclude Include="serialise\string_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp" />
@@ -358,7 +358,7 @@
     <ClCompile Include="os\os_specific.cpp" />
     <ClCompile Include="os\win32\win32_callstack.cpp" />
     <ClCompile Include="os\win32\win32_hook.cpp" />
-    <ClCompile Include="os\win32\win32_network.cpp" />
+		<ClCompile Include="os\win32\win32_network.cpp" />
     <ClCompile Include="os\win32\win32_process.cpp" />
     <ClCompile Include="os\win32\win32_shellext.cpp" />
     <ClCompile Include="os\win32\win32_stringio.cpp" />
@@ -369,6 +369,7 @@
     <ClCompile Include="replay\type_helpers.cpp" />
     <ClCompile Include="serialise\grisu2.cpp" />
     <ClCompile Include="serialise\serialiser.cpp" />
+    <ClCompile Include="serialise\string_utils.cpp" />
     <ClCompile Include="serialise\utf8printf.cpp" />
   </ItemGroup>
   <ItemGroup>

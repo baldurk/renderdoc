@@ -301,7 +301,7 @@ class WrappedOpenGL
 		WrappedOpenGL &operator =(const WrappedOpenGL &);
 
 	public:
-		WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs);
+		WrappedOpenGL(const char *logfile, const GLHookSet &funcs);
 		~WrappedOpenGL();
 
 		GLResourceManager *GetResourceManager() { return m_ResourceManager; }

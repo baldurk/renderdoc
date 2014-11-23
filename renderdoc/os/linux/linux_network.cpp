@@ -37,7 +37,6 @@
 
 #include <string>
 using std::string;
-using std::wstring;
 
 #include "common/string_utils.h"
 #include "os/os_specific.h"
@@ -262,7 +261,7 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 	return new Socket((ptrdiff_t)s);
 }
 
-Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS)
+Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 {
 	char portstr[7] = {0};
 	StringFormat::snprintf(portstr, 6, "%d", port);
@@ -273,15 +272,8 @@ Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS)
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
 
-
-	wstring hostWide = wstring(host);
-	string hoststr = narrow(hostWide);
-
-	if(widen(hoststr) != hostWide)
-		RDCWARN("Unicode hostname truncated: %S", hostWide.c_str());
-
 	addrinfo *result = NULL;
-	getaddrinfo(hoststr.c_str(), portstr, &hints, &result);
+	getaddrinfo(host, portstr, &hints, &result);
 	
 	for(addrinfo *ptr = result; ptr != NULL; ptr = ptr->ai_next)
 	{

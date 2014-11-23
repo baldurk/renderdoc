@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "../gl_driver.h"
 
 bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
@@ -50,7 +50,7 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_
 						ToStr::Get(Z) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
 		draw.debugMessages = debugMessages;
@@ -98,7 +98,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
 		RDCUNIMPLEMENTED("Not fetching indirect data for glDispatchComputeIndirect() display");
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
 		draw.debugMessages = debugMessages;
@@ -171,7 +171,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = 0;
@@ -226,7 +226,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 		RDCUNIMPLEMENTED("Not fetching indirect data for glDrawArraysIndirect() display");
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = 1;
 		draw.numInstances = 1;
 		draw.indexOffset = 0;
@@ -284,7 +284,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 						ToStr::Get(InstanceCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstanceCount;
 		draw.indexOffset = 0;
@@ -344,7 +344,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 						ToStr::Get(BaseInstance) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstanceCount;
 		draw.indexOffset = 0;
@@ -402,7 +402,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 						ToStr::Get(IdxOffset) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -461,7 +461,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 		RDCUNIMPLEMENTED("Not fetching indirect data for glDrawElementsIndirect() display");
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = 1;
 		draw.numInstances = 1;
 		draw.indexOffset = 0;
@@ -523,7 +523,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 						ToStr::Get(IdxOffset) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -585,7 +585,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 						ToStr::Get(BaseVtx) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -647,7 +647,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 						ToStr::Get(InstCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -711,7 +711,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 						ToStr::Get(BaseInstance) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -775,7 +775,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 						ToStr::Get(BaseVertex) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -841,7 +841,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 						ToStr::Get(BaseInstance) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
 		draw.indexOffset = (uint32_t)IdxOffset;
@@ -902,7 +902,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawArrays() display");
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = 1;
 		draw.numInstances = 1;
 		draw.indexOffset = 0;
@@ -986,7 +986,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawElements() display");
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = 1;
 		draw.numInstances = 1;
 		draw.indexOffset = 0;
@@ -1056,7 +1056,7 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear;
 		
 		draw.debugMessages = debugMessages;
@@ -1116,7 +1116,7 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear;
 		
 		draw.debugMessages = debugMessages;
@@ -1168,7 +1168,7 @@ bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, 
 						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear;
 		
 		draw.debugMessages = debugMessages;
@@ -1214,7 +1214,7 @@ bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, G
 						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear;
 		
 		draw.debugMessages = debugMessages;
@@ -1442,7 +1442,7 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 		name += ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear;
 		
 		draw.debugMessages = debugMessages;

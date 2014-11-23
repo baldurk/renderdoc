@@ -247,18 +247,29 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 	}
 }
 
-int renderdoccmd(int argc, wchar_t **argv);
-bool argequal(const wchar_t *a, const wchar_t *b);
+int renderdoccmd(int argc, char **argv);
+bool argequal(const char *a, const char *b);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInst,
 	_In_opt_ HINSTANCE hPrevInstance,
 	_In_ LPWSTR lpCmdLine,
 	_In_ int nShowCmd)
 {
-	LPWSTR *argv;
+	LPWSTR *wargv;
 	int argc;
 
-	argv = CommandLineToArgvW(GetCommandLine(), &argc);
+	wargv = CommandLineToArgvW(GetCommandLine(), &argc);
+
+	char **argv = new char*[argc];
+
+	for(int i=0; i < argc; i++)
+	{
+		size_t len = wcslen(wargv[i]);
+		argv[i] = new char[len*4 + 1];
+		argv[i][len*4] = 0;
+	
+		WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, &argv[i][0], (int)len, NULL, NULL);
+	}
 
 	hInstance = hInst;
 	
@@ -285,7 +296,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 	CrashGenerationServer *crashServer = NULL;
 
 	// special WIN32 option for launching the crash handler
-	if(argc == 2 && !_wcsicmp(argv[1], L"--crashhandle"))
+	if(argc == 2 && !_stricmp(argv[1], "--crashhandle"))
 	{
 		wchar_t tempPath[MAX_PATH] = {0};
 		GetTempPathW(MAX_PATH-1, tempPath);
@@ -460,19 +471,23 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 
 	// this installs a global windows hook pointing at renderdocshim*.dll that filters all running processes and
 	// loads renderdoc.dll in the target one. In any other process it unloads as soon as possible
-	if(argc == 5 && argequal(argv[1], L"--globalhook"))
+	if(argc == 5 && argequal(argv[1], "--globalhook"))
 	{
-		wchar_t *pathmatch = argv[2];
+		char *pathmatch = argv[2];
+		char *log = argv[3];
 
-		wchar_t *log = argv[3];
+		size_t len = strlen(pathmatch);
+		wstring wpathmatch; wpathmatch.resize(len);
+		MultiByteToWideChar(CP_UTF8, 0, pathmatch, -1, &wpathmatch[0], (int)len);
+		wpathmatch.resize(wcslen(wpathmatch.c_str()));
 		
 		CaptureOptions cmdopts;
-		string optstring(&argv[4][0], &argv[4][0] + wcslen(argv[4]));
+		string optstring(&argv[4][0]);
 		cmdopts.FromString(optstring);
 
 		// make sure the user doesn't accidentally run this with 'a' as a parameter or something.
 		// "a.exe" is over 4 characters so this limit should not be a problem.
-		if(wcslen(pathmatch) < 4)
+		if(wpathmatch.length() < 4)
 		{
 			fprintf(stderr, "--globalhook path match is too short/general. Danger of matching too many processes!\n");
 			return 1;
@@ -527,9 +542,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 			{
 				memset(shimdata, 0, sizeof(ShimData));
 
-				wcsncpy_s(shimdata->pathmatchstring, pathmatch, _TRUNCATE);
+				wcsncpy_s(shimdata->pathmatchstring, wpathmatch.c_str(), _TRUNCATE);
 				wcsncpy_s(shimdata->rdocpath, rdocpath, _TRUNCATE);
-				wcsncpy_s(shimdata->log, log, _TRUNCATE);
+				strncpy_s(shimdata->log, log, _TRUNCATE);
 				memcpy   (shimdata->opts, &cmdopts, sizeof(CaptureOptions));
 
 				static_assert(sizeof(CaptureOptions) <= sizeof(shimdata->opts), "ShimData options is too small");

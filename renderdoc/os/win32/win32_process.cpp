@@ -27,7 +27,7 @@
 
 #include "core/core.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include <windows.h>
 #include <tlhelp32.h> 
@@ -41,7 +41,7 @@ void InjectDLL(HANDLE hProcess, wstring libName)
 	wchar_t dllPath[MAX_PATH + 1] = {0};
 	wcscpy_s(dllPath, libName.c_str());
 
-	static HMODULE kernel32 = GetModuleHandle(_T("Kernel32"));
+	static HMODULE kernel32 = GetModuleHandleA("kernel32.dll");
 
 	if(kernel32 == NULL)
 	{
@@ -158,7 +158,7 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 		return;
 	}
 
-	RDCDEBUG("Injecting call to %hs", funcName);
+	RDCDEBUG("Injecting call to %s", funcName);
 	
 	HMODULE renderdoc_local = GetModuleHandleA("renderdoc.dll");
 	
@@ -181,10 +181,12 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 	VirtualFreeEx(hProcess, remoteMem, dataLen, MEM_RELEASE);
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	CaptureOptions options;
 	if(opts) options = *opts;
+	
+	wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(logfile);
 
 	HANDLE hProcess = OpenProcess( PROCESS_CREATE_THREAD | 
 		PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION |
@@ -279,7 +281,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 		string optstr = opts->ToString();
 
 		_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"",
-		             renderdocPath, pid, logfile == NULL ? L"" : logfile, optstr.c_str());
+		             renderdocPath, pid, wlogfile.c_str(), optstr.c_str());
 
 		paramsAlloc[2047] = 0;
 	
@@ -325,7 +327,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 		// safe to cast away the const as we know these functions don't modify the parameters
 
 		if(logfile != NULL)
-			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetLogFile", (wchar_t *)logfile, (wcslen(logfile)+1)*sizeof(wchar_t));
+			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetLogFile", (void *)wlogfile.c_str(), (wlogfile.length()+1)*sizeof(wchar_t));
 
 		if(opts != NULL)
 			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetCaptureOptions", (CaptureOptions *)opts, sizeof(CaptureOptions));
@@ -341,8 +343,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const 
 	return remoteident;
 }
 
-uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-										const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+										const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	void *func = GetProcAddress(GetModuleHandleA("renderdoc.dll"), "RENDERDOC_SetLogFile");
 
@@ -365,31 +367,40 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 	pSec.nLength = sizeof(pSec);
 	tSec.nLength = sizeof(tSec);
 
-	wstring workdir = dirname(wstring(app));
+	wstring workdir = L"";
 
 	if(workingDir != NULL && workingDir[0] != 0)
-		workdir = workingDir;
+		workdir = StringFormat::UTF82Wide(string(workingDir));
+	else
+		workdir = StringFormat::UTF82Wide(dirname(string(app)));
 
 	wchar_t *paramsAlloc = NULL;
 
+	wstring wapp = StringFormat::UTF82Wide(string(app));
+
 	// CreateProcessW can modify the params, need space.
-	size_t len = wcslen(app)+10;
+	size_t len = wapp.length()+10;
+
+	wstring wcmd = L"";
 	
 	if(cmdLine != NULL && cmdLine[0] != 0)
-		len += wcslen(cmdLine);
+	{
+		wcmd = StringFormat::UTF82Wide(string(cmdLine));
+		len += wcmd.length();
+	}
 
 	paramsAlloc = new wchar_t[len];
 
 	RDCEraseMem(paramsAlloc, len);
 
 	wcscpy_s(paramsAlloc, len, L"\"");
-	wcscat_s(paramsAlloc, len, app);
+	wcscat_s(paramsAlloc, len, wapp.c_str());
 	wcscat_s(paramsAlloc, len, L"\"");
 
 	if(cmdLine != NULL && cmdLine[0] != 0)
 	{
 		wcscat_s(paramsAlloc, len, L" ");
-		wcscat_s(paramsAlloc, len, cmdLine);
+		wcscat_s(paramsAlloc, len, wcmd.c_str());
 	}
 
 	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
@@ -403,7 +414,7 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 
 	if (!retValue)
 	{
-		RDCERR("Process %ls could not be loaded.", app);
+		RDCERR("Process %s could not be loaded.", app);
 		return 0;
 	}
 
@@ -426,7 +437,7 @@ uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *
 	return ret;
 }
 
-void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
 {
 	if(pathmatch == NULL) return;
 
@@ -450,9 +461,12 @@ void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, 
 	wchar_t *paramsAlloc = new wchar_t[2048];
 
 	string optstr = opts->ToString();
+	
+	wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
+	wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));
 
-	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
-		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%s\"",
+		renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
 
 	paramsAlloc[2047] = 0;
 
@@ -468,8 +482,8 @@ void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, 
 
 	wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
 	
-	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%hs\"",
-		renderdocPath, pathmatch, logfile == NULL ? L"" : logfile, optstr.c_str());
+	_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --globalhook \"%ls\" \"%ls\" \"%s\"",
+		renderdocPath, wpathmatch.c_str(), wlogfile.c_str(), optstr.c_str());
 
 	paramsAlloc[2047] = 0;
 

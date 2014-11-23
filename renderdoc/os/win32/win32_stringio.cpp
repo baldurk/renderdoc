@@ -35,6 +35,7 @@
 
 #include <set>
 using std::set;
+using std::wstring;
 
 // gives us an address to identify this dll with
 static int dllLocator=0;
@@ -150,15 +151,15 @@ namespace Keyboard
 
 namespace FileIO
 {
-	void GetExecutableFilename(wstring &selfName)
+	void GetExecutableFilename(string &selfName)
 	{
 		wchar_t curFile[512] = {0};
 		GetModuleFileNameW(NULL, curFile, 511);
 
-		selfName = curFile;
+		selfName = StringFormat::Wide2UTF8(wstring(curFile));
 	}
 
-	void GetDefaultFiles(const wchar_t *logBaseName, wstring &capture_filename, wstring &logging_filename, wstring &target)
+	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)
 	{
 		wchar_t temp_filename[MAX_PATH];
 
@@ -178,7 +179,7 @@ namespace FileIO
 
 		mod++; // now points to base filename without extension
 
-		target = mod;
+		target = StringFormat::Wide2UTF8(wstring(mod));
 
 		time_t t = time(NULL);
 		tm now;
@@ -188,16 +189,18 @@ namespace FileIO
 
 		wsprintf(filename_start, L"%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
 
-		capture_filename = temp_filename;
+		capture_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
 
 		*filename_start = 0;
 
-		wsprintf(filename_start, L"%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+		wstring wbase = StringFormat::UTF82Wide(string(logBaseName));
 
-		logging_filename = temp_filename;
+		wsprintf(filename_start, L"%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", wbase.c_str(), 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+
+		logging_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
 	}
 
-	wstring GetAppFolderFilename(wstring filename)
+	string GetAppFolderFilename(string filename)
 	{
 		PWSTR appDataPath;
 		SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST|KF_FLAG_DONT_UNEXPAND, NULL, &appDataPath);
@@ -210,13 +213,16 @@ namespace FileIO
 
 		CreateDirectoryW(appdata.c_str(), NULL);
 
-		return appdata + filename;
+		string ret = StringFormat::Wide2UTF8(appdata) + filename;
+		return ret;
 	}
 
-	uint64_t GetModifiedTimestamp(const wchar_t *filename)
+	uint64_t GetModifiedTimestamp(const char *filename)
 	{
+		wstring wfn = StringFormat::UTF82Wide(string(filename));
+
 		struct _stat st;
-		int res = _wstat(filename, &st);
+		int res = _wstat(wfn.c_str(), &st);
 
 		if(res == 0)
 		{
@@ -226,36 +232,32 @@ namespace FileIO
 		return 0;
 	}
 
-	void CopyFileW(const wchar_t *from, const wchar_t *to, bool allowOverwrite)
+	void Copy(const char *from, const char *to, bool allowOverwrite)
 	{
-		::CopyFileW(from, to, allowOverwrite == false);
+		wstring wfrom = StringFormat::UTF82Wide(string(from));
+		wstring wto = StringFormat::UTF82Wide(string(to));
+
+		::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false);
 	}
 
-	void UnlinkFileW(const wchar_t *path)
+	void Delete(const char *path)
 	{
-		::DeleteFileW(path);
+		wstring wpath = StringFormat::UTF82Wide(string(path));
+		::DeleteFileW(wpath.c_str());
 	}
 
-	FILE *fopen(const wchar_t *filename, const wchar_t *mode)
+	FILE *fopen(const char *filename, const char *mode)
 	{
+		wstring wfn = StringFormat::UTF82Wide(string(filename));
+		wstring wmode = StringFormat::UTF82Wide(string(mode));
+
 		FILE *ret = NULL;
-		::_wfopen_s(&ret, filename, mode);
+		::_wfopen_s(&ret, wfn.c_str(), wmode.c_str());
 		return ret;
 	}
 
 	size_t fread(void *buf, size_t elementSize, size_t count, FILE *f) { return ::fread(buf, elementSize, count, f); }
 	size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f) { return ::fwrite(buf, elementSize, count, f); }
-	int fprintf(FILE *f, const char *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
-
-		int ret = ::vfprintf(f, fmt, args);
-
-		va_end(args);
-
-		return ret;
-	}
 
 	uint64_t ftell64(FILE *f) { return ::_ftelli64(f); }
 	void fseek64(FILE *f, uint64_t offset, int origin) { ::_fseeki64(f, offset, origin); }
@@ -265,40 +267,6 @@ namespace FileIO
 
 namespace StringFormat
 {
-	///////////////////////////////////////////////////////////////////////////
-	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		int ret =  ::_vsnwprintf_s(str, bufSize, bufSize-1, format, args);
-
-		va_end(args);
-
-		return ret;
-	}
-
-	wstring WFmt(const wchar_t *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		int size = _vscwprintf(format, args)+1;
-
-		wchar_t *buf = new wchar_t[size];
-
-		::vswprintf_s(buf, size, format, args);
-
-		va_end(args);
-
-		wstring ret = buf;
-
-		delete[] buf;
-		
-		return ret;
-	}
-	///////////////////////////////////////////////////////////////////////////
-	
 	void sntimef(char *str, size_t bufSize, const char *format)
 	{
 		time_t tim;
@@ -307,9 +275,22 @@ namespace StringFormat
 		tm tmv;
 		localtime_s(&tmv, &tim);
 
-		strftime(str, bufSize, format, &tmv);
+		wchar_t *buf = new wchar_t[bufSize+1]; buf[bufSize] = 0;
+		wstring wfmt = StringFormat::UTF82Wide(string(format));
+
+		wcsftime(buf, bufSize, wfmt.c_str(), &tmv);
+
+		string result = StringFormat::Wide2UTF8(wstring(buf));
+
+		if(result.length()+1 < bufSize)
+		{
+			memcpy(str, result.c_str(), result.length());
+			str[result.length()] = 0;
+		}
 	}
 		
+	// this function is only platform specific because va_copy isn't implemented
+	// on MSVC
 	string Fmt(const char *format, ...)
 	{
 		va_list args;
@@ -336,56 +317,54 @@ namespace StringFormat
 		return ret;
 	}
 
-	// save on reallocation, keep a persistent scratch buffer for conversions
-	vector<char> charBuffer;
-	vector<wchar_t> wcharBuffer;
-
 	string Wide2UTF8(const wstring &s)
 	{
-		// include room for null terminator, assuming unicode input (not ucs)
-		// utf-8 characters can be max 4 bytes. We can afford to be generous about
-		// this length as we resize relatively rarely.
-		size_t len = (s.length()+1)*4;
+		int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
 
-		if(charBuffer.size() < len)
-			charBuffer.resize(len);
+		if(bytes_required == 0)
+			return "";
 
-		int ret = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &charBuffer[0], (int)len, NULL, NULL);
+		string ret;
+		ret.resize(bytes_required);
 
-		if(ret == 0)
+		int res = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &ret[0], bytes_required, NULL, NULL);
+
+		if(ret.back() == 0) ret.pop_back();
+
+		if(res == 0)
 		{
 #if !defined(_RELEASE)
-			RDCWARN("Failed to convert wstring: \"%ls\"", s.c_str());
+			RDCWARN("Failed to convert wstring"); // can't pass string through as this would infinitely recurse
 #endif
 			return "";
 		}
 
-		// convert to string from null-terminated string - utf-8 never contains
-		// 0 bytes before the null terminator, and this way we don't care if
-		// charBuffer is larger than the string
-		return string(&charBuffer[0]);
+		return ret;
 	}
 
 	wstring UTF82Wide(const string &s)
 	{
-		// Include room for null terminator. Since we're converting from utf-8,
-		// worst case it's ascii and every byte is a character so length is the same
-		size_t len = s.length()+1;
+		int chars_required = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
+
+		if(chars_required == 0)
+			return L"";
 		
-		if(wcharBuffer.size() < len)
-			wcharBuffer.resize(len);
+		wstring ret;
+		ret.resize(chars_required);
 
-		int ret = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &wcharBuffer[0], (int)len);
+		int res = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ret[0], chars_required);
 
-		if(ret == 0)
+		if(ret.back() == 0) ret.pop_back();
+
+		if(res == 0)
 		{
 #if !defined(_RELEASE)
-			RDCWARN("Failed to convert utf-8 string: \"%s\"", s.c_str());
+			RDCWARN("Failed to convert utf-8 string"); // can't pass string through as this would infinitely recurse
 #endif
 			return L"";
 		}
 
-		return wstring(&wcharBuffer[0]);
+		return ret;
 	}
 };
 

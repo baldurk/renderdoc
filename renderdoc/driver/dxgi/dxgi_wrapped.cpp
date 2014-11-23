@@ -533,7 +533,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGIObject for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGIObject for interface: %s", guid.c_str());
 	}
 	
 	return false;
@@ -580,7 +580,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain2::QueryInterface(REFIID riid, vo
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGISwapChain for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGISwapChain for interface: %s", guid.c_str());
 	}
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -597,7 +597,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice::QueryInterface( REFIID riid, void 
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGIDevice for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGIDevice for interface: %s", guid.c_str());
 	}
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -638,7 +638,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface( REFIID riid, void
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGIDevice1 for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGIDevice1 for interface: %s", guid.c_str());
 	}
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -677,7 +677,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface( REFIID riid, void
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGIDevice2 for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGIDevice2 for interface: %s", guid.c_str());
 	}
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);
@@ -712,7 +712,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface( REFIID riid, void
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying IDXGIDevice3 for interface: %hs", guid.c_str());
+		RDCWARN("Querying IDXGIDevice3 for interface: %s", guid.c_str());
 	}
 
 	return RefCountDXGIObject::QueryInterface(riid, ppvObject);

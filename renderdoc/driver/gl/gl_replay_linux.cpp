@@ -195,7 +195,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 
 const GLHookSet &GetRealFunctions();
 
-ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver **driver)
+ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating an OpenGL replay device");
 
@@ -230,7 +230,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver *
 
 	GLInitParams initParams;
 	RDCDriver driverType = RDC_OpenGL;
-	wstring driverName = L"OpenGL";
+	string driverName = "OpenGL";
 	if(logfile)
 		RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, (RDCInitParams *)&initParams);
 

@@ -25,7 +25,7 @@
 
 #include "core/core.h"
 #include "api/replay/renderdoc_replay.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "hooks.h"
 

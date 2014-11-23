@@ -32,7 +32,7 @@
 class ImageViewer : public IReplayDriver
 {
 	public:
-		ImageViewer(IReplayDriver *proxy, const wchar_t *filename, ResourceId texID)
+		ImageViewer(IReplayDriver *proxy, const char *filename, ResourceId texID)
 			: m_Proxy(proxy)
 		{
 			if(m_Proxy == NULL) RDCERR("Unexpectedly NULL proxy at creation of ImageViewer");
@@ -154,9 +154,9 @@ class ImageViewer : public IReplayDriver
 		IReplayDriver *m_Proxy;
 };
 
-ReplayCreateStatus IMG_CreateReplayDevice(const wchar_t *logfile, IReplayDriver **driver)
+ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
-	FILE *f = FileIO::fopen(logfile, L"rb");
+	FILE *f = FileIO::fopen(logfile, "rb");
 
 	if(!f)
 		return eReplayCreate_FileIOFailed;
@@ -296,4 +296,4 @@ ReplayCreateStatus IMG_CreateReplayDevice(const wchar_t *logfile, IReplayDriver 
 	return eReplayCreate_Success;
 }
 
-static DriverRegistration IMGDriverRegistration(RDC_Image, L"Image", &IMG_CreateReplayDevice);
+static DriverRegistration IMGDriverRegistration(RDC_Image, "Image", &IMG_CreateReplayDevice);

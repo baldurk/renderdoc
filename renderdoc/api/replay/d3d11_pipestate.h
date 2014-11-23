@@ -35,7 +35,7 @@ struct D3D11PipelineState
 		struct LayoutInput
 		{
 			LayoutInput() : SemanticIndex(0), InputSlot(0), ByteOffset(0), PerInstance(false), InstanceDataStepRate(0) {}
-			rdctype::wstr SemanticName;
+			rdctype::str SemanticName;
 			uint32_t SemanticIndex;
 			ResourceFormat Format;
 			uint32_t InputSlot;
@@ -71,7 +71,7 @@ struct D3D11PipelineState
 	{
 		ShaderStage() : Shader(), ShaderDetails(NULL) {}
 		ResourceId Shader;
-		rdctype::wstr ShaderName;
+		rdctype::str ShaderName;
 		bool32 customName;
 		ShaderReflection *ShaderDetails;
 		ShaderBindpointMapping BindpointMapping;
@@ -91,7 +91,7 @@ struct D3D11PipelineState
 
 			ResourceId View;
 			ResourceId Resource;
-			rdctype::wstr Type;
+			rdctype::str Type;
 			ResourceFormat Format;
 
 			bool32 Structured;
@@ -124,10 +124,10 @@ struct D3D11PipelineState
 			Sampler() : Samp(), MaxAniso(0), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
 			{ BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f; }
 			ResourceId Samp;
-			rdctype::wstr AddressU, AddressV, AddressW;
+			rdctype::str AddressU, AddressV, AddressW;
 			float BorderColor[4];
-			rdctype::wstr Comparison;
-			rdctype::wstr Filter;
+			rdctype::str Comparison;
+			rdctype::str Filter;
 			uint32_t MaxAniso;
 			float MaxLOD;
 			float MinLOD;
@@ -144,7 +144,7 @@ struct D3D11PipelineState
 		};
 		rdctype::array<CBuffer> ConstantBuffers;
 
-		rdctype::array<rdctype::wstr> ClassInstances;
+		rdctype::array<rdctype::str> ClassInstances;
 	} m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
 
 	struct Streamout
@@ -209,7 +209,7 @@ struct D3D11PipelineState
 				  StencilReadMask(0), StencilWriteMask(0), StencilRef(0) {}
 			ResourceId State;
 			bool32 DepthEnable;
-			rdctype::wstr DepthFunc;
+			rdctype::str DepthFunc;
 			bool32 DepthWrites;
 			bool32 StencilEnable;
 			byte StencilReadMask;
@@ -217,10 +217,10 @@ struct D3D11PipelineState
 
 			struct StencilOp
 			{
-				rdctype::wstr FailOp;
-				rdctype::wstr DepthFailOp;
-				rdctype::wstr PassOp;
-				rdctype::wstr Func;
+				rdctype::str FailOp;
+				rdctype::str DepthFailOp;
+				rdctype::str PassOp;
+				rdctype::str Func;
 			} m_FrontFace, m_BackFace;
 
 			uint32_t StencilRef;
@@ -241,12 +241,12 @@ struct D3D11PipelineState
 				RTBlend() : Enabled(false), WriteMask(0) {}
 				struct BlendOp
 				{
-					rdctype::wstr Source;
-					rdctype::wstr Destination;
-					rdctype::wstr Operation;
+					rdctype::str Source;
+					rdctype::str Destination;
+					rdctype::str Operation;
 				} m_Blend, m_AlphaBlend;
 
-				rdctype::wstr LogicOp;
+				rdctype::str LogicOp;
 
 				bool32 Enabled;
 				bool32 LogicEnabled;

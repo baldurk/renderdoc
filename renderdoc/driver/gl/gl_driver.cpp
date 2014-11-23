@@ -26,7 +26,7 @@
 #include "common/common.h"
 #include "gl_driver.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "replay/type_helpers.h"
 
@@ -283,7 +283,7 @@ ReplayCreateStatus GLInitParams::Serialise()
 	return eReplayCreate_Success;
 }
 
-WrappedOpenGL::WrappedOpenGL(const wchar_t *logfile, const GLHookSet &funcs)
+WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	: m_Real(funcs)
 {
 	if(RenderDoc::Inst().GetCrashHandler())
@@ -689,14 +689,14 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 				if(status == 0)
 				{
 					gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-					RDCERR("Shader error: %hs", buffer);
+					RDCERR("Shader error: %s", buffer);
 				}
 
 				gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
 				if(status == 0)
 				{
 					gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-					RDCERR("Shader error: %hs", buffer);
+					RDCERR("Shader error: %s", buffer);
 				}
 
 				font.Program = gl.glCreateProgram();
@@ -710,7 +710,7 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 				if(status == 0)
 				{
 					gl.glGetProgramInfoLog(font.Program, 1024, NULL, buffer);
-					RDCERR("Link error: %hs", buffer);
+					RDCERR("Link error: %s", buffer);
 				}
 
 				gl.glDeleteShader(vs);
@@ -1393,7 +1393,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 {
 	if(type != eGL_DEBUG_TYPE_PERFORMANCE && (type != eGL_DEBUG_TYPE_OTHER || severity != eGL_DEBUG_SEVERITY_NOTIFICATION))
 	{
-		RDCLOG("Got a Debug message from %hs, type %hs, ID %d, severity %hs:\n'%hs'",
+		RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
 					ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
 	}
 
@@ -1529,7 +1529,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
-		RDCDEBUG("%hs: %.3f total time in %d chunks - %.3f average",
+		RDCDEBUG("%s: %.3f total time in %d chunks - %.3f average",
 				GetChunkName(it->first), it->second.total, it->second.count,
 				it->second.total/double(it->second.count));
 	}
@@ -2167,7 +2167,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 				AddEvent(CONTEXT_CAPTURE_FOOTER, "SwapBuffers()");
 
 				FetchDrawcall draw;
-				draw.name = L"SwapBuffers()";
+				draw.name = "SwapBuffers()";
 				draw.flags |= eDraw_Present;
 
 				AddDrawcall(draw, true);
@@ -2406,7 +2406,7 @@ void WrappedOpenGL::AddEvent(GLChunkType type, string description, ResourceId ct
 	apievent.fileOffset = m_CurChunkOffset;
 	apievent.eventID = m_CurEventID;
 
-	apievent.eventDesc = widen(description);
+	apievent.eventDesc = description;
 
 	Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
 	if(stack)

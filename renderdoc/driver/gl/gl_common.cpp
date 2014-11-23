@@ -24,7 +24,7 @@
 
 
 #include "core/core.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "gl_common.h"
 #include "gl_driver.h"
 
@@ -88,7 +88,7 @@ size_t BufferIdx(GLenum buf)
 		case eGL_TRANSFORM_FEEDBACK_BUFFER: return 12;
 		case eGL_UNIFORM_BUFFER:            return 13;
 		default:
-			RDCERR("Unexpected enum as buffer target: %hs", ToStr::Get(buf).c_str());
+			RDCERR("Unexpected enum as buffer target: %s", ToStr::Get(buf).c_str());
 	}
 
 	return 0;
@@ -130,7 +130,7 @@ size_t ShaderIdx(GLenum buf)
 		case eGL_FRAGMENT_SHADER:         return 4;
 		case eGL_COMPUTE_SHADER:          return 5;
 		default:
-			RDCERR("Unexpected enum as shader enum: %hs", ToStr::Get(buf).c_str());
+			RDCERR("Unexpected enum as shader enum: %s", ToStr::Get(buf).c_str());
 	}
 
 	return 0;
@@ -177,7 +177,7 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	ret.rawType = (uint32_t)fmt;
 	ret.special = false;
 	ret.specialFormat = eSpecial_Unknown;
-	ret.strname = widen(ToStr::Get(fmt)).substr(3); // 3 == strlen("GL_")
+	ret.strname = ToStr::Get(fmt).substr(3); // 3 == strlen("GL_")
 
 	// special handling for formats that don't query neatly
 	if(fmt == eGL_LUMINANCE8_EXT)
@@ -530,7 +530,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_UNSIGNED_INT_VEC4:
 					case eGL_BOOL_VEC4:                gl.glGetUniformuiv(progSrc, srcLocation, uiv); break;
 					default:
-						RDCERR("Unhandled uniform type '%hs'", ToStr::Get(type).c_str());
+						RDCERR("Unhandled uniform type '%s'", ToStr::Get(type).c_str());
 				}
 			}
 
@@ -648,7 +648,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_UNSIGNED_INT_VEC4:
 					case eGL_BOOL_VEC4:                gl.glProgramUniform4uiv(progDst, newloc, 1, uiv); break;
 					default:
-						RDCERR("Unhandled uniform type '%hs'", ToStr::Get(type).c_str());
+						RDCERR("Unhandled uniform type '%s'", ToStr::Get(type).c_str());
 				}
 			}
 		}

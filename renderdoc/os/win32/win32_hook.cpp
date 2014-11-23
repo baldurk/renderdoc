@@ -24,12 +24,13 @@
 
 #include "os/os_specific.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "common/threading.h"
 
 #include <windows.h>
 #include <tlhelp32.h> 
 
+#include <algorithm>
 #include <vector>
 #include <map>
 using std::vector;
@@ -134,7 +135,7 @@ struct CachedHookData
 
 		if(dosheader->e_magic != 0x5a4d)
 		{
-			RDCDEBUG("Ignoring module %hs, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
+			RDCDEBUG("Ignoring module %s, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
 			return;
 		}
 

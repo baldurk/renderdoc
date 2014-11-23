@@ -27,20 +27,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	RDCUNIMPLEMENTED();
 	return 0;
 }
 
-uint32_t Process::CreateAndInjectIntoProcess(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-                                             const wchar_t *logfile, const CaptureOptions *opts, bool waitForExit)
+uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+                                             const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	RDCUNIMPLEMENTED();
 	return 0;
 }
 
-void Process::StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
 {
 	RDCUNIMPLEMENTED();
 }

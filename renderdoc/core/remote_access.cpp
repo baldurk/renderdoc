@@ -49,15 +49,15 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 	Network::Socket *client = (Network::Socket *)s;
 
-	Serialiser ser(L"", Serialiser::WRITING, false);
+	Serialiser ser("", Serialiser::WRITING, false);
 
-	wstring api = L"";
+	string api = "";
 	RDCDriver driver;
 	RenderDoc::Inst().GetCurrentDriver(driver, api);
 
 	ser.Rewind();
 
-	wstring target = RenderDoc::Inst().GetCurrentTarget();
+	string target = RenderDoc::Inst().GetCurrentTarget();
 	ser.Serialise("", target);
 	ser.Serialise("", api);
 	uint32_t mypid = Process::GetCurrentPID();
@@ -69,7 +69,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 		{
 			SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
-			RenderDoc::Inst().m_SingleClientName = L"";
+			RenderDoc::Inst().m_SingleClientName = "";
 		}
 		
 		Threading::ReleaseModuleExitThread();
@@ -98,7 +98,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 		PacketType packetType = ePacket_Noop;
 
-		wstring curapi;
+		string curapi;
 		RenderDoc::Inst().GetCurrentDriver(driver, curapi);
 
 		vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
@@ -218,7 +218,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 	// give up our connection
 	{
 		SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
-		RenderDoc::Inst().m_SingleClientName = L"";
+		RenderDoc::Inst().m_SingleClientName = "";
 	}
 
 	Threading::ReleaseModuleExitThread();
@@ -230,7 +230,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 
 	Network::Socket *sock = (Network::Socket *)s;
 	
-	RenderDoc::Inst().m_SingleClientName = L"";
+	RenderDoc::Inst().m_SingleClientName = "";
 
 	Threading::ThreadHandle clientThread = 0;
 
@@ -256,8 +256,8 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 			continue;
 		}
 
-		wstring existingClient;
-		wstring newClient;
+		string existingClient;
+		string newClient;
 		bool kick = false;
 
 		// receive handshake from client and get its name
@@ -304,7 +304,7 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 			Threading::CloseThread(clientThread);
 			clientThread = 0;
 			RenderDoc::Inst().m_RemoteClientThreadShutdown = false;
-			existingClient = L"";
+			existingClient = "";
 		}
 
 		if(existingClient.empty())
@@ -323,13 +323,13 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 		{
 			// if we've been asked to kick the existing connection off
 			// reject this connection and tell them who is busy
-			Serialiser ser(L"", Serialiser::WRITING, false);
+			Serialiser ser("", Serialiser::WRITING, false);
 
-			wstring api = L"";
+			string api = "";
 			RDCDriver driver;
 			RenderDoc::Inst().GetCurrentDriver(driver, api);
 
-			wstring target = RenderDoc::Inst().GetCurrentTarget();
+			string target = RenderDoc::Inst().GetCurrentTarget();
 			ser.Serialise("", target);
 			ser.Serialise("", api);
 
@@ -353,14 +353,14 @@ void RenderDoc::RemoteAccessServerThread(void *s)
 struct RemoteAccess
 {
 	public:
-		RemoteAccess(Network::Socket *sock, wstring clientName, bool forceConnection, bool localhost)
+		RemoteAccess(Network::Socket *sock, string clientName, bool forceConnection, bool localhost)
 			: m_Socket(sock), m_Local(localhost)
 		{
 			PacketType type;
 			vector<byte> payload;
 
 			{
-				Serialiser ser(L"", Serialiser::WRITING, false);
+				Serialiser ser("", Serialiser::WRITING, false);
 
 				ser.SerialiseString("", clientName);
 				ser.Serialise("", forceConnection);
@@ -383,7 +383,7 @@ struct RemoteAccess
 				ser->Serialise("", m_API);
 				ser->Serialise("", m_PID);
 
-				RDCLOG("Got remote handshake: %ls (%ls) [%u]", m_Target.c_str(), m_API.c_str(), m_PID);
+				RDCLOG("Got remote handshake: %s (%s) [%u]", m_Target.c_str(), m_API.c_str(), m_PID);
 			}
 			else if(type == ePacket_Busy)
 			{
@@ -391,7 +391,7 @@ struct RemoteAccess
 				ser->Serialise("", m_API);
 				ser->Serialise("", m_BusyClient);
 
-				RDCLOG("Got remote busy signal: %ls (%ls) owned by %ls", m_Target.c_str(), m_API.c_str(), m_BusyClient.c_str());
+				RDCLOG("Got remote busy signal: %s (%s) owned by %s", m_Target.c_str(), m_API.c_str(), m_BusyClient.c_str());
 			}
 
 			SAFE_DELETE(ser);
@@ -405,12 +405,12 @@ struct RemoteAccess
 			delete this;
 		}
 
-		const wchar_t *GetTarget()
+		const char *GetTarget()
 		{
 			return m_Target.c_str();
 		}
 
-		const wchar_t *GetAPI()
+		const char *GetAPI()
 		{
 			return m_API.c_str();
 		}
@@ -420,7 +420,7 @@ struct RemoteAccess
 			return m_PID;
 		}
 
-		const wchar_t *GetBusyClient()
+		const char *GetBusyClient()
 		{
 			return m_BusyClient.c_str();
 		}
@@ -433,7 +433,7 @@ struct RemoteAccess
 		
 		void QueueCapture(uint32_t frameNumber)
 		{
-			Serialiser ser(L"", Serialiser::WRITING, false);
+			Serialiser ser("", Serialiser::WRITING, false);
 
 			ser.Serialise("", frameNumber);
 		
@@ -444,9 +444,9 @@ struct RemoteAccess
 			}
 		}
 
-		void CopyCapture(uint32_t remoteID, const wchar_t *localpath)
+		void CopyCapture(uint32_t remoteID, const char *localpath)
 		{
-			Serialiser ser(L"", Serialiser::WRITING, false);
+			Serialiser ser("", Serialiser::WRITING, false);
 
 			ser.Serialise("", remoteID);
 		
@@ -507,14 +507,14 @@ struct RemoteAccess
 				}
 				else if(type == ePacket_Busy)
 				{
-					wstring existingClient;
+					string existingClient;
 					ser->Serialise("", existingClient);
 
 					SAFE_DELETE(ser);
 					
 					SAFE_DELETE(m_Socket);
 
-					RDCLOG("Got busy signal: '%ls", existingClient.c_str());
+					RDCLOG("Got busy signal: '%s", existingClient.c_str());
 					msg->Type = eRemoteMsg_Busy;
 					msg->Busy.ClientName = existingClient;
 					return;
@@ -564,12 +564,12 @@ struct RemoteAccess
 					ser->Serialise("", msg->NewCapture.ID);
 					ser->Serialise("", msg->NewCapture.timestamp);
 					
-					wstring path;
+					string path;
 					ser->Serialise("", path);
 					msg->NewCapture.localpath = path;
 
 					if(!m_Local)
-						msg->NewCapture.localpath = L"";
+						msg->NewCapture.localpath = "";
 					
 					uint32_t thumblen = 0;
 					ser->Serialise("", thumblen);
@@ -593,7 +593,7 @@ struct RemoteAccess
 					ser->Serialise("", m_API);
 					msg->RegisterAPI.APIName = m_API;
 					
-					RDCLOG("Used API: %ls", m_API.c_str());
+					RDCLOG("Used API: %s", m_API.c_str());
 					
 					SAFE_DELETE(ser);
 
@@ -609,10 +609,10 @@ struct RemoteAccess
 	private:
 		Network::Socket *m_Socket;
 		bool m_Local;
-		wstring m_Target, m_API, m_BusyClient;
+		string m_Target, m_API, m_BusyClient;
 		uint32_t m_PID;
 
-		map<uint32_t, wstring> m_CaptureCopies;
+		map<uint32_t, string> m_CaptureCopies;
 
 		void GetPacket(PacketType &type, Serialiser *&ser)
 		{
@@ -624,33 +624,33 @@ struct RemoteAccess
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_Shutdown(RemoteAccess *access)
 { access->Shutdown(); }
  
-extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetTarget(RemoteAccess *access)
+extern "C" RENDERDOC_API const char* RENDERDOC_CC RemoteAccess_GetTarget(RemoteAccess *access)
 { return access->GetTarget(); }
-extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access)
+extern "C" RENDERDOC_API const char* RENDERDOC_CC RemoteAccess_GetAPI(RemoteAccess *access)
 { return access->GetAPI(); }
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RemoteAccess_GetPID(RemoteAccess *access)
 { return access->GetPID(); }
-extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access)
+extern "C" RENDERDOC_API const char* RENDERDOC_CC RemoteAccess_GetBusyClient(RemoteAccess *access)
 { return access->GetBusyClient(); }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_TriggerCapture(RemoteAccess *access)
 { access->TriggerCapture(); }
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_QueueCapture(RemoteAccess *access, uint32_t frameNumber)
 { access->QueueCapture(frameNumber); }
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_CopyCapture(RemoteAccess *access, uint32_t remoteID, const wchar_t *localpath)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_CopyCapture(RemoteAccess *access, uint32_t remoteID, const char *localpath)
 { access->CopyCapture(remoteID, localpath); }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteAccess_ReceiveMessage(RemoteAccess *access, RemoteMessage *msg)
 { access->ReceiveMessage(msg); }
 
 extern "C" RENDERDOC_API
-RemoteAccess * RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const wchar_t *host, uint32_t ident, const wchar_t *clientName, bool32 forceConnection)
+RemoteAccess * RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const char *host, uint32_t ident, const char *clientName, bool32 forceConnection)
 {
-	wstring s = L"localhost";
-	if(host != NULL && host[0] != L'\0')
+	string s = "localhost";
+	if(host != NULL && host[0] != '\0')
 		s = host;
 
-	bool localhost = (s == L"localhost");
+	bool localhost = (s == "localhost");
 
 	Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident&0xffff, 3000);
 

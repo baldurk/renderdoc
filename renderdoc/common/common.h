@@ -61,9 +61,6 @@
 #define CONCAT2(a, b) a##b
 #define CONCAT(a, b) CONCAT2(a, b)
 
-#define WIDEN2(x) L ## x
-#define WIDEN(x) WIDEN2(x)
-
 #include "os/os_specific.h"
 
 #define RDCEraseMem(a, b) memset(a, 0, b)
@@ -139,8 +136,8 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 
 #define rdclog(type, ...) rdclog_int(type, __FILE__, __LINE__, __VA_ARGS__)
 
-const wchar_t *rdclog_getfilename();
-void rdclog_filename(const wchar_t *filename);
+const char *rdclog_getfilename();
+void rdclog_filename(const char *filename);
 void rdclog_delete();
 
 #define RDCLOGFILE(fn) rdclog_filename(fn)

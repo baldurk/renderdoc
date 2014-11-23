@@ -33,7 +33,7 @@
 
 #include "shaders/dxbc_debug.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 D3D11Replay::D3D11Replay()
 {
@@ -110,7 +110,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 				str = StringFormat::Fmt("Texture1D%s %llu", suffix, tex.ID);
 		}
 		
-		tex.name = widen(str);
+		tex.name = str;
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -200,7 +200,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 			}
 		}
 		
-		tex.name = widen(str);
+		tex.name = str;
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -263,7 +263,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 			str = StringFormat::Fmt("Texture3D%s %llu", suffix, tex.ID);
 		}
 
-		tex.name = widen(str);
+		tex.name = str;
 		
 		tex.byteSize = 0;
 		for(uint32_t s=0; s < tex.numSubresources; s++)
@@ -364,7 +364,7 @@ FetchBuffer D3D11Replay::GetBuffer(ResourceId id)
 	D3D11_BUFFER_DESC desc;
 	it->second.m_Buffer->GetDesc(&desc);
 
-	ret.name = widen(str);
+	ret.name = str;
 	ret.length = it->second.length;
 	ret.structureSize = desc.StructureByteStride;
 	ret.byteSize = desc.ByteWidth;
@@ -433,7 +433,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			l.PerInstance = vec[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA;
 			l.InstanceDataStepRate = vec[i].InstanceDataStepRate;
 			l.SemanticIndex = vec[i].SemanticIndex;
-			l.SemanticName = widen(vec[i].SemanticName);
+			l.SemanticName = vec[i].SemanticName;
 		}
 	}
 	
@@ -480,10 +480,10 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			if(str == "" && dst.Shader != ResourceId())
 			{
 				dst.customName = false;
-				str = StringFormat::Fmt("%hs Shader %llu", stageNames[i], dst.Shader);
+				str = StringFormat::Fmt("%s Shader %llu", stageNames[i], dst.Shader);
 			}
 
-			dst.ShaderName = widen(str);
+			dst.ShaderName = str;
 
 			// create identity bindpoint mapping
 			create_array_uninit(dst.BindpointMapping.ConstantBlocks, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
@@ -520,14 +520,14 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					D3D11_SAMPLER_DESC desc;
 					src.Samplers[s]->GetDesc(&desc);
 
-					samp.AddressU = widen(ToStr::Get(desc.AddressU));
-					samp.AddressV = widen(ToStr::Get(desc.AddressV));
-					samp.AddressW = widen(ToStr::Get(desc.AddressW));
+					samp.AddressU = ToStr::Get(desc.AddressU);
+					samp.AddressV = ToStr::Get(desc.AddressV);
+					samp.AddressW = ToStr::Get(desc.AddressW);
 
 					memcpy(samp.BorderColor, desc.BorderColor, sizeof(FLOAT)*4);
 
-					samp.Comparison = widen(ToStr::Get(desc.ComparisonFunc));
-					samp.Filter = widen(ToStr::Get(desc.Filter));
+					samp.Comparison = ToStr::Get(desc.ComparisonFunc);
+					samp.Filter = ToStr::Get(desc.Filter);
 					samp.MaxAniso = desc.MaxAnisotropy;
 					samp.MaxLOD = desc.MaxLOD;
 					samp.MinLOD = desc.MinLOD;
@@ -557,7 +557,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 					view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
-					view.Type = widen(ToStr::Get(desc.ViewDimension));
+					view.Type = ToStr::Get(desc.ViewDimension);
 
 					if(desc.ViewDimension == D3D11_SRV_DIMENSION_BUFFER)
 					{
@@ -654,7 +654,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 					view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
 					view.Format = MakeResourceFormat(desc.Format);
-					view.Type = widen(ToStr::Get(desc.ViewDimension));
+					view.Type = ToStr::Get(desc.ViewDimension);
 
 					if(desc.ViewDimension == D3D11_RTV_DIMENSION_BUFFER)
 					{
@@ -711,7 +711,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				count = 255;
 				src.Instances[s]->GetInstanceName(instName, &count);
 
-				dst.ClassInstances[s] = widen(instName);
+				dst.ClassInstances[s] = instName;
 			}
 		}
 	}
@@ -832,7 +832,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
 				view.Format = MakeResourceFormat(desc.Format);
-				view.Type = widen(ToStr::Get(desc.ViewDimension));
+				view.Type = ToStr::Get(desc.ViewDimension);
 
 				if(desc.ViewDimension == D3D11_RTV_DIMENSION_BUFFER)
 				{
@@ -904,7 +904,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
 				view.Format = MakeResourceFormat(desc.Format);
-				view.Type = widen(ToStr::Get(desc.ViewDimension));
+				view.Type = ToStr::Get(desc.ViewDimension);
 
 				if(desc.ViewDimension == D3D11_UAV_DIMENSION_BUFFER)
 				{
@@ -977,7 +977,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				view.Resource = rm->GetOriginalID(GetIDForResource(res));
 
 				view.Format = MakeResourceFormat(desc.Format);
-				view.Type = widen(ToStr::Get(desc.ViewDimension));
+				view.Type = ToStr::Get(desc.ViewDimension);
 
 				if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D)
 				{
@@ -1042,19 +1042,19 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 #if defined(INCLUDE_D3D_11_1)
 				blend.LogicEnabled = state1 && desc1.RenderTarget[i].LogicOpEnable == TRUE;
-				blend.LogicOp = state1 ? widen(ToStr::Get(desc1.RenderTarget[i].LogicOp)) : widen(ToStr::Get(D3D11_LOGIC_OP_NOOP));
+				blend.LogicOp = state1 ? ToStr::Get(desc1.RenderTarget[i].LogicOp) : "NOOP";
 #else
 				blend.LogicEnabled = false;
-				blend.LogicOp = L"NOOP";
+				blend.LogicOp = "NOOP";
 #endif
 
-				blend.m_AlphaBlend.Source = widen(ToStr::Get(desc.RenderTarget[i].SrcBlendAlpha));
-				blend.m_AlphaBlend.Destination = widen(ToStr::Get(desc.RenderTarget[i].DestBlendAlpha));
-				blend.m_AlphaBlend.Operation = widen(ToStr::Get(desc.RenderTarget[i].BlendOpAlpha));
+				blend.m_AlphaBlend.Source = ToStr::Get(desc.RenderTarget[i].SrcBlendAlpha);
+				blend.m_AlphaBlend.Destination = ToStr::Get(desc.RenderTarget[i].DestBlendAlpha);
+				blend.m_AlphaBlend.Operation = ToStr::Get(desc.RenderTarget[i].BlendOpAlpha);
 
-				blend.m_Blend.Source = widen(ToStr::Get(desc.RenderTarget[i].SrcBlend));
-				blend.m_Blend.Destination = widen(ToStr::Get(desc.RenderTarget[i].DestBlend));
-				blend.m_Blend.Operation = widen(ToStr::Get(desc.RenderTarget[i].BlendOp));
+				blend.m_Blend.Source = ToStr::Get(desc.RenderTarget[i].SrcBlend);
+				blend.m_Blend.Destination = ToStr::Get(desc.RenderTarget[i].DestBlend);
+				blend.m_Blend.Operation = ToStr::Get(desc.RenderTarget[i].BlendOp);
 
 				blend.WriteMask = desc.RenderTarget[i].RenderTargetWriteMask;
 			}
@@ -1073,20 +1073,20 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			
 			blend.Enabled = false;
 
-			blend.m_AlphaBlend.Source = widen(ToStr::Get(D3D11_BLEND_ONE));
-			blend.m_AlphaBlend.Destination = widen(ToStr::Get(D3D11_BLEND_ZERO));
-			blend.m_AlphaBlend.Operation = widen(ToStr::Get(D3D11_BLEND_OP_ADD));
+			blend.m_AlphaBlend.Source = ToStr::Get(D3D11_BLEND_ONE);
+			blend.m_AlphaBlend.Destination = ToStr::Get(D3D11_BLEND_ZERO);
+			blend.m_AlphaBlend.Operation = ToStr::Get(D3D11_BLEND_OP_ADD);
 
-			blend.m_Blend.Source = widen(ToStr::Get(D3D11_BLEND_ONE));
-			blend.m_Blend.Destination = widen(ToStr::Get(D3D11_BLEND_ZERO));
-			blend.m_Blend.Operation = widen(ToStr::Get(D3D11_BLEND_OP_ADD));
+			blend.m_Blend.Source = ToStr::Get(D3D11_BLEND_ONE);
+			blend.m_Blend.Destination = ToStr::Get(D3D11_BLEND_ZERO);
+			blend.m_Blend.Operation = ToStr::Get(D3D11_BLEND_OP_ADD);
 
 #if defined(INCLUDE_D3D_11_1)
 			blend.LogicEnabled = false;
-			blend.LogicOp = widen(ToStr::Get(D3D11_LOGIC_OP_NOOP));
+			blend.LogicOp = ToStr::Get(D3D11_LOGIC_OP_NOOP);
 #else
 			blend.LogicEnabled = false;
-			blend.LogicOp = L"NOOP";
+			blend.LogicOp = "NOOP";
 #endif
 
 			blend.WriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
@@ -1102,7 +1102,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			rs->OM.DepthStencilState->GetDesc(&desc);
 
 			ret.m_OM.m_State.DepthEnable = desc.DepthEnable == TRUE;
-			ret.m_OM.m_State.DepthFunc = widen(ToStr::Get(desc.DepthFunc));
+			ret.m_OM.m_State.DepthFunc = ToStr::Get(desc.DepthFunc);
 			ret.m_OM.m_State.DepthWrites = desc.DepthWriteMask == D3D11_DEPTH_WRITE_MASK_ALL;
 			ret.m_OM.m_State.StencilEnable = desc.StencilEnable == TRUE;
 			ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
@@ -1110,21 +1110,21 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			ret.m_OM.m_State.StencilWriteMask = desc.StencilWriteMask;
 			ret.m_OM.m_State.State = rm->GetOriginalID(GetIDForResource(rs->OM.DepthStencilState));
 
-			ret.m_OM.m_State.m_FrontFace.Func = widen(ToStr::Get(desc.FrontFace.StencilFunc));
-			ret.m_OM.m_State.m_FrontFace.DepthFailOp = widen(ToStr::Get(desc.FrontFace.StencilDepthFailOp));
-			ret.m_OM.m_State.m_FrontFace.PassOp = widen(ToStr::Get(desc.FrontFace.StencilPassOp));
-			ret.m_OM.m_State.m_FrontFace.FailOp = widen(ToStr::Get(desc.FrontFace.StencilFailOp));
+			ret.m_OM.m_State.m_FrontFace.Func = ToStr::Get(desc.FrontFace.StencilFunc);
+			ret.m_OM.m_State.m_FrontFace.DepthFailOp = ToStr::Get(desc.FrontFace.StencilDepthFailOp);
+			ret.m_OM.m_State.m_FrontFace.PassOp = ToStr::Get(desc.FrontFace.StencilPassOp);
+			ret.m_OM.m_State.m_FrontFace.FailOp = ToStr::Get(desc.FrontFace.StencilFailOp);
 
-			ret.m_OM.m_State.m_BackFace.Func = widen(ToStr::Get(desc.BackFace.StencilFunc));
-			ret.m_OM.m_State.m_BackFace.DepthFailOp = widen(ToStr::Get(desc.BackFace.StencilDepthFailOp));
-			ret.m_OM.m_State.m_BackFace.PassOp = widen(ToStr::Get(desc.BackFace.StencilPassOp));
-			ret.m_OM.m_State.m_BackFace.FailOp = widen(ToStr::Get(desc.BackFace.StencilFailOp));
+			ret.m_OM.m_State.m_BackFace.Func = ToStr::Get(desc.BackFace.StencilFunc);
+			ret.m_OM.m_State.m_BackFace.DepthFailOp = ToStr::Get(desc.BackFace.StencilDepthFailOp);
+			ret.m_OM.m_State.m_BackFace.PassOp = ToStr::Get(desc.BackFace.StencilPassOp);
+			ret.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(desc.BackFace.StencilFailOp);
 		}
 		else
 		{
 
 			ret.m_OM.m_State.DepthEnable = true;
-			ret.m_OM.m_State.DepthFunc = widen(ToStr::Get(D3D11_COMPARISON_LESS));
+			ret.m_OM.m_State.DepthFunc = ToStr::Get(D3D11_COMPARISON_LESS);
 			ret.m_OM.m_State.DepthWrites = true;
 			ret.m_OM.m_State.StencilEnable = false;
 			ret.m_OM.m_State.StencilRef = rs->OM.StencRef;
@@ -1132,15 +1132,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			ret.m_OM.m_State.StencilWriteMask = D3D11_DEFAULT_STENCIL_WRITE_MASK;
 			ret.m_OM.m_State.State = ResourceId();
 
-			ret.m_OM.m_State.m_FrontFace.Func = widen(ToStr::Get(D3D11_COMPARISON_ALWAYS));
-			ret.m_OM.m_State.m_FrontFace.DepthFailOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
-			ret.m_OM.m_State.m_FrontFace.PassOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
-			ret.m_OM.m_State.m_FrontFace.FailOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
+			ret.m_OM.m_State.m_FrontFace.Func = ToStr::Get(D3D11_COMPARISON_ALWAYS);
+			ret.m_OM.m_State.m_FrontFace.DepthFailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+			ret.m_OM.m_State.m_FrontFace.PassOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+			ret.m_OM.m_State.m_FrontFace.FailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
 
-			ret.m_OM.m_State.m_BackFace.Func = widen(ToStr::Get(D3D11_COMPARISON_ALWAYS));
-			ret.m_OM.m_State.m_BackFace.DepthFailOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
-			ret.m_OM.m_State.m_BackFace.PassOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
-			ret.m_OM.m_State.m_BackFace.FailOp = widen(ToStr::Get(D3D11_STENCIL_OP_KEEP));
+			ret.m_OM.m_State.m_BackFace.Func = ToStr::Get(D3D11_COMPARISON_ALWAYS);
+			ret.m_OM.m_State.m_BackFace.DepthFailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+			ret.m_OM.m_State.m_BackFace.PassOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
+			ret.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(D3D11_STENCIL_OP_KEEP);
 		}
 	}
 
@@ -1488,8 +1488,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 
 	if(resource != NULL && templateTex.customName)
 	{
-		string name = narrow(wstring(templateTex.name.elems));
-		SetDebugName(resource, name.c_str());
+		string name = templateTex.name.elems;
+		SetDebugName(resource, templateTex.name.elems);
 	}
 
 	return ret;
@@ -1586,7 +1586,7 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 	}
 }
 
-ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDriver **driver)
+ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating a D3D11 replay device");
 
@@ -1633,7 +1633,7 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 
 	D3D11InitParams initParams;
 	RDCDriver driverFileType = RDC_D3D11;
-	wstring driverName = L"D3D11";
+	string driverName = "D3D11";
 	if(logfile)
 	{
 		auto status = RenderDoc::Inst().FillInitParams(logfile, driverFileType, driverName, (RDCInitParams *)&initParams);
@@ -1741,4 +1741,4 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const wchar_t *logfile, IReplayDrive
 	return eReplayCreate_APIHardwareUnsupported;
 }
 
-static DriverRegistration D3D11DriverRegistration(RDC_D3D11, L"D3D11", &D3D11_CreateReplayDevice);
+static DriverRegistration D3D11DriverRegistration(RDC_D3D11, "D3D11", &D3D11_CreateReplayDevice);

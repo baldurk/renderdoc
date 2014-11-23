@@ -37,7 +37,7 @@
 
 struct CaptureOptions;
 typedef void (__cdecl *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
-typedef void (__cdecl *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
+typedef void (__cdecl *pRENDERDOC_SetLogFile)(const char *logfile);
 
 #if defined(RELEASE)
 #define LOGPRINT(txt) do { } while (0)

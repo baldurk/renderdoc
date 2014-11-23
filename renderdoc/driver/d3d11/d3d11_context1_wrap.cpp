@@ -27,7 +27,7 @@
 #include "d3d11_resources.h"
 #include "d3d11_renderstate.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pDstResource, UINT DstSubresource, const D3D11_BOX *pDstBox,
 																const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch, UINT CopyFlags)
@@ -406,7 +406,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 
 		FetchDrawcall draw;
 
-		draw.name = widen(name);
+		draw.name = name;
 
 		draw.flags |= eDraw_Clear;
 

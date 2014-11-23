@@ -42,15 +42,15 @@ void LibraryHooks::CreateHooks()
 	HOOKS_BEGIN();
 	for(auto it=m_Hooks.begin(); it!=m_Hooks.end(); ++it)
 	{
-		RDCDEBUG("Attempting to hook %hs", it->first);
+		RDCDEBUG("Attempting to hook %s", it->first);
 
 		if(it->second->CreateHooks(it->first))
 		{
-			RDCLOG("Loaded and hooked into %hs, PID %d", it->first, Process::GetCurrentPID());
+			RDCLOG("Loaded and hooked into %s, PID %d", it->first, Process::GetCurrentPID());
 		}
 		else
 		{
-			RDCWARN("Couldn't hook into %hs", it->first);
+			RDCWARN("Couldn't hook into %s", it->first);
 		}
 	}
 	HOOKS_END();
@@ -58,7 +58,7 @@ void LibraryHooks::CreateHooks()
 
 void LibraryHooks::EnableHooks(bool enable)
 {
-	RDCDEBUG("%hs hooks!", enable ? "Enabling" : "Disabling");
+	RDCDEBUG("%s hooks!", enable ? "Enabling" : "Disabling");
 
 	if(!enable)
 		return;

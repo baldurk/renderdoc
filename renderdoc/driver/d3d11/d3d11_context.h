@@ -214,7 +214,7 @@ private:
 	{
 		enum { ANNOT_SETMARKER, ANNOT_BEGINEVENT, ANNOT_ENDEVENT } m_Type;
 		uint32_t m_Col;
-		wstring m_Name;
+		std::wstring m_Name;
 	};
 	vector<Annotation> m_AnnotationQueue;
 	Threading::CriticalSection m_AnnotLock;

@@ -31,7 +31,7 @@
 #include "maths/formatpacking.h"
 #include "data/resource.h"
 #include "serialise/serialiser.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/d3d11/d3d11_renderstate.h"
@@ -288,9 +288,9 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
 				for(size_t r=0; r < registers*elems; r++)
 				{
 					if(isArray && registers > 1)
-						StringFormat::snprintf(buf, 63, "[%d].%hs%d", r/registers, regName, r%registers);
+						StringFormat::snprintf(buf, 63, "[%d].%s%d", r/registers, regName, r%registers);
 					else if(registers > 1)
-						StringFormat::snprintf(buf, 63, ".%hs%d", regName, r);
+						StringFormat::snprintf(buf, 63, ".%s%d", regName, r);
 					else
 						StringFormat::snprintf(buf, 63, "[%d]", r);
 
@@ -380,7 +380,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 			ShaderVariable v;
 
-			v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
+			v.name = StringFormat::Fmt("%s (%s)", buf, sig.semanticIdxName.elems);
 			v.rows = 1;
 			v.columns = 
 				sig.regChannelMask & 0x8 ? 4 :
@@ -433,7 +433,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 			ShaderVariable v;
 
-			v.name = StringFormat::Fmt("%hs (%hs)", buf, sig.semanticIdxName.elems);
+			v.name = StringFormat::Fmt("%s (%s)", buf, sig.semanticIdxName.elems);
 			v.rows = 1;
 			v.columns = 
 				sig.regChannelMask & 0x8 ? 4 :
@@ -467,7 +467,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 			//if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
 			else
 			{
-				RDCERR("Unhandled output: %hs (%d)", sig.semanticName, sig.systemValue);
+				RDCERR("Unhandled output: %s (%d)", sig.semanticName, sig.systemValue);
 				continue;
 			}
 
@@ -496,7 +496,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 		trace.cbuffers[i] = vars;
 
 		for(int32_t c=0; c < trace.cbuffers[i].count; c++)
-			trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%hs)", (uint32_t)i, (uint32_t)c, trace.cbuffers[i][c].name.elems);
+			trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%s)", (uint32_t)i, (uint32_t)c, trace.cbuffers[i][c].name.elems);
 	}
 
 	initialState.Init();

@@ -28,7 +28,7 @@
 #include "driver/gl/gl_driver.h"
 
 #include "common/threading.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "hooks.h"
 
@@ -36,7 +36,7 @@
 
 #define HookInit(function) \
 	bool CONCAT(function, _success) = CONCAT(function, _hook).Initialize(STRINGIZE(function), DLL_NAME, CONCAT(function, _hooked)); \
-	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %hs", STRINGIZE(function)); \
+	if(!CONCAT(function, _success)) RDCWARN("Couldn't hook %s", STRINGIZE(function)); \
 	success &= CONCAT(function, _success); \
 	GL.function = CONCAT(function, _hook)();
 
@@ -255,7 +255,7 @@ class OpenGLHook : LibraryHook
 		WrappedOpenGL *GetDriver()
 		{
 			if(m_GLDriver == NULL)
-				m_GLDriver = new WrappedOpenGL(L"", GL);
+				m_GLDriver = new WrappedOpenGL("", GL);
 
 			return m_GLDriver;
 		}
@@ -451,7 +451,7 @@ class OpenGLHook : LibraryHook
 			PROC realFunc = glhooks.wglGetProcAddress_realfunc(func);
 			
 #if 0
-			RDCDEBUG("Checking for extension - %hs - real function is %p", func, realFunc);
+			RDCDEBUG("Checking for extension - %s - real function is %p", func, realFunc);
 #endif
 
 			// if the real RC doesn't support this function, don't bother hooking
@@ -494,7 +494,7 @@ class OpenGLHook : LibraryHook
 			HookCheckGLExtensions();
 
 			// claim not to know this extension!
-			RDCWARN("Claiming not to know extension that is available - %hs", func);
+			RDCWARN("Claiming not to know extension that is available - %s", func);
 			return NULL;
 		}
 

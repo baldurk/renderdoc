@@ -91,19 +91,19 @@ int RENDERDOC_CC RENDERDOC_GetAPIVersion()
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_LogText(const wchar_t *text)
+void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
-	RDCLOG("%ls", text);
+	RDCLOG("%s", text);
 }
 
 extern "C" RENDERDOC_API
-const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile()
+const char* RENDERDOC_CC RENDERDOC_GetLogFile()
 {
 	return RDCGETLOGFILE();
 }
 
 extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp)
+bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp)
 {
 	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
 
@@ -118,7 +118,7 @@ bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_
 	CaptureData &c = caps[idx];
 
 	if(logfile)
-		memcpy(logfile, c.path.c_str(), sizeof(wchar_t)*(c.path.size()+1));
+		memcpy(logfile, c.path.c_str(), sizeof(char)*(c.path.size()+1));
 	if(pathlength)
 		*pathlength = uint32_t(c.path.size()+1);
 	if(timestamp)
@@ -160,13 +160,13 @@ void RENDERDOC_CC RENDERDOC_UnloadCrashHandler()
 }
 
 extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype::wstr *driver)
+bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const char *logfile, rdctype::str *driver)
 {
 	if(logfile == NULL)
 		return false;
 
 	RDCDriver driverType = RDC_Unknown;
-	wstring driverName = L"";
+	string driverName = "";
 	RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, NULL);
 
 	if(driver) *driver = driverName;
@@ -175,7 +175,7 @@ bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const wchar_t *logfile, rdctype
 }
 
 extern "C" RENDERDOC_API
-ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayRenderer(const wchar_t *logfile, float *progress, ReplayRenderer **rend)
+ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRenderer **rend)
 {
 	if(rend == NULL) return eReplayCreate_InternalError;
 
@@ -205,9 +205,9 @@ ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayRenderer(const wchar_t *lo
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetLogFile(const wchar_t *logfile)
+void RENDERDOC_CC RENDERDOC_SetLogFile(const char *logfile)
 {
-	RDCLOG("Using logfile %ls", logfile);
+	RDCLOG("Using logfile %s", logfile);
 	RenderDoc::Inst().SetLogFile(logfile);
 }
 
@@ -219,20 +219,20 @@ void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts)
 }
 
 extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const wchar_t *app, const wchar_t *workingDir, const wchar_t *cmdLine,
-									 const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
+uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
+									 const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
 	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_StartGlobalHook(const wchar_t *pathmatch, const wchar_t *logfile, const CaptureOptions *opts)
+void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts)
 {
 	Process::StartGlobalHook(pathmatch, logfile, opts);
 }
 
 extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const wchar_t *logfile, const CaptureOptions *opts, bool32 waitForExit)
+uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
 	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);
 }
@@ -292,7 +292,7 @@ void RENDERDOC_CC RENDERDOC_QueueCapture(uint32_t frameNumber)
 }
 
 extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const wchar_t *filename, byte *buf, uint32_t &len)
+bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint32_t &len)
 {
 	Serialiser ser(filename, Serialiser::READING, false);
 
@@ -356,13 +356,13 @@ void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident)
 }
 
 extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const wchar_t *host, uint32_t *idents)
+uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const char *host, uint32_t *idents)
 {
 	if(idents == NULL)
 		return RenderDoc_LastCaptureNetworkPort-RenderDoc_FirstCaptureNetworkPort+1;
 
-	wstring s = L"localhost";
-	if(host != NULL && host[0] != L'\0')
+	string s = "localhost";
+	if(host != NULL && host[0] != '\0')
 		s = host;
 
 	uint32_t numIdents = 0;

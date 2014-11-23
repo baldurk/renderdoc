@@ -25,7 +25,7 @@
 
 #include "common/common.h"
 #include "serialise/serialiser.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "dxbc_inspect.h"
 #include "dxbc_sdbg.h"
 #include "dxbc_spdb.h"
@@ -338,7 +338,7 @@ string TypeName(CBufferVariableType::Descriptor desc)
 
 		if(desc.rows > 1)
 		{
-			StringFormat::snprintf(buf, 63, "%hs%dx%d", type, desc.rows, desc.cols);
+			StringFormat::snprintf(buf, 63, "%s%dx%d", type, desc.rows, desc.cols);
 
 			if(desc.varClass == CLASS_MATRIX_ROWS)
 			{
@@ -352,7 +352,7 @@ string TypeName(CBufferVariableType::Descriptor desc)
 		}
 		else if(desc.cols > 1)
 		{
-			StringFormat::snprintf(buf, 63, "%hs%d", type, desc.cols);
+			StringFormat::snprintf(buf, 63, "%s%d", type, desc.cols);
 
 			ret = buf;
 		}
@@ -628,7 +628,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 				}
 				else
 				{
-					RDCDEBUG("Unused information, buffer %d: %hs", cb.descriptor.type, cb.descriptor.name.c_str());
+					RDCDEBUG("Unused information, buffer %d: %s", cb.descriptor.type, cb.descriptor.name.c_str());
 				}
 			}
 		}
@@ -1470,7 +1470,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				ProcHeader *header = (ProcHeader *)contents;
 				char *name = (char *)(header + 1);
 
-				//RDCDEBUG("Got global procedure start %hs %x -> %x", name, header->Offset, header->Offset+header->Length);
+				//RDCDEBUG("Got global procedure start %s %x -> %x", name, header->Offset, header->Offset+header->Length);
 			}
 			else if(type == 0x113c)
 			{
@@ -1481,7 +1481,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				m_CompilandDetails.CompilerSig = compilerString;
 
 				/*
-				RDCDEBUG("CompilandDetails: %hs (%d.%d.%d.%d)", compilerString,
+				RDCDEBUG("CompilandDetails: %s (%d.%d.%d.%d)", compilerString,
 						details->FrontendVersion.Major, details->FrontendVersion.Minor,
 						details->FrontendVersion.Build, details->FrontendVersion.QFE);*/
 
@@ -1497,7 +1497,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				{
 					char *value = key + strlen(key) + 1;
 
-					//RDCDEBUG("CompilandEnv: %hs = \"%hs\"", key, value);
+					//RDCDEBUG("CompilandEnv: %s = \"%s\"", key, value);
 
 					if(!strcmp(key, "hlslEntry"))
 					{
@@ -1549,7 +1549,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 				uint32_t *adsf = (uint32_t *)iterator;
 
-				//RDCDEBUG("funcdef for %hs (%x) flags??=0x%x offset/length??=0x%x", functions[adsf[2]&0xfff].funcName.c_str(), adsf[2], adsf[0], adsf[1]);
+				//RDCDEBUG("funcdef for %s (%x) flags??=0x%x offset/length??=0x%x", functions[adsf[2]&0xfff].funcName.c_str(), adsf[2], adsf[0], adsf[1]);
 				iterator += 3*sizeof(uint32_t);
 
 				bool working = true;
@@ -1730,7 +1730,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				if((size_t)(var->func&0xfff) < functions.size())
 					funcName = functions[var->func&0xfff].funcName;
 
-	 			//RDCDEBUG("     in %hs (%x) flags??=%04x, %hs:", funcName.c_str(), var->func, var->unkflags, var->name);
+	 			//RDCDEBUG("     in %s (%x) flags??=%04x, %s:", funcName.c_str(), var->func, var->unkflags, var->name);
 
 				byte *afterName = (byte *)var->name + (strlen(var->name) + 1);
 
@@ -1779,7 +1779,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 				char comps[] = "xyzw";
 
-				//RDCDEBUG("%hs%d.%c (%x, %x) <- <above>.%c @ 0x%x", type, (destComp)>>4, comps[(destComp&0xf)>>2], comp->destComp, comp->unkE, comps[(comp->srcComp&0xf)>>2], comp->instrOffset);
+				//RDCDEBUG("%s%d.%c (%x, %x) <- <above>.%c @ 0x%x", type, (destComp)>>4, comps[(destComp&0xf)>>2], comp->destComp, comp->unkE, comps[(comp->srcComp&0xf)>>2], comp->instrOffset);
 
 	 			//RDCDEBUG("     A:%04x B:%04x C:%04x D:%04x", comp->unkA, comp->unkB, comp->unkC, comp->unkD);
 				//RDCDEBUG("     E(d):%04x", comp->unkE);
@@ -1968,7 +1968,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 					{
 						// function call - 3 uint32s: (function idx | 0x1000, FileMapping idx, line # of start of function)
 						
-						//RDCDEBUG("Call to %hs(%x) - file %x, line %d", functions[calls[0]&0xfff].funcName.c_str(), calls[0], calls[1], calls[2]);
+						//RDCDEBUG("Call to %s(%x) - file %x, line %d", functions[calls[0]&0xfff].funcName.c_str(), calls[0], calls[1], calls[2]);
 						
 						funcCalls[idx].fileOffs = calls[1];
 						funcCalls[idx].baseLineNum = calls[2];

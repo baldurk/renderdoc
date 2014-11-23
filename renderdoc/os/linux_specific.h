@@ -41,7 +41,7 @@ namespace OSUtility
 	inline void ForceCrash() { __builtin_trap(); }
 	inline void DebugBreak() { raise(SIGTRAP); }
 	inline bool DebuggerPresent() { return true; }
-	inline void DebugOutputA(const char *str) { }
+	void WriteOutput(int channel, const char *str);
 };
 
 namespace Threading

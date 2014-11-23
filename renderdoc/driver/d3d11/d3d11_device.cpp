@@ -25,7 +25,7 @@
 
 #include "core/core.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "maths/formatpacking.h"
 
@@ -239,7 +239,7 @@ ReplayCreateStatus D3D11InitParams::Serialise()
 	return eReplayCreate_Success;
 }
 
-void WrappedID3D11Device::SetLogFile(const wchar_t *logfile)
+void WrappedID3D11Device::SetLogFile(const char *logfile)
 {
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
@@ -316,7 +316,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
 #ifdef DEBUG_TEXT_SERIALISER
-		m_pDebugSerialiser = new Serialiser(L"./debuglog.txt", Serialiser::DEBUGWRITING, true);
+		m_pDebugSerialiser = new Serialiser("./debuglog.txt", Serialiser::DEBUGWRITING, true);
 #else
 		m_pDebugSerialiser = NULL;
 #endif
@@ -571,7 +571,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying ID3D11Device for interface: %hs", guid.c_str());
+		RDCWARN("Querying ID3D11Device for interface: %s", guid.c_str());
 	}
 
 	return m_RefCounter.QueryInterface(riid, ppvObject);
@@ -587,7 +587,7 @@ NvPmApi *nvAPI = NULL;
 #if defined(ENABLE_NVIDIA_PERFKIT)
 int enumFunc(NVPMCounterID id, const char *name)
 {
-	RDCLOG("(% 4d): %hs", id, name);
+	RDCLOG("(% 4d): %s", id, name);
 
 	return NVPM_OK;
 }
@@ -1018,7 +1018,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 	{
 		double dcount = double(it->second.count);
 
-		RDCDEBUG("% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %hs (%u)",
+		RDCDEBUG("% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
 				it->second.count,
 				it->second.total, it->second.total/dcount,
 				double(it->second.totalsize)/(1024.0*1024.0),
@@ -2809,7 +2809,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 					default: break;
 				}
 
-				GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %hs", m_FrameCounter, reasonString);
+				GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
 			}
 
 			old.ApplyState(m_pImmediateContext);
@@ -3029,7 +3029,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 					GetDebugManager()->RenderText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);
 					y += 1.0f;
-					GetDebugManager()->RenderText(0.0f, y, "    %hs\n", reasonString);
+					GetDebugManager()->RenderText(0.0f, y, "    %s\n", reasonString);
 					y += 1.0f;
 				}
 

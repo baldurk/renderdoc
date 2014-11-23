@@ -119,15 +119,15 @@ namespace Keyboard
 
 namespace FileIO
 {
-	void GetExecutableFilename(wstring &selfName)
+	void GetExecutableFilename(string &selfName)
 	{
 		char path[512] = {0};
 		readlink("/proc/self/exe", path, 511);
 
-		selfName = widen(string(path));
+		selfName = string(path);
 	}
 
-	void GetDefaultFiles(const wchar_t *logBaseName, wstring &capture_filename, wstring &logging_filename, wstring &target)
+	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)
 	{
 		char path[512] = {0};
 		readlink("/proc/self/exe", path, 511);
@@ -137,7 +137,7 @@ namespace FileIO
 		else
 			mod++;
 
-		target = widen(string(mod));
+		target = string(mod);
 
 		time_t t = time(NULL);
 		tm now = *localtime(&t);
@@ -146,21 +146,17 @@ namespace FileIO
 
 		snprintf(temp_filename, 511, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
 
-		capture_filename = widen(string(temp_filename));
+		capture_filename = string(temp_filename);
 
-		string baseName = narrow(wstring(logBaseName));
+		snprintf(temp_filename, 511, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
-		snprintf(temp_filename, 511, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", baseName.c_str(), 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
-
-		logging_filename = widen(string(temp_filename));
+		logging_filename = string(temp_filename);
 	}
 	
-	uint64_t GetModifiedTimestamp(const wchar_t *filename)
+	uint64_t GetModifiedTimestamp(const char *filename)
 	{
-		string fn = narrow(wstring(filename));
-
 		struct ::stat st;
-		int res = stat(fn.c_str(), &st);
+		int res = stat(filename, &st);
 
 		if(res == 0)
 		{
@@ -170,7 +166,7 @@ namespace FileIO
 		return 0;
 	}
 
-	void CopyFileW(const wchar_t *from, const wchar_t *to, bool allowOverwrite)
+	void Copy(const char *from, const char *to, bool allowOverwrite)
 	{
 		if(from[0] == 0 || to[0] == 0)
 			return;
@@ -178,26 +174,14 @@ namespace FileIO
 		RDCUNIMPLEMENTED();
 	}
 
-	void UnlinkFileW(const wchar_t *path)
+	void Delete(const char *path)
 	{
-		string fn = narrow(wstring(path));
-
-		unlink(fn.c_str());
+		unlink(path);
 	}
 
-	FILE *fopen(const wchar_t *filename, const wchar_t *mode)
+	FILE *fopen(const char *filename, const char *mode)
 	{
-		string fn = narrow(wstring(filename));
-
-		char m[5];
-
-		for(int i=0; i < 5; i++)
-		{
-			if(!mode[i]) break;
-			m[i] = (char)mode[i];
-		}
-
-		return ::fopen(fn.c_str(), m);
+		return ::fopen(filename, mode);
 	}
 
 	size_t fread(void *buf, size_t elementSize, size_t count, FILE *f) { return ::fread(buf, elementSize, count, f); }
@@ -211,35 +195,6 @@ namespace FileIO
 
 namespace StringFormat
 {
-	int snprintf(char *str, size_t bufSize, const char *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
-
-		int ret = vsnprintf(str, bufSize, fmt, args);
-
-		va_end(args);
-
-		return ret;
-	}
-
-	int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
-	{
-		return ::vsnprintf(str, bufSize, format, args);
-	}
-	
-	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
-
-		int ret = vswprintf(str, bufSize, fmt, args);
-
-		va_end(args);
-
-		return ret;
-	}
-
 	void sntimef(char *str, size_t bufSize, const char *format)
 	{
 		time_t tim;
@@ -250,26 +205,23 @@ namespace StringFormat
 		strftime(str, bufSize, format, tmv);
 	}
 
-	void wcsncpy(wchar_t *dst, const wchar_t *src, size_t count)
-	{
-		::wcsncpy(dst, src, count);
-	}
-
 	string Fmt(const char *format, ...)
 	{
 		va_list args;
 		va_start(args, format);
 
-		int size = ::vsnprintf(NULL, 0, format, args)+1;
+		va_list args2;
+		va_copy(args2, args);
 
-		va_end(args);
-		va_start(args, format);
+		int size = StringFormat::vsnprintf(NULL, 0, format, args2);
 
-		char *buf = new char[size];
+		char *buf = new char[size+1];
+		buf[size] = 0;
 
 		StringFormat::vsnprintf(buf, size, format, args);
 
 		va_end(args);
+		va_end(args2);
 
 		string ret = buf;
 
@@ -278,52 +230,21 @@ namespace StringFormat
 		return ret;
 	}
 
-	wstring WFmt(const wchar_t *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		FILE *f = ::fopen("/dev/null", "wb");
-		
-		int size = ::vfwprintf(f, format, args)+1;
-		
-		fclose(f);
-		
-		va_end(args);
-		va_start(args, format);
-
-		wchar_t *buf = new wchar_t[size];
-
-		::vswprintf(buf, size, format, args);
-
-		va_end(args);
-
-		wstring ret = buf;
-
-		delete[] buf;
-		
-		return ret;
-	}
-
-	// save on reallocation, keep a persistent scratch buffer for conversions
-	vector<char> charBuffer;
-	vector<wchar_t> wcharBuffer;
-
-	// cache iconv_t descriptors to save on iconv_open/iconv_close each time
+	// cache iconv_t descriptor to save on iconv_open/iconv_close each time
 	iconv_t iconvWide2UTF8 = (iconv_t)-1;
-	iconv_t iconvUTF82Wide = (iconv_t)-1;
 
 	// iconv is not thread safe when sharing an iconv_t descriptor
 	// I don't expect much contention but if it happens we could TryLock
 	// before creating a temporary iconv_t, or hold two iconv_ts, or something.
-	Threading::CriticalSection lockWide2UTF8, lockUTF82Wide;
+	Threading::CriticalSection lockWide2UTF8;
 
-	string Wide2UTF8(const wstring &s)
+	string Wide2UTF8(const std::wstring &s)
 	{
 		// include room for null terminator, assuming unicode input (not ucs)
-		// utf-8 characters can be max 4 bytes. We can afford to be generous about
-		// this length as we resize relatively rarely.
+		// utf-8 characters can be max 4 bytes.
 		size_t len = (s.length()+1)*4;
+
+		vector<char> charBuffer;
 
 		if(charBuffer.size() < len)
 			charBuffer.resize(len);
@@ -353,7 +274,7 @@ namespace StringFormat
 		if(ret == (size_t)-1)
 		{
 #if !defined(_RELEASE)
-			RDCWARN("Failed to convert wstring: \"%ls\"", s.c_str());
+			RDCWARN("Failed to convert wstring");
 #endif
 			return "";
 		}
@@ -363,46 +284,16 @@ namespace StringFormat
 		// charBuffer is larger than the string
 		return string(&charBuffer[0]);
 	}
+};
 
-	wstring UTF82Wide(const string &s)
+namespace OSUtility
+{
+	void WriteOutput(int channel, const char *str)
 	{
-		// Include room for null terminator. Since we're converting from utf-8,
-		// worst case it's ascii and every byte is a character so length is the same
-		size_t len = s.length()+1;
-
-		if(wcharBuffer.size() < len)
-			wcharBuffer.resize(len);
-
-		size_t ret;
-
-		{
-			SCOPED_LOCK(lockUTF82Wide);
-
-			if(iconvUTF82Wide == (iconv_t)-1)
-				iconvUTF82Wide = iconv_open("WCHAR_T", "UTF-8");
-
-			if(iconvUTF82Wide == (iconv_t)-1)
-			{
-				RDCERR("Couldn't open iconv for UTF-8 to WCHAR_T: %d", errno);
-				return L"";
-			}
-
-			char *inbuf = (char *)s.c_str();
-			size_t insize = s.length()+1; // include null terminator
-			char *outbuf = (char *)&wcharBuffer[0];
-			size_t outsize = len*sizeof(wchar_t);
-
-			ret = iconv(iconvUTF82Wide, &inbuf, &insize, &outbuf, &outsize);
-		}
-
-		if(ret == (size_t)-1)
-		{
-#if !defined(_RELEASE)
-			RDCWARN("Failed to convert utf-8 string: \"%s\"", s.c_str());
-#endif
-			return L"";
-		}
-
-		return wstring(&wcharBuffer[0]);
+		if(channel == OSUtility::Output_StdOut)
+			fprintf(stdout, "%s", str);
+		else if(channel == OSUtility::Output_StdErr)
+			fprintf(stderr, "%s", str);
 	}
 };
+

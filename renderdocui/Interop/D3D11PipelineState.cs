@@ -46,7 +46,7 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class LayoutInput
             {
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string SemanticName;
                 public UInt32 SemanticIndex;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -103,7 +103,7 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
-            [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string ShaderName;
             public bool customName;
             private IntPtr _ptr_ShaderDetails;
@@ -119,7 +119,7 @@ namespace renderdoc
             {
                 public ResourceId View;
                 public ResourceId Resource;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Type;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public ResourceFormat Format;
@@ -155,13 +155,13 @@ namespace renderdoc
             public class Sampler
             {
                 public ResourceId Samp;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string AddressU, AddressV, AddressW;
                 [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
                 public float[] BorderColor;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Comparison;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Filter;
                 public UInt32 MaxAniso;
                 public float MaxLOD;
@@ -184,7 +184,7 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class ClassInstance
             {
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 string name;
             };
 
@@ -261,7 +261,7 @@ namespace renderdoc
             {
                 public ResourceId State;
                 public bool DepthEnable;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string DepthFunc;
                 public bool DepthWrites;
                 public bool StencilEnable;
@@ -271,13 +271,13 @@ namespace renderdoc
                 [StructLayout(LayoutKind.Sequential)]
                 public class StencilOp
                 {
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string FailOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string DepthFailOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string PassOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string Func;
                 };
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -302,17 +302,17 @@ namespace renderdoc
                     [StructLayout(LayoutKind.Sequential)]
                     public class BlendOp
                     {
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Source;
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Destination;
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Operation;
                     };
                     [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                     public BlendOp m_Blend, m_AlphaBlend;
 
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string LogicOp;
 
                     public bool Enabled;

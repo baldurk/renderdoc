@@ -27,7 +27,7 @@
 
 #include "core/core.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #if !defined(RELEASE)
 
@@ -184,7 +184,7 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
 		char magicFile[5] = { 0 };
 		memcpy(magicRef, &MAGIC_HEADER, sizeof(uint32_t));
 		memcpy(magicFile, &header->magic, sizeof(uint32_t));
-		RDCERR("Invalid in-memory buffer. Expected magic %hs, got %hs", magicRef, magicFile);
+		RDCERR("Invalid in-memory buffer. Expected magic %s, got %s", magicRef, magicFile);
 
 		m_ErrorCode = eSerError_Corrupt;
 		m_HasError = true;
@@ -221,14 +221,14 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
 	memcpy(m_Buffer, memoryBuf + m_FileStartOffset, m_CurrentBufferSize);
 }
 
-Serialiser::Serialiser(const wchar_t *path, Mode mode, bool debugMode)
+Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
 	: m_pCallstack(NULL), m_pResolver(NULL), m_Buffer(NULL)
 {
 	m_ResolverThread = 0; 
 
 	Reset();
 
-	m_Filename = path ? path : L"";
+	m_Filename = path ? path : "";
 
 	m_DebugTextWriting = false;
 	
@@ -239,11 +239,11 @@ Serialiser::Serialiser(const wchar_t *path, Mode mode, bool debugMode)
 
 	if(mode == READING)
 	{
-		m_ReadFileHandle = FileIO::fopen(m_Filename.c_str(), L"rb");
+		m_ReadFileHandle = FileIO::fopen(m_Filename.c_str(), "rb");
 
 		if(!m_ReadFileHandle)
 		{
-			RDCERR("Can't open capture file '%ls' for read - errno %d", m_Filename.c_str(), errno);
+			RDCERR("Can't open capture file '%s' for read - errno %d", m_Filename.c_str(), errno);
 			m_ErrorCode = eSerError_FileIO;
 			m_HasError = true;
 			return;
@@ -259,7 +259,7 @@ Serialiser::Serialiser(const wchar_t *path, Mode mode, bool debugMode)
 			char magicFile[5] = { 0 };
 			memcpy(magicRef, &MAGIC_HEADER, sizeof(uint32_t));
 			memcpy(magicFile, &header.magic, sizeof(uint32_t));
-			RDCERR("Invalid capture file. Expected magic %hs, got %hs", magicRef, magicFile);
+			RDCERR("Invalid capture file. Expected magic %s, got %s", magicRef, magicFile);
 			
 			m_ErrorCode = eSerError_Corrupt;
 			m_HasError = true;
@@ -308,7 +308,7 @@ Serialiser::Serialiser(const wchar_t *path, Mode mode, bool debugMode)
 	{
 		m_pResolver = NULL;
 
-		if(m_Filename != L"")
+		if(m_Filename != "")
 		{
 			m_BufferSize = 0;
 			m_BufferHead = m_Buffer = NULL;
@@ -395,11 +395,11 @@ void Serialiser::SetCallstack(uint64_t *levels, size_t numLevels)
 void Serialiser::CreateResolver(void *ths)
 {
 	Serialiser *ser = (Serialiser *)ths;
-	FILE *binFile = FileIO::fopen(ser->m_Filename.c_str(), L"rb");
+	FILE *binFile = FileIO::fopen(ser->m_Filename.c_str(), "rb");
 
 	if(!binFile)
 	{
-		RDCERR("Can't open capture file '%ls' for read - errno %d", ser->m_Filename.c_str(), errno);
+		RDCERR("Can't open capture file '%s' for read - errno %d", ser->m_Filename.c_str(), errno);
 		return;
 	}
 	
@@ -447,7 +447,7 @@ void Serialiser::CreateResolver(void *ths)
 
 	FileIO::fclose(binFile);
 		
-	wstring dir = dirname(wstring(ser->m_Filename));
+	string dir = dirname(ser->m_Filename);
 
 	Callstack::StackResolver *resolver = Callstack::MakeResolver(resolveDB, (size_t)header.resolveDBSize, dir, &ser->m_ResolverThreadKillSignal);
 
@@ -458,17 +458,17 @@ void Serialiser::CreateResolver(void *ths)
 
 uint64_t Serialiser::FlushToDisk()
 {
-	if(m_Filename != L"" && !m_HasError && m_Mode == WRITING)
+	if(m_Filename != "" && !m_HasError && m_Mode == WRITING)
 	{
 		RDCDEBUG("writing capture files");
 
 		if(m_DebugEnabled && !m_DebugText.empty())
 		{
-			FILE *dbgFile = FileIO::fopen((m_Filename + L".txt").c_str(), L"wb");
+			FILE *dbgFile = FileIO::fopen((m_Filename + ".txt").c_str(), "wb");
 
 			if(!dbgFile)
 			{
-				RDCERR("Can't open debug capture file '%ls'", (m_Filename + L".txt").c_str());
+				RDCERR("Can't open debug capture file '%s'", (m_Filename + ".txt").c_str());
 			}
 			else
 			{
@@ -478,11 +478,11 @@ uint64_t Serialiser::FlushToDisk()
 			}
 		}
 
-		FILE *binFile = FileIO::fopen(m_Filename.c_str(), L"wb");
+		FILE *binFile = FileIO::fopen(m_Filename.c_str(), "wb");
 
 		if(!binFile)
 		{
-			RDCERR("Can't open capture file '%ls' for write, errno %d", m_Filename.c_str(), errno);
+			RDCERR("Can't open capture file '%s' for write, errno %d", m_Filename.c_str(), errno);
 			m_ErrorCode = eSerError_FileIO;
 			m_HasError = true;
 			return 0;
@@ -641,7 +641,7 @@ void Serialiser::DebugPrint(const char *fmt, ...)
 	m_DebugText += tmpBuf;
 
 #ifdef DEBUG_TEXT_SERIALISER
-	FILE *f = FileIO::fopen(m_Filename.c_str(), L"ab");
+	FILE *f = FileIO::fopen(m_Filename.c_str(), "ab");
 
 	if(f)
 	{
@@ -721,7 +721,7 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 
 		if(m_DebugTextWriting)
 		{
-			DebugPrint("%hs (%d)\n", name, chunkIdx);
+			DebugPrint("%s (%d)\n", name, chunkIdx);
 			DebugPrint("{\n");
 		}
 	}
@@ -806,7 +806,7 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 		
 		if(m_DebugTextWriting)
 		{
-			DebugPrint("%hs\n", name ? name : "Unknown");
+			DebugPrint("%s\n", name ? name : "Unknown");
 			DebugPrint("{\n");
 		}
 	}
@@ -858,7 +858,7 @@ void Serialiser::PopContext(const char *name, uint32_t chunkIdx)
 		}
 		
 		if(m_DebugTextWriting)
-			DebugPrint("} // %hs\n", name);
+			DebugPrint("} // %s\n", name);
 	}
 	else
 	{
@@ -891,7 +891,7 @@ void Serialiser::SerialiseString(const char *name, string &el)
 			string s = el;
 			if(s.length() > 64)
 				s = s.substr(0, 60) + "...";
-			DebugPrint("%hs: \"%hs\"\n", name, s.c_str());
+			DebugPrint("%s: \"%s\"\n", name, s.c_str());
 		}
 	}
 	else
@@ -903,21 +903,9 @@ void Serialiser::SerialiseString(const char *name, string &el)
 			string s = el;
 			if(s.length() > 64)
 				s = s.substr(0, 60) + "...";
-			DebugPrint("%hs: \"%hs\"\n", name, s.c_str());
+			DebugPrint("%s: \"%s\"\n", name, s.c_str());
 		}
 	}
-}
-
-void Serialiser::SerialiseString(const char *name, wstring &el)
-{
-	string utf8str;
-	if(m_Mode >= WRITING)
-		utf8str = StringFormat::Wide2UTF8(el);
-
-	SerialiseString(name, utf8str);
-	
-	if(m_Mode == READING)
-		el = StringFormat::UTF82Wide(utf8str);
 }
 
 void Serialiser::Insert(Chunk *chunk)
@@ -1005,7 +993,7 @@ void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
 			ellipsis = "   ";
 		}
 		
-		DebugPrint("%hs: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %hs   %  8.4ff %  8.4ff %  8.4ff %  8.4ff %hs >\n"
+		DebugPrint("%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s   %  8.4ff %  8.4ff %  8.4ff %  8.4ff %s >\n"
 						, name
 						, bufLen, lbuf[0], lbuf[1], lbuf[2], lbuf[3], ellipsis
 						, fbuf[0], fbuf[1], fbuf[2], fbuf[3], ellipsis);
@@ -1016,11 +1004,6 @@ void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
 }
 
 template<> void Serialiser::Serialise(const char *name, string &el)
-{
-	SerialiseString(name, el);
-}
-
-template<> void Serialiser::Serialise(const char *name, wstring &el)
 {
 	SerialiseString(name, el);
 }
@@ -1095,9 +1078,7 @@ template<>
 string ToStrHelper<false, byte>::Get(const byte &el)
 {
 	char tostrBuf[256] = {0};
-	StringFormat::snprintf(tostrBuf, 255, "%d%d%d%d%d%d%d%d"
-		, (el&0x80)?1:0, (el&0x40)?1:0, (el&0x20)?1:0, (el&0x10)?1:0
-		, (el&0x8)?1:0, (el&0x4)?1:0, (el&0x2)?1:0, (el&0x1)?1:0);
+	StringFormat::snprintf(tostrBuf, 255, "%08hhb", el);
 
 	return tostrBuf;
 }

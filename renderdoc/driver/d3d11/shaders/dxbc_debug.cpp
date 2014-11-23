@@ -3463,7 +3463,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					};
 
 					char buf[64] = {0};
-					StringFormat::snprintf(buf, 63, "%hs4", typeStr[decl.resType[0]]);
+					StringFormat::snprintf(buf, 63, "%s4", typeStr[decl.resType[0]]);
 
 					if (retFmt == DXGI_FORMAT_UNKNOWN)
 					{
@@ -3475,7 +3475,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					if(decl.dim == RESOURCE_DIMENSION_TEXTURE2DMS || decl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY)
 					{
 						if(decl.sampleCount > 0)
-							StringFormat::snprintf(buf, 63, "%hs4, %d", typeStr[decl.resType[0]], decl.sampleCount);
+							StringFormat::snprintf(buf, 63, "%s4, %d", typeStr[decl.resType[0]], decl.sampleCount);
 					}
 
 					texture += "<";

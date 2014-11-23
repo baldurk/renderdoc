@@ -30,7 +30,7 @@ namespace Callstack
         void Init() {}
         Stackwalk *Collect() { RDCUNIMPLEMENTED(); return NULL; }
         Stackwalk *Load(uint64_t *calls, size_t numLevels) { RDCUNIMPLEMENTED(); return NULL; }
-        StackResolver *MakeResolver(char *moduleDB, size_t DBSize, wstring pdbSearchPaths, volatile bool *killSignal) { RDCUNIMPLEMENTED(); return NULL; }
+        StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal) { RDCUNIMPLEMENTED(); return NULL; }
 
         bool GetLoadedModules(char *&buf, size_t &size) { RDCUNIMPLEMENTED(); return false; }
 };

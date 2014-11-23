@@ -112,7 +112,7 @@ namespace renderdoc
         public bool special;
         public SpecialFormat specialFormat;
 
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string strname;
 
         public UInt32 compCount;
@@ -230,7 +230,7 @@ namespace renderdoc
     public class FetchBuffer
     {
         public ResourceId ID;
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
         public bool customName;
         public UInt32 length;
@@ -242,7 +242,7 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class FetchTexture
     {
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
         public bool customName;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -285,7 +285,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public UInt64[] callstack;
 
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string eventDesc;
 
         public UInt64 fileOffset;
@@ -297,7 +297,7 @@ namespace renderdoc
         public DebugMessageCategory category;
         public DebugMessageSeverity severity;
         public UInt32 messageID;
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string description;
     };
 
@@ -313,7 +313,7 @@ namespace renderdoc
     {
         public UInt32 eventID, drawcallID;
 
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         public DrawcallFlags flags;

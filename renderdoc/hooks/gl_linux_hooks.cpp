@@ -292,7 +292,7 @@ class OpenGLHook : LibraryHook
 		WrappedOpenGL *GetDriver()
 		{
 			if(m_GLDriver == NULL)
-				m_GLDriver = new WrappedOpenGL(L"", GL);
+				m_GLDriver = new WrappedOpenGL("", GL);
 
 			return m_GLDriver;
 		}

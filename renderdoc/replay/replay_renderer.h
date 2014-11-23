@@ -130,7 +130,7 @@ struct ReplayRenderer
 
 		APIProperties GetAPIProperties();
 
-		ReplayCreateStatus CreateDevice(const wchar_t *logfile);
+		ReplayCreateStatus CreateDevice(const char *logfile);
 		ReplayCreateStatus SetDevice(IReplayDriver *device);
 		
 		bool HasCallstacks();
@@ -145,10 +145,10 @@ struct ReplayRenderer
 		bool GetD3D11PipelineState(D3D11PipelineState *state);
 		bool GetGLPipelineState(GLPipelineState *state);
 		
-		ResourceId BuildCustomShader(const wchar_t *entry, const wchar_t *source, const uint32_t compileFlags, ShaderStageType type, rdctype::wstr *errors);
+		ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors);
 		bool FreeCustomShader(ResourceId id);
 		
-		ResourceId BuildTargetShader(const wchar_t *entry, const wchar_t *source, const uint32_t compileFlags, ShaderStageType type, rdctype::wstr *errors);
+		ResourceId BuildTargetShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors);
 		bool ReplaceResource(ResourceId from, ResourceId to);
 		bool RemoveReplacement(ResourceId id);
 		bool FreeTargetResource(ResourceId id);
@@ -157,7 +157,7 @@ struct ReplayRenderer
 		bool GetDrawcalls(uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws);
 		bool GetTextures(rdctype::array<FetchTexture> *texs);
 		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
-		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::wstr> *trace);
+		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
 		ShaderReflection *GetShaderDetails(ResourceId shader);
 		
 		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history);
@@ -174,7 +174,7 @@ struct ReplayRenderer
 		
 		bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
 		
-		bool SaveTexture(const TextureSave &saveData, const wchar_t *path);
+		bool SaveTexture(const TextureSave &saveData, const char *path);
 
 		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
 	

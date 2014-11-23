@@ -28,7 +28,7 @@
 #include <tchar.h>
 
 #include "common/common.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "hooks/hooks.h"
 
 #include "core/core.h"
@@ -71,17 +71,6 @@ BOOL add_hooks()
 	RenderDoc::Inst().Initialise();
 
 	RDCLOG("Loading into %ls", curFile);
-
-	const wchar_t *appFilter = NULL; //L"MyApplication";
-
-	if(appFilter != NULL)
-	{
-		if(wcsstr(curFile, appFilter) == 0)
-		{
-			RDCDEBUG("Not app I want. Exiting");
-			return TRUE;
-		}
-	}
 
 	LibraryHooks::GetInstance().CreateHooks();
 

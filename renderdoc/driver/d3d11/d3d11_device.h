@@ -220,7 +220,7 @@ public:
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Device, AllocPoolCount);
 
 	WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitParams *params);
-	void SetLogFile(const wchar_t *logfile);
+	void SetLogFile(const char *logfile);
 	void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
 	uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
 	virtual ~WrappedID3D11Device();

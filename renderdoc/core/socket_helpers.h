@@ -106,7 +106,7 @@ bool SendPacket(Network::Socket *sock, PacketTypeEnum type, const Serialiser &se
 }
 
 template<typename PacketTypeEnum>
-bool RecvChunkedFile(Network::Socket *sock, PacketTypeEnum packetType, const wchar_t *logfile, Serialiser *&ser, float *progress)
+bool RecvChunkedFile(Network::Socket *sock, PacketTypeEnum packetType, const char *logfile, Serialiser *&ser, float *progress)
 {
 	if(sock == NULL) return false;
 
@@ -134,7 +134,7 @@ bool RecvChunkedFile(Network::Socket *sock, PacketTypeEnum packetType, const wch
 
 	ser->SetOffset(0);
 
-	FILE *f = FileIO::fopen(logfile, L"wb");
+	FILE *f = FileIO::fopen(logfile, "wb");
 
 	if(f == NULL)
 	{
@@ -168,11 +168,11 @@ bool RecvChunkedFile(Network::Socket *sock, PacketTypeEnum packetType, const wch
 }
 
 template<typename PacketTypeEnum>
-bool SendChunkedFile(Network::Socket *sock, PacketTypeEnum type, const wchar_t *logfile, Serialiser &ser, float *progress)
+bool SendChunkedFile(Network::Socket *sock, PacketTypeEnum type, const char *logfile, Serialiser &ser, float *progress)
 {
 	if(sock == NULL) return false;
 
-	FILE *f = FileIO::fopen(logfile, L"rb");
+	FILE *f = FileIO::fopen(logfile, "rb");
 
 	if(f == NULL)
 	{

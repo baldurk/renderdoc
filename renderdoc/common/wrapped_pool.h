@@ -63,7 +63,7 @@ class WrappingPool
 
 			// warn when we need to allocate an additional pool
 #ifdef INCLUDE_TYPE_NAMES
-			RDCWARN("Ran out of free slots in %hs pool!", GetTypeName<WrapType>::Name());
+			RDCWARN("Ran out of free slots in %s pool!", GetTypeName<WrapType>::Name());
 #else
 			RDCWARN("Ran out of free slots in pool 0x%p!", &m_ImmediatePool.items[0]);
 #endif
@@ -72,7 +72,7 @@ class WrappingPool
 			m_AdditionalPools.push_back(new ItemPool());
 			
 #ifdef INCLUDE_TYPE_NAMES
-			RDCDEBUG("WrappingPool[%d]<%hs>: %p -> %p", (uint32_t)m_AdditionalPools.size() - 1, GetTypeName<WrapType>::Name(),
+			RDCDEBUG("WrappingPool[%d]<%s>: %p -> %p", (uint32_t)m_AdditionalPools.size() - 1, GetTypeName<WrapType>::Name(),
 													&m_AdditionalPools.back()->items[0], &m_AdditionalPools.back()->items[AllocCount-1]);
 #endif
 
@@ -124,7 +124,7 @@ class WrappingPool
 			
 			// this is an error - deleting an object that we don't recognise
 #ifdef INCLUDE_TYPE_NAMES
-			RDCERR("Resource being deleted through wrong pool - 0x%p not a member of %hs", p, GetTypeName<WrapType>::Name());
+			RDCERR("Resource being deleted through wrong pool - 0x%p not a member of %s", p, GetTypeName<WrapType>::Name());
 #else
 			RDCERR("Resource being deleted through wrong pool - 0x%p not a member of 0x%p", p, &m_ImmediatePool.items[0]));
 #endif
@@ -134,7 +134,7 @@ class WrappingPool
 		WrappingPool()
 		{
 #ifdef INCLUDE_TYPE_NAMES
-			RDCDEBUG("WrappingPool<%hs>: %p -> %p", GetTypeName<WrapType>::Name(), &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
+			RDCDEBUG("WrappingPool<%s>: %p -> %p", GetTypeName<WrapType>::Name(), &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
 #endif
 
 			RDCCOMPILE_ASSERT(PoolCount*AllocByteSize <= MaxPoolByteSize, "Pool is bigger than max pool size cap");

@@ -906,7 +906,7 @@ bool D3D11RenderState::IsBoundIUnknownForWrite(IUnknown *resource, bool readDept
 			
 			if(found || resource == (IUnknown *)sh->UAVs[i])
 			{
-				//RDCDEBUG("Resource was bound on %hs UAV %u", names[s], i);
+				//RDCDEBUG("Resource was bound on %s UAV %u", names[s], i);
 				return true;
 			}
 		}
@@ -1139,7 +1139,7 @@ void D3D11RenderState::UnbindIUnknownForRead(IUnknown *resource, bool allowDepth
 		{
 			if(resource == (IUnknown *)sh->ConstantBuffers[i])
 			{
-				//RDCDEBUG("Resource was bound on %hs CB %u", names[s], i);
+				//RDCDEBUG("Resource was bound on %s CB %u", names[s], i);
 				ReleaseRef(sh->ConstantBuffers[i]);
 				sh->ConstantBuffers[i] = NULL;
 			}
@@ -1203,7 +1203,7 @@ void D3D11RenderState::UnbindIUnknownForRead(IUnknown *resource, bool allowDepth
 			
 			if(found || resource == (IUnknown *)sh->SRVs[i])
 			{
-				//RDCDEBUG("Resource was bound on %hs SRV %u", names[s], i);
+				//RDCDEBUG("Resource was bound on %s SRV %u", names[s], i);
 
 				if(allowDepthOnly && readDepthOnly)
 				{

@@ -234,9 +234,6 @@
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="common\string_utils.h">
-      <Filter>Common</Filter>
-    </ClInclude>
     <ClInclude Include="driver\gl\gl_hookset_defs.h">
       <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
@@ -308,6 +305,9 @@
     </ClInclude>
     <ClInclude Include="data\glsl\texsample.h">
       <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\string_utils.h">
+      <Filter>Common\Strings</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -531,6 +531,9 @@
       <Filter>Common\Strings</Filter>
     </ClCompile>
     <ClCompile Include="serialise\utf8printf.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\string_utils.cpp">
       <Filter>Common\Strings</Filter>
     </ClCompile>
   </ItemGroup>

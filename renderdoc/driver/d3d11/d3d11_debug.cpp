@@ -30,7 +30,7 @@
 #include "maths/matrix.h"
 #include "maths/camera.h"
 #include "data/resource.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "maths/formatpacking.h"
 
 #include "driver/d3d11/d3d11_resources.h"
@@ -152,11 +152,11 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 		}
 	}
 
-	wstring shadercache = FileIO::GetAppFolderFilename(L"shaders.cache");
+	string shadercache = FileIO::GetAppFolderFilename("shaders.cache");
 
 	m_ShaderCacheDirty = true;
 
-	FILE *f = FileIO::fopen(shadercache.c_str(), L"rb");
+	FILE *f = FileIO::fopen(shadercache.c_str(), "rb");
 	if(f)
 	{
 		FileIO::fseek64(f, 0, SEEK_END);
@@ -281,9 +281,9 @@ D3D11DebugManager::~D3D11DebugManager()
 {
 	if(m_ShaderCacheDirty)
 	{
-		wstring shadercache = FileIO::GetAppFolderFilename(L"shaders.cache");
+		string shadercache = FileIO::GetAppFolderFilename("shaders.cache");
 
-		FILE *f = FileIO::fopen(shadercache.c_str(), L"wb");
+		FILE *f = FileIO::fopen(shadercache.c_str(), "wb");
 		if(f)
 		{
 			uint32_t version = m_ShaderCacheVersion;
@@ -421,7 +421,7 @@ string D3D11DebugManager::GetShaderBlob(const char *source, const char *entry, c
 		if(logerror.length() > 1024)
 			logerror = logerror.substr(0, 1024) + "...";
 
-		RDCWARN("Shader compile error in '%hs':\n%hs", entry, logerror.c_str());
+		RDCWARN("Shader compile error in '%s':\n%s", entry, logerror.c_str());
 
 		SAFE_RELEASE(errBlob);
 
@@ -456,7 +456,7 @@ ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const cha
 
 	if(GetShaderBlob(source, entry, D3DCOMPILE_WARNINGS_ARE_ERRORS, profile, &byteBlob) != "")
 	{
-		RDCERR("Couldn't get shader blob for %hs", entry);
+		RDCERR("Couldn't get shader blob for %s", entry);
 		return NULL;
 	}
 	
@@ -469,7 +469,7 @@ ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const cha
 	
 	if(FAILED(hr))
 	{
-		RDCERR("Couldn't create vertex shader for %hs %08x", entry, hr);
+		RDCERR("Couldn't create vertex shader for %s %08x", entry, hr);
 	
 		SAFE_RELEASE(byteBlob);
 
@@ -482,7 +482,7 @@ ID3D11VertexShader *D3D11DebugManager::MakeVShader(const char *source, const cha
 	
 		if(FAILED(hr))
 		{
-			RDCERR("Couldn't create input layout for %hs %08x", entry, hr);
+			RDCERR("Couldn't create input layout for %s %08x", entry, hr);
 		}
 	}
 
@@ -517,7 +517,7 @@ ID3D11GeometryShader *D3D11DebugManager::MakeGShader(const char *source, const c
 	
 	if(FAILED(hr))
 	{
-		RDCERR("Couldn't create geometry shader for %hs %08x", entry, hr);
+		RDCERR("Couldn't create geometry shader for %s %08x", entry, hr);
 		return NULL;
 	}
 
@@ -544,7 +544,7 @@ ID3D11PixelShader *D3D11DebugManager::MakePShader(const char *source, const char
 	
 	if(FAILED(hr))
 	{
-		RDCERR("Couldn't create pixel shader for %hs %08x", entry, hr);
+		RDCERR("Couldn't create pixel shader for %s %08x", entry, hr);
 		return NULL;
 	}
 
@@ -571,7 +571,7 @@ ID3D11ComputeShader *D3D11DebugManager::MakeCShader(const char *source, const ch
 
 	if(FAILED(hr))
 	{
-		RDCERR("Couldn't create compute shader for %hs %08x", entry, hr);
+		RDCERR("Couldn't create compute shader for %s %08x", entry, hr);
 		return NULL;
 	}
 
@@ -3423,7 +3423,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 								}
 								else
 								{
-									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %hs", var.name.c_str());
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %s", var.name.c_str());
 								}
 							}
 							else if(var.name == "RENDERDOC_SelectedMip")
@@ -3438,7 +3438,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 								}
 								else
 								{
-									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s", var.name.c_str());
 								}
 							}
 							else if(var.name == "RENDERDOC_TextureType")
@@ -3453,12 +3453,12 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 								}
 								else
 								{
-									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %hs", var.name.c_str());
+									RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s", var.name.c_str());
 								}
 							}
 							else
 							{
-								RDCWARN("Custom shader: Variable not recognised: %hs", var.name.c_str());
+								RDCWARN("Custom shader: Variable not recognised: %s", var.name.c_str());
 							}
 						}
 

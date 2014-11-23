@@ -27,7 +27,7 @@
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
@@ -37,8 +37,14 @@ uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t *name_)
 {
 	SERIALISE_ELEMENT(uint32_t, colour, col);
-
-	wstring name = name_ ? name_ : L"";
+	
+	string name;
+	
+	if(m_State >= WRITING)
+	{
+		wstring wname = name_ ? name_ : L"";
+		name = StringFormat::Wide2UTF8(wname);
+	}
 
 	m_pSerialiser->Serialise("Name", name);
 
@@ -57,8 +63,14 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t
 bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t *name_)
 {
 	SERIALISE_ELEMENT(uint32_t, colour, col);
-
-	wstring name = name_ ? name_ : L"";
+	
+	string name;
+	
+	if(m_State >= WRITING)
+	{
+		wstring wname = name_ ? name_ : L"";
+		name = StringFormat::Wide2UTF8(wname);
+	}
 
 	m_pSerialiser->Serialise("Name", name);
 
@@ -79,7 +91,7 @@ bool WrappedID3D11DeviceContext::Serialise_PopEvent()
 	if(m_State == READING && !m_CurEvents.empty())
 	{
 		FetchDrawcall draw;
-		draw.name = L"API Calls";
+		draw.name = "API Calls";
 		draw.flags |= eDraw_SetMarker;
 
 		AddDrawcall(draw, true);
@@ -3361,7 +3373,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(UINT IndexCountP
 						+ ", " + ToStr::Get(InstanceCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = IndexCountPerInstance;
 		draw.numInstances = InstanceCount;
 		draw.indexOffset = StartIndexLocation;
@@ -3426,7 +3438,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(UINT VertexCountPerInst
 						+ ", " + ToStr::Get(InstanceCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = VertexCountPerInstance;
 		draw.numInstances = InstanceCount;
 		draw.vertexOffset = StartVertexLocation;
@@ -3487,7 +3499,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT St
 		string name = "DrawIndexed(" + ToStr::Get(IndexCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = IndexCount;
 		draw.vertexOffset = BaseVertexLocation;
 		draw.indexOffset = StartIndexLocation;
@@ -3546,7 +3558,7 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(UINT VertexCount_, UINT StartVer
 		string name = "Draw(" + ToStr::Get(VertexCount) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.numIndices = VertexCount;
 		draw.vertexOffset = StartVertexLocation;
 
@@ -3650,7 +3662,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
 		string name = "DrawAuto(<" + ToStr::Get(numVerts) + ">)";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Drawcall|eDraw_Auto;
 		draw.numIndices = (uint32_t)numVerts;
 		draw.vertexOffset = 0;
@@ -3731,7 +3743,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 			draw.instanceOffset = uargs[4];
 		}
 
-		draw.name = widen(name);
+		draw.name = name;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_UseIBuffer|eDraw_Indirect;
 
@@ -3807,7 +3819,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 			draw.instanceOffset = uargs[3];
 		}
 
-		draw.name = widen(name);
+		draw.name = name;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
@@ -4328,7 +4340,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 		string name = "ExecuteCommandList(" + ToStr::Get(cmdList) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_CmdList|eDraw_PushMarker;
 
 		draw.debugMessages = debugMessages;
@@ -4430,7 +4442,7 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(UINT ThreadGroupCountX_, UIN
 						+ ToStr::Get(ThreadGroupCountZ) + ")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
 		draw.debugMessages = debugMessages;
@@ -4498,7 +4510,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 							+ ", " + ToStr::Get(uargs[2]) + ">)";
 		}
 
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Dispatch|eDraw_Indirect;
 
 		draw.debugMessages = debugMessages;
@@ -4573,7 +4585,7 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 		string name = "FinishCommandList() -> " + ToStr::Get(cmdList);
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_CmdList;
 
 		draw.debugMessages = debugMessages;
@@ -5436,7 +5448,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 							")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear|eDraw_ClearColour;
 
 		draw.debugMessages = debugMessages;
@@ -5560,7 +5572,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(ID3D11Un
 							")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 
 		draw.flags |= eDraw_Clear;
 
@@ -5679,7 +5691,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(ID3D11U
 							")";
 
 		FetchDrawcall draw;
-		draw.name = (widen(name));
+		draw.name = (name);
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);
@@ -5793,7 +5805,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 							")";
 
 		FetchDrawcall draw;
-		draw.name = widen(name);
+		draw.name = name;
 		draw.flags |= eDraw_Clear|eDraw_ClearDepth;
 
 		draw.debugMessages = debugMessages;

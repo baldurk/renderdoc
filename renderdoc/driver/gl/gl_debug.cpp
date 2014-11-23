@@ -28,7 +28,7 @@
 #include "maths/matrix.h"
 #include "maths/camera.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 {
@@ -51,7 +51,7 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 	if(status == 0)
 	{
 		gl.glGetShaderInfoLog(cs, 1024, NULL, buffer);
-		RDCERR("Shader error: %hs", buffer);
+		RDCERR("Shader error: %s", buffer);
 	}
 
 	GLuint ret = gl.glCreateProgram();
@@ -64,7 +64,7 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 	if(status == 0)
 	{
 		gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
-		RDCERR("Link error: %hs", buffer);
+		RDCERR("Link error: %s", buffer);
 	}
 
 	gl.glDeleteShader(cs);
@@ -98,14 +98,14 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 	if(status == 0)
 	{
 		gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-		RDCERR("Shader error: %hs", buffer);
+		RDCERR("Shader error: %s", buffer);
 	}
 
 	gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
 	if(status == 0)
 	{
 		gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-		RDCERR("Shader error: %hs", buffer);
+		RDCERR("Shader error: %s", buffer);
 	}
 
 	GLuint ret = gl.glCreateProgram();

@@ -32,7 +32,7 @@
 #include <map>
 #include <set>
 #include <utility>
-using std::wstring;
+using std::string;
 using std::vector;
 using std::map;
 using std::pair;
@@ -130,9 +130,9 @@ struct RDCInitParams
 
 struct CaptureData
 {
-	CaptureData(wstring p, uint64_t t) : path(p), timestamp(t), retrieved(false) {}
+	CaptureData(string p, uint64_t t) : path(p), timestamp(t), retrieved(false) {}
 
-	wstring path;
+	string path;
 	uint64_t timestamp;
 	bool retrieved;
 };
@@ -147,8 +147,8 @@ enum LoadProgressSection
 class IRemoteDriver;
 class IReplayDriver;
 
-typedef ReplayCreateStatus (*RemoteDriverProvider)(const wchar_t *logfile, IRemoteDriver **driver);
-typedef ReplayCreateStatus (*ReplayDriverProvider)(const wchar_t *logfile, IReplayDriver **driver);
+typedef ReplayCreateStatus (*RemoteDriverProvider)(const char *logfile, IRemoteDriver **driver);
+typedef ReplayCreateStatus (*ReplayDriverProvider)(const char *logfile, IReplayDriver **driver);
 
 // this class mediates everything and owns any 'global' resources such as the crash handler.
 //
@@ -163,10 +163,10 @@ class RenderDoc
 		void SetProgress(LoadProgressSection section, float delta);
 		
 		// set from outside of the device creation interface
-		void SetLogFile(const wchar_t *logFile);
-		const wchar_t *GetLogFile() const { return m_LogFile.c_str(); }
+		void SetLogFile(const char *logFile);
+		const char *GetLogFile() const { return m_LogFile.c_str(); }
 		
-		const wchar_t *GetCurrentTarget() const { return m_Target.c_str(); }
+		const char *GetCurrentTarget() const { return m_Target.c_str(); }
 
 		void Initialise();
 
@@ -211,22 +211,22 @@ class RenderDoc
 			}
 		}
 
-		ReplayCreateStatus FillInitParams(const wchar_t *logfile, RDCDriver &driverType, wstring &driverName, RDCInitParams *params);
+		ReplayCreateStatus FillInitParams(const char *logfile, RDCDriver &driverType, string &driverName, RDCInitParams *params);
 		
-		void RegisterReplayProvider(RDCDriver driver, const wchar_t *name, ReplayDriverProvider provider);
-		void RegisterRemoteProvider(RDCDriver driver, const wchar_t *name, RemoteDriverProvider provider);
+		void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
+		void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
 
-		ReplayCreateStatus CreateReplayDriver(RDCDriver driverType, const wchar_t *logfile, IReplayDriver **driver);
-		ReplayCreateStatus CreateRemoteDriver(RDCDriver driverType, const wchar_t *logfile, IRemoteDriver **driver);
+		ReplayCreateStatus CreateReplayDriver(RDCDriver driverType, const char *logfile, IReplayDriver **driver);
+		ReplayCreateStatus CreateRemoteDriver(RDCDriver driverType, const char *logfile, IRemoteDriver **driver);
 
-		map<RDCDriver, wstring> GetReplayDrivers();
-		map<RDCDriver, wstring> GetRemoteDrivers();
+		map<RDCDriver, string> GetReplayDrivers();
+		map<RDCDriver, string> GetRemoteDrivers();
 
 		bool HasReplayDriver(RDCDriver driver) const;
 		bool HasRemoteDriver(RDCDriver driver) const;
 
 		void SetCurrentDriver(RDCDriver driver);
-		void GetCurrentDriver(RDCDriver &driver, wstring &name);
+		void GetCurrentDriver(RDCDriver &driver, string &name);
 
 		uint32_t GetRemoteAccessIdent() const { return m_RemoteIdent; }
 
@@ -279,9 +279,9 @@ class RenderDoc
 		vector<KeyButton> m_FocusKeys;
 		vector<KeyButton> m_CaptureKeys;
 
-		wstring m_Target;
-		wstring m_LogFile;
-		wstring m_CurrentLogFile;
+		string m_Target;
+		string m_LogFile;
+		string m_CurrentLogFile;
 		CaptureOptions m_Options;
 		uint32_t m_Overlay;
 
@@ -292,7 +292,7 @@ class RenderDoc
 
 		int32_t m_MarkerIndentLevel;
 		RDCDriver m_CurrentDriver;
-		wstring m_CurrentDriverName;
+		string m_CurrentDriverName;
 
 		float *m_ProgressPtr;
 
@@ -302,7 +302,7 @@ class RenderDoc
 		Threading::CriticalSection m_ChildLock;
 		vector< pair<uint32_t, uint32_t> > m_Children;
 
-		map<RDCDriver, wstring> m_DriverNames;
+		map<RDCDriver, string> m_DriverNames;
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
 		map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
@@ -318,7 +318,7 @@ class RenderDoc
 		volatile bool m_RemoteServerThreadShutdown;
 		volatile bool m_RemoteClientThreadShutdown;
 		Threading::CriticalSection m_SingleClientLock;
-		wstring m_SingleClientName;
+		string m_SingleClientName;
 
 		static void RemoteAccessServerThread(void *s);
 		static void RemoteAccessClientThread(void *s);
@@ -328,6 +328,6 @@ class RenderDoc
 
 struct DriverRegistration
 {
-	DriverRegistration(RDCDriver driver, const wchar_t *name, ReplayDriverProvider provider) { RenderDoc::Inst().RegisterReplayProvider(driver, name, provider); }
-	DriverRegistration(RDCDriver driver, const wchar_t *name, RemoteDriverProvider provider) { RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider); }
+	DriverRegistration(RDCDriver driver, const char *name, ReplayDriverProvider provider) { RenderDoc::Inst().RegisterReplayProvider(driver, name, provider); }
+	DriverRegistration(RDCDriver driver, const char *name, RemoteDriverProvider provider) { RenderDoc::Inst().RegisterRemoteProvider(driver, name, provider); }
 };

@@ -27,7 +27,7 @@
 
 #include "replay_renderer.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "maths/matrix.h"
 
 ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w)

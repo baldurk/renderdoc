@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "../gl_driver.h"
 
 
@@ -111,7 +111,7 @@ void WrappedOpenGL::glDebugMessageControl(GLenum source, GLenum type, GLenum sev
 
 bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf)
 {
-	wstring name = buf ? widen(string(buf, buf+length)) : L"";
+	string name = buf ? string(buf, buf+length) : "";
 
 	m_pSerialiser->Serialise("Name", name);
 
@@ -142,7 +142,7 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 
 bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
 {
-	wstring name = message ? widen(string(message, message+length)) : L"";
+	string name = message ? string(message, message+length) : "";
 
 	m_pSerialiser->Serialise("Name", name);
 
@@ -176,7 +176,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup()
 	if(m_State == READING && !m_CurEvents.empty())
 	{
 		FetchDrawcall draw;
-		draw.name = L"API Calls";
+		draw.name = "API Calls";
 		draw.flags |= eDraw_SetMarker;
 
 		AddDrawcall(draw, true);

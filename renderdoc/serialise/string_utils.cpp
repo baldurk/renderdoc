@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2014 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,34 +22,36 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "string_utils.h"
+#include <algorithm>
+#include <stdint.h>
+#include <ctype.h>
+#include <wctype.h>
 
-#pragma once
-
-#include <windows.h>
-#include "data/resource.h"
-
-#define __PRETTY_FUNCTION_SIGNATURE__ __FUNCSIG__
-
-#define OS_DEBUG_BREAK() __debugbreak()
-
-#define GetEmbeddedResource(filename) GetEmbeddedResourceWin32( CONCAT(RESOURCE_, filename) )
-string GetEmbeddedResourceWin32(int resource);
-
-namespace StringFormat
+string strlower(const string& str)
 {
-	// useful for converting to wide before passing to OS functions
-	std::wstring UTF82Wide(const string &s);
-};
+	string newstr(str);
+	transform(newstr.begin(), newstr.end(), newstr.begin(), tolower);
+	return newstr;
+}
 
-namespace OSUtility
+wstring strlower(const wstring& str)
 {
-	inline void ForceCrash() { *((int *)NULL) = 0; }
-	inline void DebugBreak() { __debugbreak(); }
-	inline bool DebuggerPresent() { return ::IsDebuggerPresent() == TRUE; }
-	void WriteOutput(int channel, const char *str);
-};
+	wstring newstr(str);
+	transform(newstr.begin(), newstr.end(), newstr.begin(), towlower);
+	return newstr;
+}
 
-namespace Threading
+string strupper(const string& str)
 {
-	typedef CriticalSectionTemplate<CRITICAL_SECTION> CriticalSection;
-};
+	string newstr(str);
+	transform(newstr.begin(), newstr.end(), newstr.begin(), toupper);
+	return newstr;
+}
+
+wstring strupper(const wstring& str)
+{
+	wstring newstr(str);
+	transform(newstr.begin(), newstr.end(), newstr.begin(), towupper);
+	return newstr;
+}

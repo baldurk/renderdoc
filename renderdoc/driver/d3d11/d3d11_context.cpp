@@ -29,7 +29,7 @@
 #include "driver/d3d11/d3d11_manager.h"
 #include "driver/d3d11/d3d11_resources.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "replay/type_helpers.h"
 
@@ -393,7 +393,7 @@ void WrappedID3D11DeviceContext::AttemptCapture()
 	// successful.
 	if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
 	{
-		RDCDEBUG("Deferred Context %llu Attempting capture - initially %hs, %hs", GetResourceID(), m_SuccessfulCapture ? "successful" : "unsuccessful", m_EmptyCommandList ? "empty" : "non-empty");
+		RDCDEBUG("Deferred Context %llu Attempting capture - initially %s, %s", GetResourceID(), m_SuccessfulCapture ? "successful" : "unsuccessful", m_EmptyCommandList ? "empty" : "non-empty");
 
 		m_SuccessfulCapture |= m_EmptyCommandList;
 
@@ -402,7 +402,7 @@ void WrappedID3D11DeviceContext::AttemptCapture()
 		else
 			m_FailureReason = CaptureFailed_UncappedCmdlist;
 		
-		RDCDEBUG("Deferred Context %llu Attempting capture - now %hs", GetResourceID(), m_SuccessfulCapture ? "successful" : "unsuccessful");
+		RDCDEBUG("Deferred Context %llu Attempting capture - now %s", GetResourceID(), m_SuccessfulCapture ? "successful" : "unsuccessful");
 	}
 	else
 	{
@@ -910,7 +910,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 				AddEvent(CONTEXT_CAPTURE_FOOTER, "IDXGISwapChain::Present()");
 
 				FetchDrawcall draw;
-				draw.name = L"Present()";
+				draw.name = "Present()";
 				draw.flags |= eDraw_Present;
 
 				AddDrawcall(draw, true);
@@ -1127,7 +1127,7 @@ void WrappedID3D11DeviceContext::AddEvent(D3D11ChunkType type, string descriptio
 	apievent.fileOffset = m_CurChunkOffset;
 	apievent.eventID = m_CurEventID;
 
-	apievent.eventDesc = widen(description);
+	apievent.eventDesc = description;
 
 	Callstack::Stackwalk *stack = m_pSerialiser->GetLastCallstack();
 	if(stack)
@@ -1351,7 +1351,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 	else
 	{
 		string guid = ToStr::Get(riid);
-		RDCWARN("Querying ID3D11DeviceContext for interface: %hs", guid.c_str());
+		RDCWARN("Querying ID3D11DeviceContext for interface: %s", guid.c_str());
 	}
 
 	return RefCounter::QueryInterface(riid, ppvObject);

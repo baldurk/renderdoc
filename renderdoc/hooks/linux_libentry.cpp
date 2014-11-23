@@ -30,11 +30,11 @@
 __attribute__((constructor))
 void library_loaded()
 {
-	wstring curfile;
+	string curfile;
 	FileIO::GetExecutableFilename(curfile);
 	
-	if(curfile.find(L"/renderdoccmd") != wstring::npos ||
-	   curfile.find(L"/renderdocui") != wstring::npos)
+	if(curfile.find("/renderdoccmd") != string::npos ||
+	   curfile.find("/renderdocui") != string::npos)
 	{
 		RDCDEBUG("Not creating hooks - in replay app");
 		

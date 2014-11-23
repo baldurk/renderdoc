@@ -23,7 +23,7 @@
  ******************************************************************************/
 
 #include "common/common.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "../gl_driver.h"
 
 bool WrappedOpenGL::Serialise_glGenTextures(GLsizei n, GLuint* textures)

@@ -182,17 +182,17 @@ struct RemoteMessage
 		uint32_t ID;
 		uint64_t timestamp;
 		rdctype::array<byte> thumbnail;
-		rdctype::wstr localpath;
+		rdctype::str localpath;
 	} NewCapture;
 
 	struct RegisterAPIData
 	{
-		rdctype::wstr APIName;
+		rdctype::str APIName;
 	} RegisterAPI;
 
 	struct BusyData
 	{
-		rdctype::wstr ClientName;
+		rdctype::str ClientName;
 	} Busy;
 
 	struct NewChildData

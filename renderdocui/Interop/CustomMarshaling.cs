@@ -36,21 +36,11 @@ namespace renderdoc
         public IntPtr elems;
         public Int32 count;
     };
-
-    // convenience - for when we want to define an array of strings, this
-    // struct lets us do that
-    [StructLayout(LayoutKind.Sequential)]
-    public struct rdctype_wstr
-    {
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
-        string s;
-    };
     
     public enum CustomUnmanagedType
     {
         TemplatedArray = 0,
-        AsciiTemplatedString,
-        WideTemplatedString,
+        UTF8TemplatedString,
         FixedArray,
         Union,
         Skip,
@@ -116,6 +106,20 @@ namespace renderdoc
             return mem;
         }
 
+        public static IntPtr MakeUTF8String(string s)
+        {
+            int len = System.Text.Encoding.UTF8.GetByteCount(s);
+
+            IntPtr mem = Marshal.AllocHGlobal(len + 1);
+            byte[] bytes = new byte[len + 1];
+            bytes[len] = 0; // add NULL terminator
+            System.Text.Encoding.UTF8.GetBytes(s, 0, s.Length, bytes, 0);
+
+            Marshal.Copy(bytes, 0, mem, len+1);
+
+            return mem;
+        }
+
         public static void Free(IntPtr mem)
         {
             Marshal.FreeHGlobal(mem);
@@ -130,8 +134,7 @@ namespace renderdoc
             var cma = GetCustomAttr(field);
 
             if (cma != null &&
-                (cma.CustomType == CustomUnmanagedType.AsciiTemplatedString ||
-                 cma.CustomType == CustomUnmanagedType.WideTemplatedString ||
+                (cma.CustomType == CustomUnmanagedType.UTF8TemplatedString ||
                  cma.CustomType == CustomUnmanagedType.TemplatedArray ||
                  cma.CustomType == CustomUnmanagedType.CustomClassPointer)
                 )
@@ -231,8 +234,7 @@ namespace renderdoc
                             break;
                         }
                     case CustomUnmanagedType.TemplatedArray:
-                    case CustomUnmanagedType.AsciiTemplatedString:
-                    case CustomUnmanagedType.WideTemplatedString:
+                    case CustomUnmanagedType.UTF8TemplatedString:
                         size += Marshal.SizeOf(typeof(templated_array));
                         break;
                     case CustomUnmanagedType.FixedArray:
@@ -374,12 +376,26 @@ namespace renderdoc
             }
         }
 
+        public static string PtrToStringUTF8(IntPtr elems, int count)
+        {
+            byte[] buffer = new byte[count];
+            Marshal.Copy(elems, buffer, 0, buffer.Length);
+            return System.Text.Encoding.UTF8.GetString(buffer);
+        }
+
+        public static string PtrToStringUTF8(IntPtr elems)
+        {
+            int len = 0;
+            while (Marshal.ReadByte(elems, len) != 0) ++len;
+            return PtrToStringUTF8(elems, len);
+        }
+
         // specific versions of the above GetTemplatedArray for convenience.
-        public static string TemplatedArrayToUniString(IntPtr sourcePtr, bool freeMem)
+        public static string TemplatedArrayToString(IntPtr sourcePtr, bool freeMem)
         {
             templated_array arr = (templated_array)Marshal.PtrToStructure(sourcePtr, typeof(templated_array));
 
-            string val = Marshal.PtrToStringUni(arr.elems, arr.count);
+            string val = PtrToStringUTF8(arr.elems, arr.count);
 
             if (freeMem)
                 RENDERDOC_FreeArrayMem(arr.elems);
@@ -387,7 +403,7 @@ namespace renderdoc
             return val;
         }
 
-        public static string[] TemplatedArrayToUniStringArray(IntPtr sourcePtr, bool freeMem)
+        public static string[] TemplatedArrayToStringArray(IntPtr sourcePtr, bool freeMem)
         {
             templated_array arr = (templated_array)Marshal.PtrToStructure(sourcePtr, typeof(templated_array));
 
@@ -398,7 +414,7 @@ namespace renderdoc
             {
                 IntPtr ptr = new IntPtr((arr.elems.ToInt64() + i * arrSize));
 
-                ret[i] = TemplatedArrayToUniString(ptr, freeMem);
+                ret[i] = TemplatedArrayToString(ptr, freeMem);
             }
 
             if (freeMem)
@@ -510,32 +526,7 @@ namespace renderdoc
                                     }
                                     break;
                                 }
-                            case CustomUnmanagedType.AsciiTemplatedString:
-                                {
-                                    // templated_array must be pointer-aligned
-                                    long alignment = fieldPtr.ToInt64() % IntPtr.Size;
-                                    if (alignment != 0)
-                                    {
-                                        fieldPtr = new IntPtr(fieldPtr.ToInt64() + IntPtr.Size - alignment);
-                                    }
-
-                                    templated_array arr = (templated_array)Marshal.PtrToStructure(fieldPtr, typeof(templated_array));
-                                    if (field.FieldType == typeof(string))
-                                    {
-                                        if (arr.elems == IntPtr.Zero)
-                                            field.SetValue(ret, "");
-                                        else
-                                            field.SetValue(ret, Marshal.PtrToStringAnsi(arr.elems, arr.count));
-                                    }
-                                    else
-                                    {
-                                        throw new NotImplementedException("non-string element marked to marshal as AsciiTemplatedString");
-                                    }
-                                    if(freeMem)
-                                        RENDERDOC_FreeArrayMem(arr.elems);
-                                    break;
-                                }
-                            case CustomUnmanagedType.WideTemplatedString:
+                            case CustomUnmanagedType.UTF8TemplatedString:
                             case CustomUnmanagedType.TemplatedArray:
                                 {
                                     // templated_array must be pointer-aligned
@@ -551,7 +542,7 @@ namespace renderdoc
                                         if (arr.elems == IntPtr.Zero)
                                             field.SetValue(ret, "");
                                         else
-                                            field.SetValue(ret, Marshal.PtrToStringUni(arr.elems, arr.count));
+                                            field.SetValue(ret, PtrToStringUTF8(arr.elems, arr.count));
                                     }
                                     else
                                     {

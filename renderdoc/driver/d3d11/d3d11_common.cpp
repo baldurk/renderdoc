@@ -25,7 +25,7 @@
 
 #include "core/core.h"
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include "serialise/serialiser.h"
 
@@ -273,7 +273,7 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 
 	ret.rawType = fmt;
 	ret.special = false;
-	ret.strname = widen(ToStr::Get(fmt)).substr(12); // 12 == strlen("DXGI_FORMAT_")
+	ret.strname = ToStr::Get(fmt).substr(12); // 12 == strlen("DXGI_FORMAT_")
 
 	ret.compCount = ret.compByteWidth = 0;
 	ret.compType = eCompType_Float;

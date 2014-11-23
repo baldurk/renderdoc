@@ -884,7 +884,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
 				len = RDCMIN(len, precision);
 
 			// convert the substring to UTF-8
-			string str = StringFormat::Wide2UTF8(wstring(ws, ws + len));
+			string str = StringFormat::Wide2UTF8(std::wstring(ws, ws + len));
 
 			// add left padding, if necessary
 			if(formatter.Width != FormatterParams::NoWidth && len < width && !(formatter.Flags&LeftJustify))

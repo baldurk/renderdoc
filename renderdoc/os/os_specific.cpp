@@ -24,7 +24,7 @@
 
 
 #include "os/os_specific.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 #include <stdarg.h>
 
@@ -93,16 +93,16 @@ int Wide2UTF8(wchar_t chr, char mbchr[4])
 
 }; // namespace StringFormat
 
-wstring Callstack::AddressDetails::formattedString(const char *commonPath)
+string Callstack::AddressDetails::formattedString(const char *commonPath)
 {
-	wchar_t fmt[512] = {0};
+	char fmt[512] = {0};
 
-	const wchar_t *f = filename.c_str();
+	const char *f = filename.c_str();
 
 	if(commonPath)
 	{
-		wstring common = strlower(widen(string(commonPath)));
-		wstring fn = strlower(filename.substr(0, common.length()));
+		string common = strlower(string(commonPath));
+		string fn = strlower(filename.substr(0, common.length()));
 
 		if(common == fn)
 		{
@@ -111,9 +111,9 @@ wstring Callstack::AddressDetails::formattedString(const char *commonPath)
 	}
 
 	if(line > 0)
-		swprintf(fmt, 511, L"%ls line %d", function.c_str(), line);
+		StringFormat::snprintf(fmt, 511, "%s line %d", function.c_str(), line);
 	else
-		swprintf(fmt, 511, L"%ls", function.c_str());
+		StringFormat::snprintf(fmt, 511, "%s", function.c_str());
 
 	return fmt;
 }

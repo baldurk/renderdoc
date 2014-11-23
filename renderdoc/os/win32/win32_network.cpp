@@ -246,7 +246,7 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 	int result = bind(s, (SOCKADDR *)&addr, sizeof(addr));
 	if(result == SOCKET_ERROR)
 	{
-		RDCWARN("Failed to bind to %hs:%d - %d", bindaddr, port, WSAGetLastError());
+		RDCWARN("Failed to bind to %s:%d - %d", bindaddr, port, WSAGetLastError());
 		closesocket(s);
 		return NULL;
 	}
@@ -254,7 +254,7 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 	result = listen(s, queuesize);
 	if(result == SOCKET_ERROR)
 	{
-		RDCWARN("Failed to listen on %hs:%d - %d", bindaddr, port, WSAGetLastError());
+		RDCWARN("Failed to listen on %s:%d - %d", bindaddr, port, WSAGetLastError());
 		closesocket(s);
 		return NULL;
 	}
@@ -265,30 +265,37 @@ Socket *CreateServerSocket(const char *bindaddr, uint16_t port, int queuesize)
 	return new Socket((ptrdiff_t)s);
 }
 
-Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS)
+Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 {
-	wchar_t portstr[7] = {0};
-	StringFormat::wsnprintf(portstr, 6, L"%d", port);
-	
-    addrinfoW hints;
+	wchar_t portwstr[7] = {0};
+
+	{
+		char buf[7] = {0};
+		int n = StringFormat::snprintf(buf, 6, "%d", port);
+		for(int i=0; i < n && i < 6; i++) portwstr[i] = (wchar_t)buf[i];
+	}
+
+	addrinfoW hints;
 	RDCEraseEl(hints);
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
 	hints.ai_protocol = IPPROTO_TCP;
-	
-    addrinfoW *result = NULL;
-	GetAddrInfoW(host, portstr, &hints, &result);
-	
-    for(addrinfoW *ptr = result; ptr != NULL; ptr = ptr->ai_next)
+
+	std::wstring whost = StringFormat::UTF82Wide(string(host));
+
+	addrinfoW *result = NULL;
+	GetAddrInfoW(whost.c_str(), portwstr, &hints, &result);
+
+	for(addrinfoW *ptr = result; ptr != NULL; ptr = ptr->ai_next)
 	{
 		SOCKET s = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT);
 
 		if(s == INVALID_SOCKET)
 			return NULL;
-		
+
 		u_long enable = 1;
 		ioctlsocket(s, FIONBIO, &enable);
-		
+
 		int result = connect(s, ptr->ai_addr, (int)ptr->ai_addrlen);
 		if(result == SOCKET_ERROR)
 		{
@@ -330,11 +337,11 @@ Socket *CreateClientSocket(const wchar_t *host, uint16_t port, int timeoutMS)
 
 		BOOL nodelay = TRUE;
 		setsockopt(s, IPPROTO_TCP, TCP_NODELAY, (const char *)&nodelay, sizeof(nodelay));
-		
+
 		return new Socket((ptrdiff_t)s);
 	}
 
-	RDCWARN("Failed to connect to %ls:%d", host, port);
+	RDCWARN("Failed to connect to %s:%d", host, port);
 	return NULL;
 }
 

@@ -224,7 +224,9 @@ enum InAppOverlay
 	eOverlay_None = 0,
 };
 
-#define RENDERDOC_API_VERSION 1
+// API breaking change history:
+// Version 1 -> 2 - strings changed from wchar_t* to char* (UTF-8)
+#define RENDERDOC_API_VERSION 2
 
 //////////////////////////////////////////////////////////////////////////
 // In-program functions
@@ -233,14 +235,14 @@ enum InAppOverlay
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPIVersion();
 typedef int (RENDERDOC_CC *pRENDERDOC_GetAPIVersion)();
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const wchar_t *logfile);
-typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const wchar_t *logfile);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const char *logfile);
+typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const char *logfile);
 
-extern "C" RENDERDOC_API const wchar_t* RENDERDOC_CC RENDERDOC_GetLogFile();
-typedef const wchar_t* (RENDERDOC_CC *pRENDERDOC_GetLogFile)();
+extern "C" RENDERDOC_API const char* RENDERDOC_CC RENDERDOC_GetLogFile();
+typedef const char* (RENDERDOC_CC *pRENDERDOC_GetLogFile)();
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, wchar_t *logfile, uint32_t *pathlength, uint64_t *timestamp);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
+typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);

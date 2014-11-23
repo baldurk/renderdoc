@@ -37,14 +37,14 @@
 
 #include <replay/renderdoc_replay.h>
 
-using std::wstring;
+using std::string;
 
-wstring GetUsername()
+string GetUsername()
 {
 	char buf[256] = {0};
 	getlogin_r(buf, 255);
 
-	return wstring(buf, buf+strlen(buf));
+	return string(buf, buf+strlen(buf));
 }
 
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
@@ -124,7 +124,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitGL();
 
-int renderdoccmd(int argc, wchar_t **argv);
+int renderdoccmd(int argc, char **argv);
 
 int main(int argc, char *argv[])
 {
@@ -136,30 +136,5 @@ int main(int argc, char *argv[])
 
 	// process any linux-specific arguments here
 
-	wchar_t **wargv = new wchar_t*[argc];
-
-	iconv_t ic = iconv_open("WCHAR_T", "UTF-8");
-
-	for(int i=0; i < argc; i++)
-	{
-		size_t len = strlen(argv[i]);
-		wargv[i] = new wchar_t[len+2];
-		memset(wargv[i], 0, (len+2)*sizeof(wchar_t));
-
-		char *inbuf = argv[i];
-		size_t insize = len+1; // include null terminator
-		char *outbuf = (char *)wargv[i];
-		size_t outsize = len*sizeof(wchar_t);
-		iconv(ic, &inbuf, &insize, &outbuf, &outsize);
-	}
-
-	iconv_close(ic);
-
-	int ret = renderdoccmd(argc, wargv);
-
-	for(int i=0; i < argc; i++)
-		delete[] wargv[i];
-	delete[] wargv;
-
-	return ret;
+	return renderdoccmd(argc, argv);
 }

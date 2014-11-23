@@ -50,13 +50,16 @@ uint32_t wtoi(wchar_t *str)
 	return ret;
 }
 
-bool argequal(const wchar_t *a, const wchar_t *b)
+bool argequal(const char *a, const char *b)
 {
 	if(a == NULL || b == NULL) return false;
 
 	while(*a && *b)
 	{
-		if(towlower(*a) != towlower(*b))
+		// only compare ASCII characters in UTF-8 string
+		if((*a & 0x80) == 0 &&
+			 (*b & 0x80) == 0 &&
+			 tolower(*a) != tolower(*b))
 			break;
 
 		a++;
@@ -110,7 +113,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 	DisplayRendererPreview(renderer, d);
 }
 
-int renderdoccmd(int argc, wchar_t **argv)
+int renderdoccmd(int argc, char **argv)
 {
 	CaptureOptions opts;
 	opts.AllowFullscreen = false;
@@ -121,11 +124,11 @@ int renderdoccmd(int argc, wchar_t **argv)
 	if(argc >= 2)
 	{
 		// fall through and print usage
-		if(argequal(argv[1], L"--help") || argequal(argv[1], L"-h"))
+		if(argequal(argv[1], "--help") || argequal(argv[1], "-h"))
 		{
 		}
 		// if we were given a logfile, load it and continually replay it.
-		else if(wcsstr(argv[1], L".rdc") != NULL)
+		else if(strstr(argv[1], ".rdc") != NULL)
 		{
 			float progress = 0.0f;
 			ReplayRenderer *renderer = NULL;
@@ -138,7 +141,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 			return 0;
 		}
 		// replay a logfile
-		else if(argequal(argv[1], L"--replay") || argequal(argv[1], L"-r"))
+		else if(argequal(argv[1], "--replay") || argequal(argv[1], "-r"))
 		{
 			if(argc >= 3)
 			{
@@ -162,7 +165,7 @@ int renderdoccmd(int argc, wchar_t **argv)
 		// can't do this on other platforms as there's no nice extension
 		// and we don't want to just launch any single parameter in case it's
 		// -h or -help or some other guess/typo
-		else if(wcsstr(argv[1], L".exe") != NULL)
+		else if(strstr(argv[1], ".exe") != NULL)
 		{
 			uint32_t ident = RENDERDOC_ExecuteAndInject(argv[1], NULL, NULL, NULL, &opts, false);
 
@@ -175,16 +178,16 @@ int renderdoccmd(int argc, wchar_t **argv)
 		}
 #endif
 		// capture a program with default capture options
-		else if(argequal(argv[1], L"--capture") || argequal(argv[1], L"-c"))
+		else if(argequal(argv[1], "--capture") || argequal(argv[1], "-c"))
 		{
 			if(argc >= 3)
 			{
 				uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2], NULL, NULL, NULL, &opts, false);
 
 				if(ident == 0)
-					fprintf(stderr, "Failed to create & inject to '%ls'\n", argv[2]);
+					fprintf(stderr, "Failed to create & inject to '%s'\n", argv[2]);
 				else
-					fprintf(stderr, "Created & injected '%ls' as %d\n", argv[2], ident);
+					fprintf(stderr, "Created & injected '%s' as %d\n", argv[2], ident);
 
 				return ident;
 			}
@@ -194,14 +197,14 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// inject into a running process with default capture options
-		else if(argequal(argv[1], L"--inject") || argequal(argv[1], L"-i"))
+		else if(argequal(argv[1], "--inject") || argequal(argv[1], "-i"))
 		{
 			if(argc >= 3)
 			{
-				wchar_t *pid = argv[2];
-				while(*pid == L'"' || iswspace(*pid)) pid++;
+				char *pid = argv[2];
+				while(*pid == '"' || isspace(*pid)) pid++;
 
-				uint32_t pidNum = (uint32_t)wtoi(pid);
+				uint32_t pidNum = (uint32_t)atoi(pid);
 
 				uint32_t ident = RENDERDOC_InjectIntoProcess(pidNum, NULL, &opts, false);
 
@@ -218,13 +221,13 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// spawn remote replay host
-		else if(argequal(argv[1], L"--replayhost") || argequal(argv[1], L"-rh"))
+		else if(argequal(argv[1], "--replayhost") || argequal(argv[1], "-rh"))
 		{
 			RENDERDOC_SpawnReplayHost(NULL);
 			return 1;
 		}
 		// replay a logfile over the network on a remote host
-		else if(argequal(argv[1], L"--remotereplay") || argequal(argv[1], L"-rr"))
+		else if(argequal(argv[1], "--remotereplay") || argequal(argv[1], "-rr"))
 		{
 			if(argc >= 4)
 			{
@@ -251,21 +254,21 @@ int renderdoccmd(int argc, wchar_t **argv)
 			}
 		}
 		// not documented/useful for manual use on the cmd line, used internally
-		else if(argequal(argv[1], L"--cap32for64"))
+		else if(argequal(argv[1], "--cap32for64"))
 		{
 			if(argc >= 5)
 			{
-				wchar_t *pid = argv[2];
-				while(*pid == L'"' || iswspace(*pid)) pid++;
+				char *pid = argv[2];
+				while(*pid == '"' || isspace(*pid)) pid++;
 
-				uint32_t pidNum = (uint32_t)wtoi(pid);
+				uint32_t pidNum = (uint32_t)atoi(pid);
 
-				wchar_t *log = argv[3];
+				char *log = argv[3];
 				if(log[0] == 0) log = NULL;
 
 				CaptureOptions cmdopts;
 
-				string optstring(&argv[4][0], &argv[4][0] + wcslen(argv[4]));
+				string optstring(&argv[4][0], &argv[4][0] + strlen(argv[4]));
 
 				cmdopts.FromString(optstring);
 

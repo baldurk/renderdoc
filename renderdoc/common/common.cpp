@@ -30,7 +30,7 @@
 #include "os/os_specific.h"
 #include "common/threading.h"
 
-#include "string_utils.h" 
+#include "serialise/string_utils.h" 
 
 #include <string>
 using std::string;
@@ -81,25 +81,9 @@ float SRGB8_lookuptable[256] = {
 	0.938686f, 0.947307f, 0.955974f, 0.964686f, 0.973445f, 0.982251f, 0.991102f, 1.000000f,
 };
 
-template<> const wchar_t* pathSeparator() { return L"\\/"; }
-template<> const char* pathSeparator() { return "\\/"; }
-
-template<> const wchar_t* curdir() { return L"."; }
-template<> const char* curdir() { return "."; }
-
-std::wstring widen(std::string str)
-{
-	return std::wstring(str.begin(), str.end());
-}
-
-std::string narrow(std::wstring str)
-{
-	return std::string(str.begin(), str.end());
-}
-
 void rdcassert(const char *condition, const char *file, unsigned int line, const char *func)
 {
-	rdclog_int(RDCLog_Error, file, line, "Assertion failed: '%hs'", condition, file, line);
+	rdclog_int(RDCLog_Error, file, line, "Assertion failed: '%s'", condition, file, line);
 }
 
 #if 0
@@ -239,20 +223,20 @@ bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &
 	return diffStart < bufSize;
 }
 
-static wstring &logfile()
+static string &logfile()
 {
-	static wstring fn;
+	static string fn;
 	return fn;
 }
 
-const wchar_t *rdclog_getfilename()
+const char *rdclog_getfilename()
 {
 	return logfile().c_str();
 }
 
-void rdclog_filename(const wchar_t *filename)
+void rdclog_filename(const char *filename)
 {
-	logfile() = L"";
+	logfile() = "";
 	if(filename && filename[0])
 		logfile() = filename;
 }
@@ -260,7 +244,7 @@ void rdclog_filename(const wchar_t *filename)
 void rdclog_delete()
 {
 	if(!logfile().empty())
-		FileIO::UnlinkFileW(logfile().c_str());
+		FileIO::Delete(logfile().c_str());
 }
 
 void rdclog_flush()
@@ -285,7 +269,7 @@ void rdclogprint_int(const char *str)
 #if defined(OUTPUT_LOG_TO_DISK)
 	if(!logfile().empty())
 	{
-		FILE *f = FileIO::fopen(logfile().c_str(), L"a");
+		FILE *f = FileIO::fopen(logfile().c_str(), "a");
 		if(f)
 		{
 			// strlen used as byte length - str is UTF-8 so this is NOT number of characters
