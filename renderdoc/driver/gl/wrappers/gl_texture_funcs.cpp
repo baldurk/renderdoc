@@ -465,6 +465,22 @@ void WrappedOpenGL::glGenerateMipmap(GLenum target)
 	}
 }
 
+void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
+{
+	m_Real.glInvalidateTexImage(texture, level);
+
+	if(m_State == WRITING_IDLE)
+		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+}
+
+void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth)
+{
+	m_Real.glInvalidateTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth);
+
+	if(m_State == WRITING_IDLE)
+		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+}
+
 bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ,
 												                         GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
 												                         GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)

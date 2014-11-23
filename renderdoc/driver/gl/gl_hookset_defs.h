@@ -477,6 +477,12 @@
     HookExtension(PFNGLCLEARBUFFERSUBDATAPROC, glClearBufferSubData); \
     HookExtension(PFNGLCLEARTEXIMAGEPROC, glClearTexImage); \
     HookExtension(PFNGLCLEARTEXSUBIMAGEPROC, glClearTexSubImage); \
+    HookExtension(PFNGLINVALIDATEBUFFERDATAPROC, glInvalidateBufferData); \
+    HookExtension(PFNGLINVALIDATEBUFFERSUBDATAPROC, glInvalidateBufferSubData); \
+    HookExtension(PFNGLINVALIDATEFRAMEBUFFERPROC, glInvalidateFramebuffer); \
+    HookExtension(PFNGLINVALIDATESUBFRAMEBUFFERPROC, glInvalidateSubFramebuffer); \
+    HookExtension(PFNGLINVALIDATETEXIMAGEPROC, glInvalidateTexImage); \
+    HookExtension(PFNGLINVALIDATETEXSUBIMAGEPROC, glInvalidateTexSubImage); \
     HookExtension(PFNGLSCISSORARRAYVPROC, glScissorArrayv); \
     HookExtension(PFNGLSCISSORINDEXEDPROC, glScissorIndexed); \
     HookExtension(PFNGLSCISSORINDEXEDVPROC, glScissorIndexedv); \
@@ -1126,6 +1132,12 @@
     HookWrapper7(void, glClearBufferSubData, GLenum, target, GLenum, internalformat, GLintptr, offset, GLsizeiptr, size, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper5(void, glClearTexImage, GLuint, texture, GLint, level, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper11(void, glClearTexSubImage, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, const void *, data); \
+    HookWrapper1(void, glInvalidateBufferData, GLuint, buffer); \
+    HookWrapper3(void, glInvalidateBufferSubData, GLuint, buffer, GLintptr, offset, GLsizeiptr, length); \
+    HookWrapper3(void, glInvalidateFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
+    HookWrapper7(void, glInvalidateSubFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
+    HookWrapper2(void, glInvalidateTexImage, GLuint, texture, GLint, level); \
+    HookWrapper8(void, glInvalidateTexSubImage, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper3(void, glScissorArrayv, GLuint, first, GLsizei, count, const GLint *, v); \
     HookWrapper5(void, glScissorIndexed, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glScissorIndexedv, GLuint, index, const GLint *, v); \

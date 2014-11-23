@@ -828,6 +828,56 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 	m_Real.glDrawBuffers(n, bufs);
 }
 
+void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments)
+{
+	m_Real.glInvalidateFramebuffer(target, numAttachments, attachments);
+
+	if(m_State == WRITING_IDLE)
+	{
+		GLResourceRecord *record = NULL;
+
+		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+		{
+			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+		}
+		else
+		{
+			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+		}
+
+		if(record)
+		{
+			record->MarkParentsDirty(GetResourceManager());
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+	}
+}
+
+void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
+{
+	m_Real.glInvalidateSubFramebuffer(target, numAttachments, attachments, x, y, width, height);
+
+	if(m_State == WRITING_IDLE)
+	{
+		GLResourceRecord *record = NULL;
+
+		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+		{
+			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+		}
+		else
+		{
+			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+		}
+
+		if(record)
+		{
+			record->MarkParentsDirty(GetResourceManager());
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
 	SERIALISE_ELEMENT(int32_t, sX0, srcX0);

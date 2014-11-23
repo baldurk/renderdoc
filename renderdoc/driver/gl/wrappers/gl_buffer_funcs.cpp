@@ -755,6 +755,22 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 	}
 }
 
+void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
+{
+	m_Real.glInvalidateBufferData(buffer);
+
+	if(m_State == WRITING_IDLE)
+		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+}
+
+void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length)
+{
+	m_Real.glInvalidateBufferSubData(buffer, offset, length);
+
+	if(m_State == WRITING_IDLE)
+		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+}
+
 #pragma endregion
 
 #pragma region Mapping

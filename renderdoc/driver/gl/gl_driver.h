@@ -540,6 +540,12 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearTexImage(GLuint texture, GLint level, GLenum format, GLenum type, const void *data));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateBufferData(GLuint buffer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateTexImage(GLuint texture, GLint level));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth));
 
 		enum AttribType
 		{

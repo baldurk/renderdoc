@@ -99,6 +99,12 @@ struct ResourceRecord
 		}
 	}
 
+	void MarkParentsDirty(ResourceRecordHandler *mgr)
+	{
+		for(auto it = Parents.begin(); it != Parents.end(); ++it)
+			mgr->MarkDirtyResource((*it)->GetResourceID());
+	}
+
 	void FreeParents(ResourceRecordHandler *mgr)
 	{
 		for(auto it = Parents.begin(); it != Parents.end(); ++it)
