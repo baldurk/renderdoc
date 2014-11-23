@@ -508,7 +508,7 @@ void WrappedOpenGL::glClearStencil(GLint stencil)
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearDepth(GLclampd depth)
+bool WrappedOpenGL::Serialise_glClearDepth(GLdouble depth)
 {
 	SERIALISE_ELEMENT(double, d, depth);
 
@@ -520,9 +520,22 @@ bool WrappedOpenGL::Serialise_glClearDepth(GLclampd depth)
 	return true;
 }
 
-void WrappedOpenGL::glClearDepth(GLclampd depth)
+void WrappedOpenGL::glClearDepth(GLdouble depth)
 {
 	m_Real.glClearDepth(depth);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTH);
+		Serialise_glClearDepth(depth);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+void WrappedOpenGL::glClearDepthf(GLfloat depth)
+{
+	m_Real.glClearDepthf(depth);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -631,6 +644,31 @@ void WrappedOpenGL::glDepthRangef(GLfloat nearVal, GLfloat farVal)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble farVal)
+{
+	SERIALISE_ELEMENT(GLuint, i, index);
+	SERIALISE_ELEMENT(GLdouble, n, nearVal);
+	SERIALISE_ELEMENT(GLdouble, f, farVal);
+
+	if(m_State <= EXECUTING)
+		m_Real.glDepthRangeIndexed(i, n, f);
+
+	return true;
+}
+
+void WrappedOpenGL::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble farVal)
+{
+	m_Real.glDepthRangeIndexed(index, nearVal, farVal);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE_IDX);
+		Serialise_glDepthRangeIndexed(index, nearVal, farVal);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
 {
 	SERIALISE_ELEMENT(uint32_t, idx, first);
@@ -681,6 +719,82 @@ void WrappedOpenGL::glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
 	{
 		SCOPED_SERIALISE_CONTEXT(DEPTH_BOUNDS);
 		Serialise_glDepthBoundsEXT(nearVal, farVal);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glClipControl(GLenum origin, GLenum depth)
+{
+	SERIALISE_ELEMENT(GLenum, o, origin);
+	SERIALISE_ELEMENT(GLenum, d, depth);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glClipControl(o, d);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glClipControl(GLenum origin, GLenum depth)
+{
+	m_Real.glClipControl(origin, depth);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLIP_CONTROL);
+		Serialise_glClipControl(origin, depth);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glProvokingVertex(GLenum mode)
+{
+	SERIALISE_ELEMENT(GLenum, m, mode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glProvokingVertex(m);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glProvokingVertex(GLenum mode)
+{
+	m_Real.glProvokingVertex(mode);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(PROVOKING_VERTEX);
+		Serialise_glProvokingVertex(mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPrimitiveRestartIndex(GLuint index)
+{
+	SERIALISE_ELEMENT(GLuint, i, index);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPrimitiveRestartIndex(i);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPrimitiveRestartIndex(GLuint index)
+{
+	m_Real.glPrimitiveRestartIndex(index);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(PRIMITIVE_RESTART);
+		Serialise_glPrimitiveRestartIndex(index);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

@@ -155,8 +155,12 @@ const char *GLChunkNames[] =
 	"glDepthMask",
 	"glDepthRange",
 	"glDepthRangef",
+	"glDepthRangeIndexed",
 	"glDepthRangeArrayv",
 	"glDepthBoundsEXT",
+	"glClipControl",
+	"glProvokingVertex",
+	"glPrimitiveRestartIndex",
 	"glPatchParameteri",
 	"glPatchParameterfv",
 	"glLineWidth",
@@ -1883,11 +1887,23 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DEPTH_RANGEF:
 		Serialise_glDepthRangef(0, 0);
 		break;
+	case DEPTH_RANGE_IDX:
+		Serialise_glDepthRangeIndexed(0, 0.0, 0.0);
+		break;
 	case DEPTH_RANGEARRAY:
 		Serialise_glDepthRangeArrayv(0, 0, NULL);
 		break;
 	case DEPTH_BOUNDS:
 		Serialise_glDepthBoundsEXT(0, 0);
+		break;
+	case CLIP_CONTROL:
+		Serialise_glClipControl(eGL_NONE, eGL_NONE);
+		break;
+	case PROVOKING_VERTEX:
+		Serialise_glProvokingVertex(eGL_NONE);
+		break;
+	case PRIMITIVE_RESTART:
+		Serialise_glPrimitiveRestartIndex(0);
 		break;
 	case PATCH_PARAMI:
 		Serialise_glPatchParameteri(eGL_NONE, 0);

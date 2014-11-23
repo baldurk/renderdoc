@@ -267,8 +267,12 @@
     HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HookExtension(PFNGLDEPTHRANGEPROC, glDepthRange); \
     HookExtension(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
+    HookExtension(PFNGLDEPTHRANGEINDEXEDPROC, glDepthRangeIndexed); \
     HookExtension(PFNGLDEPTHRANGEARRAYVPROC, glDepthRangeArrayv); \
     HookExtension(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT); \
+    HookExtension(PFNGLCLIPCONTROLPROC, glClipControl); \
+    HookExtension(PFNGLPROVOKINGVERTEXPROC, glProvokingVertex); \
+    HookExtension(PFNGLPRIMITIVERESTARTINDEXPROC, glPrimitiveRestartIndex); \
     HookExtension(PFNGLCREATESHADERPROC, glCreateShader); \
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
@@ -471,6 +475,7 @@
     HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HookExtension(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HookExtension(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
+    HookExtension(PFNGLCLEARDEPTHFPROC, glClearDepthf); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
     HookExtension(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
@@ -935,8 +940,12 @@
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper2(void, glDepthRange, GLdouble, near, GLdouble, far); \
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
+    HookWrapper3(void, glDepthRangeIndexed, GLuint, index, GLdouble, n, GLdouble, f); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
     HookWrapper2(void, glDepthBoundsEXT, GLclampd, zmin, GLclampd, zmax); \
+    HookWrapper2(void, glClipControl, GLenum, origin, GLenum, depth); \
+    HookWrapper1(void, glProvokingVertex, GLenum, mode); \
+    HookWrapper1(void, glPrimitiveRestartIndex, GLuint, index); \
     HookWrapper1(GLuint, glCreateShader, GLenum, type); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
@@ -1129,6 +1138,7 @@
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
+    HookWrapper1(void, glClearDepthf, GLfloat, d); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \

@@ -68,6 +68,7 @@ void GLRenderState::FetchState()
 			eGL_POLYGON_OFFSET_POINT,
 			eGL_PROGRAM_POINT_SIZE,
 			eGL_PRIMITIVE_RESTART,
+			eGL_PRIMITIVE_RESTART_FIXED_INDEX,
 			eGL_SAMPLE_ALPHA_TO_COVERAGE,
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
@@ -156,6 +157,11 @@ void GLRenderState::FetchState()
 	m_Real->glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
 	m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
 	
+	m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
+	m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+	m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+	m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
+
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
@@ -362,6 +368,10 @@ void GLRenderState::ApplyState()
 	m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
 	m_Real->glLineWidth(LineWidth);
 	m_Real->glPointSize(PointSize);
+	
+	m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
+	m_Real->glClipControl(ClipOrigin, ClipDepth);
+	m_Real->glProvokingVertex(ProvokingVertex);
 
 	m_Real->glUseProgram(Program);
 	m_Real->glBindProgramPipeline(Pipeline);
@@ -618,6 +628,11 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	m_pSerialiser->Serialise("GL_POINT_SPRITE_COORD_ORIGIN", PointSpriteOrigin);
 	m_pSerialiser->Serialise("GL_LINE_WIDTH", LineWidth);
 	m_pSerialiser->Serialise("GL_POINT_SIZE", PointSize);
+	
+	m_pSerialiser->Serialise("GL_PRIMITIVE_RESTART_INDEX", PrimitiveRestartIndex);
+	m_pSerialiser->Serialise("GL_CLIP_ORIGIN", ClipOrigin);
+	m_pSerialiser->Serialise("GL_CLIP_DEPTH_MODE", ClipDepth);
+	m_pSerialiser->Serialise("GL_PROVOKING_VERTEX", ProvokingVertex);
 
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 	{

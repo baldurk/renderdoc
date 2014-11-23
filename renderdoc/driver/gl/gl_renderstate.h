@@ -65,6 +65,7 @@ struct GLRenderState
 		eEnabled_PolyOffsetPoint,
 		eEnabled_ProgramPointSize,
 		eEnabled_PrimitiveRestart,
+		eEnabled_PrimitiveRestartFixedIndex,
 		eEnabled_SampleAlphaToCoverage,
 		eEnabled_SampleAlphaToOne,
 		eEnabled_SampleCoverage,
@@ -114,6 +115,10 @@ struct GLRenderState
 	GLenum PointSpriteOrigin;
 	float LineWidth;
 	float PointSize;
+
+	uint32_t PrimitiveRestartIndex;
+	GLenum ClipOrigin, ClipDepth;
+	GLenum ProvokingVertex;
 
 	uint32_t BufferBindings[10];
 	struct IdxRangeBuffer
