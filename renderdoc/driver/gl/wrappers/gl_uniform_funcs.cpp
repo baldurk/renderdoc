@@ -274,7 +274,7 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, count), suffix)(FUNCPARAMS, __VA_ARG
 #define FUNCNAME glUniform
 #define FUNCPARAMS GLint location
 #define FUNCARGPASS location
-#define PROGRAM m_Program
+#define PROGRAM GetUniformProgram()
 
 #define ARRAYLIST v0
 
@@ -375,7 +375,7 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, unicount), CONCAT(suffix, v))(FUNCPA
 #define FUNCNAME glUniform
 #define FUNCPARAMS GLint location
 #define FUNCARGPASS location
-#define PROGRAM m_Program
+#define PROGRAM GetUniformProgram()
 
 UNIFORM_FUNC(1, f,  GLfloat)
 UNIFORM_FUNC(1, i,  GLint)
@@ -451,7 +451,7 @@ void WrappedOpenGL::CONCAT(CONCAT(FUNCNAME, dim), suffix)(FUNCPARAMS, GLsizei co
 #define FUNCNAME glUniformMatrix
 #define FUNCPARAMS GLint location
 #define FUNCARGPASS location
-#define PROGRAM m_Program
+#define PROGRAM GetUniformProgram()
 
 UNIFORM_FUNC(2,   fv,  GLfloat)
 UNIFORM_FUNC(2x3, fv,  GLfloat)

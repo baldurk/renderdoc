@@ -280,6 +280,7 @@
     HookExtension(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
     HookExtension(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines); \
     HookExtension(PFNGLBINDPROGRAMPIPELINEPROC, glBindProgramPipeline); \
+    HookExtension(PFNGLACTIVESHADERPROGRAMPROC, glActiveShaderProgram); \
     HookExtension(PFNGLDELETEPROGRAMPIPELINESPROC, glDeleteProgramPipelines); \
     HookExtension(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline); \
     HookExtension(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback); \
@@ -936,6 +937,7 @@
     HookWrapper1(void, glValidateProgram, GLuint, program); \
     HookWrapper2(void, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \
     HookWrapper1(void, glBindProgramPipeline, GLuint, pipeline); \
+    HookWrapper2(void, glActiveShaderProgram, GLuint, pipeline, GLuint, program); \
     HookWrapper2(void, glDeleteProgramPipelines, GLsizei, n, const GLuint *, pipelines); \
     HookWrapper1(void, glValidateProgramPipeline, GLuint, pipeline); \
     HookWrapper2(void, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \

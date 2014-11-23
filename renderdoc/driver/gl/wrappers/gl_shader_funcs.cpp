@@ -826,6 +826,8 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 {
 	m_Real.glBindProgramPipeline(pipeline);
 
+	m_ProgramPipeline = pipeline;
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BIND_PROGRAMPIPE);
@@ -833,6 +835,34 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
+}
+
+void WrappedOpenGL::glActiveShaderProgram(GLuint pipeline, GLuint program)
+{
+	m_Real.glActiveShaderProgram(pipeline, program);
+}
+
+GLuint WrappedOpenGL::GetUniformProgram()
+{
+	// program gets first dibs, if one is bound then that's where glUniform* calls go.
+	if(m_Program != 0)
+	{
+		return m_Program;
+	}
+	else if(m_ProgramPipeline != 0)
+	{
+		GLuint ret = 0;
+		
+		// otherwise, query the active program for the pipeline (could cache this above in glActiveShaderProgram)
+		// we do this query every time instead of caching the result, since I think it's unlikely that we'll ever
+		// hit this path (most people using separable programs will use the glProgramUniform* interface).
+		// That way we don't pay the cost of a potentially expensive query unless we really need it.
+		m_Real.glGetProgramPipelineiv(m_ProgramPipeline, eGL_ACTIVE_PROGRAM, (GLint *)&ret);
+
+		return ret;
+	}
+
+	return 0;
 }
 
 void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)

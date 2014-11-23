@@ -329,6 +329,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_ReadFramebufferRecord = NULL;
 	m_Renderbuffer = ResourceId();
 	m_TextureUnit = 0;
+	m_ProgramPipeline = 0;
 	m_Program = 0;
 	
 	m_LastIndexSize = eGL_NONE;

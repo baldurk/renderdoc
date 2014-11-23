@@ -118,7 +118,9 @@ class WrappedOpenGL
 		GLResourceRecord *m_ReadFramebufferRecord;
 		ResourceId m_Renderbuffer;
 		GLint m_TextureUnit;
+		GLuint m_ProgramPipeline;
 		GLuint m_Program;
+		GLuint GetUniformProgram();
 
 		// internals
 		Serialiser *m_pSerialiser;
@@ -507,6 +509,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenProgramPipelines(GLsizei n, GLuint *pipelines));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindProgramPipeline(GLuint pipeline));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glActiveShaderProgram(GLuint pipeline, GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgramPipeline(GLuint pipeline));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenBuffers(GLsizei n, GLuint *buffers));
