@@ -557,6 +557,70 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint32_t, Start, start);
+	SERIALISE_ELEMENT(uint32_t, End, end);
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	SERIALISE_ELEMENT(uint32_t, BaseVtx, basevertex);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset, BaseVtx);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWELEMENTS, desc);
+		string name = "glDrawRangeElementsBaseVertex(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ", " +
+						ToStr::Get(Type) + ", " +
+						ToStr::Get(IdxOffset) + ", " +
+						ToStr::Get(BaseVtx) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = Count;
+		draw.numInstances = 1;
+		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.vertexOffset = BaseVtx;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+		m_LastIndexSize = Type;
+		m_LastIndexOffset = (GLuint)IdxOffset;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+{
+	m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTSBASEVERTEX);
+		Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);

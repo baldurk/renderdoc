@@ -599,6 +599,7 @@
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC, glProgramUniformMatrix4x2dv); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv); \
     HookExtension(PFNGLDRAWRANGEELEMENTSPROC, glDrawRangeElements); \
+    HookExtension(PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC, glDrawRangeElementsBaseVertex); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC, glDrawArraysInstancedBaseInstance); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
@@ -1262,6 +1263,7 @@
     HookWrapper5(void, glProgramUniformMatrix4x2dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x3dv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper6(void, glDrawRangeElements, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices); \
+    HookWrapper7(void, glDrawRangeElementsBaseVertex, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstance, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \

@@ -186,6 +186,7 @@ const char *GLChunkNames[] =
 	"glDrawElements",
 	"glDrawElementsIndirect",
 	"glDrawRangeElements",
+	"glDrawRangeElementsBaseVertex",
 	"glDrawElementsInstanced",
 	"glDrawElementsInstancedBaseInstance",
 	"glDrawElementsBaseVertex",
@@ -1979,6 +1980,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DRAWRANGEELEMENTS:
 		Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL);
+		break;
+	case DRAWRANGEELEMENTSBASEVERTEX:
+		Serialise_glDrawRangeElementsBaseVertex(eGL_NONE, 0, 0, 0, eGL_NONE, NULL, 0);
 		break;
 	case DRAWELEMENTS_INSTANCED:
 		Serialise_glDrawElementsInstanced(eGL_NONE, 0, eGL_NONE, NULL, 0);
