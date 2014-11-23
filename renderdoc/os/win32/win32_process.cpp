@@ -327,7 +327,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 		// safe to cast away the const as we know these functions don't modify the parameters
 
 		if(logfile != NULL)
-			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetLogFile", (void *)wlogfile.c_str(), (wlogfile.length()+1)*sizeof(wchar_t));
+			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetLogFile", (void *)logfile, strlen(logfile)+1);
 
 		if(opts != NULL)
 			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetCaptureOptions", (CaptureOptions *)opts, sizeof(CaptureOptions));
