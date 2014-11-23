@@ -716,10 +716,19 @@ void WrappedOpenGL::glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *par
 	m_Real.glGetVertexAttribfv(index, pname, params);
 }
 
+void WrappedOpenGL::glClampColor(GLenum target, GLenum clamp)
+{
+	m_Real.glClampColor(target, clamp);
+}
 
 void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
 {
 	m_Real.glReadPixels(x, y, width, height, format, type, pixels);
+}
+
+void WrappedOpenGL::glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
+{
+	m_Real.glReadnPixels(x, y, width, height, format, type, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetTransformFeedbackVarying(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLsizei *size, GLenum *type, GLchar *name)

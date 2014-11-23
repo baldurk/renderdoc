@@ -186,6 +186,10 @@
     HookExtension(PFNGLGETTEXTURESUBIMAGEPROC, glGetTextureSubImage); \
     HookExtension(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv); \
     HookExtension(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv); \
+    HookExtension(PFNGLCLAMPCOLORPROC, glClampColor); \
+    HookExtensionAlias(PFNGLCLAMPCOLORPROC, glClampColor, glClampColorARB); \
+    HookExtension(PFNGLREADNPIXELSPROC, glReadnPixels); \
+    HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERFVPROC, glGetSamplerParameterfv); \
@@ -853,6 +857,8 @@
     HookWrapper12(void, glGetTextureSubImage, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, GLsizei, bufSize, void *, pixels); \
     HookWrapper3(void, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
+    HookWrapper2(void, glClampColor, GLenum, target, GLenum, clamp); \
+    HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetSamplerParameterfv, GLuint, sampler, GLenum, pname, GLfloat *, params); \

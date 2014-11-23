@@ -418,7 +418,9 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorArrayv(GLuint first, GLsizei count, const GLint *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width, GLsizei height));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glScissorIndexedv(GLuint index, const GLint *v));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClampColor(GLenum target, GLenum clamp));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *pixels));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glReadBuffer(GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenFramebuffers(GLsizei n, GLuint *framebuffers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawBuffer(GLenum buf));
