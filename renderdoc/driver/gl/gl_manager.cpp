@@ -173,7 +173,12 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		// create texture of identical format/size to store initial contents
 		if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE)
 		{
-			gl.glTextureStorage2DMultisampleEXT(tex, details.curType, details.depth, details.internalFormat, details.width, details.height, GL_TRUE);
+			gl.glTextureStorage2DMultisampleEXT(tex, details.curType, details.samples, details.internalFormat, details.width, details.height, GL_TRUE);
+			mips = 1;
+		}
+		else if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+		{
+			gl.glTextureStorage3DMultisampleEXT(tex, details.curType, details.samples, details.internalFormat, details.width, details.height, details.depth, GL_TRUE);
 			mips = 1;
 		}
 		else if(details.dimension == 1)
@@ -391,6 +396,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SERIALISE_ELEMENT(uint32_t, width, details.width);
 			SERIALISE_ELEMENT(uint32_t, height, details.height);
 			SERIALISE_ELEMENT(uint32_t, depth, details.depth);
+			SERIALISE_ELEMENT(uint32_t, samples, details.samples);
 			SERIALISE_ELEMENT(uint32_t, dim, details.dimension);
 			SERIALISE_ELEMENT(GLenum, t, details.curType);
 			SERIALISE_ELEMENT(GLenum, f, details.internalFormat);
@@ -538,6 +544,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SERIALISE_ELEMENT(uint32_t, width, 0);
 			SERIALISE_ELEMENT(uint32_t, height, 0);
 			SERIALISE_ELEMENT(uint32_t, depth, 0);
+			SERIALISE_ELEMENT(uint32_t, samples, 0);
 			SERIALISE_ELEMENT(uint32_t, dim, 0);
 			SERIALISE_ELEMENT(GLenum, textype, eGL_NONE);
 			SERIALISE_ELEMENT(GLenum, internalformat, eGL_NONE);
@@ -552,7 +559,12 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			// create texture of identical format/size to store initial contents
 			if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
 			{
-				gl.glTextureStorage2DMultisampleEXT(tex, textype, depth, internalformat, width, height, GL_TRUE);
+				gl.glTextureStorage2DMultisampleEXT(tex, textype, samples, internalformat, width, height, GL_TRUE);
+				mips = 1;
+			}
+			else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+			{
+				gl.glTextureStorage3DMultisampleEXT(tex, textype, samples, internalformat, width, height, depth, GL_TRUE);
 				mips = 1;
 			}
 			else if(dim == 1)

@@ -2099,6 +2099,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, G
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
 		m_Textures[liveId].depth = 1;
+		m_Textures[liveId].samples = Samples;
 		m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 2;
 		m_Textures[liveId].internalFormat = Format;
@@ -2135,7 +2136,8 @@ void WrappedOpenGL::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum targ
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
-		m_Textures[texId].depth = samples;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].samples = samples;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 2;
 		m_Textures[texId].internalFormat = internalformat;
@@ -2171,7 +2173,8 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
-		m_Textures[texId].depth = samples;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].samples = samples;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 2;
 		m_Textures[texId].internalFormat = internalformat;
@@ -2209,7 +2212,146 @@ void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLen
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
-		m_Textures[texId].depth = samples;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].samples = samples;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 2;
+		m_Textures[texId].internalFormat = internalformat;
+	}
+}
+
+bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Samples, samples);
+	SERIALISE_ELEMENT(GLenum, Format, internalformat);
+	SERIALISE_ELEMENT(uint32_t, Width, width);
+	SERIALISE_ELEMENT(uint32_t, Height, height);
+	SERIALISE_ELEMENT(uint32_t, Depth, depth);
+	SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+
+	if(m_State == READING)
+	{
+		ResourceId liveId = GetResourceManager()->GetLiveID(id);
+		m_Textures[liveId].width = Width;
+		m_Textures[liveId].height = Height;
+		m_Textures[liveId].depth = Depth;
+		m_Textures[liveId].samples = Samples;
+		m_Textures[liveId].curType = TextureTarget(Target);
+		m_Textures[liveId].dimension = 2;
+		m_Textures[liveId].internalFormat = Format;
+
+		m_Real.glTextureStorage3DMultisampleEXT(GetResourceManager()->GetLiveResource(id).name, Target, Samples, Format, Width, Height, Depth, Fixedlocs ? GL_TRUE : GL_FALSE);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
+{
+	m_Real.glTextureStorage3DMultisampleEXT(texture, target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3DMS);
+		Serialise_glTextureStorage3DMultisampleEXT(texture, target, samples, internalformat, width, height, depth, fixedsamplelocations);
+
+		record->AddChunk(scope.Get());
+		
+		// illegal to re-type textures
+		record->VerifyDataType(target);
+	}
+
+	{
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = depth;
+		m_Textures[texId].samples = samples;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 2;
+		m_Textures[texId].internalFormat = internalformat;
+	}
+}
+
+void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
+{
+	m_Real.glTexStorage3DMultisample(target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3DMS);
+		Serialise_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+																		target, samples, internalformat, width, height, depth, fixedsamplelocations);
+
+		record->AddChunk(scope.Get());
+		
+		// illegal to re-type textures
+		record->VerifyDataType(target);
+	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = depth;
+		m_Textures[texId].samples = samples;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 2;
+		m_Textures[texId].internalFormat = internalformat;
+	}
+}
+
+void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
+{
+	m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height, depth, fixedsamplelocations);
+	
+	// proxy formats are used for querying texture capabilities, don't serialise these
+	if(IsProxyTarget(internalformat)) return;
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
+
+		// assuming texstorage is equivalent to teximage (this is not true in the case where someone
+		// tries to re-size an image by re-calling teximage).
+		SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3DMS);
+		Serialise_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		                                           target, samples, internalformat, width, height, depth, fixedsamplelocations);
+
+		record->AddChunk(scope.Get());
+		
+		// illegal to re-type textures
+		record->VerifyDataType(target);
+	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = width;
+		m_Textures[texId].height = height;
+		m_Textures[texId].depth = depth;
+		m_Textures[texId].samples = samples;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 2;
 		m_Textures[texId].internalFormat = internalformat;

@@ -51,6 +51,7 @@ const char *GLChunkNames[] =
 	"glTexStorage2D",
 	"glTexStorage3D",
 	"glTexStorage2DMultisample",
+	"glTexStorage3DMultisample",
 	"glTexImage1D",
 	"glTexImage2D",
 	"glTexImage3D",
@@ -1582,6 +1583,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case TEXSTORAGE2DMS:
 		Serialise_glTextureStorage2DMultisampleEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
+		break;
+	case TEXSTORAGE3DMS:
+		Serialise_glTextureStorage3DMultisampleEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
 		break;
 	case TEXIMAGE1D:
 		Serialise_glTextureImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
