@@ -153,6 +153,7 @@ const char *GLChunkNames[] =
 	"glColorMaski",
 	"glSampleMaski",
 	"glSampleCoverage",
+	"glMinSampleShading",
 	"glDepthFunc",
 	"glDepthMask",
 	"glDepthRange",
@@ -1884,6 +1885,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case SAMPLE_COVERAGE:
 		Serialise_glSampleCoverage(0.0f, 0);
+		break;
+	case MIN_SAMPLE_SHADING:
+		Serialise_glMinSampleShading(0.0f);
 		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_NONE);

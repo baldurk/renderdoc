@@ -354,6 +354,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSampleMaski(GLuint maskNumber, GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSampleCoverage(GLfloat value, GLboolean invert));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMinSampleShading(GLfloat value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClear(GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLdouble depth));

@@ -1087,6 +1087,31 @@ void WrappedOpenGL::glSampleCoverage(GLfloat value, GLboolean invert)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glMinSampleShading(GLfloat value)
+{
+	SERIALISE_ELEMENT(float, Value, value);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMinSampleShading(Value);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glMinSampleShading(GLfloat value)
+{
+	m_Real.glMinSampleShading(value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MIN_SAMPLE_SHADING);
+		Serialise_glMinSampleShading(value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glPatchParameteri(GLenum pname, GLint value)
 {
 	SERIALISE_ELEMENT(GLenum, PName, pname);

@@ -201,6 +201,7 @@ struct GLRenderState
 	uint32_t SampleMask[2];
 	float SampleCoverage;
 	bool SampleCoverageInvert;
+	float MinSampleShading;
 
 	GLenum LogicOp;
 

@@ -267,6 +267,8 @@
     HookExtension(PFNGLCOLORMASKIPROC, glColorMaski); \
     HookExtension(PFNGLSAMPLEMASKIPROC, glSampleMaski); \
     HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
+    HookExtension(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading); \
+    HookExtensionAlias(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading, glMinSampleShadingARB); \
     HookExtension(PFNGLDEPTHRANGEPROC, glDepthRange); \
     HookExtension(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HookExtension(PFNGLDEPTHRANGEINDEXEDPROC, glDepthRangeIndexed); \
@@ -950,6 +952,7 @@
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper2(void, glSampleMaski, GLuint, maskNumber, GLbitfield, mask); \
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
+    HookWrapper1(void, glMinSampleShading, GLfloat, value); \
     HookWrapper2(void, glDepthRange, GLdouble, near, GLdouble, far); \
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
     HookWrapper3(void, glDepthRangeIndexed, GLuint, index, GLdouble, n, GLdouble, f); \

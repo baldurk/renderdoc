@@ -273,6 +273,7 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&boolread); SampleCoverageInvert = (boolread != 0);
+	m_Real->glGetFloatv(eGL_MIN_SAMPLE_SHADING_VALUE, &MinSampleShading);
 	
 	m_Real->glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
 
@@ -504,6 +505,7 @@ void GLRenderState::ApplyState()
 
 	m_Real->glSampleMaski(0, (GLbitfield)SampleMask[0]);
 	m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
+	m_Real->glMinSampleShading(MinSampleShading);
 
 	m_Real->glLogicOp(LogicOp);
 
@@ -779,6 +781,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	m_pSerialiser->Serialise<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_VALUE", SampleCoverage);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_INVERT", SampleCoverageInvert);
+	m_pSerialiser->Serialise("GL_MIN_SAMPLE_SHADING", MinSampleShading);
 
 	m_pSerialiser->Serialise("GL_LOGIC_OP_MODE", LogicOp);
 
