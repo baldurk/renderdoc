@@ -690,6 +690,24 @@ void WrappedOpenGL::glValidateProgramPipeline(GLuint pipeline)
 	m_Real.glValidateProgramPipeline(pipeline);
 }
 
+void WrappedOpenGL::glShaderBinary(GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length)
+{
+	// deliberately don't forward on this call when writing, since we want to coax the app into providing non-binary shaders.
+	if(m_State < WRITING)
+	{
+		m_Real.glShaderBinary(count, shaders, binaryformat, binary, length);
+	}
+}
+
+void WrappedOpenGL::glProgramBinary(GLuint program, GLenum binaryFormat, const void *binary, GLsizei length)
+{
+	// deliberately don't forward on this call when writing, since we want to coax the app into providing non-binary shaders.
+	if(m_State < WRITING)
+	{
+		m_Real.glProgramBinary(program, binaryFormat, binary, length);
+	}
+}
+
 #pragma endregion
 
 #pragma region Program Pipelines

@@ -286,6 +286,8 @@
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
     HookExtension(PFNGLUSEPROGRAMPROC, glUseProgram); \
+    HookExtension(PFNGLSHADERBINARYPROC, glShaderBinary); \
+    HookExtension(PFNGLPROGRAMBINARYPROC, glProgramBinary); \
     HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
     HookExtension(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
     HookExtension(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines); \
@@ -962,6 +964,8 @@
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper1(void, glUseProgram, GLuint, program); \
+    HookWrapper5(void, glShaderBinary, GLsizei, count, const GLuint *, shaders, GLenum, binaryformat, const void *, binary, GLsizei, length); \
+    HookWrapper4(void, glProgramBinary, GLuint, program, GLenum, binaryFormat, const void *, binary, GLsizei, length); \
     HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
     HookWrapper2(void, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \

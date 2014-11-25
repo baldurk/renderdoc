@@ -517,6 +517,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glValidateProgram(GLuint program));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glShaderBinary(GLsizei count, const GLuint *shaders, GLenum binaryformat, const void *binary, GLsizei length));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramBinary(GLuint program, GLenum binaryFormat, const void *binary, GLsizei length));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenProgramPipelines(GLsizei n, GLuint *pipelines));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindProgramPipeline(GLuint pipeline));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glActiveShaderProgram(GLuint pipeline, GLuint program));
