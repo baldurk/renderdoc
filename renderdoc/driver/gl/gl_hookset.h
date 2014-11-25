@@ -277,7 +277,7 @@ struct GLHookSet
 	PFNGLVALIDATEPROGRAMPIPELINEPROC glValidateProgramPipeline;
 	PFNGLDEBUGMESSAGECALLBACKPROC glDebugMessageCallback; // aliases glDebugMessageCallbackARB
 	PFNGLDEBUGMESSAGECONTROLPROC glDebugMessageControl; // aliases glDebugMessageControlARB
-	PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert;
+	PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert; // aliases glDebugMessageInsertARB
 	PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;
 	PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;
 	PFNGLOBJECTLABELPROC glObjectLabel;

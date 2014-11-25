@@ -300,6 +300,7 @@
     HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
     HookExtensionAlias(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl, glDebugMessageControlARB); \
     HookExtension(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
+    HookExtensionAlias(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert, glDebugMessageInsertARB); \
     HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
