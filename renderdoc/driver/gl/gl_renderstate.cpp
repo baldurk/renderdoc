@@ -164,6 +164,24 @@ void GLRenderState::FetchState()
 
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
+	
+	GLenum shs[] = {
+		eGL_VERTEX_SHADER,
+		eGL_TESS_CONTROL_SHADER,
+		eGL_TESS_EVALUATION_SHADER,
+		eGL_GEOMETRY_SHADER,
+		eGL_FRAGMENT_SHADER,
+		eGL_COMPUTE_SHADER
+	};
+
+	RDCCOMPILE_ASSERT(ARRAY_COUNT(shs) == ARRAY_COUNT(Subroutines), "Subroutine array not the right size");
+	for(size_t s=0; s < ARRAY_COUNT(shs); s++)
+	{
+		m_Real->glGetIntegerv(eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &Subroutines[s].numSubroutines);
+
+		for(GLint i=0; i < Subroutines[s].numSubroutines; i++)
+			m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[s]);
+	}
 
 	m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Array]);
 	m_Real->glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING,          (GLint*)&BufferBindings[eBufIdx_Copy_Read]);
@@ -376,6 +394,20 @@ void GLRenderState::ApplyState()
 
 	m_Real->glUseProgram(Program);
 	m_Real->glBindProgramPipeline(Pipeline);
+	
+	GLenum shs[] = {
+		eGL_VERTEX_SHADER,
+		eGL_TESS_CONTROL_SHADER,
+		eGL_TESS_EVALUATION_SHADER,
+		eGL_GEOMETRY_SHADER,
+		eGL_FRAGMENT_SHADER,
+		eGL_COMPUTE_SHADER
+	};
+
+	RDCCOMPILE_ASSERT(ARRAY_COUNT(shs) == ARRAY_COUNT(Subroutines), "Subroutine array not the right size");
+	for(size_t s=0; s < ARRAY_COUNT(shs); s++)
+		if(Subroutines[s].numSubroutines > 0)
+			m_Real->glUniformSubroutinesuiv(shs[s], Subroutines[s].numSubroutines, Subroutines[s].Values);
 
 	m_Real->glBindBuffer(eGL_ARRAY_BUFFER,              BufferBindings[eBufIdx_Array]);
 	m_Real->glBindBuffer(eGL_COPY_READ_BUFFER,          BufferBindings[eBufIdx_Copy_Read]);
@@ -529,17 +561,26 @@ void GLRenderState::Clear()
 	RDCEraseEl(Tex2D);
 	RDCEraseEl(Samplers);
 	RDCEraseEl(ActiveTexture);
+	
+	RDCEraseEl(Program);
+	RDCEraseEl(Pipeline);
+	
+	RDCEraseEl(Subroutines);
 
 	RDCEraseEl(VAO);
 	RDCEraseEl(VertexBuffers);
+	
+	RDCEraseEl(GenericVertexAttribs);
 	
 	RDCEraseEl(PointFadeThresholdSize);
 	RDCEraseEl(PointSpriteOrigin);
 	RDCEraseEl(LineWidth);
 	RDCEraseEl(PointSize);
 	
-	RDCEraseEl(Program);
-	RDCEraseEl(Pipeline);
+	RDCEraseEl(PrimitiveRestartIndex);
+	RDCEraseEl(ClipOrigin);
+	RDCEraseEl(ClipDepth);
+	RDCEraseEl(ProvokingVertex);
 
 	RDCEraseEl(BufferBindings);
 	RDCEraseEl(AtomicCounter);
@@ -571,6 +612,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(SampleMask);
 	RDCEraseEl(SampleCoverage);
 	RDCEraseEl(SampleCoverageInvert);
+	RDCEraseEl(MinSampleShading);
 	RDCEraseEl(LogicOp);
 	RDCEraseEl(ColorClearValue);
 
@@ -655,6 +697,12 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		if(state >= WRITING) ID = rm->GetID(ProgramPipeRes(ctx, Pipeline));
 		m_pSerialiser->Serialise("GL_PROGRAM_PIPELINE_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) Pipeline = rm->GetLiveResource(ID).name;
+	}
+	
+	for(size_t s=0; s < ARRAY_COUNT(Subroutines); s++)
+	{
+		m_pSerialiser->Serialise("GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS", Subroutines[s].numSubroutines);
+		m_pSerialiser->Serialise<128>("GL_SUBROUTINE_UNIFORMS", Subroutines[s].Values);
 	}
 
 	{

@@ -86,6 +86,12 @@ struct GLRenderState
 	GLuint Program;
 	GLuint Pipeline;
 
+	struct
+	{
+		GLint numSubroutines;
+		GLuint Values[128];
+	} Subroutines[6];
+
 	enum
 	{
 		eBufIdx_Array,

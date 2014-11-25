@@ -454,6 +454,7 @@
     HookExtension(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
     HookExtension(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HookExtension(PFNGLBINDFRAGDATALOCATIONPROC, glBindFragDataLocation); \
+    HookExtension(PFNGLBINDFRAGDATALOCATIONINDEXEDPROC, glBindFragDataLocationIndexed); \
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
@@ -508,6 +509,7 @@
     HookExtension(PFNGLVIEWPORTARRAYVPROC, glViewportArrayv); \
     HookExtension(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
     HookExtension(PFNGLSHADERSTORAGEBLOCKBINDINGPROC, glShaderStorageBlockBinding); \
+    HookExtension(PFNGLUNIFORMSUBROUTINESUIVPROC, glUniformSubroutinesuiv); \
     HookExtension(PFNGLUNIFORM1FPROC,   glUniform1f); \
     HookExtension(PFNGLUNIFORM1IPROC,   glUniform1i); \
     HookExtension(PFNGLUNIFORM1UIPROC,  glUniform1ui); \
@@ -1134,6 +1136,7 @@
     HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper3(void, glBindFragDataLocation, GLuint, program, GLuint, color, const GLchar *, name); \
+    HookWrapper4(void, glBindFragDataLocationIndexed, GLuint, program, GLuint, colorNumber, GLuint, index, const GLchar *, name); \
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper1(void, glDisableVertexAttribArray, GLuint, index); \
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
@@ -1186,6 +1189,7 @@
     HookWrapper3(void, glViewportArrayv, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
     HookWrapper3(void, glShaderStorageBlockBinding, GLuint, program, GLuint, storageBlockIndex, GLuint, storageBlockBinding); \
+    HookWrapper3(void, glUniformSubroutinesuiv, GLenum, shadertype, GLsizei, count, const GLuint *, indices); \
     HookWrapper2(void,   glUniform1f, GLint, location, GLfloat, v0); \
     HookWrapper2(void,   glUniform1i, GLint, location, GLint, v0); \
     HookWrapper2(void,  glUniform1ui, GLint, location, GLuint, v0); \
