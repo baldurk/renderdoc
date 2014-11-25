@@ -199,6 +199,9 @@ const char *GLChunkNames[] =
 	"glDrawElementsInstancedBaseVertexBaseInstance",
 	"glMultiDrawArrays",
 	"glMultiDrawElements",
+	"glMultiDrawElementsBaseVertex",
+	"glMultiDrawArraysIndirect",
+	"glMultiDrawElementsIndirect",
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
@@ -2025,6 +2028,15 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case MULTI_DRAWELEMENTS:
 		Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
+		break;
+	case MULTI_DRAWELEMENTSBASEVERTEX:
+		Serialise_glMultiDrawElementsBaseVertex(eGL_NONE, NULL, eGL_NONE, NULL, 0, NULL);
+		break;
+	case MULTI_DRAWARRAYS_INDIRECT:
+		Serialise_glMultiDrawArraysIndirect(eGL_NONE, NULL, 0, 0);
+		break;
+	case MULTI_DRAWELEMENTS_INDIRECT:
+		Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
 		break;
 		
 	case GEN_FRAMEBUFFERS:

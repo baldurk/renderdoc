@@ -1133,6 +1133,207 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 	}
 }
 
+bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount, const GLint *basevertex)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint32_t, Count, drawcount);
+	
+	SERIALISE_ELEMENT_ARR(int32_t, countArray, count, Count);
+	SERIALISE_ELEMENT_ARR(int32_t, baseArray, basevertex, Count);
+
+	void **idxOffsArray = new void*[Count];
+	size_t len = Count;
+
+	// serialise pointer array as uint64s
+	if(m_State >= WRITING)
+	{
+		for(uint32_t i=0; i < Count; i++)
+		{
+			uint64_t ptr = (uint64_t)indices[i];
+			m_pSerialiser->Serialise("idxOffsArray", ptr);
+		}
+	}
+	else
+	{
+		for(uint32_t i=0; i < Count; i++)
+		{
+			uint64_t ptr = 0;
+			m_pSerialiser->Serialise("idxOffsArray", ptr);
+			idxOffsArray[i] = (void *)ptr;
+		}
+	}
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMultiDrawElementsBaseVertex(Mode, countArray, Type, idxOffsArray, Count, baseArray);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(MULTI_DRAWARRAYS, desc);
+		string name = "glMultiDrawElementsBaseVertex(" +
+						ToStr::Get(Mode) + ", " +
+						ToStr::Get(Count) + ")";
+				
+		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawElements() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	SAFE_DELETE_ARRAY(countArray);
+	SAFE_DELETE_ARRAY(baseArray);
+	SAFE_DELETE_ARRAY(idxOffsArray);
+
+	return true;
+}
+
+void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount, const GLint *basevertex)
+{
+	m_Real.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTSBASEVERTEX);
+		Serialise_glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
+	SERIALISE_ELEMENT(uint32_t, Count, drawcount);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMultiDrawArraysIndirect(Mode, (const void *)Offset, Count, Stride);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glMultiDrawArraysIndirect(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching indirect data for glMultiDrawArraysIndirect() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride)
+{
+	m_Real.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTS_INDIRECT);
+		Serialise_glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
+	SERIALISE_ELEMENT(uint32_t, Count, drawcount);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMultiDrawElementsIndirect(Mode, Type, (const void *)Offset, Count, Stride);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glMultiDrawElementsIndirect(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching indirect data for glMultiDrawElementsIndirect() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride)
+{
+	m_Real.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTS_INDIRECT);
+		Serialise_glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
 	SERIALISE_ELEMENT(GLenum, buf, buffer);

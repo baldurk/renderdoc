@@ -619,6 +619,9 @@
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEPROC, glDrawElementsInstancedBaseVertexBaseInstance); \
     HookExtension(PFNGLMULTIDRAWARRAYSPROC, glMultiDrawArrays); \
     HookExtension(PFNGLMULTIDRAWELEMENTSPROC, glMultiDrawElements); \
+    HookExtension(PFNGLMULTIDRAWELEMENTSBASEVERTEXPROC, glMultiDrawElementsBaseVertex); \
+    HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTPROC, glMultiDrawArraysIndirect); \
+    HookExtension(PFNGLMULTIDRAWELEMENTSINDIRECTPROC, glMultiDrawElementsIndirect); \
     HookExtension(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
     HookExtension(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect); \
     HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
@@ -1294,6 +1297,9 @@
     HookWrapper7(void, glDrawElementsInstancedBaseVertexBaseInstance, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex, GLuint, baseinstance); \
     HookWrapper4(void, glMultiDrawArrays, GLenum, mode, const GLint *, first, const GLsizei *, count, GLsizei, drawcount); \
     HookWrapper5(void, glMultiDrawElements, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount); \
+    HookWrapper6(void, glMultiDrawElementsBaseVertex, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, drawcount, const GLint *, basevertex); \
+    HookWrapper4(void, glMultiDrawArraysIndirect, GLenum, mode, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
+    HookWrapper5(void, glMultiDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
     HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
     HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \

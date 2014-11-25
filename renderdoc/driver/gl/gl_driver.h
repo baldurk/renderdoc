@@ -981,6 +981,9 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const void * indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArrays(GLenum mode, const GLint *first, const GLsizei *count, GLsizei drawcount));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElements(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount, const GLint *basevertex));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirect(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysIndirect(GLenum mode, const void *indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteBuffers(GLsizei n, const GLuint *buffers));
