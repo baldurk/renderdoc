@@ -111,7 +111,11 @@ const char *GLChunkNames[] =
 
 	"glGenQueries",
 	"glBeginQuery",
+	"glBeginQueryIndexed",
 	"glEndQuery",
+	"glEndQueryIndexed",
+	"glBeginConditional",
+	"glEndConditional",
 	"glQueryCounter",
 
 	"glClearColor",
@@ -1772,8 +1776,20 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case BEGIN_QUERY:
 		Serialise_glBeginQuery(eGL_NONE, 0);
 		break;
+	case BEGIN_QUERY_INDEXED:
+		Serialise_glBeginQueryIndexed(eGL_NONE, 0, 0);
+		break;
 	case END_QUERY:
 		Serialise_glEndQuery(eGL_NONE);
+		break;
+	case END_QUERY_INDEXED:
+		Serialise_glEndQueryIndexed(eGL_NONE, 0);
+		break;
+	case BEGIN_CONDITIONAL:
+		Serialise_glBeginConditionalRender(0, eGL_NONE);
+		break;
+	case END_CONDITIONAL:
+		Serialise_glEndConditionalRender();
 		break;
 	case QUERY_COUNTER:
 		Serialise_glQueryCounter(0, eGL_NONE);

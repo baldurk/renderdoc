@@ -229,6 +229,33 @@ void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBeginQueryIndexed(GLenum target, GLuint index, GLuint qid)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), qid)));
+	
+	if(m_State < WRITING)
+	{
+		m_Real.glBeginQueryIndexed(Target, Index, GetResourceManager()->GetLiveResource(id).name);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
+{
+	m_Real.glBeginQueryIndexed(target, index, id);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY_INDEXED);
+		Serialise_glBeginQueryIndexed(target, index, id);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glEndQuery(GLenum target)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
@@ -249,6 +276,81 @@ void WrappedOpenGL::glEndQuery(GLenum target)
 	{
 		SCOPED_SERIALISE_CONTEXT(END_QUERY);
 		Serialise_glEndQuery(target);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glEndQueryIndexed(GLenum target, GLuint index)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Index, index);
+	
+	if(m_State < WRITING)
+	{
+		m_Real.glEndQueryIndexed(Target, Index);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
+{
+	m_Real.glEndQueryIndexed(target, index);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(END_QUERY_INDEXED);
+		Serialise_glEndQueryIndexed(target, index);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBeginConditionalRender(GLuint id, GLenum mode)
+{
+	SERIALISE_ELEMENT(ResourceId, qid, GetResourceManager()->GetID(QueryRes(GetCtx(), id)));
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+
+	if(m_State < WRITING)
+	{
+		m_Real.glBeginConditionalRender(GetResourceManager()->GetLiveResource(qid).name, Mode);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
+{
+	m_Real.glBeginConditionalRender(id, mode);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BEGIN_CONDITIONAL);
+		Serialise_glBeginConditionalRender(id, mode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glEndConditionalRender()
+{
+	if(m_State < WRITING)
+	{
+		m_Real.glEndConditionalRender();
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glEndConditionalRender()
+{
+	m_Real.glEndConditionalRender();
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(END_CONDITIONAL);
+		Serialise_glEndConditionalRender();
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

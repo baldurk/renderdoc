@@ -468,7 +468,11 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteSync(GLsync sync));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenQueries(GLsizei n, GLuint *ids));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBeginQuery(GLenum target, GLuint id));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBeginQueryIndexed(GLenum target, GLuint index, GLuint id));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glEndQuery(GLenum target));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glEndQueryIndexed(GLenum target, GLuint index));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBeginConditionalRender(GLuint id, GLenum mode));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glEndConditionalRender());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glQueryCounter(GLuint id, GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteQueries(GLsizei n, const GLuint *ids));
 

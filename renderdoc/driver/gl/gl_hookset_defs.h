@@ -349,7 +349,11 @@
     HookExtension(PFNGLDELETESYNCPROC, glDeleteSync); \
     HookExtension(PFNGLGENQUERIESPROC, glGenQueries); \
     HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
+    HookExtension(PFNGLBEGINQUERYINDEXEDPROC, glBeginQueryIndexed); \
     HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
+    HookExtension(PFNGLENDQUERYINDEXEDPROC, glEndQueryIndexed); \
+    HookExtension(PFNGLBEGINCONDITIONALRENDERPROC, glBeginConditionalRender); \
+    HookExtension(PFNGLENDCONDITIONALRENDERPROC, glEndConditionalRender); \
     HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
     HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
@@ -1035,7 +1039,11 @@
     HookWrapper1(void, glDeleteSync, GLsync, sync); \
     HookWrapper2(void, glGenQueries, GLsizei, n, GLuint *, ids); \
     HookWrapper2(void, glBeginQuery, GLenum, target, GLuint, id); \
+    HookWrapper3(void, glBeginQueryIndexed, GLenum, target, GLuint, index, GLuint, id); \
     HookWrapper1(void, glEndQuery, GLenum, target); \
+    HookWrapper2(void, glEndQueryIndexed, GLenum, target, GLuint, index); \
+    HookWrapper2(void, glBeginConditionalRender, GLuint, id, GLenum, mode); \
+    HookWrapper0(void, glEndConditionalRender); \
     HookWrapper2(void, glQueryCounter, GLuint, id, GLenum, target); \
     HookWrapper2(void, glDeleteQueries, GLsizei, n, const GLuint *, ids); \
     HookWrapper4(void, glBufferData, GLenum, target, GLsizeiptr, size, const void *, data, GLenum, usage); \
