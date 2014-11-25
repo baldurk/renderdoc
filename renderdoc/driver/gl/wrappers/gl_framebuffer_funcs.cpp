@@ -88,12 +88,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(GLuint framebuffer, G
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferTextureEXT(0, Attach, res.name, Level);
+			m_Real.glNamedFramebufferTextureEXT(0, Attach, res.name, Level);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferTextureEXT(fbres.name, Attach, res.name, Level);
+			m_Real.glNamedFramebufferTextureEXT(fbres.name, Attach, res.name, Level);
 		}
 
 		if(m_State == READING)
@@ -182,12 +182,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(GLuint framebuffer,
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferTexture1DEXT(0, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture1DEXT(0, Attach, TexTarget, res.name, Level);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferTexture1DEXT(fbres.name, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture1DEXT(fbres.name, Attach, TexTarget, res.name, Level);
 		}
 
 		if(m_State == READING)
@@ -278,12 +278,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(GLuint framebuffer,
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferTexture2DEXT(0, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture2DEXT(0, Attach, TexTarget, res.name, Level);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferTexture2DEXT(fbres.name, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture2DEXT(fbres.name, Attach, TexTarget, res.name, Level);
 		}
 
 		if(m_State == READING)
@@ -375,12 +375,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(GLuint framebuffer,
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferTexture3DEXT(0, Attach, TexTarget, res.name, Level, Zoffset);
+			m_Real.glNamedFramebufferTexture3DEXT(0, Attach, TexTarget, res.name, Level, Zoffset);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferTexture3DEXT(fbres.name, Attach, TexTarget, res.name, Level, Zoffset);
+			m_Real.glNamedFramebufferTexture3DEXT(fbres.name, Attach, TexTarget, res.name, Level, Zoffset);
 		}
 
 		if(m_State == READING)
@@ -469,12 +469,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuff
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferRenderbufferEXT(0, Attach, RendBufTarget, res.name);
+			m_Real.glNamedFramebufferRenderbufferEXT(0, Attach, RendBufTarget, res.name);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferRenderbufferEXT(fbres.name, Attach, RendBufTarget, res.name);
+			m_Real.glNamedFramebufferRenderbufferEXT(fbres.name, Attach, RendBufTarget, res.name);
 		}
 
 		if(m_State == READING)
@@ -558,12 +558,12 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(GLuint framebuff
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		if(fbid == ResourceId())
 		{
-			glNamedFramebufferTextureLayerEXT(0, Attach, res.name, Level, Layer);
+			m_Real.glNamedFramebufferTextureLayerEXT(0, Attach, res.name, Level, Layer);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferTextureLayerEXT(fbres.name, Attach, res.name, Level, Layer);
+			m_Real.glNamedFramebufferTextureLayerEXT(fbres.name, Attach, res.name, Level, Layer);
 		}
 
 		if(m_State == READING)
@@ -652,7 +652,7 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferParameteriEXT(GLuint framebuffer
 		if(fbid != ResourceId())
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			glNamedFramebufferParameteriEXT(fbres.name, PName, Param);
+			m_Real.glNamedFramebufferParameteriEXT(fbres.name, PName, Param);
 		}
 	}
 

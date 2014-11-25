@@ -90,7 +90,7 @@ bool WrappedOpenGL::Serialise_glClientWaitSync(GLsync sync, GLbitfield flags, GL
 		if(GetResourceManager()->HasLiveResource(id))
 		{
 			GLResource res = GetResourceManager()->GetLiveResource(id);
-			glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+			m_Real.glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
 		}
 	}
 
@@ -123,7 +123,7 @@ bool WrappedOpenGL::Serialise_glWaitSync(GLsync sync, GLbitfield flags, GLuint64
 		if(GetResourceManager()->HasLiveResource(id))
 		{
 			GLResource res = GetResourceManager()->GetLiveResource(id);
-			glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+			m_Real.glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
 		}
 	}
 
@@ -210,7 +210,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 	
 	if(m_State < WRITING)
 	{
-		glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
+		m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
 	}
 
 	return true;
@@ -262,7 +262,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(GLenum target)
 	
 	if(m_State < WRITING)
 	{
-		glEndQuery(Target);
+		m_Real.glEndQuery(Target);
 	}
 
 	return true;
@@ -363,7 +363,7 @@ bool WrappedOpenGL::Serialise_glQueryCounter(GLuint query, GLenum target)
 	
 	if(m_State < WRITING)
 	{
-		glQueryCounter(GetResourceManager()->GetLiveResource(id).name, Target);
+		m_Real.glQueryCounter(GetResourceManager()->GetLiveResource(id).name, Target);
 	}
 
 	return true;
