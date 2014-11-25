@@ -878,6 +878,178 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 	}
 }
 
+bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR || PName == eGL_TEXTURE_SWIZZLE_RGBA ? 4U : 1U);
+	SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
+
+	if(m_State < WRITING)
+	{
+		m_Real.glTextureParameterIivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
+	}
+
+	delete[] Params;
+
+	return true;
+}
+
+void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params)
+{
+	m_Real.glTextureParameterIivEXT(texture, target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIIV);
+		Serialise_glTextureParameterIivEXT(texture, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
+	}
+}
+
+void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *params)
+{
+	m_Real.glTexParameterIiv(target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
+		
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIIV);
+		Serialise_glTextureParameterIivEXT(res.name, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname, const GLuint *params)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(GLenum, PName, pname);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+	const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR || PName == eGL_TEXTURE_SWIZZLE_RGBA ? 4U : 1U);
+	SERIALISE_ELEMENT_ARR(uint32_t, Params, params, nParams);
+
+	if(m_State < WRITING)
+	{
+		m_Real.glTextureParameterIuivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
+	}
+
+	delete[] Params;
+
+	return true;
+}
+
+void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname, const GLuint *params)
+{
+	m_Real.glTextureParameterIuivEXT(texture, target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIUIV);
+		Serialise_glTextureParameterIuivEXT(texture, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
+	}
+}
+
+void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint *params)
+{
+	m_Real.glTexParameterIuiv(target, pname, params);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
+		RDCASSERT(record);
+		
+		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		
+		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
+		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIUIV);
+		Serialise_glTextureParameterIuivEXT(res.name, target, pname, params);
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 12)
+			{
+				m_HighTrafficResources.insert(res);
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);

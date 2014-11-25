@@ -71,6 +71,8 @@ const char *GLChunkNames[] =
 	"glTexParameterfv",
 	"glTexParameteri",
 	"glTexParameteriv",
+	"glTexParameterIiv",
+	"glTexParameterIuiv",
 	"glGenerateMipmap",
 	"glCopyImageSubData",
 	"glCopyTexImage1D",
@@ -1649,6 +1651,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case TEXPARAMETERIV:
 		Serialise_glTextureParameterivEXT(0, eGL_NONE, eGL_NONE, NULL);
+		break;
+	case TEXPARAMETERIIV:
+		Serialise_glTextureParameterIivEXT(0, eGL_NONE, eGL_NONE, NULL);
+		break;
+	case TEXPARAMETERIUIV:
+		Serialise_glTextureParameterIuivEXT(0, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case GENERATE_MIPMAP:
 		Serialise_glGenerateTextureMipmapEXT(0, eGL_NONE);

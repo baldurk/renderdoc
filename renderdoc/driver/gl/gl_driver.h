@@ -406,6 +406,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameterfv(GLenum target, GLenum pname, const GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameteri(GLenum target, GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameteriv(GLenum target, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameterIiv(GLenum target, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTexParameterIuiv(GLenum target, GLenum pname, const GLuint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenSamplers(GLsizei count, GLuint *samplers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindSampler(GLuint unit, GLuint sampler));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers));
@@ -1021,6 +1023,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, const GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname, const GLuint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth));
