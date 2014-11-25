@@ -483,6 +483,8 @@
     HookExtension(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HookExtension(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HookExtension(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
+    HookExtension(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
+    HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
     HookExtension(PFNGLCLEARDEPTHFPROC, glClearDepthf); \
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERIVPROC, glClearBufferiv); \
@@ -1156,6 +1158,8 @@
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
+    HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
+    HookWrapper0(void, glTextureBarrier); \
     HookWrapper1(void, glClearDepthf, GLfloat, d); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \

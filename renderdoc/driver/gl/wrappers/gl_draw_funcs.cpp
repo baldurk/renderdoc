@@ -147,6 +147,54 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
+{
+	SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glMemoryBarrierByRegion(Barriers);
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glMemoryBarrierByRegion(GLbitfield barriers)
+{
+	m_Real.glMemoryBarrierByRegion(barriers);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER_BY_REGION);
+		Serialise_glMemoryBarrierByRegion(barriers);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glTextureBarrier()
+{
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glTextureBarrier();
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glTextureBarrier()
+{
+	m_Real.glTextureBarrier();
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(TEXTURE_BARRIER);
+		Serialise_glTextureBarrier();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);

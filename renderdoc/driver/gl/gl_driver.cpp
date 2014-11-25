@@ -182,6 +182,8 @@ const char *GLChunkNames[] =
 	"glDispatchCompute",
 	"glDispatchComputeIndirect",
 	"glMemoryBarrier",
+	"glMemoryBarrierByRegion",
+	"glTextureBarrier",
 	"glDrawArrays",
 	"glDrawArraysIndirect",
 	"glDrawArraysInstanced",
@@ -1972,6 +1974,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case MEMORY_BARRIER:
 		Serialise_glMemoryBarrier(0);
+		break;
+	case MEMORY_BARRIER_BY_REGION:
+		Serialise_glMemoryBarrierByRegion(0);
+		break;
+	case TEXTURE_BARRIER:
+		Serialise_glTextureBarrier();
 		break;
 	case DRAWARRAYS:
 		Serialise_glDrawArrays(eGL_NONE, 0, 0);
