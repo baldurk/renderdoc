@@ -82,6 +82,8 @@ GLenum ShaderEnum(size_t idx);
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 
+GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
+
 extern int GLCoreVersion;
 void UpdateExtensionSupport(const GLHookSet &gl);
 bool ExtensionSupported(const char *ext);

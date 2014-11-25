@@ -797,11 +797,14 @@ void GLReplay::SavePipelineState()
 
 	for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
 	{
-		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.VertexBuffers[i].Buffer)));
+		GLuint buffer = GetBoundVertexBuffer(gl.m_Real, i);
 
-		pipe.m_VtxIn.vbuffers[i].Stride = (uint32_t)rs.VertexBuffers[i].Stride;
-		pipe.m_VtxIn.vbuffers[i].Offset = (uint32_t)rs.VertexBuffers[i].Offset;
-		pipe.m_VtxIn.vbuffers[i].Divisor = rs.VertexBuffers[i].Divisor;
+		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
+
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Divisor);
+
 		pipe.m_VtxIn.vbuffers[i].PerInstance = (pipe.m_VtxIn.vbuffers[i].Divisor != 0);
 	}
 	

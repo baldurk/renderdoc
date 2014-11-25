@@ -26,9 +26,9 @@
 #include "driver/gl/gl_manager.h"
 #include "driver/gl/gl_driver.h"
 
-struct VertexArrayInitialData
+struct VertexAttribInitialData
 {
-	VertexArrayInitialData()
+	VertexAttribInitialData()
 	{
 		RDCEraseEl(*this);
 	}
@@ -41,8 +41,26 @@ struct VertexArrayInitialData
 	uint32_t size;
 };
 
+struct VertexBufferInitialData
+{
+	VertexBufferInitialData()
+	{
+		RDCEraseEl(*this);
+	}
+	ResourceId Buffer;
+	uint64_t Stride;
+	uint64_t Offset;
+	uint32_t Divisor;
+};
+
+struct VAOInitialData
+{
+	VertexAttribInitialData VertexAttribs[16];
+	VertexBufferInitialData VertexBuffers[16];
+};
+
 template<>
-void Serialiser::Serialise(const char *name, VertexArrayInitialData &el)
+void Serialiser::Serialise(const char *name, VertexAttribInitialData &el)
 {
 	ScopedContext scope(this, this, name, "VertexArrayInitialData", 0, true);
 	Serialise("enabled", el.enabled);
@@ -52,6 +70,16 @@ void Serialiser::Serialise(const char *name, VertexArrayInitialData &el)
 	Serialise("normalized", el.normalized);
 	Serialise("integer", el.integer);
 	Serialise("size", el.size);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VertexBufferInitialData &el)
+{
+	ScopedContext scope(this, this, name, "VertexBufferInitialData", 0, true);
+	Serialise("Buffer", el.Buffer);
+	Serialise("Stride", el.Stride);
+	Serialise("Offset", el.Offset);
+	Serialise("Divisor", el.Divisor);
 }
 
 struct TextureStateInitialData
@@ -240,17 +268,25 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 		gl.glBindVertexArray(res.name);
 
-		VertexArrayInitialData *data = (VertexArrayInitialData *)Serialiser::AllocAlignedBuffer(sizeof(VertexArrayInitialData)*16);
-
+		VAOInitialData *data = (VAOInitialData *)Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
+		
 		for(GLuint i=0; i < 16; i++)
 		{
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, (GLint *)&data[i].enabled);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data[i].vbslot);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET, (GLint*)&data[i].offset);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data[i].type);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, (GLint *)&data[i].normalized);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, (GLint *)&data[i].integer);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data[i].size);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, (GLint *)&data->VertexAttribs[i].enabled);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data->VertexAttribs[i].vbslot);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET, (GLint*)&data->VertexAttribs[i].offset);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data->VertexAttribs[i].type);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, (GLint *)&data->VertexAttribs[i].normalized);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, (GLint *)&data->VertexAttribs[i].integer);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data->VertexAttribs[i].size);
+
+			GLuint buffer = GetBoundVertexBuffer(gl, i);
+			
+			data->VertexBuffers[i].Buffer = GetID(BufferRes(res.Context, buffer));
+
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data->VertexBuffers[i].Stride);
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data->VertexBuffers[i].Offset);
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data->VertexBuffers[i].Divisor);
 		}
 
 		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
@@ -687,21 +723,24 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 	}
 	else if(res.Namespace == eResVertexArray)
 	{
-		VertexArrayInitialData data[16];
+		VAOInitialData data;
 
 		if(m_State >= WRITING)
 		{
-			VertexArrayInitialData *initialdata = (VertexArrayInitialData *)GetInitialContents(Id).blob;
-			memcpy(data, initialdata, sizeof(data));
+			VAOInitialData *initialdata = (VAOInitialData *)GetInitialContents(Id).blob;
+			memcpy(&data, initialdata, sizeof(data));
 		}
 
 		for(GLuint i=0; i < 16; i++)
-			m_pSerialiser->Serialise("data[]", data[i]);
+		{
+			m_pSerialiser->Serialise("VertexAttrib[]", data.VertexAttribs[i]);
+			m_pSerialiser->Serialise("VertexBuffer[]", data.VertexBuffers[i]);
+		}
 
 		if(m_State < WRITING)
 		{
 			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
-			memcpy(blob, data, sizeof(data));
+			memcpy(blob, &data, sizeof(data));
 
 			SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
 		}
@@ -799,21 +838,30 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 		gl.glBindVertexArray(live.name);
 	
-		VertexArrayInitialData *initialdata = (VertexArrayInitialData *)initial.blob;	
+		VAOInitialData *initialdata = (VAOInitialData *)initial.blob;	
 
 		for(GLuint i=0; i < 16; i++)
 		{
-			if(initialdata[i].enabled)
+			VertexAttribInitialData &attrib = initialdata->VertexAttribs[i];
+
+			if(attrib.enabled)
 				gl.glEnableVertexAttribArray(i);
 			else
 				gl.glDisableVertexAttribArray(i);
 
-			gl.glVertexAttribBinding(i, initialdata[i].vbslot);
+			gl.glVertexAttribBinding(i, attrib.vbslot);
 
-			if(initialdata[i].integer == 0)
-				gl.glVertexAttribFormat(i, initialdata[i].size, initialdata[i].type, (GLboolean)initialdata[i].normalized, initialdata[i].offset);
+			if(initialdata->VertexAttribs[i].integer == 0)
+				gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized, attrib.offset);
 			else
-				gl.glVertexAttribIFormat(i, initialdata[i].size, initialdata[i].type, initialdata[i].offset);
+				gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+
+			VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
+
+			GLuint buffer = GetLiveResource(buf.Buffer).name;
+			
+			gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
+			gl.glVertexBindingDivisor(i, buf.Divisor);
 		}
 
 		gl.glBindVertexArray(VAO);

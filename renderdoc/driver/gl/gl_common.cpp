@@ -170,6 +170,39 @@ GLenum ShaderEnum(size_t idx)
 	return eGL_NONE;
 }
 
+GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
+{
+	static int hackAMDBugVBBinding = -1;
+
+	// linux AMD driver doesn't recognise GL_VERTEX_BINDING_BUFFER, see below.
+	if(hackAMDBugVBBinding == -1)
+	{
+		GLenum err = gl.glGetError();
+		while(err != eGL_NONE) err = gl.glGetError();
+		GLint dummy = 0;
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
+		err = gl.glGetError();
+
+		hackAMDBugVBBinding = (err == eGL_NONE ? 0 : 1);
+
+		if(hackAMDBugVBBinding)
+			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
+	}
+
+	GLuint buffer = 0;
+
+	// the linux AMD driver has a "two wrongs make a right" type deal. Instead of returning the buffer that the
+	// i'th index is bound to (as above, vbslot) for GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, it returns the i'th
+	// vertex buffer which is exactly what we wanted from GL_VERTEX_BINDING_BUFFER!
+	// see: http://devgurus.amd.com/message/1306745#1306745
+	if(hackAMDBugVBBinding)
+		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
+	else
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);
+
+	return buffer;
+}
+
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 {
 	ResourceFormat ret;

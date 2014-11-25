@@ -106,13 +106,6 @@ struct GLRenderState
 		eBufIdx_Texture,
 	};
 	
-	struct VertexBuffer
-	{
-		GLuint Buffer;
-		uint64_t Stride;
-		uint64_t Offset;
-		uint32_t Divisor;
-	} VertexBuffers[16];
 	GLuint VAO;
 
 	Vec4f GenericVertexAttribs[32];
