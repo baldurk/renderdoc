@@ -3964,7 +3964,14 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
 			SAFE_RELEASE(idxBuf);
 
-			m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->vertexOffset);
+			if(drawcall->flags & eDraw_Instanced)
+			{
+				m_pImmediateContext->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, drawcall->vertexOffset, drawcall->instanceOffset);
+			}
+			else
+			{
+				m_pImmediateContext->DrawIndexed((UINT)indices.size(), 0, drawcall->vertexOffset);
+			}
 
 			m_pImmediateContext->IASetPrimitiveTopology(topo);
 			m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
