@@ -44,7 +44,7 @@ void GLRenderState::FetchState()
 	// TODO check the extensions/core version for these is around
 	
 	{
-		GLenum pnames[eEnabled_Count] =
+		GLenum pnames[] =
 		{
 			eGL_CLIP_DISTANCE0,
 			eGL_CLIP_DISTANCE1,
@@ -76,6 +76,8 @@ void GLRenderState::FetchState()
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 		};
+
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
 		
 		for(GLuint i=0; i < eEnabled_Count; i++)
 			Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
@@ -275,7 +277,7 @@ void GLRenderState::FetchState()
 void GLRenderState::ApplyState()
 {
 	{
-		GLenum pnames[eEnabled_Count] =
+		GLenum pnames[] =
 		{
 			eGL_CLIP_DISTANCE0,
 			eGL_CLIP_DISTANCE1,
@@ -299,6 +301,7 @@ void GLRenderState::ApplyState()
 			eGL_POLYGON_OFFSET_POINT,
 			eGL_PROGRAM_POINT_SIZE,
 			eGL_PRIMITIVE_RESTART,
+			eGL_PRIMITIVE_RESTART_INDEX,
 			eGL_SAMPLE_ALPHA_TO_COVERAGE,
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
@@ -306,6 +309,8 @@ void GLRenderState::ApplyState()
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 		};
+		
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
 		
 		for(GLuint i=0; i < eEnabled_Count; i++)
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
