@@ -902,12 +902,6 @@ namespace renderdocui.Windows
             if(!OfficialVersion && !BetaVersion)
                 return;
 
-            if (m_Core.Config.CheckUpdate_UpdateAvailable)
-            {
-                SetUpdateAvailable();
-                return;
-            }
-
             DateTime today = DateTime.Now;
             DateTime compare = today.AddDays(-2);
 
