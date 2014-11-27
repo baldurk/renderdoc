@@ -3915,8 +3915,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			uint16_t *idx16 = (uint16_t *)&idxdata[0];
 			uint32_t *idx32 = (uint32_t *)&idxdata[0];
 
+			// only read as many indices as were available in the buffer
+			uint32_t numIndices = RDCMIN(index16 ? idxdata.size()/2 : idxdata.size()/4, drawcall->numIndices);
+
 			// grab all unique vertex indices referenced
-			for(uint32_t i=0; i < drawcall->numIndices; i++)
+			for(uint32_t i=0; i < numIndices; i++)
 			{
 				uint32_t i32 = index16 ? uint32_t(idx16[i]) : idx32[i];
 
@@ -3937,7 +3940,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// but shifted, fill in gaps in our streamout vertex buffer with the lowest index value.
 			// (use the lowest index value so that even the gaps are a 'valid' vertex, rather than
 			// potentially garbage data).
-			uint32_t minindex = indices[0];
+			uint32_t minindex = indices.empty() ? 0 : indices[0];
 
 			// indices[] contains ascending unique vertex indices referenced. Fill gaps with minindex
 			for(size_t i=1; i < indices.size(); i++)
@@ -3970,12 +3973,12 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// stream-out'd vertex buffer)
 			if(index16)
 			{
-				for(uint32_t i=0; i < drawcall->numIndices; i++)
+				for(uint32_t i=0; i < numIndices; i++)
 					idx16[i] -= uint16_t(minindex&0xffff);
 			}
 			else
 			{
-				for(uint32_t i=0; i < drawcall->numIndices; i++)
+				for(uint32_t i=0; i < numIndices; i++)
 					idx32[i] -= minindex;
 			}
 			
