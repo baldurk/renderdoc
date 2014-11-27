@@ -114,14 +114,14 @@
             treeListColumn1.CellFormat.Padding = new System.Windows.Forms.Padding(4);
             treeListColumn1.CellFormat.TextAlignment = System.Drawing.ContentAlignment.TopLeft;
             treeListColumn1.Width = 100;
-            treeListColumn2.AutoSizeMinSize = 10;
-            treeListColumn2.Width = 60;
-            treeListColumn3.AutoSizeMinSize = 20;
-            treeListColumn3.Width = 25;
+            treeListColumn2.AutoSizeMinSize = 20;
+            treeListColumn2.Width = 70;
+            treeListColumn3.AutoSizeMinSize = 17;
+            treeListColumn3.Width = 17;
             treeListColumn4.AutoSizeMinSize = 20;
-            treeListColumn4.Width = 60;
-            treeListColumn5.AutoSizeMinSize = 20;
-            treeListColumn5.Width = 25;
+            treeListColumn4.Width = 70;
+            treeListColumn5.AutoSizeMinSize = 17;
+            treeListColumn5.Width = 17;
             this.events.Columns.AddRange(new TreelistView.TreeListColumn[] {
             treeListColumn1,
             treeListColumn2,
