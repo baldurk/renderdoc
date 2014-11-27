@@ -923,6 +923,13 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
 					// skip past continuation bytes (if we hit a NULL terminator this loop will break out)
 					while((*si & 0xC0) == 0x80) si++;
 				}
+				else
+				{
+					// invalid UTF-8 byte to encounter, bail out here.
+					clipoffs = 0;
+					len = 0;
+					s = "";
+				}
 
 				len++; // one more codepoint
 				if(len == precision && formatter.Precision != FormatterParams::NoPrecision)
