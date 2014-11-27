@@ -3519,6 +3519,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	// # frag overdraw. It's reused later to retrieve per-fragment post values.
 	uint32_t pixstoreSlots = (uint32_t)(events.size() * pixstoreStride);
 
+	// need UAV compatible format, so switch B8G8R8A8 for R8G8B8A8, everything will
+	// render as normal and it will just be swizzled (which we were doing manually anyway).
+	if(details.texFmt == DXGI_FORMAT_B8G8R8A8_UNORM) details.texFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
+
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
 		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
@@ -4746,7 +4750,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		uint32_t storex = uint32_t(pre % (2048/pixstoreStride));
 		uint32_t storey = uint32_t(pre / (2048/pixstoreStride));
 
-		if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
+		if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
 		{
 			byte *rowdata = pixstoreData + mapped.RowPitch * storey;
 
@@ -4818,15 +4822,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 		}
 
-		if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
-		{
-			std::swap(mod.preMod.col.value_u[0], mod.preMod.col.value_u[3]);
-			std::swap(mod.preMod.col.value_u[1], mod.preMod.col.value_u[2]);
-
-			std::swap(mod.postMod.col.value_u[0], mod.postMod.col.value_u[3]);
-			std::swap(mod.postMod.col.value_u[1], mod.postMod.col.value_u[2]);
-		}
-
 		{
 			byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * storey;
 			float *data = (float *)(rowdata + 2 * sizeof(float) * (storex * pixstoreStride + 0));
@@ -4884,7 +4879,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	shadoutCopyParams.srv[0] = shadOutputSRV;
 	shadoutCopyParams.uav = shadoutStoreUAV;
 	
-	depthCopyParams.sourceTex = shadoutCopyParams.srvTex = shaddepthOutput;
+	depthCopyParams.sourceTex = depthCopyParams.srvTex = shaddepthOutput;
 	depthCopyParams.srv[0] = shaddepthOutputDepthSRV;
 	depthCopyParams.srv[1] = shaddepthOutputStencilSRV;
 
@@ -5126,7 +5121,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		{
 			// colour
 			{
-				if((!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0) || (fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8))
+				if(!fmt.special && fmt.compCount > 0 && fmt.compByteWidth > 0)
 				{
 					byte *rowdata = pixstoreData + mapped.RowPitch * (postColSlot/2048);
 					byte *data = rowdata + fmt.compCount * fmt.compByteWidth * (postColSlot%2048);
@@ -5184,15 +5179,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					{
 						RDCWARN("need to fetch pixel values from special formats");
 					}
-				}
-
-				if(fmt.special && fmt.specialFormat == eSpecial_B8G8R8A8)
-				{
-					std::swap(history[h].preMod.col.value_u[0], history[h].preMod.col.value_u[3]);
-					std::swap(history[h].preMod.col.value_u[1], history[h].preMod.col.value_u[2]);
-
-					std::swap(history[h].postMod.col.value_u[0], history[h].postMod.col.value_u[3]);
-					std::swap(history[h].postMod.col.value_u[1], history[h].postMod.col.value_u[2]);
 				}
 			}
 
