@@ -1224,6 +1224,197 @@ void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLs
 
 #pragma endregion
 
+#pragma region Transform Feedback
+
+bool WrappedOpenGL::Serialise_glGenTransformFeedbacks(GLsizei n, GLuint* ids)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glGenTransformFeedbacks(1, &real);
+		
+		GLResource res = FeedbackRes(GetCtx(), real);
+
+		m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
+{
+	m_Real.glGenTransformFeedbacks(n, ids);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = FeedbackRes(GetCtx(), ids[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_FEEDBACK);
+				Serialise_glGenTransformFeedbacks(1, ids+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
+void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
+{
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = FeedbackRes(GetCtx(), ids[i]);
+		if(GetResourceManager()->HasCurrentResource(res))
+		{
+			if(GetResourceManager()->HasResourceRecord(res))
+				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+	
+	m_Real.glDeleteTransformFeedbacks(n, ids);
+}
+
+bool WrappedOpenGL::Serialise_glBindTransformFeedback(GLenum target, GLuint id)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBindTransformFeedback(Target, GetResourceManager()->GetLiveResource(fid).name);
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glBindTransformFeedback(GLenum target, GLuint id)
+{
+	m_Real.glBindTransformFeedback(target, id);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BIND_FEEDBACK);
+		Serialise_glBindTransformFeedback(target, id);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBeginTransformFeedback(GLenum primitiveMode)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, primitiveMode);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glBeginTransformFeedback(Mode);
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glBeginTransformFeedback(GLenum primitiveMode)
+{
+	m_Real.glBeginTransformFeedback(primitiveMode);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BEGIN_FEEDBACK);
+		Serialise_glBeginTransformFeedback(primitiveMode);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glPauseTransformFeedback()
+{
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPauseTransformFeedback();
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glPauseTransformFeedback()
+{
+	m_Real.glPauseTransformFeedback();
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(PAUSE_FEEDBACK);
+		Serialise_glPauseTransformFeedback();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glResumeTransformFeedback()
+{
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glResumeTransformFeedback();
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glResumeTransformFeedback()
+{
+	m_Real.glResumeTransformFeedback();
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(RESUME_FEEDBACK);
+		Serialise_glResumeTransformFeedback();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glEndTransformFeedback()
+{
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glEndTransformFeedback();
+	}
+	
+	return true;
+}
+
+void WrappedOpenGL::glEndTransformFeedback()
+{
+	m_Real.glEndTransformFeedback();
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(END_FEEDBACK);
+		Serialise_glEndTransformFeedback();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+
+#pragma endregion
+
 #pragma region Vertex Arrays
 
 bool WrappedOpenGL::VertexArrayUpdateCheck()

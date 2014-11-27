@@ -57,6 +57,7 @@ enum GLNamespace
 	eResShader,
 	eResProgram,
 	eResProgramPipe,
+	eResFeedback,
 	eResQuery,
 	eResSync,
 };
@@ -110,6 +111,7 @@ inline GLResource VertexArrayRes(void *ctx, GLuint i)  {            return GLRes
 inline GLResource ShaderRes(void *ctx, GLuint i)       { (void)ctx; return GLResource(NULL, eResShader, i); }
 inline GLResource ProgramRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResProgram, i); }
 inline GLResource ProgramPipeRes(void *ctx, GLuint i)  {            return GLResource(ctx,  eResProgramPipe, i); }
+inline GLResource FeedbackRes(void *ctx, GLuint i)     {            return GLResource(ctx,  eResFeedback, i); }
 inline GLResource QueryRes(void *ctx, GLuint i)        {            return GLResource(ctx,  eResQuery, i); }
 inline GLResource SyncRes(void *ctx, GLuint i)         { (void)ctx; return GLResource(NULL, eResSync, i); }
 

@@ -94,6 +94,7 @@ void GLRenderState::FetchState()
 	m_Real->glActiveTexture(ActiveTexture);
 	
 	m_Real->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+	m_Real->glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&FeedbackObj);
 	
 	// the spec says that you can only query for the format that was previously set, or you get
 	// undefined results. Ie. if someone set ints, this might return anything. However there's also
@@ -320,6 +321,8 @@ void GLRenderState::ApplyState()
 	m_Real->glActiveTexture(ActiveTexture);
 
 	m_Real->glBindVertexArray(VAO);
+	if(FeedbackObj)
+		m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj);
 	
 	// See FetchState(). The spec says that you have to SET the right format for the shader too,
 	// but we couldn't query for the format so we can't set it here.
@@ -375,6 +378,9 @@ void GLRenderState::ApplyState()
 
 	for(size_t b=0; b < ARRAY_COUNT(idxBufs); b++)
 	{
+		// only restore buffer bindings here if we were using the default transform feedback object
+		if(idxBufs[b].binding == eGL_TRANSFORM_FEEDBACK_BUFFER && FeedbackObj) continue;
+
 		GLint maxCount = 0;
 		m_Real->glGetIntegerv(idxBufs[b].maxcount, &maxCount);
 		for(int i=0; i < idxBufs[b].count && i < maxCount; i++)
@@ -513,6 +519,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(Subroutines);
 
 	RDCEraseEl(VAO);
+	RDCEraseEl(FeedbackObj);
 	
 	RDCEraseEl(GenericVertexAttribs);
 	
@@ -595,6 +602,13 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		if(state >= WRITING) ID = rm->GetID(VertexArrayRes(ctx, VAO));
 		m_pSerialiser->Serialise("GL_VERTEX_ARRAY_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) VAO = rm->GetLiveResource(ID).name;
+	}
+	
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(FeedbackRes(ctx, FeedbackObj));
+		m_pSerialiser->Serialise("GL_TRANSFORM_FEEDBACK_BINDING", ID);
+		if(state < WRITING && ID != ResourceId()) FeedbackObj = rm->GetLiveResource(ID).name;
 	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(GenericVertexAttribs); i++)

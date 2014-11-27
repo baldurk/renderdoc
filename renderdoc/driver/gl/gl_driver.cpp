@@ -91,6 +91,7 @@ const char *GLChunkNames[] =
 	"glDetachShader",
 	"glUseProgram",
 	"glProgramParameter",
+	"glTransformFeedbackVaryings",
 	"glBindAttribLocation",
 	"glBindFragDataLocation",
 	"glBindFragDataLocationIndexed",
@@ -100,6 +101,13 @@ const char *GLChunkNames[] =
 	"glProgramUniformMatrix*",
 	"glProgramUniformVector*",
 	"glLinkProgram",
+	
+	"glGenTransformFeedbacks",
+	"glBindTransformFeedback",
+	"glBeginTransformFeedback",
+	"glEndTransformFeedback",
+	"glPauseTransformFeedback",
+	"glResumeTransformFeedback",
 	
 	"glGenProgramPipelines",
 	"glUseProgramStages",
@@ -203,6 +211,10 @@ const char *GLChunkNames[] =
 	"glDrawElementsBaseVertex",
 	"glDrawElementsInstancedBaseVertex",
 	"glDrawElementsInstancedBaseVertexBaseInstance",
+	"glDrawTransformFeedback",
+	"glDrawTransformFeedbackInstanced",
+	"glDrawTransformFeedbackStream",
+	"glDrawTransformFeedbackStreamInstanced",
 	"glMultiDrawArrays",
 	"glMultiDrawElements",
 	"glMultiDrawElementsBaseVertex",
@@ -1722,6 +1734,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case PROGRAMPARAMETER:
 		Serialise_glProgramParameteri(0, eGL_NONE, 0);
 		break;
+	case FEEDBACK_VARYINGS:
+		Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE);
+		break;
 	case BINDATTRIB_LOCATION:
 		Serialise_glBindAttribLocation(0, 0, NULL);
 		break;
@@ -1750,6 +1765,25 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glLinkProgram(0);
 		break;
 		
+	case GEN_FEEDBACK:
+		Serialise_glGenTransformFeedbacks(0, NULL);
+		break;
+	case BIND_FEEDBACK:
+		Serialise_glBindTransformFeedback(eGL_NONE, 0);
+		break;
+	case BEGIN_FEEDBACK:
+		Serialise_glBeginTransformFeedback(eGL_NONE);
+		break;
+	case END_FEEDBACK:
+		Serialise_glEndTransformFeedback();
+		break;
+	case PAUSE_FEEDBACK:
+		Serialise_glPauseTransformFeedback();
+		break;
+	case RESUME_FEEDBACK:
+		Serialise_glResumeTransformFeedback();
+		break;
+
 	case GEN_PROGRAMPIPE:
 		Serialise_glGenProgramPipelines(0, NULL);
 		break;
@@ -2046,6 +2080,18 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
 		Serialise_glDrawElementsInstancedBaseVertexBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
+		break;
+	case DRAW_FEEDBACK:
+		Serialise_glDrawTransformFeedback(eGL_NONE, 0);
+		break;
+	case DRAW_FEEDBACK_INSTANCED:
+		Serialise_glDrawTransformFeedbackInstanced(eGL_NONE, 0, 0);
+		break;
+	case DRAW_FEEDBACK_STREAM:
+		Serialise_glDrawTransformFeedbackStream(eGL_NONE, 0, 0);
+		break;
+	case DRAW_FEEDBACK_STREAM_INSTANCED:
+		Serialise_glDrawTransformFeedbackStreamInstanced(eGL_NONE, 0, 0, 0);
 		break;
 	case MULTI_DRAWARRAYS:
 		Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0);

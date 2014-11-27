@@ -108,6 +108,8 @@ struct GLRenderState
 	
 	GLuint VAO;
 
+	GLuint FeedbackObj;
+
 	Vec4f GenericVertexAttribs[32];
 
 	float PointFadeThresholdSize;

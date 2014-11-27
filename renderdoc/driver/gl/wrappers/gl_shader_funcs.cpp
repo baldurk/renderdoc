@@ -670,6 +670,50 @@ void WrappedOpenGL::glBindFragDataLocationIndexed(GLuint program, GLuint colorNu
 	}
 }
 
+bool WrappedOpenGL::Serialise_glTransformFeedbackVaryings(GLuint program, GLsizei count, const GLchar *const*varyings, GLenum bufferMode)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+	SERIALISE_ELEMENT(uint32_t, Count, count);
+	SERIALISE_ELEMENT(GLenum, Mode, bufferMode);
+
+	string *vars = m_State >= WRITING ? NULL : new string[Count];
+	char **varstrs = m_State >= WRITING ? NULL : new char*[Count];
+
+	for(uint32_t c=0; c < Count; c++)
+	{
+		string v = varyings && varyings[c] ? varyings[c] : "";
+		m_pSerialiser->Serialise("Varying", v);
+		if(vars) { vars[c] = v; varstrs[c] = (char *)vars[c].c_str(); }
+	}
+	
+	if(m_State == READING)
+	{
+		m_Real.glTransformFeedbackVaryings(GetResourceManager()->GetLiveResource(id).name, Count, varstrs, Mode);
+	}
+
+	SAFE_DELETE_ARRAY(vars);
+	SAFE_DELETE_ARRAY(varstrs);
+	
+	return true;
+}
+
+void WrappedOpenGL::glTransformFeedbackVaryings(GLuint program, GLsizei count, const GLchar *const*varyings, GLenum bufferMode)
+{
+	m_Real.glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(FEEDBACK_VARYINGS);
+			Serialise_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));

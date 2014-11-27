@@ -195,6 +195,231 @@ void WrappedOpenGL::glTextureBarrier()
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawTransformFeedback(Mode, fid == ResourceId() ? 0 : GetResourceManager()->GetLiveResource(fid).name);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glDrawTransformFeedback(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedback() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
+{
+	m_Real.glDrawTransformFeedback(mode, id);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_FEEDBACK);
+		Serialise_glDrawTransformFeedback(mode, id);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLsizei instancecount)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+	SERIALISE_ELEMENT(uint32_t, Count, instancecount);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawTransformFeedbackInstanced(Mode, fid == ResourceId() ? 0 : GetResourceManager()->GetLiveResource(fid).name, Count);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glDrawTransformFeedbackInstanced(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLsizei instancecount)
+{
+	m_Real.glDrawTransformFeedbackInstanced(mode, id, instancecount);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_FEEDBACK_INSTANCED);
+		Serialise_glDrawTransformFeedbackInstanced(mode, id, instancecount);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint stream)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+	SERIALISE_ELEMENT(uint32_t, Stream, stream);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawTransformFeedbackStream(Mode, fid == ResourceId() ? 0 : GetResourceManager()->GetLiveResource(fid).name, Stream);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glDrawTransformFeedbackStream(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint stream)
+{
+	m_Real.glDrawTransformFeedbackStream(mode, id, stream);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_FEEDBACK_STREAM);
+		Serialise_glDrawTransformFeedbackStream(mode, id, stream);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint id, GLuint stream, GLsizei instancecount)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+	SERIALISE_ELEMENT(uint32_t, Stream, stream);
+	SERIALISE_ELEMENT(uint32_t, Count, instancecount);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDrawTransformFeedbackStreamInstanced(Mode, fid == ResourceId() ? 0 : GetResourceManager()->GetLiveResource(fid).name, Stream, Count);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		string name = "glDrawTransformFeedbackStreamInstanced(" +
+						ToStr::Get(Mode) + ")";
+		
+		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStreamInstanced() display");
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.numIndices = 1;
+		draw.numInstances = 1;
+		draw.indexOffset = 0;
+		draw.vertexOffset = 0;
+		draw.instanceOffset = 0;
+
+		draw.flags |= eDraw_Drawcall;
+		
+		draw.debugMessages = debugMessages;
+
+		m_LastDrawMode = Mode;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint id, GLuint stream, GLsizei instancecount)
+{
+	m_Real.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_FEEDBACK_STREAM_INSTANCED);
+		Serialise_glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+
 bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);

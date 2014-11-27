@@ -371,6 +371,18 @@
     HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
     HookExtensionAlias(PFNGLUNMAPBUFFERPROC, glUnmapBuffer, glUnmapBufferARB); \
+    HookExtension(PFNGLTRANSFORMFEEDBACKVARYINGSPROC, glTransformFeedbackVaryings); \
+    HookExtension(PFNGLGENTRANSFORMFEEDBACKSPROC, glGenTransformFeedbacks); \
+    HookExtension(PFNGLDELETETRANSFORMFEEDBACKSPROC, glDeleteTransformFeedbacks); \
+    HookExtension(PFNGLBINDTRANSFORMFEEDBACKPROC, glBindTransformFeedback); \
+    HookExtension(PFNGLBEGINTRANSFORMFEEDBACKPROC, glBeginTransformFeedback); \
+    HookExtension(PFNGLPAUSETRANSFORMFEEDBACKPROC, glPauseTransformFeedback); \
+    HookExtension(PFNGLRESUMETRANSFORMFEEDBACKPROC, glResumeTransformFeedback); \
+    HookExtension(PFNGLENDTRANSFORMFEEDBACKPROC, glEndTransformFeedback); \
+    HookExtension(PFNGLDRAWTRANSFORMFEEDBACKPROC, glDrawTransformFeedback); \
+    HookExtension(PFNGLDRAWTRANSFORMFEEDBACKINSTANCEDPROC, glDrawTransformFeedbackInstanced); \
+    HookExtension(PFNGLDRAWTRANSFORMFEEDBACKSTREAMPROC, glDrawTransformFeedbackStream); \
+    HookExtension(PFNGLDRAWTRANSFORMFEEDBACKSTREAMINSTANCEDPROC, glDrawTransformFeedbackStreamInstanced); \
     HookExtension(PFNGLDELETEBUFFERSPROC, glDeleteBuffers); \
     HookExtensionAlias(PFNGLDELETEBUFFERSPROC, glDeleteBuffers, glDeleteBuffersARB); \
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
@@ -1058,6 +1070,18 @@
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
+    HookWrapper4(void, glTransformFeedbackVaryings, GLuint, program, GLsizei, count, const GLchar *const*, varyings, GLenum, bufferMode); \
+    HookWrapper2(void, glGenTransformFeedbacks, GLsizei, n, GLuint *, ids); \
+    HookWrapper2(void, glDeleteTransformFeedbacks, GLsizei, n, const GLuint *, ids); \
+    HookWrapper2(void, glBindTransformFeedback, GLenum, target, GLuint, id); \
+    HookWrapper1(void, glBeginTransformFeedback, GLenum, primitiveMode); \
+    HookWrapper0(void, glPauseTransformFeedback); \
+    HookWrapper0(void, glResumeTransformFeedback); \
+    HookWrapper0(void, glEndTransformFeedback); \
+    HookWrapper2(void, glDrawTransformFeedback, GLenum, mode, GLuint, id); \
+    HookWrapper3(void, glDrawTransformFeedbackInstanced, GLenum, mode, GLuint, id, GLsizei, instancecount); \
+    HookWrapper3(void, glDrawTransformFeedbackStream, GLenum, mode, GLuint, id, GLuint, stream); \
+    HookWrapper4(void, glDrawTransformFeedbackStreamInstanced, GLenum, mode, GLuint, id, GLuint, stream, GLsizei, instancecount); \
     HookWrapper2(void, glDeleteBuffers, GLsizei, n, const GLuint *, buffers); \
     HookWrapper2(void, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
     HookWrapper1(void, glBindVertexArray, GLuint, array); \
