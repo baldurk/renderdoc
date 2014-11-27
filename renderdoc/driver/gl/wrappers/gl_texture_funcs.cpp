@@ -531,8 +531,6 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 												         dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
 												         srcWidth, srcHeight, srcDepth);
 
-		Chunk *chunk = scope.Get();
-
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 	else if(m_State == WRITING_IDLE)
