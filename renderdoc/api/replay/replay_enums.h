@@ -119,6 +119,7 @@ enum TextureDisplayOverlay
 	eTexOverlay_Wireframe,
 	eTexOverlay_DepthBoth,
 	eTexOverlay_StencilBoth,
+	eTexOverlay_BackfaceCull,
 	eTexOverlay_ViewportScissor,
 	eTexOverlay_NaN,
 	eTexOverlay_Clipping,

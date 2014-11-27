@@ -2758,6 +2758,98 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		SAFE_RELEASE(os);
 		SAFE_RELEASE(rs);
 	}
+	else if(overlay == eTexOverlay_BackfaceCull)
+	{
+		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+
+		desc.DepthEnable = FALSE;
+		desc.StencilEnable = FALSE;
+
+		ID3D11DepthStencilState *os = NULL;
+		hr = m_pDevice->CreateDepthStencilState(&desc, &os);
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create drawcall depth stencil state %08x", hr);
+			return m_OverlayResourceId;
+		}
+
+		m_pImmediateContext->OMSetDepthStencilState(os, 0);
+
+		m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+
+		ID3D11RasterizerState *rs = NULL;
+		ID3D11RasterizerState *rsCull = NULL;
+		D3D11_RASTERIZER_DESC origdesc;
+
+		{
+			m_pImmediateContext->RSGetState(&rs);
+
+			if(rs)
+				rs->GetDesc(&origdesc);
+			else
+				origdesc.CullMode = D3D11_CULL_BACK;
+
+			SAFE_RELEASE(rs);
+		}
+
+		{
+			D3D11_RASTERIZER_DESC desc;
+
+			desc.FillMode = D3D11_FILL_SOLID;
+			desc.CullMode = D3D11_CULL_NONE;
+			desc.FrontCounterClockwise = FALSE;
+			desc.DepthBias = D3D11_DEFAULT_DEPTH_BIAS;
+			desc.DepthBiasClamp = D3D11_DEFAULT_DEPTH_BIAS_CLAMP;
+			desc.SlopeScaledDepthBias = D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+			desc.DepthClipEnable = FALSE;
+			desc.ScissorEnable = FALSE;
+			desc.MultisampleEnable = FALSE;
+			desc.AntialiasedLineEnable = FALSE;
+
+			hr = m_pDevice->CreateRasterizerState(&desc, &rs);
+			if(FAILED(hr))
+			{
+				RDCERR("Failed to create drawcall rast state %08x", hr);
+				return m_OverlayResourceId;
+			}
+			
+			desc.CullMode = origdesc.CullMode;
+
+			hr = m_pDevice->CreateRasterizerState(&desc, &rsCull);
+			if(FAILED(hr))
+			{
+				RDCERR("Failed to create drawcall rast state %08x", hr);
+				return m_OverlayResourceId;
+			}
+		}
+
+		float clearColour[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		m_pImmediateContext->ClearRenderTargetView(rtv, clearColour);
+		
+		float overlayConsts[] = { 1.0f, 0.0f, 0.0f, 1.0f };
+		ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+		m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+
+		m_pImmediateContext->RSSetState(rs);
+
+		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		overlayConsts[0] = 0.0f;
+		overlayConsts[1] = 1.0f;
+
+		buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
+
+		m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+
+		m_pImmediateContext->RSSetState(rsCull);
+
+		m_WrappedDevice->ReplayLog(frameID, 0, eventID, eReplay_OnlyDraw);
+
+		SAFE_RELEASE(os);
+		SAFE_RELEASE(rs);
+		SAFE_RELEASE(rsCull);
+	}
 	else if(overlay == eTexOverlay_ViewportScissor)
 	{
 		m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);

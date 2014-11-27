@@ -121,6 +121,7 @@ namespace renderdoc
         Wireframe,
         DepthBoth,
         StencilBoth,
+        BackfaceCull,
         ViewportScissor,
         NaN,
         Clipping,
