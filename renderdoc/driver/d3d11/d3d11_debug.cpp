@@ -5008,7 +5008,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		byte *dataEnd = data + m_HighlightCache.data.size();
 
 		data += cfg.position.offset; // to start of position data
-		data += drawcall->vertexOffset*cfg.position.stride; // to first vertex
+		if(stage == eMeshDataStage_VSIn)
+			data += drawcall->vertexOffset*cfg.position.stride; // to first vertex
 		
 		///////////////////////////////////////////////////////////////
 		// vectors to be set from buffers, depending on topology
