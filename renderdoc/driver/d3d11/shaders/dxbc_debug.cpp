@@ -3170,7 +3170,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					ShaderVariable result;
 
-					if(op.resinfoRetType == RETTYPE_FLOAT)
 					{
 						result = ShaderVariable("", 0.0f, 0.0f, 0.0f, 0.0f);
 
@@ -3214,31 +3213,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 							}
 							else if(fmt.byteWidth == 4)
 							{
-								if(fmt.fmt == eCompType_Float)
-								{
-									float *f = (float *)d;
+								uint32_t *u = (uint32_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.fv[i] = f[i];
-								}
-								else if(fmt.fmt == eCompType_UInt)
-								{
-									uint32_t *u = (uint32_t *)d;
-
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.uv[i] = u[i];
-								}
-								else if(fmt.fmt == eCompType_SInt)
-								{
-									int32_t *in = (int32_t *)d;
-
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.iv[i] = in[i];
-								}
-								else
-								{
-									RDCERR("Unexpected format type on buffer resource");
-								}
+								for(int i=0; i < fmt.numComps; i++)
+									result.value.uv[i] = u[i];
 							}
 							else if(fmt.byteWidth == 2)
 							{
@@ -3333,10 +3311,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 							if(fmt.reversed)
 								result = ShaderVariable("", result.value.uv[0], result.value.uv[1], result.value.uv[2], result.value.uv[3]);
 						}
-					}
-					else
-					{
-						RDCERR("Unsupported ret type %d in buffer load operation", op.resinfoRetType);
 					}
 
 					ShaderVariable fetch("", 0U, 0U, 0U, 0U);
