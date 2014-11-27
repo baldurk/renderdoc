@@ -342,7 +342,8 @@ void GLRenderState::ApplyState()
 	m_Real->glPointSize(PointSize);
 	
 	m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
-	m_Real->glClipControl(ClipOrigin, ClipDepth);
+	if(m_Real->glClipControl) // only available in 4.5+
+		m_Real->glClipControl(ClipOrigin, ClipDepth);
 	m_Real->glProvokingVertex(ProvokingVertex);
 
 	m_Real->glUseProgram(Program);
@@ -473,7 +474,8 @@ void GLRenderState::ApplyState()
 		m_Real->glDepthRangeArrayv(i, 1, v);
 	}
 
-	m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
+	if(m_Real->glDepthBoundsEXT) // extension, not always available
+		m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 	
 	{
 		m_Real->glStencilFuncSeparate(eGL_FRONT, StencilFront.func, StencilFront.ref, StencilFront.valuemask);
