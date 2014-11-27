@@ -1064,14 +1064,14 @@ namespace renderdocui.Windows
                     DataGridViewColumn col = bufView.Columns[colidx];
                     colidx++;
 
-                    if (e == CurPosElement && active)
+                    if (e == m_PosElement[(int)type] && active)
                     {
                         if (i != 3 || !input)
                             col.DefaultCellStyle.BackColor = Color.SkyBlue;
                         else
                             col.DefaultCellStyle.BackColor = Color.LightCyan;
                     }
-                    else if (e == CurSecondElement && active && m_MeshDisplay.solidShadeMode == SolidShadeMode.Secondary)
+                    else if (e == m_SecondElement[(int)type] && active && m_MeshDisplay.solidShadeMode == SolidShadeMode.Secondary)
                     {
                         if ((m_MeshDisplay.secondary.showAlpha && i == 3) ||
                             (!m_MeshDisplay.secondary.showAlpha && i != 3))
@@ -2070,7 +2070,7 @@ namespace renderdocui.Windows
 
         private FormatElement GetPosHighlightFormatElement(MeshDataStage stage)
         {
-            var ui = GetUIState(m_MeshDisplay.type);
+            var ui = GetUIState(stage);
 
             int idx = m_PosElement[(int)stage];
 
@@ -2083,7 +2083,7 @@ namespace renderdocui.Windows
 
         private FormatElement GetSecondHighlightFormatElement(MeshDataStage stage)
         {
-            var ui = GetUIState(m_MeshDisplay.type);
+            var ui = GetUIState(stage);
 
             int idx = m_SecondElement[(int)stage];
 
@@ -2365,6 +2365,9 @@ namespace renderdocui.Windows
         {
             UI_AutoFetchRenderComponents(m_ContextUIState.m_Stage, true);
             UI_AutoFetchRenderComponents(m_ContextUIState.m_Stage, false);
+
+            UI_UpdateMeshRenderComponents();
+            render.Invalidate();
         }
 
         private void selectColumnAsPositionToolStripMenuItem_Click(object sender, EventArgs e)
