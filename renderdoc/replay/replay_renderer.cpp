@@ -518,7 +518,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 				// in the first real slice
 				sliceOffset = sd.sample.sampleIndex;
 				sliceStride = sampleCount;
-				numSlices = td.arraysize / sampleCount;
+				numSlices = RDCMAX(1U, td.arraysize / sampleCount);
 			}
 			else
 			{
