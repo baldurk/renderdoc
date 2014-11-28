@@ -48,7 +48,7 @@ class CrashHandler : public ICrashHandler
 
 			///////////////////
 
-			char tempPath[MAX_PATH] = {0};
+			wchar_t tempPath[MAX_PATH] = {0};
 			GetTempPathW(MAX_PATH-1, tempPath);
 
 			wstring dumpFolder = tempPath;
@@ -66,12 +66,12 @@ class CrashHandler : public ICrashHandler
 
 				HANDLE waitEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
 
-				char radpath[MAX_PATH] = {0};
+				wchar_t radpath[MAX_PATH] = {0};
 				GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), radpath, MAX_PATH-1);
 
 				size_t len = wcslen(radpath);
 
-				char *slash = wcsrchr(radpath, L'\\');
+				wchar_t *slash = wcsrchr(radpath, L'\\');
 
 				if(slash)
 				{
@@ -85,7 +85,7 @@ class CrashHandler : public ICrashHandler
 						*slash = 0;
 					else
 					{
-						radpath[0] = '.';
+						radpath[0] = L'.';
 						radpath[1] = 0;
 					}
 				}
@@ -94,7 +94,7 @@ class CrashHandler : public ICrashHandler
 				cmdline += radpath;
 				cmdline += L"/renderdoccmd.exe\" --crashhandle";
 				
-				char *paramsAlloc = new char[512];
+				wchar_t *paramsAlloc = new wchar_t[512];
 
 				wcscpy_s(paramsAlloc, 511, cmdline.c_str());
 
