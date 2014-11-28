@@ -3916,7 +3916,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			uint32_t *idx32 = (uint32_t *)&idxdata[0];
 
 			// only read as many indices as were available in the buffer
-			uint32_t numIndices = RDCMIN(index16 ? idxdata.size()/2 : idxdata.size()/4, drawcall->numIndices);
+			uint32_t numIndices = RDCMIN(uint32_t(index16 ? idxdata.size()/2 : idxdata.size()/4), drawcall->numIndices);
 
 			// grab all unique vertex indices referenced
 			for(uint32_t i=0; i < numIndices; i++)
