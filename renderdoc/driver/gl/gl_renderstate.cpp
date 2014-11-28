@@ -114,8 +114,16 @@ void GLRenderState::FetchState()
 	m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
 	
 	m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
-	m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
-	m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+	if(GLCoreVersion >= 45 || ExtensionSupported("GL_ARB_clip_control"))
+	{
+		m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+		m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+	}
+	else
+	{
+		ClipOrigin = eGL_LOWER_LEFT;
+		ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
+	}
 	m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
 
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
