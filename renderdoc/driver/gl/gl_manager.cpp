@@ -187,14 +187,13 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 		if(immut)
-		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
-		}
 		else
-		{
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&mips);
-			mips++;
-		}
+			mips = CalcNumMips(details.width, details.height, details.depth);
+
+		GLint maxLevel = 1000;
+		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+		mips = RDCMIN(mips, maxLevel);
 
 		gl.glBindTexture(details.curType, tex);
 
@@ -416,14 +415,13 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 			if(immut)
-			{
 				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&imgmips);
-			}
 			else
-			{
-				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&imgmips);
-				imgmips++;
-			}
+				imgmips = CalcNumMips(details.width, details.height, details.depth);
+
+			GLint maxLevel = 1000;
+			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+			imgmips = RDCMIN(imgmips, maxLevel);
 			
 			TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
 
@@ -788,14 +786,13 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
 		if(immut)
-		{
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
-		}
 		else
-		{
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&mips);
-			mips++;
-		}
+			mips = CalcNumMips(details.width, details.height, details.depth);
+
+		GLint maxLevel = 1000;
+		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+		mips = RDCMIN(mips, maxLevel);
 
 		// copy over mips
 		for(int i=0; i < mips; i++)
@@ -862,7 +859,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
 
-			GLuint buffer = GetLiveResource(buf.Buffer).name;
+			GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
 			
 			gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
 			gl.glVertexBindingDivisor(i, buf.Divisor);

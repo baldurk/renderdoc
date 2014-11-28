@@ -512,10 +512,12 @@ void GLReplay::CacheTexture(ResourceId id)
 	else
 	{
 		// assuming complete texture
-		GLint mips = 0;
-		gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, &mips);
-		tex.mips = (uint32_t)mips + 1;
+		tex.mips = CalcNumMips(tex.width, tex.height, tex.depth);
 	}
+
+	GLuint maxLevel = 1000;
+	gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxLevel);
+	tex.mips = RDCMIN(tex.mips, maxLevel);
 
 	tex.numSubresources = tex.mips*tex.arraysize;
 	
