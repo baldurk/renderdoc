@@ -64,21 +64,6 @@ map<ResourceId,WrappedID3D11Texture3D::TextureEntry> WrappedTexture<ID3D11Textur
 map<ResourceId,WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
 map<ResourceId,WrappedShader::ShaderEntry> WrappedShader::m_ShaderList;
 
-UINT CalcNumMips(int w, int h, int d)
-{
-	int mipLevels = 1;
-
-	while(w > 1 || h > 1 || d > 1)
-	{
-		w = RDCMAX(1, w>>1);
-		h = RDCMAX(1, h>>1);
-		d = RDCMAX(1, d>>1);
-		mipLevels++;
-	}
-
-	return mipLevels;
-}
-
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
 {
 	D3D11_RESOURCE_DIMENSION dim;

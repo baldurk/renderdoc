@@ -223,6 +223,21 @@ bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &
 	return diffStart < bufSize;
 }
 
+uint32_t CalcNumMips(int w, int h, int d)
+{
+	int mipLevels = 1;
+
+	while(w > 1 || h > 1 || d > 1)
+	{
+		w = RDCMAX(1, w>>1);
+		h = RDCMAX(1, h>>1);
+		d = RDCMAX(1, d>>1);
+		mipLevels++;
+	}
+
+	return mipLevels;
+}
+
 static string &logfile()
 {
 	static string fn;

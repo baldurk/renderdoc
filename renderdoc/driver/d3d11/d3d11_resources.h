@@ -67,8 +67,6 @@ UINT GetByteSize(ID3D11Texture1D *tex, int SubResource);
 UINT GetByteSize(ID3D11Texture2D *tex, int SubResource);
 UINT GetByteSize(ID3D11Texture3D *tex, int SubResource);
 
-UINT CalcNumMips(int Width, int Height, int Depth);
-
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource);
 
 // returns block size for block-compressed formats
