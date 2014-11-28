@@ -2104,7 +2104,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 				texDisplay.overlay = eTexOverlay_None;
 				texDisplay.FlipY = false;
 				texDisplay.mip = mip;
-				texDisplay.sampleIdx = 0;
+				texDisplay.sampleIdx = resolve ? ~0U : arrayIdx;
 				texDisplay.CustomShader = ResourceId();
 				texDisplay.sliceFace = arrayIdx;
 				texDisplay.rangemin = blackPoint;
