@@ -4962,7 +4962,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
 			UINT bytesize = index16 ? 2 : 4; 
 
-			if(cfg.type == eMeshDataStage_VSIn)
+			if(stage == eMeshDataStage_VSIn)
 			{
 				m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
 				m_HighlightCache.topo = curRS->IA.Topo;
@@ -5314,8 +5314,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			// prepare rendering (for both vertices & primitives)
 
 			// if data is from post transform, it will be in clipspace
-			if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
-				(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
+			if((stage != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
+				(stage == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
 			{
 				vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 				m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
@@ -5437,7 +5437,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 		}
 
-		if(cfg.type != eMeshDataStage_VSIn)
+		if(stage != eMeshDataStage_VSIn)
 			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
 	}
 
