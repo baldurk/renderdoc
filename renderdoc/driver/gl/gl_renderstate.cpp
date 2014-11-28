@@ -141,7 +141,12 @@ void GLRenderState::FetchState()
 	RDCCOMPILE_ASSERT(ARRAY_COUNT(shs) == ARRAY_COUNT(Subroutines), "Subroutine array not the right size");
 	for(size_t s=0; s < ARRAY_COUNT(shs); s++)
 	{
-		m_Real->glGetIntegerv(eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &Subroutines[s].numSubroutines);
+		GLuint prog = Program;
+		if(prog == 0) m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
+
+		if(prog == 0) continue;
+
+		m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &Subroutines[s].numSubroutines);
 
 		for(GLint i=0; i < Subroutines[s].numSubroutines; i++)
 			m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[s]);
