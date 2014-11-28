@@ -391,7 +391,7 @@ uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workin
 
 	paramsAlloc = new wchar_t[len];
 
-	RDCEraseMem(paramsAlloc, len);
+	RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
 
 	wcscpy_s(paramsAlloc, len, L"\"");
 	wcscat_s(paramsAlloc, len, wapp.c_str());

@@ -45,7 +45,7 @@ template<class strType> strType basename(const strType &path)
 	if(base[base.length()-1] == '/' || base[base.length()-1] == '\\')
 		base.erase(base.size()-1);
 
-	typename strType::value_type pathSep[2] = { '\\', '/' };
+	typename strType::value_type pathSep[3] = { '\\', '/', 0 };
 
 	size_t offset = base.find_last_of(pathSep);
 
@@ -65,7 +65,7 @@ template<class strType> strType dirname(const strType &path)
 	if(base[base.length()-1] == '/' || base[base.length()-1] == '\\')
 		base.erase(base.size()-1);
 	
-	typename strType::value_type pathSep[2] = { '\\', '/' };
+	typename strType::value_type pathSep[3] = { '\\', '/', 0 };
 
 	size_t offset = base.find_last_of(pathSep);
 
