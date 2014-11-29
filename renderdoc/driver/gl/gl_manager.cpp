@@ -193,7 +193,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 		GLint maxLevel = 1000;
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-		mips = RDCMIN(mips, maxLevel);
+		mips = RDCMIN(mips, maxLevel+1);
 
 		gl.glBindTexture(details.curType, tex);
 
@@ -421,7 +421,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 			GLint maxLevel = 1000;
 			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-			imgmips = RDCMIN(imgmips, maxLevel);
+			imgmips = RDCMIN(imgmips, maxLevel+1);
 			
 			TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
 
@@ -792,7 +792,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 		GLint maxLevel = 1000;
 		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-		mips = RDCMIN(mips, maxLevel);
+		mips = RDCMIN(mips, maxLevel+1);
 
 		// copy over mips
 		for(int i=0; i < mips; i++)

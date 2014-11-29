@@ -517,7 +517,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 	GLuint maxLevel = 1000;
 	gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxLevel);
-	tex.mips = RDCMIN(tex.mips, maxLevel);
+	tex.mips = RDCMIN(tex.mips, maxLevel+1);
 
 	tex.numSubresources = tex.mips*tex.arraysize;
 	
