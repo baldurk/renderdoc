@@ -160,6 +160,15 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 
 			r->AddChunk(chunk);
 		}
+		
+		// element array buffer binding is vertex array record state, record there (if we've not just stopped)
+		if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER && m_VertexArrayRecord && VertexArrayUpdateCheck())
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+			Serialise_glBindBuffer(target, buffer);
+
+			m_VertexArrayRecord->AddChunk(scope.Get());
+		}
 	}
 }
 

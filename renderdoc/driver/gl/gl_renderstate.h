@@ -99,7 +99,6 @@ struct GLRenderState
 		eBufIdx_Copy_Write,
 		eBufIdx_Draw_Indirect,
 		eBufIdx_Dispatch_Indirect,
-		eBufIdx_Element_Array,
 		eBufIdx_Pixel_Pack,
 		eBufIdx_Pixel_Unpack,
 		eBufIdx_Query,

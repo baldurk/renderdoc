@@ -785,7 +785,9 @@ void GLReplay::SavePipelineState()
 
 	void *ctx = m_ReplayCtx.ctx;
 
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.BufferBindings[GLRenderState::eBufIdx_Element_Array])));
+	GLuint ibuffer = 0;
+	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
+	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
 
 	// Vertex buffers and attributes
 	GLint numVBufferBindings = 16;

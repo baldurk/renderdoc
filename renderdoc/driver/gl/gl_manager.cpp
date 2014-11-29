@@ -57,6 +57,7 @@ struct VAOInitialData
 {
 	VertexAttribInitialData VertexAttribs[16];
 	VertexBufferInitialData VertexBuffers[16];
+	ResourceId ElementArrayBuffer;
 };
 
 template<>
@@ -287,6 +288,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data->VertexBuffers[i].Offset);
 			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data->VertexBuffers[i].Divisor);
 		}
+
+		GLuint buffer = 0;
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&buffer);
+		data->ElementArrayBuffer = GetID(BufferRes(res.Context, buffer));
 
 		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
 
@@ -738,6 +743,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			m_pSerialiser->Serialise("VertexAttrib[]", data.VertexAttribs[i]);
 			m_pSerialiser->Serialise("VertexBuffer[]", data.VertexBuffers[i]);
 		}
+		m_pSerialiser->Serialise("ElementArrayBuffer", data.ElementArrayBuffer);
 
 		if(m_State < WRITING)
 		{
@@ -864,6 +870,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 			gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
 			gl.glVertexBindingDivisor(i, buf.Divisor);
 		}
+		
+		GLuint buffer = initialdata->ElementArrayBuffer == ResourceId() ? 0 : GetLiveResource(initialdata->ElementArrayBuffer).name;
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
 
 		gl.glBindVertexArray(VAO);
 	}

@@ -157,7 +157,6 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING,         (GLint*)&BufferBindings[eBufIdx_Copy_Write]);
 	m_Real->glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING,      (GLint*)&BufferBindings[eBufIdx_Draw_Indirect]);
 	m_Real->glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING,  (GLint*)&BufferBindings[eBufIdx_Dispatch_Indirect]);
-	m_Real->glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING,      (GLint*)&BufferBindings[eBufIdx_Element_Array]);
 	m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING,         (GLint*)&BufferBindings[eBufIdx_Pixel_Pack]);
 	m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,       (GLint*)&BufferBindings[eBufIdx_Pixel_Unpack]);
 	m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Query]);
@@ -381,7 +380,6 @@ void GLRenderState::ApplyState()
 	m_Real->glBindBuffer(eGL_COPY_WRITE_BUFFER,         BufferBindings[eBufIdx_Copy_Write]);
 	m_Real->glBindBuffer(eGL_DRAW_INDIRECT_BUFFER,      BufferBindings[eBufIdx_Draw_Indirect]);
 	m_Real->glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER,  BufferBindings[eBufIdx_Dispatch_Indirect]);
-	m_Real->glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER,      BufferBindings[eBufIdx_Element_Array]);
 	m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER,         BufferBindings[eBufIdx_Pixel_Pack]);
 	m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER,       BufferBindings[eBufIdx_Pixel_Unpack]);
 	m_Real->glBindBuffer(eGL_QUERY_BUFFER,              BufferBindings[eBufIdx_Query]);
