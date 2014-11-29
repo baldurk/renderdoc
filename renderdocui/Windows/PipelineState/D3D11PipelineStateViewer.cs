@@ -686,7 +686,7 @@ namespace renderdocui.Windows.PipelineState
 
             bool ibufferUsed = draw != null && (draw.flags & DrawcallFlags.UseIBuffer) != 0;
 
-            if (state.m_IA.ibuffer != null)
+            if (state.m_IA.ibuffer != null && state.m_IA.ibuffer.Buffer != ResourceId.Null)
             {
                 if (ibufferUsed || showDisabled.Checked)
                 {
@@ -723,10 +723,9 @@ namespace renderdocui.Windows.PipelineState
             }
             else
             {
-                if (showEmpty.Checked &&
-                    (ibufferUsed || showDisabled.Checked))
+                if (ibufferUsed || showEmpty.Checked)
                 {
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", "-", "-", "-", "-" });
+                    var node = iabuffers.Nodes.Add(new object[] { "Index", "No Buffer Set", "-", "-", "-" });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -758,12 +757,6 @@ namespace renderdocui.Windows.PipelineState
                         string name = "Buffer " + v.Buffer.ToString();
                         UInt32 length = 1;
 
-                        if (!filledSlot)
-                        {
-                            name = "Empty";
-                            length = 0;
-                        }
-
                         for (int t = 0; t < bufs.Length; t++)
                         {
                             if (bufs[t].ID == v.Buffer)
@@ -773,7 +766,12 @@ namespace renderdocui.Windows.PipelineState
                             }
                         }
 
-                        var node = iabuffers.Nodes.Add(new object[] { i, name, v.Stride, v.Offset, length });
+                        TreelistView.Node node = null;
+                        
+                        if(filledSlot)
+                            node = iabuffers.Nodes.Add(new object[] { i, name, v.Stride, v.Offset, length });
+                        else
+                            node = iabuffers.Nodes.Add(new object[] { i, "No Buffer Set", "-", "-", "-" });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
