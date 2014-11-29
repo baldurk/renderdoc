@@ -400,8 +400,46 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 	return internalFormat;
 }
 
+bool IsCompressedFormat(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		// BC1
+		case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+		case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+		case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+		case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+		// BC2
+		case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+		case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+		// BC3
+		case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+		case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+		// BC4
+		case eGL_COMPRESSED_RED_RGTC1:
+		case eGL_COMPRESSED_SIGNED_RED_RGTC1:
+		// BC5
+		case eGL_COMPRESSED_RG_RGTC2:
+		case eGL_COMPRESSED_SIGNED_RG_RGTC2:
+		// BC6
+		case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
+		case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
+		// BC7
+		case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
+		case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}
+
 bool IsDepthStencilFormat(GLenum internalFormat)
 {
+	if(IsCompressedFormat(internalFormat))
+		return false;
+
 	GLenum fmt = GetBaseFormat(internalFormat);
 
 	return (fmt == eGL_DEPTH_COMPONENT || fmt == eGL_STENCIL || fmt == eGL_DEPTH_STENCIL);
