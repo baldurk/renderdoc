@@ -1425,7 +1425,7 @@ vector<DebugMessage> WrappedOpenGL::Serialise_DebugMessages()
 
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message)
 {
-	if(type != eGL_DEBUG_TYPE_PERFORMANCE && (type != eGL_DEBUG_TYPE_OTHER || severity != eGL_DEBUG_SEVERITY_NOTIFICATION))
+	if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
 	{
 		RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
 					ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
