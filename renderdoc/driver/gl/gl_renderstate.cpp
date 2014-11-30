@@ -142,7 +142,7 @@ void GLRenderState::FetchState()
 	for(size_t s=0; s < ARRAY_COUNT(shs); s++)
 	{
 		GLuint prog = Program;
-		if(prog == 0) m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
+		if(prog == 0 && Pipeline != 0) m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
 
 		if(prog == 0) continue;
 
