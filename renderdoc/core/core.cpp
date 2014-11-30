@@ -203,20 +203,20 @@ void RenderDoc::Initialise()
 	// set default capture log - useful for when hooks aren't setup
 	// through the UI (and a log file isn't set manually)
 	{
-		string capture_filename, logging_filename;
+		string capture_filename;
 
 		const char *base = "RenderDoc_app";
 		if(IsReplayApp())
 			base = "RenderDoc_replay";
 		
-		FileIO::GetDefaultFiles(base, capture_filename, logging_filename, m_Target);
+		FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
 		if(m_LogFile.empty())
 			SetLogFile(capture_filename.c_str());
 
 		string existingLog = RDCGETLOGFILE();
-		FileIO::Copy(existingLog.c_str(), logging_filename.c_str(), true);
-		RDCLOGFILE(logging_filename.c_str());
+		FileIO::Copy(existingLog.c_str(), m_LoggingFilename.c_str(), true);
+		RDCLOGFILE(m_LoggingFilename.c_str());
 	}
 
 	if(IsReplayApp())
@@ -262,6 +262,8 @@ RenderDoc::~RenderDoc()
 			RDCLOG("'Leaking' unretrieved capture %s", m_Captures[i].path.c_str());
 		}
 	}
+	
+	FileIO::Delete(m_LoggingFilename.c_str());
 
 	m_RemoteServerThreadShutdown = true;
 	// don't join, just close the thread, as we can't wait while in the middle of module unloading
@@ -270,7 +272,7 @@ RenderDoc::~RenderDoc()
 
 	Network::Shutdown();
 
-	RDCLOGDELETE();
+	FileIO::Delete(m_LoggingFilename.c_str());
 }
 
 void RenderDoc::StartFrameCapture(void *wnd)

@@ -256,12 +256,6 @@ void rdclog_filename(const char *filename)
 		logfile() = filename;
 }
 
-void rdclog_delete()
-{
-	if(!logfile().empty())
-		FileIO::Delete(logfile().c_str());
-}
-
 void rdclog_flush()
 {
 }

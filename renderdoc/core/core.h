@@ -279,6 +279,8 @@ class RenderDoc
 		vector<KeyButton> m_FocusKeys;
 		vector<KeyButton> m_CaptureKeys;
 
+		string m_LoggingFilename;
+
 		string m_Target;
 		string m_LogFile;
 		string m_CurrentLogFile;
