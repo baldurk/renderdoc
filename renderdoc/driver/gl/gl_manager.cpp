@@ -156,7 +156,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 		m_pSerialiser->Serialise("Id", Id);
 
-		SerialiseProgramUniforms(gl, m_pSerialiser, res.name, true);
+		SerialiseProgramUniforms(gl, m_pSerialiser, res.name, NULL, true);
 
 		SetInitialChunk(Id, scope.Get());
 	}
@@ -356,7 +356,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 		gl.glLinkProgram(initProg);
 
-		SerialiseProgramUniforms(gl, m_pSerialiser, initProg, false);
+		SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
 		
 		SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
 	}

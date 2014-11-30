@@ -211,6 +211,8 @@ class WrappedOpenGL
 			}
 			vector<ResourceId> shaders;
 
+			map<GLint, GLint> locationTranslate;
+
 			GLuint colOutProg;
 			bool linked;
 			ResourceId stageShaders[6];

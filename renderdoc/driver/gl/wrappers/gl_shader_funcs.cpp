@@ -376,6 +376,10 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 		GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 		RDCASSERT(record);
 
+		// we always want to mark programs as dirty so we can serialise their
+		// locations as initial state (and form a remapping table)
+		GetResourceManager()->MarkDirtyResource(id);
+
 		record->AddChunk(chunk);
 	}
 	else
@@ -426,6 +430,10 @@ GLuint WrappedOpenGL::glCreateProgram()
 
 		GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 		RDCASSERT(record);
+		
+		// we always want to mark programs as dirty so we can serialise their
+		// locations as initial state (and form a remapping table)
+		GetResourceManager()->MarkDirtyResource(id);
 
 		record->AddChunk(chunk);
 	}

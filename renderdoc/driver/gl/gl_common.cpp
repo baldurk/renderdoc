@@ -422,7 +422,7 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 }
 
 template<const bool CopyUniforms, const bool SerialiseUniforms>
-static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc, GLuint progDst, bool writing)
+static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc, GLuint progDst, map<GLint, GLint> *locTranslate, bool writing)
 {
 	const bool ReadSourceProgram = CopyUniforms || (SerialiseUniforms && writing);
 	const bool WriteDestProgram = CopyUniforms || (SerialiseUniforms && !writing);
@@ -520,7 +520,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 
 			GLint newloc = 0;
 			if(WriteDestProgram)
+			{
 				newloc = gl.glGetUniformLocation(progDst, name.c_str());
+				if(locTranslate) (*locTranslate)[srcLocation] = newloc;
+			}
 
 			if(CopyUniforms && newloc == -1)
 				continue;
@@ -807,14 +810,14 @@ void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst)
 {
 	const bool CopyUniforms = true;
 	const bool SerialiseUniforms = false;
-	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, NULL, progSrc, progDst, false);
+	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, NULL, progSrc, progDst, NULL, false);
 }
 
-void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing)
+void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, map<GLint, GLint> *locTranslate, bool writing)
 {
 	const bool CopyUniforms = false;
 	const bool SerialiseUniforms = true;
-	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, writing);
+	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, locTranslate, writing);
 }
 
 template<>

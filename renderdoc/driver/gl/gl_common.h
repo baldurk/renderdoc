@@ -112,7 +112,7 @@ void DoVendorChecks(const GLHookSet &gl);
 #include "core/core.h"
 
 void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
-void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, bool writing);
+void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, map<GLint, GLint> *locTranslate, bool writing);
 
 enum GLChunkType
 {
