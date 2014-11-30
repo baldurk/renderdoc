@@ -332,6 +332,44 @@ GLenum GetDataType(GLenum internalFormat)
 	return eGL_NONE;
 }
 
+int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d)
+{
+	int mips = 1;
+
+	GLint immut = 0;
+	gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+
+	if(immut)
+		gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
+	else
+		mips = CalcNumMips(w, h, d);
+
+	GLint maxLevel = 1000;
+	gl.glGetTextureParameterivEXT(tex, target, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
+	mips = RDCMIN(mips, maxLevel+1);
+
+	if(immut == 0)
+	{
+		// check to see if all mips are set, or clip the number of mips to those that are
+		// set.
+		if(target == eGL_TEXTURE_CUBE_MAP)
+			target = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+		for(int i=0; i < mips; i++)
+		{
+			GLint width = 0;
+			gl.glGetTextureLevelParameterivEXT(tex, target, i, eGL_TEXTURE_WIDTH, &width);
+			if(width == 0)
+			{
+				mips = i;
+				break;
+			}
+		}
+	}
+
+	return RDCMAX(1, mips);
+}
+
 GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 {
 	switch(internalFormat)

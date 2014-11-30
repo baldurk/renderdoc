@@ -36,6 +36,8 @@ GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
 GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat);
 
+int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d);
+
 bool IsCompressedFormat(GLenum internalFormat);
 bool IsDepthStencilFormat(GLenum internalFormat);
 bool IsUIntFormat(GLenum internalFormat);
