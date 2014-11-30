@@ -877,7 +877,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				GLsizei numProps = (GLsizei)ARRAY_COUNT(props);
 
 				// GL_LOCATION_COMPONENT not supported on core <4.4 (or without GL_ARB_enhanced_layouts)
-				if(!ExtensionSupported("GL_ARB_enhanced_layouts") && GLCoreVersion < 44)
+				if(!ExtensionSupported(ExtensionSupported_ARB_enhanced_layouts) && GLCoreVersion < 44)
 					numProps--;
 				gl.glGetProgramResourceiv(sepProg, sigEnum, i, numProps, props, numProps, NULL, values);
 

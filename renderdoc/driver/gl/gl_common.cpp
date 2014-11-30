@@ -45,28 +45,122 @@ namespace TrackedResource
 
 namespace ExtensionSupport
 {
-	static vector<string> extensions;
+	static bool extensions[ExtensionSupported_Count];
+	static bool VendorChecks[VendorCheck_Count];
 };
 
 int GLCoreVersion = 0;
 
-void UpdateExtensionSupport(const GLHookSet &gl)
+void DoVendorChecks(const GLHookSet &gl)
 {
-	ExtensionSupport::extensions.clear();
 	GLint numExts = 0;
 	gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
-	ExtensionSupport::extensions.resize(numExts);
+
+	RDCEraseEl(ExtensionSupport::extensions);
+	RDCEraseEl(ExtensionSupport::VendorChecks);
+
 	for(int i=0; i < numExts; i++)
-		ExtensionSupport::extensions[i] = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
+	{
+		const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
+
+		if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3]) continue;
+
+		ext += 3;
+
+#define EXT_CHECK(extname) if(!strcmp(ext, STRINGIZE(extname))) ExtensionSupport::extensions[CONCAT(ExtensionSupported_, extname)] = true;
+
+		EXT_CHECK(ARB_clip_control)
+		EXT_CHECK(ARB_enhanced_layouts)
+
+#undef EXT_CHECK
+	}
+
+	//////////////////////////////////////////////////////////
+	// version/driver/vendor specific hacks and checks go here
+	// doing these in a central place means they're all documented and
+	// can be removed ASAP from a single place.
+	// It also means any work done to figure them out is only ever done
+	// in one place, when first activating a new context, so hopefully
+	// shouldn't interfere with the running program
+	
+
+	// The linux AMD driver doesn't recognise GL_VERTEX_BINDING_BUFFER.
+	// However it has a "two wrongs make a right" type deal. Instead of returning the buffer that the
+	// i'th index is bound to (as above, vbslot) for GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, it returns the i'th
+	// vertex buffer which is exactly what we wanted from GL_VERTEX_BINDING_BUFFER!
+	// see: http://devgurus.amd.com/message/1306745#1306745
+	
+	{
+		// clear all error flags.
+		GLenum err = gl.glGetError();
+		while(err != eGL_NONE) err = gl.glGetError();
+
+		GLint dummy = 0;
+		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
+		err = gl.glGetError();
+
+		if(err != eGL_NONE)
+		{
+			// if we got an error trying to query that, we should enable this hack
+			ExtensionSupport::VendorChecks[VendorCheck_AMD_vertex_buffer_query] = true;
+
+			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
+		}
+	}
+
+	{
+		// We need to determine if GL_TEXTURE_COMPRESSED_IMAGE_SIZE for a compressed cubemap face target
+		// will return the size of the whole cubemap, or just one face. Since we fetch the cubemap
+		// data face-by-face the distinction is important.
+		// So we create a 4x4 cubemap with no mips that's DXT1 (BC1) compressed, which is 0.5 bytes per pixel.
+		// So 4*4*0.5 = 8 bytes per face. If the returned size is 8 or 48 we can determine which result the
+		// query returns. It's probably safe to assume it's consistent then for all sizes and formats of
+		// cubemaps.
+		// I'm not sure what the correct answer is, intuitively it feels like when you query for the size of
+		// a single face target, it should give you the size of that face. The spec doesn't seem to say
+		// though
+
+		GLuint prevtex = 0; // should almost certainly be 0, but let's be careful anyway.
+		gl.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevtex);
+				
+		GLuint dummy = 0;
+		gl.glGenTextures(1, &dummy);
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, dummy);
+		
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevtex);
+
+		gl.glTextureStorage2DEXT(dummy, eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4);
+		
+		GLint compSize = 0;
+		gl.glGetTextureLevelParameterivEXT(dummy, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+
+		if(compSize == 8)
+		{
+			ExtensionSupport::VendorChecks[VendorCheck_EXT_compressed_cube_size] = false;
+		}
+		else if(compSize == 48)
+		{
+			ExtensionSupport::VendorChecks[VendorCheck_EXT_compressed_cube_size] = true;
+		}
+		else
+		{
+			RDCERR("Unexpected compressed size of +X face of BC1 compressed 4x4 cubemap mip 0! %d", compSize);
+		}
+
+		gl.glDeleteTextures(1, &dummy);
+	}
 }
 
-bool ExtensionSupported(const char *ext)
+bool ExtensionSupported(ExtensionCheckEnum ext)
 {
-	for(size_t i=0; i < ExtensionSupport::extensions.size(); i++)
-		if(ExtensionSupport::extensions[i] == ext)
-			return true;
+	if(ext < 0 || ext >= ExtensionSupported_Count) return false;
+	return ExtensionSupport::extensions[ext];
+}
 
-	return false;
+bool VendorCheck(VendorCheckEnum vc)
+{
+	if(vc < 0 || vc >= VendorCheck_Count) return false;
+	return ExtensionSupport::VendorChecks[vc];
 }
 
 size_t BufferIdx(GLenum buf)
@@ -172,30 +266,9 @@ GLenum ShaderEnum(size_t idx)
 
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
 {
-	static int hackAMDBugVBBinding = -1;
-
-	// linux AMD driver doesn't recognise GL_VERTEX_BINDING_BUFFER, see below.
-	if(hackAMDBugVBBinding == -1)
-	{
-		GLenum err = gl.glGetError();
-		while(err != eGL_NONE) err = gl.glGetError();
-		GLint dummy = 0;
-		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
-		err = gl.glGetError();
-
-		hackAMDBugVBBinding = (err == eGL_NONE ? 0 : 1);
-
-		if(hackAMDBugVBBinding)
-			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
-	}
-
 	GLuint buffer = 0;
 
-	// the linux AMD driver has a "two wrongs make a right" type deal. Instead of returning the buffer that the
-	// i'th index is bound to (as above, vbslot) for GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, it returns the i'th
-	// vertex buffer which is exactly what we wanted from GL_VERTEX_BINDING_BUFFER!
-	// see: http://devgurus.amd.com/message/1306745#1306745
-	if(hackAMDBugVBBinding)
+	if(VendorCheck(VendorCheck_AMD_vertex_buffer_query))
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
 	else
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);

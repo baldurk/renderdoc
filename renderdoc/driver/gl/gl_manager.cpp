@@ -448,14 +448,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 						size_t size = compSize;
 
-						// cubemaps return the compressed image size for the whole texture, but we read it
+						// sometimes cubemaps return the compressed image size for the whole texture, but we read it
 						// face by face
-						//
-						// Disabled since it seems nvidia doesn't return the whole image size, but just the size per face,
-						// and it's not clear which is right (or how to handle that anyway). Worst case this means we serialise out
-						// too much data (since only the first face of data will be used).
-						//if(t == eGL_TEXTURE_CUBE_MAP)
-						//	size /= 6;
+						if(VendorCheck(VendorCheck_EXT_compressed_cube_size) && t == eGL_TEXTURE_CUBE_MAP)
+							size /= 6;
 
 						byte *buf = new byte[size];
 

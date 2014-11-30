@@ -85,8 +85,28 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
 
 extern int GLCoreVersion;
-void UpdateExtensionSupport(const GLHookSet &gl);
-bool ExtensionSupported(const char *ext);
+
+// extensions we know we want to check for are precached, indexd by this enum
+enum ExtensionCheckEnum
+{
+	ExtensionSupported_ARB_enhanced_layouts = 0,
+	ExtensionSupported_ARB_clip_control,
+	ExtensionSupported_Count,
+};
+bool ExtensionSupported(ExtensionCheckEnum ext);
+
+// for some things we need to know how a specific implementation behaves to work around it
+// or adjust things. We centralise that here (similar to extensions)
+enum VendorCheckEnum
+{
+	VendorCheck_AMD_vertex_buffer_query,
+	VendorCheck_EXT_compressed_cube_size,
+	VendorCheck_Count,
+};
+bool VendorCheck(VendorCheckEnum ext);
+
+// fills out the extension supported array and the version-specific checks above
+void DoVendorChecks(const GLHookSet &gl);
 
 #include "serialise/serialiser.h"
 #include "core/core.h"
