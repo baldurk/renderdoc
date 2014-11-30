@@ -770,6 +770,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			parentVar.reg.vec = var.reg.vec;
 			parentVar.reg.comp = 0;
 			parentVar.type.descriptor.name = "struct";
+			parentVar.type.descriptor.rows = 0;
+			parentVar.type.descriptor.cols = 0;
+			parentVar.type.descriptor.rowMajorStorage = false;
+			parentVar.type.descriptor.type = var.type.descriptor.type;
 			parentVar.type.descriptor.elements = isarray ? RDCMAX(1U, uint32_t(arrayIdx+1)) : 0;
 
 			bool found = false;
