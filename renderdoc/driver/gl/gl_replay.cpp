@@ -274,16 +274,22 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 	}
 
 	auto &buf = m_pDriver->m_Buffers[buff];
+
+	uint32_t bufsize = (uint32_t)buf.size;
 	
 	if(len > 0 && offset+len > buf.size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, uint32_t(buf.size-offset));
+		len = ~0U; // min below will clamp to max size size
 	}
 	else if(len == 0)
 	{
-		len = (uint32_t)buf.size;
+		len = bufsize;
 	}
+	
+	// need to ensure len+offset doesn't overrun buffer or the glGetBufferSubData call
+	// will fail.
+	len = RDCMIN(len, bufsize-offset);
 	
 	ret.resize(len);
 	
