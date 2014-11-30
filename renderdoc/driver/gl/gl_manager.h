@@ -42,6 +42,40 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 
 		void Shutdown()
 		{
+			// there's a bit of a dependency issue here. We're essentially forcibly deleting/garbage collecting
+			// all the resource records. In some cases, we might have a parent->child type relationship where
+			// the only reference on the parent is from the child. If we delete the parent before the child,
+			// when the child destructs and tries to delete the parent things will go badly.
+			// We want to avoid keeping a reference ourselves on all records since that would cause difficulties
+			// during normal lifetime, so instead we just ask all records to release their references on parents
+			// before deleting them.
+
+			// special care is taken since the act of freeing parents will by design potentially modify the
+			// container. Since this is shutdown, we take the simple & naive approach of simply restarting the
+			// loop whenever we detect the size changing. FreeParents() is a safe operation to perform on records
+			// that have already freed their parents.
+			{
+				auto it = m_GLResourceRecords.begin();
+				
+				for(size_t i=0; it != m_GLResourceRecords.end();)
+				{
+					size_t prevSize = m_GLResourceRecords.size();
+					it->second->FreeParents(this);
+
+					// collection modified, restart loop
+					if(prevSize != m_GLResourceRecords.size())
+					{
+						i = 0;
+						it = m_GLResourceRecords.begin();
+						continue;
+					}
+
+					// collection not modified, continue
+					i++;
+					it++;
+				}
+			}
+
 			while(!m_GLResourceRecords.empty())
 			{
 				auto it = m_GLResourceRecords.begin();
