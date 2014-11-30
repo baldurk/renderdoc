@@ -350,18 +350,16 @@ void GLReplay::CacheTexture(ResourceId id)
 	
 	GLenum target = TextureTarget(res.curType);
 
-	gl.glBindTexture(target, res.resource.name);
-
 	GLenum levelQueryType = target;
 	if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
 		levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
 	// TODO if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
 	GLint width = 1, height = 1, depth = 1, samples=1;
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
 
 	if(res.width == 0)
 	{
@@ -439,7 +437,7 @@ void GLReplay::CacheTexture(ResourceId id)
 
 	// surely this will be the same for each level... right? that would be insane if it wasn't
 	GLint fmt = 0;
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
 	tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
 	
@@ -494,35 +492,19 @@ void GLReplay::CacheTexture(ResourceId id)
 		tex.msQual = tex.msSamp = 0;
 		tex.byteSize = 0;
 
-		gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.width);
+		gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.width);
 		tex.byteSize = tex.width/(tex.format.compByteWidth*tex.format.compCount);
 		
 		m_CachedTextures[id] = tex;
 		return;
 	}
 
-	GLint immut = 0;
-	gl.glGetTexParameteriv(target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-	
-	if(immut)
-	{
-		gl.glGetTexParameteriv(target, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
-		tex.mips = (uint32_t)immut;
-	}
-	else
-	{
-		// assuming complete texture
-		tex.mips = CalcNumMips(tex.width, tex.height, tex.depth);
-	}
-
-	GLuint maxLevel = 1000;
-	gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxLevel);
-	tex.mips = RDCMIN(tex.mips, maxLevel+1);
+	tex.mips = GetNumMips(gl.m_Real, target, res.resource.name, tex.width, tex.height, tex.depth);
 
 	tex.numSubresources = tex.mips*tex.arraysize;
 	
 	GLint compressed;
-	gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_COMPRESSED, &compressed);
+	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED, &compressed);
 	tex.byteSize = 0;
 	for(uint32_t a=0; a < tex.arraysize; a++)
 	{
@@ -530,7 +512,7 @@ void GLReplay::CacheTexture(ResourceId id)
 		{
 			if(compressed)
 			{
-				gl.glGetTexLevelParameteriv(levelQueryType, m, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
+				gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, m, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
 				tex.byteSize += compressed;
 			}
 			else if(tex.format.special)

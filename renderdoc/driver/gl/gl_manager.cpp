@@ -164,39 +164,30 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	{
 		WrappedOpenGL::TextureData &details = m_GL->m_Textures[Id];
 		GLenum binding = TextureBinding(details.curType);
-
-		GLuint oldtex = 0;
-		gl.glGetIntegerv(binding, (GLint *)&oldtex);
 		
-		GLuint tex;
-		gl.glGenTextures(1, &tex);
+		GLuint tex = 0;
 
-		gl.glBindTexture(details.curType, res.name);
+		{
+			GLuint oldtex = 0;
+			gl.glGetIntegerv(binding, (GLint *)&oldtex);
+
+			gl.glGenTextures(1, &tex);
+			gl.glBindTexture(details.curType, tex);
+
+			gl.glBindTexture(details.curType, oldtex);
+		}
 
 		int depth = details.depth;
 		if(details.curType != eGL_TEXTURE_3D) depth = 1;
 
-		int mips = 0;
 		GLint isComp = 0;
 
 		GLenum queryType = details.curType;
 		if(queryType == eGL_TEXTURE_CUBE_MAP || queryType == eGL_TEXTURE_CUBE_MAP_ARRAY)
 			queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
-		gl.glGetTexLevelParameteriv(queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
-
-		GLint immut = 0;
-		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-
-		if(immut)
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
-		else
-			mips = CalcNumMips(details.width, details.height, details.depth);
-
-		GLint maxLevel = 1000;
-		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-		mips = RDCMIN(mips, maxLevel+1);
-
-		gl.glBindTexture(details.curType, tex);
+		gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
+		
+		int mips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
 
 		// create texture of identical format/size to store initial contents
 		if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE)
@@ -258,8 +249,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		}
 
 		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
-		
-		gl.glBindTexture(details.curType, oldtex);
 	}
 	else if(res.Namespace == eResVertexArray)
 	{
@@ -402,31 +391,15 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glPixelStorei(eGL_PACK_SKIP_IMAGES, 0);
 			gl.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
 			
-			GLuint prevtex = 0;
-			gl.glGetIntegerv(TextureBinding(details.curType), (GLint *)&prevtex);
-
-			gl.glBindTexture(details.curType, res.name);
-			
-			int imgmips = 0;
 			GLint isComp = 0;
 			
 			GLenum queryType = details.curType;
 			if(queryType == eGL_TEXTURE_CUBE_MAP || queryType == eGL_TEXTURE_CUBE_MAP_ARRAY)
 				queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
-			gl.glGetTexLevelParameteriv(queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
-
-			GLint immut = 0;
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-
-			if(immut)
-				gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&imgmips);
-			else
-				imgmips = CalcNumMips(details.width, details.height, details.depth);
-
-			GLint maxLevel = 1000;
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-			imgmips = RDCMIN(imgmips, maxLevel+1);
+			gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
+			
+			int imgmips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
 			
 			TextureStateInitialData *state = (TextureStateInitialData *)GetInitialContents(Id).blob;
 
@@ -538,8 +511,6 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 				delete[] buf;
 			}
-			
-			gl.glBindTexture(t, prevtex);
 
 			gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
 
@@ -554,9 +525,6 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 		}
 		else
 		{
-			GLuint tex = 0;
-			gl.glGenTextures(1, &tex);
-
 			GLuint pub = 0;
 			gl.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pub);
 			gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
@@ -594,10 +562,17 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SERIALISE_ELEMENT(int, mips, 0);
 			SERIALISE_ELEMENT(bool, isCompressed, false);
 			
-			GLuint prevtex = 0;
-			gl.glGetIntegerv(TextureBinding(textype), (GLint *)&prevtex);
+			GLuint tex = 0;
 			
-			gl.glBindTexture(textype, tex);
+			{
+				GLuint prevtex = 0;
+				gl.glGetIntegerv(TextureBinding(textype), (GLint *)&prevtex);
+				
+				gl.glGenTextures(1, &tex);
+				gl.glBindTexture(textype, tex);
+				
+				gl.glBindTexture(textype, prevtex);
+			}
 
 			// create texture of identical format/size to store initial contents
 			if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
@@ -715,8 +690,6 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SetInitialContents(Id, InitialContentData(TextureRes(m_GL->GetCtx(), tex), 0, (byte *)state));
 
 			gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pub);
-			
-			gl.glBindTexture(textype, prevtex);
 
 			gl.glPixelStorei(eGL_UNPACK_SWAP_BYTES, unpackParams[0]);
 			gl.glPixelStorei(eGL_UNPACK_LSB_FIRST, unpackParams[1]);
@@ -783,22 +756,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		WrappedOpenGL::TextureData &details = m_GL->m_Textures[Id];
 
 		GLuint tex = initial.resource.name;
-
-		gl.glBindTexture(details.curType, tex);
 		
-		int mips = 0;
-
-		GLint immut = 0;
-		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-
-		if(immut)
-			gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, (GLint *)&mips);
-		else
-			mips = CalcNumMips(details.width, details.height, details.depth);
-
-		GLint maxLevel = 1000;
-		gl.glGetTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL, &maxLevel);
-		mips = RDCMIN(mips, maxLevel+1);
+		int mips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
 
 		// copy over mips
 		for(int i=0; i < mips; i++)
