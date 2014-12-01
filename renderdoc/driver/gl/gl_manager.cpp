@@ -493,6 +493,13 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 				byte *buf = new byte[size];
 
+				GLenum binding = TextureBinding(t);
+
+				GLuint prevtex = 0;
+				gl.glGetIntegerv(binding, (GLint *)&prevtex);
+
+				gl.glBindTexture(t, tex);
+
 				for(int i=0; i < mips; i++)
 				{
 					int w = RDCMAX(details.width>>i, 1);
@@ -520,13 +527,16 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 					for(int trg=0; trg < count; trg++)
 					{
-						gl.glGetTextureImageEXT(tex, targets[trg], i, fmt, type, buf);
+						// we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
+						gl.glGetTexImage(targets[trg], i, fmt, type, buf);
 
 						m_pSerialiser->SerialiseBuffer("image", buf, size);
 					}
 				}
+				
+				gl.glBindTexture(t, prevtex);
 
-				delete[] buf;
+				SAFE_DELETE_ARRAY(buf);
 			}
 
 			gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, ppb);
