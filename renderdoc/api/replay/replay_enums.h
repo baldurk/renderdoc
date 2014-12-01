@@ -53,6 +53,7 @@ enum ShaderResourceType
 	eResType_Texture1D,
 	eResType_Texture1DArray,
 	eResType_Texture2D,
+	eResType_TextureRect,
 	eResType_Texture2DArray,
 	eResType_Texture2DMS,
 	eResType_Texture2DMSArray,

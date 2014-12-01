@@ -29,18 +29,21 @@ layout (binding = 4) uniform samplerCube texCube;
 layout (binding = 5) uniform sampler1DArray tex1DArray;
 layout (binding = 6) uniform sampler2DArray tex2DArray;
 layout (binding = 7) uniform samplerCubeArray texCubeArray;
+layout (binding = 8) uniform sampler2DRect tex2DRect;
 
-layout (binding = 9) uniform usampler1D texUInt1D;
-layout (binding = 10) uniform usampler2D texUInt2D;
-layout (binding = 11) uniform usampler3D texUInt3D;
-layout (binding = 13) uniform usampler1DArray texUInt1DArray;
-layout (binding = 14) uniform usampler2DArray texUInt2DArray;
+layout (binding = 17) uniform usampler1D texUInt1D;
+layout (binding = 18) uniform usampler2D texUInt2D;
+layout (binding = 19) uniform usampler3D texUInt3D;
+layout (binding = 20) uniform usampler1DArray texUInt1DArray;
+layout (binding = 21) uniform usampler2DArray texUInt2DArray;
+layout (binding = 22) uniform usampler2DRect texUInt2DRect;
 
-layout (binding = 16) uniform isampler1D texSInt1D;
-layout (binding = 17) uniform isampler2D texSInt2D;
-layout (binding = 18) uniform isampler3D texSInt3D;
-layout (binding = 20) uniform isampler1DArray texSInt1DArray;
-layout (binding = 21) uniform isampler2DArray texSInt2DArray;
+layout (binding = 33) uniform isampler1D texSInt1D;
+layout (binding = 34) uniform isampler2D texSInt2D;
+layout (binding = 35) uniform isampler3D texSInt3D;
+layout (binding = 36) uniform isampler1DArray texSInt1DArray;
+layout (binding = 37) uniform isampler2DArray texSInt2DArray;
+layout (binding = 38) uniform isampler2DRect texSInt2DRect;
 
 vec3 CalcCubeCoord(vec2 uv, int face)
 {
@@ -85,6 +88,15 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(texUInt2D, ivec2(pos), mipLevel);
+	}
+	else if (type == RESTYPE_TEXRECT)
+	{
+		ivec2 size = textureSize(texUInt2DRect, mipLevel);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+
+		col = texelFetch(texUInt2DRect, ivec2(pos));
 	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{
@@ -131,6 +143,15 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(texSInt2D, ivec2(pos), mipLevel);
+	}
+	else if (type == RESTYPE_TEXRECT)
+	{
+		ivec2 size = textureSize(texSInt2DRect, mipLevel);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+
+		col = texelFetch(texSInt2DRect, ivec2(pos));
 	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{
@@ -187,6 +208,15 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 			col = texture(tex2D, pos / size);
 		else
 			col = texelFetch(tex2D, ivec2(pos), mipLevel);
+	}
+	else if (type == RESTYPE_TEXRECT)
+	{
+		ivec2 size = textureSize(tex2DRect);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+
+		col = texelFetch(tex2DRect, ivec2(pos));
 	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{

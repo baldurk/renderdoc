@@ -234,7 +234,9 @@ void GLReplay::InitDebugData()
 		RDCEraseEl(DebugData.histogramProgram);
 		RDCEraseEl(DebugData.minmaxResultProgram);
 
-		for(int t=1; t <= TEXDISPLAY_TYPEMASK; t++)
+		RDCCOMPILE_ASSERT(ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX|TEXDISPLAY_TYPEMASK)+1, "not enough programs");
+
+		for(int t=1; t <= RESTYPE_TEXTYPEMAX; t++)
 		{
 			// float, uint, sint
 			for(int i=0; i < 3; i++)
@@ -580,6 +582,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			RDCWARN("Unexpected texture type");
 		case eGL_TEXTURE_2D:
 			resType = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_RECTANGLE:
+			resType = RESTYPE_TEXRECT;
 			break;
 		case eGL_TEXTURE_3D:
 			resType = RESTYPE_TEX3D;

@@ -264,13 +264,13 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		}
 		else if(values[0] == GL_SAMPLER_2D_RECT)
 		{
-			res.resType = eResType_Texture2D;
+			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_Float;
 		}
 		else if(values[0] == GL_SAMPLER_2D_RECT_SHADOW)
 		{
-			res.resType = eResType_Texture2D;
+			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRectShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
@@ -343,7 +343,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		}
 		else if(values[0] == GL_INT_SAMPLER_2D_RECT)
 		{
-			res.resType = eResType_Texture2D;
+			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_Int;
 		}
@@ -410,7 +410,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		}
 		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_RECT)
 		{
-			res.resType = eResType_Texture2D;
+			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_UInt;
 		}

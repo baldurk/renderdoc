@@ -1148,6 +1148,9 @@ void GLReplay::SavePipelineState()
 						case eResType_Texture2D:
 							target = eGL_TEXTURE_2D;
 							break;
+						case eResType_TextureRect:
+							target = eGL_TEXTURE_RECTANGLE;
+							break;
 						case eResType_Texture2DArray:
 							target = eGL_TEXTURE_2D_ARRAY;
 							break;

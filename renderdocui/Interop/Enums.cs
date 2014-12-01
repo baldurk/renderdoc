@@ -55,6 +55,7 @@ namespace renderdoc
         Texture1D,
         Texture1DArray,
         Texture2D,
+        TextureRect,
         Texture2DArray,
         Texture2DMS,
         Texture2DMSArray,
