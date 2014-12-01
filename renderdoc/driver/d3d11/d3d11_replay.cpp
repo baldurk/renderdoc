@@ -374,6 +374,10 @@ FetchBuffer D3D11Replay::GetBuffer(ResourceId id)
 		ret.creationFlags |= eBufferCreate_VB;
 	if(desc.BindFlags & D3D11_BIND_INDEX_BUFFER)
 		ret.creationFlags |= eBufferCreate_IB;
+	if(desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
+		ret.creationFlags |= eBufferCreate_UAV;
+	if(desc.MiscFlags & D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS)
+		ret.creationFlags |= eBufferCreate_Indirect;
 
 	return ret;
 }

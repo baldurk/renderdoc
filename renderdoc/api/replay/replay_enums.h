@@ -223,9 +223,11 @@ enum PrimitiveTopology
 
 enum BufferCreationFlags
 {
-	eBufferCreate_VB			= 0x1,
-	eBufferCreate_IB			= 0x2,
-	eBufferCreate_CB			= 0x4,
+	eBufferCreate_VB       = 0x1,
+	eBufferCreate_IB       = 0x2,
+	eBufferCreate_CB       = 0x4,
+	eBufferCreate_UAV      = 0x8,
+	eBufferCreate_Indirect = 0x10,
 };
 
 enum TextureCreationFlags
