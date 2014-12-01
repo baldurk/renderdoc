@@ -893,7 +893,7 @@ namespace renderdocui.Windows
                         Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
                     }
 
-                    uint minIndex = ret.Indices[0];
+                    uint minIndex = ret.Indices.Length > 0 ? ret.Indices[0] : 0;
                     foreach (var i in ret.Indices)
                     {
                         if (input.IndexFormat.format.compByteWidth == 2 && i == UInt16.MaxValue)
