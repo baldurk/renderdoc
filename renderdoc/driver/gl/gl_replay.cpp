@@ -151,7 +151,7 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin)
 	gl.glGenTextures(1, &outwin.BlitData.backbuffer);
 	gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 	
-	gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGB8, outwin.width, outwin.height); 
+	gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_SRGB8, outwin.width, outwin.height); 
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -264,6 +264,7 @@ void GLReplay::FlipOutputWindow(uint64_t id)
 
 	gl.glActiveTexture(eGL_TEXTURE0);
 	gl.glBindTexture(eGL_TEXTURE_2D, outw.BlitData.backbuffer);
+	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 	
 	gl.glBindVertexArray(outw.BlitData.emptyVAO);
 	gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);

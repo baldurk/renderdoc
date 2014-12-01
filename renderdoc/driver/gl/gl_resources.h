@@ -42,6 +42,7 @@ bool IsCompressedFormat(GLenum internalFormat);
 bool IsDepthStencilFormat(GLenum internalFormat);
 bool IsUIntFormat(GLenum internalFormat);
 bool IsSIntFormat(GLenum internalFormat);
+bool IsSRGBFormat(GLenum internalFormat);
 
 GLenum TextureBinding(GLenum target);
 GLenum TextureTarget(GLenum target);

@@ -27,8 +27,8 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-PIXELFORMATDESCRIPTOR pfd = { 0 };
 PFNWGLCREATECONTEXTATTRIBSARBPROC createContextAttribs = NULL;
+PFNWGLGETPIXELFORMATATTRIBIVARBPROC getPixelFormatAttrib = NULL;
 
 typedef PROC (WINAPI *WGLGETPROCADDRESSPROC)(const char*);
 typedef HGLRC (WINAPI *WGLCREATECONTEXTPROC)(HDC);
@@ -77,8 +77,57 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 			NULL, NULL, GetModuleHandle(NULL), NULL);
 	
 	HDC DC = GetDC(w);
+	
+	PIXELFORMATDESCRIPTOR pfd = { 0 };
 
-	int pf = ChoosePixelFormat(DC, &pfd);
+	int attrib = eWGL_NUMBER_PIXEL_FORMATS_ARB;
+	int value = 1;
+
+	getPixelFormatAttrib(DC, 1, 0, 1, &attrib, &value);
+	
+	int pf = 0;
+
+	int numpfs = value;
+	for(int i=1; i <= numpfs; i++)
+	{
+		// verify that we have the properties we want
+		attrib = eWGL_DRAW_TO_WINDOW_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value == 0) continue;
+		
+		attrib = eWGL_ACCELERATION_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value == eWGL_NO_ACCELERATION_ARB) continue;
+		
+		attrib = eWGL_SUPPORT_OPENGL_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value == 0) continue;
+		
+		attrib = eWGL_DOUBLE_BUFFER_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value == 0) continue;
+		
+		attrib = eWGL_PIXEL_TYPE_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value != eWGL_TYPE_RGBA_ARB) continue;
+
+		// we have an opengl-capable accelerated RGBA context.
+		// we use internal framebuffers to do almost all rendering, so we just need
+		// RGB (color bits > 24) and SRGB buffer.
+
+		attrib = eWGL_COLOR_BITS_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value < 24) continue;
+		
+		attrib = WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB;
+		getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+		if(value == 0) continue;
+
+		// this one suits our needs, choose it
+		pf = i;
+		break;
+	}
+
 	if(pf == 0)
 	{
 		ReleaseDC(w, DC);
@@ -86,7 +135,15 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 		return NULL;
 	}
 
-	BOOL res = SetPixelFormat(DC, pf, &pfd);
+	BOOL res = DescribePixelFormat(DC, pf, sizeof(pfd), &pfd);
+	if(res == FALSE)
+	{
+		ReleaseDC(w, DC);
+		RDCERR("Couldn't describe pixel format");
+		return NULL;
+	}
+
+	res = SetPixelFormat(DC, pf, &pfd);
 	if(res == FALSE)
 	{
 		ReleaseDC(w, DC);
@@ -193,6 +250,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 	
+	PIXELFORMATDESCRIPTOR pfd = { 0 };
+
 	if(wglGetProc == NULL)
 	{
 		wglGetProc = (WGLGETPROCADDRESSPROC)GetProcAddress(lib, "wglGetProcAddress");
@@ -267,11 +326,12 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		return eReplayCreate_APIInitFailed;
 	}
 
-	createContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProc( "wglCreateContextAttribsARB" );
+	createContextAttribs = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProc("wglCreateContextAttribsARB");
+	getPixelFormatAttrib = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)wglGetProc("wglGetPixelFormatAttribivARB");
 
-	if(createContextAttribs == NULL)
+	if(createContextAttribs == NULL || getPixelFormatAttrib == NULL)
 	{
-		RDCERR("RenderDoc requires WGL_ARB_create_context");
+		RDCERR("RenderDoc requires WGL_ARB_create_context and WGL_ARB_pixel_format");
 		return eReplayCreate_APIHardwareUnsupported;
 	}
 

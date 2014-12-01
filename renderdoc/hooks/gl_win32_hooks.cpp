@@ -298,6 +298,19 @@ class OpenGLHook : LibraryHook
 			ret.width = (r.right-r.left);
 			ret.height = (r.bottom-r.top);
 
+			ret.isSRGB = true;
+
+			if(glhooks.wglGetPixelFormatAttribivARB_realfunc == NULL)
+				glhooks.wglGetProcAddress_hooked("wglGetPixelFormatAttribivARB");
+
+			if(glhooks.wglGetPixelFormatAttribivARB_realfunc)
+			{
+				int attrname = eWGL_FRAMEBUFFER_SRGB_CAPABLE_ARB;
+				int srgb = 1;
+				glhooks.wglGetPixelFormatAttribivARB_realfunc(dc, pf, 0, 1, &attrname, &srgb);
+				ret.isSRGB = srgb;
+			}
+
 			if(pfd.iPixelType != PFD_TYPE_RGBA)
 			{
 				RDCERR("Unsupported OpenGL pixel type");

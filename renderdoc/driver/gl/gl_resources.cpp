@@ -532,6 +532,20 @@ bool IsSIntFormat(GLenum internalFormat)
 	return false;
 }
 
+bool IsSRGBFormat(GLenum internalFormat)
+{
+	switch(internalFormat)
+	{
+		case eGL_SRGB8:
+		case eGL_SRGB8_ALPHA8:
+			return true;
+		default:
+			break;
+	}
+
+	return false;
+}
+
 GLenum TextureBinding(GLenum target)
 {
 	switch(target)

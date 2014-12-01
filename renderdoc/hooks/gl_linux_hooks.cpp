@@ -344,6 +344,8 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value); init.stencilBits = value;
+	value = 1; // default to srgb
+	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value); init.isSRGB = value;
 
 	OpenGLHook::glhooks.GetDriver()->CreateContext(NULL, ret, shareList, init);
 

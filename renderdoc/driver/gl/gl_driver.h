@@ -50,10 +50,11 @@ struct GLInitParams : public RDCInitParams
 	uint32_t colorBits;
 	uint32_t depthBits;
 	uint32_t stencilBits;
+	uint32_t isSRGB;
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x0000002;
+	static const uint32_t GL_SERIALISE_VERSION = 0x0000003;
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;

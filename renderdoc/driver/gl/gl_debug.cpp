@@ -759,6 +759,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	if(cfg.overlay == eTexOverlay_Clipping)
 		ubo->OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
+	
+	if(!IsSRGBFormat(texDetails.internalFormat) && cfg.linearDisplayAsGamma)
+		ubo->OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
 	ubo->RawOutput = cfg.rawoutput ? 1 : 0;
 
@@ -787,6 +790,8 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 		gl.glEnable(eGL_BLEND);
 		gl.glBlendFunc(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA);
 	}
+
+	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
 	gl.glBindVertexArray(DebugData.emptyVAO);
 	gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
@@ -933,7 +938,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		DebugData.overlayTexWidth = texDetails.width;
 		DebugData.overlayTexHeight = texDetails.height;
 
-		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width, texDetails.height); 
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_SRGB8_ALPHA8, texDetails.width, texDetails.height); 
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);

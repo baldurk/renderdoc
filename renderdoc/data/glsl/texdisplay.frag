@@ -154,9 +154,11 @@ void main(void)
 				col = vec4(dot(col.rgb, 1.0f.xxx).xxx, 1.0f);
 		}
 	}
-
-	// TODO: Check OutputDisplayFormat for SRGB handling
-	// TODO: Figure out SRGB in opengl at all :)
+	
+	if((OutputDisplayFormat & TEXDISPLAY_GAMMA_CURVE) > 0)
+	{
+		col.rgb = pow(clamp(col.rgb, 0.0f.xxx, 1.0f.xxx), 2.2f.xxx);
+	}
 
 	color_out = col;
 }

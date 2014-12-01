@@ -294,6 +294,7 @@ GLInitParams::GLInitParams()
 	colorBits = 32;
 	depthBits = 32;
 	stencilBits = 8;
+	isSRGB = 1;
 	width = 32;
 	height = 32;
 }
@@ -308,11 +309,12 @@ ReplayCreateStatus GLInitParams::Serialise()
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 	
-	SERIALISE_ELEMENT(uint32_t, col, colorBits); colorBits = col;
-	SERIALISE_ELEMENT(uint32_t, dpth, depthBits); depthBits = dpth;
-	SERIALISE_ELEMENT(uint32_t, stenc, stencilBits); stencilBits = stenc;
-	SERIALISE_ELEMENT(uint32_t, w, width); width = w;
-	SERIALISE_ELEMENT(uint32_t, h, height); height = h;
+	m_pSerialiser->Serialise("Color bits", colorBits);
+	m_pSerialiser->Serialise("Depth bits", depthBits);
+	m_pSerialiser->Serialise("Stencil bits", stencilBits);
+	m_pSerialiser->Serialise("Is SRGB", isSRGB);
+	m_pSerialiser->Serialise("Width", width);
+	m_pSerialiser->Serialise("Height", height);
 
 	return eReplayCreate_Success;
 }
@@ -466,9 +468,9 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	GLenum colfmt = eGL_RGBA8;
 
 	if(params.colorBits == 32)
-		colfmt = eGL_RGBA8;
+		colfmt = params.isSRGB ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
 	else if(params.colorBits == 24)
-		colfmt = eGL_RGB8;
+		colfmt = params.isSRGB ? eGL_SRGB8 : eGL_RGB8;
 	else
 		RDCERR("Unexpected # colour bits: %d", params.colorBits);
 
