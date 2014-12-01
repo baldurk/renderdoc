@@ -674,11 +674,16 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = 0;
 		draw.instanceOffset = 0;
 
@@ -795,11 +800,16 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = 0;
 		draw.instanceOffset = 0;
 
@@ -858,12 +868,17 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
 						ToStr::Get(BaseVtx) + ")";
+		
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
 
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = BaseVtx;
 		draw.instanceOffset = 0;
 
@@ -921,11 +936,16 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 						ToStr::Get(IdxOffset) + ", " +
 						ToStr::Get(BaseVtx) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = 1;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = BaseVtx;
 		draw.instanceOffset = 0;
 
@@ -983,11 +1003,16 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 						ToStr::Get(IdxOffset) + ", " +
 						ToStr::Get(InstCount) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = 0;
 		draw.instanceOffset = 0;
 
@@ -1047,11 +1072,16 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 						ToStr::Get(InstCount) + ", " + 
 						ToStr::Get(BaseInstance) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = 0;
 		draw.instanceOffset = BaseInstance;
 
@@ -1111,11 +1141,16 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 						ToStr::Get(InstCount) + ", " + 
 						ToStr::Get(BaseVertex) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = BaseVertex;
 		draw.instanceOffset = 0;
 
@@ -1177,11 +1212,16 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 						ToStr::Get(BaseVertex) + ", " +
 						ToStr::Get(BaseInstance) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.numIndices = Count;
 		draw.numInstances = InstCount;
-		draw.indexOffset = (uint32_t)IdxOffset;
+		draw.indexOffset = uint32_t(IdxOffset)/IdxSize;
 		draw.vertexOffset = BaseVertex;
 		draw.instanceOffset = BaseInstance;
 
