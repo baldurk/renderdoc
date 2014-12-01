@@ -231,21 +231,28 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		RDCEraseMem(state, sizeof(TextureStateInitialData));
 		
 		{
+			bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE || details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)&state->swizzle[0]);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
-			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
-			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
-			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
-			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR, &state->border[0]);
-			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+
+			// only non-ms textures have sampler state
+			if(!ms)
+			{
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
+				gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
+				gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
+				gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR, &state->border[0]);
+				gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+			}
 		}
 
 		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
@@ -771,22 +778,29 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		TextureStateInitialData *state = (TextureStateInitialData *)initial.blob;
 
 		{
+			bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE || details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
+
 			if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
+
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)state->swizzle);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
-			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
-			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
-			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_BORDER_COLOR, state->border);
-			gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+
+			if(!ms)
+			{
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAG_FILTER, (GLint *)&state->magFilter);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_R, (GLint *)&state->wrap[0]);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_S, (GLint *)&state->wrap[1]);
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_WRAP_T, (GLint *)&state->wrap[2]);
+				gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MIN_LOD, &state->minLod);
+				gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
+				gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_BORDER_COLOR, state->border);
+				gl.glTextureParameterfvEXT(live.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+			}
 		}
 	}
 	else if(live.Namespace == eResProgram)
