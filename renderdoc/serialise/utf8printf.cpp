@@ -929,6 +929,7 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
 					clipoffs = 0;
 					len = 0;
 					s = "";
+					break;
 				}
 
 				len++; // one more codepoint
