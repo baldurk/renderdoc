@@ -560,17 +560,19 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
 bool GLReplay::RenderTexture(TextureDisplay cfg)
 {
-	MakeCurrentReplayContext(m_DebugCtx);
-	
 	WrappedOpenGL &gl = *m_pDriver;
 	
-	gl.glUseProgram(DebugData.texDisplayProg);
-
 	auto &texDetails = m_pDriver->m_Textures[cfg.texid];
+
+	bool renderbuffer = false;
 
 	int resType;
 	switch (texDetails.curType)
 	{
+		case eGL_RENDERBUFFER:
+			resType = RESTYPE_TEX2D;
+			renderbuffer = true;
+			break;
 		case eGL_TEXTURE_1D:
 			resType = RESTYPE_TEX1D;
 			break;
@@ -595,6 +597,39 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			resType = RESTYPE_TEXCUBEARRAY;
 			break;
 	}
+
+	GLuint texname = texDetails.resource.name;
+	GLenum target = texDetails.curType;
+
+	// do blit from renderbuffer to texture, then sample from texture
+	if(renderbuffer)
+	{
+		// need replay context active to do blit (as FBOs aren't shared)
+		MakeCurrentReplayContext(&m_ReplayCtx);
+	
+		GLuint curDrawFBO = 0;
+		GLuint curReadFBO = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+		
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+		gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height,
+		                     0, 0, texDetails.width, texDetails.height,
+												 GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT,
+												 eGL_NEAREST);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+		texname = texDetails.renderbufferReadTex;
+		target = eGL_TEXTURE_2D;
+	}
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+	
+	gl.glUseProgram(DebugData.texDisplayProg);
 
 	RDCGLenum dsTexMode = eGL_NONE;
 	if(IsDepthStencilFormat(texDetails.internalFormat))
@@ -640,13 +675,13 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	}
 	
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
-	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+	gl.glBindTexture(target, texname);
 
 	GLint origDSTexMode = eGL_DEPTH_COMPONENT;
 	if (dsTexMode != eGL_NONE)
 	{
-		gl.glGetTexParameteriv(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
-		gl.glTexParameteri(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
+		gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
+		gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
 	}
 
 	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE)
@@ -752,7 +787,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	gl.glBindSampler(0, 0);
 
 	if (dsTexMode != eGL_NONE)
-		gl.glTexParameteri(texDetails.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
+		gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
 	return true;
 }

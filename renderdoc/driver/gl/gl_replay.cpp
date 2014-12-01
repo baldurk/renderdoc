@@ -93,9 +93,17 @@ vector<ResourceId> GLReplay::GetBuffers()
 vector<ResourceId> GLReplay::GetTextures()
 {
 	vector<ResourceId> ret;
+	ret.reserve(m_pDriver->m_Textures.size());
 	
 	for(auto it=m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
 	{
+		auto &res = m_pDriver->m_Textures[it->first];
+
+		// skip textures that aren't from the log (except the 'default backbuffer' textures)
+		if(res.resource.name != m_pDriver->m_FakeBB_Color &&
+		   res.resource.name != m_pDriver->m_FakeBB_DepthStencil &&
+		   m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first) continue;
+
 		ret.push_back(it->first);
 		CacheTexture(it->first);
 	}
@@ -332,7 +340,10 @@ void GLReplay::CacheTexture(ResourceId id)
 	MakeCurrentReplayContext(&m_ReplayCtx);
 	
 	auto &res = m_pDriver->m_Textures[id];
-
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+	
 	if(res.resource.Namespace == eResUnknown || res.curType == eGL_NONE)
 	{
 		if(res.resource.Namespace == eResUnknown)
@@ -356,9 +367,56 @@ void GLReplay::CacheTexture(ResourceId id)
 		return;
 	}
 	
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+	if(res.resource.Namespace == eResRenderbuffer || res.curType == eGL_RENDERBUFFER)
+	{
+		tex.dimension = 2;
+		tex.width = res.width;
+		tex.height = res.height;
+		tex.depth = 1;
+		tex.cubemap = false;
+		tex.mips = 1;
+		tex.arraysize = 1;
+		tex.numSubresources = 1;
+		tex.creationFlags = eTextureCreate_RTV;
+		tex.msQual = 0;
+		tex.msSamp = res.samples;
+
+		tex.format = MakeResourceFormat(gl, eGL_TEXTURE_2D, res.internalFormat);
+
+		if(IsDepthStencilFormat(res.internalFormat))
+			tex.creationFlags |= eTextureCreate_DSV;
+		
+		tex.byteSize = (tex.width*tex.height)*(tex.format.compByteWidth*tex.format.compCount);
+
+		string str = "";
+		char name[128] = {0};
+		gl.glGetObjectLabel(eGL_RENDERBUFFER, res.resource.name, 127, NULL, name);
+		str = name;
+		tex.customName = true;
+
+		if(str == "")
+		{
+			const char *suffix = "";
+			const char *ms = "";
+
+			if(tex.msSamp > 1)
+				ms = "MS";
+
+			if(tex.creationFlags & eTextureCreate_RTV)
+				suffix = " RTV";
+			if(tex.creationFlags & eTextureCreate_DSV)
+				suffix = " DSV";
+
+			tex.customName = false;
+
+			str = StringFormat::Fmt("Renderbuffer%s%s %llu", ms, suffix, tex.ID);
+		}
+
+		tex.name = str;
+
+		m_CachedTextures[id] = tex;
+		return;
+	}
 	
 	GLenum target = TextureTarget(res.curType);
 
@@ -504,8 +562,8 @@ void GLReplay::CacheTexture(ResourceId id)
 		tex.msQual = tex.msSamp = 0;
 		tex.byteSize = 0;
 
-		gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.width);
-		tex.byteSize = tex.width/(tex.format.compByteWidth*tex.format.compCount);
+		gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
+		tex.width = uint32_t(tex.byteSize/(tex.format.compByteWidth*tex.format.compCount));
 		
 		m_CachedTextures[id] = tex;
 		return;
@@ -1258,6 +1316,9 @@ void GLReplay::SavePipelineState()
 	GLint numCols = 8;
 	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
+	bool rbCol[32] = { false };
+	bool rbDepth = false;
+	bool rbStencil = false;
 	GLuint curCol[32] = { 0 };
 	GLuint curDepth = 0;
 	GLuint curStencil = 0;
@@ -1268,19 +1329,29 @@ void GLReplay::SavePipelineState()
 	RDCASSERT(curFBO != 0);
 
 	{
+		GLenum type = eGL_TEXTURE;
 		for(GLint i=0; i < numCols; i++)
+		{
 			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curCol[i]);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+			if(type == eGL_RENDERBUFFER) rbCol[i] = true;
+		}
+
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+		if(type == eGL_RENDERBUFFER) rbDepth = true;
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+		if(type == eGL_RENDERBUFFER) rbStencil = true;
 	}
 
 	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curFBO)));
 	create_array_uninit(pipe.m_FB.Color, numCols);
 	for(GLint i=0; i < numCols; i++)
-		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curCol[i])));
+		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
-	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curDepth)));
-	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(ctx, curStencil)));
+	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 }
 
 void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,

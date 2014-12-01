@@ -183,14 +183,24 @@ class WrappedOpenGL
 		
 		struct TextureData
 		{
-			TextureData() : dimension(0), width(0), height(0), depth(0), samples(0), creationFlags(0), internalFormat(eGL_NONE), renderbuffer(false) {}
+			TextureData()
+				: dimension(0), width(0), height(0), depth(0), samples(0), creationFlags(0), internalFormat(eGL_NONE),
+				renderbufferReadTex(0)
+			{
+				renderbufferFBOs[0] = renderbufferFBOs[1] = 0;
+			}
 			GLResource resource;
 			GLenum curType;
 			GLint dimension;
 			GLint width, height, depth, samples;
 			uint32_t creationFlags;
 			GLenum internalFormat;
-			bool renderbuffer;
+
+			// since renderbuffers cannot be read from, we have to create a texture of identical size/format,
+			// and define FBOs for blitting to it - the renderbuffer is attached to the first FBO and the texture is
+			// bound to the second.
+			GLuint renderbufferReadTex;
+			GLuint renderbufferFBOs[2];
 		};
 
 		map<ResourceId, TextureData> m_Textures;

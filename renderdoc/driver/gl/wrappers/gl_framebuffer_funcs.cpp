@@ -480,7 +480,6 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuff
 		if(m_State == READING)
 		{
 			m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
-			m_Textures[GetResourceManager()->GetLiveID(id)].renderbuffer = true;
 		}
 	}
 
@@ -1001,6 +1000,9 @@ bool WrappedOpenGL::Serialise_glGenRenderbuffers(GLsizei n, GLuint* renderbuffer
 
 		ResourceId live = m_ResourceManager->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(id, res);
+
+		m_Textures[live].resource = res;
+		m_Textures[live].curType = eGL_RENDERBUFFER;
 	}
 
 	return true;
@@ -1074,14 +1076,37 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorage(GLenum target, GLenum intern
 	if(m_State == READING)
 	{
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
-		m_Textures[liveId].width = Width;
-		m_Textures[liveId].height = Height;
-		m_Textures[liveId].depth = 1;
-		m_Textures[liveId].curType = eGL_RENDERBUFFER;
-		m_Textures[liveId].internalFormat = Format;
+		TextureData& texDetails = m_Textures[liveId];
 
-		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, GetResourceManager()->GetLiveResource(id).name);
+		texDetails.width = Width;
+		texDetails.height = Height;
+		texDetails.depth = 1;
+		texDetails.samples = 1;
+		texDetails.curType = eGL_RENDERBUFFER;
+		texDetails.internalFormat = Format;
+
+		GLuint real = GetResourceManager()->GetLiveResource(id).name;
+
+		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
 		m_Real.glRenderbufferStorage(eGL_RENDERBUFFER, Format, Width, Height);
+
+		// create read-from texture for displaying this render buffer
+		m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
+		m_Real.glBindTexture(eGL_TEXTURE_2D, texDetails.renderbufferReadTex);
+		m_Real.glTextureStorage2DEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D, 1, Format, Width, Height);
+
+		m_Real.glGenFramebuffers(2, texDetails.renderbufferFBOs);
+		m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+		m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+		
+		GLenum fmt = GetBaseFormat(Format);
+
+		GLenum attach = eGL_COLOR_ATTACHMENT0;
+		if(fmt == eGL_DEPTH_COMPONENT) attach = eGL_DEPTH_ATTACHMENT;
+		if(fmt == eGL_STENCIL) attach = eGL_STENCIL_ATTACHMENT;
+		if(fmt == eGL_DEPTH_STENCIL) attach = eGL_DEPTH_STENCIL_ATTACHMENT;
+		m_Real.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER, real);
+		m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, eGL_TEXTURE_2D, texDetails.renderbufferReadTex, 0);
 	}
 
 	return true;
@@ -1106,6 +1131,7 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 		m_Textures[m_Renderbuffer].width = width;
 		m_Textures[m_Renderbuffer].height = height;
 		m_Textures[m_Renderbuffer].depth = 1;
+		m_Textures[m_Renderbuffer].samples = 1;
 		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
 		m_Textures[m_Renderbuffer].dimension = 2;
 		m_Textures[m_Renderbuffer].internalFormat = internalformat;
@@ -1123,14 +1149,37 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisample(GLenum target, GL
 	if(m_State == READING)
 	{
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
-		m_Textures[liveId].width = Width;
-		m_Textures[liveId].height = Height;
-		m_Textures[liveId].depth = 1;
-		m_Textures[liveId].curType = eGL_RENDERBUFFER;
-		m_Textures[liveId].internalFormat = Format;
+		TextureData& texDetails = m_Textures[liveId];
+
+		texDetails.width = Width;
+		texDetails.height = Height;
+		texDetails.depth = 1;
+		texDetails.samples = Samples;
+		texDetails.curType = eGL_RENDERBUFFER;
+		texDetails.internalFormat = Format;
+		
+		GLuint real = GetResourceManager()->GetLiveResource(id).name;
 
 		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, GetResourceManager()->GetLiveResource(id).name);
 		m_Real.glRenderbufferStorageMultisample(eGL_RENDERBUFFER, Samples, Format, Width, Height);
+
+		// create read-from texture for displaying this render buffer
+		m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
+		m_Real.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex);
+		m_Real.glTextureStorage2DMultisampleEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D_MULTISAMPLE, Samples, Format, Width, Height, true);
+
+		m_Real.glGenFramebuffers(2, texDetails.renderbufferFBOs);
+		m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+		m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+		
+		GLenum fmt = GetBaseFormat(Format);
+
+		GLenum attach = eGL_COLOR_ATTACHMENT0;
+		if(fmt == eGL_DEPTH_COMPONENT) attach = eGL_DEPTH_ATTACHMENT;
+		if(fmt == eGL_STENCIL) attach = eGL_STENCIL_ATTACHMENT;
+		if(fmt == eGL_DEPTH_STENCIL) attach = eGL_DEPTH_STENCIL_ATTACHMENT;
+		m_Real.glNamedFramebufferRenderbufferEXT(texDetails.renderbufferFBOs[0], attach, eGL_RENDERBUFFER, real);
+		m_Real.glNamedFramebufferTexture2DEXT(texDetails.renderbufferFBOs[1], attach, eGL_TEXTURE_2D_MULTISAMPLE, texDetails.renderbufferReadTex, 0);
 	}
 
 	return true;
@@ -1154,7 +1203,8 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
 	{
 		m_Textures[m_Renderbuffer].width = width;
 		m_Textures[m_Renderbuffer].height = height;
-		m_Textures[m_Renderbuffer].depth = samples;
+		m_Textures[m_Renderbuffer].depth = 1;
+		m_Textures[m_Renderbuffer].samples = samples;
 		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
 		m_Textures[m_Renderbuffer].dimension = 2;
 		m_Textures[m_Renderbuffer].internalFormat = internalformat;
