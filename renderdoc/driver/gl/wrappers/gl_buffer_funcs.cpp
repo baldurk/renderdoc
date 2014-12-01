@@ -1453,6 +1453,7 @@ bool WrappedOpenGL::Serialise_glBeginTransformFeedback(GLenum primitiveMode)
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glBeginTransformFeedback(Mode);
+		m_ActiveFeedback = true;
 	}
 	
 	return true;
@@ -1461,6 +1462,7 @@ bool WrappedOpenGL::Serialise_glBeginTransformFeedback(GLenum primitiveMode)
 void WrappedOpenGL::glBeginTransformFeedback(GLenum primitiveMode)
 {
 	m_Real.glBeginTransformFeedback(primitiveMode);
+	m_ActiveFeedback = true;
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -1522,6 +1524,7 @@ bool WrappedOpenGL::Serialise_glEndTransformFeedback()
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glEndTransformFeedback();
+		m_ActiveFeedback = false;
 	}
 	
 	return true;
@@ -1530,6 +1533,7 @@ bool WrappedOpenGL::Serialise_glEndTransformFeedback()
 void WrappedOpenGL::glEndTransformFeedback()
 {
 	m_Real.glEndTransformFeedback();
+	m_ActiveFeedback = false;
 
 	if(m_State == WRITING_CAPFRAME)
 	{

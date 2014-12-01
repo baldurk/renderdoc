@@ -370,6 +370,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	RDCEraseEl(m_ActiveQueries);
 	m_ActiveConditional = false;
+	m_ActiveFeedback = false;
 	
 	m_LastIndexSize = eGL_NONE;
 	m_LastIndexOffset = 0;
@@ -2375,6 +2376,12 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		{
 			m_Real.glEndConditionalRender();
 			m_ActiveConditional = false;
+		}
+
+		if(m_ActiveFeedback)
+		{
+			m_Real.glEndTransformFeedback();
+			m_ActiveFeedback = false;
 		}
 	}
 
