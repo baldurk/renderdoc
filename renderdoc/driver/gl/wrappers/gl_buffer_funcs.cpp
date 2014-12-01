@@ -833,7 +833,13 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 
 		byte *ptr = record->GetDataPtr();
 
-		if(ptr == NULL)
+		// we can only 'ignore' a buffer map if we're idle, if we're capframing
+		// we must create shadow stores and intercept it. If we choose to ignore
+		// this buffer map because we don't have backing store, it will probably
+		// get the buffer marked as dirty (although in theory we could create a
+		// backing store from the unmap chunk, provided we have mapped the whole
+		// buffer.
+		if(ptr == NULL && m_State == WRITING_IDLE)
 		{
 			RDCWARN("Mapping buffer that hasn't been allocated");
 			
@@ -929,7 +935,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 			if(m_State != WRITING_CAPFRAME)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
-		
+
 		record->Map.offset = offset;
 		record->Map.length = length;
 		record->Map.access = access;
@@ -945,8 +951,8 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 
 		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
 
-		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT|GL_MAP_FLUSH_EXPLICIT_BIT|GL_MAP_UNSYNCHRONIZED_BIT)) != 0)
-			RDCUNIMPLEMENTED("haven't implemented coherent/persistant/flush explicit/unsynchronized glMap calls");
+		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
+			RDCUNIMPLEMENTED("haven't implemented persistant glMap calls");
 
 		if((access & GL_MAP_READ_BIT) != 0)
 		{
@@ -968,10 +974,16 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 
 			return ptr;
 		}
-		
-		byte *ptr = record->GetDataPtr();
 
-		if(ptr == NULL)
+		byte *ptr = record->GetDataPtr();
+		
+		// we can only 'ignore' a buffer map if we're idle, if we're capframing
+		// we must create shadow stores and intercept it. If we choose to ignore
+		// this buffer map because we don't have backing store, it will probably
+		// get the buffer marked as dirty (although in theory we could create a
+		// backing store from the unmap chunk, provided we have mapped the whole
+		// buffer.
+		if(ptr == NULL && m_State == WRITING_IDLE)
 		{
 			RDCWARN("Mapping buffer that hasn't been allocated");
 			
@@ -982,6 +994,13 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		}
 		else
 		{
+			// flush explicit maps are handled particularly:
+			// if we're idle, we just return the backing pointer and treat it no differently to a normal write map,
+			// as modified-but-unflushed ranges are "undefined", so we can easily just let them
+			// be modified.
+			// if we're capframing, we won't create a normal unmap chunk that copies over all the data with a
+			// given diff range. Instead we'll create a flush chunk for every glFlushMappedBufferRange.
+
 			if(m_State == WRITING_CAPFRAME)
 			{
 				byte *shadow = (byte *)record->GetShadowPtr(0);
@@ -1167,7 +1186,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 				break;
 			case GLResourceRecord::Mapped_Ignore_Real:
 				if(m_State == WRITING_CAPFRAME)
-					RDCWARN("Failed to cap frame - uncapped Map/Unmap");
+					RDCERR("Failed to cap frame - uncapped Map/Unmap");
 				// deliberate fallthrough
 			case GLResourceRecord::Mapped_Read_Real:
 				// need to do real unmap
@@ -1177,17 +1196,30 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 			{
 				if(m_State == WRITING_CAPFRAME)
 				{
-					SCOPED_SERIALISE_CONTEXT(UNMAP);
-					Serialise_glUnmapNamedBufferEXT(buffer);
-					m_ContextRecord->AddChunk(scope.Get());
+					if(record->Map.access & GL_MAP_FLUSH_EXPLICIT_BIT)
+					{
+						// do nothing, any flushes that happened were handled,
+						// and we won't do any other updates here or make a chunk.
+					}
+					else
+					{
+						SCOPED_SERIALISE_CONTEXT(UNMAP);
+						Serialise_glUnmapNamedBufferEXT(buffer);
+						m_ContextRecord->AddChunk(scope.Get());
+					}
 				}
 				else
+				{
 					Serialise_glUnmapNamedBufferEXT(buffer);
+				}
 				
 				break;
 			}
 			case GLResourceRecord::Mapped_Write_Real:
 			{
+				if(m_State == WRITING_CAPFRAME)
+					RDCERR("Failed to cap frame - uncapped Map/Unmap");
+
 				// Throwing away map contents as we don't have datastore allocated
 				// Could init chunk here using known data (although maybe it's only partial).
 				ret = m_Real.glUnmapNamedBufferEXT(buffer);
@@ -1221,13 +1253,100 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 	return m_Real.glUnmapBuffer(target);
 }
 
-void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
+bool WrappedOpenGL::Serialise_glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
 {
-	m_Real.glFlushMappedBufferRange(target, offset, length);
+	GLResourceRecord *record = NULL;
 
 	if(m_State >= WRITING)
+		record = m_BufferRecord[BufferIdx(target)];
+
+	SERIALISE_ELEMENT(ResourceId, ID, record->GetResourceID());
+	SERIALISE_ELEMENT(uint64_t, offs, offset);
+	SERIALISE_ELEMENT(uint64_t, len, length);
+
+	// serialise out the flushed chunk of the shadow pointer
+	SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr+offs, (size_t)len);
+
+	// update the comparison buffer in case this buffer is subsequently mapped and we want to find
+	// the difference region
+	if(m_State == WRITING_CAPFRAME && record->GetShadowPtr(1))
 	{
-		RDCUNIMPLEMENTED("Persistant/unsynchronised/explicit flash maps are not yet supported");
+		memcpy(record->GetShadowPtr(1)+offs, record->Map.ptr+offs, (size_t)len);
+	}
+
+	GLResource res;
+
+	if(m_State < WRITING)
+		res = GetResourceManager()->GetLiveResource(ID);
+	else
+		res = GetResourceManager()->GetCurrentResource(ID);
+
+	// perform a map of the range and copy the data, to emulate the modified region being flushed
+	void *ptr = m_Real.glMapNamedBufferRangeEXT(res.name, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
+	memcpy(ptr, data, (size_t)len);
+	m_Real.glUnmapNamedBufferEXT(res.name);
+
+	if(m_State < WRITING)
+		SAFE_DELETE_ARRAY(data);
+
+	return true;
+}
+
+void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
+{
+	GLResourceRecord *record = m_BufferRecord[BufferIdx(target)];
+	RDCASSERT(m_BufferRecord[BufferIdx(target)]);
+		
+	// only need to pay attention to flushes when in capframe. Otherwise (see above) we
+	// treat the map as a normal map, and let ALL modified regions go through, flushed or not,
+	// as this is legal - modified but unflushed regions are 'undefined' so we can just say
+	// that modifications applying is our undefined behaviour.
+
+	// note that when we're idle, we only want to flush the range with GL if we've actually
+	// mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
+	if(m_State != WRITING_IDLE || (record && record->Map.status == GLResourceRecord::Mapped_Write_Real))
+		m_Real.glFlushMappedBufferRange(target, offset, length);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		if(record)
+		{
+			if(record->Map.status == GLResourceRecord::Unmapped)
+			{
+				RDCWARN("Unmapped buffer being flushed, ignoring");
+			}
+			else if(record->Map.status == GLResourceRecord::Mapped_Ignore_Real ||
+			        record->Map.status == GLResourceRecord::Mapped_Write_Real)
+			{
+				RDCERR("Failed to cap frame - uncapped Map/Unmap being flushed");
+			}
+			else if(record->Map.status == GLResourceRecord::Mapped_Write)
+			{
+				if(offset < record->Map.offset || offset + length > record->Map.offset + record->Map.length)
+				{
+					RDCWARN("Flushed buffer range is outside of mapped range, clamping");
+					
+					// maintain the length/end boundary of the flushed range if the flushed offset
+					// is below the mapped range
+					if(offset < record->Map.offset)
+					{
+						offset += (record->Map.offset-offset);
+						length -= (record->Map.offset-offset);
+					}
+
+					// clamp the length if it's beyond the mapped range.
+					if(offset + length > record->Map.offset + record->Map.length)
+					{
+						length = (record->Map.offset + record->Map.length - offset);
+					}
+				}
+				
+				SCOPED_SERIALISE_CONTEXT(FLUSHMAP);
+				Serialise_glFlushMappedBufferRange(target, offset, length);
+				m_ContextRecord->AddChunk(scope.Get());
+			}
+			// other statuses are reading
+		}
 	}
 }
 

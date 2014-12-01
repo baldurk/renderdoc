@@ -260,6 +260,7 @@ const char *GLChunkNames[] =
 	"glBufferSubData",
 	"glCopyBufferSubData",
 	"glUnmapBuffer",
+	"glFlushMappedBufferRange",
 	"glGenVertexArrays",
 	"glBindVertexArray",
 	"glVertexAttrib*",
@@ -2219,6 +2220,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case UNMAP:
 		Serialise_glUnmapNamedBufferEXT(eGL_NONE);
+		break;
+	case FLUSHMAP:
+		Serialise_glFlushMappedBufferRange(eGL_NONE, 0, 0);
 		break;
 	case GEN_VERTEXARRAY:
 		Serialise_glGenVertexArrays(0, NULL);
