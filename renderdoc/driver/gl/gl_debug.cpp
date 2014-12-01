@@ -315,26 +315,17 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
 	const GLHookSet &gl = m_pDriver->GetHookset();
 	
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-	HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
-	                                                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-
-	cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width>>mip, 1U);
-	cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height>>mip, 1U);
-	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
-	cdata->HistogramSlice = (float)sliceFace;
-	cdata->HistogramMip = (int)mip;
-	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
-	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
-	cdata->HistogramMin = 0.0f;
-	cdata->HistogramMax = 1.0f;
-	cdata->HistogramChannels = 0xf;
-	
 	int texSlot = 0;
 	int intIdx = 0;
+
+	bool renderbuffer = false;
 	
 	switch (texDetails.curType)
 	{
+		case eGL_RENDERBUFFER:
+			texSlot = RESTYPE_TEX2D;
+			renderbuffer = true;
+			break;
 		case eGL_TEXTURE_1D:
 			texSlot = RESTYPE_TEX1D;
 			break;
@@ -342,6 +333,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 			RDCWARN("Unexpected texture type");
 		case eGL_TEXTURE_2D:
 			texSlot = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_RECTANGLE:
+			texSlot = RESTYPE_TEXRECT;
 			break;
 		case eGL_TEXTURE_3D:
 			texSlot = RESTYPE_TEX3D;
@@ -360,6 +354,52 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 			break;
 	}
 
+	GLenum target = texDetails.curType;
+	GLuint texname = texDetails.resource.name;
+
+	// do blit from renderbuffer to texture, then sample from texture
+	if(renderbuffer)
+	{
+		// need replay context active to do blit (as FBOs aren't shared)
+		MakeCurrentReplayContext(&m_ReplayCtx);
+	
+		GLuint curDrawFBO = 0;
+		GLuint curReadFBO = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+		
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+		gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height,
+		                     0, 0, texDetails.width, texDetails.height,
+												 GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT,
+												 eGL_NEAREST);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+		texname = texDetails.renderbufferReadTex;
+		target = eGL_TEXTURE_2D;
+	}
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+	HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
+	                                                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+	cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width>>mip, 1U);
+	cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height>>mip, 1U);
+	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
+	cdata->HistogramSlice = (float)sliceFace;
+	cdata->HistogramMip = (int)mip;
+	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
+	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
+	cdata->HistogramMin = 0.0f;
+	cdata->HistogramMax = 1.0f;
+	cdata->HistogramChannels = 0xf;
+	
 	if(details.format.compType == eCompType_UInt)
 	{
 		texSlot |= TEXDISPLAY_UINT_TEX;
@@ -380,7 +420,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
-	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+	gl.glBindTexture(target, texname);
 	gl.glBindSampler(texSlot, DebugData.pointSampler);
 	
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxTileResult);
@@ -428,6 +468,76 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
 	const GLHookSet &gl = m_pDriver->GetHookset();
 
+	int texSlot = 0;
+	int intIdx = 0;
+
+	bool renderbuffer = false;
+
+	switch (texDetails.curType)
+	{
+		case eGL_RENDERBUFFER:
+			texSlot = RESTYPE_TEX2D;
+			renderbuffer = true;
+			break;
+		case eGL_TEXTURE_1D:
+			texSlot = RESTYPE_TEX1D;
+			break;
+		default:
+			RDCWARN("Unexpected texture type");
+		case eGL_TEXTURE_2D:
+			texSlot = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_RECTANGLE:
+			texSlot = RESTYPE_TEXRECT;
+			break;
+		case eGL_TEXTURE_3D:
+			texSlot = RESTYPE_TEX3D;
+			break;
+		case eGL_TEXTURE_CUBE_MAP:
+			texSlot = RESTYPE_TEXCUBE;
+			break;
+		case eGL_TEXTURE_1D_ARRAY:
+			texSlot = RESTYPE_TEX1DARRAY;
+			break;
+		case eGL_TEXTURE_2D_ARRAY:
+			texSlot = RESTYPE_TEX2DARRAY;
+			break;
+		case eGL_TEXTURE_CUBE_MAP_ARRAY:
+			texSlot = RESTYPE_TEXCUBEARRAY;
+			break;
+	}
+
+	GLenum target = texDetails.curType;
+	GLuint texname = texDetails.resource.name;
+
+	// do blit from renderbuffer to texture, then sample from texture
+	if(renderbuffer)
+	{
+		// need replay context active to do blit (as FBOs aren't shared)
+		MakeCurrentReplayContext(&m_ReplayCtx);
+	
+		GLuint curDrawFBO = 0;
+		GLuint curReadFBO = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+		
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+		gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height,
+		                     0, 0, texDetails.width, texDetails.height,
+												 GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT|GL_STENCIL_BUFFER_BIT,
+												 eGL_NEAREST);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+		texname = texDetails.renderbufferReadTex;
+		target = eGL_TEXTURE_2D;
+	}
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 	HistogramCBufferData *cdata = (HistogramCBufferData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(HistogramCBufferData),
 	                                                                          GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -447,36 +557,6 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	if(channels[2]) cdata->HistogramChannels |= 0x4;
 	if(channels[3]) cdata->HistogramChannels |= 0x8;
 	cdata->HistogramFlags = 0;
-
-	int texSlot = 0;
-	int intIdx = 0;
-
-	switch (texDetails.curType)
-	{
-		case eGL_TEXTURE_1D:
-			texSlot = RESTYPE_TEX1D;
-			break;
-		default:
-			RDCWARN("Unexpected texture type");
-		case eGL_TEXTURE_2D:
-			texSlot = RESTYPE_TEX2D;
-			break;
-		case eGL_TEXTURE_3D:
-			texSlot = RESTYPE_TEX3D;
-			break;
-		case eGL_TEXTURE_CUBE_MAP:
-			texSlot = RESTYPE_TEXCUBE;
-			break;
-		case eGL_TEXTURE_1D_ARRAY:
-			texSlot = RESTYPE_TEX1DARRAY;
-			break;
-		case eGL_TEXTURE_2D_ARRAY:
-			texSlot = RESTYPE_TEX2DARRAY;
-			break;
-		case eGL_TEXTURE_CUBE_MAP_ARRAY:
-			texSlot = RESTYPE_TEXCUBEARRAY;
-			break;
-	}
 
 	if(details.format.compType == eCompType_UInt)
 	{
@@ -498,7 +578,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
-	gl.glBindTexture(texDetails.curType, texDetails.resource.name);
+	gl.glBindTexture(target, texname);
 	gl.glBindSampler(texSlot, DebugData.pointSampler);
 
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
