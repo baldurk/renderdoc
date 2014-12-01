@@ -736,10 +736,11 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 
 	for(size_t i=0; i < ARRAY_COUNT(Scissors); i++)
 	{
-		m_pSerialiser->Serialise("GL_VIEWPORT.x", Scissors[i].x);
-		m_pSerialiser->Serialise("GL_VIEWPORT.y", Scissors[i].y);
-		m_pSerialiser->Serialise("GL_VIEWPORT.w", Scissors[i].width);
-		m_pSerialiser->Serialise("GL_VIEWPORT.h", Scissors[i].height);
+		m_pSerialiser->Serialise("GL_SCISSOR.x", Scissors[i].x);
+		m_pSerialiser->Serialise("GL_SCISSOR.y", Scissors[i].y);
+		m_pSerialiser->Serialise("GL_SCISSOR.w", Scissors[i].width);
+		m_pSerialiser->Serialise("GL_SCISSOR.h", Scissors[i].height);
+		m_pSerialiser->Serialise("GL_SCISSOR.enabled", Scissors[i].enabled);
 	}
 	
 	m_pSerialiser->Serialise<8>("GL_DRAWBUFFERS", DrawBuffers);
