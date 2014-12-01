@@ -280,7 +280,11 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 	if(len > 0 && offset+len > buf.size)
 	{
 		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = ~0U; // min below will clamp to max size size
+
+		if(offset < buf.size)
+			len = ~0U; // min below will clamp to max size size
+		else
+			return ret; // offset past buffer size, return empty array
 	}
 	else if(len == 0)
 	{
@@ -290,6 +294,8 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 	// need to ensure len+offset doesn't overrun buffer or the glGetBufferSubData call
 	// will fail.
 	len = RDCMIN(len, bufsize-offset);
+
+	if(len == 0) return ret;
 	
 	ret.resize(len);
 	
