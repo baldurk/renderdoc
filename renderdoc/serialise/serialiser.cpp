@@ -255,11 +255,7 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
 
 		if(header.magic != MAGIC_HEADER)
 		{
-			char magicRef[5] = { 0 };
-			char magicFile[5] = { 0 };
-			memcpy(magicRef, &MAGIC_HEADER, sizeof(uint32_t));
-			memcpy(magicFile, &header.magic, sizeof(uint32_t));
-			RDCERR("Invalid capture file. Expected magic %s, got %s", magicRef, magicFile);
+			RDCERR("Invalid capture file. Expected magic %08x, got %08x", MAGIC_HEADER, (uint32_t)header.magic);
 			
 			m_ErrorCode = eSerError_Corrupt;
 			m_HasError = true;
