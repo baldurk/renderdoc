@@ -766,6 +766,13 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	ubo->TextureResolutionPS.y = float(tex_y);
 	ubo->TextureResolutionPS.z = float(tex_z);
 
+	float mipScale = float(1<<cfg.mip);
+
+	ubo->Scale *= mipScale;
+	ubo->TextureResolutionPS.x /= mipScale;
+	ubo->TextureResolutionPS.y /= mipScale;
+	ubo->TextureResolutionPS.z /= mipScale;
+
 	ubo->OutputRes.x = DebugData.outWidth;
 	ubo->OutputRes.y = DebugData.outHeight;
 
