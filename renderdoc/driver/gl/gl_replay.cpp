@@ -818,46 +818,49 @@ void GLReplay::SavePipelineState()
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&type);
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
 
-		// TODO should check eGL_VERTEX_ATTRIB_ARRAY_INTEGER
+		GLint integer = 0;
+		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
 
 		ResourceFormat fmt;
 
 		fmt.special = false;
 		fmt.compCount = 4;
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&fmt.compCount);
+
+		bool intComponent = !normalized || integer;
 		
 		switch(type)
 		{
 			default:
 			case eGL_BYTE:
 				fmt.compByteWidth = 1;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_BYTE%d", fmt.compCount) + (normalized ? "" : "_SNORM");
+				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+				fmt.strname = StringFormat::Fmt("GL_BYTE%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_BYTE:
 				fmt.compByteWidth = 1;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount) + (normalized ? "" : "_UNORM");
+				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_SHORT:
 				fmt.compByteWidth = 2;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_SHORT%d", fmt.compCount) + (normalized ? "" : "_SNORM");
+				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+				fmt.strname = StringFormat::Fmt("GL_SHORT%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_SHORT:
 				fmt.compByteWidth = 2;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount) + (normalized ? "" : "_UNORM");
+				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_INT:
 				fmt.compByteWidth = 4;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_INT%d", fmt.compCount) + (normalized ? "" : "_SNORM");
+				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+				fmt.strname = StringFormat::Fmt("GL_INT%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_INT:
 				fmt.compByteWidth = 4;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount) + (normalized ? "" : "_UNORM");
+				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_FLOAT:
 				fmt.compByteWidth = 4;
