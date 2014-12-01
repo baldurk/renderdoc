@@ -480,7 +480,6 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 		
 			char n[1024] = {0};
 			gl.glGetProgramResourceName(progSrc, eGL_UNIFORM, i, values[2], NULL, n);
-			basename = n;
 
 			if(arraySize > 1)
 			{
@@ -495,13 +494,14 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			{
 				arraySize = 1;
 			}
+			
+			basename = n;
 		}
 
 		if(SerialiseUniforms)
 		{
 			ser->Serialise("type", type);
 			ser->Serialise("arraySize", arraySize);
-			ser->Serialise("srcLocation", srcLocation);
 			ser->Serialise("basename", basename);
 			ser->Serialise("isArray", isArray);
 		}
@@ -516,7 +516,15 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			string name = basename;
 
 			if(isArray)
+			{
 				name += StringFormat::Fmt("[%d]", arr);
+
+				if(ReadSourceProgram)
+					srcLocation = gl.glGetUniformLocation(progDst, name.c_str());
+			}
+			
+			if(SerialiseUniforms)
+				ser->Serialise("srcLocation", srcLocation);
 
 			GLint newloc = 0;
 			if(WriteDestProgram)
