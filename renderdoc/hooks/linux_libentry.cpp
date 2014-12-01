@@ -48,7 +48,7 @@ void library_loaded()
 	{
 		RenderDoc::Inst().Initialise();
 	
-		RDCLOG("Loading into %S", curfile.c_str());
+		RDCLOG("Loading into %s", curfile.c_str());
 	
 		LibraryHooks::GetInstance().CreateHooks();
 	}

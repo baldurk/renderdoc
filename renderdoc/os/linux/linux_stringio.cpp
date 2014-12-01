@@ -216,9 +216,8 @@ namespace StringFormat
 		int size = StringFormat::vsnprintf(NULL, 0, format, args2);
 
 		char *buf = new char[size+1];
+		StringFormat::vsnprintf(buf, size+1, format, args);
 		buf[size] = 0;
-
-		StringFormat::vsnprintf(buf, size, format, args);
 
 		va_end(args);
 		va_end(args2);
