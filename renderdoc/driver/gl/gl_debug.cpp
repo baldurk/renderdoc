@@ -684,11 +684,23 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 		gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
 	}
 
-	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE)
-		gl.glBindSampler(resType, DebugData.linearSampler);
-	else
-		gl.glBindSampler(resType, DebugData.pointSampler);
+	int maxlevel = -1;
 
+	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE)
+	{
+		gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+
+		// need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
+		int clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+
+		gl.glBindSampler(resType, DebugData.linearSampler);
+	}
+	else
+	{
+		gl.glBindSampler(resType, DebugData.pointSampler);
+	}
+	
 	GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
 
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
@@ -796,6 +808,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	gl.glBindVertexArray(DebugData.emptyVAO);
 	gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 	
+	if(maxlevel >= 0)
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+
 	gl.glBindSampler(0, 0);
 
 	if (dsTexMode != eGL_NONE)
