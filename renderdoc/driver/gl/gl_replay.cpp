@@ -1197,7 +1197,9 @@ void GLReplay::SavePipelineState()
 
 			// very bespoke/specific
 			GLint firstSlice = 0;
-			gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+
+			if(target != eGL_TEXTURE_BUFFER)
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
 
 			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
 			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
