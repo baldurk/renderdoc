@@ -1451,6 +1451,8 @@ bool WrappedOpenGL::VertexArrayUpdateCheck()
 
 bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void *pointer)
 {
+	size_t bufidx = BufferIdx(eGL_ARRAY_BUFFER);
+
 	SERIALISE_ELEMENT(uint32_t, Index, index);
 	SERIALISE_ELEMENT(int32_t, Size, size);
 	SERIALISE_ELEMENT(GLenum, Type, type);
@@ -1458,17 +1460,34 @@ bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GL
 	SERIALISE_ELEMENT(uint32_t, Stride, stride);
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
 	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, bid, m_BufferRecord[bufidx] ? m_BufferRecord[bufidx]->GetResourceID() : ResourceId());
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		// if we're reading, we won't have serialised the glBindVertexArray commands before the captured frame,
+		// need to apply it here (and the current state doesn't matter, will be completely set at start of the
+		// frame).
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(0);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(0);
+			}
+			
+			if(bid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(bid);
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, res.name);
+			}
+			else
+			{
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, 0);
+			}
 		}
 
 		m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void *)Offset);
@@ -1504,23 +1523,42 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 bool WrappedOpenGL::Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
 {
+	size_t bufidx = BufferIdx(eGL_ARRAY_BUFFER);
+
 	SERIALISE_ELEMENT(uint32_t, Index, index);
 	SERIALISE_ELEMENT(int32_t, Size, size);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(uint32_t, Stride, stride);
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
 	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, bid, m_BufferRecord[bufidx] ? m_BufferRecord[bufidx]->GetResourceID() : ResourceId());
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		// if we're reading, we won't have serialised the glBindVertexArray commands before the captured frame,
+		// need to apply it here (and the current state doesn't matter, will be completely set at start of the
+		// frame).
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(0);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(0);
+			}
+			
+			if(bid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(bid);
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, res.name);
+			}
+			else
+			{
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, 0);
+			}
 		}
 
 		m_Real.glVertexAttribIPointer(Index, Size, Type, Stride, (const void *)Offset);
@@ -1556,23 +1594,42 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 
 bool WrappedOpenGL::Serialise_glVertexAttribLPointer(GLuint index, GLint size, GLenum type, GLsizei stride, const void *pointer)
 {
+	size_t bufidx = BufferIdx(eGL_ARRAY_BUFFER);
+
 	SERIALISE_ELEMENT(uint32_t, Index, index);
 	SERIALISE_ELEMENT(int32_t, Size, size);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(uint32_t, Stride, stride);
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
 	SERIALISE_ELEMENT(ResourceId, id, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, bid, m_BufferRecord[bufidx] ? m_BufferRecord[bufidx]->GetResourceID() : ResourceId());
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		// if we're reading, we won't have serialised the glBindVertexArray commands before the captured frame,
+		// need to apply it here (and the current state doesn't matter, will be completely set at start of the
+		// frame).
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(0);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(0);
+			}
+			
+			if(bid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(bid);
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, res.name);
+			}
+			else
+			{
+				m_Real.glBindBuffer(eGL_ARRAY_BUFFER, 0);
+			}
 		}
 
 		m_Real.glVertexAttribLPointer(Index, Size, Type, Stride, (const void *)Offset);
