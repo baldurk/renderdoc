@@ -371,6 +371,8 @@ bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuin
 
 void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtexture, GLenum internalformat, GLuint minlevel, GLuint numlevels, GLuint minlayer, GLuint numlayers)
 {
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
 	m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer, numlayers);
 	
 	if(m_State >= WRITING)
@@ -1318,7 +1320,7 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 1;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
+			m_Textures[liveId].internalFormat = IntFormat;
 		}
 
 		m_Real.glTextureImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Border, Format, Type, buf);
@@ -1331,10 +1333,12 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void *pixels)
 {
-	m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1362,17 +1366,19 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 1;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
 void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
 {
-	m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
-
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
 	
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTexImage1D(target, level, internalformat, width, border, format, type, pixels);
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = m_TextureRecord[m_TextureUnit];
@@ -1399,7 +1405,7 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 1;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
@@ -1436,7 +1442,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 2;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
+			m_Textures[liveId].internalFormat = IntFormat;
 		}
 
 		m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Border, Format, Type, buf);
@@ -1449,10 +1455,12 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels)
 {
-	m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1480,16 +1488,18 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 2;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
 void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
-	m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
+
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTexImage2D(target, level, internalformat, width, height, border, format, type, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1517,7 +1527,7 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 2;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
@@ -1555,7 +1565,7 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 			m_Textures[liveId].depth = Depth;
 			m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 3;
-			m_Textures[liveId].internalFormat = GetSizedFormat(m_Real, Target, IntFormat);
+			m_Textures[liveId].internalFormat = IntFormat;
 		}
 
 		m_Real.glTextureImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Depth, Border, Format, Type, buf);
@@ -1568,10 +1578,12 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels)
 {
-	m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1599,16 +1611,18 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 		m_Textures[texId].depth = depth;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 3;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
 void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const GLvoid * pixels)
 {
-	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget((GLenum)internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+
+	m_Real.glTexImage3D(target, level, internalformat, width, height, depth, border, format, type, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1636,7 +1650,7 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 		m_Textures[texId].depth = depth;
 		m_Textures[texId].curType = TextureTarget(target);
 		m_Textures[texId].dimension = 3;
-		m_Textures[texId].internalFormat = GetSizedFormat(m_Real, target, (GLenum)internalformat);
+		m_Textures[texId].internalFormat = (GLenum)internalformat;
 	}
 }
 
@@ -1676,10 +1690,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLen
 
 void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
-	m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1713,10 +1729,12 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const GLvoid *pixels)
 {
-	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTexImage1D(target, level, internalformat, width, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1785,10 +1803,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 
 void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
-	m_Real.glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1822,10 +1842,12 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
-	m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTexImage2D(target, level, internalformat, width, height, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1895,10 +1917,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
 
 void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const void *pixels)
 {
-	m_Real.glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1932,10 +1956,12 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 
 void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const GLvoid * pixels)
 {
-	m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, pixels);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glCompressedTexImage3D(target, level, internalformat, width, height, depth, border, imageSize, pixels);
 	
 	if(m_State >= WRITING)
 	{
@@ -1997,10 +2023,12 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 
 void WrappedOpenGL::glTextureStorage1DEXT(GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width)
 {
-	m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glTextureStorage1DEXT(texture, target, levels, internalformat, width);
 	
 	if(m_State >= WRITING)
 	{
@@ -2353,10 +2381,12 @@ void WrappedOpenGL::glTexStorage2DMultisample(GLenum target, GLsizei samples, GL
 
 void WrappedOpenGL::glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations)
 {
-	m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height, fixedsamplelocations);
 	
 	if(m_State >= WRITING)
 	{
@@ -2491,10 +2521,12 @@ void WrappedOpenGL::glTexStorage3DMultisample(GLenum target, GLsizei samples, GL
 
 void WrappedOpenGL::glTexImage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations)
 {
-	m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height, depth, fixedsamplelocations);
-	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(internalformat)) return;
+	
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+	m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height, depth, fixedsamplelocations);
 	
 	if(m_State >= WRITING)
 	{
