@@ -212,19 +212,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		{
 			gl.glTextureStorage3DEXT(tex, details.curType, mips, details.internalFormat, details.width, details.height, details.depth);
 		}
-
-		// copy over mips
-		for(int i=0; i < mips; i++)
-		{
-			int w = RDCMAX(details.width>>i, 1);
-			int h = RDCMAX(details.height>>i, 1);
-			int d = RDCMAX(details.depth>>i, 1);
-
-			if(details.curType == eGL_TEXTURE_CUBE_MAP)
-				d *= 6;
-
-			gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
-		}
 		
 		TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
 
@@ -254,7 +241,30 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 				gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
 			}
 		}
+		
+		// we need to set maxlevel appropriately for number of mips to force the texture to be complete.
+		// This can happen if e.g. a texture is initialised just by default with glTexImage for level 0 and
+		// used as a framebuffer attachment, then the implementation is fine with it. Unfortunately glCopyImageSubData
+		// requires completeness across all mips, a stricter requirement :(.
+		// We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then restore it to the 'real' value we fetched above
+		int maxlevel = mips-1;
+		gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 
+		// copy over mips
+		for(int i=0; i < mips; i++)
+		{
+			int w = RDCMAX(details.width>>i, 1);
+			int h = RDCMAX(details.height>>i, 1);
+			int d = RDCMAX(details.depth>>i, 1);
+
+			if(details.curType == eGL_TEXTURE_CUBE_MAP)
+				d *= 6;
+
+			gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
+		}
+
+		gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
+		
 		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
 	}
 	else if(res.Namespace == eResVertexArray)
@@ -470,6 +480,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 					}
 				}
 			}
+			else if(samples > 1)
+			{
+				GLNOTIMP("Not implemented - initial states of multisampled textures");
+			}
 			else
 			{
 				GLenum fmt = GetBaseFormat(details.internalFormat);
@@ -644,6 +658,10 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 					}
 				}
 			}
+			else if(samples > 1)
+			{
+				GLNOTIMP("Not implemented - initial states of multisampled textures");
+			}
 			else
 			{
 				GLenum fmt = GetBaseFormat(internalformat);
@@ -761,6 +779,15 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		GLuint tex = initial.resource.name;
 		
 		int mips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
+		
+		// we need to set maxlevel appropriately for number of mips to force the texture to be complete.
+		// This can happen if e.g. a texture is initialised just by default with glTexImage for level 0 and
+		// used as a framebuffer attachment, then the implementation is fine with it. Unfortunately glCopyImageSubData
+		// requires completeness across all mips, a stricter requirement :(.
+		// We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then below where we set the texture state, the
+		// correct MAX_LEVEL is set to whatever the program had.
+		int maxlevel = mips-1;
+		gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 
 		// copy over mips
 		for(int i=0; i < mips; i++)
