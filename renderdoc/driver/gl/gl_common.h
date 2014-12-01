@@ -75,6 +75,9 @@ struct GLHookSet;
 size_t BufferIdx(GLenum buf);
 GLenum BufferEnum(size_t idx);
 
+size_t QueryIdx(GLenum query);
+GLenum QueryEnum(size_t idx);
+
 size_t ShaderIdx(GLenum buf);
 GLenum ShaderBit(size_t idx);
 GLenum ShaderEnum(size_t idx);

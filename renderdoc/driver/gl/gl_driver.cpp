@@ -367,6 +367,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_TextureUnit = 0;
 	m_ProgramPipeline = 0;
 	m_Program = 0;
+
+	RDCEraseEl(m_ActiveQueries);
+	m_ActiveConditional = false;
 	
 	m_LastIndexSize = eGL_NONE;
 	m_LastIndexOffset = 0;
@@ -2353,6 +2356,26 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	if(m_State == EXECUTING)
 	{
+		for(size_t i=0; i < 8; i++)
+		{
+			GLenum q = QueryEnum(i);
+			if(q == eGL_NONE) break;
+
+			for(int j=0; j < 8; j++)
+			{
+				if(m_ActiveQueries[i][j])
+				{
+					m_Real.glEndQueryIndexed(q, j);
+					m_ActiveQueries[i][j] = false;
+				}
+			}
+		}
+
+		if(m_ActiveConditional)
+		{
+			m_Real.glEndConditionalRender();
+			m_ActiveConditional = false;
+		}
 	}
 
 	GetResourceManager()->MarkInFrame(true);

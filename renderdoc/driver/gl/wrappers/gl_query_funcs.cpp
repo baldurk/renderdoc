@@ -211,6 +211,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 	if(m_State < WRITING)
 	{
 		m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
+		m_ActiveQueries[QueryIdx(Target)][0] = true;
 	}
 
 	return true;
@@ -219,6 +220,7 @@ bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 {
 	m_Real.glBeginQuery(target, id);
+	m_ActiveQueries[QueryIdx(target)][0] = true;
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -238,6 +240,7 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(GLenum target, GLuint index, G
 	if(m_State < WRITING)
 	{
 		m_Real.glBeginQueryIndexed(Target, Index, GetResourceManager()->GetLiveResource(id).name);
+		m_ActiveQueries[QueryIdx(Target)][Index] = true;
 	}
 
 	return true;
@@ -246,6 +249,7 @@ bool WrappedOpenGL::Serialise_glBeginQueryIndexed(GLenum target, GLuint index, G
 void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
 {
 	m_Real.glBeginQueryIndexed(target, index, id);
+	m_ActiveQueries[QueryIdx(target)][index] = true;
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -262,6 +266,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(GLenum target)
 	
 	if(m_State < WRITING)
 	{
+		m_ActiveQueries[QueryIdx(Target)][0] = false;
 		m_Real.glEndQuery(Target);
 	}
 
@@ -271,6 +276,7 @@ bool WrappedOpenGL::Serialise_glEndQuery(GLenum target)
 void WrappedOpenGL::glEndQuery(GLenum target)
 {
 	m_Real.glEndQuery(target);
+	m_ActiveQueries[QueryIdx(target)][0] = false;
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -289,6 +295,7 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(GLenum target, GLuint index)
 	if(m_State < WRITING)
 	{
 		m_Real.glEndQueryIndexed(Target, Index);
+		m_ActiveQueries[QueryIdx(Target)][Index] = false;
 	}
 
 	return true;
@@ -297,6 +304,7 @@ bool WrappedOpenGL::Serialise_glEndQueryIndexed(GLenum target, GLuint index)
 void WrappedOpenGL::glEndQueryIndexed(GLenum target, GLuint index)
 {
 	m_Real.glEndQueryIndexed(target, index);
+	m_ActiveQueries[QueryIdx(target)][index] = false;
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -314,6 +322,7 @@ bool WrappedOpenGL::Serialise_glBeginConditionalRender(GLuint id, GLenum mode)
 
 	if(m_State < WRITING)
 	{
+		m_ActiveConditional = true;
 		m_Real.glBeginConditionalRender(GetResourceManager()->GetLiveResource(qid).name, Mode);
 	}
 
@@ -324,6 +333,8 @@ void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
 {
 	m_Real.glBeginConditionalRender(id, mode);
 	
+	m_ActiveConditional = true;
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BEGIN_CONDITIONAL);
@@ -337,6 +348,7 @@ bool WrappedOpenGL::Serialise_glEndConditionalRender()
 {
 	if(m_State < WRITING)
 	{
+		m_ActiveConditional = false;
 		m_Real.glEndConditionalRender();
 	}
 
@@ -346,7 +358,8 @@ bool WrappedOpenGL::Serialise_glEndConditionalRender()
 void WrappedOpenGL::glEndConditionalRender()
 {
 	m_Real.glEndConditionalRender();
-	
+	m_ActiveConditional = false;
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(END_CONDITIONAL);

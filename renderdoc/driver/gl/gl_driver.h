@@ -117,6 +117,8 @@ class WrappedOpenGL
 		GLResourceRecord *m_VertexArrayRecord;
 		GLResourceRecord *m_DrawFramebufferRecord;
 		GLResourceRecord *m_ReadFramebufferRecord;
+		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
+		bool m_ActiveConditional;
 		ResourceId m_Renderbuffer;
 		GLint m_TextureUnit;
 		GLuint m_ProgramPipeline;

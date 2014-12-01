@@ -213,6 +213,40 @@ GLenum BufferEnum(size_t idx)
 	return eGL_NONE;
 }
 
+size_t QueryIdx(GLenum query)
+{
+	switch(query)
+	{
+		case GL_SAMPLES_PASSED:                        return 0;
+		case GL_ANY_SAMPLES_PASSED:                    return 1;
+		case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:       return 2;
+		case GL_PRIMITIVES_GENERATED:                  return 3;
+		case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return 4;
+		case GL_TIME_ELAPSED:                          return 5;
+		default:
+			RDCERR("Unexpected enum as query target: %s", ToStr::Get(query).c_str());
+	}
+
+	return 0;
+}
+
+GLenum QueryEnum(size_t idx)
+{
+	GLenum enums[] = {
+		eGL_SAMPLES_PASSED,
+		eGL_ANY_SAMPLES_PASSED,
+		eGL_ANY_SAMPLES_PASSED_CONSERVATIVE,
+		eGL_PRIMITIVES_GENERATED,
+		eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+		eGL_TIME_ELAPSED,
+	};
+
+	if(idx < ARRAY_COUNT(enums))
+		return enums[idx];
+
+	return eGL_NONE;
+}
+
 size_t ShaderIdx(GLenum buf)
 {
 	switch(buf)
