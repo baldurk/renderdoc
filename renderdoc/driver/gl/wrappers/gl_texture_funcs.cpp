@@ -3248,7 +3248,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 		m_Textures[liveId].height = 1;
 		m_Textures[liveId].depth = 1;
 		m_Textures[liveId].curType = TextureTarget(Target);
-		m_Textures[liveId].internalFormat = internalformat;
+		m_Textures[liveId].internalFormat = fmt;
 
 		m_Real.glTextureBufferEXT(GetResourceManager()->GetLiveResource(texid).name,
 																	 Target, fmt,
