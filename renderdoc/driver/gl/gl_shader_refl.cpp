@@ -450,11 +450,30 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			continue;
 		}
 
-		create_array_uninit(res.name, values[1]);
-		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, res.name.elems);
-		res.name.count--; // trim off trailing null
+		char *namebuf = new char[values[1]+1];
+		gl.glGetProgramResourceName(sepProg, eGL_UNIFORM, u, values[1], NULL, namebuf);
+		namebuf[values[1]] = 0;
+
+		string name = namebuf;
+
+		res.name = name;
 
 		resources.push_back(res);
+
+		// array of samplers
+		if(values[4] > 1)
+		{
+			name = name.substr(0, name.length()-3); // trim off [0] on the end
+			for(int i=1; i < values[4]; i++)
+			{
+				string arrname = StringFormat::Fmt("%s[%d]", name.c_str(), i);
+				
+				res.bindPoint = (int32_t)resources.size();
+				res.name = arrname;
+
+				resources.push_back(res);
+			}
+		}
 	}
 
 	refl.Resources = resources;
