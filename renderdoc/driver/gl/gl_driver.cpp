@@ -333,6 +333,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	glExts.push_back("GL_ARB_ES2_compatibility");
 	glExts.push_back("GL_EXT_texture_filter_anisotropic");
 	glExts.push_back("GL_EXT_texture_sRGB_decode");
+	glExts.push_back("GL_EXT_texture_compression_s3tc");
 	
 #if !defined(_RELEASE)
 	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
