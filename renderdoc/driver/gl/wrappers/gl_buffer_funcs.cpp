@@ -164,8 +164,12 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		// element array buffer binding is vertex array record state, record there (if we've not just stopped)
 		if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER && m_VertexArrayRecord && VertexArrayUpdateCheck())
 		{
-			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-			Serialise_glBindBuffer(target, buffer);
+			GLuint vao = GetResourceManager()->GetCurrentResource(m_VertexArrayRecord->GetResourceID()).name;
+
+			// use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
+			// element buffer
+			SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
+			Serialise_glVertexArrayElementBuffer(vao, buffer);
 
 			m_VertexArrayRecord->AddChunk(scope.Get());
 		}
@@ -2226,6 +2230,28 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
+{
+	SERIALISE_ELEMENT(ResourceId, vid, (vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId()));
+	SERIALISE_ELEMENT(ResourceId, bid, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId()));
+
+	if(m_State <= EXECUTING)
+	{
+		vaobj = 0;
+		if(vid != ResourceId()) vaobj = GetResourceManager()->GetLiveResource(vid).name;
+
+		buffer = 0;
+		if(bid != ResourceId()) buffer = GetResourceManager()->GetLiveResource(bid).name;
+
+		// hack for now, since we don't properly serialise ARB_dsa, this is just used from
+		// glBindBuffer as a utility serialise function
+		m_Real.glBindVertexArray(vaobj);
+		m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
+	}
+
+	return true;
+}
+
 bool WrappedOpenGL::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
 {
 	SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
@@ -2249,12 +2275,24 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 {
 	m_Real.glBindVertexBuffer(bindingindex, buffer, offset, stride);
 
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
-		Serialise_glBindVertexBuffer(bindingindex, buffer, offset, stride);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
-		m_ContextRecord->AddChunk(scope.Get());
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
+				Serialise_glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+				r->AddChunk(scope.Get());
+			}
+		}
 	}
 }
 
@@ -2307,12 +2345,24 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 {
 	m_Real.glBindVertexBuffers(first, count, buffers, offsets, strides);
 
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
-		Serialise_glBindVertexBuffers(first, count, buffers, offsets, strides);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
-		m_ContextRecord->AddChunk(scope.Get());
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
+				Serialise_glBindVertexBuffers(first, count, buffers, offsets, strides);
+
+				r->AddChunk(scope.Get());
+			}
+		}
 	}
 }
 
@@ -2331,12 +2381,24 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 {
 	m_Real.glVertexBindingDivisor(bindingindex, divisor);
 
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
-		Serialise_glVertexBindingDivisor(bindingindex, divisor);
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : m_VertexArrayRecord;
 
-		m_ContextRecord->AddChunk(scope.Get());
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !VertexArrayUpdateCheck())
+				return;
+			if(m_State == WRITING_CAPFRAME && m_VertexArrayRecord)
+				GetResourceManager()->MarkResourceFrameReferenced(m_VertexArrayRecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
+				Serialise_glVertexBindingDivisor(bindingindex, divisor);
+
+				r->AddChunk(scope.Get());
+			}
+		}
 	}
 }
 

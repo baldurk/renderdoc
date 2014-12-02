@@ -274,6 +274,8 @@ const char *GLChunkNames[] =
 	"glVertexAttribLFormat",
 	"glVertexAttribDivisor",
 	"glVertexAttribBinding",
+
+	"glVertexArrayElementBuffer",
 	
 	
 	"glObjectLabel",
@@ -2304,6 +2306,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case VERTEXATTRIBBINDING:
 		Serialise_glVertexAttribBinding(0, 0);
+		break;
+
+	case VAO_ELEMENT_BUFFER:
+		Serialise_glVertexArrayElementBuffer(0, 0);
 		break;
 
 	case OBJECT_LABEL:

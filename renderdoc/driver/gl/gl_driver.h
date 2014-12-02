@@ -617,6 +617,9 @@ class WrappedOpenGL
 
 		bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized, const void *value, int attribtype);
 
+		// hack for now until ARB_dsa is serialised
+		bool Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
+
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1d(GLuint index, GLdouble x));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1dv(GLuint index, const GLdouble *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1f(GLuint index, GLfloat x));
