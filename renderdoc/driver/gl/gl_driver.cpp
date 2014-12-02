@@ -98,8 +98,8 @@ const char *GLChunkNames[] =
 	"glUniformBlockBinding",
 	"glShaderStorageBlockBinding",
 	"glUniformSubroutinesuiv",
-	"glProgramUniformMatrix*",
 	"glProgramUniformVector*",
+	"glProgramUniformMatrix*",
 	"glLinkProgram",
 	
 	"glGenTransformFeedbacks",
