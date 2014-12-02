@@ -294,6 +294,7 @@ GLenum GetDataType(GLenum internalFormat)
 		case eGL_R16F:
 			return eGL_HALF_FLOAT;
 		case eGL_RGBA32F:
+		case eGL_RGB32F:
 		case eGL_RG32F:
 		case eGL_R32F:
 		case eGL_DEPTH_COMPONENT32F:
