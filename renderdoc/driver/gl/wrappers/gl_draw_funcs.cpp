@@ -1534,7 +1534,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 
 	if(m_State == WRITING_CAPFRAME)
 	{
-		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTS_INDIRECT);
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWARRAYS_INDIRECT);
 		Serialise_glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
