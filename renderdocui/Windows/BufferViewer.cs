@@ -924,22 +924,29 @@ namespace renderdocui.Windows
                                                      input.IndexOffset + input.Drawcall.indexOffset * input.IndexFormat.format.compByteWidth,
                                                      ret.IndexCount * input.IndexFormat.format.compByteWidth);
 
-                    ret.Indices = new uint[rawidxs.Length / input.IndexFormat.format.compByteWidth];
-
-                    if (input.IndexFormat.format.compByteWidth == 2)
+                    if (input.IndexFormat.format.compByteWidth == 0)
                     {
-                        ushort[] tmp = new ushort[rawidxs.Length / 2];
-
-                        Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
-
-                        for (int i = 0; i < tmp.Length; i++)
-                        {
-                            ret.Indices[i] = tmp[i];
-                        }
+                        ret.Indices = new uint[0];
                     }
-                    else if (input.IndexFormat.format.compByteWidth == 4)
+                    else
                     {
-                        Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                        ret.Indices = new uint[rawidxs.Length / input.IndexFormat.format.compByteWidth];
+
+                        if (input.IndexFormat.format.compByteWidth == 2)
+                        {
+                            ushort[] tmp = new ushort[rawidxs.Length / 2];
+
+                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
+
+                            for (int i = 0; i < tmp.Length; i++)
+                            {
+                                ret.Indices[i] = tmp[i];
+                            }
+                        }
+                        else if (input.IndexFormat.format.compByteWidth == 4)
+                        {
+                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                        }
                     }
 
                     maxIndex = 0;
