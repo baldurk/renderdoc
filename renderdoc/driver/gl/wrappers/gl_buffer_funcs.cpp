@@ -572,7 +572,7 @@ bool WrappedOpenGL::Serialise_glBindBufferBase(GLenum target, GLuint index, GLui
 
 void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 {
-	if(m_State >= WRITING && index == 0)
+	if(m_State >= WRITING)
 	{
 		size_t idx = BufferIdx(target);
 
@@ -619,7 +619,7 @@ bool WrappedOpenGL::Serialise_glBindBufferRange(GLenum target, GLuint index, GLu
 
 void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
-	if(m_State >= WRITING && index == 0)
+	if(m_State >= WRITING)
 	{
 		size_t idx = BufferIdx(target);
 
