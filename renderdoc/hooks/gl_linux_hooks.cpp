@@ -529,8 +529,10 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	
 	HookCheckGLExtensions();
 
+#if 0
 	// claim not to know this extension!
-	RDCWARN("Claiming not to know extension that is available - %s", func);
+	RDCDEBUG("Claiming not to know extension that is available - %s", func);
+#endif
 	return NULL;
 }
 
