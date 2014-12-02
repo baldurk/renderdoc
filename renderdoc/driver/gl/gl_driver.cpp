@@ -1872,6 +1872,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case CLEARBUFFERSUBDATA:
 		Serialise_glClearBufferSubData(eGL_NONE, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
+	case CLEARTEXIMAGE:
+		Serialise_glClearTexImage(0, 0, eGL_NONE, eGL_NONE, NULL);
+		break;
+	case CLEARTEXSUBIMAGE:
+		Serialise_glClearBufferSubData(eGL_NONE, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		break;
 	case POLYGON_MODE:
 		Serialise_glPolygonMode(eGL_NONE, eGL_NONE);
 		break;
