@@ -194,7 +194,7 @@ bool WrappedOpenGL::Serialise_glBindTextures(GLuint first, GLsizei count, const 
 	
 	for(int32_t i=0; i < Count; i++)
 	{
-		SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])));
+		SERIALISE_ELEMENT(ResourceId, id, textures && textures[i] ? GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])) : ResourceId());
 		
 		if(m_State <= EXECUTING)
 		{
@@ -239,7 +239,7 @@ void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *te
 	{
 		for(GLsizei i=0; i < count; i++)
 		{
-			if(textures[i] == 0)
+			if(textures == NULL || textures[i] == 0)
 				m_TextureRecord[first + i] = 0;
 			else
 				m_TextureRecord[first + i] = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), textures[i]));
