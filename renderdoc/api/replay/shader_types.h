@@ -83,6 +83,12 @@ struct ShaderVariable
 			uint32_t x, y, z, w;
 		} u;
 		uint32_t uv[16];
+
+		struct 
+		{
+			double x, y, z, w;
+		} d;
+		double dv[16];
 	} value;
 
 	bool32 isStruct;

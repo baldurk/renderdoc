@@ -310,7 +310,7 @@ namespace renderdocui.Controls
 					ret[i].value.fv = new float[16];
 					ret[i].value.uv = new uint[16];
 					ret[i].value.iv = new int[16];
-					ret[i].value._dv_arr = new double[16];
+					ret[i].value.dv = new double[16];
 				}
 			}
 

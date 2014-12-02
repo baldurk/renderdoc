@@ -49,33 +49,8 @@ namespace renderdoc
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 16, FixedType = CustomFixedType.Int32)]
             public Int32[] iv;
 
-            [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            public double[] _dv_arr;
-
-            public double[] dv
-            {
-                get
-                {
-                    if (_dv_arr == null)
-                    {
-                        UInt64[] ds = { 0, 0 };
-                        ds[0] = uv[1];
-                        ds[1] = uv[3];
-
-                        ds[0] <<= 32;
-                        ds[1] <<= 32;
-
-                        ds[0] |= uv[0];
-                        ds[1] |= uv[2];
-
-                        _dv_arr = new double[2];
-                        _dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
-                        _dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
-                    }
-
-                    return _dv_arr;
-                }
-            }
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 16, FixedType = CustomFixedType.Double)]
+            public double[] dv;
         };
 
         [CustomMarshalAs(CustomUnmanagedType.Union)]
@@ -136,10 +111,12 @@ namespace renderdoc
 			else return String.Format("{0}{1}x{2}", type.Str(), rows, columns);
 		}
 
-        public string RowValuesToString(int cols, double x, double y)
-		{
+        public string RowValuesToString(int cols, double x, double y, double z, double w)
+        {
             if (cols == 1) return Formatter.Format(x);
-            else return Formatter.Format(x) + ", " + Formatter.Format(y);
+            else if (cols == 2) return Formatter.Format(x) + ", " + Formatter.Format(y);
+            else if (cols == 3) return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z);
+            else return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z) + ", " + Formatter.Format(w);
         }
 
         public string RowValuesToString(int cols, float x, float y, float z, float w)
@@ -169,7 +146,7 @@ namespace renderdoc
 		public string Row(int row, VarType t)
 		{
 			if(t == VarType.Double)
-                return RowValuesToString((int)columns, value.dv[row * columns + 0], value.dv[row * columns + 1]);
+                return RowValuesToString((int)columns, value.dv[row * columns + 0], value.dv[row * columns + 1], value.dv[row * columns + 2], value.dv[row * columns + 3]);
 			else if(t == VarType.Int)
                 return RowValuesToString((int)columns, value.iv[row * columns + 0], value.iv[row * columns + 1], value.iv[row * columns + 2], value.iv[row * columns + 3]);
 			else if(t == VarType.UInt)

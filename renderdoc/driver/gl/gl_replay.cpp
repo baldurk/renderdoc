@@ -1414,19 +1414,31 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
 				gl.glGetUniformuiv(prog, offs, outVar.value.uv);
 				break;
 			case eVar_Double:
-				RDCUNIMPLEMENTED("Double uniform variables");
+				gl.glGetUniformdv(prog, offs, outVar.value.dv);
 				break;
 		}
 	}
 
 	if(!rowMajor)
 	{
-		uint32_t uv[16];
-		memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
-		
-		for(uint32_t r=0; r < outVar.rows; r++)
-			for(uint32_t c=0; c < outVar.columns; c++)
-				outVar.value.uv[r*outVar.columns+c] = uv[c*outVar.rows+r];
+		if(outVar.type != eVar_Double)
+		{
+			uint32_t uv[16];
+			memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
+
+			for(uint32_t r=0; r < outVar.rows; r++)
+				for(uint32_t c=0; c < outVar.columns; c++)
+					outVar.value.uv[r*outVar.columns+c] = uv[c*outVar.rows+r];
+		}
+		else
+		{
+			double dv[16];
+			memcpy(&dv[0], &outVar.value.dv[0], sizeof(dv));
+
+			for(uint32_t r=0; r < outVar.rows; r++)
+				for(uint32_t c=0; c < outVar.columns; c++)
+					outVar.value.dv[r*outVar.columns+c] = dv[c*outVar.rows+r];
+		}
 	}
 }
 

@@ -235,44 +235,15 @@ VarType State::OperationType(const OpcodeType &op) const
 
 void DoubleSet(ShaderVariable &var, const double in[2])
 {
-	uint64_t *din = (uint64_t *)in;
-	uint64_t a = din[0],
-					 b = din[1];
-
-	// LSB
-	var.value.u.x = (uint32_t)(a & 0xffffffff);
-	var.value.u.z = (uint32_t)(b & 0xffffffff);
-
-	a >>= 32;
-	b >>= 32;
-
-	// MSB
-	var.value.u.y = (uint32_t)(a & 0xffffffff);
-	var.value.u.w = (uint32_t)(b & 0xffffffff);
-
+	var.value.d.x = in[0];
+	var.value.d.y = in[1];
 	var.type = eVar_Double;
 }
 
 void DoubleGet(const ShaderVariable &var, double out[2])
 {
-	uint64_t a, b;
-
-	// MSB
-	a = var.value.u.y;
-	b = var.value.u.w;
-
-	a <<= 32;
-	b <<= 32;
-
-	// LSB
-	a |= var.value.u.x;
-	b |= var.value.u.z;
-
-	double *da = (double *)&a;
-	double *db = (double *)&b;
-
-	out[0] = *da;
-	out[1] = *db;
+	out[0] = var.value.d.x;
+	out[1] = var.value.d.y;
 }
 
 ShaderVariable sat(const ShaderVariable &v, const VarType type)

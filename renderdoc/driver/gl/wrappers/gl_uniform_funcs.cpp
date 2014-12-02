@@ -176,14 +176,20 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
 		case MAT3x2dv:
 			 elemsPerMat = 2*3; break;
 		case MAT2x4fv:
+		case MAT2x4dv:
 		case MAT4x2fv:
+		case MAT4x2dv:
 			 elemsPerMat = 2*4; break;
 		case MAT3fv:
+		case MAT3dv:
 			 elemsPerMat = 3*3; break;
 		case MAT3x4fv:
+		case MAT3x4dv:
 		case MAT4x3fv:
+		case MAT4x3dv:
 			 elemsPerMat = 3*4; break;
 		case MAT4fv:
+		case MAT4dv:
 			 elemsPerMat = 4*4; break;
 		default:
 			RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);

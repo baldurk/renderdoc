@@ -280,7 +280,7 @@ namespace renderdocui.Code
             ret.value.fv = new float[16];
             ret.value.uv = new uint[16];
             ret.value.iv = new int[16];
-            ret.value._dv_arr = new double[16];
+            ret.value.dv = new double[16];
 
             for (uint row = 0; row < ret.rows; row++)
             {

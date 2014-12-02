@@ -55,6 +55,7 @@ namespace renderdoc
         UInt32,
         Int32,
         UInt16,
+        Double,
     }
 
     // custom attribute that we can apply to structures we want to serialise
@@ -499,6 +500,12 @@ namespace renderdoc
                                     else if (cma.FixedType == CustomFixedType.Int32)
                                     {
                                         Int32[] val = new Int32[cma.FixedLength];
+                                        Marshal.Copy(fieldPtr, val, 0, cma.FixedLength);
+                                        field.SetValue(ret, val);
+                                    }
+                                    else if (cma.FixedType == CustomFixedType.Double)
+                                    {
+                                        double[] val = new double[cma.FixedLength];
                                         Marshal.Copy(fieldPtr, val, 0, cma.FixedLength);
                                         field.SetValue(ret, val);
                                     }
