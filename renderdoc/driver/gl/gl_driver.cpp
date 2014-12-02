@@ -297,6 +297,7 @@ GLInitParams::GLInitParams()
 	depthBits = 32;
 	stencilBits = 8;
 	isSRGB = 1;
+	multiSamples = 1;
 	width = 32;
 	height = 32;
 }
@@ -315,6 +316,7 @@ ReplayCreateStatus GLInitParams::Serialise()
 	m_pSerialiser->Serialise("Depth bits", depthBits);
 	m_pSerialiser->Serialise("Stencil bits", stencilBits);
 	m_pSerialiser->Serialise("Is SRGB", isSRGB);
+	m_pSerialiser->Serialise("MSAA samples", multiSamples);
 	m_pSerialiser->Serialise("Width", width);
 	m_pSerialiser->Serialise("Height", height);
 
@@ -494,11 +496,6 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	gl.glGenFramebuffers(1, &m_FakeBB_FBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
 
-	gl.glGenTextures(1, &m_FakeBB_Color);
-	gl.glBindTexture(eGL_TEXTURE_2D, m_FakeBB_Color);
-
-	gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_Color, -1, "Backbuffer Color");
-
 	GLNOTIMP("backbuffer needs to resize if the size is exceeded");
 
 	GLenum colfmt = eGL_RGBA8;
@@ -510,11 +507,26 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	else
 		RDCERR("Unexpected # colour bits: %d", params.colorBits);
 
-	gl.glTexStorage2D(eGL_TEXTURE_2D, 1, colfmt, params.width, params.height); 
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+	GLenum target = eGL_TEXTURE_2D;
+	if(params.multiSamples > 1) target = eGL_TEXTURE_2D_MULTISAMPLE;
+	
+	gl.glGenTextures(1, &m_FakeBB_Color);
+	gl.glBindTexture(target, m_FakeBB_Color);
+	
+	gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_Color, -1, "Backbuffer Color");
+
+	if(params.multiSamples > 1)
+	{
+		gl.glTexStorage2DMultisample(target, params.multiSamples, colfmt, params.width, params.height, true); 
+	}
+	else
+	{
+		gl.glTexStorage2D(target, 1, colfmt, params.width, params.height); 
+		gl.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(target, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+	}
 	gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, m_FakeBB_Color, 0);
 
 	gl.glViewport(0, 0, params.width, params.height);
@@ -522,7 +534,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	if(params.depthBits > 0 || params.stencilBits > 0)
 	{
 		gl.glGenTextures(1, &m_FakeBB_DepthStencil);
-		gl.glBindTexture(eGL_TEXTURE_2D, m_FakeBB_DepthStencil);
+		gl.glBindTexture(target, m_FakeBB_DepthStencil);
 
 		GLenum depthfmt = eGL_DEPTH32F_STENCIL8;
 		bool stencil = false;
@@ -557,7 +569,10 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 		else
 			gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth");
 
-		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, depthfmt, params.width, params.height); 
+		if(params.multiSamples > 1)
+			gl.glTexStorage2DMultisample(target, params.multiSamples, depthfmt, params.width, params.height, true); 
+		else
+			gl.glTexStorage2D(target, 1, depthfmt, params.width, params.height); 
 
 		if(stencil)
 			gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, m_FakeBB_DepthStencil, 0);

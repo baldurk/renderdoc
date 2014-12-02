@@ -51,6 +51,7 @@ struct GLInitParams : public RDCInitParams
 	uint32_t depthBits;
 	uint32_t stencilBits;
 	uint32_t isSRGB;
+	uint32_t multiSamples;
 	uint32_t width;
 	uint32_t height;
 	

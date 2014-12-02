@@ -309,6 +309,11 @@ class OpenGLHook : LibraryHook
 				int srgb = 1;
 				glhooks.wglGetPixelFormatAttribivARB_realfunc(dc, pf, 0, 1, &attrname, &srgb);
 				ret.isSRGB = srgb;
+				
+				attrname = eWGL_SAMPLES_ARB;
+				int ms = 1;
+				glhooks.wglGetPixelFormatAttribivARB_realfunc(dc, pf, 0, 1, &attrname, &ms);
+				ret.multiSamples = RDCMAX(1, ms);
 			}
 
 			if(pfd.iPixelType != PFD_TYPE_RGBA)
