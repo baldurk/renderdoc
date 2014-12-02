@@ -906,7 +906,6 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
 		if(record)
 		{
 			record->MarkParentsDirty(GetResourceManager());
-			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
 }
@@ -931,7 +930,6 @@ void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachm
 		if(record)
 		{
 			record->MarkParentsDirty(GetResourceManager());
-			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
 }
