@@ -335,6 +335,30 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	glExts.push_back("GL_EXT_texture_sRGB_decode");
 	glExts.push_back("GL_EXT_texture_compression_s3tc");
 	glExts.push_back("GL_ARB_clear_buffer_object");
+	glExts.push_back("GL_ARB_vertex_attrib_binding");
+	glExts.push_back("GL_ARB_shader_storage_buffer_object");
+	glExts.push_back("GL_ARB_invalidate_subdata");
+	glExts.push_back("GL_ARB_framebuffer_no_attachments");
+	glExts.push_back("GL_ARB_shader_image_size");
+	glExts.push_back("GL_ARB_arrays_of_arrays");
+	glExts.push_back("GL_ARB_program_interface_query");
+	glExts.push_back("GL_ARB_multi_draw_indirect");
+	glExts.push_back("GL_ARB_compute_shader");
+	glExts.push_back("GL_ARB_explicit_uniform_location");
+	glExts.push_back("GL_ARB_ES3_compatibility");
+	glExts.push_back("GL_ARB_texture_buffer_range");
+	glExts.push_back("GL_ARB_copy_image");
+	glExts.push_back("GL_ARB_texture_query_levels");
+	glExts.push_back("GL_ARB_texture_view");
+	glExts.push_back("GL_ARB_fragment_layer_viewport");
+	glExts.push_back("GL_ARB_buffer_storage");
+	glExts.push_back("GL_ARB_clear_texture");
+	glExts.push_back("GL_ARB_shader_group_vote");
+	glExts.push_back("GL_ARB_indirect_parameters");
+	glExts.push_back("GL_ARB_query_buffer_object");
+	glExts.push_back("GL_EXT_texture_mirror_clamp");
+	glExts.push_back("GL_ARB_seamless_cubemap_per_texture");
+	glExts.push_back("GL_ARB_multi_bind");
 	glExts.push_back("GL_KHR_debug");
 	
 #if !defined(_RELEASE)
