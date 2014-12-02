@@ -47,6 +47,33 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 			case eGL_BUFFER:
 				liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name));
 				break;
+			case eGL_PROGRAM:
+				liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name));
+				break;
+			case eGL_PROGRAM_PIPELINE:
+				liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
+				break;
+			case eGL_VERTEX_ARRAY:
+				liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
+				break;
+			case GL_SHADER:
+				liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name));
+				break;
+			case GL_QUERY:
+				liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name));
+				break;
+			case GL_TRANSFORM_FEEDBACK:
+				liveid = GetResourceManager()->GetID(FeedbackRes(GetCtx(), name));
+				break;
+			case GL_SAMPLER:
+				liveid = GetResourceManager()->GetID(SamplerRes(GetCtx(), name));
+				break;
+			case GL_RENDERBUFFER:
+				liveid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), name));
+				break;
+			case GL_FRAMEBUFFER:
+				liveid = GetResourceManager()->GetID(FramebufferRes(GetCtx(), name));
+				break;
 			default:
 				RDCERR("Unhandled namespace in glObjectLabel");
 		}
@@ -111,7 +138,7 @@ void WrappedOpenGL::glDebugMessageControl(GLenum source, GLenum type, GLenum sev
 
 bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf)
 {
-	string name = buf ? string(buf, buf+length) : "";
+	string name = buf ? string(buf, buf + (length > 0 ? length : strlen(buf))) : "";
 
 	m_pSerialiser->Serialise("Name", name);
 
@@ -142,7 +169,7 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 
 bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
 {
-	string name = message ? string(message, message+length) : "";
+	string name = message ? string(message, message + (length > 0 ? length : strlen(message))) : "";
 
 	m_pSerialiser->Serialise("Name", name);
 
