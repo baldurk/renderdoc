@@ -334,6 +334,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 		case eGL_TEXTURE_2D:
 			texSlot = RESTYPE_TEX2D;
 			break;
+		case eGL_TEXTURE_2D_MULTISAMPLE:
+			texSlot = RESTYPE_TEX2DMS;
+			break;
 		case eGL_TEXTURE_RECTANGLE:
 			texSlot = RESTYPE_TEXRECT;
 			break;
@@ -394,6 +397,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
 	cdata->HistogramSlice = (float)sliceFace;
 	cdata->HistogramMip = (int)mip;
+	cdata->HistogramNumSamples = texDetails.samples;
 	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
 	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
 	cdata->HistogramMin = 0.0f;
@@ -487,6 +491,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 		case eGL_TEXTURE_2D:
 			texSlot = RESTYPE_TEX2D;
 			break;
+		case eGL_TEXTURE_2D_MULTISAMPLE:
+			texSlot = RESTYPE_TEX2DMS;
+			break;
 		case eGL_TEXTURE_RECTANGLE:
 			texSlot = RESTYPE_TEXRECT;
 			break;
@@ -547,6 +554,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth>>mip, 1U);
 	cdata->HistogramSlice = (float)sliceFace;
 	cdata->HistogramMip = mip;
+	cdata->HistogramNumSamples = texDetails.samples;
 	cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp-1);
 	if(sample == ~0U) cdata->HistogramSample = -int(details.msSamp);
 	cdata->HistogramMin = minval;
@@ -662,6 +670,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			RDCWARN("Unexpected texture type");
 		case eGL_TEXTURE_2D:
 			resType = RESTYPE_TEX2D;
+			break;
+		case eGL_TEXTURE_2D_MULTISAMPLE:
+			resType = RESTYPE_TEX2DMS;
 			break;
 		case eGL_TEXTURE_RECTANGLE:
 			resType = RESTYPE_TEXRECT;
@@ -875,6 +886,12 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	ubo->OutputRes.x = DebugData.outWidth;
 	ubo->OutputRes.y = DebugData.outHeight;
+
+	ubo->NumSamples = texDetails.samples;
+	ubo->SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, (uint32_t)texDetails.samples-1);
+
+	// hacky resolve
+	if(cfg.sampleIdx == ~0U) ubo->SampleIdx = -1;
 
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 

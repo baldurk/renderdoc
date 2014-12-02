@@ -56,16 +56,15 @@ void main(void)
 	// sample the texture.
 	if (uintTex)
 	{
-		ucol = SampleTextureUInt4(scr, texType, FlipY == 0, int(MipLevel), Slice);
+		ucol = SampleTextureUInt4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx);
 	}
 	else if (sintTex)
 	{
-		scol = SampleTextureSInt4(scr, texType, FlipY == 0, int(MipLevel), Slice);
+		scol = SampleTextureSInt4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx);
 	}
 	else
 	{
-		col = SampleTextureFloat4(scr / Scale, OutputDisplayFormat & TEXDISPLAY_TYPEMASK, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0 && !depthTex), int(MipLevel), Slice);
-		col = SampleTextureFloat4(scr, texType, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0 && !depthTex), int(MipLevel), Slice);
+		col = SampleTextureFloat4(scr, texType, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0 && !depthTex), int(MipLevel), Slice, SampleIdx, NumSamples);
 	}
 
 	if(RawOutput != 0)

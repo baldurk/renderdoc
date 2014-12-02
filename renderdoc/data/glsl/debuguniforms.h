@@ -61,6 +61,10 @@ BINDING(0) uniform texdisplay
   vec2  OutputRes;
   int   RawOutput;
   float Slice;
+
+	int   SampleIdx;
+	int   NumSamples;
+	vec2  Padding;
 };
 
 BINDING(0) uniform FontUniforms
@@ -83,7 +87,7 @@ BINDING(0) uniform HistogramCBufferData
 	float HistogramSlice;
 	int HistogramMip;
 	int HistogramSample;
-	uint Padding2;
+	int HistogramNumSamples;
 
 	vec3 HistogramTextureResolution;
 	float Padding3;
@@ -105,7 +109,8 @@ BINDING(0) uniform HistogramCBufferData
 #define RESTYPE_TEX2DARRAY     0x6
 #define RESTYPE_TEXCUBEARRAY   0x7
 #define RESTYPE_TEXRECT        0x8
-#define RESTYPE_TEXTYPEMAX     0x8
+#define RESTYPE_TEX2DMS        0x9
+#define RESTYPE_TEXTYPEMAX     0x9
 
 #define TEXDISPLAY_TYPEMASK    0xF
 #define TEXDISPLAY_UINT_TEX    0x10

@@ -71,8 +71,7 @@ void main()
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				uvec4 data = SampleTextureUInt4(vec2(x, y), texType, false,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample);
 
 				if(i == 0)
 				{
@@ -101,8 +100,7 @@ void main()
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				ivec4 data = SampleTextureSInt4(vec2(x, y), texType, false,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample);
 
 				if(i == 0)
 				{
@@ -131,8 +129,7 @@ void main()
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				vec4 data = SampleTextureFloat4(vec2(x, y), RESTYPE_TEX2D, false, true,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample, HistogramNumSamples);
 
 				if(i == 0)
 				{
@@ -275,8 +272,7 @@ void main()
 #if UINT_TEX
 			{
 				uvec4 data = SampleTextureUInt4(vec2(x, y), texType, false,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample);
 
 				float divisor = 0.0f;
 				uint sum = 0;
@@ -316,8 +312,7 @@ void main()
 #elif SINT_TEX
 			{
 				ivec4 data = SampleTextureSInt4(vec2(x, y), texType, false,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample);
 
 				float divisor = 0.0f;
 				int sum = 0;
@@ -357,8 +352,7 @@ void main()
 #else
 			{
 				vec4 data = SampleTextureFloat4(vec2(x, y), texType, false, false,
-												HistogramMip, HistogramSlice);
-												// HistogramSample, texDim
+												HistogramMip, HistogramSlice, HistogramSample, HistogramNumSamples);
 
 				float divisor = 0.0f;
 				float sum = 0.0f;

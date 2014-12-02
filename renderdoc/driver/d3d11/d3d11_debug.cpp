@@ -3319,8 +3319,6 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 	
 	TextureShaderDetails details = GetShaderDetails(cfg.texid, cfg.rawoutput ? true : false);
 
-	static int sampIdx = 0;
-	
 	pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, details.sampleCount-1);
 
 	// hacky resolve

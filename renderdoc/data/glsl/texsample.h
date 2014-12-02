@@ -30,6 +30,7 @@ layout (binding = 5) uniform sampler1DArray tex1DArray;
 layout (binding = 6) uniform sampler2DArray tex2DArray;
 layout (binding = 7) uniform samplerCubeArray texCubeArray;
 layout (binding = 8) uniform sampler2DRect tex2DRect;
+layout (binding = 9) uniform sampler2DMS tex2DMS;
 
 layout (binding = 17) uniform usampler1D texUInt1D;
 layout (binding = 18) uniform usampler2D texUInt2D;
@@ -37,6 +38,7 @@ layout (binding = 19) uniform usampler3D texUInt3D;
 layout (binding = 20) uniform usampler1DArray texUInt1DArray;
 layout (binding = 21) uniform usampler2DArray texUInt2DArray;
 layout (binding = 22) uniform usampler2DRect texUInt2DRect;
+layout (binding = 23) uniform usampler2DMS texUInt2DMS;
 
 layout (binding = 33) uniform isampler1D texSInt1D;
 layout (binding = 34) uniform isampler2D texSInt2D;
@@ -44,6 +46,7 @@ layout (binding = 35) uniform isampler3D texSInt3D;
 layout (binding = 36) uniform isampler1DArray texSInt1DArray;
 layout (binding = 37) uniform isampler2DArray texSInt2DArray;
 layout (binding = 38) uniform isampler2DRect texSInt2DRect;
+layout (binding = 39) uniform isampler2DMS texSInt2DMS;
 
 vec3 CalcCubeCoord(vec2 uv, int face)
 {
@@ -65,7 +68,7 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 	return coord;
 }
 
-uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice)
+uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
 {
 	uvec4 col;
 	if (type == RESTYPE_TEX1D)
@@ -98,6 +101,18 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 
 		col = texelFetch(texUInt2DRect, ivec2(pos));
 	}
+	else if (type == RESTYPE_TEX2DMS)
+	{
+		ivec2 size = textureSize(texUInt2DMS);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+
+		if(sampleIdx < 0)
+			sampleIdx = 0;
+
+		col = texelFetch(texUInt2DMS, ivec2(pos), sampleIdx);
+	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{
 		ivec3 size = textureSize(texUInt2DArray, mipLevel);
@@ -120,7 +135,7 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	return col;
 }
 
-ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice)
+ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
 {
 	ivec4 col;
 	if (type == RESTYPE_TEX1D)
@@ -153,6 +168,18 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 
 		col = texelFetch(texSInt2DRect, ivec2(pos));
 	}
+	else if (type == RESTYPE_TEX2DMS)
+	{
+		ivec2 size = textureSize(texSInt2DMS);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+
+		if(sampleIdx < 0)
+			sampleIdx = 0;
+
+		col = texelFetch(texSInt2DMS, ivec2(pos), sampleIdx);
+	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{
 		ivec3 size = textureSize(texSInt2DArray, mipLevel);
@@ -176,7 +203,7 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 }
 
 
-vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int mipLevel, float slice)
+vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int mipLevel, float slice, int sampleIdx, int sampleCount)
 {
 	vec4 col;
 	if (type == RESTYPE_TEX1D)
@@ -217,6 +244,66 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(tex2DRect, ivec2(pos));
+	}
+	else if (type == RESTYPE_TEX2DMS)
+	{
+		ivec2 size = textureSize(tex2DMS);
+
+		if (flipY)
+			pos.y = size.y - pos.y;
+		
+		if(sampleIdx < 0)
+		{
+			// worst resolve you've seen in your life
+			// it's manually unrolled because doing it as a dynamic loop on
+			// sampleCount seems to produce crazy artifacts on nvidia - probably a compiler bug
+			if(sampleCount == 2)
+			{
+				col += 0.5f*texelFetch(tex2DMS, ivec2(pos), 0);
+				col += 0.5f*texelFetch(tex2DMS, ivec2(pos), 1);
+			}
+			else if(sampleCount == 4)
+			{
+				col += 0.25f*texelFetch(tex2DMS, ivec2(pos), 0);
+				col += 0.25f*texelFetch(tex2DMS, ivec2(pos), 1);
+				col += 0.25f*texelFetch(tex2DMS, ivec2(pos), 2);
+				col += 0.25f*texelFetch(tex2DMS, ivec2(pos), 3);
+			}
+			else if(sampleCount == 8)
+			{
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 0);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 1);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 2);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 3);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 4);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 5);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 6);
+				col += 0.125f*texelFetch(tex2DMS, ivec2(pos), 7);
+			}
+			else if(sampleCount == 16)
+			{
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 0);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 1);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 2);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 3);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 4);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 5);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 6);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 7);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 8);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 9);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 10);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 11);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 12);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 13);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 14);
+				col += 0.0625f*texelFetch(tex2DMS, ivec2(pos), 15);
+			}
+		}
+		else
+		{
+			col = texelFetch(tex2DMS, ivec2(pos), sampleIdx);
+		}
 	}
 	else if (type == RESTYPE_TEX2DARRAY)
 	{
