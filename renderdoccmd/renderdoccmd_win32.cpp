@@ -268,7 +268,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		argv[i] = new char[len*4 + 1];
 		argv[i][len*4] = 0;
 	
-		WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, &argv[i][0], (int)len, NULL, NULL);
+		WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, &argv[i][0], (int)len+1, NULL, NULL);
 	}
 
 	hInstance = hInst;
