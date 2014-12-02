@@ -92,6 +92,7 @@ struct TextureStateInitialData
 
 	int32_t baseLevel, maxLevel;
 	float minLod, maxLod;
+	GLenum srgbDecode;
 	GLenum depthMode;
 	GLenum compareFunc, compareMode;
 	GLenum minFilter, magFilter;
@@ -228,6 +229,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			// only non-ms textures have sampler state
 			if(!ms)
 			{
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT, (GLint *)&state->srgbDecode);
 				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
 				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
 				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
@@ -826,6 +828,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			if(!ms)
 			{
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SRGB_DECODE_EXT, (GLint *)&state->srgbDecode);
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_FUNC, (GLint *)&state->compareFunc);
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_COMPARE_MODE, (GLint *)&state->compareMode);
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MIN_FILTER, (GLint *)&state->minFilter);
