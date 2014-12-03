@@ -2541,9 +2541,23 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buf
 	SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId()));
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 	SERIALISE_ELEMENT(uint64_t, str, stride);
+	SERIALISE_ELEMENT(ResourceId, vid, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 
 	if(m_State <= EXECUTING)
 	{
+		if(m_State == READING)
+		{
+			if(vid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(vid);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
+		}
+
 		GLuint live = 0;
 		if(id != ResourceId())
 			live = GetResourceManager()->GetLiveResource(id).name;
@@ -2583,6 +2597,7 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, c
 {
 	SERIALISE_ELEMENT(uint32_t, First, first);
 	SERIALISE_ELEMENT(int32_t, Count, count);
+	SERIALISE_ELEMENT(ResourceId, vid, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 
 	GLuint *bufs = NULL;
 	GLintptr *offs = NULL;
@@ -2614,6 +2629,19 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, c
 
 	if(m_State <= EXECUTING)
 	{
+		if(m_State == READING)
+		{
+			if(vid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(vid);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
+		}
+
 		m_Real.glBindVertexBuffers(First, Count, bufs, offs, str);
 
 		delete[] bufs;
@@ -2653,9 +2681,25 @@ bool WrappedOpenGL::Serialise_glVertexBindingDivisor(GLuint bindingindex, GLuint
 {
 	SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
 	SERIALISE_ELEMENT(uint32_t, d, divisor);
+	SERIALISE_ELEMENT(ResourceId, vid, m_VertexArrayRecord ? m_VertexArrayRecord->GetResourceID() : ResourceId());
 
 	if(m_State <= EXECUTING)
+	{
+		if(m_State == READING)
+		{
+			if(vid != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(vid);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
+		}
+
 		m_Real.glVertexBindingDivisor(idx, d);
+	}
 
 	return true;
 }
