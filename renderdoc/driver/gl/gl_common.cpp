@@ -54,25 +54,28 @@ int GLCoreVersion = 0;
 void DoVendorChecks(const GLHookSet &gl)
 {
 	GLint numExts = 0;
-	gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
+	if(gl.glGetIntegerv) gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
 
 	RDCEraseEl(ExtensionSupport::extensions);
 	RDCEraseEl(ExtensionSupport::VendorChecks);
 
-	for(int i=0; i < numExts; i++)
+	if(gl.glGetStringi)
 	{
-		const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
+		for(int i=0; i < numExts; i++)
+		{
+			const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
 
-		if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3]) continue;
+			if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3]) continue;
 
-		ext += 3;
+			ext += 3;
 
 #define EXT_CHECK(extname) if(!strcmp(ext, STRINGIZE(extname))) ExtensionSupport::extensions[CONCAT(ExtensionSupported_, extname)] = true;
 
-		EXT_CHECK(ARB_clip_control)
-		EXT_CHECK(ARB_enhanced_layouts)
+			EXT_CHECK(ARB_clip_control);
+			EXT_CHECK(ARB_enhanced_layouts);
 
 #undef EXT_CHECK
+		}
 	}
 
 	//////////////////////////////////////////////////////////
@@ -90,6 +93,7 @@ void DoVendorChecks(const GLHookSet &gl)
 	// vertex buffer which is exactly what we wanted from GL_VERTEX_BINDING_BUFFER!
 	// see: http://devgurus.amd.com/message/1306745#1306745
 	
+	if(gl.glGetError && gl.glGetIntegeri_v)
 	{
 		// clear all error flags.
 		GLenum err = gl.glGetError();
@@ -107,7 +111,9 @@ void DoVendorChecks(const GLHookSet &gl)
 			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
 		}
 	}
-
+	
+	if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture &&
+	   gl.glTextureStorage2DEXT && gl.glGetTextureLevelParameterivEXT && gl.glDeleteTextures)
 	{
 		// We need to determine if GL_TEXTURE_COMPRESSED_IMAGE_SIZE for a compressed cubemap face target
 		// will return the size of the whole cubemap, or just one face. Since we fetch the cubemap
