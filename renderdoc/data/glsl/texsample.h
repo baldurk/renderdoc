@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+// optionally TEXDISPLAY_UINT_TEX or TEXDISPLAY_SINT_TEX, OR'd with RESTYPE_*
 layout (binding = 1) uniform sampler1D tex1D;
 layout (binding = 2) uniform sampler2D tex2D;
 layout (binding = 3) uniform sampler3D tex3D;
@@ -30,7 +32,8 @@ layout (binding = 5) uniform sampler1DArray tex1DArray;
 layout (binding = 6) uniform sampler2DArray tex2DArray;
 layout (binding = 7) uniform samplerCubeArray texCubeArray;
 layout (binding = 8) uniform sampler2DRect tex2DRect;
-layout (binding = 9) uniform sampler2DMS tex2DMS;
+layout (binding = 9) uniform samplerBuffer texBuffer;
+layout (binding = 10) uniform sampler2DMS tex2DMS;
 
 layout (binding = 17) uniform usampler1D texUInt1D;
 layout (binding = 18) uniform usampler2D texUInt2D;
@@ -38,7 +41,8 @@ layout (binding = 19) uniform usampler3D texUInt3D;
 layout (binding = 20) uniform usampler1DArray texUInt1DArray;
 layout (binding = 21) uniform usampler2DArray texUInt2DArray;
 layout (binding = 22) uniform usampler2DRect texUInt2DRect;
-layout (binding = 23) uniform usampler2DMS texUInt2DMS;
+layout (binding = 23) uniform usamplerBuffer texUIntBuffer;
+layout (binding = 24) uniform usampler2DMS texUInt2DMS;
 
 layout (binding = 33) uniform isampler1D texSInt1D;
 layout (binding = 34) uniform isampler2D texSInt2D;
@@ -46,7 +50,8 @@ layout (binding = 35) uniform isampler3D texSInt3D;
 layout (binding = 36) uniform isampler1DArray texSInt1DArray;
 layout (binding = 37) uniform isampler2DArray texSInt2DArray;
 layout (binding = 38) uniform isampler2DRect texSInt2DRect;
-layout (binding = 39) uniform isampler2DMS texSInt2DMS;
+layout (binding = 39) uniform isamplerBuffer texSIntBuffer;
+layout (binding = 40) uniform isampler2DMS texSInt2DMS;
 
 vec3 CalcCubeCoord(vec2 uv, int face)
 {
@@ -100,6 +105,10 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(texUInt2DRect, ivec2(pos));
+	}
+	else if (type == RESTYPE_TEXBUFFER)
+	{
+		col = texelFetch(texUIntBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
@@ -167,6 +176,10 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(texSInt2DRect, ivec2(pos));
+	}
+	else if (type == RESTYPE_TEXBUFFER)
+	{
+		col = texelFetch(texSIntBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{
@@ -244,6 +257,10 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 			pos.y = size.y - pos.y;
 
 		col = texelFetch(tex2DRect, ivec2(pos));
+	}
+	else if (type == RESTYPE_TEXBUFFER)
+	{
+		col = texelFetch(texBuffer, int(pos.x));
 	}
 	else if (type == RESTYPE_TEX2DMS)
 	{

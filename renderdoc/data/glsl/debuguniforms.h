@@ -109,8 +109,9 @@ BINDING(0) uniform HistogramCBufferData
 #define RESTYPE_TEX2DARRAY     0x6
 #define RESTYPE_TEXCUBEARRAY   0x7
 #define RESTYPE_TEXRECT        0x8
-#define RESTYPE_TEX2DMS        0x9
-#define RESTYPE_TEXTYPEMAX     0x9
+#define RESTYPE_TEXBUFFER      0x9
+#define RESTYPE_TEX2DMS        0xA
+#define RESTYPE_TEXTYPEMAX     0xA
 
 #define TEXDISPLAY_TYPEMASK    0xF
 #define TEXDISPLAY_UINT_TEX    0x10

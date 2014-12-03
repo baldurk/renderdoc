@@ -340,6 +340,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 		case eGL_TEXTURE_RECTANGLE:
 			texSlot = RESTYPE_TEXRECT;
 			break;
+		case eGL_TEXTURE_BUFFER:
+			texSlot = RESTYPE_TEXBUFFER;
+			break;
 		case eGL_TEXTURE_3D:
 			texSlot = RESTYPE_TEX3D;
 			break;
@@ -496,6 +499,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 			break;
 		case eGL_TEXTURE_RECTANGLE:
 			texSlot = RESTYPE_TEXRECT;
+			break;
+		case eGL_TEXTURE_BUFFER:
+			texSlot = RESTYPE_TEXBUFFER;
 			break;
 		case eGL_TEXTURE_3D:
 			texSlot = RESTYPE_TEX3D;
@@ -677,6 +683,9 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 		case eGL_TEXTURE_RECTANGLE:
 			resType = RESTYPE_TEXRECT;
 			break;
+		case eGL_TEXTURE_BUFFER:
+			resType = RESTYPE_TEXBUFFER;
+			break;
 		case eGL_TEXTURE_3D:
 			resType = RESTYPE_TEX3D;
 			break;
@@ -782,7 +791,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	int maxlevel = -1;
 
-	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE)
+	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != eGL_TEXTURE_BUFFER)
 	{
 		gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 

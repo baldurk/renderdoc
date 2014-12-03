@@ -41,9 +41,10 @@ void main(void)
 
 	int texType = (OutputDisplayFormat & TEXDISPLAY_TYPEMASK);
 
-	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEX1DARRAY)
+	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEXBUFFER || texType == RESTYPE_TEX1DARRAY)
 	{
-		if(scr.x < 0.0f || scr.x > TextureResolutionPS.x)
+		// by convention display 1D textures as 100 high
+		if(scr.x < 0.0f || scr.x > TextureResolutionPS.x || scr.y < 0.0f || scr.y > 100.0f)
 		   discard;
 	}
 	else

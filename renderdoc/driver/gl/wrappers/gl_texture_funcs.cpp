@@ -3216,7 +3216,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
 	if(m_State == READING)
 	{
 		ResourceId liveId = GetResourceManager()->GetLiveID(texid);
-		m_Textures[liveId].width = 1;
+		m_Textures[liveId].width = uint32_t(Size)/GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1);
 		m_Textures[liveId].height = 1;
 		m_Textures[liveId].depth = 1;
 		m_Textures[liveId].curType = TextureTarget(Target);
@@ -3275,8 +3275,12 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 	
 	if(m_State == READING)
 	{
+		buffer = GetResourceManager()->GetLiveResource(bufid).name;
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(texid);
-		m_Textures[liveId].width = 1;
+		uint32_t Size = 1;
+		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&Size);
+		m_Textures[liveId].width = Size/GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1);
 		m_Textures[liveId].height = 1;
 		m_Textures[liveId].depth = 1;
 		m_Textures[liveId].curType = TextureTarget(Target);
@@ -3284,7 +3288,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 
 		m_Real.glTextureBufferEXT(GetResourceManager()->GetLiveResource(texid).name,
 																	 Target, fmt,
-																	 GetResourceManager()->GetLiveResource(bufid).name);
+																	 buffer);
 	}
 
 	return true;
