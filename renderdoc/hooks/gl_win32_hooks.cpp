@@ -208,6 +208,8 @@ class OpenGLHook : LibraryHook
 			wglExts.push_back("WGL_ARB_create_context");
 			wglExts.push_back("WGL_ARB_create_context_profile");
 			wglExts.push_back("WGL_ARB_pixel_format");
+			wglExts.push_back("WGL_EXT_swap_control");
+			wglExts.push_back("WGL_EXT_swap_control_tear");
 			
 			merge(wglExts, wglExtsString, ' ');
 

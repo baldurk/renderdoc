@@ -337,6 +337,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	glExts.push_back("GL_ARB_internalformat_query");
 	glExts.push_back("GL_ARB_internalformat_query2");
 	glExts.push_back("GL_ARB_ES2_compatibility");
+	glExts.push_back("GL_ARB_ES3_compatibility");
 	glExts.push_back("GL_EXT_texture_filter_anisotropic");
 	glExts.push_back("GL_EXT_texture_sRGB_decode");
 	glExts.push_back("GL_EXT_texture_compression_s3tc");
@@ -351,7 +352,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	glExts.push_back("GL_ARB_multi_draw_indirect");
 	glExts.push_back("GL_ARB_compute_shader");
 	glExts.push_back("GL_ARB_explicit_uniform_location");
-	glExts.push_back("GL_ARB_ES3_compatibility");
 	glExts.push_back("GL_ARB_texture_buffer_range");
 	glExts.push_back("GL_ARB_copy_image");
 	glExts.push_back("GL_ARB_texture_query_levels");
@@ -366,7 +366,27 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	glExts.push_back("GL_ARB_seamless_cubemap_per_texture");
 	glExts.push_back("GL_ARB_multi_bind");
 	glExts.push_back("GL_KHR_debug");
-	
+	glExts.push_back("GL_EXT_depth_bounds_test");
+	glExts.push_back("GL_EXT_pixel_buffer_object");
+	glExts.push_back("GL_ARB_pixel_buffer_object");
+	glExts.push_back("GL_ARB_sync");
+	glExts.push_back("GL_ARB_timer_query");
+	glExts.push_back("GL_EXT_timer_query");
+	glExts.push_back("GL_ARB_framebuffer_object");
+	glExts.push_back("GL_EXT_framebuffer_object");
+	glExts.push_back("GL_EXT_framebuffer_blit");
+	glExts.push_back("GL_ARB_texture_multisample");
+	glExts.push_back("GL_ARB_texture_compression");
+	glExts.push_back("GL_ARB_sampler_objects");
+	glExts.push_back("GL_ARB_map_buffer_range");
+	glExts.push_back("GL_ARB_draw_elements_base_vertex");
+	glExts.push_back("GL_ARB_get_program_binary");
+	glExts.push_back("GL_ARB_uniform_buffer_object");
+	glExts.push_back("GL_ARB_occlusion_query");
+	glExts.push_back("GL_ARB_vertex_array_object");
+	glExts.push_back("GL_ARB_vertex_buffer_object");
+	glExts.push_back("GL_ARB_vertex_program");
+
 #if !defined(_RELEASE)
 	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
 	opts.RefAllResources = true;

@@ -106,11 +106,17 @@
     HookExtension(PFNGLTEXIMAGE2DMULTISAMPLEPROC, glTexImage2DMultisample); \
     HookExtension(PFNGLTEXIMAGE3DMULTISAMPLEPROC, glTexImage3DMultisample); \
     HookExtension(PFNGLCOMPRESSEDTEXIMAGE1DPROC, glCompressedTexImage1D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE1DPROC, glCompressedTexImage1D, glCompressedTexImage1DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D, glCompressedTexImage2DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D, glCompressedTexImage3DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC, glCompressedTexSubImage1D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC, glCompressedTexSubImage1D, glCompressedTexSubImage1DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC, glCompressedTexSubImage2D, glCompressedTexSubImage2DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D); \
+    HookExtensionAlias(PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC, glCompressedTexSubImage3D, glCompressedTexSubImage3DARB); \
     HookExtension(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
     HookExtension(PFNGLTEXTUREVIEWPROC, glTextureView); \
     HookExtension(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv); \
@@ -125,8 +131,10 @@
     HookExtension(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HookExtension(PFNGLGETINTERNALFORMATI64VPROC, glGetInternalformati64v); \
     HookExtension(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv); \
+    HookExtensionAlias(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv, glGetBufferParameterivARB); \
     HookExtension(PFNGLGETBUFFERPARAMETERI64VPROC, glGetBufferParameteri64v); \
     HookExtension(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \
+    HookExtensionAlias(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv, glGetBufferPointervARB); \
     HookExtension(PFNGLGETFRAGDATAINDEXPROC, glGetFragDataIndex); \
     HookExtension(PFNGLGETFRAGDATALOCATIONPROC, glGetFragDataLocation); \
     HookExtension(PFNGLGETSTRINGIPROC, glGetStringi); \
@@ -165,15 +173,22 @@
     HookExtension(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
     HookExtension(PFNGLGETQUERYINDEXEDIVPROC, glGetQueryIndexediv); \
     HookExtension(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v); \
+    HookExtensionAlias(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v, glGetQueryObjectui64vEXT); \
     HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
+    HookExtensionAlias(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv, glGetQueryObjectuivARB); \
     HookExtension(PFNGLGETQUERYOBJECTI64VPROC, glGetQueryObjecti64v); \
+    HookExtensionAlias(PFNGLGETQUERYOBJECTI64VPROC, glGetQueryObjecti64v, glGetQueryObjecti64vEXT); \
     HookExtension(PFNGLGETQUERYOBJECTIVPROC, glGetQueryObjectiv); \
+    HookExtensionAlias(PFNGLGETQUERYOBJECTIVPROC, glGetQueryObjectiv, glGetQueryObjectivARB); \
     HookExtension(PFNGLGETQUERYIVPROC, glGetQueryiv); \
+    HookExtensionAlias(PFNGLGETQUERYIVPROC, glGetQueryiv, glGetQueryivARB); \
     HookExtension(PFNGLGETSYNCIVPROC, glGetSynciv); \
     HookExtension(PFNGLGETBUFFERSUBDATAPROC, glGetBufferSubData); \
+    HookExtensionAlias(PFNGLGETBUFFERSUBDATAPROC, glGetBufferSubData, glGetBufferSubDataARB); \
     HookExtension(PFNGLGETVERTEXATTRIBIVPROC, glGetVertexAttribiv); \
     HookExtension(PFNGLGETVERTEXATTRIBPOINTERVPROC, glGetVertexAttribPointerv); \
     HookExtension(PFNGLGETCOMPRESSEDTEXIMAGEPROC, glGetCompressedTexImage); \
+    HookExtensionAlias(PFNGLGETCOMPRESSEDTEXIMAGEPROC, glGetCompressedTexImage, glGetCompressedTexImageARB); \
     HookExtension(PFNGLGETNCOMPRESSEDTEXIMAGEPROC, glGetnCompressedTexImage); \
     HookExtensionAlias(PFNGLGETNCOMPRESSEDTEXIMAGEPROC, glGetnCompressedTexImage, glGetnCompressedTexImageARB); \
     HookExtension(PFNGLGETCOMPRESSEDTEXTUREIMAGEPROC, glGetCompressedTextureImage); \
@@ -313,10 +328,12 @@
     HookExtension(PFNGLDISABLEIPROC, glDisablei); \
     HookExtension(PFNGLISENABLEDIPROC, glIsEnabledi); \
     HookExtension(PFNGLISBUFFERPROC, glIsBuffer); \
+    HookExtensionAlias(PFNGLISBUFFERPROC, glIsBuffer, glIsBufferARB); \
     HookExtension(PFNGLISFRAMEBUFFERPROC, glIsFramebuffer); \
     HookExtension(PFNGLISPROGRAMPROC, glIsProgram); \
     HookExtension(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline); \
     HookExtension(PFNGLISQUERYPROC, glIsQuery); \
+    HookExtensionAlias(PFNGLISQUERYPROC, glIsQuery, glIsQueryARB); \
     HookExtension(PFNGLISRENDERBUFFERPROC, glIsRenderbuffer); \
     HookExtension(PFNGLISSAMPLERPROC, glIsSampler); \
     HookExtension(PFNGLISSHADERPROC, glIsShader); \
@@ -348,18 +365,23 @@
     HookExtension(PFNGLWAITSYNCPROC, glWaitSync); \
     HookExtension(PFNGLDELETESYNCPROC, glDeleteSync); \
     HookExtension(PFNGLGENQUERIESPROC, glGenQueries); \
+    HookExtensionAlias(PFNGLGENQUERIESPROC, glGenQueries, glGenQueriesARB); \
     HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
+    HookExtensionAlias(PFNGLBEGINQUERYPROC, glBeginQuery, glBeginQueryARB); \
     HookExtension(PFNGLBEGINQUERYINDEXEDPROC, glBeginQueryIndexed); \
     HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
+    HookExtensionAlias(PFNGLENDQUERYPROC, glEndQuery, glEndQueryARB); \
     HookExtension(PFNGLENDQUERYINDEXEDPROC, glEndQueryIndexed); \
     HookExtension(PFNGLBEGINCONDITIONALRENDERPROC, glBeginConditionalRender); \
     HookExtension(PFNGLENDCONDITIONALRENDERPROC, glEndConditionalRender); \
     HookExtension(PFNGLQUERYCOUNTERPROC, glQueryCounter); \
     HookExtension(PFNGLDELETEQUERIESPROC, glDeleteQueries); \
+    HookExtensionAlias(PFNGLDELETEQUERIESPROC, glDeleteQueries, glDeleteQueriesARB); \
     HookExtension(PFNGLBUFFERDATAPROC, glBufferData); \
     HookExtensionAlias(PFNGLBUFFERDATAPROC, glBufferData, glBufferDataARB); \
     HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
     HookExtension(PFNGLBUFFERSUBDATAPROC, glBufferSubData); \
+    HookExtensionAlias(PFNGLBUFFERSUBDATAPROC, glBufferSubData, glBufferSubDataARB); \
     HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
