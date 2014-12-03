@@ -356,24 +356,51 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL || size != record->Length)
+		if(m_State == WRITING_IDLE && (record->GetDataPtr() != NULL || (record->Length > 0 && size != record->Length)))
 		{
-			record->DeleteChunks();
+			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
+			// We should have at least two by this point - glGenBuffers and whatever gave the record
+			// a size before.
+			RDCASSERT(record->NumChunks() >= 2);
+
+			// remove all but the first two chunks
+			while(record->NumChunks() > 2)
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			int32_t id2 = record->GetLastChunkID();
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			int32_t id1 = record->GetLastChunkID();
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			RDCASSERT(!record->HasChunks());
 
 			// add glGenBuffers chunk
 			{
 				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
 				Serialise_glGenBuffers(1, &buffer);
-
-				record->AddChunk(scope.Get());
+				
+				record->AddChunk(scope.Get(), id1);
 			}
 
 			// add glBindBuffer chunk
 			{
-				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
 				Serialise_glBindBuffer(record->datatype, buffer);
 				
-				record->AddChunk(scope.Get());
+				record->AddChunk(scope.Get(), id2);
 			}
 
 			// we're about to add the buffer data chunk
@@ -426,24 +453,51 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		// data, but we don't support (if it's even possible) querying out size etc.
 		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
 		// and this buffer storage. All other chunks have no effect
-		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL || size != record->Length)
+		if(m_State == WRITING_IDLE && (record->GetDataPtr() != NULL || (record->Length > 0 && size != record->Length)))
 		{
-			record->DeleteChunks();
+			// we need to maintain chunk ordering, so fetch the first two chunk IDs.
+			// We should have at least two by this point - glGenBuffers and whatever gave the record
+			// a size before.
+			RDCASSERT(record->NumChunks() >= 2);
+
+			// remove all but the first two chunks
+			while(record->NumChunks() > 2)
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			int32_t id2 = record->GetLastChunkID();
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			int32_t id1 = record->GetLastChunkID();
+			{
+				Chunk *c = record->GetLastChunk();
+				SAFE_DELETE(c);
+				record->PopChunk();
+			}
+
+			RDCASSERT(!record->HasChunks());
 
 			// add glGenBuffers chunk
 			{
 				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
 				Serialise_glGenBuffers(1, &buffer);
 				
-				record->AddChunk(scope.Get());
+				record->AddChunk(scope.Get(), id1);
 			}
 
 			// add glBindBuffer chunk
 			{
-				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
 				Serialise_glBindBuffer(record->datatype, buffer);
 				
-				record->AddChunk(scope.Get());
+				record->AddChunk(scope.Get(), id2);
 			}
 
 			// we're about to add the buffer data chunk

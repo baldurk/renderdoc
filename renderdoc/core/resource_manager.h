@@ -207,6 +207,12 @@ struct ResourceRecord
 		return m_Chunks.rbegin()->second;
 	}
 
+	int32_t GetLastChunkID() const
+	{
+		RDCASSERT(HasChunks());
+		return m_Chunks.rbegin()->first;
+	}
+
 	void PopChunk()
 	{
 		m_Chunks.erase(m_Chunks.rbegin()->first);
