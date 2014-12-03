@@ -205,7 +205,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		GLint isComp = 0;
 
 		GLenum queryType = details.curType;
-		if(queryType == eGL_TEXTURE_CUBE_MAP || queryType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+		if(queryType == eGL_TEXTURE_CUBE_MAP)
 			queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 		gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
 		
@@ -469,7 +469,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			GLint isComp = 0;
 			
 			GLenum queryType = details.curType;
-			if(queryType == eGL_TEXTURE_CUBE_MAP || queryType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+			if(queryType == eGL_TEXTURE_CUBE_MAP)
 				queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
 			gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
