@@ -172,6 +172,8 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 			Serialise_glVertexArrayElementBuffer(vao, buffer);
 
 			m_VertexArrayRecord->AddChunk(scope.Get());
+
+			m_VertexArrayRecord->AddParent(r);
 		}
 		
 		// store as transform feedback record state
