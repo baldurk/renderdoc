@@ -363,17 +363,28 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
 
 			GLuint shad = gl.glCreateShader(shadDetails.type);
+
+			char **srcs = new char *[shadDetails.sources.size()];
 			for(size_t s=0; s < shadDetails.sources.size(); s++)
-			{
-				const char *src = shadDetails.sources[s].c_str();
-				gl.glShaderSource(shad, 1, &src, NULL);
-			}
+				srcs[s] = (char *)shadDetails.sources[s].c_str();
+			gl.glShaderSource(shad, shadDetails.sources.size(), srcs, NULL);
+
+			SAFE_DELETE_ARRAY(srcs);
 			gl.glCompileShader(shad);
 			gl.glAttachShader(initProg, shad);
 			gl.glDeleteShader(shad);
 		}
 
 		gl.glLinkProgram(initProg);
+		
+		GLint status = 0;
+		gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+		if(status == 0)
+		{
+			char buffer[1025] = {0};
+			gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
+			RDCERR("Link error: %s", buffer);
+		}
 
 		SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
 		

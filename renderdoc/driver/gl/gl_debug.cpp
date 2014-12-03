@@ -1019,11 +1019,13 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 			if(shadDetails.type != eGL_FRAGMENT_SHADER)
 			{
 				shad = gl.glCreateShader(shadDetails.type);
+
+				char **srcs = new char *[shadDetails.sources.size()];
 				for(size_t s=0; s < shadDetails.sources.size(); s++)
-				{
-					src = shadDetails.sources[s].c_str();
-					gl.glShaderSource(shad, 1, &src, NULL);
-				}
+					srcs[s] = (char *)shadDetails.sources[s].c_str();
+				gl.glShaderSource(shad, shadDetails.sources.size(), srcs, NULL);
+				SAFE_DELETE_ARRAY(srcs);
+
 				gl.glCompileShader(shad);
 				gl.glAttachShader(progDetails.colOutProg, shad);
 				gl.glDeleteShader(shad);
