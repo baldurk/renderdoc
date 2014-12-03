@@ -213,7 +213,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawTransformFeedback(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedback() display");
 
@@ -269,7 +269,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawTransformFeedbackInstanced(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
 
@@ -325,7 +325,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawTransformFeedbackStream(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
 
@@ -382,7 +382,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawTransformFeedbackStreamInstanced(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStreamInstanced() display");
 
@@ -439,7 +439,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 	{
 		AddEvent(DRAWARRAYS, desc);
 		string name = "glDrawArrays(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ")";
 
@@ -494,7 +494,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawArraysIndirect(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching indirect data for glDrawArraysIndirect() display");
 
@@ -551,7 +551,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 	{
 		AddEvent(DRAWARRAYS_INSTANCED, desc);
 		string name = "glDrawArraysInstanced(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(InstanceCount) + ")";
@@ -610,7 +610,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 	{
 		AddEvent(DRAWARRAYS_INSTANCEDBASEINSTANCE, desc);
 		string name = "glDrawArraysInstancedBaseInstance(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(InstanceCount) + ", " +
@@ -669,7 +669,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 	{
 		AddEvent(DRAWELEMENTS, desc);
 		string name = "glDrawElements(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ")";
@@ -733,7 +733,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 	{
 		AddEvent(DRAWELEMENTS_INDIRECT, desc);
 		string name = "glDrawElementsIndirect(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Type) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching indirect data for glDrawElementsIndirect() display");
@@ -795,7 +795,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 	{
 		AddEvent(DRAWELEMENTS, desc);
 		string name = "glDrawRangeElements(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ")";
@@ -863,7 +863,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 	{
 		AddEvent(DRAWELEMENTS, desc);
 		string name = "glDrawRangeElementsBaseVertex(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -930,7 +930,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 	{
 		AddEvent(DRAWELEMENTS_BASEVERTEX, desc);
 		string name = "glDrawElementsBaseVertex(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -997,7 +997,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 	{
 		AddEvent(DRAWELEMENTS_INSTANCED, desc);
 		string name = "glDrawElementsInstanced(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -1065,7 +1065,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
 		string name = "glDrawElementsInstancedBaseInstance(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -1134,7 +1134,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
 		string name = "glDrawElementsInstancedBaseVertex(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -1204,7 +1204,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE, desc);
 		string name = "glDrawElementsInstancedBaseVertexBaseInstance(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(Type) + ", " +
 						ToStr::Get(IdxOffset) + ", " +
@@ -1273,7 +1273,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 	{
 		AddEvent(MULTI_DRAWARRAYS, desc);
 		string name = "glMultiDrawArrays(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ")";
 				
 		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawArrays() display");
@@ -1357,7 +1357,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 	{
 		AddEvent(MULTI_DRAWARRAYS, desc);
 		string name = "glMultiDrawElements(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ")";
 				
 		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawElements() display");
@@ -1442,7 +1442,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 	{
 		AddEvent(MULTI_DRAWARRAYS, desc);
 		string name = "glMultiDrawElementsBaseVertex(" +
-						ToStr::Get(Mode) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ")";
 				
 		RDCUNIMPLEMENTED("Not processing multi-draw data for glMultiDrawElements() display");
@@ -1504,7 +1504,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glMultiDrawArraysIndirect(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching indirect data for glMultiDrawArraysIndirect() display");
 
@@ -1562,7 +1562,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 	{
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glMultiDrawElementsIndirect(" +
-						ToStr::Get(Mode) + ")";
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
 		RDCUNIMPLEMENTED("Not fetching indirect data for glMultiDrawElementsIndirect() display");
 
