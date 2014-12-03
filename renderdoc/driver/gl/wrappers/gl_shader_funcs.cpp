@@ -233,7 +233,7 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 {
 	m_Real.glAttachShader(program, shader);
 	
-	if(m_State >= WRITING)
+	if(m_State >= WRITING && program != 0 && shader != 0)
 	{
 		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		GLResourceRecord *shadRecord = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
