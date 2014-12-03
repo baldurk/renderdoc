@@ -112,22 +112,6 @@ class WrappedOpenGL
 		// start, then track changes while frame capturing
 		bool RecordUpdateCheck(GLResourceRecord *record);
 
-		// state
-		GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
-		GLResourceRecord *m_BufferRecord[16];
-		GLResourceRecord *m_VertexArrayRecord;
-		GLResourceRecord *m_FeedbackRecord;
-		GLResourceRecord *m_DrawFramebufferRecord;
-		GLResourceRecord *m_ReadFramebufferRecord;
-		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
-		bool m_ActiveConditional;
-		bool m_ActiveFeedback;
-		ResourceId m_Renderbuffer;
-		GLint m_TextureUnit;
-		GLuint m_ProgramPipeline;
-		GLuint m_Program;
-		GLuint GetUniformProgram();
-
 		// internals
 		Serialiser *m_pSerialiser;
 		LogState m_State;
@@ -137,6 +121,10 @@ class WrappedOpenGL
 		GLInitParams m_InitParams;
 
 		map<uint64_t, void *> m_ActiveContexts;
+
+		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
+		bool m_ActiveConditional;
+		bool m_ActiveFeedback;
 
 		ResourceId m_DeviceResourceID;
 		GLResourceRecord *m_DeviceRecord;
@@ -283,15 +271,12 @@ class WrappedOpenGL
 		void FinishCapture();
 		void EndCaptureFrame();
 		
-		struct FontData
+		struct ContextData
 		{
-			FontData()
-				: built(false), ready(false),
-				Program(0),
-				GeneralUBO(0), StringUBO(0), GlyphUBO(0),
-				GlyphTexture(0),
-				DummyVAO(0)
-			{}
+			ContextData()
+			{
+				RDCEraseEl(*this);
+			}
 
 			bool built;
 			bool ready;
@@ -303,9 +288,26 @@ class WrappedOpenGL
 
 			float CharSize;
 			float CharAspect;
+
+			// state
+			GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
+			GLResourceRecord *m_BufferRecord[16];
+			GLResourceRecord *m_VertexArrayRecord;
+			GLResourceRecord *m_FeedbackRecord;
+			GLResourceRecord *m_DrawFramebufferRecord;
+			GLResourceRecord *m_ReadFramebufferRecord;
+			ResourceId m_Renderbuffer;
+			GLint m_TextureUnit;
+			GLuint m_ProgramPipeline;
+			GLuint m_Program;
+
+			GLResourceRecord *GetActiveTexRecord() { return m_TextureRecord[m_TextureUnit]; }
 		};
 
-		map<void*, FontData> m_Fonts;
+		map<void*, ContextData> m_ContextData;
+		
+		ContextData &GetCtxData();
+		GLuint GetUniformProgram();
 
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;

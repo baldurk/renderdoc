@@ -414,16 +414,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_CurEventID = 1;
 	m_CurDrawcallID = 1;
 
-	RDCEraseEl(m_TextureRecord);
-	RDCEraseEl(m_BufferRecord);
-	m_VertexArrayRecord = NULL;
-	m_DrawFramebufferRecord = NULL;
-	m_ReadFramebufferRecord = NULL;
-	m_Renderbuffer = ResourceId();
-	m_TextureUnit = 0;
-	m_ProgramPipeline = 0;
-	m_Program = 0;
-
 	RDCEraseEl(m_ActiveQueries);
 	m_ActiveConditional = false;
 	m_ActiveFeedback = false;
@@ -655,7 +645,7 @@ void *WrappedOpenGL::GetCtx()
 
 void WrappedOpenGL::DeleteContext(void *contextHandle)
 {
-	FontData &font = m_Fonts[contextHandle];
+	ContextData &font = m_ContextData[contextHandle];
 
 	if(font.built && font.ready)
 	{
@@ -671,7 +661,7 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 			m_Real.glDeleteTextures(1, &font.GlyphTexture);
 	}
 
-	m_Fonts.erase(contextHandle);
+	m_ContextData.erase(contextHandle);
 }
 
 void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams)
@@ -688,7 +678,7 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 
 	if(contextHandle)
 	{
-		FontData &font = m_Fonts[contextHandle];
+		ContextData &font = m_ContextData[contextHandle];
 
 		if(!font.built)
 		{
@@ -965,7 +955,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	
 	RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
 
-	FontData &font = m_Fonts[GetCtx()];
+	ContextData &font = m_ContextData[GetCtx()];
 
 	if(!font.built || !font.ready) return;
 

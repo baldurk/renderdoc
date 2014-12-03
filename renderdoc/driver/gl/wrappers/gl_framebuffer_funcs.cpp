@@ -141,11 +141,11 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
@@ -237,11 +237,11 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
@@ -330,14 +330,14 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = m_DeviceRecord;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
@@ -427,14 +427,14 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = m_DeviceRecord;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
@@ -517,14 +517,14 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment, 
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = m_DeviceRecord;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
@@ -609,14 +609,14 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = m_DeviceRecord;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
@@ -680,14 +680,14 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = NULL;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		if(record == NULL) return;
@@ -702,7 +702,7 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
 bool WrappedOpenGL::Serialise_glReadBuffer(GLenum mode)
 {
 	SERIALISE_ELEMENT(GLenum, m, mode);
-	SERIALISE_ELEMENT(ResourceId, id, m_ReadFramebufferRecord ? m_ReadFramebufferRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_ReadFramebufferRecord ? GetCtxData().m_ReadFramebufferRecord->GetResourceID() : ResourceId());
 
 	if(m_State < WRITING)
 	{
@@ -733,15 +733,15 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
 
 		if(m_State == WRITING_IDLE)
 		{
-			if(m_ReadFramebufferRecord)
+			if(GetCtxData().m_ReadFramebufferRecord)
 			{
-				Chunk *last = m_ReadFramebufferRecord->GetLastChunk();
+				Chunk *last = GetCtxData().m_ReadFramebufferRecord->GetLastChunk();
 				if(last->GetChunkType() == READ_BUFFER)
 				{
 					delete last;
-					m_ReadFramebufferRecord->PopChunk();
+					GetCtxData().m_ReadFramebufferRecord->PopChunk();
 				}
-				m_ReadFramebufferRecord->AddChunk(scope.Get());
+				GetCtxData().m_ReadFramebufferRecord->AddChunk(scope.Get());
 			}
 			else
 				m_DeviceRecord->AddChunk(scope.Get());
@@ -786,9 +786,9 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 		framebuffer = m_FakeBB_FBO;
 
 	if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-		m_DrawFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		GetCtxData().m_DrawFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 	else
-		m_ReadFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		GetCtxData().m_ReadFramebufferRecord = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
 	m_Real.glBindFramebuffer(target, framebuffer);
 }
@@ -875,8 +875,8 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
-		if(m_DrawFramebufferRecord)
-			Serialise_glFramebufferDrawBuffersEXT(GetResourceManager()->GetCurrentResource(m_DrawFramebufferRecord->GetResourceID()).name, n, bufs);
+		if(GetCtxData().m_DrawFramebufferRecord)
+			Serialise_glFramebufferDrawBuffersEXT(GetResourceManager()->GetCurrentResource(GetCtxData().m_DrawFramebufferRecord->GetResourceID()).name, n, bufs);
 		else
 			Serialise_glFramebufferDrawBuffersEXT(0, n, bufs);
 		
@@ -896,11 +896,11 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
 
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		if(record)
@@ -917,14 +917,14 @@ void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachm
 	if(m_State == WRITING_IDLE)
 	{
 		GLResourceRecord *record = NULL;
-
+		
 		if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
 		{
-			if(m_DrawFramebufferRecord) record = m_DrawFramebufferRecord;
+			if(GetCtxData().m_DrawFramebufferRecord) record = GetCtxData().m_DrawFramebufferRecord;
 		}
 		else
 		{
-			if(m_ReadFramebufferRecord) record = m_ReadFramebufferRecord;
+			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
 
 		if(record)
@@ -1043,7 +1043,7 @@ void WrappedOpenGL::glBindRenderbuffer(GLenum target, GLuint renderbuffer)
 	// don't need to serialise this, as the GL_RENDERBUFFER target does nothing
 	// aside from create names (after glGen), and provide as a selector for glRenderbufferStorage*
 	// which we do ourselves. We just need to know the current renderbuffer ID
-	m_Renderbuffer = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+	GetCtxData().m_Renderbuffer = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
 
 	m_Real.glBindRenderbuffer(target, renderbuffer);
 }
@@ -1066,7 +1066,7 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
 
 bool WrappedOpenGL::Serialise_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
 {
-	SERIALISE_ELEMENT(ResourceId, id, m_Renderbuffer);
+	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_Renderbuffer);
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
@@ -1116,7 +1116,7 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(m_Renderbuffer);
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(GetCtxData().m_Renderbuffer);
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
@@ -1126,13 +1126,14 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 	}
 
 	{
-		m_Textures[m_Renderbuffer].width = width;
-		m_Textures[m_Renderbuffer].height = height;
-		m_Textures[m_Renderbuffer].depth = 1;
-		m_Textures[m_Renderbuffer].samples = 1;
-		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
-		m_Textures[m_Renderbuffer].dimension = 2;
-		m_Textures[m_Renderbuffer].internalFormat = internalformat;
+		ResourceId rb = GetCtxData().m_Renderbuffer;
+		m_Textures[rb].width = width;
+		m_Textures[rb].height = height;
+		m_Textures[rb].depth = 1;
+		m_Textures[rb].samples = 1;
+		m_Textures[rb].curType = eGL_RENDERBUFFER;
+		m_Textures[rb].dimension = 2;
+		m_Textures[rb].internalFormat = internalformat;
 	}
 }
 
@@ -1142,7 +1143,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisample(GLenum target, GL
 	SERIALISE_ELEMENT(uint32_t, Samples, samples);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
-	SERIALISE_ELEMENT(ResourceId, id, m_Renderbuffer);
+	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_Renderbuffer);
 
 	if(m_State == READING)
 	{
@@ -1189,7 +1190,7 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(m_Renderbuffer);
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(GetCtxData().m_Renderbuffer);
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
@@ -1199,12 +1200,13 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
 	}
 
 	{
-		m_Textures[m_Renderbuffer].width = width;
-		m_Textures[m_Renderbuffer].height = height;
-		m_Textures[m_Renderbuffer].depth = 1;
-		m_Textures[m_Renderbuffer].samples = samples;
-		m_Textures[m_Renderbuffer].curType = eGL_RENDERBUFFER;
-		m_Textures[m_Renderbuffer].dimension = 2;
-		m_Textures[m_Renderbuffer].internalFormat = internalformat;
+		ResourceId rb = GetCtxData().m_Renderbuffer;
+		m_Textures[rb].width = width;
+		m_Textures[rb].height = height;
+		m_Textures[rb].depth = 1;
+		m_Textures[rb].samples = samples;
+		m_Textures[rb].curType = eGL_RENDERBUFFER;
+		m_Textures[rb].dimension = 2;
+		m_Textures[rb].internalFormat = internalformat;
 	}
 }
