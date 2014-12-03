@@ -186,6 +186,12 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 
 			m_FeedbackRecord->AddChunk(scope.Get());
 		}
+		
+		// immediately consider buffers bound to transform feedbacks as dirty
+		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+		{
+			GetResourceManager()->MarkDirtyResource(r->GetResourceID());
+		}
 	}
 }
 
@@ -611,6 +617,12 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 
 		m_FeedbackRecord->AddChunk(scope.Get());
 	}
+	
+	// immediately consider buffers bound to transform feedbacks as dirty
+	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	{
+		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+	}
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -670,6 +682,12 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 		Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, size);
 
 		m_FeedbackRecord->AddChunk(scope.Get());
+	}
+	
+	// immediately consider buffers bound to transform feedbacks as dirty
+	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	{
+		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 	}
 
 	if(m_State == WRITING_CAPFRAME)
@@ -743,6 +761,13 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 
 			m_FeedbackRecord->AddChunk(scope.Get());
 		}
+	}
+	
+	// immediately consider buffers bound to transform feedbacks as dirty
+	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	{
+		for(int i=0; i < count; i++)
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
 	}
 
 	if(m_State == WRITING_CAPFRAME)
@@ -828,6 +853,13 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 
 			m_FeedbackRecord->AddChunk(scope.Get());
 		}
+	}
+	
+	// immediately consider buffers bound to transform feedbacks as dirty
+	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	{
+		for(int i=0; i < count; i++)
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
 	}
 
 	if(m_State == WRITING_CAPFRAME)
