@@ -412,7 +412,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			char **srcs = new char *[shadDetails.sources.size()];
 			for(size_t s=0; s < shadDetails.sources.size(); s++)
 				srcs[s] = (char *)shadDetails.sources[s].c_str();
-			gl.glShaderSource(shad, shadDetails.sources.size(), srcs, NULL);
+			gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
 
 			SAFE_DELETE_ARRAY(srcs);
 			gl.glCompileShader(shad);

@@ -736,7 +736,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 		// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
 		// buffer
 		SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
-		Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, size);
+		Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, (GLsizei)size);
 
 		m_FeedbackRecord->AddChunk(scope.Get());
 	}
@@ -906,7 +906,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 			// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
 			// buffer
 			SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
-			Serialise_glTransformFeedbackBufferRange(feedback, first+i, buffers[i], offsets[i], sizes[i]);
+			Serialise_glTransformFeedbackBufferRange(feedback, first+i, buffers[i], offsets[i], (GLsizei)sizes[i]);
 
 			m_FeedbackRecord->AddChunk(scope.Get());
 		}
