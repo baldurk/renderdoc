@@ -348,9 +348,9 @@ bool WrappedOpenGL::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GL
 	
 	if(m_State <= EXECUTING)
 	{
-		GLResource tex = GetResourceManager()->GetLiveResource(texid);
+		GLuint tex = texid == ResourceId() ? 0 : GetResourceManager()->GetLiveResource(texid).name;
 
-		m_Real.glBindImageTexture(Unit, tex.name, Level, Layered, Layer, Access, Format);
+		m_Real.glBindImageTexture(Unit, tex, Level, Layered, Layer, Access, Format);
 
 		if(m_State == READING)
 			m_Textures[GetResourceManager()->GetLiveID(texid)].creationFlags |= eTextureCreate_UAV;
