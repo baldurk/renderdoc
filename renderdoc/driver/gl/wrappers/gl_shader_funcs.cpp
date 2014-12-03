@@ -772,7 +772,10 @@ bool WrappedOpenGL::Serialise_glUseProgram(GLuint program)
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glUseProgram(GetResourceManager()->GetLiveResource(id).name);
+		if(id == ResourceId())
+			m_Real.glUseProgram(0);
+		else
+			m_Real.glUseProgram(GetResourceManager()->GetLiveResource(id).name);
 	}
 
 	return true;
