@@ -960,15 +960,41 @@ void GLReplay::SavePipelineState()
 				fmt.specialFormat = eSpecial_R10G10B10A2;
 				fmt.compCount = 4;
 				fmt.compType = eCompType_SInt;
-				fmt.strname = "eGL_UNSIGNED_INT_2_10_10_10_REV";
+				fmt.strname = "GL_UNSIGNED_INT_2_10_10_10_REV";
 				break;
 			case eGL_UNSIGNED_INT_10F_11F_11F_REV:
 				fmt.special = true;
 				fmt.specialFormat = eSpecial_R11G11B10;
 				fmt.compCount = 3;
 				fmt.compType = eCompType_SInt;
-				fmt.strname = "eGL_UNSIGNED_INT_10F_11F_11F_REV";
+				fmt.strname = "GL_UNSIGNED_INT_10F_11F_11F_REV";
 				break;
+		}
+		
+		if(fmt.compCount == eGL_BGRA)
+		{
+			fmt.compCount = 4;
+			fmt.special = true;
+			fmt.specialFormat = eSpecial_B8G8R8A8;
+			fmt.compType = eCompType_UNorm;
+
+			if(type == eGL_UNSIGNED_BYTE)
+			{
+				fmt.specialFormat = eSpecial_B8G8R8A8;
+				fmt.compType = eCompType_UNorm;
+				fmt.strname = "GL_BGRA8";
+			}
+			else if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
+			{
+				fmt.specialFormat = eSpecial_R10G10B10A2;
+				fmt.compType = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? eCompType_UInt : eCompType_SInt;
+				fmt.strname = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? "GL_UNSIGNED_INT_2_10_10_10_REV" : "GL_INT_2_10_10_10_REV";
+			}
+			else
+			{
+				RDCERR("Unexpected BGRA type");
+			}
+			RDCASSERT(type == eGL_UNSIGNED_BYTE);
 		}
 
 		pipe.m_VtxIn.attributes[i].Format = fmt;
