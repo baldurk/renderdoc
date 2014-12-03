@@ -1624,8 +1624,9 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 	struct chunkinfo
 	{
-		chunkinfo() : count(0), total(0.0) {}
+		chunkinfo() : count(0), totalsize(0), total(0.0) {}
 		int count;
+		uint64_t totalsize;
 		double total;
 	};
 
@@ -1651,26 +1652,40 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 		if(context == CAPTURE_SCOPE)
 		{
-			ContextReplayLog(READING, 0, 0, false);
+			GetResourceManager()->ApplyInitialContents();
 
+			ContextReplayLog(READING, 0, 0, false);
+		}
+
+		uint64_t offset2 = m_pSerialiser->GetOffset();
+
+		chunkInfos[context].total += timer.GetMilliseconds();
+		chunkInfos[context].totalsize += offset2 - offset;
+		chunkInfos[context].count++;
+		
+		if(context == CAPTURE_SCOPE)
+		{
 			if(m_pSerialiser->GetOffset() > lastFrame)
 				break;
 		}
-
-		chunkInfos[context].total += timer.GetMilliseconds();
-		chunkInfos[context].count++;
 
 		if(m_pSerialiser->AtEnd())
 		{
 			break;
 		}
 	}
-
+	
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
 	{
-		RDCDEBUG("%s: %.3f total time in %d chunks - %.3f average",
-				GetChunkName(it->first), it->second.total, it->second.count,
-				it->second.total/double(it->second.count));
+		double dcount = double(it->second.count);
+
+		RDCDEBUG("% 5d chunks - Time: %9.3fms total/%9.3fms avg - Size: %8.3fMB total/%7.3fMB avg - %s (%u)",
+				it->second.count,
+				it->second.total, it->second.total/dcount,
+				double(it->second.totalsize)/(1024.0*1024.0),
+				double(it->second.totalsize)/(dcount*1024.0*1024.0),
+				GetChunkName(it->first), uint32_t(it->first)
+				);
 	}
 
 	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
