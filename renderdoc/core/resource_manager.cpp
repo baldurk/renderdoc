@@ -62,9 +62,7 @@ void ResourceRecord::Delete(ResourceRecordHandler *mgr)
 			}
 		}
 
-		for(auto it=m_Chunks.begin(); it != m_Chunks.end(); ++it)
-			SAFE_DELETE(it->second);
-		m_Chunks.clear();
+		DeleteChunks();
 
 		for(int i=0; i < NumSubResources; i++)
 		{

@@ -192,6 +192,15 @@ struct ResourceRecord
 		UnlockChunks();
 	}
 
+	void DeleteChunks()
+	{
+		LockChunks();
+		for(auto it=m_Chunks.begin(); it != m_Chunks.end(); ++it)
+			SAFE_DELETE(it->second);
+		m_Chunks.clear();
+		UnlockChunks();
+	}
+
 	Chunk *GetLastChunk() const
 	{
 		RDCASSERT(HasChunks());

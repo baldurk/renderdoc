@@ -348,6 +348,34 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 				memset(record->GetDataPtr(), 0xbe, (size_t)size);
 			return;
 		}
+		
+		// if we're recreating the buffer, clear the record and add new chunks. Normally
+		// we would just mark this record as dirty and pick it up on the capture frame as initial
+		// data, but we don't support (if it's even possible) querying out size etc.
+		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
+		// and this buffer storage. All other chunks have no effect
+		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL || size != record->Length)
+		{
+			record->DeleteChunks();
+
+			// add glGenBuffers chunk
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				Serialise_glGenBuffers(1, &buffer);
+
+				record->AddChunk(scope.Get());
+			}
+
+			// add glBindBuffer chunk
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				Serialise_glBindBuffer(record->datatype, buffer);
+				
+				record->AddChunk(scope.Get());
+			}
+
+			// we're about to add the buffer data chunk
+		}
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
@@ -389,9 +417,38 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			return;
 		}
 
+		GLuint buffer = GetResourceManager()->GetCurrentResource(record->GetResourceID()).name;
+
+		// if we're recreating the buffer, clear the record and add new chunks. Normally
+		// we would just mark this record as dirty and pick it up on the capture frame as initial
+		// data, but we don't support (if it's even possible) querying out size etc.
+		// we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
+		// and this buffer storage. All other chunks have no effect
+		if(m_State == WRITING_IDLE && record->GetDataPtr() != NULL || size != record->Length)
+		{
+			record->DeleteChunks();
+
+			// add glGenBuffers chunk
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				Serialise_glGenBuffers(1, &buffer);
+				
+				record->AddChunk(scope.Get());
+			}
+
+			// add glBindBuffer chunk
+			{
+				SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+				Serialise_glBindBuffer(record->datatype, buffer);
+				
+				record->AddChunk(scope.Get());
+			}
+
+			// we're about to add the buffer data chunk
+		}
+
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
-		Serialise_glNamedBufferDataEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
-																   size, data, usage);
+		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
 
 		Chunk *chunk = scope.Get();
 
