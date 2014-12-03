@@ -1797,7 +1797,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribPointer(GLuint index, GLint size, GL
 			}
 			else
 			{
-				m_Real.glBindVertexArray(0);
+				m_Real.glBindVertexArray(m_FakeVAO);
 			}
 			
 			if(bid != ResourceId())
@@ -1868,7 +1868,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribIPointer(GLuint index, GLint size, G
 			}
 			else
 			{
-				m_Real.glBindVertexArray(0);
+				m_Real.glBindVertexArray(m_FakeVAO);
 			}
 			
 			if(bid != ResourceId())
@@ -1939,7 +1939,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribLPointer(GLuint index, GLint size, G
 			}
 			else
 			{
-				m_Real.glBindVertexArray(0);
+				m_Real.glBindVertexArray(m_FakeVAO);
 			}
 			
 			if(bid != ResourceId())
@@ -1999,7 +1999,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint b
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glVertexAttribBinding(aidx, bidx);
@@ -2050,7 +2050,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribFormat(GLuint attribindex, GLint siz
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
@@ -2101,7 +2101,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint si
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
@@ -2152,7 +2152,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribLFormat(GLuint attribindex, GLint si
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glVertexAttribLFormat(Index, Size, Type, Offset);
@@ -2201,7 +2201,7 @@ bool WrappedOpenGL::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glVertexAttribDivisor(Index, Divisor);
@@ -2249,7 +2249,7 @@ bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glEnableVertexAttribArray(Index);
@@ -2296,7 +2296,7 @@ bool WrappedOpenGL::Serialise_glDisableVertexAttribArray(GLuint index)
 		}
 		else
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 
 		m_Real.glDisableVertexAttribArray(Index);
@@ -2387,7 +2387,7 @@ bool WrappedOpenGL::Serialise_glBindVertexArray(GLuint array)
 	{
 		if(id == ResourceId())
 		{
-			m_Real.glBindVertexArray(0);
+			m_Real.glBindVertexArray(m_FakeVAO);
 		}
 		else
 		{

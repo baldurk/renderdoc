@@ -477,6 +477,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_FakeBB_FBO = 0;
 	m_FakeBB_Color = 0;
 	m_FakeBB_DepthStencil = 0;
+	m_FakeVAO = 0;
 		
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
@@ -493,6 +494,12 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 {
 	// deliberately want to go through our own wrappers to set up e.g. m_Textures members
 	WrappedOpenGL &gl = *this;
+
+	// as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
+	// consider making it an error/warning for programs to use this?
+	gl.glGenVertexArrays(1, &m_FakeVAO);
+	gl.glBindVertexArray(m_FakeVAO);
+	gl.glBindVertexArray(0);
 
 	gl.glGenFramebuffers(1, &m_FakeBB_FBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);

@@ -619,6 +619,8 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		if(state >= WRITING) ID = rm->GetID(VertexArrayRes(ctx, VAO));
 		m_pSerialiser->Serialise("GL_VERTEX_ARRAY_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) VAO = rm->GetLiveResource(ID).name;
+
+		if(VAO == 0) VAO = gl->GetFakeVAO();
 	}
 	
 	{

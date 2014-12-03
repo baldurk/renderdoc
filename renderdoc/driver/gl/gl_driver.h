@@ -262,6 +262,7 @@ class WrappedOpenGL
 		GLuint m_FakeBB_FBO;
 		GLuint m_FakeBB_Color;
 		GLuint m_FakeBB_DepthStencil;
+		GLuint m_FakeVAO;
 		
 		bool m_DoStateVerify;
 		//GLRenderState *m_CurrentPipelineState;
@@ -338,6 +339,7 @@ class WrappedOpenGL
 		void ReadLogInitialisation();
 
 		GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
+		GLuint GetFakeVAO() { return m_FakeVAO; }
 
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
