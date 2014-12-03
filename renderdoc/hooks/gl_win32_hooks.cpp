@@ -266,6 +266,10 @@ class OpenGLHook : LibraryHook
 		Hook<BOOL (WINAPI*)(HDC, HGLRC)> wglMakeCurrent_hook;
 		Hook<PROC (WINAPI*)(const char*)> wglGetProcAddress_hook;
 		Hook<BOOL (WINAPI*)(HDC)> SwapBuffers_hook;
+		Hook<LONG (WINAPI*)(DEVMODEA*,DWORD)> ChangeDisplaySettingsA_hook;
+		Hook<LONG (WINAPI*)(DEVMODEW*,DWORD)> ChangeDisplaySettingsW_hook;
+		Hook<LONG (WINAPI*)(LPCSTR,DEVMODEA*,HWND,DWORD,LPVOID)> ChangeDisplaySettingsExA_hook;
+		Hook<LONG (WINAPI*)(LPCWSTR,DEVMODEW*,HWND,DWORD,LPVOID)> ChangeDisplaySettingsExW_hook;
 
 		PROC (WINAPI* wglGetProcAddress_realfunc)(const char*);
 		PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB_realfunc;
@@ -442,6 +446,38 @@ class OpenGLHook : LibraryHook
 
 			return glhooks.SwapBuffers_hook()(dc);
 		}
+
+		static LONG WINAPI ChangeDisplaySettingsA_hooked(DEVMODEA *mode, DWORD flags)
+		{
+			if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+				return glhooks.ChangeDisplaySettingsA_hook()(mode, flags);
+
+			return DISP_CHANGE_SUCCESSFUL;
+		}
+
+		static LONG WINAPI ChangeDisplaySettingsW_hooked(DEVMODEW *mode, DWORD flags)
+		{
+			if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+				return glhooks.ChangeDisplaySettingsW_hook()(mode, flags);
+
+			return DISP_CHANGE_SUCCESSFUL;
+		}
+
+		static LONG WINAPI ChangeDisplaySettingsExA_hooked(LPCSTR devname, DEVMODEA *mode, HWND wnd, DWORD flags, LPVOID param)
+		{
+			if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+				return glhooks.ChangeDisplaySettingsExA_hook()(devname, mode, wnd, flags, param);
+
+			return DISP_CHANGE_SUCCESSFUL;
+		}
+
+		static LONG WINAPI ChangeDisplaySettingsExW_hooked(LPCWSTR devname, DEVMODEW *mode, HWND wnd, DWORD flags, LPVOID param)
+		{
+			if((flags & CDS_FULLSCREEN) == 0 || RenderDoc::Inst().GetCaptureOptions().AllowFullscreen)
+				return glhooks.ChangeDisplaySettingsExW_hook()(devname, mode, wnd, flags, param);
+
+			return DISP_CHANGE_SUCCESSFUL;
+		}
 		
 		static const char * WINAPI wglGetExtensionsStringARB_hooked(HDC dc)
 		{
@@ -541,6 +577,10 @@ class OpenGLHook : LibraryHook
 			success &= wglMakeCurrent_hook.Initialize("wglMakeCurrent", DLL_NAME, wglMakeCurrent_hooked);
 			success &= wglGetProcAddress_hook.Initialize("wglGetProcAddress", DLL_NAME, wglGetProcAddress_hooked);
 			success &= SwapBuffers_hook.Initialize("SwapBuffers", "gdi32.dll", SwapBuffers_hooked);
+			success &= ChangeDisplaySettingsA_hook.Initialize("ChangeDisplaySettingsA", "user32.dll", ChangeDisplaySettingsA_hooked);
+			success &= ChangeDisplaySettingsW_hook.Initialize("ChangeDisplaySettingsW", "user32.dll", ChangeDisplaySettingsW_hooked);
+			success &= ChangeDisplaySettingsExA_hook.Initialize("ChangeDisplaySettingsExA", "user32.dll", ChangeDisplaySettingsExA_hooked);
+			success &= ChangeDisplaySettingsExW_hook.Initialize("ChangeDisplaySettingsExW", "user32.dll", ChangeDisplaySettingsExW_hooked);
 
 			wglGetProcAddress_realfunc = wglGetProcAddress_hook();
 			
