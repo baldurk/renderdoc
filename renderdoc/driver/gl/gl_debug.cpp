@@ -1199,13 +1199,25 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 		if(overlay == eTexOverlay_DepthBoth)
 		{
-			gl.glEnable(eGL_DEPTH_TEST);
-			gl.glDepthMask(GL_TRUE);
+			if(depthTest)
+				gl.glEnable(eGL_DEPTH_TEST);
+			else
+				gl.glDisable(eGL_DEPTH_TEST);
+
+			if(depthMask)
+				gl.glDepthMask(GL_TRUE);
+			else
+				gl.glDepthMask(GL_FALSE);
 		}
 		else
 		{
-			gl.glEnable(eGL_STENCIL_TEST);
-			gl.glStencilMask(0xff);
+			if(stencilTest)
+				gl.glEnable(eGL_STENCIL_TEST);
+			else
+				gl.glDisable(eGL_STENCIL_TEST);
+
+			gl.glStencilMaskSeparate(eGL_FRONT, stencilMaskFront);
+			gl.glStencilMaskSeparate(eGL_BACK, stencilMaskBack);
 		}
 
 		// get latest depth/stencil from read FBO (existing FBO) into draw FBO (overlay FBO)
