@@ -338,8 +338,7 @@ void GLRenderState::ApplyState()
 	m_Real->glActiveTexture(ActiveTexture);
 
 	m_Real->glBindVertexArray(VAO);
-	if(FeedbackObj)
-		m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj);
+	m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj);
 	
 	// See FetchState(). The spec says that you have to SET the right format for the shader too,
 	// but we couldn't query for the format so we can't set it here.

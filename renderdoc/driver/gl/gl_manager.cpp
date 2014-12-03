@@ -60,6 +60,17 @@ struct VAOInitialData
 	ResourceId ElementArrayBuffer;
 };
 
+struct FeedbackInitialData
+{
+	FeedbackInitialData()
+	{
+		RDCEraseEl(*this);
+	}
+	ResourceId Buffer[4];
+	uint64_t Offset[4];
+	uint64_t Size[4];
+};
+
 template<>
 void Serialiser::Serialise(const char *name, VertexAttribInitialData &el)
 {
@@ -81,6 +92,15 @@ void Serialiser::Serialise(const char *name, VertexBufferInitialData &el)
 	Serialise("Stride", el.Stride);
 	Serialise("Offset", el.Offset);
 	Serialise("Divisor", el.Divisor);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
+{
+	ScopedContext scope(this, this, name, "FeedbackInitialData", 0, true);
+	Serialise<4>("Buffer", el.Buffer);
+	Serialise<4>("Offset", el.Offset);
+	Serialise<4>("Size", el.Size);
 }
 
 struct TextureStateInitialData
@@ -268,6 +288,30 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
 		
 		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
+	}
+	else if(res.Namespace == eResFeedback)
+	{
+		GLuint prevfeedback = 0;
+		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, res.name);
+		
+		FeedbackInitialData *data = (FeedbackInitialData *)Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
+
+		GLint maxCount = 0;
+		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+		for(int i=0; i < ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		{
+			GLuint buffer = 0;
+			gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);data->Buffer[i] = GetID(BufferRes(res.Context, buffer));
+			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64*)&data->Offset[i]);
+			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE,  i, (GLint64*)&data->Size[i]);
+		}
+		
+		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
 	}
 	else if(res.Namespace == eResVertexArray)
 	{
@@ -745,6 +789,26 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, unpackParams[7]);
 		}
 	}
+	else if(res.Namespace == eResFeedback)
+	{
+		FeedbackInitialData data;
+
+		if(m_State >= WRITING)
+		{
+			FeedbackInitialData *initialdata = (FeedbackInitialData *)GetInitialContents(Id).blob;
+			memcpy(&data, initialdata, sizeof(data));
+		}
+
+		m_pSerialiser->Serialise("Transform Feedback Buffers", data);
+		
+		if(m_State < WRITING)
+		{
+			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
+			memcpy(blob, &data, sizeof(data));
+
+			SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
+		}
+	}
 	else if(res.Namespace == eResVertexArray)
 	{
 		VAOInitialData data;
@@ -857,6 +921,26 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 	else if(live.Namespace == eResProgram)
 	{
 		CopyProgramUniforms(gl, initial.resource.name, live.name);
+	}
+	else if(live.Namespace == eResFeedback)
+	{
+		GLuint prevfeedback = 0;
+		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, live.name);
+		
+		FeedbackInitialData *data = (FeedbackInitialData *)initial.blob;
+
+		GLint maxCount = 0;
+		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+		for(int i=0; i < ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		{
+			GLuint buffer = data->Buffer[i] == ResourceId() ? 0 : GetLiveResource(data->Buffer[i]).name;
+			gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i], (GLsizei)data->Size[i]);
+		}
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
 	}
 	else if(live.Namespace == eResVertexArray)
 	{

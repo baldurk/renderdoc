@@ -106,16 +106,17 @@ class WrappedOpenGL
 		static void APIENTRY DebugSnoopStatic(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
 		{ ((WrappedOpenGL *)userParam)->DebugSnoop(source, type, id, severity, length, message); }
 
-		// checks if the bound VAO object has tons of updates. If so it's probably
-		// in the vein of "one global VAO, updated per-draw as necessary", in which case
-		// we just want to save the state of it at frame start, then track changes while
-		// frame capturing
-		bool VertexArrayUpdateCheck();
+		// checks if the given object has tons of updates. If so it's probably
+		// in the vein of "one global object, updated per-draw as necessary", or it's just
+		// really high traffic, in which case we just want to save the state of it at frame
+		// start, then track changes while frame capturing
+		bool RecordUpdateCheck(GLResourceRecord *record);
 
 		// state
 		GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
 		GLResourceRecord *m_BufferRecord[16];
 		GLResourceRecord *m_VertexArrayRecord;
+		GLResourceRecord *m_FeedbackRecord;
 		GLResourceRecord *m_DrawFramebufferRecord;
 		GLResourceRecord *m_ReadFramebufferRecord;
 		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
@@ -620,6 +621,8 @@ class WrappedOpenGL
 
 		// hack for now until ARB_dsa is serialised
 		bool Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
+		bool Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer);
+		bool Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1d(GLuint index, GLdouble x));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1dv(GLuint index, const GLdouble *v));

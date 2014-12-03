@@ -276,7 +276,8 @@ const char *GLChunkNames[] =
 	"glVertexAttribBinding",
 
 	"glVertexArrayElementBuffer",
-	
+	"glTransformFeedbackBufferBase",
+	"glTransformFeedbackBufferRange",
 	
 	"glObjectLabel",
 	"glPushDebugGroup",
@@ -1475,7 +1476,29 @@ vector<DebugMessage> WrappedOpenGL::Serialise_DebugMessages()
 
 	return debugMessages;
 }
-		
+
+bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
+{
+	// if nothing is bound, don't serialise chunk
+	if(record == NULL) return false;
+
+	// if we've already stopped tracking this object, return as such
+	if(record && record->UpdateCount > 64)
+		return false;
+
+	// increase update count
+	record->UpdateCount++;
+
+	// if update count is high, mark as dirty
+	if(record && record->UpdateCount > 64)
+	{
+		GetResourceManager()->MarkDirtyResource( record->GetResourceID() );
+
+		return false;
+	}
+
+	return true;
+}
 
 void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message)
 {
@@ -2325,6 +2348,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
 	case VAO_ELEMENT_BUFFER:
 		Serialise_glVertexArrayElementBuffer(0, 0);
+		break;
+	case FEEDBACK_BUFFER_BASE:
+		Serialise_glTransformFeedbackBufferBase(0, 0, 0);
+		break;
+	case FEEDBACK_BUFFER_RANGE:
+		Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0);
 		break;
 
 	case OBJECT_LABEL:
