@@ -611,9 +611,14 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		GLResourceRecord *writerecord = m_BufferRecord[BufferIdx(writeTarget)];
 		RDCASSERT(readrecord && writerecord);
 
+		GLResource writeBuffer = GetResourceManager()->GetCurrentResource(writerecord->GetResourceID());
+
+		if(m_HighTrafficResources.find(writeBuffer) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+	
 		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
 		Serialise_glNamedCopyBufferSubDataEXT(GetResourceManager()->GetCurrentResource(readrecord->GetResourceID()).name,
-																          GetResourceManager()->GetCurrentResource(writerecord->GetResourceID()).name,
+																          writeBuffer.name,
 																          readOffset, writeOffset, size);
 
 		Chunk *chunk = scope.Get();
@@ -626,6 +631,13 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		{
 			writerecord->AddChunk(chunk);
 			writerecord->AddParent(readrecord);
+			writerecord->UpdateCount++;
+
+			if(writerecord->UpdateCount > 60)
+			{
+				m_HighTrafficResources.insert(writeBuffer);
+				GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
+			}
 		}
 	}
 }
