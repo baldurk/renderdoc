@@ -2441,7 +2441,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		m_CurEventID = 1;
 	}
 
-	if(m_State == EXECUTING)
+	if(m_State == EXECUTING && !partial)
 	{
 		for(size_t i=0; i < 8; i++)
 		{
