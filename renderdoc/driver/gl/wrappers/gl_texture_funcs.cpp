@@ -247,6 +247,95 @@ void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *te
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture)
+{
+	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(uint32_t, Unit, texunit-eGL_TEXTURE0);
+	SERIALISE_ELEMENT(ResourceId, Id, (texture ? GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) : ResourceId()));
+	
+	if(m_State == WRITING_IDLE)
+	{
+		m_TextureRecord[Unit]->datatype = TextureBinding(Target);
+	}
+	else if(m_State < WRITING)
+	{
+		if(Id == ResourceId())
+		{
+			m_Real.glBindMultiTextureEXT(GLenum(eGL_TEXTURE0+Unit), Target, 0);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glBindMultiTextureEXT(GLenum(eGL_TEXTURE0+Unit), Target, res.name);
+
+			if(m_State == READING)
+			{
+				m_Textures[GetResourceManager()->GetLiveID(Id)].curType = TextureTarget(Target);
+				m_Textures[GetResourceManager()->GetLiveID(Id)].creationFlags |= eTextureCreate_SRV;
+			}
+		}
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture)
+{
+	m_Real.glBindMultiTextureEXT(texunit, target, texture);
+
+	if(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
+		return;
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		Chunk *chunk = NULL;
+
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_MULTI_TEX);
+			Serialise_glBindMultiTextureEXT(texunit, target, texture);
+
+			chunk = scope.Get();
+		}
+		
+		m_ContextRecord->AddChunk(chunk);
+	}
+	else if(m_State < WRITING)
+	{
+		m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType = TextureTarget(target);
+	}
+
+	if(texture == 0)
+	{
+		m_TextureRecord[texunit-eGL_TEXTURE0] = NULL;
+		return;
+	}
+
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *r = m_TextureRecord[texunit-eGL_TEXTURE0] = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+
+		if(r->datatype)
+		{
+			// it's illegal to retype a texture
+			RDCASSERT(r->datatype == TextureBinding(target));
+		}
+		else
+		{
+			Chunk *chunk = NULL;
+			
+			// this is just a 'typing' bind, so doesn't need to be to the right slot, just anywhere.
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_TEXTURE);
+				Serialise_glBindTexture(target, texture);
+
+				chunk = scope.Get();
+			}
+
+			r->AddChunk(chunk);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GLint level, GLboolean layered, GLint layer, GLenum access, GLenum format)
 {
 	SERIALISE_ELEMENT(uint32_t, Unit, unit);

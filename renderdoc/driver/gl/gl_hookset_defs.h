@@ -660,6 +660,7 @@
     HookExtension(PFNGLGETTEXTUREPARAMETERIVEXTPROC, glGetTextureParameterivEXT); \
     HookExtension(PFNGLGETTEXTUREPARAMETERFVEXTPROC, glGetTextureParameterfvEXT); \
     HookExtension(PFNGLGETTEXTURELEVELPARAMETERIVEXTPROC, glGetTextureLevelParameterivEXT); \
+    HookExtension(PFNGLBINDMULTITEXTUREEXTPROC, glBindMultiTextureEXT); \
     HookExtension(PFNGLMAPNAMEDBUFFEREXTPROC, glMapNamedBufferEXT); \
     HookExtension(PFNGLMAPNAMEDBUFFERRANGEEXTPROC, glMapNamedBufferRangeEXT); \
     HookExtension(PFNGLNAMEDBUFFERDATAEXTPROC, glNamedBufferDataEXT); \
@@ -1356,6 +1357,7 @@
     HookWrapper4(void, glGetTextureParameterivEXT, GLuint, texture, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetTextureParameterfvEXT, GLuint, texture, GLenum, target, GLenum, pname, GLfloat *, params); \
     HookWrapper5(void, glGetTextureLevelParameterivEXT, GLuint, texture, GLenum, target, GLint, level, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glBindMultiTextureEXT, GLenum, texunit, GLenum, target, GLuint, texture); \
     HookWrapper2(void *, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
     HookWrapper4(void *, glMapNamedBufferRangeEXT, GLuint, buffer, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper4(void, glNamedBufferDataEXT, GLuint, buffer, GLsizeiptr, size, const void *, data, GLenum, usage); \

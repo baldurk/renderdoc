@@ -44,6 +44,7 @@ const char *GLChunkNames[] =
 	"glGenTextures",
 	"glBindTexture",
 	"glBindTextures",
+	"glBindMultiTexture",
 	"glBindImageTexture",
 	"glBindImageTextures",
 	"glActiveTexture",
@@ -174,7 +175,7 @@ const char *GLChunkNames[] =
 	"glDepthRangef",
 	"glDepthRangeIndexed",
 	"glDepthRangeArrayv",
-	"glDepthBoundsEXT",
+	"glDepthBounds",
 	"glClipControl",
 	"glProvokingVertex",
 	"glPrimitiveRestartIndex",
@@ -1681,6 +1682,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BIND_TEXTURES:
 		Serialise_glBindTextures(0, 0, NULL);
+		break;
+	case BIND_MULTI_TEX:
+		Serialise_glBindMultiTextureEXT(eGL_NONE, eGL_NONE, 0);
 		break;
 	case BIND_IMAGE_TEXTURE:
 		Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE);

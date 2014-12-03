@@ -1064,6 +1064,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname, GLint param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureBufferEXT(GLuint texture, GLenum target, GLenum internalformat, GLuint buffer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void *pixels));
