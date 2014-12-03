@@ -592,6 +592,9 @@ class OpenGLHook : LibraryHook
 		{
 			bool success = true;
 
+			if(wglGetProcAddress_hook() == NULL)
+				wglGetProcAddress_hook.SetFuncPtr(Process::GetFunctionAddress(DLL_NAME, "wglGetProcAddress"));
+
 			wglGetProcAddress_hooked("wglCreateContextAttribsARB");
 			
 #undef HookInit
@@ -599,7 +602,7 @@ class OpenGLHook : LibraryHook
 			
 			// cheeky
 #undef HookExtension
-#define HookExtension(funcPtrType, function) wglGetProcAddress_hook()(STRINGIZE(function))
+#define HookExtension(funcPtrType, function) wglGetProcAddress_hooked(STRINGIZE(function))
 #undef HookExtensionAlias
 #define HookExtensionAlias(funcPtrType, function, alias)
 

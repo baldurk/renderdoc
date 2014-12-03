@@ -54,6 +54,11 @@ class Hook
 			return (FuncType)orig_funcptr;
 		}
 
+		void SetFuncPtr(void *ptr)
+		{
+			orig_funcptr = ptr;
+		}
+
 		bool Initialize(const char *function, const char *module_name, void *destination_function_ptr)
 		{
 			orig_funcptr = Process::GetFunctionAddress(module_name, function);
