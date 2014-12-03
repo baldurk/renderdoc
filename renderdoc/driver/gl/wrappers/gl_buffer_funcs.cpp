@@ -2060,14 +2060,17 @@ bool WrappedOpenGL::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint b
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glVertexAttribBinding(aidx, bidx);
@@ -2111,14 +2114,17 @@ bool WrappedOpenGL::Serialise_glVertexAttribFormat(GLuint attribindex, GLint siz
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
@@ -2162,14 +2168,17 @@ bool WrappedOpenGL::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint si
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
@@ -2213,14 +2222,17 @@ bool WrappedOpenGL::Serialise_glVertexAttribLFormat(GLuint attribindex, GLint si
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glVertexAttribLFormat(Index, Size, Type, Offset);
@@ -2262,14 +2274,17 @@ bool WrappedOpenGL::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glVertexAttribDivisor(Index, Divisor);
@@ -2310,14 +2325,17 @@ bool WrappedOpenGL::Serialise_glEnableVertexAttribArray(GLuint index)
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glEnableVertexAttribArray(Index);
@@ -2357,14 +2375,17 @@ bool WrappedOpenGL::Serialise_glDisableVertexAttribArray(GLuint index)
 	
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(m_State == READING)
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindVertexArray(res.name);
-		}
-		else
-		{
-			m_Real.glBindVertexArray(m_FakeVAO);
+			if(id != ResourceId())
+			{
+				GLResource res = GetResourceManager()->GetLiveResource(id);
+				m_Real.glBindVertexArray(res.name);
+			}
+			else
+			{
+				m_Real.glBindVertexArray(m_FakeVAO);
+			}
 		}
 
 		m_Real.glDisableVertexAttribArray(Index);
