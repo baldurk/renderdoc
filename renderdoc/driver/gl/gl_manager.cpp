@@ -130,6 +130,7 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 	Serialise("maxLevel", el.maxLevel);
 	Serialise("minLod", el.minLod);
 	Serialise("maxLod", el.maxLod);
+	Serialise("srgbDecode", el.srgbDecode);
 	Serialise("depthMode", el.depthMode);
 	Serialise("compareFunc", el.compareFunc);
 	Serialise("compareMode", el.compareMode);
