@@ -1154,8 +1154,8 @@ void WrappedOpenGL::Present(void *windowHandle)
 				m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
 				m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
 
-				m_Real.glReadBuffer(eGL_BACK);
 				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+				m_Real.glReadBuffer(eGL_BACK);
 				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
 				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
 				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
