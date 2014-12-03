@@ -282,7 +282,9 @@ void WrappedOpenGL::glDetachShader(GLuint program, GLuint shader)
 {
 	m_Real.glDetachShader(program, shader);
 	
-	if(m_State >= WRITING)
+	// check that shader still exists, it might have been deleted. If it has, it's not too important
+	// that we detach the shader (only important if the program will attach it elsewhere).
+	if(m_State >= WRITING && program != 0 && shader != 0 && GetResourceManager()->HasCurrentResource(ShaderRes(GetCtx(), shader)))
 	{
 		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		RDCASSERT(progRecord);
