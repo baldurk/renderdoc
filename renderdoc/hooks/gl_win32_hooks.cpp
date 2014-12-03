@@ -273,7 +273,6 @@ class OpenGLHook : LibraryHook
 		Hook<LONG (WINAPI*)(LPCSTR,DEVMODEA*,HWND,DWORD,LPVOID)> ChangeDisplaySettingsExA_hook;
 		Hook<LONG (WINAPI*)(LPCWSTR,DEVMODEW*,HWND,DWORD,LPVOID)> ChangeDisplaySettingsExW_hook;
 
-		PROC (WINAPI* wglGetProcAddress_realfunc)(const char*);
 		PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARB_realfunc;
 		PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARB_realfunc;
 		PFNWGLGETPIXELFORMATATTRIBFVARBPROC wglGetPixelFormatAttribfvARB_realfunc;
@@ -307,7 +306,7 @@ class OpenGLHook : LibraryHook
 			ret.isSRGB = true;
 
 			if(glhooks.wglGetPixelFormatAttribivARB_realfunc == NULL)
-				glhooks.wglGetProcAddress_hooked("wglGetPixelFormatAttribivARB");
+				glhooks.wglGetProcAddress_hook()("wglGetPixelFormatAttribivARB");
 
 			if(glhooks.wglGetPixelFormatAttribivARB_realfunc)
 			{
@@ -484,7 +483,7 @@ class OpenGLHook : LibraryHook
 		static const char * WINAPI wglGetExtensionsStringARB_hooked(HDC dc)
 		{
 #if !defined(_RELEASE)
-			PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtStrARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)glhooks.wglGetProcAddress_realfunc("wglGetExtensionsStringARB");
+			PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtStrARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)glhooks.wglGetProcAddress_hook()("wglGetExtensionsStringARB");
 			string realExtsString = wglGetExtStrARB(dc);
 			vector<string> realExts;
 			split(realExtsString, realExts, ' ');
@@ -494,7 +493,7 @@ class OpenGLHook : LibraryHook
 		static const char * WINAPI wglGetExtensionsStringEXT_hooked()
 		{
 #if !defined(_RELEASE)
-			PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtStrEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)glhooks.wglGetProcAddress_realfunc("wglGetExtensionsStringEXT");
+			PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtStrEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)glhooks.wglGetProcAddress_hook()("wglGetExtensionsStringEXT");
 			string realExtsString = wglGetExtStrEXT();
 			vector<string> realExts;
 			split(realExtsString, realExts, ' ');
@@ -504,7 +503,7 @@ class OpenGLHook : LibraryHook
 
 		static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 		{
-			PROC realFunc = glhooks.wglGetProcAddress_realfunc(func);
+			PROC realFunc = glhooks.wglGetProcAddress_hook()(func);
 			
 #if 0
 			RDCDEBUG("Checking for extension - %s - real function is %p", func, realFunc);
@@ -584,8 +583,6 @@ class OpenGLHook : LibraryHook
 			success &= ChangeDisplaySettingsExA_hook.Initialize("ChangeDisplaySettingsExA", "user32.dll", ChangeDisplaySettingsExA_hooked);
 			success &= ChangeDisplaySettingsExW_hook.Initialize("ChangeDisplaySettingsExW", "user32.dll", ChangeDisplaySettingsExW_hooked);
 
-			wglGetProcAddress_realfunc = wglGetProcAddress_hook();
-			
 			DLLExportHooks();
 
 			return success;
@@ -595,9 +592,6 @@ class OpenGLHook : LibraryHook
 		{
 			bool success = true;
 
-			if(wglGetProcAddress_realfunc == NULL)
-				wglGetProcAddress_realfunc = (PROC (WINAPI*)(const char*))Process::GetFunctionAddress(DLL_NAME, "wglGetProcAddress");
-
 			wglGetProcAddress_hooked("wglCreateContextAttribsARB");
 			
 #undef HookInit
@@ -605,7 +599,7 @@ class OpenGLHook : LibraryHook
 			
 			// cheeky
 #undef HookExtension
-#define HookExtension(funcPtrType, function) wglGetProcAddress_hooked(STRINGIZE(function))
+#define HookExtension(funcPtrType, function) wglGetProcAddress_hook()(STRINGIZE(function))
 #undef HookExtensionAlias
 #define HookExtensionAlias(funcPtrType, function, alias)
 
