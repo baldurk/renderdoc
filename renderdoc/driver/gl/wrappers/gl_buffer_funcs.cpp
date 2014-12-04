@@ -1452,7 +1452,9 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 				}
 				else
 				{
+					SCOPED_SERIALISE_CONTEXT(UNMAP);
 					Serialise_glUnmapNamedBufferEXT(buffer);
+					record->AddChunk(scope.Get());
 				}
 				
 				break;
