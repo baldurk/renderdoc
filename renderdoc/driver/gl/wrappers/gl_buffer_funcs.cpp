@@ -1202,6 +1202,9 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		record->Map.length = length;
 		record->Map.access = access;
 		record->Map.invalidate = invalidateMap;
+		
+		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
+			RDCUNIMPLEMENTED("haven't implemented persistant glMap calls");
 
 		if(straightUp && m_State == WRITING_IDLE)
 		{
@@ -1212,9 +1215,6 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		}
 
 		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
-
-		if((access & (GL_MAP_COHERENT_BIT|GL_MAP_PERSISTENT_BIT)) != 0)
-			RDCUNIMPLEMENTED("haven't implemented persistant glMap calls");
 
 		if((access & GL_MAP_READ_BIT) != 0)
 		{
