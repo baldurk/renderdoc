@@ -41,6 +41,7 @@
     HookInit(glCullFace); \
     HookInit(glDepthFunc); \
     HookInit(glDepthMask); \
+    HookInit(glDepthRange); \
     HookInit(glStencilFunc); \
     HookInit(glStencilMask); \
     HookInit(glStencilOp); \
@@ -284,7 +285,6 @@
     HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HookExtension(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading); \
     HookExtensionAlias(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading, glMinSampleShadingARB); \
-    HookExtension(PFNGLDEPTHRANGEPROC, glDepthRange); \
     HookExtension(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HookExtension(PFNGLDEPTHRANGEINDEXEDPROC, glDepthRangeIndexed); \
     HookExtension(PFNGLDEPTHRANGEARRAYVPROC, glDepthRangeArrayv); \
@@ -789,6 +789,7 @@
     HookWrapper1(void, glCullFace, GLenum, mode); \
     HookWrapper1(void, glDepthFunc, GLenum, func); \
     HookWrapper1(void, glDepthMask, GLboolean, flag); \
+    HookWrapper2(void, glDepthRange, GLdouble, near, GLdouble, far); \
     HookWrapper3(void, glStencilFunc, GLenum, func, GLint, ref, GLuint, mask); \
     HookWrapper1(void, glStencilMask, GLuint, mask); \
     HookWrapper3(void, glStencilOp, GLenum, fail, GLenum, zfail, GLenum, zpass); \
@@ -999,7 +1000,6 @@
     HookWrapper2(void, glSampleMaski, GLuint, maskNumber, GLbitfield, mask); \
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper1(void, glMinSampleShading, GLfloat, value); \
-    HookWrapper2(void, glDepthRange, GLdouble, near, GLdouble, far); \
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
     HookWrapper3(void, glDepthRangeIndexed, GLuint, index, GLdouble, n, GLdouble, f); \
     HookWrapper3(void, glDepthRangeArrayv, GLuint, first, GLsizei, count, const GLdouble *, v); \
