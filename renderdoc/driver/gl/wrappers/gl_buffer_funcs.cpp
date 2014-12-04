@@ -1346,31 +1346,9 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 	if(m_State >= WRITING)
 		record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
-	ResourceId bufID;
-	uint64_t offs = 0;
-	uint64_t len = 0;
-
-	if(m_State < WRITING || m_State == WRITING_CAPFRAME)
-	{
-		SERIALISE_ELEMENT(ResourceId, ID, record->GetResourceID());
-		SERIALISE_ELEMENT(uint64_t, offset, record->Map.offset);
-		SERIALISE_ELEMENT(uint64_t, length, record->Map.length);
-
-		bufID = ID;
-		offs = offset;
-		len = length;
-	}
-	else if(m_State == WRITING_IDLE)
-	{
-		bufID = record->GetResourceID();
-		offs = record->Map.offset;
-		len = record->Map.length;
-		
-		void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
-		memcpy(ptr, record->Map.ptr, (size_t)len);
-		m_Real.glUnmapNamedBufferEXT(buffer);
-		return true;
-	}
+	SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
+	SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
+	SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
 
 	uint64_t bufBindStart = 0;
 
@@ -1403,6 +1381,12 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 	if(m_State == WRITING_CAPFRAME && record->GetShadowPtr(1))
 	{
 		memcpy(record->GetShadowPtr(1)+diffStart, record->Map.ptr+diffStart, diffEnd-diffStart);
+	}
+
+	if(m_State == WRITING_IDLE)
+	{
+		diffStart = 0;
+		diffEnd = (size_t)len;
 	}
 		
 	SERIALISE_ELEMENT(uint32_t, DiffStart, (uint32_t)diffStart);
