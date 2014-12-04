@@ -55,6 +55,7 @@ struct GLRenderState
 		eEnabled_CullFace,
 		eEnabled_DepthClamp,
 		eEnabled_DepthTest,
+		eEnabled_DepthBoundsEXT,
 		eEnabled_Dither,
 		eEnabled_FramebufferSRGB,
 		eEnabled_LineSmooth,
