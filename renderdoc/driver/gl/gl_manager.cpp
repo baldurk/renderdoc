@@ -28,10 +28,6 @@
 
 struct VertexAttribInitialData
 {
-	VertexAttribInitialData()
-	{
-		RDCEraseEl(*this);
-	}
 	uint32_t enabled;
 	uint32_t vbslot;
 	uint32_t offset;
@@ -43,10 +39,6 @@ struct VertexAttribInitialData
 
 struct VertexBufferInitialData
 {
-	VertexBufferInitialData()
-	{
-		RDCEraseEl(*this);
-	}
 	ResourceId Buffer;
 	uint64_t Stride;
 	uint64_t Offset;
@@ -62,10 +54,6 @@ struct VAOInitialData
 
 struct FeedbackInitialData
 {
-	FeedbackInitialData()
-	{
-		RDCEraseEl(*this);
-	}
 	ResourceId Buffer[4];
 	uint64_t Offset[4];
 	uint64_t Size[4];
@@ -105,11 +93,6 @@ void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 
 struct TextureStateInitialData
 {
-	TextureStateInitialData()
-	{
-		RDCEraseEl(*this);
-	}
-
 	int32_t baseLevel, maxLevel;
 	float minLod, maxLod;
 	GLenum srgbDecode;
@@ -236,7 +219,6 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		}
 		
 		TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
-
 		RDCEraseMem(state, sizeof(TextureStateInitialData));
 		
 		{
@@ -298,6 +280,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, res.name);
 		
 		FeedbackInitialData *data = (FeedbackInitialData *)Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
+		RDCEraseMem(data, sizeof(FeedbackInitialData));
 
 		GLint maxCount = 0;
 		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
@@ -322,6 +305,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glBindVertexArray(res.name);
 
 		VAOInitialData *data = (VAOInitialData *)Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
+		RDCEraseMem(data, sizeof(VAOInitialData));
 		
 		for(GLuint i=0; i < 16; i++)
 		{
@@ -634,6 +618,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
 			TextureStateInitialData *state = (TextureStateInitialData *)Serialiser::AllocAlignedBuffer(sizeof(TextureStateInitialData));
+			RDCEraseMem(state, sizeof(TextureStateInitialData));
 
 			m_pSerialiser->Serialise("state", *state);
 
