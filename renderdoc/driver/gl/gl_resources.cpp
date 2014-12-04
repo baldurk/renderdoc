@@ -94,7 +94,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 			return ((w*4 + alignAdd) & alignMask)*h*d;
 		case eGL_DEPTH32F_STENCIL8:
 		case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV:
-			return ((w*5 + alignAdd) & alignMask)*h*d;
+			return ((w*8 + alignAdd) & alignMask)*h*d;
 		default:
 			RDCERR("Unhandled Byte Size type %d!", type);
 			break;
