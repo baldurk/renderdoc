@@ -191,8 +191,12 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 			cd.m_FeedbackRecord->AddChunk(scope.Get());
 		}
 		
-		// immediately consider buffers bound to transform feedbacks as dirty
-		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+		if(m_State == WRITING_IDLE &&
+			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+			 target == eGL_SHADER_STORAGE_BUFFER ||
+			 target == eGL_ATOMIC_COUNTER_BUFFER)
+			)
 		{
 			GetResourceManager()->MarkDirtyResource(r->GetResourceID());
 		}
@@ -747,8 +751,12 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 		cd.m_FeedbackRecord->AddChunk(scope.Get());
 	}
 	
-	// immediately consider buffers bound to transform feedbacks as dirty
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+	if(m_State == WRITING_IDLE &&
+		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		 target == eGL_SHADER_STORAGE_BUFFER ||
+		 target == eGL_ATOMIC_COUNTER_BUFFER)
+		)
 	{
 		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 	}
@@ -815,8 +823,12 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 		cd.m_FeedbackRecord->AddChunk(scope.Get());
 	}
 	
-	// immediately consider buffers bound to transform feedbacks as dirty
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+	if(m_State == WRITING_IDLE &&
+		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		 target == eGL_SHADER_STORAGE_BUFFER ||
+		 target == eGL_ATOMIC_COUNTER_BUFFER)
+		)
 	{
 		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 	}
@@ -896,8 +908,12 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 		}
 	}
 	
-	// immediately consider buffers bound to transform feedbacks as dirty
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+	if(m_State == WRITING_IDLE &&
+		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		 target == eGL_SHADER_STORAGE_BUFFER ||
+		 target == eGL_ATOMIC_COUNTER_BUFFER)
+		)
 	{
 		for(int i=0; i < count; i++)
 			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
@@ -990,8 +1006,12 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 		}
 	}
 	
-	// immediately consider buffers bound to transform feedbacks as dirty
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+	if(m_State == WRITING_IDLE &&
+		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		 target == eGL_SHADER_STORAGE_BUFFER ||
+		 target == eGL_ATOMIC_COUNTER_BUFFER)
+		)
 	{
 		for(int i=0; i < count; i++)
 			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
