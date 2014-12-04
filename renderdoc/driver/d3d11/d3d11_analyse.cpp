@@ -1098,16 +1098,23 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 		}
 		else if(dxbc->m_InputSig[i].systemValue == eAttr_VertexIndex)
 		{
+			uint32_t sv_vertid = vertid;
+			
+			const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, eventID);
+
+			if(draw->flags & eDraw_UseIBuffer)
+				sv_vertid = idx;
+
 			if(dxbc->m_InputSig[i].compType == eCompType_Float)
 				ret.inputs[i].value.f.x = 
 					ret.inputs[i].value.f.y = 
 					ret.inputs[i].value.f.z = 
-					ret.inputs[i].value.f.w = (float)vertid;
+					ret.inputs[i].value.f.w = (float)sv_vertid;
 			else
 				ret.inputs[i].value.u.x = 
 					ret.inputs[i].value.u.y = 
 					ret.inputs[i].value.u.z = 
-					ret.inputs[i].value.u.w = vertid;
+					ret.inputs[i].value.u.w = sv_vertid;
 		}
 		else if(dxbc->m_InputSig[i].systemValue == eAttr_InstanceIndex)
 		{
