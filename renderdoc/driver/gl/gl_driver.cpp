@@ -857,7 +857,7 @@ struct RenderTextState
 
 	void Push(const GLHookSet &gl)
 	{
-		enableBits[0] = gl.glIsEnabled(eGL_BLEND) != 0;
+		enableBits[0] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
 		enableBits[1] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
 		enableBits[2] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
 		enableBits[3] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
@@ -896,7 +896,7 @@ struct RenderTextState
 
 	void Pop(const GLHookSet &gl)
 	{
-		if(enableBits[0]) gl.glEnable(eGL_BLEND); else gl.glDisable(eGL_BLEND);
+		if(enableBits[0]) gl.glEnablei(eGL_BLEND, 0); else gl.glDisablei(eGL_BLEND, 0);
 		if(enableBits[1]) gl.glEnable(eGL_DEPTH_TEST); else gl.glDisable(eGL_DEPTH_TEST);
 		if(enableBits[2]) gl.glEnable(eGL_DEPTH_CLAMP); else gl.glDisable(eGL_DEPTH_CLAMP);
 		if(enableBits[3]) gl.glEnable(eGL_STENCIL_TEST); else gl.glDisable(eGL_STENCIL_TEST);
@@ -996,7 +996,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	// and pop functions above (RenderTextState)
 
 	// set blend state
-	gl.glEnable(eGL_BLEND);
+	gl.glEnablei(eGL_BLEND, 0);
 	gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
 	gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
 
