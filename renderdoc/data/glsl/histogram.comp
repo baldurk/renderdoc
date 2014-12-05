@@ -128,7 +128,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				vec4 data = SampleTextureFloat4(vec2(x, y), RESTYPE_TEX2D, false, true,
+				vec4 data = SampleTextureFloat4(vec2(x, y), RESTYPE_TEX2D, false,
 												HistogramMip, HistogramSlice, HistogramSample, HistogramNumSamples);
 
 				if(i == 0)
@@ -351,7 +351,7 @@ void main()
 			}
 #else
 			{
-				vec4 data = SampleTextureFloat4(vec2(x, y), texType, false, false,
+				vec4 data = SampleTextureFloat4(vec2(x, y), texType, false,
 												HistogramMip, HistogramSlice, HistogramSample, HistogramNumSamples);
 
 				float divisor = 0.0f;

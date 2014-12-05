@@ -216,26 +216,20 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 }
 
 
-vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int mipLevel, float slice, int sampleIdx, int sampleCount)
+vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx, int sampleCount)
 {
 	vec4 col;
 	if (type == RESTYPE_TEX1D)
 	{
 		int size = textureSize(tex1D, mipLevel);
 
-		if (linearSample)
-			col = texture(tex1D, pos.x / size);
-		else
-			col = texelFetch(tex1D, int(pos.x), mipLevel);
+		col = textureLod(tex1D, pos.x / size, float(mipLevel));
 	}
 	else if (type == RESTYPE_TEX1DARRAY)
 	{
 		ivec2 size = textureSize(tex1DArray, mipLevel);
 
-		if (linearSample)
-			col = texture(tex1DArray, vec2(pos.x / size.x, slice));
-		else
-			col = texelFetch(tex1DArray, ivec2(pos.x, slice), mipLevel);
+		col = textureLod(tex1DArray, vec2(pos.x / size.x, slice), float(mipLevel));
 	}
 	else if (type == RESTYPE_TEX2D)
 	{
@@ -244,10 +238,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 		if (flipY)
 			pos.y = size.y - pos.y;
 
-		if (linearSample)
-			col = texture(tex2D, pos / size);
-		else
-			col = texelFetch(tex2D, ivec2(pos), mipLevel);
+		col = textureLod(tex2D, pos / size, float(mipLevel));
 	}
 	else if (type == RESTYPE_TEXRECT)
 	{
@@ -329,10 +320,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 		if (flipY)
 			pos.y = size.y - pos.y;
 
-		if (linearSample)
-			col = texture(tex2DArray, vec3(pos / size.xy, slice));
-		else
-			col = texelFetch(tex2DArray, ivec3(pos, slice), mipLevel);
+		col = textureLod(tex2DArray, vec3(pos / size.xy, slice), float(mipLevel));
 	}
 	else if (type == RESTYPE_TEX3D)
 	{
@@ -341,10 +329,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 		if (flipY)
 			pos.y = size.y - pos.y;
 
-		if (linearSample)
-			col = texture(tex3D, vec3(pos / size.xy, slice));
-		else
-			col = texelFetch(tex3D, ivec3(pos, slice), mipLevel);
+		col = textureLod(tex3D, vec3(pos / size.xy, slice), float(mipLevel));
 	}
 	else if (type == RESTYPE_TEXCUBE)
 	{
@@ -355,10 +340,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 
 		vec3 cubeCoord = CalcCubeCoord(pos / size, int(slice));
 
-		if (linearSample)
-			col = texture(texCube, cubeCoord);
-		else
-			col = textureLod(texCube, cubeCoord, mipLevel);
+		col = textureLod(texCube, cubeCoord, float(mipLevel));
 	}
 	else // type == RESTYPE_TEXCUBEARRAY
 	{
@@ -370,10 +352,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, bool linearSample, int 
 		vec3 cubeCoord = CalcCubeCoord(pos / size.xy, int(slice) % 6);
 		vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 
-		if (linearSample)
-			col = texture(texCubeArray, arrayCoord);
-		else
-			col = textureLod(texCubeArray, arrayCoord, mipLevel);
+		col = textureLod(texCubeArray, arrayCoord, float(mipLevel));
 	}
 	
 	return col;

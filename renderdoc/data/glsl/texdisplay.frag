@@ -65,7 +65,7 @@ void main(void)
 	}
 	else
 	{
-		col = SampleTextureFloat4(scr, texType, FlipY == 0, (Scale < 1.0 && MipLevel == 0.0 && !depthTex), int(MipLevel), Slice, SampleIdx, NumSamples);
+		col = SampleTextureFloat4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx, NumSamples);
 	}
 
 	if(RawOutput != 0)
