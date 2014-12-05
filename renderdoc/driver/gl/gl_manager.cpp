@@ -192,7 +192,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			queryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 		gl.glGetTextureLevelParameterivEXT(res.name, queryType, 0, eGL_TEXTURE_COMPRESSED, &isComp);
 		
-		int mips = GetNumMips(gl, details.curType, tex, details.width, details.height, details.depth);
+		int mips = GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
 		// create texture of identical format/size to store initial contents
 		if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE)
