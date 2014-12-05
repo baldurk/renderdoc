@@ -293,7 +293,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		GLint maxCount = 0;
 		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
 
-		for(int i=0; i < ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
 		{
 			GLuint buffer = 0;
 			gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);data->Buffer[i] = GetID(BufferRes(res.Context, buffer));
@@ -936,7 +936,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 		GLint maxCount = 0;
 		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
 
-		for(int i=0; i < ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
 		{
 			GLuint buffer = data->Buffer[i] == ResourceId() ? 0 : GetLiveResource(data->Buffer[i]).name;
 			gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i], (GLsizei)data->Size[i]);
