@@ -155,6 +155,9 @@ void DoVendorChecks(const GLHookSet &gl)
 
 		gl.glDeleteTextures(1, &dummy);
 	}
+
+	// don't have a test for this, just have to enable it all the time, for now.
+	ExtensionSupport::VendorChecks[VendorCheck_NV_avoid_D32S8_copy] = true;
 }
 
 bool ExtensionSupported(ExtensionCheckEnum ext)

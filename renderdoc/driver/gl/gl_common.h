@@ -104,6 +104,7 @@ enum VendorCheckEnum
 {
 	VendorCheck_AMD_vertex_buffer_query,
 	VendorCheck_EXT_compressed_cube_size,
+	VendorCheck_NV_avoid_D32S8_copy,
 	VendorCheck_Count,
 };
 bool VendorCheck(VendorCheckEnum ext);

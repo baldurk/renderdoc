@@ -265,7 +265,15 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			if(details.curType == eGL_TEXTURE_CUBE_MAP)
 				d *= 6;
 
-			gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
+			// it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture - in-program the overlay
+			// gets corrupted as one UBO seems to not provide data anymore until it's "refreshed". It seems like a driver bug,
+			// nvidia specific.
+			// In most cases a program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that it might
+			// require would be depth-only formatted).
+			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck(VendorCheck_NV_avoid_D32S8_copy))
+				RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
+			else
+				gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
 		}
 
 		gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
@@ -871,8 +879,16 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 			
 			if(details.curType == eGL_TEXTURE_CUBE_MAP)
 				d *= 6;
-
-			gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i, 0, 0, 0, w, h, d);
+			
+			// it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture - on replay loads of things
+			// get heavily corrupted - probably the same as the problems we get in-program, but magnified. It seems like a driver bug,
+			// nvidia specific.
+			// In most cases a program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that it might
+			// require would be depth-only formatted).
+			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck(VendorCheck_NV_avoid_D32S8_copy))
+				RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
+			else
+				gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i, 0, 0, 0, w, h, d);
 		}
 
 		TextureStateInitialData *state = (TextureStateInitialData *)initial.blob;
