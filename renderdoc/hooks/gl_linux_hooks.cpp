@@ -49,7 +49,11 @@ typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *even
 void *libGLdlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
 #define HookInit(function) \
-	if(GL.function == NULL) GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function));
+	if(!strcmp(func, STRINGIZE(function))) \
+	{ \
+		OpenGLHook::glhooks.GL.function = (CONCAT(function, _hooktype))realFunc; \
+		return (__GLXextFuncPtr)&CONCAT(function, _renderdoc_hooked); \
+	}
 
 #define HookExtension(funcPtrType, function) \
 	if(!strcmp(func, STRINGIZE(function))) \
@@ -533,6 +537,7 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 	if(realFunc == NULL)
 		return realFunc;
 	
+	DLLExportHooks();
 	HookCheckGLExtensions();
 
 #if 0
