@@ -678,6 +678,14 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 
 	if(contextHandle)
 	{
+		// if we're capturing, we need to serialise out the changed state vector
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
+			Serialise_BeginCaptureFrame(false);
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+
 		ContextData &font = m_ContextData[contextHandle];
 
 		if(!font.built)
@@ -2407,6 +2415,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
 	case CAPTURE_SCOPE:
 		Serialise_CaptureScope(offset);
+		break;
+	case CONTEXT_CAPTURE_HEADER:
+		// normally this would be handled as a special case when we start processing the frame,
+		// but it can be emitted mid-frame if MakeCurrent is called on a different context.
+		// when processed here, we always want to apply the contents
+		Serialise_BeginCaptureFrame(true);
 		break;
 	case CONTEXT_CAPTURE_FOOTER:
 		{
