@@ -86,7 +86,7 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 
 	m_pSerialiser->SerialiseString("label", Label);
 	
-	if(m_State == READING)
+	if(m_State == READING && GetResourceManager()->HasLiveResource(id))
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
 		m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
