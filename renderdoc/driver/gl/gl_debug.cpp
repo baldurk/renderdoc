@@ -189,7 +189,7 @@ void GLReplay::InitDebugData()
 	gl.glSamplerParameteri(DebugData.linearSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 	
 	gl.glGenSamplers(1, &DebugData.pointSampler);
-	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST_MIPMAP_NEAREST);
 	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
 	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
@@ -791,14 +791,22 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	int maxlevel = -1;
 
+	int clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
+	
+	gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+	
+	// need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
+	if(clampmaxlevel != maxlevel)
+	{
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+	}
+	else
+	{
+		maxlevel = -1;
+	}
+
 	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != eGL_TEXTURE_BUFFER)
 	{
-		gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
-
-		// need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
-		int clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
-		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
-
 		gl.glBindSampler(resType, DebugData.linearSampler);
 	}
 	else
