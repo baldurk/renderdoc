@@ -282,6 +282,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	}
 	else if(res.Namespace == eResFeedback)
 	{
+		// need to be on the right context, as feedback objects are never shared
+		void *oldctx = m_GL->SwitchToContext(res.Context);
+
 		GLuint prevfeedback = 0;
 		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
 
@@ -304,11 +307,17 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
 
 		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
+
+		// restore the previous context
+		m_GL->SwitchToContext(oldctx);
 	}
 	else if(res.Namespace == eResVertexArray)
 	{
-		GLuint VAO = 0;
-		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+		// need to be on the right context, as VAOs are never shared
+		void *oldctx = m_GL->SwitchToContext(res.Context);
+
+		GLuint prevVAO = 0;
+		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
 		gl.glBindVertexArray(res.name);
 
@@ -340,7 +349,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
 
-		gl.glBindVertexArray(VAO);
+		gl.glBindVertexArray(prevVAO);
+
+		// restore the previous context
+		m_GL->SwitchToContext(oldctx);
 	}
 	else
 	{
