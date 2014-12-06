@@ -166,6 +166,9 @@ class WrappedOpenGL
 		GLuint m_LastIndexOffset;
 		GLenum m_LastDrawMode;
 
+		// buffer used
+		vector<byte> m_ScratchBuf;
+
 		struct BufferData
 		{
 			GLResource resource;
