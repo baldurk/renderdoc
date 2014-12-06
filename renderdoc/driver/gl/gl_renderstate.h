@@ -39,6 +39,7 @@ struct GLRenderState
 	void FetchState();
 	void ApplyState();
 	void Clear();
+	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 
 	enum
 	{
@@ -223,7 +224,6 @@ struct GLRenderState
 	GLenum CullFace;
 	//
 
-	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 private:
 	Serialiser *m_pSerialiser;
 	LogState m_State;

@@ -817,10 +817,10 @@ void GLReplay::SavePipelineState()
 	WrappedOpenGL &gl = *m_pDriver;
 	GLResourceManager *rm = m_pDriver->GetResourceManager();
 
+	MakeCurrentReplayContext(&m_ReplayCtx);
+	
 	GLRenderState rs(&gl.GetHookset(), NULL, READING);
 	rs.FetchState();
-
-	MakeCurrentReplayContext(&m_ReplayCtx);
 
 	// Index buffer
 
