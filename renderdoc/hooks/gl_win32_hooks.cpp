@@ -253,6 +253,12 @@ class OpenGLHook : LibraryHook
 			return GL;
 		}
 
+		void MakeContextCurrent(GLWindowingData data)
+		{
+			if(wglMakeCurrent_hook())
+				wglMakeCurrent_hook()(data.DC, data.ctx);
+		}
+
 	private:
 		WrappedOpenGL *GetDriver()
 		{
@@ -333,7 +339,12 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateContext_hook()(dc);
 
-			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, NULL, GetInitParamsForDC(dc));
+			GLWindowingData data;
+			data.DC = dc;
+			data.wnd = WindowFromDC(dc);
+			data.ctx = ret;
+
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc));
 
 			return ret;
 		}
@@ -349,7 +360,12 @@ class OpenGLHook : LibraryHook
 		{
 			HGLRC ret = glhooks.wglCreateLayerContext_hook()(dc, iLayerPlane);
 
-			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, NULL, GetInitParamsForDC(dc));
+			GLWindowingData data;
+			data.DC = dc;
+			data.wnd = WindowFromDC(dc);
+			data.ctx = ret;
+
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc));
 
 			return ret;
 		}
@@ -398,7 +414,12 @@ class OpenGLHook : LibraryHook
 			
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
 
-			glhooks.GetDriver()->CreateContext(WindowFromDC(dc), ret, hShareContext, GetInitParamsForDC(dc));
+			GLWindowingData data;
+			data.DC = dc;
+			data.wnd = WindowFromDC(dc);
+			data.ctx = ret;
+
+			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc));
 
 			return ret;
 		}
@@ -429,7 +450,12 @@ class OpenGLHook : LibraryHook
 				glhooks.PopulateHooks();
 			}
 
-			glhooks.GetDriver()->ActivateContext(WindowFromDC(dc), rc);
+			GLWindowingData data;
+			data.DC = dc;
+			data.wnd = WindowFromDC(dc);
+			data.ctx = rc;
+
+			glhooks.GetDriver()->ActivateContext(data);
 
 			return ret;
 		}
@@ -619,3 +645,8 @@ class OpenGLHook : LibraryHook
 OpenGLHook OpenGLHook::glhooks;
 
 const GLHookSet &GetRealFunctions() { return OpenGLHook::glhooks.GetRealFunctions(); }
+
+void MakeContextCurrent(GLWindowingData data)
+{
+	OpenGLHook::glhooks.MakeContextCurrent(data);
+}

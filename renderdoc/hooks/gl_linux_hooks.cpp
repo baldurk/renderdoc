@@ -293,6 +293,12 @@ class OpenGLHook : LibraryHook
 			return GL;
 		}
 
+		void MakeContextCurrent(GLWindowingData data)
+		{
+			if(glXMakeCurrent_real)
+				glXMakeCurrent_real(data.dpy, data.wnd, data.ctx);
+		}
+
 		WrappedOpenGL *GetDriver()
 		{
 			if(m_GLDriver == NULL)
@@ -353,7 +359,12 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	value = 1;
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_SAMPLES_ARB, &value); init.isSRGB = RDCMAX(1, value);
 
-	OpenGLHook::glhooks.GetDriver()->CreateContext(NULL, ret, shareList, init);
+	GLWindowingData data;
+	data.dpy = dpy;
+	data.wnd = (GLXDrawable)NULL;
+	data.ctx = ret;
+
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init);
 
 	return ret;
 }
@@ -432,7 +443,12 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 
 	XFree(vis);
 	
-	OpenGLHook::glhooks.GetDriver()->CreateContext(NULL, ret, shareList, init);
+	GLWindowingData data;
+	data.dpy = dpy;
+	data.wnd = (GLXDrawable)NULL;
+	data.ctx = ret;
+
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init);
 
 	return ret;
 }
@@ -448,8 +464,13 @@ Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable, GLXContext ctx)
 
 		OpenGLHook::glhooks.PopulateHooks();
 	}
+
+	GLWindowingData data;
+	data.dpy = dpy;
+	data.wnd = drawable;
+	data.ctx = ctx;
 	
-	OpenGLHook::glhooks.GetDriver()->ActivateContext((void *)drawable, ctx);
+	OpenGLHook::glhooks.GetDriver()->ActivateContext(data);
 
 	return ret;
 }
@@ -601,4 +622,9 @@ bool OpenGLHook::PopulateHooks()
 OpenGLHook OpenGLHook::glhooks;
 
 const GLHookSet &GetRealFunctions() { return OpenGLHook::glhooks.GetRealFunctions(); }
+
+void MakeContextCurrent(GLWindowingData data)
+{
+	OpenGLHook::glhooks.MakeContextCurrent(data);
+}
 

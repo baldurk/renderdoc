@@ -978,11 +978,6 @@ void WrappedOpenGL::glActiveShaderProgram(GLuint pipeline, GLuint program)
 	m_Real.glActiveShaderProgram(pipeline, program);
 }
 
-WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
-{
-	return m_ContextData[GetCtx()];
-}
-
 GLuint WrappedOpenGL::GetUniformProgram()
 {
 	ContextData &cd = GetCtxData();

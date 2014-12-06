@@ -48,7 +48,7 @@ void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
 	{
 		prev = ctx;
 		wglMakeCurrentProc(ctx->DC, ctx->ctx);
-		m_pDriver->ActivateContext(ctx->wnd, ctx->ctx);
+		m_pDriver->ActivateContext(*ctx);
 	}
 }
 

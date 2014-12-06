@@ -636,7 +636,31 @@ WrappedOpenGL::~WrappedOpenGL()
 
 void *WrappedOpenGL::GetCtx()
 {
-	return m_ActiveContexts[Threading::GetCurrentID()];
+	return (void *)m_ActiveContexts[Threading::GetCurrentID()].ctx;
+}
+
+WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
+{
+	return m_ContextData[GetCtx()];
+}
+
+// defined in gl_<platform>_hooks.cpp
+void MakeContextCurrent(GLWindowingData data);
+
+void *WrappedOpenGL::SwitchToContext(void *ctx)
+{
+	GLWindowingData &data = m_ActiveContexts[Threading::GetCurrentID()];
+
+	void *oldctx = data.ctx;
+
+	// we won't get a callback for this (on purpose, since this can happen mid-capture and
+	// we don't want to mix this up with a MakeCurrent call from the program). So we update
+	// the current thread context here.
+	data.SetCtx(ctx);
+
+	MakeContextCurrent(data);
+
+	return oldctx;
 }
 
 ////////////////////////////////////////////////////////////////
@@ -664,19 +688,19 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 	m_ContextData.erase(contextHandle);
 }
 
-void WrappedOpenGL::CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams)
+void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams)
 {
 	// TODO: support multiple GL contexts more explicitly
 	m_InitParams = initParams;
 }
 
-void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
+void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 {
-	m_ActiveContexts[Threading::GetCurrentID()] = contextHandle;
+	m_ActiveContexts[Threading::GetCurrentID()] = winData;
 	// TODO: support multiple GL contexts more explicitly
-	Keyboard::AddInputWindow(windowHandle);
+	Keyboard::AddInputWindow((void *)winData.wnd);
 
-	if(contextHandle)
+	if(winData.ctx)
 	{
 		// if we're capturing, we need to serialise out the changed state vector
 		if(m_State == WRITING_CAPFRAME)
@@ -686,7 +710,7 @@ void WrappedOpenGL::ActivateContext(void *windowHandle, void *contextHandle)
 			m_ContextRecord->AddChunk(scope.Get());
 		}
 
-		ContextData &font = m_ContextData[contextHandle];
+		ContextData &font = m_ContextData[winData.ctx];
 
 		if(!font.built)
 		{

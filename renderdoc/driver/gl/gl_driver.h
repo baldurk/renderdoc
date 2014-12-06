@@ -120,7 +120,7 @@ class WrappedOpenGL
 
 		GLInitParams m_InitParams;
 
-		map<uint64_t, void *> m_ActiveContexts;
+		map<uint64_t, GLWindowingData> m_ActiveContexts;
 
 		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
 		bool m_ActiveConditional;
@@ -334,6 +334,7 @@ class WrappedOpenGL
 
 		GLReplay *GetReplay() { return &m_Replay; }
 		void *GetCtx();
+		void *SwitchToContext(void *ctx);
 		
 		// replay interface
 		void Initialise(GLInitParams &params);
@@ -346,9 +347,9 @@ class WrappedOpenGL
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
 
-		void CreateContext(void *windowHandle, void *contextHandle, void *shareContext, GLInitParams initParams);
+		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams);
 		void DeleteContext(void *contextHandle);
-		void ActivateContext(void *windowHandle, void *contextHandle);
+		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
 		void Present(void *windowHandle);
 
