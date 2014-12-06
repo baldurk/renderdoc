@@ -1909,7 +1909,9 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+		ContextData &cd = GetCtxData();
+		GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
+		GLResourceRecord *varecord = cd.m_VertexArrayRecord;
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
 		if(r)
@@ -1925,6 +1927,8 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 				r->AddChunk(scope.Get());
 			}
+
+			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -1983,8 +1987,9 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-
+		ContextData &cd = GetCtxData();
+		GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
+		GLResourceRecord *varecord = cd.m_VertexArrayRecord;
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
 		if(r)
@@ -2000,6 +2005,8 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 
 				r->AddChunk(scope.Get());
 			}
+
+			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2058,8 +2065,9 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 	
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-
+		ContextData &cd = GetCtxData();
+		GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
+		GLResourceRecord *varecord = cd.m_VertexArrayRecord;
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
 		if(r)
@@ -2075,6 +2083,8 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 
 				r->AddChunk(scope.Get());
 			}
+
+			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2632,6 +2642,9 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 
 				r->AddChunk(scope.Get());
 			}
+
+			if(buffer != 0)
+				r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
 	}
 }
@@ -2717,6 +2730,12 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 				Serialise_glBindVertexBuffers(first, count, buffers, offsets, strides);
 
 				r->AddChunk(scope.Get());
+			}
+
+			for(GLsizei i=0; i < count; i++)
+			{
+				if(buffers[i] != 0)
+					r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i])));
 			}
 		}
 	}
