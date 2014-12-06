@@ -51,7 +51,7 @@
             TreelistView.TreeListColumn treeListColumn17 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
             TreelistView.TreeListColumn treeListColumn18 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SystemValue", "System Value")));
             TreelistView.TreeListColumn treeListColumn19 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
-            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Used", "Used")));
+            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Unused", "Unused")));
             TreelistView.TreeListColumn treeListColumn7 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
             TreelistView.TreeListColumn treeListColumn8 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
             TreelistView.TreeListColumn treeListColumn9 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
