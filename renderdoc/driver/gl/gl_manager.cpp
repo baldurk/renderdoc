@@ -278,6 +278,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 			if(details.curType == eGL_TEXTURE_CUBE_MAP)
 				d *= 6;
+			else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+				d = details.depth;
 
 			// it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture - in-program the overlay
 			// gets corrupted as one UBO seems to not provide data anymore until it's "refreshed". It seems like a driver bug,
@@ -610,6 +612,9 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 					int h = RDCMAX(details.height>>i, 1);
 					int d = RDCMAX(details.depth>>i, 1);
 					
+					if(t == eGL_TEXTURE_CUBE_MAP_ARRAY)
+						d = details.depth;
+
 					size = GetByteSize(w, h, d, fmt, type, 0);
 					
 					GLenum targets[] = {
@@ -788,6 +793,9 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 					uint32_t h = RDCMAX(height>>i, 1U);
 					uint32_t d = RDCMAX(depth>>i, 1U);
 					
+					if(textype == eGL_TEXTURE_CUBE_MAP_ARRAY)
+						d = depth;
+					
 					GLenum targets[] = {
 						eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
 						eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
@@ -953,6 +961,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 			
 			if(details.curType == eGL_TEXTURE_CUBE_MAP)
 				d *= 6;
+			else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+				d = details.depth;
 			
 			// it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture - on replay loads of things
 			// get heavily corrupted - probably the same as the problems we get in-program, but magnified. It seems like a driver bug,
