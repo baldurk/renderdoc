@@ -59,6 +59,12 @@ struct FeedbackInitialData
 	uint64_t Size[4];
 };
 
+struct FramebufferInitialData
+{
+	GLenum DrawBuffers[8];
+	GLenum ReadBuffer;
+};
+
 template<>
 void Serialiser::Serialise(const char *name, VertexAttribInitialData &el)
 {
@@ -89,6 +95,14 @@ void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 	Serialise<4>("Buffer", el.Buffer);
 	Serialise<4>("Offset", el.Offset);
 	Serialise<4>("Size", el.Size);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, FramebufferInitialData &el)
+{
+	ScopedContext scope(this, this, name, "FramebufferInitialData", 0, true);
+	Serialise<8>("DrawBuffers", el.DrawBuffers);
+	Serialise("ReadBuffer", el.ReadBuffer);
 }
 
 struct TextureStateInitialData
@@ -279,6 +293,34 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
 		
 		SetInitialContents(Id, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
+	}
+	else if(res.Namespace == eResFramebuffer)
+	{
+		// need to be on the right context, as feedback objects are never shared
+		void *oldctx = m_GL->SwitchToContext(res.Context);
+		
+		GLuint prevread = 0, prevdraw = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
+		
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, res.name);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
+
+		FramebufferInitialData *data = (FramebufferInitialData *)Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
+		RDCEraseMem(data, sizeof(FramebufferInitialData));
+
+		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
+			gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data->DrawBuffers[i]);
+
+		gl.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&data->ReadBuffer);
+		
+		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
+
+		// restore the previous context
+		m_GL->SwitchToContext(oldctx);
 	}
 	else if(res.Namespace == eResFeedback)
 	{
@@ -795,6 +837,26 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, unpackParams[7]);
 		}
 	}
+	else if(res.Namespace == eResFramebuffer)
+	{
+		FramebufferInitialData data;
+
+		if(m_State >= WRITING)
+		{
+			FramebufferInitialData *initialdata = (FramebufferInitialData *)GetInitialContents(Id).blob;
+			memcpy(&data, initialdata, sizeof(data));
+		}
+
+		m_pSerialiser->Serialise("Framebuffer object Buffers", data);
+		
+		if(m_State < WRITING)
+		{
+			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(data));
+			memcpy(blob, &data, sizeof(data));
+
+			SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
+		}
+	}
 	else if(res.Namespace == eResFeedback)
 	{
 		FeedbackInitialData data;
@@ -935,6 +997,25 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 	else if(live.Namespace == eResProgram)
 	{
 		CopyProgramUniforms(gl, initial.resource.name, live.name);
+	}
+	else if(live.Namespace == eResFramebuffer)
+	{
+		GLuint prevread = 0, prevdraw = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, live.name);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, live.name);
+
+		FramebufferInitialData *data = (FramebufferInitialData *)initial.blob;
+
+		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
+			gl.glDrawBuffers(ARRAY_COUNT(data->DrawBuffers), data->DrawBuffers);
+
+		gl.glReadBuffer(data->ReadBuffer);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
 	}
 	else if(live.Namespace == eResFeedback)
 	{

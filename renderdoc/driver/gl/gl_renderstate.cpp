@@ -37,7 +37,7 @@ GLRenderState::~GLRenderState()
 {
 }
 
-void GLRenderState::FetchState()
+void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 {
 	GLint boolread = 0;
 	// TODO check GL_MAX_*
@@ -211,8 +211,16 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
 	m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&ReadFBO);
 
+	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+
 	for(size_t i=0; i < ARRAY_COUNT(DrawBuffers); i++)
 		m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
+
+	m_Real->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&ReadBuffer);
+
+	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
 
 	m_Real->glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
 	m_Real->glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
@@ -287,7 +295,7 @@ void GLRenderState::FetchState()
 	m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 }
 
-void GLRenderState::ApplyState()
+void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 {
 	{
 		GLenum pnames[] =
@@ -437,9 +445,6 @@ void GLRenderState::ApplyState()
 			m_Real->glDisablei(eGL_SCISSOR_TEST, s);
 	}
 
-	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
-	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
-
 	GLenum DBs[8] = { eGL_NONE };
 	uint32_t numDBs = 0;
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
@@ -469,7 +474,17 @@ void GLRenderState::ApplyState()
 			break;
 		}
 	}
+
+	// apply drawbuffers/readbuffer to default framebuffer
+	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
+	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
 	m_Real->glDrawBuffers(numDBs, DBs);
+
+	// see above for reasoning for this
+	m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+
+	m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
+	m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
 	
 	m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
 	m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
@@ -565,6 +580,7 @@ void GLRenderState::Clear()
 	RDCEraseEl(DrawFBO);
 	RDCEraseEl(ReadFBO);
 	RDCEraseEl(DrawBuffers);
+	RDCEraseEl(ReadBuffer);
 
 	RDCEraseEl(PatchParams);
 	RDCEraseEl(PolygonMode);
@@ -746,7 +762,8 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_SCISSOR.enabled", Scissors[i].enabled);
 	}
 	
-	m_pSerialiser->Serialise<8>("GL_DRAWBUFFERS", DrawBuffers);
+	m_pSerialiser->Serialise<8>("GL_DRAW_BUFFERS", DrawBuffers);
+	m_pSerialiser->Serialise("GL_READ_BUFFER", ReadBuffer);
 
 	m_pSerialiser->Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", Hints.Derivatives);
 	m_pSerialiser->Serialise("GL_LINE_SMOOTH_HINT", Hints.LineSmooth);

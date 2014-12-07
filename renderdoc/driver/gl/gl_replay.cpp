@@ -820,7 +820,7 @@ void GLReplay::SavePipelineState()
 	MakeCurrentReplayContext(&m_ReplayCtx);
 	
 	GLRenderState rs(&gl.GetHookset(), NULL, READING);
-	rs.FetchState();
+	rs.FetchState(m_ReplayCtx.ctx, &gl);
 
 	// Index buffer
 

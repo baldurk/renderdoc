@@ -36,8 +36,8 @@ struct GLRenderState
 	GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state);
 	~GLRenderState();
 
-	void FetchState();
-	void ApplyState();
+	void FetchState(void *ctx, WrappedOpenGL *gl);
+	void ApplyState(void *ctx, WrappedOpenGL *gl);
 	void Clear();
 	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 
@@ -151,12 +151,15 @@ struct GLRenderState
 	} Scissors[16];
 	
 	GLuint ReadFBO, DrawFBO;
+
+	// these refer to the states on the default framebuffer.
+	// Other FBOs serialise them in their resource records.
+	GLenum ReadBuffer;
 	GLenum DrawBuffers[8];
 
 	// TODO:
 	// Image state (GL_IMAGE_BINDING_NAME)
 	// multisampling
-	// provoking vertex
 	// other misc state :)
 	
 	struct

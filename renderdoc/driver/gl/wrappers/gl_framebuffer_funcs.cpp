@@ -728,26 +728,19 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
 	
 	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-		Serialise_glReadBuffer(mode);
-
-		if(m_State == WRITING_IDLE)
+		if(m_State == WRITING_CAPFRAME)
 		{
-			if(GetCtxData().m_ReadFramebufferRecord)
-			{
-				Chunk *last = GetCtxData().m_ReadFramebufferRecord->GetLastChunk();
-				if(last->GetChunkType() == READ_BUFFER)
-				{
-					delete last;
-					GetCtxData().m_ReadFramebufferRecord->PopChunk();
-				}
-				GetCtxData().m_ReadFramebufferRecord->AddChunk(scope.Get());
-			}
-			else
-				m_DeviceRecord->AddChunk(scope.Get());
+			SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
+			Serialise_glReadBuffer(mode);
+
+			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
-			m_ContextRecord->AddChunk(scope.Get());
+		{
+			GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
+			if(readrecord)
+				GetResourceManager()->MarkDirtyResource(readrecord->GetResourceID());
+		}
 	}
 }
 
@@ -813,12 +806,21 @@ bool WrappedOpenGL::Serialise_glDrawBuffer(GLenum buf)
 
 void WrappedOpenGL::glDrawBuffer(GLenum buf)
 {
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
-		Serialise_glDrawBuffer(buf);
-		
-		m_ContextRecord->AddChunk(scope.Get());
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
+			Serialise_glDrawBuffer(buf);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
+			if(drawrecord)
+				GetResourceManager()->MarkDirtyResource(drawrecord->GetResourceID());
+		}
 	}
 	
 	m_Real.glDrawBuffer(buf);
@@ -872,15 +874,24 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
 
 void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 {
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
-		if(GetCtxData().m_DrawFramebufferRecord)
-			Serialise_glFramebufferDrawBuffersEXT(GetResourceManager()->GetCurrentResource(GetCtxData().m_DrawFramebufferRecord->GetResourceID()).name, n, bufs);
+		GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
+			if(drawrecord)
+				Serialise_glFramebufferDrawBuffersEXT(GetResourceManager()->GetCurrentResource(drawrecord->GetResourceID()).name, n, bufs);
+			else
+				Serialise_glFramebufferDrawBuffersEXT(0, n, bufs);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
 		else
-			Serialise_glFramebufferDrawBuffersEXT(0, n, bufs);
-		
-		m_ContextRecord->AddChunk(scope.Get());
+		{
+			if(drawrecord)
+				GetResourceManager()->MarkDirtyResource(drawrecord->GetResourceID());
+		}
 	}
 	
 	m_Real.glDrawBuffers(n, bufs);

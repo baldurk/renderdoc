@@ -1422,7 +1422,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 	if(m_State >= WRITING)
 	{
-		state.FetchState();
+		state.FetchState(GetCtx(), this);
 	}
 
 	state.Serialise(m_State, GetCtx(), this);
@@ -1430,7 +1430,7 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 	if(m_State <= EXECUTING && applyInitialState)
 	{
 		m_DoStateVerify = false;
-		state.ApplyState();
+		state.ApplyState(GetCtx(), this);
 		m_DoStateVerify = true;
 	}
 
