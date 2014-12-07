@@ -800,10 +800,27 @@ namespace renderdocui.Windows
 
             ResourceId[] RTs = m_Core.CurPipelineState.GetOutputTargets();
             ResourceId Depth = m_Core.CurPipelineState.OutputDepth;
-            ResourceId[] Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
+            ResourceId[] Texs = null;
 
-            ShaderReflection details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
-            ShaderBindpointMapping mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
+            ShaderReflection details = null;
+            ShaderBindpointMapping mapping = null;
+
+            var curDraw = m_Core.GetDrawcall(frameID, eventID);
+
+            if (curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
+                m_Core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null)
+            {
+                Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Compute);
+                details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Compute);
+                mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Compute);
+            }
+
+            if (details == null)
+            {
+                Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
+                details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+                mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
+            }
 
             uint firstuav = uint.MaxValue;
 
