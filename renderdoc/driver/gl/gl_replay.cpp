@@ -1076,16 +1076,21 @@ void GLReplay::SavePipelineState()
 	};
 	ShaderReflection *refls[6] = { NULL };
 	ShaderBindpointMapping *mappings[6] = { NULL };
-		
+
+	for(int i=0; i < 6; i++)
+	{
+		stages[i]->Shader = ResourceId();
+		stages[i]->ShaderDetails = NULL;
+		stages[i]->BindpointMapping.ConstantBlocks.Delete();
+		stages[i]->BindpointMapping.Resources.Delete();
+	}
+
 	if(curProg == 0)
 	{
 		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
 	
 		if(curProg == 0)
 		{
-			pipe.m_VS.Shader = ResourceId();
-			pipe.m_FS.Shader = ResourceId();
-
 			for(GLint unit=0; unit < numTexUnits; unit++)
 			{
 				pipe.Textures[unit].FirstSlice = 0;
@@ -1106,6 +1111,10 @@ void GLReplay::SavePipelineState()
 					refls[i] = GetShader(pipeDetails.stageShaders[i]);
 					GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 					mappings[i] = &stages[i]->BindpointMapping;
+				}
+				else
+				{
+					stages[i]->Shader = ResourceId();
 				}
 			}
 		}
