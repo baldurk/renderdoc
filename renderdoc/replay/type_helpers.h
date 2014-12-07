@@ -36,6 +36,7 @@ namespace rdctype
 template<typename T>
 void create_array(array<T> &ret, size_t count)
 {
+	ret.Delete();
 	ret.count = (int32_t)count;
 	if(ret.count == 0)
 	{
@@ -54,6 +55,7 @@ void create_array(array<T> &ret, size_t count)
 template<typename T>
 void create_array_uninit(array<T> &ret, size_t count)
 {
+	ret.Delete();
 	ret.count = (int32_t)count;
 	if(ret.count == 0)
 	{
