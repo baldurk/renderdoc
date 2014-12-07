@@ -129,7 +129,7 @@ namespace FileIO
 
 	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)
 	{
-		char path[512] = {0};
+		char path[2048] = {0};
 		readlink("/proc/self/exe", path, 511);
 		const char *mod = strrchr(path, '/');
 		if(mod == NULL)
@@ -142,13 +142,23 @@ namespace FileIO
 		time_t t = time(NULL);
 		tm now = *localtime(&t);
 
-		char temp_filename[512] = {0};
+		char temp_folder[2048] = { "/tmp" };
 
-		snprintf(temp_filename, 511, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
+		char *temp_override = getenv("RENDERDOC_TEMP");
+		if(temp_override && temp_override[0] == '/')
+		{
+			strncpy(temp_folder, temp_override, sizeof(temp_folder)-1);
+			size_t len = strlen(temp_folder);
+			while(temp_folder[len-1] == '/') temp_folder[--len] = 0;
+		}
+
+		char temp_filename[2048] = {0};
+
+		snprintf(temp_filename, sizeof(temp_filename)-1, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
 
 		capture_filename = string(temp_filename);
 
-		snprintf(temp_filename, 511, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+		snprintf(temp_filename, sizeof(temp_filename)-1, "/tmp/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
 		logging_filename = string(temp_filename);
 	}
