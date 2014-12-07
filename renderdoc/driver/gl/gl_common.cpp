@@ -938,6 +938,8 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 // egrep -ih '#define[ \t]*[A-Z_0-9]*[ \t]*0x[0-9A-F]{4,}\s*$' glcorearb.h  glext.h  wglext.h  glxext.h
 //			| awk '{print $2" "$3}' | grep -v '_BIT[_ ]' | sed -e '{s# 0x0*# #g}' | awk -F"[. ]" '!a[$2]++'
 //			| sed -e '{s%\(.*\) \(.*\)%\t\tTOSTR_CASE_STRINGIZE_GLENUM(\1)%g}' | grep -v _BIT | awk ' !x[$0]++'
+
+	RDCCOMPILE_ASSERT(sizeof(RDCGLenum) == sizeof(uint32_t), "Enum isn't 32bits - serialising is a problem!");
 	
 #define TOSTR_CASE_STRINGIZE_GLENUM(a) case e##a: return #a;
 
