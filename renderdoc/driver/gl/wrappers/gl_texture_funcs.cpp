@@ -2933,14 +2933,28 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
 			Serialise_glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
 
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -2965,15 +2979,29 @@ void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, G
 		{
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
 			Serialise_glTextureSubImage1DEXT(record->Resource.name,
 				target, level, xoffset, width, format, type, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3045,14 +3073,28 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
 			Serialise_glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, type, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3078,14 +3120,28 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
+
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
 			Serialise_glTextureSubImage2DEXT(record->Resource.name,
 				target, level, xoffset, yoffset, width, height, format, type, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3159,14 +3215,28 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
 			Serialise_glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3191,15 +3261,29 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
 		{
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
 			Serialise_glTextureSubImage3DEXT(record->Resource.name,
 				target, level, xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3258,14 +3342,28 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3290,15 +3388,29 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
 		{
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage1DEXT(record->Resource.name,
 				target, level, xoffset, width, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3359,14 +3471,28 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3391,15 +3517,29 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
 		{
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage2DEXT(record->Resource.name,
 				target, level, xoffset, yoffset, width, height, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3462,14 +3602,28 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 		{
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
@@ -3494,15 +3648,29 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
 		{
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
+			
+			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
 			Serialise_glCompressedTextureSubImage3DEXT(record->Resource.name,
 				target, level, xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
-
+			
 			if(m_State == WRITING_CAPFRAME)
+			{
 				m_ContextRecord->AddChunk(scope.Get());
+			}
 			else
+			{
 				record->AddChunk(scope.Get());
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 60)
+				{
+					m_HighTrafficResources.insert(record->Resource);
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 	}
 }
