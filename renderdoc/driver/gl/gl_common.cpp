@@ -30,7 +30,7 @@
 
 namespace TrackedResource
 {
-	static volatile int64_t globalIDCounter;
+	static volatile int64_t globalIDCounter = 0;
 
 	ResourceId GetNewUniqueID()
 	{
