@@ -149,7 +149,7 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
-		Serialise_glNamedFramebufferTextureEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferTextureEXT(record->Resource.name,
 																					 attachment, texture, level);
 		
 		if(m_State == WRITING_IDLE)
@@ -245,7 +245,7 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
-		Serialise_glNamedFramebufferTexture1DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferTexture1DEXT(record->Resource.name,
 																					 attachment, textarget, texture, level);
 		
 		if(m_State == WRITING_IDLE)
@@ -341,7 +341,7 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-		Serialise_glNamedFramebufferTexture2DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferTexture2DEXT(record->Resource.name,
 																					 attachment, textarget, texture, level);
 		
 		if(m_State == WRITING_IDLE)
@@ -438,7 +438,7 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
-		Serialise_glNamedFramebufferTexture3DEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferTexture3DEXT(record->Resource.name,
 																					 attachment, textarget, texture, level, zoffset);
 		
 		if(m_State == WRITING_IDLE)
@@ -528,7 +528,7 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment, 
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
-		Serialise_glNamedFramebufferRenderbufferEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferRenderbufferEXT(record->Resource.name,
 																					      attachment, renderbuffertarget, renderbuffer);
 		
 		if(m_State == WRITING_IDLE)
@@ -620,7 +620,7 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 		}
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
-		Serialise_glNamedFramebufferTextureLayerEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedFramebufferTextureLayerEXT(record->Resource.name,
 																					 attachment, texture, level, layer);
 		
 		if(m_State == WRITING_IDLE)
@@ -693,7 +693,7 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
 		if(record == NULL) return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_PARAM);
-		Serialise_glNamedFramebufferParameteriEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name, pname, param);
+		Serialise_glNamedFramebufferParameteriEXT(record->Resource.name, pname, param);
 
 		record->AddChunk(scope.Get());
 	}
@@ -881,7 +881,7 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 		{
 			SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
 			if(drawrecord)
-				Serialise_glFramebufferDrawBuffersEXT(GetResourceManager()->GetCurrentResource(drawrecord->GetResourceID()).name, n, bufs);
+				Serialise_glFramebufferDrawBuffersEXT(drawrecord->Resource.name, n, bufs);
 			else
 				Serialise_glFramebufferDrawBuffersEXT(0, n, bufs);
 

@@ -148,6 +148,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			GLResource res = GetCurrentResource(id);
 
 			m_GLResourceRecords[res] = ret;
+			ret->Resource = res;
 
 			return ret;
 		}

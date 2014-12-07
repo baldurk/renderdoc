@@ -166,7 +166,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		// element array buffer binding is vertex array record state, record there (if we've not just stopped)
 		if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER && RecordUpdateCheck(cd.m_VertexArrayRecord))
 		{
-			GLuint vao = GetResourceManager()->GetCurrentResource(cd.m_VertexArrayRecord->GetResourceID()).name;
+			GLuint vao = cd.m_VertexArrayRecord->Resource.name;
 
 			// use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
 			// element buffer
@@ -181,7 +181,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		// store as transform feedback record state
 		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
 		{
-			GLuint feedback = GetResourceManager()->GetCurrentResource(cd.m_FeedbackRecord->GetResourceID()).name;
+			GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 			// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
 			// buffer
@@ -281,7 +281,7 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
-		Serialise_glNamedBufferStorageEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name,
+		Serialise_glNamedBufferStorageEXT(record->Resource.name,
 																   size, data, flags);
 
 		Chunk *chunk = scope.Get();
@@ -452,7 +452,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			return;
 		}
 
-		GLuint buffer = GetResourceManager()->GetCurrentResource(record->GetResourceID()).name;
+		GLuint buffer = record->Resource.name;
 
 		// if we're recreating the buffer, clear the record and add new chunks. Normally
 		// we would just mark this record as dirty and pick it up on the capture frame as initial
@@ -590,7 +590,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
 		RDCASSERT(record);
 
-		GLResource res = GetResourceManager()->GetCurrentResource(record->GetResourceID());
+		GLResource res = record->Resource;
 		
 		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
@@ -671,13 +671,13 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		GLResourceRecord *writerecord = GetCtxData().m_BufferRecord[BufferIdx(writeTarget)];
 		RDCASSERT(readrecord && writerecord);
 
-		GLResource writeBuffer = GetResourceManager()->GetCurrentResource(writerecord->GetResourceID());
+		GLResource writeBuffer = writerecord->Resource;
 
 		if(m_HighTrafficResources.find(writeBuffer) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 	
 		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
-		Serialise_glNamedCopyBufferSubDataEXT(GetResourceManager()->GetCurrentResource(readrecord->GetResourceID()).name,
+		Serialise_glNamedCopyBufferSubDataEXT(readrecord->Resource.name,
 																          writeBuffer.name,
 																          readOffset, writeOffset, size);
 
@@ -741,7 +741,7 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 	// store as transform feedback record state
 	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
 	{
-		GLuint feedback = GetResourceManager()->GetCurrentResource(cd.m_FeedbackRecord->GetResourceID()).name;
+		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
 		// buffer
@@ -813,7 +813,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 	// store as transform feedback record state
 	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
 	{
-		GLuint feedback = GetResourceManager()->GetCurrentResource(cd.m_FeedbackRecord->GetResourceID()).name;
+		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
 		// buffer
@@ -895,7 +895,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 	// store as transform feedback record state
 	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
 	{
-		GLuint feedback = GetResourceManager()->GetCurrentResource(cd.m_FeedbackRecord->GetResourceID()).name;
+		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		for(int i=0; i < count; i++)
 		{
@@ -993,7 +993,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 	// store as transform feedback record state
 	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
 	{
-		GLuint feedback = GetResourceManager()->GetCurrentResource(cd.m_FeedbackRecord->GetResourceID()).name;
+		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		for(int i=0; i < count; i++)
 		{
@@ -1167,7 +1167,7 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
 		RDCASSERT(record);
 
 		if(record)
-			return glMapNamedBufferEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name, access);
+			return glMapNamedBufferEXT(record->Resource.name, access);
 
 		RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
 	}
@@ -1331,7 +1331,7 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
 		RDCASSERT(record);
 
 		if(record)
-			return glMapNamedBufferRangeEXT(GetResourceManager()->GetCurrentResource(record->GetResourceID()).name, offset, length, access);
+			return glMapNamedBufferRangeEXT(record->Resource.name, offset, length, access);
 
 		RDCERR("glMapBufferRange: Couldn't get resource record for target %x - no buffer bound?", target);
 	}
@@ -1493,7 +1493,7 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
 		RDCASSERT(record);
 
 		if(record)
-			return glUnmapNamedBufferEXT( GetResourceManager()->GetCurrentResource(record->GetResourceID()).name );
+			return glUnmapNamedBufferEXT( record->Resource.name );
 
 		RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
 	}

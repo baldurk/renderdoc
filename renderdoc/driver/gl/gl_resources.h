@@ -169,6 +169,8 @@ struct GLResourceRecord : public ResourceRecord
 	GLenum datatype;
 	GLenum usage;
 
+	GLResource Resource;
+
 	void AllocShadowStorage(size_t size)
 	{
 		if(ShadowPtr[0] == NULL)
