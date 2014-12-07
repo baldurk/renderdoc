@@ -144,7 +144,7 @@ class WrappedOpenGL
 		vector<double> m_FrameTimes;
 		double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 		
-		set<GLResource> m_HighTrafficResources;
+		set<ResourceId> m_HighTrafficResources;
 
 		vector<FetchFrameRecord> m_FrameRecord;
 		

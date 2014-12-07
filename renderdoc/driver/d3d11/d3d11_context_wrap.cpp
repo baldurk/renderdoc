@@ -6537,9 +6537,11 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 	DrainAnnotationQueue();
 
 	m_EmptyCommandList = false;
+	
+	ResourceId id = GetIDForResource(pResource);
 
 	bool straightUp = false;
-	if(m_HighTrafficResources.find(pResource) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+	if(m_HighTrafficResources.find(id) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		straightUp = true;
 
 	if(m_pDevice->GetResourceManager()->IsResourceDirty(GetIDForResource(pResource)) && m_State != WRITING_CAPFRAME)
@@ -6549,9 +6551,9 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 		m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
 	{
 		straightUp = true;
-		m_HighTrafficResources.insert(pResource);
+		m_HighTrafficResources.insert(id);
 		if(m_State != WRITING_CAPFRAME)
-			m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+			m_pDevice->GetResourceManager()->MarkDirtyResource(id);
 	}
 
 	if(straightUp && m_State == WRITING_IDLE)
@@ -6606,7 +6608,7 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 
 			if(record->UpdateCount > 60 && RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites == 0)
 			{
-				m_HighTrafficResources.insert(pResource);
+				m_HighTrafficResources.insert(Id);
 				m_pDevice->GetResourceManager()->MarkDirtyResource(Id);
 
 				return ret;
@@ -6849,9 +6851,11 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 
 	m_EmptyCommandList = false;
 
-	auto it = m_OpenMaps.find(MappedResource(GetIDForResource(pResource), Subresource));
+	ResourceId id = GetIDForResource(pResource);
 
-	if(m_State == WRITING_IDLE && m_HighTrafficResources.find(pResource) != m_HighTrafficResources.end())
+	auto it = m_OpenMaps.find(MappedResource(id, Subresource));
+
+	if(m_State == WRITING_IDLE && m_HighTrafficResources.find(id) != m_HighTrafficResources.end())
 	{
 		// we intercepted this, even though we now don't need to serialise it. Time to finish what we started!
 		if(it != m_OpenMaps.end() && it->second.MapType != D3D11_MAP_READ)

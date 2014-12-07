@@ -552,11 +552,11 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(BufferRes(GetCtx(), buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
 		Serialise_glNamedBufferSubDataEXT(buffer, offset, size, data);
@@ -574,7 +574,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 				
 			if(record->UpdateCount > 60)
 			{
-				m_HighTrafficResources.insert(BufferRes(GetCtx(), buffer));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -592,7 +592,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
@@ -609,7 +609,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 				
 			if(record->UpdateCount > 60)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -671,14 +671,12 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		GLResourceRecord *writerecord = GetCtxData().m_BufferRecord[BufferIdx(writeTarget)];
 		RDCASSERT(readrecord && writerecord);
 
-		GLResource writeBuffer = writerecord->Resource;
-
-		if(m_HighTrafficResources.find(writeBuffer) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(writerecord->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 	
 		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
 		Serialise_glNamedCopyBufferSubDataEXT(readrecord->Resource.name,
-																          writeBuffer.name,
+																          writerecord->Resource.name,
 																          readOffset, writeOffset, size);
 
 		Chunk *chunk = scope.Get();
@@ -695,7 +693,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 
 			if(writerecord->UpdateCount > 60)
 			{
-				m_HighTrafficResources.insert(writeBuffer);
+				m_HighTrafficResources.insert(writerecord->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
 			}
 		}
@@ -1056,7 +1054,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &length);
 		
 		bool straightUp = false;
-		if(m_HighTrafficResources.find(BufferRes(GetCtx(), buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			straightUp = true;
 		
 		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
@@ -1065,7 +1063,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 		if(!straightUp && (access == eGL_WRITE_ONLY || access == eGL_READ_WRITE) && m_State != WRITING_CAPFRAME)
 		{
 			straightUp = true;
-			m_HighTrafficResources.insert(BufferRes(GetCtx(), buffer));
+			m_HighTrafficResources.insert(record->GetResourceID());
 			if(m_State != WRITING_CAPFRAME)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
@@ -1147,7 +1145,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 				record->UpdateCount++;
 				
 				if(record->UpdateCount > 60)
-					m_HighTrafficResources.insert(BufferRes(GetCtx(), buffer));
+					m_HighTrafficResources.insert(record->GetResourceID());
 			}
 		}
 
@@ -1182,7 +1180,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
 		bool straightUp = false;
-		if(m_HighTrafficResources.find(BufferRes(GetCtx(), buffer)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			straightUp = true;
 		
 		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
@@ -1193,7 +1191,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		if(!straightUp && !invalidateMap && (access & GL_MAP_WRITE_BIT) && m_State != WRITING_CAPFRAME)
 		{
 			straightUp = true;
-			m_HighTrafficResources.insert(BufferRes(GetCtx(), buffer));
+			m_HighTrafficResources.insert(record->GetResourceID());
 			if(m_State != WRITING_CAPFRAME)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
@@ -1313,7 +1311,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 				record->UpdateCount++;
 				
 				if(record->UpdateCount > 60)
-					m_HighTrafficResources.insert(BufferRes(GetCtx(), buffer));
+					m_HighTrafficResources.insert(record->GetResourceID());
 			}
 		}
 

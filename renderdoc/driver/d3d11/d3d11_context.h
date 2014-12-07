@@ -158,7 +158,7 @@ private:
 		}
 	};
 
-	set<IUnknown*> m_HighTrafficResources;
+	set<ResourceId> m_HighTrafficResources;
 	map<MappedResource, MapIntercept> m_OpenMaps;
 
 	struct StreamOutData

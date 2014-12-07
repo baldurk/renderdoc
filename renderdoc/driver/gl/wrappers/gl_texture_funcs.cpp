@@ -823,11 +823,11 @@ void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
 		Serialise_glTextureParameteriEXT(texture, target, pname, param);
@@ -843,7 +843,7 @@ void WrappedOpenGL::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -861,7 +861,7 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
@@ -878,7 +878,7 @@ void WrappedOpenGL::glTexParameteri(GLenum target, GLenum pname, GLint param)
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -909,11 +909,11 @@ void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenu
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
 		Serialise_glTextureParameterivEXT(texture, target, pname, params);
@@ -929,7 +929,7 @@ void WrappedOpenGL::glTextureParameterivEXT(GLuint texture, GLenum target, GLenu
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -947,7 +947,7 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 		
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
@@ -964,7 +964,7 @@ void WrappedOpenGL::glTexParameteriv(GLenum target, GLenum pname, const GLint *p
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -995,11 +995,11 @@ void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLen
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIIV);
 		Serialise_glTextureParameterIivEXT(texture, target, pname, params);
@@ -1015,7 +1015,7 @@ void WrappedOpenGL::glTextureParameterIivEXT(GLuint texture, GLenum target, GLen
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1033,7 +1033,7 @@ void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *
 		
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIIV);
@@ -1050,7 +1050,7 @@ void WrappedOpenGL::glTexParameterIiv(GLenum target, GLenum pname, const GLint *
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1081,11 +1081,11 @@ void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLe
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIUIV);
 		Serialise_glTextureParameterIuivEXT(texture, target, pname, params);
@@ -1101,7 +1101,7 @@ void WrappedOpenGL::glTextureParameterIuivEXT(GLuint texture, GLenum target, GLe
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1119,7 +1119,7 @@ void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint
 		
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIUIV);
@@ -1136,7 +1136,7 @@ void WrappedOpenGL::glTexParameterIuiv(GLenum target, GLenum pname, const GLuint
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1164,11 +1164,11 @@ void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
 		Serialise_glTextureParameterfEXT(texture, target, pname, param);
@@ -1184,7 +1184,7 @@ void WrappedOpenGL::glTextureParameterfEXT(GLuint texture, GLenum target, GLenum
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1202,7 +1202,7 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 		
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
@@ -1219,7 +1219,7 @@ void WrappedOpenGL::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1250,11 +1250,11 @@ void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenu
 	
 	if(m_State >= WRITING)
 	{
-		if(m_HighTrafficResources.find(TextureRes(GetCtx(), texture)) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			return;
-
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
 		Serialise_glTextureParameterfvEXT(texture, target, pname, params);
@@ -1270,7 +1270,7 @@ void WrappedOpenGL::glTextureParameterfvEXT(GLuint texture, GLenum target, GLenu
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(TextureRes(GetCtx(), texture));
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -1288,7 +1288,7 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 		
 		GLResource res = record->Resource;
 		
-		if(m_HighTrafficResources.find(res) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
 
 		SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
@@ -1305,7 +1305,7 @@ void WrappedOpenGL::glTexParameterfv(GLenum target, GLenum pname, const GLfloat 
 				
 			if(record->UpdateCount > 12)
 			{
-				m_HighTrafficResources.insert(res);
+				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 			}
 		}
@@ -2934,7 +2934,7 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
@@ -2951,7 +2951,7 @@ void WrappedOpenGL::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -2980,7 +2980,7 @@ void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, G
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
@@ -2998,7 +2998,7 @@ void WrappedOpenGL::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, G
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3074,7 +3074,7 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
@@ -3091,7 +3091,7 @@ void WrappedOpenGL::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3120,7 +3120,7 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
@@ -3138,7 +3138,7 @@ void WrappedOpenGL::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, G
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3216,7 +3216,7 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
@@ -3233,7 +3233,7 @@ void WrappedOpenGL::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3262,7 +3262,7 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
@@ -3280,7 +3280,7 @@ void WrappedOpenGL::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, G
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3343,7 +3343,7 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
@@ -3360,7 +3360,7 @@ void WrappedOpenGL::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum targ
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3389,7 +3389,7 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
@@ -3407,7 +3407,7 @@ void WrappedOpenGL::glCompressedTexSubImage1D(GLenum target, GLint level, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3472,7 +3472,7 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
@@ -3489,7 +3489,7 @@ void WrappedOpenGL::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum targ
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3518,7 +3518,7 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
@@ -3536,7 +3536,7 @@ void WrappedOpenGL::glCompressedTexSubImage2D(GLenum target, GLint level, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3603,7 +3603,7 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 			GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
@@ -3620,7 +3620,7 @@ void WrappedOpenGL::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum targ
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
@@ -3649,7 +3649,7 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
 			GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 			RDCASSERT(record);
 			
-			if(m_HighTrafficResources.find(record->Resource) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
+			if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State == WRITING_IDLE)
 				return;
 
 			SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
@@ -3667,7 +3667,7 @@ void WrappedOpenGL::glCompressedTexSubImage3D(GLenum target, GLint level, GLint 
 
 				if(record->UpdateCount > 60)
 				{
-					m_HighTrafficResources.insert(record->Resource);
+					m_HighTrafficResources.insert(record->GetResourceID());
 					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				}
 			}
