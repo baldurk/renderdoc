@@ -124,7 +124,8 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 			ser.Serialise("", captures.back().timestamp);
 			ser.Serialise("", captures.back().path);
 
-			uint32_t len = 128*1024;
+			uint32_t len = 0;
+			RENDERDOC_GetThumbnail(captures.back().path.c_str(), NULL, len);
 			byte *thumb = new byte[len];
 			RENDERDOC_GetThumbnail(captures.back().path.c_str(), thumb, len);
 
