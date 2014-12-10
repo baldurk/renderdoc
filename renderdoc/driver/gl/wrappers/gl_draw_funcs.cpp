@@ -1816,9 +1816,9 @@ void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat dep
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data)
+bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat, GLenum format, GLenum type, const void *data)
 {
-	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
@@ -1882,10 +1882,23 @@ bool WrappedOpenGL::Serialise_glClearBufferData(GLenum target, GLenum internalfo
 	
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glClearBufferData(Target, InternalFormat, Format, Type, (const void *)&val[0]);
+		m_Real.glClearNamedBufferDataEXT(GetResourceManager()->GetLiveResource(id).name, InternalFormat, Format, Type, (const void *)&val[0]);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat, GLenum format, GLenum type, const void *data)
+{
+	m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
+		Serialise_glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data)
@@ -1894,16 +1907,19 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+		
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
-		Serialise_glClearBufferData(target, internalformat, format, type, data);
+		Serialise_glClearNamedBufferDataEXT(record->Resource.name, internalformat, format, type, data);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
+bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
 {
-	SERIALISE_ELEMENT(GLenum, Target, target);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
 	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
 	SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
@@ -1969,10 +1985,23 @@ bool WrappedOpenGL::Serialise_glClearBufferSubData(GLenum target, GLenum interna
 
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glClearBufferSubData(Target, InternalFormat, (GLintptr)Offset, (GLsizeiptr)Size, Format, Type, (const void *)&val[0]);
+		m_Real.glClearNamedBufferSubDataEXT(GetResourceManager()->GetLiveResource(id).name, InternalFormat, (GLintptr)Offset, (GLsizeiptr)Size, Format, Type, (const void *)&val[0]);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
+{
+	m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
+		Serialise_glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
@@ -1981,8 +2010,11 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+		
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
-		Serialise_glClearBufferSubData(target, internalformat, offset, size, format, type, data);
+		Serialise_glClearNamedBufferSubDataEXT(record->Resource.name, internalformat, offset, size, format, type, data);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

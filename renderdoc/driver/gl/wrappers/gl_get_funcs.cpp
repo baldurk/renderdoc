@@ -190,21 +190,6 @@ void WrappedOpenGL::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum 
 	m_Real.glGetTexLevelParameteriv(target, level, pname, params);
 }
 
-void WrappedOpenGL::glGetTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
-{
-	m_Real.glGetTextureParameterivEXT(texture, target, pname, params);
-}
-
-void WrappedOpenGL::glGetTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, GLfloat *params)
-{
-	m_Real.glGetTextureParameterfvEXT(texture, target, pname, params);
-}
-
-void WrappedOpenGL::glGetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLint *params)
-{
-	m_Real.glGetTextureLevelParameterivEXT(texture, target, level, pname, params);
-}
-
 void WrappedOpenGL::glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
 {
 	m_Real.glGetTexLevelParameterfv(target, level, pname, params);
@@ -265,11 +250,6 @@ void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLe
 	m_Real.glGetTexImage(target, level, format, type, pixels);
 }
 
-void WrappedOpenGL::glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
-{
-	m_Real.glGetTextureImageEXT(texture, target, level, format, type, pixels);
-}
-
 void WrappedOpenGL::glGetCompressedTexImage(GLenum target, GLint level, void *img)
 {
 	m_Real.glGetCompressedTexImage(target, level, img);
@@ -303,11 +283,6 @@ void WrappedOpenGL::glGetTextureImage(GLuint texture, GLint level, GLenum format
 void WrappedOpenGL::glGetTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
 {
 	m_Real.glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, bufSize, pixels);
-}
-
-void WrappedOpenGL::glGetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level, void *img)
-{
-	m_Real.glGetCompressedTextureImageEXT(texture, target, level, img);
 }
 
 void WrappedOpenGL::glGetInternalformativ(GLenum target, GLenum internalformat, GLenum pname, GLsizei bufSize, GLint *params)
@@ -424,11 +399,6 @@ void WrappedOpenGL::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum 
 GLenum WrappedOpenGL::glCheckFramebufferStatus(GLenum target)
 {
 	return m_Real.glCheckFramebufferStatus(target);
-}
-
-GLenum WrappedOpenGL::glCheckNamedFramebufferStatusEXT(GLuint framebuffer, GLenum target)
-{
-	return m_Real.glCheckNamedFramebufferStatusEXT(framebuffer, target);
 }
 
 void WrappedOpenGL::glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
@@ -771,29 +741,34 @@ void WrappedOpenGL::glGetNamedBufferPointerv(GLuint buffer, GLenum pname, void *
 	m_Real.glGetNamedBufferPointerv(buffer, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedFramebufferParameteriv(GLuint framebuffer, GLenum pname, GLint *param)
+void WrappedOpenGL::glGetNamedFramebufferParameterivEXT(GLuint framebuffer, GLenum pname, GLint *param)
 {
-	m_Real.glGetNamedFramebufferParameteriv(framebuffer, pname, param);
+	m_Real.glGetNamedFramebufferParameterivEXT(framebuffer, pname, param);
 }
 
-void WrappedOpenGL::glGetNamedFramebufferAttachmentParameteriv(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
+void WrappedOpenGL::glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
 {
-	m_Real.glGetNamedFramebufferAttachmentParameteriv(framebuffer, attachment, pname, params);
+	m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedRenderbufferParameteriv(GLuint renderbuffer, GLenum pname, GLint *params)
+void WrappedOpenGL::glGetNamedRenderbufferParameterivEXT(GLuint renderbuffer, GLenum pname, GLint *params)
 {
-	m_Real.glGetNamedRenderbufferParameteriv(renderbuffer, pname, params);
+	m_Real.glGetNamedRenderbufferParameterivEXT(renderbuffer, pname, params);
 }
 
-void WrappedOpenGL::glGetNamedBufferParameteriv(GLuint buffer, GLenum pname, GLint *params)
+void WrappedOpenGL::glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
-	m_Real.glGetNamedBufferParameterivEXT(buffer, pname, params);
+	m_Real.glGetTextureImageEXT(texture, target, level, format, type, pixels);
 }
 
-void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data)
+void WrappedOpenGL::glGetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level, void *img)
 {
-	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
+	m_Real.glGetCompressedTextureImageEXT(texture, target, level, img);
+}
+
+GLenum WrappedOpenGL::glCheckNamedFramebufferStatusEXT(GLuint framebuffer, GLenum target)
+{
+	return m_Real.glCheckNamedFramebufferStatusEXT(framebuffer, target);
 }
 
 void WrappedOpenGL::glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint *params)
@@ -806,7 +781,133 @@ void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, G
 	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
-void WrappedOpenGL::glGetNamedFramebufferAttachmentParameterivEXT(GLuint framebuffer, GLenum attachment, GLenum pname, GLint *params)
+void WrappedOpenGL::glGetTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
 {
-	m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachment, pname, params);
+	m_Real.glGetTextureParameterivEXT(texture, target, pname, params);
 }
+
+void WrappedOpenGL::glGetTextureParameterfvEXT(GLuint texture, GLenum target, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetTextureParameterfvEXT(texture, target, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureParameterIivEXT(texture, target, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureParameterIuivEXT(GLuint texture, GLenum target, GLenum pname, GLuint *params)
+{
+	m_Real.glGetTextureParameterIuivEXT(texture, target, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureLevelParameterivEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLint *params)
+{
+	m_Real.glGetTextureLevelParameterivEXT(texture, target, level, pname, params);
+}
+
+void WrappedOpenGL::glGetTextureLevelParameterfvEXT(GLuint texture, GLenum target, GLint level, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetTextureLevelParameterfvEXT(texture, target, level, pname, params);
+}
+
+void WrappedOpenGL::glGetPointeri_vEXT(GLenum pname, GLuint index, void **params)
+{
+	m_Real.glGetPointeri_vEXT(pname, index, params);
+}
+
+void WrappedOpenGL::glGetDoubleIndexedvEXT(GLenum target, GLuint index, GLdouble *data)
+{
+	m_Real.glGetDoubleIndexedvEXT(target, index, data);
+}
+
+void WrappedOpenGL::glGetPointerIndexedvEXT(GLenum target, GLuint index, void **data)
+{
+	m_Real.glGetPointerIndexedvEXT(target, index, data);
+}
+
+void WrappedOpenGL::glGetIntegerIndexedvEXT(GLenum target, GLuint index, GLint *data)
+{
+	m_Real.glGetIntegerIndexedvEXT(target, index, data);
+}
+
+void WrappedOpenGL::glGetBooleanIndexedvEXT(GLenum target, GLuint index, GLboolean *data)
+{
+	m_Real.glGetBooleanIndexedvEXT(target, index, data);
+}
+
+void WrappedOpenGL::glGetFloatIndexedvEXT(GLenum target, GLuint index, GLfloat *data)
+{
+	m_Real.glGetFloatIndexedvEXT(target, index, data);
+}
+
+void WrappedOpenGL::glGetMultiTexImageEXT(GLenum texunit, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
+{
+	m_Real.glGetMultiTexImageEXT(texunit, target, level, format, type, pixels);
+}
+
+void WrappedOpenGL::glGetMultiTexParameterfvEXT(GLenum texunit, GLenum target, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetMultiTexParameterfvEXT(texunit, target, pname, params);
+}
+
+void WrappedOpenGL::glGetMultiTexParameterivEXT(GLenum texunit, GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetMultiTexParameterivEXT(texunit, target, pname, params);
+}
+
+void WrappedOpenGL::glGetMultiTexParameterIivEXT(GLenum texunit, GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetMultiTexParameterIivEXT(texunit, target, pname, params);
+}
+
+void WrappedOpenGL::glGetMultiTexParameterIuivEXT(GLenum texunit, GLenum target, GLenum pname, GLuint *params)
+{
+	m_Real.glGetMultiTexParameterIuivEXT(texunit, target, pname, params);
+}
+
+void WrappedOpenGL::glGetMultiTexLevelParameterfvEXT(GLenum texunit, GLenum target, GLint level, GLenum pname, GLfloat *params)
+{
+	m_Real.glGetMultiTexLevelParameterfvEXT(texunit, target, level, pname, params);
+}
+
+void WrappedOpenGL::glGetMultiTexLevelParameterivEXT(GLenum texunit, GLenum target, GLint level, GLenum pname, GLint *params)
+{
+	m_Real.glGetMultiTexLevelParameterivEXT(texunit, target, level, pname, params);
+}
+
+void WrappedOpenGL::glGetCompressedMultiTexImageEXT(GLenum texunit, GLenum target, GLint lod, void *img)
+{
+	m_Real.glGetCompressedMultiTexImageEXT(texunit, target, lod, img);
+}
+
+void WrappedOpenGL::glGetNamedBufferPointervEXT(GLuint buffer, GLenum pname, void **params)
+{
+	m_Real.glGetNamedBufferPointervEXT(buffer, pname, params);
+}
+
+void WrappedOpenGL::glGetNamedProgramivEXT(GLuint program, GLenum target, GLenum pname, GLint *params)
+{
+	m_Real.glGetNamedProgramivEXT(program, target, pname, params);
+}
+
+void WrappedOpenGL::glGetVertexArrayIntegervEXT(GLuint vaobj, GLenum pname, GLint *param)
+{
+	m_Real.glGetVertexArrayIntegervEXT(vaobj, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexArrayPointervEXT(GLuint vaobj, GLenum pname, void **param)
+{
+	m_Real.glGetVertexArrayPointervEXT(vaobj, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexArrayIntegeri_vEXT(GLuint vaobj, GLuint index, GLenum pname, GLint *param)
+{
+	m_Real.glGetVertexArrayIntegeri_vEXT(vaobj, index, pname, param);
+}
+
+void WrappedOpenGL::glGetVertexArrayPointeri_vEXT(GLuint vaobj, GLuint index, GLenum pname, void **param)
+{
+	m_Real.glGetVertexArrayPointeri_vEXT(vaobj, index, pname, param);
+}
+

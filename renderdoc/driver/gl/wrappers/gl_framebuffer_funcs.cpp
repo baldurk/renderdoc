@@ -699,49 +699,74 @@ void WrappedOpenGL::glFramebufferParameteri(GLenum target, GLenum pname, GLint p
 	}
 }
 
-bool WrappedOpenGL::Serialise_glReadBuffer(GLenum mode)
+bool WrappedOpenGL::Serialise_glFramebufferReadBufferEXT(GLuint framebuffer, GLenum mode)
 {
-	SERIALISE_ELEMENT(GLenum, m, mode);
-	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_ReadFramebufferRecord ? GetCtxData().m_ReadFramebufferRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
+	SERIALISE_ELEMENT(GLenum, b, mode);
 
 	if(m_State < WRITING)
 	{
-		if(id != ResourceId())
+		if(Id == ResourceId())
 		{
-			GLResource res = GetResourceManager()->GetLiveResource(id);
-			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
+			// since we are faking the default framebuffer with our own
+			// to see the results, replace back/front/left/right with color attachment 0
+			if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK ||
+					b == eGL_FRONT_LEFT || b == eGL_FRONT_RIGHT || b == eGL_FRONT)
+					b = eGL_COLOR_ATTACHMENT0;
+			
+			m_Real.glFramebufferReadBufferEXT(m_FakeBB_FBO, b);
 		}
 		else
 		{
-			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, m_FakeBB_FBO);
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glFramebufferReadBufferEXT(res.name, b);
 		}
-
-		m_Real.glReadBuffer(m);
 	}
-	
+
 	return true;
+}
+
+void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
+{
+	m_Real.glFramebufferReadBufferEXT(framebuffer, buf);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
+		Serialise_glFramebufferReadBufferEXT(framebuffer, buf);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE && framebuffer != 0)
+	{
+		SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
+		Serialise_glFramebufferReadBufferEXT(framebuffer, buf);
+
+		ResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glReadBuffer(GLenum mode)
 {
-	m_Real.glReadBuffer(mode);
-	
 	if(m_State >= WRITING)
 	{
+		GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
 		if(m_State == WRITING_CAPFRAME)
 		{
 			SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-			Serialise_glReadBuffer(mode);
+			Serialise_glFramebufferReadBufferEXT(drawrecord ? drawrecord->Resource.name : 0, mode);
 
 			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
-			if(readrecord)
-				GetResourceManager()->MarkDirtyResource(readrecord->GetResourceID());
+			if(drawrecord)
+				GetResourceManager()->MarkDirtyResource(drawrecord->GetResourceID());
 		}
 	}
+	
+	m_Real.glReadBuffer(mode);
 }
 
 bool WrappedOpenGL::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
@@ -786,38 +811,68 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 	m_Real.glBindFramebuffer(target, framebuffer);
 }
 
-bool WrappedOpenGL::Serialise_glDrawBuffer(GLenum buf)
+bool WrappedOpenGL::Serialise_glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 {
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, b, buf);
 
 	if(m_State < WRITING)
 	{
-		// since we are faking the default framebuffer with our own
-		// to see the results, replace back/front/left/right with color attachment 0
-		if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK ||
-				b == eGL_FRONT_LEFT || b == eGL_FRONT_RIGHT || b == eGL_FRONT)
-				b = eGL_COLOR_ATTACHMENT0;
-
-		m_Real.glDrawBuffer(b);
+		if(Id == ResourceId())
+		{
+			// since we are faking the default framebuffer with our own
+			// to see the results, replace back/front/left/right with color attachment 0
+			if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK ||
+					b == eGL_FRONT_LEFT || b == eGL_FRONT_RIGHT || b == eGL_FRONT)
+					b = eGL_COLOR_ATTACHMENT0;
+			
+			m_Real.glFramebufferDrawBufferEXT(m_FakeBB_FBO, b);
+		}
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(Id);
+			m_Real.glFramebufferDrawBufferEXT(res.name, b);
+		}
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
+{
+	m_Real.glFramebufferDrawBufferEXT(framebuffer, buf);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
+		Serialise_glFramebufferDrawBufferEXT(framebuffer, buf);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	else if(m_State == WRITING_IDLE && framebuffer != 0)
+	{
+		SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
+		Serialise_glFramebufferDrawBufferEXT(framebuffer, buf);
+
+		ResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		record->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glDrawBuffer(GLenum buf)
 {
 	if(m_State >= WRITING)
 	{
+		GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
 		if(m_State == WRITING_CAPFRAME)
 		{
 			SCOPED_SERIALISE_CONTEXT(DRAW_BUFFER);
-			Serialise_glDrawBuffer(buf);
+			Serialise_glFramebufferDrawBufferEXT(drawrecord ? drawrecord->Resource.name : 0, buf);
 
 			m_ContextRecord->AddChunk(scope.Get());
 		}
 		else
 		{
-			GLResourceRecord *drawrecord = GetCtxData().m_DrawFramebufferRecord;
 			if(drawrecord)
 				GetResourceManager()->MarkDirtyResource(drawrecord->GetResourceID());
 		}
@@ -1075,9 +1130,9 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
 	m_Real.glDeleteRenderbuffers(n, renderbuffers);
 }
 
-bool WrappedOpenGL::Serialise_glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
+bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_Renderbuffer);
+	SERIALISE_ELEMENT(ResourceId, id, (renderbuffer ? GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
@@ -1096,8 +1151,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorage(GLenum target, GLenum intern
 
 		GLuint real = GetResourceManager()->GetLiveResource(id).name;
 
-		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
-		m_Real.glRenderbufferStorage(eGL_RENDERBUFFER, Format, Width, Height);
+		m_Real.glNamedRenderbufferStorageEXT(real, Format, Width, Height);
 
 		// create read-from texture for displaying this render buffer
 		m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
@@ -1121,23 +1175,24 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorage(GLenum target, GLenum intern
 	return true;
 }
 
-void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
+void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height)
 {
-	m_Real.glRenderbufferStorage(target, internalformat, width, height);
+	m_Real.glNamedRenderbufferStorageEXT(renderbuffer, internalformat, width, height);
 	
+	ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(GetCtxData().m_Renderbuffer);
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
-		Serialise_glRenderbufferStorage(eGL_RENDERBUFFER, internalformat, width, height);
+		Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
 
 		record->AddChunk(scope.Get());
 	}
 
 	{
-		ResourceId rb = GetCtxData().m_Renderbuffer;
 		m_Textures[rb].width = width;
 		m_Textures[rb].height = height;
 		m_Textures[rb].depth = 1;
@@ -1148,13 +1203,41 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
 	}
 }
 
-bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
+void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
+{
+	m_Real.glRenderbufferStorage(target, internalformat, width, height);
+	
+	ResourceId rb = GetCtxData().m_Renderbuffer;
+
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
+		Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
+
+		record->AddChunk(scope.Get());
+	}
+
+	{
+		m_Textures[rb].width = width;
+		m_Textures[rb].height = height;
+		m_Textures[rb].depth = 1;
+		m_Textures[rb].samples = 1;
+		m_Textures[rb].curType = eGL_RENDERBUFFER;
+		m_Textures[rb].dimension = 2;
+		m_Textures[rb].internalFormat = internalformat;
+	}
+}
+
+bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
 {
 	SERIALISE_ELEMENT(GLenum, Format, internalformat);
 	SERIALISE_ELEMENT(uint32_t, Samples, samples);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
-	SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_Renderbuffer);
+	SERIALISE_ELEMENT(ResourceId, id, (renderbuffer ? GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer)) : ResourceId()));
 
 	if(m_State == READING)
 	{
@@ -1170,8 +1253,7 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisample(GLenum target, GL
 		
 		GLuint real = GetResourceManager()->GetLiveResource(id).name;
 
-		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, GetResourceManager()->GetLiveResource(id).name);
-		m_Real.glRenderbufferStorageMultisample(eGL_RENDERBUFFER, Samples, Format, Width, Height);
+		m_Real.glNamedRenderbufferStorageMultisampleEXT(real, Samples, Format, Width, Height);
 
 		// create read-from texture for displaying this render buffer
 		m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
@@ -1195,23 +1277,52 @@ bool WrappedOpenGL::Serialise_glRenderbufferStorageMultisample(GLenum target, GL
 	return true;
 }
 
-void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
+void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
 {
-	m_Real.glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+	m_Real.glNamedRenderbufferStorageMultisampleEXT(renderbuffer, samples, internalformat, width, height);
 	
+	ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
+
 	if(m_State >= WRITING)
 	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(GetCtxData().m_Renderbuffer);
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
 		RDCASSERT(record);
 
 		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
-		Serialise_glRenderbufferStorageMultisample(eGL_RENDERBUFFER, samples, internalformat, width, height);
+		Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples, internalformat, width, height);
 
 		record->AddChunk(scope.Get());
 	}
 
 	{
-		ResourceId rb = GetCtxData().m_Renderbuffer;
+		m_Textures[rb].width = width;
+		m_Textures[rb].height = height;
+		m_Textures[rb].depth = 1;
+		m_Textures[rb].samples = samples;
+		m_Textures[rb].curType = eGL_RENDERBUFFER;
+		m_Textures[rb].dimension = 2;
+		m_Textures[rb].internalFormat = internalformat;
+	}
+}
+
+void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
+{
+	m_Real.glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
+
+	ResourceId rb = GetCtxData().m_Renderbuffer;
+
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
+		RDCASSERT(record);
+
+		SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
+		Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples, internalformat, width, height);
+
+		record->AddChunk(scope.Get());
+	}
+
+	{
 		m_Textures[rb].width = width;
 		m_Textures[rb].height = height;
 		m_Textures[rb].depth = 1;

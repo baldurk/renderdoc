@@ -1834,19 +1834,19 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glCopyImageSubData(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
 		break;
 	case COPY_IMAGE1D:
-		Serialise_glCopyTexImage1D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
+		Serialise_glCopyTextureImage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
 		break;
 	case COPY_IMAGE2D:
-		Serialise_glCopyTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
+		Serialise_glCopyTextureImage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
 		break;
 	case COPY_SUBIMAGE1D:
-		Serialise_glCopyTexSubImage1D(eGL_NONE, 0, 0, 0, 0, 0);
+		Serialise_glCopyTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, 0);
 		break;
 	case COPY_SUBIMAGE2D:
-		Serialise_glCopyTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
+		Serialise_glCopyTextureSubImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
 		break;
 	case COPY_SUBIMAGE3D:
-		Serialise_glCopyTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
+		Serialise_glCopyTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
 		break;
 	case TEXTURE_VIEW:
 		Serialise_glTextureView(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
@@ -1999,16 +1999,16 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glClearBufferfi(eGL_NONE, 0, 0, 0);
 		break;
 	case CLEARBUFFERDATA:
-		Serialise_glClearBufferData(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
+		Serialise_glClearNamedBufferDataEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case CLEARBUFFERSUBDATA:
-		Serialise_glClearBufferSubData(eGL_NONE, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		Serialise_glClearNamedBufferSubDataEXT(0, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case CLEARTEXIMAGE:
 		Serialise_glClearTexImage(0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case CLEARTEXSUBIMAGE:
-		Serialise_glClearBufferSubData(eGL_NONE, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
+		Serialise_glClearTexSubImage(0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 		break;
 	case POLYGON_MODE:
 		Serialise_glPolygonMode(eGL_NONE, eGL_NONE);
@@ -2170,13 +2170,13 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glScissorArrayv(0, 0, 0);
 		break;
 	case BIND_VERTEXBUFFER:
-		Serialise_glBindVertexBuffer(0, 0, 0, 0);
+		Serialise_glVertexArrayBindVertexBufferEXT(0, 0, 0, 0, 0);
 		break;
 	case BIND_VERTEXBUFFERS:
 		Serialise_glBindVertexBuffers(0, 0, NULL, NULL, NULL);
 		break;
 	case VERTEXBINDINGDIVISOR:
-		Serialise_glVertexBindingDivisor(0, 0);
+		Serialise_glVertexArrayVertexBindingDivisorEXT(0, 0, 0);
 		break;
 	case DISPATCH_COMPUTE:
 		Serialise_glDispatchCompute(0, 0, 0);
@@ -2285,13 +2285,13 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glNamedFramebufferParameteriEXT(0, eGL_NONE, 0);
 		break;
 	case READ_BUFFER:
-		Serialise_glReadBuffer(eGL_NONE);
+		Serialise_glFramebufferReadBufferEXT(0, eGL_NONE);
 		break;
 	case BIND_FRAMEBUFFER:
 		Serialise_glBindFramebuffer(eGL_NONE, 0);
 		break;
 	case DRAW_BUFFER:
-		Serialise_glDrawBuffer(eGL_NONE);
+		Serialise_glFramebufferDrawBufferEXT(0, eGL_NONE);
 		break;
 	case DRAW_BUFFERS:
 		Serialise_glFramebufferDrawBuffersEXT(0, 0, NULL);
@@ -2304,10 +2304,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glGenRenderbuffers(0, NULL);
 		break;
 	case RENDERBUFFER_STORAGE:
-		Serialise_glRenderbufferStorage(eGL_NONE, eGL_NONE, 0, 0);
+		Serialise_glNamedRenderbufferStorageEXT(0, eGL_NONE, 0, 0);
 		break;
 	case RENDERBUFFER_STORAGEMS:
-		Serialise_glRenderbufferStorageMultisample(eGL_NONE, 0, eGL_NONE, 0, 0);
+		Serialise_glNamedRenderbufferStorageMultisampleEXT(0, 0, eGL_NONE, 0, 0);
 		break;
 
 	case GEN_SAMPLERS:
@@ -2372,7 +2372,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glUnmapNamedBufferEXT(eGL_NONE);
 		break;
 	case FLUSHMAP:
-		Serialise_glFlushMappedBufferRange(eGL_NONE, 0, 0);
+		Serialise_glFlushMappedNamedBufferRangeEXT(0, 0, 0);
 		break;
 	case GEN_VERTEXARRAY:
 		Serialise_glGenVertexArrays(0, NULL);
@@ -2381,37 +2381,37 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBindVertexArray(0);
 		break;
 	case VERTEXATTRIBPOINTER:
-		Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, NULL);
+		Serialise_glVertexArrayVertexAttribOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0, NULL);
 		break;
 	case VERTEXATTRIBIPOINTER:
-		Serialise_glVertexAttribIPointer(0, 0, eGL_NONE, 0, NULL);
+		Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, NULL);
 		break;
 	case VERTEXATTRIBLPOINTER:
-		Serialise_glVertexAttribLPointer(0, 0, eGL_NONE, 0, NULL);
+		Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, NULL);
 		break;
 	case ENABLEVERTEXATTRIBARRAY:
-		Serialise_glEnableVertexAttribArray(0);
+		Serialise_glEnableVertexArrayAttribEXT(0, 0);
 		break;
 	case DISABLEVERTEXATTRIBARRAY:
-		Serialise_glDisableVertexAttribArray(0);
+		Serialise_glDisableVertexArrayAttribEXT(0, 0);
 		break;
 	case VERTEXATTRIB_GENERIC:
 		Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_packed);
 		break;
 	case VERTEXATTRIBFORMAT:
-		Serialise_glVertexAttribFormat(0, 0, eGL_NONE, 0, 0);
+		Serialise_glVertexArrayVertexAttribFormatEXT(0, 0, 0, eGL_NONE, 0, 0);
 		break;
 	case VERTEXATTRIBIFORMAT:
-		Serialise_glVertexAttribIFormat(0, 0, eGL_NONE, 0);
+		Serialise_glVertexArrayVertexAttribIFormatEXT(0, 0, 0, eGL_NONE, 0);
 		break;
 	case VERTEXATTRIBLFORMAT:
-		Serialise_glVertexAttribLFormat(0, 0, eGL_NONE, 0);
+		Serialise_glVertexArrayVertexAttribLFormatEXT(0, 0, 0, eGL_NONE, 0);
 		break;
 	case VERTEXATTRIBDIVISOR:
-		Serialise_glVertexAttribDivisor(0, 0);
+		Serialise_glVertexArrayVertexAttribDivisorEXT(0, 0, 0);
 		break;
 	case VERTEXATTRIBBINDING:
-		Serialise_glVertexAttribBinding(0, 0);
+		Serialise_glVertexArrayVertexAttribBindingEXT(0, 0, 0);
 		break;
 
 	case VAO_ELEMENT_BUFFER:
