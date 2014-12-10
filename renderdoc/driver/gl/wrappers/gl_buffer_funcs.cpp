@@ -1675,6 +1675,7 @@ void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
 		GLResource res = FeedbackRes(GetCtx(), ids[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);
@@ -2992,6 +2993,7 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
 		GLResource res = BufferRes(GetCtx(), buffers[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);
@@ -3008,6 +3010,7 @@ void WrappedOpenGL::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 		GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);

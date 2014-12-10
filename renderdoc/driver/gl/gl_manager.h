@@ -178,6 +178,13 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return ResourceManager::MarkDirtyResource(GetID(res));
 		}
 
+		using ResourceManager::MarkCleanResource;
+		
+		void MarkCleanResource(GLResource res)
+		{
+			return ResourceManager::MarkCleanResource(GetID(res));
+		}
+
 		void RegisterSync(void *ctx, GLsync sync, GLuint &name, ResourceId &id)
 		{
 			name = (GLuint)Atomic::Inc64(&m_SyncName);

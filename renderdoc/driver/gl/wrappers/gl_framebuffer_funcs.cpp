@@ -1041,6 +1041,7 @@ void WrappedOpenGL::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
 		GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);
@@ -1121,6 +1122,7 @@ void WrappedOpenGL::glDeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers
 		GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);

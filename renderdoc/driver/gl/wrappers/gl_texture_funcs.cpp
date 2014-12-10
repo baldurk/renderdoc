@@ -88,6 +88,7 @@ void WrappedOpenGL::glDeleteTextures(GLsizei n, const GLuint *textures)
 		GLResource res = TextureRes(GetCtx(), textures[i]);
 		if(GetResourceManager()->HasCurrentResource(res))
 		{
+			GetResourceManager()->MarkCleanResource(res);
 			if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 			GetResourceManager()->UnregisterResource(res);

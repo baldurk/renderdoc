@@ -762,6 +762,7 @@ void WrappedOpenGL::glDeleteProgram(GLuint program)
 	GLResource res = ProgramRes(GetCtx(), program);
 	if(GetResourceManager()->HasCurrentResource(res))
 	{
+		GetResourceManager()->MarkCleanResource(res);
 		if(GetResourceManager()->HasResourceRecord(res))
 				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
 		GetResourceManager()->UnregisterResource(res);
