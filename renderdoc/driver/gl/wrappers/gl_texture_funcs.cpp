@@ -4786,8 +4786,17 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER);
 		Serialise_glTextureBufferEXT(texture, target, internalformat, buffer);
 
-		record->AddChunk(scope.Get());
-		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
 	}
 }
 
@@ -4804,8 +4813,17 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 		Serialise_glTextureBufferEXT(record->Resource.name,
 																		  target, internalformat, buffer);
 
-		record->AddChunk(scope.Get());
-		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
 	}
 }
 
@@ -4822,8 +4840,17 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
 		Serialise_glTextureBufferEXT(record->Resource.name,
 																		  target, internalformat, buffer);
 
-		record->AddChunk(scope.Get());
-		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		Chunk *chunk = scope.Get();
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
 	}
 }
 
