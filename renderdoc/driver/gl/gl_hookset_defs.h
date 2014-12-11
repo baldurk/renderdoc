@@ -428,41 +428,76 @@
     HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
     HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
     HookExtension(PFNGLVERTEXATTRIB1DPROC, glVertexAttrib1d); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1DPROC, glVertexAttrib1d, glVertexAttrib1dARB); \
     HookExtension(PFNGLVERTEXATTRIB1DVPROC, glVertexAttrib1dv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1DVPROC, glVertexAttrib1dv, glVertexAttrib1dvARB); \
     HookExtension(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f, glVertexAttrib1fARB); \
     HookExtension(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv, glVertexAttrib1fvARB); \
     HookExtension(PFNGLVERTEXATTRIB1SPROC, glVertexAttrib1s); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1SPROC, glVertexAttrib1s, glVertexAttrib1sARB); \
     HookExtension(PFNGLVERTEXATTRIB1SVPROC, glVertexAttrib1sv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB1SVPROC, glVertexAttrib1sv, glVertexAttrib1svARB); \
     HookExtension(PFNGLVERTEXATTRIB2DPROC, glVertexAttrib2d); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2DPROC, glVertexAttrib2d, glVertexAttrib2dARB); \
     HookExtension(PFNGLVERTEXATTRIB2DVPROC, glVertexAttrib2dv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2DVPROC, glVertexAttrib2dv, glVertexAttrib2dvARB); \
     HookExtension(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f, glVertexAttrib2fARB); \
     HookExtension(PFNGLVERTEXATTRIB2FVPROC, glVertexAttrib2fv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2FVPROC, glVertexAttrib2fv, glVertexAttrib2fvARB); \
     HookExtension(PFNGLVERTEXATTRIB2SPROC, glVertexAttrib2s); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2SPROC, glVertexAttrib2s, glVertexAttrib2sARB); \
     HookExtension(PFNGLVERTEXATTRIB2SVPROC, glVertexAttrib2sv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB2SVPROC, glVertexAttrib2sv, glVertexAttrib2svARB); \
     HookExtension(PFNGLVERTEXATTRIB3DPROC, glVertexAttrib3d); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3DPROC, glVertexAttrib3d, glVertexAttrib3dARB); \
     HookExtension(PFNGLVERTEXATTRIB3DVPROC, glVertexAttrib3dv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3DVPROC, glVertexAttrib3dv, glVertexAttrib3dvARB); \
     HookExtension(PFNGLVERTEXATTRIB3FPROC, glVertexAttrib3f); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3FPROC, glVertexAttrib3f, glVertexAttrib3fARB); \
     HookExtension(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv, glVertexAttrib3fvARB); \
     HookExtension(PFNGLVERTEXATTRIB3SPROC, glVertexAttrib3s); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3SPROC, glVertexAttrib3s, glVertexAttrib3sARB); \
     HookExtension(PFNGLVERTEXATTRIB3SVPROC, glVertexAttrib3sv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB3SVPROC, glVertexAttrib3sv, glVertexAttrib3svARB); \
     HookExtension(PFNGLVERTEXATTRIB4NBVPROC, glVertexAttrib4Nbv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NBVPROC, glVertexAttrib4Nbv, glVertexAttrib4NbvARB); \
     HookExtension(PFNGLVERTEXATTRIB4NIVPROC, glVertexAttrib4Niv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NIVPROC, glVertexAttrib4Niv, glVertexAttrib4NivARB); \
     HookExtension(PFNGLVERTEXATTRIB4NSVPROC, glVertexAttrib4Nsv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NSVPROC, glVertexAttrib4Nsv, glVertexAttrib4NsvARB); \
     HookExtension(PFNGLVERTEXATTRIB4NUBPROC, glVertexAttrib4Nub); \
     HookExtension(PFNGLVERTEXATTRIB4NUBVPROC, glVertexAttrib4Nubv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NUBVPROC, glVertexAttrib4Nubv, glVertexAttrib4NubvARB); \
     HookExtension(PFNGLVERTEXATTRIB4NUIVPROC, glVertexAttrib4Nuiv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NUIVPROC, glVertexAttrib4Nuiv, glVertexAttrib4NuivARB); \
     HookExtension(PFNGLVERTEXATTRIB4NUSVPROC, glVertexAttrib4Nusv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4NUSVPROC, glVertexAttrib4Nusv, glVertexAttrib4NusvARB); \
     HookExtension(PFNGLVERTEXATTRIB4BVPROC, glVertexAttrib4bv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4BVPROC, glVertexAttrib4bv, glVertexAttrib4bvARB); \
     HookExtension(PFNGLVERTEXATTRIB4DPROC, glVertexAttrib4d); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4DPROC, glVertexAttrib4d, glVertexAttrib4dARB); \
     HookExtension(PFNGLVERTEXATTRIB4DVPROC, glVertexAttrib4dv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4DVPROC, glVertexAttrib4dv, glVertexAttrib4dvARB); \
     HookExtension(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f, glVertexAttrib4fARB); \
     HookExtension(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv, glVertexAttrib4fvARB); \
     HookExtension(PFNGLVERTEXATTRIB4IVPROC, glVertexAttrib4iv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4IVPROC, glVertexAttrib4iv, glVertexAttrib4ivARB); \
     HookExtension(PFNGLVERTEXATTRIB4SPROC, glVertexAttrib4s); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4SPROC, glVertexAttrib4s, glVertexAttrib4sARB); \
     HookExtension(PFNGLVERTEXATTRIB4SVPROC, glVertexAttrib4sv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4SVPROC, glVertexAttrib4sv, glVertexAttrib4svARB); \
     HookExtension(PFNGLVERTEXATTRIB4UBVPROC, glVertexAttrib4ubv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4UBVPROC, glVertexAttrib4ubv, glVertexAttrib4ubvARB); \
     HookExtension(PFNGLVERTEXATTRIB4UIVPROC, glVertexAttrib4uiv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4UIVPROC, glVertexAttrib4uiv, glVertexAttrib4uivARB); \
     HookExtension(PFNGLVERTEXATTRIB4USVPROC, glVertexAttrib4usv); \
+    HookExtensionAlias(PFNGLVERTEXATTRIB4USVPROC, glVertexAttrib4usv, glVertexAttrib4usvARB); \
     HookExtension(PFNGLVERTEXATTRIBI1IPROC, glVertexAttribI1i); \
     HookExtension(PFNGLVERTEXATTRIBI1IVPROC, glVertexAttribI1iv); \
     HookExtension(PFNGLVERTEXATTRIBI1UIPROC, glVertexAttribI1ui); \
@@ -500,6 +535,7 @@
     HookExtension(PFNGLVERTEXATTRIBP4UIPROC, glVertexAttribP4ui); \
     HookExtension(PFNGLVERTEXATTRIBP4UIVPROC, glVertexAttribP4uiv); \
     HookExtension(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer); \
+    HookExtensionAlias(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer, glVertexAttribPointerARB); \
     HookExtension(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
     HookExtension(PFNGLVERTEXATTRIBLPOINTERPROC, glVertexAttribLPointer); \
     HookExtension(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
@@ -511,7 +547,9 @@
     HookExtension(PFNGLBINDFRAGDATALOCATIONPROC, glBindFragDataLocation); \
     HookExtension(PFNGLBINDFRAGDATALOCATIONINDEXEDPROC, glBindFragDataLocationIndexed); \
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
+    HookExtensionAlias(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray, glEnableVertexAttribArrayARB); \
     HookExtension(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray); \
+    HookExtensionAlias(PFNGLDISABLEVERTEXATTRIBARRAYPROC, glDisableVertexAttribArray, glDisableVertexAttribArrayARB); \
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
     HookExtension(PFNGLBINDVERTEXBUFFERSPROC, glBindVertexBuffers); \
     HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
