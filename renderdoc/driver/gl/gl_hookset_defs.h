@@ -123,6 +123,7 @@
     HookExtension(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv); \
     HookExtension(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
+    HookExtensionAlias(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap, glGenerateMipmapEXT); \
     HookExtension(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData); \
     HookExtension(PFNGLCOPYTEXIMAGE1DPROC, glCopyTexImage1D); \
     HookExtension(PFNGLCOPYTEXIMAGE2DPROC, glCopyTexImage2D); \
@@ -171,8 +172,10 @@
     HookExtension(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog); \
     HookExtensionAlias(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog, glGetDebugMessageLogARB); \
     HookExtension(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glGetFramebufferAttachmentParameteriv); \
+    HookExtensionAlias(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glGetFramebufferAttachmentParameteriv, glGetFramebufferAttachmentParameterivEXT); \
     HookExtension(PFNGLGETFRAMEBUFFERPARAMETERIVPROC, glGetFramebufferParameteriv); \
     HookExtension(PFNGLGETRENDERBUFFERPARAMETERIVPROC, glGetRenderbufferParameteriv); \
+    HookExtensionAlias(PFNGLGETRENDERBUFFERPARAMETERIVPROC, glGetRenderbufferParameteriv, glGetRenderbufferParameterivEXT); \
     HookExtension(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
     HookExtension(PFNGLGETQUERYINDEXEDIVPROC, glGetQueryIndexediv); \
     HookExtension(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v); \
@@ -260,6 +263,7 @@
     HookExtension(PFNGLGETNAMEDBUFFERPARAMETERI64VPROC, glGetNamedBufferParameteri64v); \
     HookExtension(PFNGLGETNAMEDBUFFERPOINTERVPROC, glGetNamedBufferPointerv); \
     HookExtension(PFNGLCHECKFRAMEBUFFERSTATUSPROC, glCheckFramebufferStatus); \
+    HookExtensionAlias(PFNGLCHECKFRAMEBUFFERSTATUSPROC, glCheckFramebufferStatus, glCheckFramebufferStatusEXT); \
     HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLBLENDFUNCIPROC, glBlendFunci); \
     HookExtensionAlias(PFNGLBLENDFUNCIPROC, glBlendFunci, glBlendFunciARB); \
@@ -330,11 +334,13 @@
     HookExtension(PFNGLISBUFFERPROC, glIsBuffer); \
     HookExtensionAlias(PFNGLISBUFFERPROC, glIsBuffer, glIsBufferARB); \
     HookExtension(PFNGLISFRAMEBUFFERPROC, glIsFramebuffer); \
+    HookExtensionAlias(PFNGLISFRAMEBUFFERPROC, glIsFramebuffer, glIsFramebufferEXT); \
     HookExtension(PFNGLISPROGRAMPROC, glIsProgram); \
     HookExtension(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline); \
     HookExtension(PFNGLISQUERYPROC, glIsQuery); \
     HookExtensionAlias(PFNGLISQUERYPROC, glIsQuery, glIsQueryARB); \
     HookExtension(PFNGLISRENDERBUFFERPROC, glIsRenderbuffer); \
+    HookExtensionAlias(PFNGLISRENDERBUFFERPROC, glIsRenderbuffer, glIsRenderbufferEXT); \
     HookExtension(PFNGLISSAMPLERPROC, glIsSampler); \
     HookExtension(PFNGLISSHADERPROC, glIsShader); \
     HookExtension(PFNGLISSYNCPROC, glIsSync); \
@@ -346,20 +352,31 @@
     HookExtensionAlias(PFNGLBINDBUFFERPROC, glBindBuffer, glBindBufferARB); \
     HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
+    HookExtensionAlias(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers, glGenFramebuffersEXT); \
     HookExtension(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer); \
+    HookExtensionAlias(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer, glBindFramebufferEXT); \
     HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURE1DPROC, glFramebufferTexture1D); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE1DPROC, glFramebufferTexture1D, glFramebufferTexture1DEXT); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D, glFramebufferTexture2DEXT); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURE3DPROC, glFramebufferTexture3D); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURE3DPROC, glFramebufferTexture3D, glFramebufferTexture3DEXT); \
     HookExtension(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer, glFramebufferRenderbufferEXT); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURELAYERPROC, glFramebufferTextureLayer); \
     HookExtension(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
     HookExtension(PFNGLDELETEFRAMEBUFFERSPROC, glDeleteFramebuffers); \
+    HookExtensionAlias(PFNGLDELETEFRAMEBUFFERSPROC, glDeleteFramebuffers, glDeleteFramebuffersEXT); \
     HookExtension(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers); \
+    HookExtensionAlias(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers, glGenRenderbuffersEXT); \
     HookExtension(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage); \
+    HookExtensionAlias(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage, glRenderbufferStorageEXT); \
     HookExtension(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HookExtension(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers); \
+    HookExtensionAlias(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers, glDeleteRenderbuffersEXT); \
     HookExtension(PFNGLBINDRENDERBUFFERPROC, glBindRenderbuffer); \
+    HookExtensionAlias(PFNGLBINDRENDERBUFFERPROC, glBindRenderbuffer, glBindRenderbufferEXT); \
     HookExtension(PFNGLFENCESYNCPROC, glFenceSync); \
     HookExtension(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync); \
     HookExtension(PFNGLWAITSYNCPROC, glWaitSync); \
