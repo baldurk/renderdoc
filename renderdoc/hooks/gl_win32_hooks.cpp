@@ -437,6 +437,15 @@ class OpenGLHook : LibraryHook
 
 				attribs = &attribVec[0];
 			}
+
+			RDCDEBUG("wglCreateContextAttribsARB:");
+
+			int *a = (int *)attribs;
+			while(*a)
+			{
+				RDCDEBUG("%x: %d", a[0], a[1]);
+				a += 2;
+			}
 			
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
 
