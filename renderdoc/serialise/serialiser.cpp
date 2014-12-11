@@ -184,7 +184,7 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
 		char magicFile[5] = { 0 };
 		memcpy(magicRef, &MAGIC_HEADER, sizeof(uint32_t));
 		memcpy(magicFile, &header->magic, sizeof(uint32_t));
-		RDCERR("Invalid in-memory buffer. Expected magic %s, got %s", magicRef, magicFile);
+		RDCWARN("Invalid in-memory buffer. Expected magic %s, got %s", magicRef, magicFile);
 
 		m_ErrorCode = eSerError_Corrupt;
 		m_HasError = true;
