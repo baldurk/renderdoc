@@ -159,7 +159,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
 	attribs[i++] = 3;
 	attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
-	attribs[i++] = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB|WGL_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB|WGL_CONTEXT_DEBUG_BIT_ARB;
 
 	HGLRC rc = createContextAttribs(DC, m_ReplayCtx.ctx, attribs);
 	if(rc == NULL)
@@ -375,7 +375,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
 	attribs[i++] = 3;
 	attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
-	attribs[i++] = WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB|WGL_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB|WGL_CONTEXT_DEBUG_BIT_ARB;
 
 	rc = createContextAttribs(dc, NULL, attribs);
 	if(rc == NULL)

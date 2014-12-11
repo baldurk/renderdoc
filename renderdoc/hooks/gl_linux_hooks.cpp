@@ -310,7 +310,7 @@ class OpenGLHook : LibraryHook
 					GLX_CONTEXT_MINOR_VERSION_ARB,
 					2,
 					GLX_CONTEXT_FLAGS_ARB,
-					0,
+					GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 					0, 0,
 				};
 

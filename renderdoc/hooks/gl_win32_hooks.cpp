@@ -270,7 +270,7 @@ class OpenGLHook : LibraryHook
 					WGL_CONTEXT_MINOR_VERSION_ARB,
 					2,
 					WGL_CONTEXT_FLAGS_ARB,
-					0,
+					WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 					0, 0,
 				};
 				ret.DC = share.DC;
