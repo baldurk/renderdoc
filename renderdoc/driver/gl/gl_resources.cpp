@@ -386,6 +386,19 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 		default:
 			return internalFormat; // already explicitly sized
 	}
+
+	switch(target)
+	{
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+		case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+		case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+			target = eGL_TEXTURE_CUBE_MAP;
+		default:
+			break;
+	}
 	
 	GLint red, depth;
 	gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &red);
