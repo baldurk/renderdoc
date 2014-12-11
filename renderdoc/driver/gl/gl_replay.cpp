@@ -501,8 +501,6 @@ void GLReplay::CacheTexture(ResourceId id)
 	}
 	
 	tex.creationFlags = res.creationFlags;
-	if(tex.format.compType == eCompType_Depth)
-		tex.creationFlags |= eTextureCreate_DSV;
 	if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
 		tex.creationFlags |= eTextureCreate_SwapBuffer;
 
@@ -512,6 +510,9 @@ void GLReplay::CacheTexture(ResourceId id)
 
 	tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
 	
+	if(tex.format.compType == eCompType_Depth)
+		tex.creationFlags |= eTextureCreate_DSV;
+
 	string str = "";
 	char name[128] = {0};
 	gl.glGetObjectLabel(eGL_TEXTURE, res.resource.name, 127, NULL, name);
