@@ -134,6 +134,21 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 
 			chunk = scope.Get();
 		}
+
+		if(buffer)
+		{
+			FrameRefType refType = eFrameRef_Read;
+
+			// these targets write to the buffer
+			if(target == eGL_ATOMIC_COUNTER_BUFFER || 
+				target == eGL_COPY_WRITE_BUFFER ||
+				target == eGL_PIXEL_PACK_BUFFER ||
+				target == eGL_SHADER_STORAGE_BUFFER ||
+				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+				refType = eFrameRef_Write;
+
+			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
+		}
 		
 		m_ContextRecord->AddChunk(chunk);
 	}
@@ -734,6 +749,21 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 			cd.m_BufferRecord[idx] = NULL;
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+		
+		if(buffer)
+		{
+			FrameRefType refType = eFrameRef_Read;
+
+			// these targets write to the buffer
+			if(target == eGL_ATOMIC_COUNTER_BUFFER || 
+				target == eGL_COPY_WRITE_BUFFER ||
+				target == eGL_PIXEL_PACK_BUFFER ||
+				target == eGL_SHADER_STORAGE_BUFFER ||
+				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+				refType = eFrameRef_Write;
+
+			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
+		}
 	}
 
 	// store as transform feedback record state
@@ -806,6 +836,21 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 			cd.m_BufferRecord[idx] = NULL;
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+		
+		if(buffer)
+		{
+			FrameRefType refType = eFrameRef_Read;
+
+			// these targets write to the buffer
+			if(target == eGL_ATOMIC_COUNTER_BUFFER || 
+				target == eGL_COPY_WRITE_BUFFER ||
+				target == eGL_PIXEL_PACK_BUFFER ||
+				target == eGL_SHADER_STORAGE_BUFFER ||
+				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+				refType = eFrameRef_Write;
+
+			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
+		}
 	}
 
 	// store as transform feedback record state
@@ -888,6 +933,20 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 			cd.m_BufferRecord[idx] = NULL;
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+		
+		FrameRefType refType = eFrameRef_Read;
+
+		// these targets write to the buffer
+		if(target == eGL_ATOMIC_COUNTER_BUFFER || 
+			target == eGL_COPY_WRITE_BUFFER ||
+			target == eGL_PIXEL_PACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+			refType = eFrameRef_Write;
+
+		for(GLsizei i=0; i < count; i++)
+			if(buffers[i])
+				GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
 	}
 
 	// store as transform feedback record state
@@ -986,6 +1045,20 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 			cd.m_BufferRecord[idx] = NULL;
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+		
+		FrameRefType refType = eFrameRef_Read;
+
+		// these targets write to the buffer
+		if(target == eGL_ATOMIC_COUNTER_BUFFER || 
+			target == eGL_COPY_WRITE_BUFFER ||
+			target == eGL_PIXEL_PACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+			refType = eFrameRef_Write;
+
+		for(GLsizei i=0; i < count; i++)
+			if(buffers[i])
+				GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
 	}
 
 	// store as transform feedback record state
