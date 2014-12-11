@@ -108,10 +108,10 @@ struct GLResource
 // for objects in non-shared contexts
 inline GLResource TextureRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResTexture, i); }
 inline GLResource SamplerRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResSampler, i); }
-inline GLResource FramebufferRes(void *ctx, GLuint i)  {            return GLResource(ctx,  eResFramebuffer, i); }
+inline GLResource FramebufferRes(void *ctx, GLuint i)  {            return GLResource(VendorCheck[VendorCheck_EXT_fbo_shared] ? NULL : ctx,  eResFramebuffer, i); }
 inline GLResource RenderbufferRes(void *ctx, GLuint i) { (void)ctx; return GLResource(NULL, eResRenderbuffer, i); }
 inline GLResource BufferRes(void *ctx, GLuint i)       { (void)ctx; return GLResource(NULL, eResBuffer, i); }
-inline GLResource VertexArrayRes(void *ctx, GLuint i)  {            return GLResource(ctx,  eResVertexArray, i); }
+inline GLResource VertexArrayRes(void *ctx, GLuint i)  {            return GLResource(VendorCheck[VendorCheck_EXT_vao_shared] ? NULL : ctx,  eResVertexArray, i); }
 inline GLResource ShaderRes(void *ctx, GLuint i)       { (void)ctx; return GLResource(NULL, eResShader, i); }
 inline GLResource ProgramRes(void *ctx, GLuint i)      { (void)ctx; return GLResource(NULL, eResProgram, i); }
 inline GLResource ProgramPipeRes(void *ctx, GLuint i)  {            return GLResource(ctx,  eResProgramPipe, i); }

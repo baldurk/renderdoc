@@ -286,7 +286,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			// nvidia specific.
 			// In most cases a program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that it might
 			// require would be depth-only formatted).
-			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck(VendorCheck_NV_avoid_D32S8_copy))
+			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
 				RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
 			else
 				gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0, 0, 0, w, h, d);
@@ -573,7 +573,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 
 						// sometimes cubemaps return the compressed image size for the whole texture, but we read it
 						// face by face
-						if(VendorCheck(VendorCheck_EXT_compressed_cube_size) && t == eGL_TEXTURE_CUBE_MAP)
+						if(VendorCheck[VendorCheck_EXT_compressed_cube_size] && t == eGL_TEXTURE_CUBE_MAP)
 							size /= 6;
 
 						byte *buf = new byte[size];
@@ -969,7 +969,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 			// nvidia specific.
 			// In most cases a program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that it might
 			// require would be depth-only formatted).
-			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck(VendorCheck_NV_avoid_D32S8_copy))
+			if(details.internalFormat == eGL_DEPTH32F_STENCIL8 && VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
 				RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
 			else
 				gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i, 0, 0, 0, w, h, d);

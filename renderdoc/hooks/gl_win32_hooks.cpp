@@ -258,6 +258,32 @@ class OpenGLHook : LibraryHook
 			if(wglMakeCurrent_hook())
 				wglMakeCurrent_hook()(data.DC, data.ctx);
 		}
+		
+		GLWindowingData MakeContext(GLWindowingData share)
+		{
+			GLWindowingData ret = {0};
+			if(wglCreateContextAttribsARB_realfunc)
+			{
+				const int attribs[] = {
+					WGL_CONTEXT_MAJOR_VERSION_ARB,
+					3,
+					WGL_CONTEXT_MINOR_VERSION_ARB,
+					2,
+					WGL_CONTEXT_FLAGS_ARB,
+					0,
+					0, 0,
+				};
+				ret.DC = share.DC;
+				ret.ctx = wglCreateContextAttribsARB_realfunc(share.DC, share.ctx, attribs);
+			}
+			return ret;
+		}
+
+		void DeleteContext(GLWindowingData context)
+		{
+			if(context.ctx && wglDeleteContext_hook())
+				wglDeleteContext_hook()(context.ctx);
+		}
 
 	private:
 		WrappedOpenGL *GetDriver()
@@ -649,4 +675,14 @@ const GLHookSet &GetRealFunctions() { return OpenGLHook::glhooks.GetRealFunction
 void MakeContextCurrent(GLWindowingData data)
 {
 	OpenGLHook::glhooks.MakeContextCurrent(data);
+}
+
+GLWindowingData MakeContext(GLWindowingData share)
+{
+	return OpenGLHook::glhooks.MakeContext(share);
+}
+
+void DeleteContext(GLWindowingData context)
+{
+	OpenGLHook::glhooks.DeleteContext(context);
 }

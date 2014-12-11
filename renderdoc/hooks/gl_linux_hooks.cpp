@@ -298,6 +298,46 @@ class OpenGLHook : LibraryHook
 			if(glXMakeCurrent_real)
 				glXMakeCurrent_real(data.dpy, data.wnd, data.ctx);
 		}
+		
+		GLWindowingData MakeContext(GLWindowingData share)
+		{
+			GLWindowingData ret = {0};
+			if(glXCreateContextAttribsARB_real)
+			{
+				const int attribs[] = {
+					GLX_CONTEXT_MAJOR_VERSION_ARB,
+					3,
+					GLX_CONTEXT_MINOR_VERSION_ARB,
+					2,
+					GLX_CONTEXT_FLAGS_ARB,
+					0,
+					0, 0,
+				};
+
+				PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfigProc = (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
+
+				if(glXChooseFBConfigProc)
+				{
+					// don't need to care about the fb config as we won't be using the default framebuffer (backbuffer)
+					int visAttribs[] = { 0 };
+					int numCfgs = 0;
+					GLXFBConfig *fbcfg = glXChooseFBConfigProc(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+
+					if(fbcfg)
+					{
+						ret.dpy = share.dpy;
+						ret.ctx = glXCreateContextAttribsARB_real(share.dpy, fbcfg[0], share.ctx, false, attribs);
+					}
+				}
+			}
+			return ret;
+		}
+
+		void DeleteContext(GLWindowingData context)
+		{
+			if(context.ctx && glXDestroyContext_real)
+				glXDestroyContext_real(context.dpy, context.ctx);
+		}
 
 		WrappedOpenGL *GetDriver()
 		{
@@ -626,5 +666,15 @@ const GLHookSet &GetRealFunctions() { return OpenGLHook::glhooks.GetRealFunction
 void MakeContextCurrent(GLWindowingData data)
 {
 	OpenGLHook::glhooks.MakeContextCurrent(data);
+}
+
+GLWindowingData MakeContext(GLWindowingData share)
+{
+	return OpenGLHook::glhooks.MakeContext(share);
+}
+
+void DeleteContext(GLWindowingData context)
+{
+	OpenGLHook::glhooks.DeleteContext(context);
 }
 

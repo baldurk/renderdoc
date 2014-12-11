@@ -98,7 +98,7 @@ enum ExtensionCheckEnum
 	ExtensionSupported_ARB_clip_control,
 	ExtensionSupported_Count,
 };
-bool ExtensionSupported(ExtensionCheckEnum ext);
+extern bool ExtensionSupported[ExtensionSupported_Count];
 
 // for some things we need to know how a specific implementation behaves to work around it
 // or adjust things. We centralise that here (similar to extensions)
@@ -107,12 +107,14 @@ enum VendorCheckEnum
 	VendorCheck_AMD_vertex_buffer_query,
 	VendorCheck_EXT_compressed_cube_size,
 	VendorCheck_NV_avoid_D32S8_copy,
+	VendorCheck_EXT_fbo_shared,
+	VendorCheck_EXT_vao_shared,
 	VendorCheck_Count,
 };
-bool VendorCheck(VendorCheckEnum ext);
+extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
-void DoVendorChecks(const GLHookSet &gl);
+void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
 
 #include "serialise/serialiser.h"
 #include "core/core.h"

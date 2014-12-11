@@ -43,21 +43,24 @@ namespace TrackedResource
 	}
 };
 
-namespace ExtensionSupport
-{
-	static bool extensions[ExtensionSupported_Count];
-	static bool VendorChecks[VendorCheck_Count];
-};
+bool ExtensionSupported[ExtensionSupported_Count];
+bool VendorCheck[VendorCheck_Count];
 
 int GLCoreVersion = 0;
 
-void DoVendorChecks(const GLHookSet &gl)
+// simple wrapper for OS functions to make/delete a context
+GLWindowingData MakeContext(GLWindowingData share);
+void DeleteContext(GLWindowingData context);
+
+void MakeContextCurrent(GLWindowingData data);
+
+void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 {
 	GLint numExts = 0;
 	if(gl.glGetIntegerv) gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
 
-	RDCEraseEl(ExtensionSupport::extensions);
-	RDCEraseEl(ExtensionSupport::VendorChecks);
+	RDCEraseEl(ExtensionSupported);
+	RDCEraseEl(VendorCheck);
 
 	if(gl.glGetStringi)
 	{
@@ -69,7 +72,7 @@ void DoVendorChecks(const GLHookSet &gl)
 
 			ext += 3;
 
-#define EXT_CHECK(extname) if(!strcmp(ext, STRINGIZE(extname))) ExtensionSupport::extensions[CONCAT(ExtensionSupported_, extname)] = true;
+#define EXT_CHECK(extname) if(!strcmp(ext, STRINGIZE(extname))) ExtensionSupported[CONCAT(ExtensionSupported_, extname)] = true;
 
 			EXT_CHECK(ARB_clip_control);
 			EXT_CHECK(ARB_enhanced_layouts);
@@ -106,7 +109,7 @@ void DoVendorChecks(const GLHookSet &gl)
 		if(err != eGL_NONE)
 		{
 			// if we got an error trying to query that, we should enable this hack
-			ExtensionSupport::VendorChecks[VendorCheck_AMD_vertex_buffer_query] = true;
+			VendorCheck[VendorCheck_AMD_vertex_buffer_query] = true;
 
 			RDCWARN("Using AMD hack to avoid GL_VERTEX_BINDING_BUFFER");
 		}
@@ -142,11 +145,11 @@ void DoVendorChecks(const GLHookSet &gl)
 
 		if(compSize == 8)
 		{
-			ExtensionSupport::VendorChecks[VendorCheck_EXT_compressed_cube_size] = false;
+			VendorCheck[VendorCheck_EXT_compressed_cube_size] = false;
 		}
 		else if(compSize == 48)
 		{
-			ExtensionSupport::VendorChecks[VendorCheck_EXT_compressed_cube_size] = true;
+			VendorCheck[VendorCheck_EXT_compressed_cube_size] = true;
 		}
 		else
 		{
@@ -156,20 +159,45 @@ void DoVendorChecks(const GLHookSet &gl)
 		gl.glDeleteTextures(1, &dummy);
 	}
 
+	// only do this when we have a proper context e.g. on windows where an old
+	// context is first created. Check to see if FBOs or VAOs are shared between
+	// contexts.
+	if(GLCoreVersion >= 32 &&
+		gl.glGenVertexArrays && gl.glBindVertexArray && gl.glDeleteVertexArrays &&
+		gl.glGenFramebuffers && gl.glBindFramebuffer && gl.glDeleteFramebuffers)
+	{
+		// gen & create an FBO and VAO
+		GLuint fbo = 0;
+		GLuint vao = 0;
+		gl.glGenFramebuffers(1, &fbo);
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbo);
+		gl.glGenVertexArrays(1, &vao);
+		gl.glBindVertexArray(vao);
+		
+		// make a context that shares with the current one, and switch to it
+		GLWindowingData child = MakeContext(context);
+
+		if(child.ctx)
+		{
+			// switch to child
+			MakeContextCurrent(child);
+
+			// these shouldn't be visible
+			VendorCheck[VendorCheck_EXT_fbo_shared] = (gl.glIsFramebuffer(fbo) != GL_FALSE);
+			VendorCheck[VendorCheck_EXT_vao_shared] = (gl.glIsVertexArray(vao) != GL_FALSE);
+
+			// switch back to context
+			MakeContextCurrent(context);
+
+			DeleteContext(child);
+		}
+
+		gl.glDeleteFramebuffers(1, &fbo);
+		gl.glDeleteVertexArrays(1, &vao);
+	}
+
 	// don't have a test for this, just have to enable it all the time, for now.
-	ExtensionSupport::VendorChecks[VendorCheck_NV_avoid_D32S8_copy] = true;
-}
-
-bool ExtensionSupported(ExtensionCheckEnum ext)
-{
-	if(ext < 0 || ext >= ExtensionSupported_Count) return false;
-	return ExtensionSupport::extensions[ext];
-}
-
-bool VendorCheck(VendorCheckEnum vc)
-{
-	if(vc < 0 || vc >= VendorCheck_Count) return false;
-	return ExtensionSupport::VendorChecks[vc];
+	VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = true;
 }
 
 size_t BufferIdx(GLenum buf)
@@ -311,7 +339,7 @@ GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)
 {
 	GLuint buffer = 0;
 
-	if(VendorCheck(VendorCheck_AMD_vertex_buffer_query))
+	if(VendorCheck[VendorCheck_AMD_vertex_buffer_query])
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
 	else
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, (GLint *)&buffer);

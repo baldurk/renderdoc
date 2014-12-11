@@ -735,7 +735,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				if(ver > GLCoreVersion)
 				{
 					GLCoreVersion = ver;
-					DoVendorChecks(gl);
+					DoVendorChecks(gl, winData);
 				}
 			}
 
