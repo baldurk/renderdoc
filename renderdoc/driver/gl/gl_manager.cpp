@@ -924,6 +924,10 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
 	{
 		GLNOTIMP("Need to set initial clear state for textures without an initial state");
 	}
+	else if(live.Namespace == eResVertexArray)
+	{
+		GLNOTIMP("Need to set initial default state for vertex array objects without an initial state");
+	}
 	else if(live.Namespace != eResBuffer)
 	{
 		RDCUNIMPLEMENTED("Expect all initial states to be created & not skipped, presently");
