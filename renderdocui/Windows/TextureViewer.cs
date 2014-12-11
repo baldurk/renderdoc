@@ -1607,10 +1607,10 @@ namespace renderdocui.Windows
             }
             else if ((string)channels.SelectedItem == "Custom")
             {
-                customRed.Visible = false;
-                customGreen.Visible = false;
-                customBlue.Visible = false;
-                customAlpha.Visible = false;
+                customRed.Visible = true;
+                customGreen.Visible = true;
+                customBlue.Visible = true;
+                customAlpha.Visible = true;
                 mulLabel.Visible = false;
                 hdrMul.Visible = false;
                 customShader.Visible = true;

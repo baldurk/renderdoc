@@ -3572,7 +3572,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 		m_pImmediateContext->PSSetSamplers(0, 2, samps);
 
 		float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-		if(cfg.rawoutput || !blendAlpha)
+		if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
 			m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
 		else
 			m_pImmediateContext->OMSetBlendState(m_DebugRender.BlendState, factor, 0xffffffff);
