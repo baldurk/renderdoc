@@ -179,15 +179,15 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture1DEXT(GLuint framebuffer,
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
+		GLuint tex = (id == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(id).name;
 		if(fbid == ResourceId())
 		{
-			m_Real.glNamedFramebufferTexture1DEXT(0, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture1DEXT(0, Attach, TexTarget, tex, Level);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			m_Real.glNamedFramebufferTexture1DEXT(fbres.name, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture1DEXT(fbres.name, Attach, TexTarget, tex, Level);
 		}
 
 		if(m_State == READING)
@@ -275,15 +275,15 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture2DEXT(GLuint framebuffer,
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
+		GLuint tex = (id == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(id).name;
 		if(fbid == ResourceId())
 		{
-			m_Real.glNamedFramebufferTexture2DEXT(0, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture2DEXT(0, Attach, TexTarget, tex, Level);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			m_Real.glNamedFramebufferTexture2DEXT(fbres.name, Attach, TexTarget, res.name, Level);
+			m_Real.glNamedFramebufferTexture2DEXT(fbres.name, Attach, TexTarget, tex, Level);
 		}
 
 		if(m_State == READING)
@@ -372,15 +372,15 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTexture3DEXT(GLuint framebuffer,
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
+		GLuint tex = (id == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(id).name;
 		if(fbid == ResourceId())
 		{
-			m_Real.glNamedFramebufferTexture3DEXT(0, Attach, TexTarget, res.name, Level, Zoffset);
+			m_Real.glNamedFramebufferTexture3DEXT(0, Attach, TexTarget, tex, Level, Zoffset);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			m_Real.glNamedFramebufferTexture3DEXT(fbres.name, Attach, TexTarget, res.name, Level, Zoffset);
+			m_Real.glNamedFramebufferTexture3DEXT(fbres.name, Attach, TexTarget, tex, Level, Zoffset);
 		}
 
 		if(m_State == READING)
@@ -466,15 +466,15 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuff
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
+		GLuint rb = (id == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(id).name;
 		if(fbid == ResourceId())
 		{
-			m_Real.glNamedFramebufferRenderbufferEXT(0, Attach, RendBufTarget, res.name);
+			m_Real.glNamedFramebufferRenderbufferEXT(0, Attach, RendBufTarget, rb);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			m_Real.glNamedFramebufferRenderbufferEXT(fbres.name, Attach, RendBufTarget, res.name);
+			m_Real.glNamedFramebufferRenderbufferEXT(fbres.name, Attach, RendBufTarget, rb);
 		}
 
 		if(m_State == READING)
@@ -554,15 +554,15 @@ bool WrappedOpenGL::Serialise_glNamedFramebufferTextureLayerEXT(GLuint framebuff
 	
 	if(m_State < WRITING)
 	{
-		GLResource res = GetResourceManager()->GetLiveResource(id);
+		GLuint tex = (id == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(id).name;
 		if(fbid == ResourceId())
 		{
-			m_Real.glNamedFramebufferTextureLayerEXT(0, Attach, res.name, Level, Layer);
+			m_Real.glNamedFramebufferTextureLayerEXT(0, Attach, tex, Level, Layer);
 		}
 		else
 		{
 			GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-			m_Real.glNamedFramebufferTextureLayerEXT(fbres.name, Attach, res.name, Level, Layer);
+			m_Real.glNamedFramebufferTextureLayerEXT(fbres.name, Attach, tex, Level, Layer);
 		}
 
 		if(m_State == READING)
