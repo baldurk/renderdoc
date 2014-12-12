@@ -321,7 +321,7 @@ class OpenGLHook : LibraryHook
 					// don't need to care about the fb config as we won't be using the default framebuffer (backbuffer)
 					int visAttribs[] = { 0 };
 					int numCfgs = 0;
-					GLXFBConfig *fbcfg = glXChooseFBConfigProc(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+					GLXFBConfig *fbcfg = glXChooseFBConfigProc(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
 					if(fbcfg)
 					{

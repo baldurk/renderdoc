@@ -2381,13 +2381,13 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glBindVertexArray(0);
 		break;
 	case VERTEXATTRIBPOINTER:
-		Serialise_glVertexArrayVertexAttribOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0, NULL);
+		Serialise_glVertexArrayVertexAttribOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0, 0);
 		break;
 	case VERTEXATTRIBIPOINTER:
-		Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, NULL);
+		Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
 		break;
 	case VERTEXATTRIBLPOINTER:
-		Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, NULL);
+		Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
 		break;
 	case ENABLEVERTEXATTRIBARRAY:
 		Serialise_glEnableVertexArrayAttribEXT(0, 0);
