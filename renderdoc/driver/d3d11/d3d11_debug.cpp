@@ -4471,7 +4471,7 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 		fmt.compType = eCompType_UNorm;
 	}
 	
-	if(data + cfg.position.compCount*cfg.position.compByteWidth >= end)
+	if(data + cfg.position.compCount*cfg.position.compByteWidth > end)
 	{
 		valid = false;
 		return ret;
