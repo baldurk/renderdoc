@@ -688,6 +688,13 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 
 		if(m_HighTrafficResources.find(writerecord->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 			return;
+
+		if(GetResourceManager()->IsResourceDirty(readrecord->GetResourceID()) && m_State != WRITING_CAPFRAME)
+		{
+			m_HighTrafficResources.insert(writerecord->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
+			return;
+		}
 	
 		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
 		Serialise_glNamedCopyBufferSubDataEXT(readrecord->Resource.name,
