@@ -1627,9 +1627,9 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 	// as this is legal - modified but unflushed regions are 'undefined' so we can just say
 	// that modifications applying is our undefined behaviour.
 
-	// note that when we're idle, we only want to flush the range with GL if we've actually
+	// note that we only want to flush the range with GL if we've actually
 	// mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
-	if(m_State != WRITING_IDLE || (record && record->Map.status == GLResourceRecord::Mapped_Write_Real))
+	if(record && record->Map.status == GLResourceRecord::Mapped_Write_Real)
 		m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
 
 	if(m_State == WRITING_CAPFRAME)
