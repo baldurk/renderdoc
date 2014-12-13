@@ -4693,14 +4693,17 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
 	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	
-	if(m_State == READING)
+	if(m_State < WRITING)
 	{
-		ResourceId liveId = GetResourceManager()->GetLiveID(texid);
-		m_Textures[liveId].width = uint32_t(Size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
-		m_Textures[liveId].height = 1;
-		m_Textures[liveId].depth = 1;
-		m_Textures[liveId].curType = TextureTarget(Target);
-		m_Textures[liveId].internalFormat = fmt;
+		if(m_State == READING)
+		{
+			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
+			m_Textures[liveId].width = uint32_t(Size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
+			m_Textures[liveId].height = 1;
+			m_Textures[liveId].depth = 1;
+			m_Textures[liveId].curType = TextureTarget(Target);
+			m_Textures[liveId].internalFormat = fmt;
+		}
 
 		m_Real.glTextureBufferRangeEXT(GetResourceManager()->GetLiveResource(texid).name,
 																	 Target, fmt,
@@ -4722,9 +4725,16 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER_RANGE);
 		Serialise_glTextureBufferRangeEXT(texture, target, internalformat, buffer, offset, size);
-
-		record->AddChunk(scope.Get());
-		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
 	}
 }
 
@@ -4740,9 +4750,16 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER_RANGE);
 		Serialise_glTextureBufferRangeEXT(record->Resource.name,
 																		  target, internalformat, buffer, offset, size);
-
-		record->AddChunk(scope.Get());
-		record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else
+		{
+			record->AddChunk(scope.Get());
+			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
 	}
 }
 
@@ -4753,18 +4770,21 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 	SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	
-	if(m_State == READING)
+	if(m_State < WRITING)
 	{
 		buffer = GetResourceManager()->GetLiveResource(bufid).name;
 
-		ResourceId liveId = GetResourceManager()->GetLiveID(texid);
-		uint32_t Size = 1;
-		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&Size);
-		m_Textures[liveId].width = Size/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
-		m_Textures[liveId].height = 1;
-		m_Textures[liveId].depth = 1;
-		m_Textures[liveId].curType = TextureTarget(Target);
-		m_Textures[liveId].internalFormat = fmt;
+		if(m_State == READING)
+		{
+			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
+			uint32_t Size = 1;
+			m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&Size);
+			m_Textures[liveId].width = Size/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
+			m_Textures[liveId].height = 1;
+			m_Textures[liveId].depth = 1;
+			m_Textures[liveId].curType = TextureTarget(Target);
+			m_Textures[liveId].internalFormat = fmt;
+		}
 
 		m_Real.glTextureBufferEXT(GetResourceManager()->GetLiveResource(texid).name,
 																	 Target, fmt,
