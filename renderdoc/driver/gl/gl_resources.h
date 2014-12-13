@@ -48,6 +48,8 @@ GLenum TextureBinding(GLenum target);
 GLenum TextureTarget(GLenum target);
 bool IsProxyTarget(GLenum target);
 
+GLenum BufferBinding(GLenum target);
+
 enum GLNamespace
 {
 	eResUnknown = 0,

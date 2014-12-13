@@ -608,6 +608,46 @@ GLenum TextureBinding(GLenum target)
 	return eGL_NONE;
 }
 
+GLenum BufferBinding(GLenum target)
+{
+	switch(target)
+	{
+		case eGL_ARRAY_BUFFER:
+			return eGL_ARRAY_BUFFER_BINDING;
+		case eGL_ATOMIC_COUNTER_BUFFER:
+			return eGL_ATOMIC_COUNTER_BUFFER_BINDING;
+		case eGL_COPY_READ_BUFFER:
+			return eGL_COPY_READ_BUFFER_BINDING;
+		case eGL_COPY_WRITE_BUFFER:
+			return eGL_COPY_WRITE_BUFFER_BINDING;
+		case eGL_DRAW_INDIRECT_BUFFER:
+			return eGL_DRAW_INDIRECT_BUFFER_BINDING;
+		case eGL_DISPATCH_INDIRECT_BUFFER:
+			return eGL_DISPATCH_INDIRECT_BUFFER_BINDING;
+		case eGL_ELEMENT_ARRAY_BUFFER:
+			return eGL_ELEMENT_ARRAY_BUFFER_BINDING;
+		case eGL_PIXEL_PACK_BUFFER:
+			return eGL_PIXEL_PACK_BUFFER_BINDING;
+		case eGL_PIXEL_UNPACK_BUFFER:
+			return eGL_PIXEL_UNPACK_BUFFER_BINDING;
+		case eGL_QUERY_BUFFER:
+			return eGL_QUERY_BUFFER_BINDING;
+		case eGL_SHADER_STORAGE_BUFFER:
+			return eGL_SHADER_STORAGE_BUFFER_BINDING;
+		case eGL_TEXTURE_BUFFER:
+			return eGL_TEXTURE_BUFFER_BINDING;
+		case eGL_TRANSFORM_FEEDBACK_BUFFER:
+			return eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
+		case eGL_UNIFORM_BUFFER:
+			return eGL_UNIFORM_BUFFER_BINDING;
+		default:
+			break;
+	}
+
+	RDCERR("Unexpected target %x", target);
+	return eGL_NONE;
+}
+
 GLenum TextureTarget(GLenum target)
 {
 	switch(target)
