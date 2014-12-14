@@ -63,9 +63,7 @@ Contributing & Development
 
 There are always plenty of things to do, if you'd like to chip in! Check out the [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap) page in the wiki for future tasks to tackle, or have a look at the [issues](https://github.com/baldurk/renderdoc/issues) for outstanding bugs. I'll try and tag things that seem like small changes that would be a good way for someone to get started with.
 
-The **master** branch is kept relatively stable - ie. it *should* always build and run but might contain new bugs compared to a stable release. There are nightly builds that come off this branch. If you're working on any changes you should branch from **master** and submit pull requests against **master**.
-
-The **dev** branch is where I work and it is liable to not compile, be horribly broken, have its history rewritten as I rebase against **master**, etc. The reason for having this branch is mostly so that what I'm doing is visible if people are interested and so I have somewhere to push highly experimental changes to.
+If you have a change you'd like to see make it into mainline, just open a pull request on github. We can discuss changes if there need to be any, then merge it in. Please make sure your changes are fully rebased against master when you create the pull request.
 
 If you're tackling anything large then please contact me and post an issue so that everyone knows you're working on it and there's not duplicated effort. *Specifically* if you want to extend RenderDoc to a platform or API that it doesn't already support please get in touch, as there might already be code that isn't committed yet. Particularly if this is not a public API that anyone can write against.
 
