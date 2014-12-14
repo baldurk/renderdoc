@@ -332,6 +332,7 @@ namespace renderdoc
         SetMarker = 0x10,
         PushMarker = 0x20,
         Present = 0x40,
+        MultiDraw = 0x80,
 
         // flags
         UseIBuffer = 0x100,

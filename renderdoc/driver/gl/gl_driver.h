@@ -157,6 +157,8 @@ class WrappedOpenGL
 
 		uint64_t m_CurChunkOffset;
 		uint32_t m_CurEventID, m_CurDrawcallID;
+		uint32_t m_FirstEventID;
+		uint32_t m_LastEventID;
 		
 		DrawcallTreeNode m_ParentDrawcall;
 

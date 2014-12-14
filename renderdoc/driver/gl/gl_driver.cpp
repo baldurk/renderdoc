@@ -413,6 +413,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	m_CurEventID = 1;
 	m_CurDrawcallID = 1;
+	m_FirstEventID = 0;
+	m_LastEventID = ~0U;
 
 	RDCEraseEl(m_ActiveQueries);
 	m_ActiveConditional = false;
@@ -2509,10 +2511,14 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		FetchAPIEvent ev = GetEvent(startEventID);
 		m_CurEventID = ev.eventID;
 		m_pSerialiser->SetOffset(ev.fileOffset);
+		m_FirstEventID = startEventID;
+		m_LastEventID = endEventID;
 	}
 	else if(m_State == READING)
 	{
 		m_CurEventID = 1;
+		m_FirstEventID = 0;
+		m_LastEventID = ~0U;
 	}
 
 	if(m_State == EXECUTING && !partial)
@@ -2686,7 +2692,7 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	}
 	
 	// markers don't increment drawcall ID
-	if((draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
+	if((draw.flags & (eDraw_SetMarker|eDraw_PushMarker|eDraw_MultiDraw)) == 0)
 		m_CurDrawcallID++;
 
 	if(hasEvents)

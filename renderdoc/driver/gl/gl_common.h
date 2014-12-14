@@ -122,6 +122,23 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
 void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
 void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, map<GLint, GLint> *locTranslate, bool writing);
 
+struct DrawElementsIndirectCommand
+{
+	uint32_t count;
+	uint32_t instanceCount;
+	uint32_t firstIndex;
+	uint32_t baseVertex;
+	uint32_t baseInstance;
+};
+
+struct DrawArraysIndirectCommand
+{
+	uint32_t count;
+	uint32_t instanceCount;
+	uint32_t first;
+	uint32_t baseInstance;
+};
+
 enum GLChunkType
 {
 	DEVICE_INIT = FIRST_CHUNK_ID,

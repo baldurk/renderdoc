@@ -1342,7 +1342,7 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 		{
 			ret = previous = SetupDrawcallPointers(frame, draw->children, draw, previous);
 		}
-		else if(draw->flags & (eDraw_PushMarker|eDraw_SetMarker|eDraw_Present))
+		else if(draw->flags & (eDraw_PushMarker|eDraw_SetMarker|eDraw_Present|eDraw_MultiDraw))
 		{
 			// don't want to set up previous/next links for markers
 		}

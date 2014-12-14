@@ -327,6 +327,7 @@ enum DrawcallFlags
 	eDraw_SetMarker   = 0x10,
 	eDraw_PushMarker  = 0x20,
 	eDraw_Present     = 0x40,
+	eDraw_MultiDraw   = 0x80,
 
 	// flags
 	eDraw_UseIBuffer  = 0x0100,
