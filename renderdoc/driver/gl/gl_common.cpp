@@ -215,6 +215,31 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		gl.glDeleteTextures(2, texs);
 	}
 
+	if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines && gl.glGetProgramPipelineiv)
+	{
+		GLuint pipe = 0;
+		gl.glGenProgramPipelines(1, &pipe);
+		
+		// clear all error flags.
+		GLenum err = gl.glGetError();
+		while(err != eGL_NONE) err = gl.glGetError();
+
+		GLint dummy = 0;
+		gl.glGetProgramPipelineiv(pipe, eGL_COMPUTE_SHADER, &dummy);
+		
+		err = gl.glGetError();
+
+		if(err != eGL_NONE)
+		{
+			// if we got an error trying to query that, we should enable this hack
+			VendorCheck[VendorCheck_AMD_pipeline_compute_query] = true;
+
+			RDCWARN("Using hack to avoid glGetProgramPipelineiv with GL_COMPUTE_SHADER");
+		}
+
+		gl.glDeleteProgramPipelines(1, &pipe);
+	}
+
 	// only do this when we have a proper context e.g. on windows where an old
 	// context is first created. Check to see if FBOs or VAOs are shared between
 	// contexts.

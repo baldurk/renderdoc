@@ -130,20 +130,21 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 	m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 	
-	GLenum shs[] = {
+	const GLenum shs[] = {
 		eGL_VERTEX_SHADER,
 		eGL_TESS_CONTROL_SHADER,
 		eGL_TESS_EVALUATION_SHADER,
 		eGL_GEOMETRY_SHADER,
 		eGL_FRAGMENT_SHADER,
-		eGL_COMPUTE_SHADER
+		VendorCheck[VendorCheck_AMD_pipeline_compute_query] ? eGL_NONE : eGL_COMPUTE_SHADER,
 	};
 
 	RDCCOMPILE_ASSERT(ARRAY_COUNT(shs) == ARRAY_COUNT(Subroutines), "Subroutine array not the right size");
 	for(size_t s=0; s < ARRAY_COUNT(shs); s++)
 	{
 		GLuint prog = Program;
-		if(prog == 0 && Pipeline != 0) m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
+		if(prog == 0 && Pipeline != 0 && shs[s] != eGL_NONE)
+			m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
 
 		if(prog == 0) continue;
 
