@@ -310,6 +310,8 @@ class OpenGLHook : LibraryHook
 					GLX_CONTEXT_MINOR_VERSION_ARB,
 					2,
 					GLX_CONTEXT_FLAGS_ARB,
+					0,
+					GLX_CONTEXT_PROFILE_MASK_ARB,
 					GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 					0, 0,
 				};
@@ -404,7 +406,7 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	data.wnd = (GLXDrawable)NULL;
 	data.ctx = ret;
 
-	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init);
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, false);
 
 	return ret;
 }
@@ -460,6 +462,20 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 		attribs = &attribVec[0];
 	}
 
+	RDCDEBUG("glXCreateContextAttribsARB:");
+
+	bool core = false;
+
+	int *a = (int *)attribs;
+	while(*a)
+	{
+		RDCDEBUG("%x: %d", a[0], a[1]);
+		a += 2;
+
+		if(a[0] == GLX_CONTEXT_PROFILE_MASK_ARB)
+			core = (a[1] & GLX_CONTEXT_CORE_PROFILE_BIT_ARB);
+	}
+
 	GLXContext ret = OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
 
 	XVisualInfo *vis = OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);	
@@ -488,7 +504,7 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	data.wnd = (GLXDrawable)NULL;
 	data.ctx = ret;
 
-	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init);
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, core);
 
 	return ret;
 }

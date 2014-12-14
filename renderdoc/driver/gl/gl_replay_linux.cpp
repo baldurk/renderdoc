@@ -119,7 +119,9 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
 	attribs[i++] = 3;
 	attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
-	attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB|GLX_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+	attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
 	GLXContext ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], m_ReplayCtx.ctx, true, attribs);
 
@@ -249,7 +251,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
 	attribs[i++] = 3;
 	attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
-	attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB|GLX_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
+	attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+	attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
 
 	Display *dpy = XOpenDisplay(NULL);
 

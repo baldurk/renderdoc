@@ -90,6 +90,7 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
 
 extern int GLCoreVersion;
+extern bool GLIsCore;
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum

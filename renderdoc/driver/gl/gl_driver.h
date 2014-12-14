@@ -286,6 +286,8 @@ class WrappedOpenGL
 			bool built;
 			bool ready;
 
+			bool isCore;
+
 			GLuint Program;
 			GLuint GeneralUBO, StringUBO, GlyphUBO;
 			GLuint GlyphTexture;
@@ -352,7 +354,7 @@ class WrappedOpenGL
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
 
-		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams);
+		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core);
 		void DeleteContext(void *contextHandle);
 		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);

@@ -47,6 +47,7 @@ bool ExtensionSupported[ExtensionSupported_Count];
 bool VendorCheck[VendorCheck_Count];
 
 int GLCoreVersion = 0;
+bool GLIsCore = false;
 
 // simple wrapper for OS functions to make/delete a context
 GLWindowingData MakeContext(GLWindowingData share);

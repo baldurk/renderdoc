@@ -671,29 +671,32 @@ void *WrappedOpenGL::SwitchToContext(void *ctx)
 
 void WrappedOpenGL::DeleteContext(void *contextHandle)
 {
-	ContextData &font = m_ContextData[contextHandle];
+	ContextData &ctxdata = m_ContextData[contextHandle];
 
-	if(font.built && font.ready)
+	if(ctxdata.built && ctxdata.ready)
 	{
-		if(font.Program)
-			m_Real.glDeleteProgram(font.Program);
-		if(font.GeneralUBO)
-			m_Real.glDeleteBuffers(1, &font.GeneralUBO);
-		if(font.GlyphUBO)
-			m_Real.glDeleteBuffers(1, &font.GlyphUBO);
-		if(font.StringUBO)
-			m_Real.glDeleteBuffers(1, &font.StringUBO);
-		if(font.GlyphTexture)
-			m_Real.glDeleteTextures(1, &font.GlyphTexture);
+		if(ctxdata.Program)
+			m_Real.glDeleteProgram(ctxdata.Program);
+		if(ctxdata.GeneralUBO)
+			m_Real.glDeleteBuffers(1, &ctxdata.GeneralUBO);
+		if(ctxdata.GlyphUBO)
+			m_Real.glDeleteBuffers(1, &ctxdata.GlyphUBO);
+		if(ctxdata.StringUBO)
+			m_Real.glDeleteBuffers(1, &ctxdata.StringUBO);
+		if(ctxdata.GlyphTexture)
+			m_Real.glDeleteTextures(1, &ctxdata.GlyphTexture);
 	}
 
 	m_ContextData.erase(contextHandle);
 }
 
-void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams)
+void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core)
 {
 	// TODO: support multiple GL contexts more explicitly
 	m_InitParams = initParams;
+
+	ContextData &ctxdata = m_ContextData[winData.ctx];
+	ctxdata.isCore = core;
 }
 
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
@@ -712,11 +715,11 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 			m_ContextRecord->AddChunk(scope.Get());
 		}
 
-		ContextData &font = m_ContextData[winData.ctx];
+		ContextData &ctxdata = m_ContextData[winData.ctx];
 
-		if(!font.built)
+		if(!ctxdata.built)
 		{
-			font.built = true;
+			ctxdata.built = true;
 
 			const GLHookSet &gl = m_Real;
 
@@ -734,9 +737,10 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 				int ver = mj*10 + mn;
 
-				if(ver > GLCoreVersion)
+				if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
 				{
 					GLCoreVersion = ver;
+					GLIsCore = ctxdata.isCore;
 					DoVendorChecks(gl, winData);
 				}
 			}
@@ -747,14 +751,14 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
 				gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
 			{
-				gl.glGenTextures(1, &font.GlyphTexture);
-				gl.glTextureStorage2DEXT(font.GlyphTexture, eGL_TEXTURE_2D, 1, eGL_R8, FONT_TEX_WIDTH, FONT_TEX_HEIGHT);
+				gl.glGenTextures(1, &ctxdata.GlyphTexture);
+				gl.glTextureStorage2DEXT(ctxdata.GlyphTexture, eGL_TEXTURE_2D, 1, eGL_R8, FONT_TEX_WIDTH, FONT_TEX_HEIGHT);
 
 				GLuint curvao = 0;
 				gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
 
-				gl.glGenVertexArrays(1, &font.DummyVAO);
-				gl.glBindVertexArray(font.DummyVAO);
+				gl.glGenVertexArrays(1, &ctxdata.DummyVAO);
+				gl.glBindVertexArray(ctxdata.DummyVAO);
 
 				string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
 				byte *ttfdata = (byte *)ttfstring.c_str();
@@ -770,8 +774,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				stbtt_bakedchar chardata[numChars];
 				int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
 
-				font.CharSize = pixelHeight;
-				font.CharAspect = chardata->xadvance / pixelHeight;
+				ctxdata.CharSize = pixelHeight;
+				ctxdata.CharAspect = chardata->xadvance / pixelHeight;
 
 				stbtt_fontinfo f = {0};
 				stbtt_InitFont(&f, ttfdata, 0);
@@ -781,7 +785,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 				float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
 
-				gl.glTextureSubImage2DEXT(font.GlyphTexture, eGL_TEXTURE_2D, 0, 0, 0, FONT_TEX_WIDTH, FONT_TEX_HEIGHT,
+				gl.glTextureSubImage2DEXT(ctxdata.GlyphTexture, eGL_TEXTURE_2D, 0, 0, 0, FONT_TEX_WIDTH, FONT_TEX_HEIGHT,
 					eGL_RED, eGL_UNSIGNED_BYTE, (void *)buf);
 
 				delete[] buf;
@@ -799,14 +803,14 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 					glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
 				}
 
-				gl.glGenBuffers(1, &font.GlyphUBO);
-				gl.glNamedBufferStorageEXT(font.GlyphUBO, sizeof(glyphData), glyphData, 0);
+				gl.glGenBuffers(1, &ctxdata.GlyphUBO);
+				gl.glNamedBufferStorageEXT(ctxdata.GlyphUBO, sizeof(glyphData), glyphData, 0);
 
-				gl.glGenBuffers(1, &font.GeneralUBO);
-				gl.glNamedBufferStorageEXT(font.GeneralUBO, sizeof(FontUniforms), NULL, GL_MAP_WRITE_BIT);
+				gl.glGenBuffers(1, &ctxdata.GeneralUBO);
+				gl.glNamedBufferStorageEXT(ctxdata.GeneralUBO, sizeof(FontUniforms), NULL, GL_MAP_WRITE_BIT);
 
-				gl.glGenBuffers(1, &font.StringUBO);
-				gl.glNamedBufferStorageEXT(font.StringUBO, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, GL_MAP_WRITE_BIT);
+				gl.glGenBuffers(1, &ctxdata.StringUBO);
+				gl.glNamedBufferStorageEXT(ctxdata.StringUBO, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, GL_MAP_WRITE_BIT);
 
 				string textvs = GetEmbeddedResource(debuguniforms_h);
 				textvs += GetEmbeddedResource(text_vert);
@@ -840,24 +844,24 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 					RDCERR("Shader error: %s", buffer);
 				}
 
-				font.Program = gl.glCreateProgram();
+				ctxdata.Program = gl.glCreateProgram();
 
-				gl.glAttachShader(font.Program, vs);
-				gl.glAttachShader(font.Program, fs);
+				gl.glAttachShader(ctxdata.Program, vs);
+				gl.glAttachShader(ctxdata.Program, fs);
 
-				gl.glLinkProgram(font.Program);
+				gl.glLinkProgram(ctxdata.Program);
 
-				gl.glGetProgramiv(font.Program, eGL_LINK_STATUS, &status);
+				gl.glGetProgramiv(ctxdata.Program, eGL_LINK_STATUS, &status);
 				if(status == 0)
 				{
-					gl.glGetProgramInfoLog(font.Program, 1024, NULL, buffer);
+					gl.glGetProgramInfoLog(ctxdata.Program, 1024, NULL, buffer);
 					RDCERR("Link error: %s", buffer);
 				}
 
 				gl.glDeleteShader(vs);
 				gl.glDeleteShader(fs);
 
-				font.ready = true;
+				ctxdata.ready = true;
 
 				gl.glBindVertexArray(curvao);
 			}
@@ -996,11 +1000,11 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	
 	RDCASSERT(strlen(text) < (size_t)FONT_MAX_CHARS);
 
-	ContextData &font = m_ContextData[GetCtx()];
+	ContextData &ctxdata = m_ContextData[GetCtx()];
 
-	if(!font.built || !font.ready) return;
+	if(!ctxdata.built || !ctxdata.ready) return;
 
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.GeneralUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
 
 	FontUniforms *ubo = (FontUniforms *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(FontUniforms), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	ubo->TextPosition.x = x;
@@ -1009,8 +1013,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	ubo->FontScreenAspect.x = 1.0f/float(m_InitParams.width);
 	ubo->FontScreenAspect.y = 1.0f/float(m_InitParams.height);
 
-	ubo->TextSize = font.CharSize;
-	ubo->FontScreenAspect.x *= font.CharAspect;
+	ubo->TextSize = ctxdata.CharSize;
+	ubo->FontScreenAspect.x *= ctxdata.CharAspect;
 
 	ubo->CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
 	ubo->CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
@@ -1019,7 +1023,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
 	size_t len = strlen(text);
 
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.StringUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.StringUBO);
 	uint32_t *texs = (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len*4*sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	
 	for(size_t i=0; i < len; i++)
@@ -1053,19 +1057,19 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 	
 	// bind UBOs
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, font.GeneralUBO);
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, font.GlyphUBO);
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, font.StringUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
+	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
 
 	// bind empty VAO just for valid rendering
-	gl.glBindVertexArray(font.DummyVAO);
+	gl.glBindVertexArray(ctxdata.DummyVAO);
 	
 	// bind textures
 	gl.glActiveTexture(eGL_TEXTURE0);
-	gl.glBindTexture(eGL_TEXTURE_2D, font.GlyphTexture);
+	gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
 	
 	// bind program
-	gl.glUseProgram(font.Program);
+	gl.glUseProgram(ctxdata.Program);
 
 	// draw string
 	gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);

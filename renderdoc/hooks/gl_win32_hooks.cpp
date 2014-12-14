@@ -277,6 +277,8 @@ class OpenGLHook : LibraryHook
 					WGL_CONTEXT_MINOR_VERSION_ARB,
 					2,
 					WGL_CONTEXT_FLAGS_ARB,
+					0,
+					WGL_CONTEXT_PROFILE_MASK_ARB,
 					WGL_CONTEXT_CORE_PROFILE_BIT_ARB,
 					0, 0,
 				};
@@ -377,7 +379,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc));
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false);
 
 			return ret;
 		}
@@ -398,7 +400,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc));
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false);
 
 			return ret;
 		}
@@ -447,11 +449,16 @@ class OpenGLHook : LibraryHook
 
 			RDCDEBUG("wglCreateContextAttribsARB:");
 
+			bool core = false;
+
 			int *a = (int *)attribs;
 			while(*a)
 			{
 				RDCDEBUG("%x: %d", a[0], a[1]);
 				a += 2;
+
+				if(a[0] == WGL_CONTEXT_PROFILE_MASK_ARB)
+					core = (a[1] & WGL_CONTEXT_CORE_PROFILE_BIT_ARB);
 			}
 			
 			HGLRC ret = glhooks.wglCreateContextAttribsARB_realfunc(dc, hShareContext, attribs);
@@ -461,7 +468,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc));
+			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc), core);
 
 			return ret;
 		}
