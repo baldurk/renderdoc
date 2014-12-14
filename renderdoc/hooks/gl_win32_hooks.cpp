@@ -203,11 +203,18 @@ class OpenGLHook : LibraryHook
 			// an extension that it doesn't!
 
 			wglExts.push_back("WGL_ARB_extensions_string");
+			wglExts.push_back("WGL_EXT_extensions_string");
 			wglExts.push_back("WGL_ARB_multisample");
 			wglExts.push_back("WGL_ARB_framebuffer_sRGB");
+			wglExts.push_back("WGL_EXT_framebuffer_sRGB");
 			wglExts.push_back("WGL_ARB_create_context");
 			wglExts.push_back("WGL_ARB_create_context_profile");
+			wglExts.push_back("WGL_ARB_create_context_robustness");
+			wglExts.push_back("WGL_EXT_create_context_es_profile");
+			wglExts.push_back("WGL_EXT_create_context_es2_profile");
 			wglExts.push_back("WGL_ARB_pixel_format");
+			wglExts.push_back("WGL_ARB_pixel_format_float");
+			wglExts.push_back("WGL_EXT_pixel_format_packed_float");
 			wglExts.push_back("WGL_EXT_swap_control");
 			wglExts.push_back("WGL_EXT_swap_control_tear");
 			
