@@ -2541,7 +2541,19 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, 
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
 
-		m_Real.glVertexArrayVertexAttribDivisorEXT(vaobj, Index, Divisor);
+		// at the time of writing, AMD driver seems to not have this entry point
+		if(m_Real.glVertexArrayVertexAttribDivisorEXT)
+		{
+			m_Real.glVertexArrayVertexAttribDivisorEXT(vaobj, Index, Divisor);
+		}
+		else
+		{
+			GLuint VAO = 0;
+			m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+			m_Real.glBindVertexArray(vaobj);
+			m_Real.glVertexAttribDivisor(Index, Divisor);
+			m_Real.glBindVertexArray(VAO);
+		}
 	}
 
 	return true;
