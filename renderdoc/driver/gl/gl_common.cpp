@@ -180,6 +180,41 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		}
 	}
 
+	// AMD throws an error if we try to copy the mips that are smaller than 4x4,
+	if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
+	   gl.glTexStorage2D && gl.glTexParameteri && gl.glDeleteTextures)
+	{
+		GLuint texs[2];
+		gl.glGenTextures(2, texs);
+
+		gl.glBindTexture(eGL_TEXTURE_2D, texs[0]);
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+
+		gl.glBindTexture(eGL_TEXTURE_2D, texs[1]);
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+		
+		// clear all error flags.
+		GLenum err = gl.glGetError();
+		while(err != eGL_NONE) err = gl.glGetError();
+
+		gl.glCopyImageSubData(texs[0], eGL_TEXTURE_2D, 0,  0, 0, 0, texs[1], eGL_TEXTURE_2D, 0,  0, 0, 0,  1, 1, 1);
+		
+		err = gl.glGetError();
+
+		if(err != eGL_NONE)
+		{
+			// if we got an error trying to query that, we should enable this hack
+			VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] = true;
+
+			RDCWARN("Using hack to avoid glCopyImageSubData on lowest mips of compressed texture");
+		}
+
+		gl.glBindTexture(eGL_TEXTURE_2D, 0);
+		gl.glDeleteTextures(2, texs);
+	}
+
 	// only do this when we have a proper context e.g. on windows where an old
 	// context is first created. Check to see if FBOs or VAOs are shared between
 	// contexts.

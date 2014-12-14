@@ -111,6 +111,7 @@ enum VendorCheckEnum
 	VendorCheck_EXT_fbo_shared,
 	VendorCheck_EXT_vao_shared,
 	VendorCheck_AMD_polygon_mode_query,
+	VendorCheck_AMD_copy_compressed_tinymips,
 	VendorCheck_Count,
 };
 extern bool VendorCheck[VendorCheck_Count];
