@@ -1979,8 +1979,21 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
 		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
-
-		m_Real.glVertexArrayVertexAttribOffsetEXT(vaobj, buffer, Index, Size, Type, Norm, Stride, (GLintptr)Offset);
+		
+		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
+		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
+		//m_Real.glVertexArrayVertexAttribOffsetEXT(vaobj, buffer, Index, Size, Type, Norm, Stride, (GLintptr)Offset);
+		m_Real.glVertexArrayVertexAttribFormatEXT(vaobj, Index, Size, Type, Norm, 0);
+		m_Real.glVertexArrayVertexAttribBindingEXT(vaobj, Index, Index);
+		if(Stride == 0)
+		{
+			GLenum SizeEnum = Size == 1 ? eGL_RED  :
+                        Size == 2 ? eGL_RG   :
+                        Size == 3 ? eGL_RGB  :
+                        eGL_RGBA;
+			Stride = (uint32_t)GetByteSize(1, 1, 1, Type, SizeEnum, 1);
+		}
+		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}
 
 	return true;
@@ -2060,8 +2073,21 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, 
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
 		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
-
-		m_Real.glVertexArrayVertexAttribIOffsetEXT(vaobj, buffer, Index, Size, Type, Stride, (GLintptr)Offset);
+		
+		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
+		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
+		//m_Real.glVertexArrayVertexAttribIOffsetEXT(vaobj, buffer, Index, Size, Type, Stride, (GLintptr)Offset);
+		m_Real.glVertexArrayVertexAttribIFormatEXT(vaobj, Index, Size, Type, 0);
+		m_Real.glVertexArrayVertexAttribBindingEXT(vaobj, Index, Index);
+		if(Stride == 0)
+		{
+			GLenum SizeEnum = Size == 1 ? eGL_RED  :
+                        Size == 2 ? eGL_RG   :
+                        Size == 3 ? eGL_RGB  :
+                        eGL_RGBA;
+			Stride = (uint32_t)GetByteSize(1, 1, 1, Type, SizeEnum, 1);
+		}
+		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}
 
 	return true;
@@ -2142,7 +2168,20 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, 
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
 		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
 
-		m_Real.glVertexArrayVertexAttribLOffsetEXT(vaobj, buffer, Index, Size, Type, Stride, (GLintptr)Offset);
+		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
+		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
+		//m_Real.glVertexArrayVertexAttribLOffsetEXT(vaobj, buffer, Index, Size, Type, Stride, (GLintptr)Offset);
+		m_Real.glVertexArrayVertexAttribLFormatEXT(vaobj, Index, Size, Type, 0);
+		m_Real.glVertexArrayVertexAttribBindingEXT(vaobj, Index, Index);
+		if(Stride == 0)
+		{
+			GLenum SizeEnum = Size == 1 ? eGL_RED  :
+                        Size == 2 ? eGL_RG   :
+                        Size == 3 ? eGL_RGB  :
+                        eGL_RGBA;
+			Stride = (uint32_t)GetByteSize(1, 1, 1, Type, SizeEnum, 1);
+		}
+		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}
 
 	return true;

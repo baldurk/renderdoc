@@ -66,6 +66,9 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_FLOAT:
 			elemSize = 4;
 			break;
+		case eGL_DOUBLE:
+			elemSize = 8;
+			break;
 		case eGL_UNSIGNED_BYTE_3_3_2:
 		case eGL_UNSIGNED_BYTE_2_3_3_REV:
 			return ((w + alignAdd) & alignMask)*h*d;
