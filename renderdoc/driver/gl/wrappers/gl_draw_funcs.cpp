@@ -211,7 +211,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		AddEvent(DRAW_FEEDBACK, desc);
 		string name = "glDrawTransformFeedback(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
@@ -267,7 +267,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		AddEvent(DRAW_FEEDBACK_INSTANCED, desc);
 		string name = "glDrawTransformFeedbackInstanced(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
@@ -323,7 +323,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		AddEvent(DRAW_FEEDBACK_STREAM, desc);
 		string name = "glDrawTransformFeedbackStream(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
@@ -380,7 +380,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWARRAYS_INDIRECT, desc);
+		AddEvent(DRAW_FEEDBACK_STREAM_INSTANCED, desc);
 		string name = "glDrawTransformFeedbackStreamInstanced(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
 		
@@ -793,7 +793,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWELEMENTS, desc);
+		AddEvent(DRAWRANGEELEMENTS, desc);
 		string name = "glDrawRangeElements(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
@@ -861,7 +861,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 
 	if(m_State == READING)
 	{
-		AddEvent(DRAWELEMENTS, desc);
+		AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
 		string name = "glDrawRangeElementsBaseVertex(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
@@ -1355,7 +1355,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
 	if(m_State == READING)
 	{
-		AddEvent(MULTI_DRAWARRAYS, desc);
+		AddEvent(MULTI_DRAWELEMENTS, desc);
 		string name = "glMultiDrawElements(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ")";
@@ -1440,7 +1440,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
 	if(m_State == READING)
 	{
-		AddEvent(MULTI_DRAWARRAYS, desc);
+		AddEvent(MULTI_DRAWELEMENTSBASEVERTEX, desc);
 		string name = "glMultiDrawElementsBaseVertex(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ")";
