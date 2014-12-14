@@ -229,10 +229,10 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -285,10 +285,10 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -341,10 +341,10 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -398,10 +398,10 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -455,10 +455,10 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -510,10 +510,10 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -568,10 +568,10 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -628,10 +628,10 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -691,12 +691,12 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -750,12 +750,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = 0;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = params.firstIndex*IdxSize;
 
 	return true;
 }
@@ -817,12 +817,12 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -886,12 +886,12 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -953,12 +953,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1020,12 +1020,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1089,12 +1089,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1158,12 +1158,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1229,12 +1229,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-		m_LastIndexSize = Type;
-		m_LastIndexOffset = (GLuint)IdxOffset;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
+	m_LastIndexSize = Type;
+	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1290,10 +1290,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(firstArray);
 	SAFE_DELETE_ARRAY(countArray);
@@ -1374,10 +1374,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(countArray);
 	SAFE_DELETE_ARRAY(idxOffsArray);
@@ -1459,10 +1459,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 		
 		draw.debugMessages = debugMessages;
 
-		m_LastDrawMode = Mode;
-
 		AddDrawcall(draw, true);
 	}
+
+	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(countArray);
 	SAFE_DELETE_ARRAY(baseArray);
