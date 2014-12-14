@@ -1273,7 +1273,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		GLint depthTest = GL_FALSE;
 		gl.glGetIntegerv(eGL_DEPTH_TEST, (GLint*)&depthTest);
 		GLenum polyMode = eGL_FILL;
-		gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint*)&polyMode);
+		if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+			gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint*)&polyMode);
 
 		gl.glDisable(eGL_DEPTH_TEST);
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
@@ -1468,7 +1469,8 @@ void GLReplay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, Mesh
 		GLint depthTest = GL_FALSE;
 		gl.glGetIntegerv(eGL_DEPTH_TEST, (GLint*)&depthTest);
 		GLenum polyMode = eGL_FILL;
-		gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint*)&polyMode);
+		if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+			gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint*)&polyMode);
 
 		gl.glDisable(eGL_DEPTH_TEST);
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);

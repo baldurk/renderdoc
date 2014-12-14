@@ -278,6 +278,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
 	m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
 	
+	if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
 	{
 		// This was listed in docs as enumeration[2] even though polygon mode can't be set independently for front
 		// and back faces for a while, so pass large enough array to be sure.
@@ -286,6 +287,10 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 		GLenum dummy[2] = { eGL_FILL, eGL_FILL };
 		m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
 		PolygonMode = dummy[0];
+	}
+	else
+	{
+		PolygonMode = eGL_FILL;
 	}
 	
 	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);

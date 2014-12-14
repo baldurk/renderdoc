@@ -150,6 +150,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		else if(compSize == 48)
 		{
 			VendorCheck[VendorCheck_EXT_compressed_cube_size] = true;
+			RDCWARN("Compressed cubemap size returns whole cubemap");
 		}
 		else
 		{
@@ -157,6 +158,25 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		}
 
 		gl.glDeleteTextures(1, &dummy);
+	}
+
+	if(gl.glGetIntegerv && gl.glGetError)
+	{
+		// clear all error flags.
+		GLenum err = gl.glGetError();
+		while(err != eGL_NONE) err = gl.glGetError();
+
+		GLint dummy[2] = {0};
+		gl.glGetIntegerv(eGL_POLYGON_MODE, dummy);
+		err = gl.glGetError();
+
+		if(err != eGL_NONE)
+		{
+			// if we got an error trying to query that, we should enable this hack
+			VendorCheck[VendorCheck_AMD_polygon_mode_query] = true;
+
+			RDCWARN("Using AMD hack to avoid GL_POLYGON_MODE");
+		}
 	}
 
 	// only do this when we have a proper context e.g. on windows where an old
@@ -185,6 +205,11 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 			// these shouldn't be visible
 			VendorCheck[VendorCheck_EXT_fbo_shared] = (gl.glIsFramebuffer(fbo) != GL_FALSE);
 			VendorCheck[VendorCheck_EXT_vao_shared] = (gl.glIsVertexArray(vao) != GL_FALSE);
+
+			if(VendorCheck[VendorCheck_EXT_fbo_shared])
+				RDCWARN("FBOs are shared on this implementation");
+			if(VendorCheck[VendorCheck_EXT_vao_shared])
+				RDCWARN("VAOs are shared on this implementation");
 
 			// switch back to context
 			MakeContextCurrent(context);

@@ -907,11 +907,18 @@ struct RenderTextState
 		gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint*)&DestinationRGB);
 		gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint*)&DestinationAlpha);
 		
-		GLenum dummy[2] = { eGL_FILL, eGL_FILL };
-		// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
-		// and back faces.
-		gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
-		PolygonMode = dummy[0];
+		if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+		{
+			GLenum dummy[2] = { eGL_FILL, eGL_FILL };
+			// docs suggest this is enumeration[2] even though polygon mode can't be set independently for front
+			// and back faces.
+			gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+			PolygonMode = dummy[0];
+		}
+		else
+		{
+			PolygonMode = eGL_FILL;
+		}
 		
 		gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewport[0]);
 
