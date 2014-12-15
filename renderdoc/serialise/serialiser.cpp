@@ -255,7 +255,7 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
 
 		if(header.magic != MAGIC_HEADER)
 		{
-			RDCERR("Invalid capture file. Expected magic %08x, got %08x", MAGIC_HEADER, (uint32_t)header.magic);
+			RDCWARN("Invalid capture file. Expected magic %08x, got %08x", MAGIC_HEADER, (uint32_t)header.magic);
 			
 			m_ErrorCode = eSerError_Corrupt;
 			m_HasError = true;
