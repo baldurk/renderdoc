@@ -502,7 +502,6 @@ struct RemoteAccess
 				{
 					SAFE_DELETE(ser);
 
-					RDCDEBUG("Got a no-op");
 					msg->Type = eRemoteMsg_Noop;
 					return;
 				}
