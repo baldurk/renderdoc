@@ -128,7 +128,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				vec4 data = SampleTextureFloat4(vec2(x, y), RESTYPE_TEX2D, false,
+				vec4 data = SampleTextureFloat4(vec2(x, y), texType, false,
 												HistogramMip, HistogramSlice, HistogramSample, HistogramNumSamples);
 
 				if(i == 0)
