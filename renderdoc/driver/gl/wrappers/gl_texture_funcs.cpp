@@ -1898,8 +1898,6 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
 		m_Textures[texId].width = width;
@@ -1947,9 +1945,7 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = 1;
@@ -1999,7 +1995,7 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = 1;
@@ -2099,8 +2095,6 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
 		m_Textures[texId].width = width;
@@ -2148,9 +2142,7 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2200,7 +2192,7 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2301,8 +2293,6 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
 		m_Textures[texId].width = width;
@@ -2350,9 +2340,7 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2402,7 +2390,7 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2504,8 +2492,6 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
 		m_Textures[texId].width = width;
@@ -2553,9 +2539,7 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = 1;
@@ -2605,7 +2589,7 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = 1;
@@ -2757,9 +2741,7 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2807,7 +2789,7 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -2911,8 +2893,6 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
 		m_Textures[texId].width = width;
@@ -2960,9 +2940,7 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 
 	if(level == 0)
 	{
-		GLuint texture = 0;
-		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetResourceManager()->GetID(GetCtxData().GetActiveTexRecord()->Resource);
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
@@ -3012,7 +2990,7 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
 
 	if(level == 0)
 	{
-		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		ResourceId texId = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0]->GetResourceID();
 
 		m_Textures[texId].width = width;
 		m_Textures[texId].height = height;
