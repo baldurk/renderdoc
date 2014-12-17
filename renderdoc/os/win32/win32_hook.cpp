@@ -133,11 +133,23 @@ struct CachedHookData
 
 		byte *baseAddress = (byte *)module;
 
+		// the module could have been unloaded after our toolhelp snapshot, especially if we spent a long time
+		// dealing with a previous module (like adding our hooks).
+		wchar_t modpath[1024] = {0};
+		GetModuleFileNameW(module, modpath, 1023);
+		if(modpath[0] == 0) return;
+		// increment the module reference count, so it doesn't disappear while we're processing it
+		// there's a very small race condition here between if GetModuleFileName returns, the module is
+		// unloaded then we load it again. The only way around that is inserting very scary locks between here
+		// and FreeLibrary that I want to avoid. Worst case, we load a dll, hook it, then unload it again.
+		HMODULE refcountModHandle = LoadLibraryW(modpath);
+
 		PIMAGE_DOS_HEADER dosheader = (PIMAGE_DOS_HEADER)baseAddress;
 
 		if(dosheader->e_magic != 0x5a4d)
 		{
 			RDCDEBUG("Ignoring module %s, since magic is 0x%04x not 0x%04x", modName, (uint32_t)dosheader->e_magic, 0x5a4dU);
+			FreeLibrary(refcountModHandle);
 			return;
 		}
 
@@ -197,7 +209,10 @@ struct CachedHookData
 						bool applied = found->ApplyHook(IATentry);
 
 						if(!applied)
+						{
+							FreeLibrary(refcountModHandle);
 							return;
+						}
 					}
 
 					origFirst++;
@@ -207,6 +222,8 @@ struct CachedHookData
 
 			importDesc++;
 		}
+
+		FreeLibrary(refcountModHandle);
 	}
 };
 
