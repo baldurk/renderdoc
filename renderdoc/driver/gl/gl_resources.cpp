@@ -313,10 +313,10 @@ GLenum GetDataType(GLenum internalFormat)
 		case eGL_RGB4:
 		case eGL_RGBA4:
 			return eGL_UNSIGNED_SHORT_4_4_4_4;
-		case eGL_RGB5:
 		case eGL_RGB5_A1:
 			return eGL_UNSIGNED_SHORT_5_5_5_1;
 		case eGL_RGB565:
+		case eGL_RGB5:
 			return eGL_UNSIGNED_SHORT_5_6_5;
 		case eGL_RGB10:
 			return eGL_UNSIGNED_INT_10_10_10_2;
