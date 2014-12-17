@@ -113,8 +113,10 @@ struct CachedHookData
 		// fraps seems to non-safely modify the assembly around the hook function, if
 		// we modify its import descriptors it leads to a crash as it hooks OUR functions.
 		// instead, skip modifying the import descriptors, it will hook the 'real' d3d functions
-		// and we can call them and have fraps + renderdoc playing nicely together
-		if(strstr(lowername, "fraps"))
+		// and we can call them and have fraps + renderdoc playing nicely together.
+		// we also exclude some other overlay renderers here, such as steam's
+		if(strstr(lowername, "fraps") ||
+		   strstr(lowername, "gameoverlayrenderer"))
 				return;
 
 		// for safety (and because we don't need to), ignore these modules
