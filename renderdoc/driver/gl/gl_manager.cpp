@@ -596,9 +596,16 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 		gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
 		if(status == 0)
 		{
-			char buffer[1025] = {0};
-			gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
-			RDCERR("Link error: %s", buffer);
+			if(details.shaders.size() == 0)
+			{
+				RDCWARN("No shaders attached to program");
+			}
+			else
+			{
+				char buffer[1025] = {0};
+				gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
+				RDCERR("Link error: %s", buffer);
+			}
 		}
 
 		SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
