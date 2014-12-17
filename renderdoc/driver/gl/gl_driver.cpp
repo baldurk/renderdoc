@@ -411,8 +411,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
-	m_CurEventID = 1;
-	m_CurDrawcallID = 1;
+       m_CurEventID = 0;
+       m_CurDrawcallID = 0;
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
@@ -2528,6 +2528,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	else if(m_State == READING)
 	{
 		m_CurEventID = 1;
+               m_CurDrawcallID = 1;
 		m_FirstEventID = 0;
 		m_LastEventID = ~0U;
 	}
