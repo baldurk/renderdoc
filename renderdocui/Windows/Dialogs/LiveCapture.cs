@@ -459,7 +459,10 @@ namespace renderdocui.Windows
         private void LiveCapture_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (CheckAllowClose() == false)
+            {
                 e.Cancel = true;
+                return;
+            }
 
             KillThread();
         }
