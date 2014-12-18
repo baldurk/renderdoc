@@ -1745,14 +1745,27 @@ void WrappedOpenGL::glTextureImage1DEXT(GLuint texture, GLenum target, GLint lev
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
-		Serialise_glTextureImage1DEXT(record->Resource.name,
-																		target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
+			Serialise_glTextureImage1DEXT(record->Resource.name,
+																			target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
 
-		record->AddChunk(scope.Get());
+			record->AddChunk(scope.Get());
 
-		// illegal to re-type textures
-		record->VerifyDataType(target);
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+		}
 	}
 
 	if(level == 0)
@@ -1788,18 +1801,31 @@ void WrappedOpenGL::glTexImage1D(GLenum target, GLint level, GLint internalforma
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
-		Serialise_glTextureImage1DEXT(record->Resource.name,
-																		target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
-
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
+			Serialise_glTextureImage1DEXT(record->Resource.name,
+																			target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -1839,17 +1865,30 @@ void WrappedOpenGL::glMultiTexImage1DEXT(GLenum texunit, GLenum target, GLint le
 		RDCASSERT(record);
 
 		texture = record->Resource.name;
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
-		Serialise_glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
-
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D);
+			Serialise_glTextureImage1DEXT(texture, target, level, internalformat, width, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -1938,18 +1977,32 @@ void WrappedOpenGL::glTextureImage2DEXT(GLuint texture, GLenum target, GLint lev
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
-		Serialise_glTextureImage2DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
+			Serialise_glTextureImage2DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -1985,18 +2038,32 @@ void WrappedOpenGL::glTexImage2D(GLenum target, GLint level, GLint internalforma
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
-		Serialise_glTextureImage2DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
+			Serialise_glTextureImage2DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2036,17 +2103,31 @@ void WrappedOpenGL::glMultiTexImage2DEXT(GLenum texunit, GLenum target, GLint le
 		RDCASSERT(record);
 
 		texture = record->Resource.name;
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
-		Serialise_glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D);
+			Serialise_glTextureImage2DEXT(texture, target, level, internalformat, width, height, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2136,18 +2217,33 @@ void WrappedOpenGL::glTextureImage3DEXT(GLuint texture, GLenum target, GLint lev
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
-		Serialise_glTextureImage3DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
+			Serialise_glTextureImage3DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2183,18 +2279,33 @@ void WrappedOpenGL::glTexImage3D(GLenum target, GLint level, GLint internalforma
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
-		Serialise_glTextureImage3DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
+			Serialise_glTextureImage3DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2234,17 +2345,32 @@ void WrappedOpenGL::glMultiTexImage3DEXT(GLenum texunit, GLenum target, GLint le
 		RDCASSERT(record);
 
 		texture = record->Resource.name;
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
-		Serialise_glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
+			Serialise_glTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, format, type, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2335,18 +2461,31 @@ void WrappedOpenGL::glCompressedTextureImage1DEXT(GLuint texture, GLenum target,
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
-		Serialise_glCompressedTextureImage1DEXT(record->Resource.name,
-																		target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
+			Serialise_glCompressedTextureImage1DEXT(record->Resource.name,
+																			target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2382,18 +2521,31 @@ void WrappedOpenGL::glCompressedTexImage1D(GLenum target, GLint level, GLenum in
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
-		Serialise_glCompressedTextureImage1DEXT(record->Resource.name,
-																		target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
+			Serialise_glCompressedTextureImage1DEXT(record->Resource.name,
+																			target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2433,17 +2585,30 @@ void WrappedOpenGL::glCompressedMultiTexImage1DEXT(GLenum texunit, GLenum target
 		RDCASSERT(record);
 
 		texture = record->Resource.name;
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
-		Serialise_glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE1D_COMPRESSED);
+			Serialise_glCompressedTextureImage1DEXT(texture, target, level, internalformat, width, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2535,18 +2700,32 @@ void WrappedOpenGL::glCompressedTextureImage2DEXT(GLuint texture, GLenum target,
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
-		Serialise_glCompressedTextureImage2DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
+			Serialise_glCompressedTextureImage2DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2584,18 +2763,32 @@ void WrappedOpenGL::glCompressedTexImage2D(GLenum target, GLint level, GLenum in
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
-		Serialise_glCompressedTextureImage2DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
+			Serialise_glCompressedTextureImage2DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2633,17 +2826,31 @@ void WrappedOpenGL::glCompressedMultiTexImage2DEXT(GLenum texunit, GLenum target
 	{
 		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
-		Serialise_glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE2D_COMPRESSED);
+			Serialise_glCompressedTextureImage2DEXT(texture, target, level, internalformat, width, height, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2736,18 +2943,33 @@ void WrappedOpenGL::glCompressedTextureImage3DEXT(GLuint texture, GLenum target,
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
-		Serialise_glCompressedTextureImage3DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
+			Serialise_glCompressedTextureImage3DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2783,18 +3005,33 @@ void WrappedOpenGL::glCompressedTexImage3D(GLenum target, GLint level, GLenum in
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D_COMPRESSED);
-		Serialise_glCompressedTextureImage3DEXT(record->Resource.name,
-																		target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D_COMPRESSED);
+			Serialise_glCompressedTextureImage3DEXT(record->Resource.name,
+																			target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2834,17 +3071,32 @@ void WrappedOpenGL::glCompressedMultiTexImage3DEXT(GLenum texunit, GLenum target
 		RDCASSERT(record);
 
 		texture = record->Resource.name;
-
-		SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D_COMPRESSED);
-		Serialise_glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
-
-		record->AddChunk(scope.Get());
 		
-		// illegal to re-type textures
-		record->VerifyDataType(target);
-
-		if(fromunpackbuf)
+		// This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with glTexImage over and over
+		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
+		// Ideally we'd check for non-zero levels, but that would complicate the condition
+		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
+		if(record->AlreadyDataType(target) && level == 0 &&
+		   m_Textures[record->GetResourceID()].width == width &&
+		   m_Textures[record->GetResourceID()].height == height &&
+		   m_Textures[record->GetResourceID()].depth == depth &&
+			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
+		{
 			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
+		else
+		{
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D_COMPRESSED);
+			Serialise_glCompressedTextureImage3DEXT(texture, target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
+
+			record->AddChunk(scope.Get());
+			
+			// illegal to re-type textures
+			record->VerifyDataType(target);
+
+			if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		}
 	}
 
 	if(level == 0)
@@ -2905,7 +3157,7 @@ void WrappedOpenGL::glCopyTextureImage1DEXT(GLuint texture, GLenum target, GLint
 	if(m_State == WRITING_IDLE)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-
+		
 		// add a fake teximage1D chunk to create the texture properly on live (as we won't replay this copy chunk).
 		if(record)
 		{

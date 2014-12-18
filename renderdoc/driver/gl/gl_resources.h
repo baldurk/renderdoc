@@ -168,6 +168,11 @@ struct GLResourceRecord : public ResourceRecord
 #endif
 	}
 
+	bool AlreadyDataType(GLenum target)
+	{
+		return datatype == TextureBinding(target);
+	}
+
 	GLenum datatype;
 	GLenum usage;
 
