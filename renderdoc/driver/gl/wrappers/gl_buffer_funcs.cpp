@@ -88,10 +88,8 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 	
 	if(m_State >= WRITING)
 	{
-		size_t idx = BufferIdx(target);
-
-		if(buffer != 0)
-			GetCtxData().m_BufferRecord[idx]->datatype = Target;
+		if(Id != ResourceId())
+			GetResourceManager()->GetResourceRecord(Id)->datatype = Target;
 	}
 	else if(m_State < WRITING)
 	{
@@ -761,10 +759,12 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 	{
 		size_t idx = BufferIdx(target);
 
+		GLResourceRecord *r = NULL;
+
 		if(buffer == 0)
-			cd.m_BufferRecord[idx] = NULL;
+			r = cd.m_BufferRecord[idx] = NULL;
 		else
-			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+			r = cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		
 		if(buffer && m_State == WRITING_CAPFRAME)
 		{
@@ -780,37 +780,52 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 
 			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
 		}
-	}
 
-	// store as transform feedback record state
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
-	{
-		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+		// it's legal to re-type buffers, generate another BindBuffer chunk to rename
+		if(r && r->datatype != target)
+		{
+			Chunk *chunk = NULL;
 
-		// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
-		// buffer
-		SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
-		Serialise_glTransformFeedbackBufferBase(feedback, index, buffer);
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+				Serialise_glBindBuffer(target, buffer);
 
-		cd.m_FeedbackRecord->AddChunk(scope.Get());
-	}
-	
-	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-	if(m_State == WRITING_IDLE &&
-		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-		 target == eGL_SHADER_STORAGE_BUFFER ||
-		 target == eGL_ATOMIC_COUNTER_BUFFER)
-		)
-	{
-		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-	}
+				chunk = scope.Get();
+			}
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
-		Serialise_glBindBufferBase(target, index, buffer);
+			r->AddChunk(chunk);
+		}
 
-		m_ContextRecord->AddChunk(scope.Get());
+		// store as transform feedback record state
+		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
+		{
+			GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+			// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
+			// buffer
+			SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+			Serialise_glTransformFeedbackBufferBase(feedback, index, buffer);
+
+			cd.m_FeedbackRecord->AddChunk(scope.Get());
+		}
+
+		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+		if(m_State == WRITING_IDLE &&
+			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_ATOMIC_COUNTER_BUFFER)
+			)
+		{
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+		}
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
+			Serialise_glBindBufferBase(target, index, buffer);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
 	}
 
 	m_Real.glBindBufferBase(target, index, buffer);
@@ -848,10 +863,12 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 	{
 		size_t idx = BufferIdx(target);
 
+		GLResourceRecord *r = NULL;
+
 		if(buffer == 0)
-			cd.m_BufferRecord[idx] = NULL;
+			r = cd.m_BufferRecord[idx] = NULL;
 		else
-			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+			r = cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		
 		if(buffer && m_State == WRITING_CAPFRAME)
 		{
@@ -867,37 +884,52 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 
 			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
 		}
-	}
 
-	// store as transform feedback record state
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
-	{
-		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+		// it's legal to re-type buffers, generate another BindBuffer chunk to rename
+		if(r && r->datatype != target)
+		{
+			Chunk *chunk = NULL;
 
-		// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
-		// buffer
-		SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
-		Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, (GLsizei)size);
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+				Serialise_glBindBuffer(target, buffer);
 
-		cd.m_FeedbackRecord->AddChunk(scope.Get());
-	}
-	
-	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-	if(m_State == WRITING_IDLE &&
-		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-		 target == eGL_SHADER_STORAGE_BUFFER ||
-		 target == eGL_ATOMIC_COUNTER_BUFFER)
-		)
-	{
-		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-	}
+				chunk = scope.Get();
+			}
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_RANGE);
-		Serialise_glBindBufferRange(target, index, buffer, offset, size);
+			r->AddChunk(chunk);
+		}
 
-		m_ContextRecord->AddChunk(scope.Get());
+		// store as transform feedback record state
+		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
+		{
+			GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+			// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
+			// buffer
+			SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
+			Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, (GLsizei)size);
+
+			cd.m_FeedbackRecord->AddChunk(scope.Get());
+		}
+
+		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+		if(m_State == WRITING_IDLE &&
+			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_ATOMIC_COUNTER_BUFFER)
+			)
+		{
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+		}
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_RANGE);
+			Serialise_glBindBufferRange(target, index, buffer, offset, size);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
 	}
 
 	m_Real.glBindBufferRange(target, index, buffer, offset, size);
@@ -941,7 +973,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 	
 	ContextData &cd = GetCtxData();
 
-	if(m_State >= WRITING && first == 0 && count > 0)
+	if(m_State >= WRITING && buffers && count > 0)
 	{
 		size_t idx = BufferIdx(target);
 
@@ -950,7 +982,7 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
 		
-		if(buffers && m_State == WRITING_CAPFRAME)
+		if(m_State == WRITING_CAPFRAME)
 		{
 			FrameRefType refType = eFrameRef_Read;
 
@@ -966,41 +998,61 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 				if(buffers[i])
 					GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
 		}
-	}
-
-	// store as transform feedback record state
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
-	{
-		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		for(int i=0; i < count; i++)
 		{
-			// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
-			// buffer
-			SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
-			Serialise_glTransformFeedbackBufferBase(feedback, first+i, buffers[i]);
+			GLResourceRecord *r = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
 
-			cd.m_FeedbackRecord->AddChunk(scope.Get());
+			// it's legal to re-type buffers, generate another BindBuffer chunk to rename
+			if(r->datatype != target)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+					Serialise_glBindBuffer(target, buffers[i]);
+
+					chunk = scope.Get();
+				}
+
+				r->AddChunk(chunk);
+			}
 		}
-	}
-	
-	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-	if(m_State == WRITING_IDLE &&
-		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-		 target == eGL_SHADER_STORAGE_BUFFER ||
-		 target == eGL_ATOMIC_COUNTER_BUFFER)
-		)
-	{
-		for(int i=0; i < count; i++)
-			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
-	}
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_BASE);
-		Serialise_glBindBuffersBase(target, first, count, buffers);
+		// store as transform feedback record state
+		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
+		{
+			GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
-		m_ContextRecord->AddChunk(scope.Get());
+			for(int i=0; i < count; i++)
+			{
+				// use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
+				// buffer
+				SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+				Serialise_glTransformFeedbackBufferBase(feedback, first+i, buffers[i]);
+
+				cd.m_FeedbackRecord->AddChunk(scope.Get());
+			}
+		}
+
+		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+		if(m_State == WRITING_IDLE &&
+			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_ATOMIC_COUNTER_BUFFER)
+			)
+		{
+			for(int i=0; i < count; i++)
+				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+		}
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_BASE);
+			Serialise_glBindBuffersBase(target, first, count, buffers);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
 	}
 }
 
@@ -1056,7 +1108,7 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 
 	ContextData &cd = GetCtxData();
 
-	if(m_State >= WRITING && first == 0 && count > 0)
+	if(m_State >= WRITING && buffers && count > 0)
 	{
 		size_t idx = BufferIdx(target);
 
@@ -1064,8 +1116,8 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 			cd.m_BufferRecord[idx] = NULL;
 		else
 			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
-		
-		if(buffers && m_State == WRITING_CAPFRAME)
+
+		if(m_State == WRITING_CAPFRAME)
 		{
 			FrameRefType refType = eFrameRef_Read;
 
@@ -1081,41 +1133,61 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 				if(buffers[i])
 					GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
 		}
-	}
-
-	// store as transform feedback record state
-	if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
-	{
-		GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
 		for(int i=0; i < count; i++)
 		{
-			// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
-			// buffer
-			SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
-			Serialise_glTransformFeedbackBufferRange(feedback, first+i, buffers[i], offsets[i], (GLsizei)sizes[i]);
+			GLResourceRecord *r = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
 
-			cd.m_FeedbackRecord->AddChunk(scope.Get());
+			// it's legal to re-type buffers, generate another BindBuffer chunk to rename
+			if(r->datatype != target)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+					Serialise_glBindBuffer(target, buffers[i]);
+
+					chunk = scope.Get();
+				}
+
+				r->AddChunk(chunk);
+			}
 		}
-	}
-	
-	// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-	if(m_State == WRITING_IDLE &&
-		(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-		 target == eGL_SHADER_STORAGE_BUFFER ||
-		 target == eGL_ATOMIC_COUNTER_BUFFER)
-		)
-	{
-		for(int i=0; i < count; i++)
-			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
-	}
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_RANGE);
-		Serialise_glBindBuffersRange(target, first, count, buffers, offsets, sizes);
+		// store as transform feedback record state
+		if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER && RecordUpdateCheck(cd.m_FeedbackRecord))
+		{
+			GLuint feedback = cd.m_FeedbackRecord->Resource.name;
 
-		m_ContextRecord->AddChunk(scope.Get());
+			for(int i=0; i < count; i++)
+			{
+				// use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
+				// buffer
+				SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
+				Serialise_glTransformFeedbackBufferRange(feedback, first+i, buffers[i], offsets[i], (GLsizei)sizes[i]);
+
+				cd.m_FeedbackRecord->AddChunk(scope.Get());
+			}
+		}
+
+		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+		if(m_State == WRITING_IDLE &&
+			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+			target == eGL_SHADER_STORAGE_BUFFER ||
+			target == eGL_ATOMIC_COUNTER_BUFFER)
+			)
+		{
+			for(int i=0; i < count; i++)
+				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+		}
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			SCOPED_SERIALISE_CONTEXT(BIND_BUFFERS_RANGE);
+			Serialise_glBindBuffersRange(target, first, count, buffers, offsets, sizes);
+
+			m_ContextRecord->AddChunk(scope.Get());
+		}
 	}
 }
 
