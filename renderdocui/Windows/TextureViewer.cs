@@ -1411,7 +1411,13 @@ namespace renderdocui.Windows
             if (m_TexDisplay.FlipY)
                 y = (int)tex.height - y;
 
-            string hoverCoords = String.Format("{0}, {1}", m_CurHoverPixel.X >> (int)m_TexDisplay.mip, y);
+            int x = m_CurHoverPixel.X >> (int)m_TexDisplay.mip;
+            float invWidth = tex.width > 0 ? 1.0f / tex.width : 0.0f;
+            float invHeight = tex.height > 0 ? 1.0f /tex.height : 0.0f;
+
+            string hoverCoords = String.Format("{0}, {1}, ({2}, {3})", 
+                x, y, Formatter.Format(x * invWidth), Formatter.Format(y * invHeight));
+
             string statusText = "Hover - " + hoverCoords;
 
             if (m_CurHoverPixel.X > tex.width || m_CurHoverPixel.Y > tex.height || m_CurHoverPixel.X < 0 || m_CurHoverPixel.Y < 0)
