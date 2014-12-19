@@ -432,17 +432,17 @@ void GLReplay::CacheTexture(ResourceId id)
 	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
 	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
 
-	if(res.width == 0)
+	if(res.width == 0 && width > 0)
 	{
 		RDCWARN("TextureData::width didn't get filled out, setting at last minute");
 		res.width = width;
 	}
-	if(res.height == 0)
+	if(res.height == 0 && height > 0)
 	{
 		RDCWARN("TextureData::height didn't get filled out, setting at last minute");
 		res.height = height;
 	}
-	if(res.depth == 0)
+	if(res.depth == 0 && depth > 0)
 	{
 		RDCWARN("TextureData::depth didn't get filled out, setting at last minute");
 		res.depth = depth;
