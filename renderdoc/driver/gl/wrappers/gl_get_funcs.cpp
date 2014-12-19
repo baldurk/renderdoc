@@ -781,6 +781,11 @@ void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, G
 	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
+void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data)
+{
+	m_Real.glGetNamedBufferSubData(buffer, offset, size, data);
+}
+
 void WrappedOpenGL::glGetTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname, GLint *params)
 {
 	m_Real.glGetTextureParameterivEXT(texture, target, pname, params);

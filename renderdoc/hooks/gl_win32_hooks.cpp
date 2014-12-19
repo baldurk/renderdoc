@@ -27,6 +27,8 @@
 #include "driver/gl/gl_hookset.h"
 #include "driver/gl/gl_driver.h"
 
+#include "driver/gl/gl_hookset_defs.h"
+
 #include "common/threading.h"
 #include "serialise/string_utils.h"
 
@@ -53,6 +55,23 @@
 		glhooks.GL.function = (funcPtrType)realFunc; \
 		return (PROC)&glhooks.CONCAT(function,_hooked); \
 	}
+
+#if 0 // debug print for each unsupported function requested (but not used)
+#define HandleUnsupported(funcPtrType, function) \
+	if(lowername == STRINGIZE(function)) \
+	{ \
+		glhooks.CONCAT(unsupported_real_,function) = (CONCAT(function, _hooktype))realFunc; \
+		RDCDEBUG("Requesting function pointer for unsupported function " STRINGIZE(function)); \
+		return (PROC)&glhooks.CONCAT(function,_hooked); \
+	}
+#else
+#define HandleUnsupported(funcPtrType, function) \
+	if(lowername == STRINGIZE(function)) \
+	{ \
+		glhooks.CONCAT(unsupported_real_,function) = (CONCAT(function, _hooktype))realFunc; \
+		return (PROC)&glhooks.CONCAT(function,_hooked); \
+	}
+#endif
 
 /*
 	in bash:
@@ -81,7 +100,7 @@
         echo -n "); }";
     }
 
-	for I in `seq 0 ...`; do HookWrapper $I; echo; done
+  for I in `seq 0 15`; do HookWrapper $I; echo; done
 
 	*/
 
@@ -623,11 +642,15 @@ class OpenGLHook : LibraryHook
 			}
 
 			HookCheckGLExtensions();
-			
-#if 0
-			// claim not to know this extension!
-			RDCDEBUG("Claiming not to know extension that is available - %s", func);
-#endif
+
+			// at the moment the unsupported functions are all lowercase (as their name is generated from the
+			// typedef name).
+			string lowername = strlower(string(func));
+
+			CheckUnsupported();
+
+			// for any other function, if it's not a core or extension function we know about,
+			// just return NULL
 			return NULL;
 		}
 
@@ -690,6 +713,187 @@ class OpenGLHook : LibraryHook
 
 		DefineDLLExportHooks();
 		DefineGLExtensionHooks();
+
+/*
+       in bash:
+
+    function HookWrapper()
+    {
+        N=$1;
+        echo "#undef HookWrapper$N";
+        echo -n "#define HookWrapper$N(ret, function";
+            for I in `seq 1 $N`; do echo -n ", t$I, p$I"; done;
+        echo ") \\";
+
+        echo -en "\ttypedef ret (WINAPI *CONCAT(function, _hooktype)) (";
+            for I in `seq 1 $N`; do echo -n "t$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
+        echo "); \\";
+
+        echo -en "\tCONCAT(function, _hooktype) CONCAT(unsupported_real_,function);";
+
+
+        echo -en "\tstatic ret WINAPI CONCAT(function, _hooked)(";
+            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
+        echo ") \\";
+
+        echo -e "\t{ \\";
+        echo -e "\tstatic bool hit = false; if(hit == false) { RDCERR(\"Function \" STRINGIZE(function) \" not supported - capture may be broken\"); hit = true; } \\";
+        echo -en "\treturn glhooks.CONCAT(unsupported_real_,function)(";
+            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
+        echo -e "); \\";
+        echo -e "\t}";
+    }
+
+  for I in `seq 0 15`; do HookWrapper $I; echo; done
+
+       */
+
+
+#undef HookWrapper0
+#define HookWrapper0(ret, function) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)() \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(); \
+		}
+
+#undef HookWrapper1
+#define HookWrapper1(ret, function, t1, p1) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1); \
+		}
+
+#undef HookWrapper2
+#define HookWrapper2(ret, function, t1, p1, t2, p2) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2); \
+		}
+
+#undef HookWrapper3
+#define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3); \
+		}
+
+#undef HookWrapper4
+#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4); \
+		}
+
+#undef HookWrapper5
+#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5); \
+		}
+
+#undef HookWrapper6
+#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6); \
+		}
+
+#undef HookWrapper7
+#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7); \
+		}
+
+#undef HookWrapper8
+#define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8); \
+		}
+
+#undef HookWrapper9
+#define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9); \
+		}
+
+#undef HookWrapper10
+#define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10); \
+		}
+
+#undef HookWrapper11
+#define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
+		}
+
+#undef HookWrapper12
+#define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
+		}
+
+#undef HookWrapper13
+#define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13); \
+		}
+
+#undef HookWrapper14
+#define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14); \
+		}
+
+#undef HookWrapper15
+#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15) \
+		typedef ret (WINAPI *CONCAT(function, _hooktype)) (t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15); \
+		CONCAT(function, _hooktype) CONCAT(unsupported_real_,function); static ret WINAPI CONCAT(function, _hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15) \
+		{ \
+		static bool hit = false; if(hit == false) { RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); hit = true; } \
+		return glhooks.CONCAT(unsupported_real_,function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15); \
+		}
+
+		DefineUnsupportedDummies();
 };
 
 OpenGLHook OpenGLHook::glhooks;

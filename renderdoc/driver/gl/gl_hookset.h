@@ -633,7 +633,9 @@ struct GLHookSet
 	PFNGLGETNAMEDPROGRAMIVEXTPROC glGetNamedProgramivEXT;
 	PFNGLGETNAMEDFRAMEBUFFERATTACHMENTPARAMETERIVEXTPROC glGetNamedFramebufferAttachmentParameterivEXT; // aliases glGetNamedFramebufferAttachmentParameteriv
 	PFNGLGETNAMEDBUFFERPARAMETERIVEXTPROC glGetNamedBufferParameterivEXT; // aliases glGetNamedBufferParameteriv
-	PFNGLGETNAMEDBUFFERSUBDATAEXTPROC glGetNamedBufferSubDataEXT; // aliases glGetNamedBufferSubData
+	// these functions are not aliases only by the size parameter being different types
+	PFNGLGETNAMEDBUFFERSUBDATAEXTPROC glGetNamedBufferSubDataEXT;
+	PFNGLGETNAMEDBUFFERSUBDATAPROC glGetNamedBufferSubData;
 	PFNGLGETNAMEDFRAMEBUFFERPARAMETERIVEXTPROC glGetNamedFramebufferParameterivEXT; // aliases glGetFramebufferParameterivEXT, glGetNamedFramebufferParameteriv
 	PFNGLGETNAMEDRENDERBUFFERPARAMETERIVEXTPROC glGetNamedRenderbufferParameterivEXT; // aliases glGetNamedRenderbufferParameteriv
 	PFNGLGETVERTEXARRAYINTEGERVEXTPROC glGetVertexArrayIntegervEXT;
@@ -733,5 +735,3 @@ struct GLHookSet
 	PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC glVertexArrayVertexAttribDivisorEXT;
 	// --
 };
-
-#include "gl_hookset_defs.h"
