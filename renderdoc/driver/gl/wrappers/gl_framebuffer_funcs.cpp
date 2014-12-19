@@ -112,6 +112,9 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
 		Serialise_glNamedFramebufferTextureEXT(framebuffer, attachment, texture, level);
@@ -125,6 +128,13 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 			m_ContextRecord->AddChunk(scope.Get());
@@ -147,6 +157,9 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
 		Serialise_glNamedFramebufferTextureEXT(record->Resource.name,
@@ -161,6 +174,17 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
@@ -206,6 +230,9 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
 		Serialise_glNamedFramebufferTexture1DEXT(framebuffer, attachment, textarget, texture, level);
@@ -219,6 +246,13 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 		{
@@ -243,6 +277,9 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX1D);
 		Serialise_glNamedFramebufferTexture1DEXT(record->Resource.name,
@@ -257,6 +294,17 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
@@ -302,6 +350,9 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
 		Serialise_glNamedFramebufferTexture2DEXT(framebuffer, attachment, textarget, texture, level);
@@ -315,6 +366,13 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 		{
@@ -339,6 +397,9 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
 		Serialise_glNamedFramebufferTexture2DEXT(record->Resource.name,
@@ -353,6 +414,17 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
@@ -399,6 +471,9 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
 		Serialise_glNamedFramebufferTexture3DEXT(framebuffer, attachment, textarget, texture, level, zoffset);
@@ -412,6 +487,13 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 		{
@@ -436,6 +518,9 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
 		Serialise_glNamedFramebufferTexture3DEXT(record->Resource.name,
@@ -450,6 +535,17 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
@@ -493,6 +589,9 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
 		Serialise_glNamedFramebufferRenderbufferEXT(framebuffer, attachment, renderbuffertarget, renderbuffer);
@@ -502,6 +601,13 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
 			if(renderbuffer != 0 && GetResourceManager()->HasResourceRecord(RenderbufferRes(GetCtx(), renderbuffer)))
 				record->AddParent(GetResourceManager()->GetResourceRecord(RenderbufferRes(GetCtx(), renderbuffer)));
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 		{
@@ -526,6 +632,9 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment, 
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_RENDBUF);
 		Serialise_glNamedFramebufferRenderbufferEXT(record->Resource.name,
@@ -536,6 +645,17 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment, 
 			if(renderbuffer != 0 && GetResourceManager()->HasResourceRecord(RenderbufferRes(GetCtx(), renderbuffer)))
 				record->AddParent(GetResourceManager()->GetResourceRecord(RenderbufferRes(GetCtx(), renderbuffer)));
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
@@ -581,6 +701,9 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
 		Serialise_glNamedFramebufferTextureLayerEXT(framebuffer, attachment, texture, level, layer);
@@ -594,6 +717,13 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+			record->UpdateCount++;
+				
+			if(record->UpdateCount > 10)
+			{
+				m_HighTrafficResources.insert(record->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			}
 		}
 		else
 		{
@@ -618,6 +748,9 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 		{
 			if(GetCtxData().m_ReadFramebufferRecord) record = GetCtxData().m_ReadFramebufferRecord;
 		}
+		
+		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
 
 		SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
 		Serialise_glNamedFramebufferTextureLayerEXT(record->Resource.name,
@@ -632,6 +765,17 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 				GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
 			}
 			record->AddChunk(scope.Get());
+
+			if(record != m_DeviceRecord)
+			{
+				record->UpdateCount++;
+
+				if(record->UpdateCount > 10)
+				{
+					m_HighTrafficResources.insert(record->GetResourceID());
+					GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+				}
+			}
 		}
 		else
 		{
