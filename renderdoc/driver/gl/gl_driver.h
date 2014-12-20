@@ -296,6 +296,10 @@ class WrappedOpenGL
 			float CharSize;
 			float CharAspect;
 
+			// extensions
+			vector<string> glExts;
+			string glExtsString;
+
 			// state
 			GLResourceRecord *m_TextureRecord[256]; // TODO this needs on per texture type :(
 			GLResourceRecord *m_BufferRecord[16];
@@ -323,8 +327,7 @@ class WrappedOpenGL
 		void RenderOverlayText(float x, float y, const char *fmt, ...);
 		void RenderOverlayStr(float x, float y, const char *str);
 
-		vector<string> glExts;
-		string glExtsString;
+		vector<string> globalExts;
 
 		// no copy semantics
 		WrappedOpenGL(const WrappedOpenGL &);

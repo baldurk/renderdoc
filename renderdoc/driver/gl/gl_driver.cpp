@@ -37,6 +37,8 @@
 
 #include "data/glsl/debuguniforms.h"
 
+#include <algorithm>
+
 const char *GLChunkNames[] =
 {
 	"WrappedOpenGL::Initialisation",
@@ -331,132 +333,136 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
 	
-	glExts.push_back("GL_ARB_arrays_of_arrays");
-	glExts.push_back("GL_ARB_base_instance");
-	glExts.push_back("GL_ARB_blend_func_extended");
-	glExts.push_back("GL_ARB_buffer_storage");
-	glExts.push_back("GL_ARB_clear_buffer_object");
-	glExts.push_back("GL_ARB_clear_texture");
-	glExts.push_back("GL_ARB_color_buffer_float");
-	glExts.push_back("GL_ARB_compute_shader");
-	glExts.push_back("GL_ARB_conservative_depth");
-	glExts.push_back("GL_ARB_copy_buffer");
-	glExts.push_back("GL_ARB_copy_image");
-	glExts.push_back("GL_ARB_debug_output");
-	glExts.push_back("GL_ARB_depth_buffer_float");
-	glExts.push_back("GL_ARB_depth_clamp");
-	glExts.push_back("GL_ARB_depth_texture");
-	glExts.push_back("GL_ARB_draw_buffers");
-	glExts.push_back("GL_ARB_draw_buffers_blend");
-	glExts.push_back("GL_ARB_draw_elements_base_vertex");
-	glExts.push_back("GL_ARB_draw_indirect");
-	glExts.push_back("GL_ARB_draw_instanced");
-	glExts.push_back("GL_ARB_enhanced_layouts");
-	glExts.push_back("GL_ARB_ES2_compatibility");
-	glExts.push_back("GL_ARB_ES3_1_compatibility");
-	glExts.push_back("GL_ARB_ES3_compatibility");
-	glExts.push_back("GL_ARB_explicit_attrib_location");
-	glExts.push_back("GL_ARB_explicit_uniform_location");
-	glExts.push_back("GL_ARB_fragment_coord_conventions");
-	glExts.push_back("GL_ARB_fragment_layer_viewport");
-	glExts.push_back("GL_ARB_framebuffer_no_attachments");
-	glExts.push_back("GL_ARB_framebuffer_object");
-	glExts.push_back("GL_ARB_framebuffer_sRGB");
-	glExts.push_back("GL_ARB_get_program_binary");
-	glExts.push_back("GL_ARB_gpu_shader_fp64");
-	glExts.push_back("GL_ARB_gpu_shader5");
-	glExts.push_back("GL_ARB_half_float_pixel");
-	glExts.push_back("GL_ARB_half_float_vertex");
-	glExts.push_back("GL_ARB_indirect_parameters");
-	glExts.push_back("GL_ARB_internalformat_query");
-	glExts.push_back("GL_ARB_internalformat_query2");
-	glExts.push_back("GL_ARB_invalidate_subdata");
-	glExts.push_back("GL_ARB_map_buffer_range");
-	glExts.push_back("GL_ARB_multi_bind");
-	glExts.push_back("GL_ARB_multi_draw_indirect");
-	glExts.push_back("GL_ARB_multisample");
-	glExts.push_back("GL_ARB_multitexture");
-	glExts.push_back("GL_ARB_occlusion_query");
-	glExts.push_back("GL_ARB_occlusion_query2");
-	glExts.push_back("GL_ARB_pixel_buffer_object");
-	glExts.push_back("GL_ARB_point_parameters");
-	glExts.push_back("GL_ARB_point_sprite");
-	glExts.push_back("GL_ARB_program_interface_query");
-	glExts.push_back("GL_ARB_provoking_vertex");
-	glExts.push_back("GL_ARB_query_buffer_object");
-	glExts.push_back("GL_ARB_robust_buffer_access_behavior");
-	glExts.push_back("GL_ARB_robustness");
-	glExts.push_back("GL_ARB_sample_shading");
-	glExts.push_back("GL_ARB_sampler_objects");
-	glExts.push_back("GL_ARB_seamless_cube_map");
-	glExts.push_back("GL_ARB_seamless_cubemap_per_texture");
-	glExts.push_back("GL_ARB_separate_shader_objects");
-	glExts.push_back("GL_ARB_shader_atomic_counters");
-	glExts.push_back("GL_ARB_shader_bit_encoding");
-	glExts.push_back("GL_ARB_shader_draw_parameters");
-	glExts.push_back("GL_ARB_shader_group_vote");
-	glExts.push_back("GL_ARB_shader_image_load_store");
-	glExts.push_back("GL_ARB_shader_image_size");
-	glExts.push_back("GL_ARB_shader_precision");
-	glExts.push_back("GL_ARB_shader_storage_buffer_object");
-	glExts.push_back("GL_ARB_shader_subroutine");
-	glExts.push_back("GL_ARB_shader_texture_lod");
-	glExts.push_back("GL_ARB_shading_language_100");
-	glExts.push_back("GL_ARB_shading_language_420pack");
-	glExts.push_back("GL_ARB_shading_language_packing");
-	glExts.push_back("GL_ARB_shadow");
-	glExts.push_back("GL_ARB_stencil_texturing");
-	glExts.push_back("GL_ARB_sync");
-	glExts.push_back("GL_ARB_tessellation_shader");
-	glExts.push_back("GL_ARB_texture_border_clamp");
-	glExts.push_back("GL_ARB_texture_buffer_object");
-	glExts.push_back("GL_ARB_texture_buffer_object_rgb32");
-	glExts.push_back("GL_ARB_texture_buffer_range");
-	glExts.push_back("GL_ARB_texture_compression");
-	glExts.push_back("GL_ARB_texture_compression_bptc");
-	glExts.push_back("GL_ARB_texture_compression_rgtc");
-	glExts.push_back("GL_ARB_texture_cube_map");
-	glExts.push_back("GL_ARB_texture_cube_map_array");
-	glExts.push_back("GL_ARB_texture_float");
-	glExts.push_back("GL_ARB_texture_gather");
-	glExts.push_back("GL_ARB_texture_mirror_clamp_to_edge");
-	glExts.push_back("GL_ARB_texture_mirrored_repeat");
-	glExts.push_back("GL_ARB_texture_multisample");
-	glExts.push_back("GL_ARB_texture_non_power_of_two");
-	glExts.push_back("GL_ARB_texture_query_levels");
-	glExts.push_back("GL_ARB_texture_query_lod");
-	glExts.push_back("GL_ARB_texture_rectangle");
-	glExts.push_back("GL_ARB_texture_rg");
-	glExts.push_back("GL_ARB_texture_rgb10_a2ui");
-	glExts.push_back("GL_ARB_texture_stencil8");
-	glExts.push_back("GL_ARB_texture_storage");
-	glExts.push_back("GL_ARB_texture_storage_multisample");
-	glExts.push_back("GL_ARB_texture_swizzle");
-	glExts.push_back("GL_ARB_texture_view");
-	glExts.push_back("GL_ARB_timer_query");
-	glExts.push_back("GL_ARB_transform_feedback_instanced");
-	glExts.push_back("GL_ARB_transform_feedback2");
-	glExts.push_back("GL_ARB_transform_feedback3");
-	glExts.push_back("GL_ARB_uniform_buffer_object");
-	glExts.push_back("GL_ARB_vertex_array_bgra");
-	glExts.push_back("GL_ARB_vertex_array_object");
-	glExts.push_back("GL_ARB_vertex_attrib_64bit");
-	glExts.push_back("GL_ARB_vertex_attrib_binding");
-	glExts.push_back("GL_ARB_vertex_buffer_object");
-	glExts.push_back("GL_ARB_vertex_program");
-	glExts.push_back("GL_ARB_vertex_type_10f_11f_11f_rev");
-	glExts.push_back("GL_ARB_vertex_type_2_10_10_10_rev");
-	glExts.push_back("GL_EXT_depth_bounds_test");
-	glExts.push_back("GL_EXT_direct_state_access");
-	glExts.push_back("GL_EXT_framebuffer_blit");
-	glExts.push_back("GL_EXT_framebuffer_object");
-	glExts.push_back("GL_EXT_pixel_buffer_object");
-	glExts.push_back("GL_EXT_texture_compression_s3tc");
-	glExts.push_back("GL_EXT_texture_filter_anisotropic");
-	glExts.push_back("GL_EXT_texture_mirror_clamp");
-	glExts.push_back("GL_EXT_texture_sRGB_decode");
-	glExts.push_back("GL_EXT_timer_query");
-	glExts.push_back("GL_KHR_debug");
+	globalExts.push_back("GL_ARB_arrays_of_arrays");
+	globalExts.push_back("GL_ARB_base_instance");
+	globalExts.push_back("GL_ARB_blend_func_extended");
+	globalExts.push_back("GL_ARB_buffer_storage");
+	globalExts.push_back("GL_ARB_clear_buffer_object");
+	globalExts.push_back("GL_ARB_clear_texture");
+	globalExts.push_back("GL_ARB_color_buffer_float");
+	globalExts.push_back("GL_ARB_compute_shader");
+	globalExts.push_back("GL_ARB_conservative_depth");
+	globalExts.push_back("GL_ARB_copy_buffer");
+	globalExts.push_back("GL_ARB_copy_image");
+	globalExts.push_back("GL_ARB_debug_output");
+	globalExts.push_back("GL_ARB_depth_buffer_float");
+	globalExts.push_back("GL_ARB_depth_clamp");
+	globalExts.push_back("GL_ARB_depth_texture");
+	globalExts.push_back("GL_ARB_draw_buffers");
+	globalExts.push_back("GL_ARB_draw_buffers_blend");
+	globalExts.push_back("GL_ARB_draw_elements_base_vertex");
+	globalExts.push_back("GL_ARB_draw_indirect");
+	globalExts.push_back("GL_ARB_draw_instanced");
+	globalExts.push_back("GL_ARB_enhanced_layouts");
+	globalExts.push_back("GL_ARB_ES2_compatibility");
+	globalExts.push_back("GL_ARB_ES3_1_compatibility");
+	globalExts.push_back("GL_ARB_ES3_compatibility");
+	globalExts.push_back("GL_ARB_explicit_attrib_location");
+	globalExts.push_back("GL_ARB_explicit_uniform_location");
+	globalExts.push_back("GL_ARB_fragment_coord_conventions");
+	globalExts.push_back("GL_ARB_fragment_layer_viewport");
+	globalExts.push_back("GL_ARB_framebuffer_no_attachments");
+	globalExts.push_back("GL_ARB_framebuffer_object");
+	globalExts.push_back("GL_ARB_framebuffer_sRGB");
+	globalExts.push_back("GL_ARB_get_program_binary");
+	globalExts.push_back("GL_ARB_gpu_shader_fp64");
+	globalExts.push_back("GL_ARB_gpu_shader5");
+	globalExts.push_back("GL_ARB_half_float_pixel");
+	globalExts.push_back("GL_ARB_half_float_vertex");
+	globalExts.push_back("GL_ARB_indirect_parameters");
+	globalExts.push_back("GL_ARB_internalformat_query");
+	globalExts.push_back("GL_ARB_internalformat_query2");
+	globalExts.push_back("GL_ARB_invalidate_subdata");
+	globalExts.push_back("GL_ARB_map_buffer_range");
+	globalExts.push_back("GL_ARB_multi_bind");
+	globalExts.push_back("GL_ARB_multi_draw_indirect");
+	globalExts.push_back("GL_ARB_multisample");
+	globalExts.push_back("GL_ARB_multitexture");
+	globalExts.push_back("GL_ARB_occlusion_query");
+	globalExts.push_back("GL_ARB_occlusion_query2");
+	globalExts.push_back("GL_ARB_pixel_buffer_object");
+	globalExts.push_back("GL_ARB_point_parameters");
+	globalExts.push_back("GL_ARB_point_sprite");
+	globalExts.push_back("GL_ARB_program_interface_query");
+	globalExts.push_back("GL_ARB_provoking_vertex");
+	globalExts.push_back("GL_ARB_query_buffer_object");
+	globalExts.push_back("GL_ARB_robust_buffer_access_behavior");
+	globalExts.push_back("GL_ARB_robustness");
+	globalExts.push_back("GL_ARB_sample_shading");
+	globalExts.push_back("GL_ARB_sampler_objects");
+	globalExts.push_back("GL_ARB_seamless_cube_map");
+	globalExts.push_back("GL_ARB_seamless_cubemap_per_texture");
+	globalExts.push_back("GL_ARB_separate_shader_objects");
+	globalExts.push_back("GL_ARB_shader_atomic_counters");
+	globalExts.push_back("GL_ARB_shader_bit_encoding");
+	globalExts.push_back("GL_ARB_shader_draw_parameters");
+	globalExts.push_back("GL_ARB_shader_group_vote");
+	globalExts.push_back("GL_ARB_shader_image_load_store");
+	globalExts.push_back("GL_ARB_shader_image_size");
+	globalExts.push_back("GL_ARB_shader_precision");
+	globalExts.push_back("GL_ARB_shader_storage_buffer_object");
+	globalExts.push_back("GL_ARB_shader_subroutine");
+	globalExts.push_back("GL_ARB_shader_texture_lod");
+	globalExts.push_back("GL_ARB_shading_language_100");
+	globalExts.push_back("GL_ARB_shading_language_420pack");
+	globalExts.push_back("GL_ARB_shading_language_packing");
+	globalExts.push_back("GL_ARB_shadow");
+	globalExts.push_back("GL_ARB_stencil_texturing");
+	globalExts.push_back("GL_ARB_sync");
+	globalExts.push_back("GL_ARB_tessellation_shader");
+	globalExts.push_back("GL_ARB_texture_border_clamp");
+	globalExts.push_back("GL_ARB_texture_buffer_object");
+	globalExts.push_back("GL_ARB_texture_buffer_object_rgb32");
+	globalExts.push_back("GL_ARB_texture_buffer_range");
+	globalExts.push_back("GL_ARB_texture_compression");
+	globalExts.push_back("GL_ARB_texture_compression_bptc");
+	globalExts.push_back("GL_ARB_texture_compression_rgtc");
+	globalExts.push_back("GL_ARB_texture_cube_map");
+	globalExts.push_back("GL_ARB_texture_cube_map_array");
+	globalExts.push_back("GL_ARB_texture_float");
+	globalExts.push_back("GL_ARB_texture_gather");
+	globalExts.push_back("GL_ARB_texture_mirror_clamp_to_edge");
+	globalExts.push_back("GL_ARB_texture_mirrored_repeat");
+	globalExts.push_back("GL_ARB_texture_multisample");
+	globalExts.push_back("GL_ARB_texture_non_power_of_two");
+	globalExts.push_back("GL_ARB_texture_query_levels");
+	globalExts.push_back("GL_ARB_texture_query_lod");
+	globalExts.push_back("GL_ARB_texture_rectangle");
+	globalExts.push_back("GL_ARB_texture_rg");
+	globalExts.push_back("GL_ARB_texture_rgb10_a2ui");
+	globalExts.push_back("GL_ARB_texture_stencil8");
+	globalExts.push_back("GL_ARB_texture_storage");
+	globalExts.push_back("GL_ARB_texture_storage_multisample");
+	globalExts.push_back("GL_ARB_texture_swizzle");
+	globalExts.push_back("GL_ARB_texture_view");
+	globalExts.push_back("GL_ARB_timer_query");
+	globalExts.push_back("GL_ARB_transform_feedback_instanced");
+	globalExts.push_back("GL_ARB_transform_feedback2");
+	globalExts.push_back("GL_ARB_transform_feedback3");
+	globalExts.push_back("GL_ARB_uniform_buffer_object");
+	globalExts.push_back("GL_ARB_vertex_array_bgra");
+	globalExts.push_back("GL_ARB_vertex_array_object");
+	globalExts.push_back("GL_ARB_vertex_attrib_64bit");
+	globalExts.push_back("GL_ARB_vertex_attrib_binding");
+	globalExts.push_back("GL_ARB_vertex_buffer_object");
+	globalExts.push_back("GL_ARB_vertex_program");
+	globalExts.push_back("GL_ARB_vertex_type_10f_11f_11f_rev");
+	globalExts.push_back("GL_ARB_vertex_type_2_10_10_10_rev");
+	globalExts.push_back("GL_EXT_depth_bounds_test");
+	globalExts.push_back("GL_EXT_direct_state_access");
+	globalExts.push_back("GL_EXT_framebuffer_blit");
+	globalExts.push_back("GL_EXT_framebuffer_object");
+	globalExts.push_back("GL_EXT_pixel_buffer_object");
+	globalExts.push_back("GL_EXT_texture_compression_s3tc");
+	globalExts.push_back("GL_EXT_texture_filter_anisotropic");
+	globalExts.push_back("GL_EXT_texture_mirror_clamp");
+	globalExts.push_back("GL_EXT_texture_sRGB_decode");
+	globalExts.push_back("GL_EXT_timer_query");
+	globalExts.push_back("GL_KHR_debug");
+
+	// we'll be sorting the implementation extension array, so make sure the
+	// sorts are identical so we can do the intersection easily
+	std::sort(globalExts.begin(), globalExts.end());
 
 #if !defined(_RELEASE)
 	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
@@ -465,10 +471,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	m_Replay.SetDriver(this);
 
-	// TODO: need to check against implementation to ensure we don't claim to support
-	// an extension that it doesn't!
-	merge(glExts, glExtsString, ' ');
-	
 	m_FrameCounter = 0;
 
 	m_FrameTimer.Restart();
@@ -799,6 +801,55 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				gl.glDebugMessageCallback(&DebugSnoopStatic, this);
 				gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
 			}
+
+			vector<string> implExts;
+
+			if(gl.glGetIntegerv && gl.glGetStringi)
+			{
+				GLuint numExts = 0;
+				gl.glGetIntegerv(eGL_NUM_EXTENSIONS, (GLint *)&numExts);
+
+				for(GLuint i=0; i < numExts; i++)
+					implExts.push_back((const char *)gl.glGetStringi(eGL_EXTENSIONS, i));
+			}
+			else if(gl.glGetString)
+			{
+				string implExtString = (const char *)gl.glGetString(eGL_EXTENSIONS);
+
+				split(implExtString, implExts, ' ');
+			}
+			else
+			{
+				RDCERR("No functions to fetch implementation's extensions!");
+			}
+
+			std::sort(implExts.begin(), implExts.end());
+
+			// intersection of implExts and globalExts into ctx.glExts
+			{
+				size_t len = RDCMIN(implExts.size(), globalExts.size());
+				for(size_t i=0, j=0; i < implExts.size() && j < globalExts.size(); )
+				{
+					string &a = implExts[i];
+					string &b = globalExts[j];
+
+					if(a == b)
+					{
+						ctxdata.glExts.push_back(a);
+						i++;
+						j++;
+					}
+					else if(a < b)
+					{
+						i++;
+					}
+					else if(b < a)
+					{
+						j++;
+					}
+				}
+			}
+			merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
 
 			if(gl.glGetIntegerv)
 			{

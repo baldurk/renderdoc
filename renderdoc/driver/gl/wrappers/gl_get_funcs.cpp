@@ -145,10 +145,10 @@ void WrappedOpenGL::glGetPointerv(GLenum pname, void **params)
 
 void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
 {
-	if(pname == GL_NUM_EXTENSIONS)
+	if(pname == eGL_NUM_EXTENSIONS)
 	{
 		if(params)
-			*params = (GLint)glExts.size();
+			*params = (GLint)GetCtxData().glExts.size();
 		return;
 	}
 
@@ -377,19 +377,19 @@ void WrappedOpenGL::glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsi
 
 const GLubyte *WrappedOpenGL::glGetString(GLenum name)
 {
-	if(name == GL_EXTENSIONS)
+	if(name == eGL_EXTENSIONS)
 	{
-		return (const GLubyte *)glExtsString.c_str();
+		return (const GLubyte *)GetCtxData().glExtsString.c_str();
 	}
 	return m_Real.glGetString(name);
 }
 
 const GLubyte *WrappedOpenGL::glGetStringi(GLenum name, GLuint i)
 {
-	if(name == GL_EXTENSIONS)
+	if(name == eGL_EXTENSIONS)
 	{
-		if((size_t)i < glExts.size())
-			return (const GLubyte *)glExts[i].c_str();
+		if((size_t)i < GetCtxData().glExts.size())
+			return (const GLubyte *)GetCtxData().glExts[i].c_str();
 
 		return (const GLubyte *)"";
 	}
