@@ -208,237 +208,237 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		res.bindPoint = (int32_t)resources.size();
 
 		// float samplers
-		if(values[0] == GL_SAMPLER_BUFFER)
+		if(values[0] == eGL_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_1D)
+		else if(values[0] == eGL_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_1D_ARRAY)
+		else if(values[0] == eGL_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_1D_SHADOW)
+		else if(values[0] == eGL_SAMPLER_1D_SHADOW)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1DShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_1D_ARRAY_SHADOW)
+		else if(values[0] == eGL_SAMPLER_1D_ARRAY_SHADOW)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArrayShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D)
+		else if(values[0] == eGL_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_ARRAY)
+		else if(values[0] == eGL_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_SHADOW)
+		else if(values[0] == eGL_SAMPLER_2D_SHADOW)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2DShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_ARRAY_SHADOW)
+		else if(values[0] == eGL_SAMPLER_2D_ARRAY_SHADOW)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArrayShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_RECT)
+		else if(values[0] == eGL_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_RECT_SHADOW)
+		else if(values[0] == eGL_SAMPLER_2D_RECT_SHADOW)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRectShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_3D)
+		else if(values[0] == eGL_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_CUBE)
+		else if(values[0] == eGL_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_CUBE_SHADOW)
+		else if(values[0] == eGL_SAMPLER_CUBE_SHADOW)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCubeShadow";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_CUBE_MAP_ARRAY)
+		else if(values[0] == eGL_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_MULTISAMPLE)
+		else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
 			res.variableType.descriptor.type = eVar_Float;
 		}
-		else if(values[0] == GL_SAMPLER_2D_MULTISAMPLE_ARRAY)
+		else if(values[0] == eGL_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
 			res.variableType.descriptor.type = eVar_Float;
 		}
 		// int samplers
-		else if(values[0] == GL_INT_SAMPLER_BUFFER)
+		else if(values[0] == eGL_INT_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_1D)
+		else if(values[0] == eGL_INT_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_1D_ARRAY)
+		else if(values[0] == eGL_INT_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_2D)
+		else if(values[0] == eGL_INT_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_2D_ARRAY)
+		else if(values[0] == eGL_INT_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_2D_RECT)
+		else if(values[0] == eGL_INT_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_3D)
+		else if(values[0] == eGL_INT_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_CUBE)
+		else if(values[0] == eGL_INT_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_CUBE_MAP_ARRAY)
+		else if(values[0] == eGL_INT_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_2D_MULTISAMPLE)
+		else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
 			res.variableType.descriptor.type = eVar_Int;
 		}
-		else if(values[0] == GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
+		else if(values[0] == eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
 			res.variableType.descriptor.type = eVar_Int;
 		}
 		// unsigned int samplers
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_BUFFER)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "samplerBuffer";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_1D)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D)
 		{
 			res.resType = eResType_Texture1D;
 			res.variableType.descriptor.name = "sampler1D";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
 		{
 			res.resType = eResType_Texture1DArray;
 			res.variableType.descriptor.name = "sampler1DArray";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D)
 		{
 			res.resType = eResType_Texture2D;
 			res.variableType.descriptor.name = "sampler2D";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY)
 		{
 			res.resType = eResType_Texture2DArray;
 			res.variableType.descriptor.name = "sampler2DArray";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_RECT)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_RECT)
 		{
 			res.resType = eResType_TextureRect;
 			res.variableType.descriptor.name = "sampler2DRect";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_3D)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_3D)
 		{
 			res.resType = eResType_Texture3D;
 			res.variableType.descriptor.name = "sampler3D";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_CUBE)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE)
 		{
 			res.resType = eResType_TextureCube;
 			res.variableType.descriptor.name = "samplerCube";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY)
 		{
 			res.resType = eResType_TextureCubeArray;
 			res.variableType.descriptor.name = "samplerCubeArray";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE)
 		{
 			res.resType = eResType_Texture2DMS;
 			res.variableType.descriptor.name = "sampler2DMS";
 			res.variableType.descriptor.type = eVar_UInt;
 		}
-		else if(values[0] == GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
+		else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY)
 		{
 			res.resType = eResType_Texture2DMSArray;
 			res.variableType.descriptor.name = "sampler2DMSArray";
@@ -515,50 +515,50 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		// set type (or bail if it's not a variable - sampler or such)
 		switch(values[0])
 		{
-			case GL_FLOAT_VEC4:
-			case GL_FLOAT_VEC3:
-			case GL_FLOAT_VEC2:
-			case GL_FLOAT:
-			case GL_FLOAT_MAT4:
-			case GL_FLOAT_MAT3:
-			case GL_FLOAT_MAT2:
-			case GL_FLOAT_MAT4x2:
-			case GL_FLOAT_MAT4x3:
-			case GL_FLOAT_MAT3x4:
-			case GL_FLOAT_MAT3x2:
-			case GL_FLOAT_MAT2x4:
-			case GL_FLOAT_MAT2x3:
+			case eGL_FLOAT_VEC4:
+			case eGL_FLOAT_VEC3:
+			case eGL_FLOAT_VEC2:
+			case eGL_FLOAT:
+			case eGL_FLOAT_MAT4:
+			case eGL_FLOAT_MAT3:
+			case eGL_FLOAT_MAT2:
+			case eGL_FLOAT_MAT4x2:
+			case eGL_FLOAT_MAT4x3:
+			case eGL_FLOAT_MAT3x4:
+			case eGL_FLOAT_MAT3x2:
+			case eGL_FLOAT_MAT2x4:
+			case eGL_FLOAT_MAT2x3:
 				var.type.descriptor.type = eVar_Float;
 				break;
-			case GL_DOUBLE_VEC4:
-			case GL_DOUBLE_VEC3:
-			case GL_DOUBLE_VEC2:
-			case GL_DOUBLE:
-			case GL_DOUBLE_MAT4:
-			case GL_DOUBLE_MAT3:
-			case GL_DOUBLE_MAT2:
-			case GL_DOUBLE_MAT4x2:
-			case GL_DOUBLE_MAT4x3:
-			case GL_DOUBLE_MAT3x4:
-			case GL_DOUBLE_MAT3x2:
-			case GL_DOUBLE_MAT2x4:
-			case GL_DOUBLE_MAT2x3:
+			case eGL_DOUBLE_VEC4:
+			case eGL_DOUBLE_VEC3:
+			case eGL_DOUBLE_VEC2:
+			case eGL_DOUBLE:
+			case eGL_DOUBLE_MAT4:
+			case eGL_DOUBLE_MAT3:
+			case eGL_DOUBLE_MAT2:
+			case eGL_DOUBLE_MAT4x2:
+			case eGL_DOUBLE_MAT4x3:
+			case eGL_DOUBLE_MAT3x4:
+			case eGL_DOUBLE_MAT3x2:
+			case eGL_DOUBLE_MAT2x4:
+			case eGL_DOUBLE_MAT2x3:
 				var.type.descriptor.type = eVar_Double;
 				break;
-			case GL_UNSIGNED_INT_VEC4:
-			case GL_UNSIGNED_INT_VEC3:
-			case GL_UNSIGNED_INT_VEC2:
-			case GL_UNSIGNED_INT:
-			case GL_BOOL_VEC4:
-			case GL_BOOL_VEC3:
-			case GL_BOOL_VEC2:
-			case GL_BOOL:
+			case eGL_UNSIGNED_INT_VEC4:
+			case eGL_UNSIGNED_INT_VEC3:
+			case eGL_UNSIGNED_INT_VEC2:
+			case eGL_UNSIGNED_INT:
+			case eGL_BOOL_VEC4:
+			case eGL_BOOL_VEC3:
+			case eGL_BOOL_VEC2:
+			case eGL_BOOL:
 				var.type.descriptor.type = eVar_UInt;
 				break;
-			case GL_INT_VEC4:
-			case GL_INT_VEC3:
-			case GL_INT_VEC2:
-			case GL_INT:
+			case eGL_INT_VEC4:
+			case eGL_INT_VEC3:
+			case eGL_INT_VEC2:
+			case eGL_INT:
 				var.type.descriptor.type = eVar_Int;
 				break;
 			default:
@@ -571,28 +571,28 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 		switch(values[0])
 		{
-			case GL_FLOAT_MAT4:
-			case GL_DOUBLE_MAT4:
-			case GL_FLOAT_MAT2x4:
-			case GL_DOUBLE_MAT2x4:
-			case GL_FLOAT_MAT3x4:
-			case GL_DOUBLE_MAT3x4:
+			case eGL_FLOAT_MAT4:
+			case eGL_DOUBLE_MAT4:
+			case eGL_FLOAT_MAT2x4:
+			case eGL_DOUBLE_MAT2x4:
+			case eGL_FLOAT_MAT3x4:
+			case eGL_DOUBLE_MAT3x4:
 				var.type.descriptor.rows = 4;
 				break;
-			case GL_FLOAT_MAT3:
-			case GL_DOUBLE_MAT3:
-			case GL_FLOAT_MAT4x3:
-			case GL_DOUBLE_MAT4x3:
-			case GL_FLOAT_MAT2x3:
-			case GL_DOUBLE_MAT2x3:
+			case eGL_FLOAT_MAT3:
+			case eGL_DOUBLE_MAT3:
+			case eGL_FLOAT_MAT4x3:
+			case eGL_DOUBLE_MAT4x3:
+			case eGL_FLOAT_MAT2x3:
+			case eGL_DOUBLE_MAT2x3:
 				var.type.descriptor.rows = 3;
 				break;
-			case GL_FLOAT_MAT2:
-			case GL_DOUBLE_MAT2:
-			case GL_FLOAT_MAT4x2:
-			case GL_DOUBLE_MAT4x2:
-			case GL_FLOAT_MAT3x2:
-			case GL_DOUBLE_MAT3x2:
+			case eGL_FLOAT_MAT2:
+			case eGL_DOUBLE_MAT2:
+			case eGL_FLOAT_MAT4x2:
+			case eGL_DOUBLE_MAT4x2:
+			case eGL_FLOAT_MAT3x2:
+			case eGL_DOUBLE_MAT3x2:
 				var.type.descriptor.rows = 2;
 				break;
 			default:
@@ -602,50 +602,50 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		// set # columns
 		switch(values[0])
 		{
-			case GL_FLOAT_VEC4:
-			case GL_FLOAT_MAT4:
-			case GL_FLOAT_MAT4x2:
-			case GL_FLOAT_MAT4x3:
-			case GL_DOUBLE_VEC4:
-			case GL_DOUBLE_MAT4:
-			case GL_DOUBLE_MAT4x2:
-			case GL_DOUBLE_MAT4x3:
-			case GL_UNSIGNED_INT_VEC4:
-			case GL_BOOL_VEC4:
-			case GL_INT_VEC4:
+			case eGL_FLOAT_VEC4:
+			case eGL_FLOAT_MAT4:
+			case eGL_FLOAT_MAT4x2:
+			case eGL_FLOAT_MAT4x3:
+			case eGL_DOUBLE_VEC4:
+			case eGL_DOUBLE_MAT4:
+			case eGL_DOUBLE_MAT4x2:
+			case eGL_DOUBLE_MAT4x3:
+			case eGL_UNSIGNED_INT_VEC4:
+			case eGL_BOOL_VEC4:
+			case eGL_INT_VEC4:
 				var.type.descriptor.cols = 4;
 				break;
-			case GL_FLOAT_VEC3:
-			case GL_FLOAT_MAT3:
-			case GL_FLOAT_MAT3x4:
-			case GL_FLOAT_MAT3x2:
-			case GL_DOUBLE_VEC3:
-			case GL_DOUBLE_MAT3:
-			case GL_DOUBLE_MAT3x4:
-			case GL_DOUBLE_MAT3x2:
-			case GL_UNSIGNED_INT_VEC3:
-			case GL_BOOL_VEC3:
-			case GL_INT_VEC3:
+			case eGL_FLOAT_VEC3:
+			case eGL_FLOAT_MAT3:
+			case eGL_FLOAT_MAT3x4:
+			case eGL_FLOAT_MAT3x2:
+			case eGL_DOUBLE_VEC3:
+			case eGL_DOUBLE_MAT3:
+			case eGL_DOUBLE_MAT3x4:
+			case eGL_DOUBLE_MAT3x2:
+			case eGL_UNSIGNED_INT_VEC3:
+			case eGL_BOOL_VEC3:
+			case eGL_INT_VEC3:
 				var.type.descriptor.cols = 3;
 				break;
-			case GL_FLOAT_VEC2:
-			case GL_FLOAT_MAT2:
-			case GL_FLOAT_MAT2x4:
-			case GL_FLOAT_MAT2x3:
-			case GL_DOUBLE_VEC2:
-			case GL_DOUBLE_MAT2:
-			case GL_DOUBLE_MAT2x4:
-			case GL_DOUBLE_MAT2x3:
-			case GL_UNSIGNED_INT_VEC2:
-			case GL_BOOL_VEC2:
-			case GL_INT_VEC2:
+			case eGL_FLOAT_VEC2:
+			case eGL_FLOAT_MAT2:
+			case eGL_FLOAT_MAT2x4:
+			case eGL_FLOAT_MAT2x3:
+			case eGL_DOUBLE_VEC2:
+			case eGL_DOUBLE_MAT2:
+			case eGL_DOUBLE_MAT2x4:
+			case eGL_DOUBLE_MAT2x3:
+			case eGL_UNSIGNED_INT_VEC2:
+			case eGL_BOOL_VEC2:
+			case eGL_INT_VEC2:
 				var.type.descriptor.cols = 2;
 				break;
-			case GL_FLOAT:
-			case GL_DOUBLE:
-			case GL_UNSIGNED_INT:
-			case GL_INT:
-			case GL_BOOL:
+			case eGL_FLOAT:
+			case eGL_DOUBLE:
+			case eGL_UNSIGNED_INT:
+			case eGL_INT:
+			case eGL_BOOL:
 				var.type.descriptor.cols = 1;
 				break;
 			default:
@@ -655,44 +655,44 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 		// set name
 		switch(values[0])
 		{
-			case GL_FLOAT_VEC4:          var.type.descriptor.name = "vec4"; break;
-			case GL_FLOAT_VEC3:          var.type.descriptor.name = "vec3"; break;
-			case GL_FLOAT_VEC2:          var.type.descriptor.name = "vec2"; break;
-			case GL_FLOAT:               var.type.descriptor.name = "float"; break;
-			case GL_FLOAT_MAT4:          var.type.descriptor.name = "mat4"; break;
-			case GL_FLOAT_MAT3:          var.type.descriptor.name = "mat3"; break;
-			case GL_FLOAT_MAT2:          var.type.descriptor.name = "mat2"; break;
-			case GL_FLOAT_MAT4x2:        var.type.descriptor.name = "mat4x2"; break;
-			case GL_FLOAT_MAT4x3:        var.type.descriptor.name = "mat4x3"; break;
-			case GL_FLOAT_MAT3x4:        var.type.descriptor.name = "mat3x4"; break;
-			case GL_FLOAT_MAT3x2:        var.type.descriptor.name = "mat3x2"; break;
-			case GL_FLOAT_MAT2x4:        var.type.descriptor.name = "mat2x4"; break;
-			case GL_FLOAT_MAT2x3:        var.type.descriptor.name = "mat2x3"; break;
-			case GL_DOUBLE_VEC4:         var.type.descriptor.name = "dvec4"; break;
-			case GL_DOUBLE_VEC3:         var.type.descriptor.name = "dvec3"; break;
-			case GL_DOUBLE_VEC2:         var.type.descriptor.name = "dvec2"; break;
-			case GL_DOUBLE:              var.type.descriptor.name = "double"; break;
-			case GL_DOUBLE_MAT4:         var.type.descriptor.name = "dmat4"; break;
-			case GL_DOUBLE_MAT3:         var.type.descriptor.name = "dmat3"; break;
-			case GL_DOUBLE_MAT2:         var.type.descriptor.name = "dmat2"; break;
-			case GL_DOUBLE_MAT4x2:       var.type.descriptor.name = "dmat4x2"; break;
-			case GL_DOUBLE_MAT4x3:       var.type.descriptor.name = "dmat4x3"; break;
-			case GL_DOUBLE_MAT3x4:       var.type.descriptor.name = "dmat3x4"; break;
-			case GL_DOUBLE_MAT3x2:       var.type.descriptor.name = "dmat3x2"; break;
-			case GL_DOUBLE_MAT2x4:       var.type.descriptor.name = "dmat2x4"; break;
-			case GL_DOUBLE_MAT2x3:       var.type.descriptor.name = "dmat2x3"; break;
-			case GL_UNSIGNED_INT_VEC4:   var.type.descriptor.name = "uvec4"; break;
-			case GL_UNSIGNED_INT_VEC3:   var.type.descriptor.name = "uvec3"; break;
-			case GL_UNSIGNED_INT_VEC2:   var.type.descriptor.name = "uvec2"; break;
-			case GL_UNSIGNED_INT:        var.type.descriptor.name = "uint"; break;
-			case GL_BOOL_VEC4:           var.type.descriptor.name = "bvec4"; break;
-			case GL_BOOL_VEC3:           var.type.descriptor.name = "bvec3"; break;
-			case GL_BOOL_VEC2:           var.type.descriptor.name = "bvec2"; break;
-			case GL_BOOL:                var.type.descriptor.name = "bool"; break;
-			case GL_INT_VEC4:            var.type.descriptor.name = "ivec4"; break;
-			case GL_INT_VEC3:            var.type.descriptor.name = "ivec3"; break;
-			case GL_INT_VEC2:            var.type.descriptor.name = "ivec2"; break;
-			case GL_INT:                 var.type.descriptor.name = "int"; break;
+			case eGL_FLOAT_VEC4:          var.type.descriptor.name = "vec4"; break;
+			case eGL_FLOAT_VEC3:          var.type.descriptor.name = "vec3"; break;
+			case eGL_FLOAT_VEC2:          var.type.descriptor.name = "vec2"; break;
+			case eGL_FLOAT:               var.type.descriptor.name = "float"; break;
+			case eGL_FLOAT_MAT4:          var.type.descriptor.name = "mat4"; break;
+			case eGL_FLOAT_MAT3:          var.type.descriptor.name = "mat3"; break;
+			case eGL_FLOAT_MAT2:          var.type.descriptor.name = "mat2"; break;
+			case eGL_FLOAT_MAT4x2:        var.type.descriptor.name = "mat4x2"; break;
+			case eGL_FLOAT_MAT4x3:        var.type.descriptor.name = "mat4x3"; break;
+			case eGL_FLOAT_MAT3x4:        var.type.descriptor.name = "mat3x4"; break;
+			case eGL_FLOAT_MAT3x2:        var.type.descriptor.name = "mat3x2"; break;
+			case eGL_FLOAT_MAT2x4:        var.type.descriptor.name = "mat2x4"; break;
+			case eGL_FLOAT_MAT2x3:        var.type.descriptor.name = "mat2x3"; break;
+			case eGL_DOUBLE_VEC4:         var.type.descriptor.name = "dvec4"; break;
+			case eGL_DOUBLE_VEC3:         var.type.descriptor.name = "dvec3"; break;
+			case eGL_DOUBLE_VEC2:         var.type.descriptor.name = "dvec2"; break;
+			case eGL_DOUBLE:              var.type.descriptor.name = "double"; break;
+			case eGL_DOUBLE_MAT4:         var.type.descriptor.name = "dmat4"; break;
+			case eGL_DOUBLE_MAT3:         var.type.descriptor.name = "dmat3"; break;
+			case eGL_DOUBLE_MAT2:         var.type.descriptor.name = "dmat2"; break;
+			case eGL_DOUBLE_MAT4x2:       var.type.descriptor.name = "dmat4x2"; break;
+			case eGL_DOUBLE_MAT4x3:       var.type.descriptor.name = "dmat4x3"; break;
+			case eGL_DOUBLE_MAT3x4:       var.type.descriptor.name = "dmat3x4"; break;
+			case eGL_DOUBLE_MAT3x2:       var.type.descriptor.name = "dmat3x2"; break;
+			case eGL_DOUBLE_MAT2x4:       var.type.descriptor.name = "dmat2x4"; break;
+			case eGL_DOUBLE_MAT2x3:       var.type.descriptor.name = "dmat2x3"; break;
+			case eGL_UNSIGNED_INT_VEC4:   var.type.descriptor.name = "uvec4"; break;
+			case eGL_UNSIGNED_INT_VEC3:   var.type.descriptor.name = "uvec3"; break;
+			case eGL_UNSIGNED_INT_VEC2:   var.type.descriptor.name = "uvec2"; break;
+			case eGL_UNSIGNED_INT:        var.type.descriptor.name = "uint"; break;
+			case eGL_BOOL_VEC4:           var.type.descriptor.name = "bvec4"; break;
+			case eGL_BOOL_VEC3:           var.type.descriptor.name = "bvec3"; break;
+			case eGL_BOOL_VEC2:           var.type.descriptor.name = "bvec2"; break;
+			case eGL_BOOL:                var.type.descriptor.name = "bool"; break;
+			case eGL_INT_VEC4:            var.type.descriptor.name = "ivec4"; break;
+			case eGL_INT_VEC3:            var.type.descriptor.name = "ivec3"; break;
+			case eGL_INT_VEC2:            var.type.descriptor.name = "ivec2"; break;
+			case eGL_INT:                 var.type.descriptor.name = "int"; break;
 			default:
 				break;
 		}
@@ -916,35 +916,35 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				
 				switch(values[1])
 				{
-					case GL_FLOAT:
-					case GL_DOUBLE:
-					case GL_INT:
-					case GL_UNSIGNED_INT:
-					case GL_BOOL:
+					case eGL_FLOAT:
+					case eGL_DOUBLE:
+					case eGL_INT:
+					case eGL_UNSIGNED_INT:
+					case eGL_BOOL:
 						sig.compCount = 1;
 						sig.regChannelMask = 0x1;
 						break;
-					case GL_FLOAT_VEC2:
-					case GL_DOUBLE_VEC2:
-					case GL_INT_VEC2:
-					case GL_UNSIGNED_INT_VEC2:
-					case GL_BOOL_VEC2:
+					case eGL_FLOAT_VEC2:
+					case eGL_DOUBLE_VEC2:
+					case eGL_INT_VEC2:
+					case eGL_UNSIGNED_INT_VEC2:
+					case eGL_BOOL_VEC2:
 						sig.compCount = 2;
 						sig.regChannelMask = 0x3;
 						break;
-					case GL_FLOAT_VEC3:
-					case GL_DOUBLE_VEC3:
-					case GL_INT_VEC3:
-					case GL_UNSIGNED_INT_VEC3:
-					case GL_BOOL_VEC3:
+					case eGL_FLOAT_VEC3:
+					case eGL_DOUBLE_VEC3:
+					case eGL_INT_VEC3:
+					case eGL_UNSIGNED_INT_VEC3:
+					case eGL_BOOL_VEC3:
 						sig.compCount = 3;
 						sig.regChannelMask = 0x7;
 						break;
-					case GL_FLOAT_VEC4:
-					case GL_DOUBLE_VEC4:
-					case GL_INT_VEC4:
-					case GL_UNSIGNED_INT_VEC4:
-					case GL_BOOL_VEC4:
+					case eGL_FLOAT_VEC4:
+					case eGL_DOUBLE_VEC4:
+					case eGL_INT_VEC4:
+					case eGL_UNSIGNED_INT_VEC4:
+					case eGL_BOOL_VEC4:
 						sig.compCount = 4;
 						sig.regChannelMask = 0xf;
 						break;
@@ -961,61 +961,61 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 				sig.systemValue = eAttr_None;
 
-#define IS_BUITIN(builtin) !strncmp(nm, builtin, sizeof(builtin)-1)
+#define IS_BUILTIN(builtin) !strncmp(nm, builtin, sizeof(builtin)-1)
 
 				// VS built-in inputs
-				if(IS_BUITIN("gl_VertexID"))             sig.systemValue = eAttr_VertexIndex;
-				if(IS_BUITIN("gl_InstanceID"))           sig.systemValue = eAttr_InstanceIndex;
+				if(IS_BUILTIN("gl_VertexID"))             sig.systemValue = eAttr_VertexIndex;
+				if(IS_BUILTIN("gl_InstanceID"))           sig.systemValue = eAttr_InstanceIndex;
 
 				// VS built-in outputs
-				if(IS_BUITIN("gl_Position"))             sig.systemValue = eAttr_Position;
-				if(IS_BUITIN("gl_PointSize"))            sig.systemValue = eAttr_PointSize;
-				if(IS_BUITIN("gl_ClipDistance"))         sig.systemValue = eAttr_ClipDistance;
+				if(IS_BUILTIN("gl_Position"))             sig.systemValue = eAttr_Position;
+				if(IS_BUILTIN("gl_PointSize"))            sig.systemValue = eAttr_PointSize;
+				if(IS_BUILTIN("gl_ClipDistance"))         sig.systemValue = eAttr_ClipDistance;
 				
 				// TCS built-in inputs
-				if(IS_BUITIN("gl_PatchVerticesIn"))      sig.systemValue = eAttr_PatchNumVertices;
-				if(IS_BUITIN("gl_PrimitiveID"))          sig.systemValue = eAttr_PrimitiveIndex;
-				if(IS_BUITIN("gl_InvocationID"))         sig.systemValue = eAttr_InvocationIndex;
+				if(IS_BUILTIN("gl_PatchVerticesIn"))      sig.systemValue = eAttr_PatchNumVertices;
+				if(IS_BUILTIN("gl_PrimitiveID"))          sig.systemValue = eAttr_PrimitiveIndex;
+				if(IS_BUILTIN("gl_InvocationID"))         sig.systemValue = eAttr_InvocationIndex;
 
 				// TCS built-in outputs
-				if(IS_BUITIN("gl_TessLevelOuter"))       sig.systemValue = eAttr_OuterTessFactor;
-				if(IS_BUITIN("gl_TessLevelInner"))       sig.systemValue = eAttr_InsideTessFactor;
+				if(IS_BUILTIN("gl_TessLevelOuter"))       sig.systemValue = eAttr_OuterTessFactor;
+				if(IS_BUILTIN("gl_TessLevelInner"))       sig.systemValue = eAttr_InsideTessFactor;
 				
 				// TES built-in inputs
-				if(IS_BUITIN("gl_TessCoord"))            sig.systemValue = eAttr_DomainLocation;
-				if(IS_BUITIN("gl_PatchVerticesIn"))      sig.systemValue = eAttr_PatchNumVertices;
-				if(IS_BUITIN("gl_PrimitiveID"))          sig.systemValue = eAttr_PrimitiveIndex;
+				if(IS_BUILTIN("gl_TessCoord"))            sig.systemValue = eAttr_DomainLocation;
+				if(IS_BUILTIN("gl_PatchVerticesIn"))      sig.systemValue = eAttr_PatchNumVertices;
+				if(IS_BUILTIN("gl_PrimitiveID"))          sig.systemValue = eAttr_PrimitiveIndex;
 				
 				// GS built-in inputs
-				if(IS_BUITIN("gl_PrimitiveIDIn"))        sig.systemValue = eAttr_PrimitiveIndex;
-				if(IS_BUITIN("gl_InvocationID"))         sig.systemValue = eAttr_InvocationIndex;
-				if(IS_BUITIN("gl_Layer"))                sig.systemValue = eAttr_RTIndex;
-				if(IS_BUITIN("gl_ViewportIndex"))        sig.systemValue = eAttr_ViewportIndex;
+				if(IS_BUILTIN("gl_PrimitiveIDIn"))        sig.systemValue = eAttr_PrimitiveIndex;
+				if(IS_BUILTIN("gl_InvocationID"))         sig.systemValue = eAttr_InvocationIndex;
+				if(IS_BUILTIN("gl_Layer"))                sig.systemValue = eAttr_RTIndex;
+				if(IS_BUILTIN("gl_ViewportIndex"))        sig.systemValue = eAttr_ViewportIndex;
 
 				// GS built-in outputs
-				if(IS_BUITIN("gl_Layer"))                sig.systemValue = eAttr_RTIndex;
-				if(IS_BUITIN("gl_ViewportIndex"))        sig.systemValue = eAttr_ViewportIndex;
+				if(IS_BUILTIN("gl_Layer"))                sig.systemValue = eAttr_RTIndex;
+				if(IS_BUILTIN("gl_ViewportIndex"))        sig.systemValue = eAttr_ViewportIndex;
 				
 				// PS built-in inputs
-				if(IS_BUITIN("gl_FragCoord"))            sig.systemValue = eAttr_Position;
-				if(IS_BUITIN("gl_FrontFacing"))          sig.systemValue = eAttr_IsFrontFace;
-				if(IS_BUITIN("gl_PointCoord"))           sig.systemValue = eAttr_RTIndex;
-				if(IS_BUITIN("gl_SampleID"))             sig.systemValue = eAttr_MSAASampleIndex;
-				if(IS_BUITIN("gl_SamplePosition"))       sig.systemValue = eAttr_MSAASamplePosition;
-				if(IS_BUITIN("gl_SampleMaskIn"))         sig.systemValue = eAttr_MSAACoverage;
+				if(IS_BUILTIN("gl_FragCoord"))            sig.systemValue = eAttr_Position;
+				if(IS_BUILTIN("gl_FrontFacing"))          sig.systemValue = eAttr_IsFrontFace;
+				if(IS_BUILTIN("gl_PointCoord"))           sig.systemValue = eAttr_RTIndex;
+				if(IS_BUILTIN("gl_SampleID"))             sig.systemValue = eAttr_MSAASampleIndex;
+				if(IS_BUILTIN("gl_SamplePosition"))       sig.systemValue = eAttr_MSAASamplePosition;
+				if(IS_BUILTIN("gl_SampleMaskIn"))         sig.systemValue = eAttr_MSAACoverage;
 				
 				// PS built-in outputs
-				if(IS_BUITIN("gl_FragDepth"))            sig.systemValue = eAttr_DepthOutput;
-				if(IS_BUITIN("gl_SampleMask"))           sig.systemValue = eAttr_MSAACoverage;
+				if(IS_BUILTIN("gl_FragDepth"))            sig.systemValue = eAttr_DepthOutput;
+				if(IS_BUILTIN("gl_SampleMask"))           sig.systemValue = eAttr_MSAACoverage;
 				
 				// CS built-in inputs
-				if(IS_BUITIN("gl_NumWorkGroups"))        sig.systemValue = eAttr_DispatchSize;
-				if(IS_BUITIN("gl_WorkGroupID"))          sig.systemValue = eAttr_GroupIndex;
-				if(IS_BUITIN("gl_LocalInvocationID"))    sig.systemValue = eAttr_GroupThreadIndex;
-				if(IS_BUITIN("gl_GlobalInvocationID"))   sig.systemValue = eAttr_DispatchThreadIndex;
-				if(IS_BUITIN("gl_LocalInvocationIndex")) sig.systemValue = eAttr_GroupFlatIndex;
+				if(IS_BUILTIN("gl_NumWorkGroups"))        sig.systemValue = eAttr_DispatchSize;
+				if(IS_BUILTIN("gl_WorkGroupID"))          sig.systemValue = eAttr_GroupIndex;
+				if(IS_BUILTIN("gl_LocalInvocationID"))    sig.systemValue = eAttr_GroupThreadIndex;
+				if(IS_BUILTIN("gl_GlobalInvocationID"))   sig.systemValue = eAttr_DispatchThreadIndex;
+				if(IS_BUILTIN("gl_LocalInvocationIndex")) sig.systemValue = eAttr_GroupFlatIndex;
 
-#undef IS_BUITIN
+#undef IS_BUILTIN
 				if(shadType == eGL_FRAGMENT_SHADER && sigEnum == eGL_PROGRAM_OUTPUT && sig.systemValue == eAttr_None)
 					sig.systemValue = eAttr_ColourOutput;
 				

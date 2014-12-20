@@ -1006,40 +1006,40 @@ void GLReplay::SavePipelineState()
 		default:
 			pipe.m_VtxIn.Topology = eTopology_Unknown;
 			break;
-		case GL_POINTS:
+		case eGL_POINTS:
 			pipe.m_VtxIn.Topology = eTopology_PointList;
 			break;
-		case GL_LINE_STRIP:
+		case eGL_LINE_STRIP:
 			pipe.m_VtxIn.Topology = eTopology_LineStrip;
 			break;
-		case GL_LINE_LOOP:
+		case eGL_LINE_LOOP:
 			pipe.m_VtxIn.Topology = eTopology_LineLoop;
 			break;
-		case GL_LINES:
+		case eGL_LINES:
 			pipe.m_VtxIn.Topology = eTopology_LineList;
 			break;
-		case GL_LINE_STRIP_ADJACENCY:
+		case eGL_LINE_STRIP_ADJACENCY:
 			pipe.m_VtxIn.Topology = eTopology_LineStrip_Adj;
 			break;
-		case GL_LINES_ADJACENCY:
+		case eGL_LINES_ADJACENCY:
 			pipe.m_VtxIn.Topology = eTopology_LineList_Adj;
 			break;
-		case GL_TRIANGLE_STRIP:
+		case eGL_TRIANGLE_STRIP:
 			pipe.m_VtxIn.Topology = eTopology_TriangleStrip;
 			break;
-		case GL_TRIANGLE_FAN:
+		case eGL_TRIANGLE_FAN:
 			pipe.m_VtxIn.Topology = eTopology_TriangleFan;
 			break;
-		case GL_TRIANGLES:
+		case eGL_TRIANGLES:
 			pipe.m_VtxIn.Topology = eTopology_TriangleList;
 			break;
-		case GL_TRIANGLE_STRIP_ADJACENCY:
+		case eGL_TRIANGLE_STRIP_ADJACENCY:
 			pipe.m_VtxIn.Topology = eTopology_TriangleStrip_Adj;
 			break;
-		case GL_TRIANGLES_ADJACENCY:
+		case eGL_TRIANGLES_ADJACENCY:
 			pipe.m_VtxIn.Topology = eTopology_TriangleList_Adj;
 			break;
-		case GL_PATCHES:
+		case eGL_PATCHES:
 		{
 			GLint patchCount = 3;
 			gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);

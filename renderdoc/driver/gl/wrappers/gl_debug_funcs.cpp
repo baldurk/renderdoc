@@ -56,22 +56,22 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 			case eGL_VERTEX_ARRAY:
 				liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
 				break;
-			case GL_SHADER:
+			case eGL_SHADER:
 				liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name));
 				break;
-			case GL_QUERY:
+			case eGL_QUERY:
 				liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name));
 				break;
-			case GL_TRANSFORM_FEEDBACK:
+			case eGL_TRANSFORM_FEEDBACK:
 				liveid = GetResourceManager()->GetID(FeedbackRes(GetCtx(), name));
 				break;
-			case GL_SAMPLER:
+			case eGL_SAMPLER:
 				liveid = GetResourceManager()->GetID(SamplerRes(GetCtx(), name));
 				break;
-			case GL_RENDERBUFFER:
+			case eGL_RENDERBUFFER:
 				liveid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), name));
 				break;
-			case GL_FRAMEBUFFER:
+			case eGL_FRAMEBUFFER:
 				liveid = GetResourceManager()->GetID(FramebufferRes(GetCtx(), name));
 				break;
 			default:

@@ -340,12 +340,12 @@ size_t QueryIdx(GLenum query)
 {
 	switch(query)
 	{
-		case GL_SAMPLES_PASSED:                        return 0;
-		case GL_ANY_SAMPLES_PASSED:                    return 1;
-		case GL_ANY_SAMPLES_PASSED_CONSERVATIVE:       return 2;
-		case GL_PRIMITIVES_GENERATED:                  return 3;
-		case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return 4;
-		case GL_TIME_ELAPSED:                          return 5;
+		case eGL_SAMPLES_PASSED:                        return 0;
+		case eGL_ANY_SAMPLES_PASSED:                    return 1;
+		case eGL_ANY_SAMPLES_PASSED_CONSERVATIVE:       return 2;
+		case eGL_PRIMITIVES_GENERATED:                  return 3;
+		case eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return 4;
+		case eGL_TIME_ELAPSED:                          return 5;
 		default:
 			RDCERR("Unexpected enum as query target: %s", ToStr::Get(query).c_str());
 	}
@@ -725,73 +725,73 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_DOUBLE_VEC4:              gl.glGetUniformdv(progSrc, srcLocation, dv); break;
 
 						// treat all samplers as just an int (since they just store their binding value)
-					case GL_SAMPLER_1D:
-					case GL_SAMPLER_2D:
-					case GL_SAMPLER_3D:
-					case GL_SAMPLER_CUBE:
-					case GL_SAMPLER_CUBE_MAP_ARRAY:
-					case GL_SAMPLER_1D_SHADOW:
-					case GL_SAMPLER_2D_SHADOW:
-					case GL_SAMPLER_1D_ARRAY:
-					case GL_SAMPLER_2D_ARRAY:
-					case GL_SAMPLER_1D_ARRAY_SHADOW:
-					case GL_SAMPLER_2D_ARRAY_SHADOW:
-					case GL_SAMPLER_2D_MULTISAMPLE:
-					case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_SAMPLER_CUBE_SHADOW:
-					case GL_SAMPLER_BUFFER:
-					case GL_SAMPLER_2D_RECT:
-					case GL_SAMPLER_2D_RECT_SHADOW:
-					case GL_INT_SAMPLER_1D:
-					case GL_INT_SAMPLER_2D:
-					case GL_INT_SAMPLER_3D:
-					case GL_INT_SAMPLER_CUBE:
-					case GL_INT_SAMPLER_1D_ARRAY:
-					case GL_INT_SAMPLER_2D_ARRAY:
-					case GL_INT_SAMPLER_2D_MULTISAMPLE:
-					case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_INT_SAMPLER_BUFFER:
-					case GL_INT_SAMPLER_2D_RECT:
-					case GL_UNSIGNED_INT_SAMPLER_1D:
-					case GL_UNSIGNED_INT_SAMPLER_2D:
-					case GL_UNSIGNED_INT_SAMPLER_3D:
-					case GL_UNSIGNED_INT_SAMPLER_CUBE:
-					case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-					case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
-					case GL_IMAGE_1D:
-					case GL_IMAGE_2D:
-					case GL_IMAGE_3D:
-					case GL_IMAGE_2D_RECT:
-					case GL_IMAGE_CUBE:
-					case GL_IMAGE_BUFFER:
-					case GL_IMAGE_1D_ARRAY:
-					case GL_IMAGE_2D_ARRAY:
-					case GL_IMAGE_2D_MULTISAMPLE:
-					case GL_IMAGE_2D_MULTISAMPLE_ARRAY:
-					case GL_INT_IMAGE_1D:
-					case GL_INT_IMAGE_2D:
-					case GL_INT_IMAGE_3D:
-					case GL_INT_IMAGE_2D_RECT:
-					case GL_INT_IMAGE_CUBE:
-					case GL_INT_IMAGE_BUFFER:
-					case GL_INT_IMAGE_1D_ARRAY:
-					case GL_INT_IMAGE_2D_ARRAY:
-					case GL_INT_IMAGE_2D_MULTISAMPLE:
-					case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_1D:
-					case GL_UNSIGNED_INT_IMAGE_2D:
-					case GL_UNSIGNED_INT_IMAGE_3D:
-					case GL_UNSIGNED_INT_IMAGE_2D_RECT:
-					case GL_UNSIGNED_INT_IMAGE_CUBE:
-					case GL_UNSIGNED_INT_IMAGE_BUFFER:
-					case GL_UNSIGNED_INT_IMAGE_1D_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
-					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_SAMPLER_1D:
+					case eGL_SAMPLER_2D:
+					case eGL_SAMPLER_3D:
+					case eGL_SAMPLER_CUBE:
+					case eGL_SAMPLER_CUBE_MAP_ARRAY:
+					case eGL_SAMPLER_1D_SHADOW:
+					case eGL_SAMPLER_2D_SHADOW:
+					case eGL_SAMPLER_1D_ARRAY:
+					case eGL_SAMPLER_2D_ARRAY:
+					case eGL_SAMPLER_1D_ARRAY_SHADOW:
+					case eGL_SAMPLER_2D_ARRAY_SHADOW:
+					case eGL_SAMPLER_2D_MULTISAMPLE:
+					case eGL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_SAMPLER_CUBE_SHADOW:
+					case eGL_SAMPLER_BUFFER:
+					case eGL_SAMPLER_2D_RECT:
+					case eGL_SAMPLER_2D_RECT_SHADOW:
+					case eGL_INT_SAMPLER_1D:
+					case eGL_INT_SAMPLER_2D:
+					case eGL_INT_SAMPLER_3D:
+					case eGL_INT_SAMPLER_CUBE:
+					case eGL_INT_SAMPLER_1D_ARRAY:
+					case eGL_INT_SAMPLER_2D_ARRAY:
+					case eGL_INT_SAMPLER_2D_MULTISAMPLE:
+					case eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT_SAMPLER_BUFFER:
+					case eGL_INT_SAMPLER_2D_RECT:
+					case eGL_UNSIGNED_INT_SAMPLER_1D:
+					case eGL_UNSIGNED_INT_SAMPLER_2D:
+					case eGL_UNSIGNED_INT_SAMPLER_3D:
+					case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+					case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
+					case eGL_IMAGE_1D:
+					case eGL_IMAGE_2D:
+					case eGL_IMAGE_3D:
+					case eGL_IMAGE_2D_RECT:
+					case eGL_IMAGE_CUBE:
+					case eGL_IMAGE_BUFFER:
+					case eGL_IMAGE_1D_ARRAY:
+					case eGL_IMAGE_2D_ARRAY:
+					case eGL_IMAGE_2D_MULTISAMPLE:
+					case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT_IMAGE_1D:
+					case eGL_INT_IMAGE_2D:
+					case eGL_INT_IMAGE_3D:
+					case eGL_INT_IMAGE_2D_RECT:
+					case eGL_INT_IMAGE_CUBE:
+					case eGL_INT_IMAGE_BUFFER:
+					case eGL_INT_IMAGE_1D_ARRAY:
+					case eGL_INT_IMAGE_2D_ARRAY:
+					case eGL_INT_IMAGE_2D_MULTISAMPLE:
+					case eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_1D:
+					case eGL_UNSIGNED_INT_IMAGE_2D:
+					case eGL_UNSIGNED_INT_IMAGE_3D:
+					case eGL_UNSIGNED_INT_IMAGE_2D_RECT:
+					case eGL_UNSIGNED_INT_IMAGE_CUBE:
+					case eGL_UNSIGNED_INT_IMAGE_BUFFER:
+					case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
 					case eGL_INT:                      gl.glGetUniformiv(progSrc, srcLocation, iv); break;
 					case eGL_INT_VEC2:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
 					case eGL_INT_VEC3:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
@@ -844,73 +844,73 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_DOUBLE_VEC4:              gl.glProgramUniform4dv(progDst, newloc, 1, dv); break;
 
 						// treat all samplers as just an int (since they just store their binding value)
-					case GL_SAMPLER_1D:
-					case GL_SAMPLER_2D:
-					case GL_SAMPLER_3D:
-					case GL_SAMPLER_CUBE:
-					case GL_SAMPLER_CUBE_MAP_ARRAY:
-					case GL_SAMPLER_1D_SHADOW:
-					case GL_SAMPLER_2D_SHADOW:
-					case GL_SAMPLER_1D_ARRAY:
-					case GL_SAMPLER_2D_ARRAY:
-					case GL_SAMPLER_1D_ARRAY_SHADOW:
-					case GL_SAMPLER_2D_ARRAY_SHADOW:
-					case GL_SAMPLER_2D_MULTISAMPLE:
-					case GL_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_SAMPLER_CUBE_SHADOW:
-					case GL_SAMPLER_BUFFER:
-					case GL_SAMPLER_2D_RECT:
-					case GL_SAMPLER_2D_RECT_SHADOW:
-					case GL_INT_SAMPLER_1D:
-					case GL_INT_SAMPLER_2D:
-					case GL_INT_SAMPLER_3D:
-					case GL_INT_SAMPLER_CUBE:
-					case GL_INT_SAMPLER_1D_ARRAY:
-					case GL_INT_SAMPLER_2D_ARRAY:
-					case GL_INT_SAMPLER_2D_MULTISAMPLE:
-					case GL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_INT_SAMPLER_BUFFER:
-					case GL_INT_SAMPLER_2D_RECT:
-					case GL_UNSIGNED_INT_SAMPLER_1D:
-					case GL_UNSIGNED_INT_SAMPLER_2D:
-					case GL_UNSIGNED_INT_SAMPLER_3D:
-					case GL_UNSIGNED_INT_SAMPLER_CUBE:
-					case GL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
-					case GL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
-					case GL_UNSIGNED_INT_SAMPLER_BUFFER:
-					case GL_UNSIGNED_INT_SAMPLER_2D_RECT:
-					case GL_IMAGE_1D:
-					case GL_IMAGE_2D:
-					case GL_IMAGE_3D:
-					case GL_IMAGE_2D_RECT:
-					case GL_IMAGE_CUBE:
-					case GL_IMAGE_BUFFER:
-					case GL_IMAGE_1D_ARRAY:
-					case GL_IMAGE_2D_ARRAY:
-					case GL_IMAGE_2D_MULTISAMPLE:
-					case GL_IMAGE_2D_MULTISAMPLE_ARRAY:
-					case GL_INT_IMAGE_1D:
-					case GL_INT_IMAGE_2D:
-					case GL_INT_IMAGE_3D:
-					case GL_INT_IMAGE_2D_RECT:
-					case GL_INT_IMAGE_CUBE:
-					case GL_INT_IMAGE_BUFFER:
-					case GL_INT_IMAGE_1D_ARRAY:
-					case GL_INT_IMAGE_2D_ARRAY:
-					case GL_INT_IMAGE_2D_MULTISAMPLE:
-					case GL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_1D:
-					case GL_UNSIGNED_INT_IMAGE_2D:
-					case GL_UNSIGNED_INT_IMAGE_3D:
-					case GL_UNSIGNED_INT_IMAGE_2D_RECT:
-					case GL_UNSIGNED_INT_IMAGE_CUBE:
-					case GL_UNSIGNED_INT_IMAGE_BUFFER:
-					case GL_UNSIGNED_INT_IMAGE_1D_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_2D_ARRAY:
-					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
-					case GL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_SAMPLER_1D:
+					case eGL_SAMPLER_2D:
+					case eGL_SAMPLER_3D:
+					case eGL_SAMPLER_CUBE:
+					case eGL_SAMPLER_CUBE_MAP_ARRAY:
+					case eGL_SAMPLER_1D_SHADOW:
+					case eGL_SAMPLER_2D_SHADOW:
+					case eGL_SAMPLER_1D_ARRAY:
+					case eGL_SAMPLER_2D_ARRAY:
+					case eGL_SAMPLER_1D_ARRAY_SHADOW:
+					case eGL_SAMPLER_2D_ARRAY_SHADOW:
+					case eGL_SAMPLER_2D_MULTISAMPLE:
+					case eGL_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_SAMPLER_CUBE_SHADOW:
+					case eGL_SAMPLER_BUFFER:
+					case eGL_SAMPLER_2D_RECT:
+					case eGL_SAMPLER_2D_RECT_SHADOW:
+					case eGL_INT_SAMPLER_1D:
+					case eGL_INT_SAMPLER_2D:
+					case eGL_INT_SAMPLER_3D:
+					case eGL_INT_SAMPLER_CUBE:
+					case eGL_INT_SAMPLER_1D_ARRAY:
+					case eGL_INT_SAMPLER_2D_ARRAY:
+					case eGL_INT_SAMPLER_2D_MULTISAMPLE:
+					case eGL_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT_SAMPLER_BUFFER:
+					case eGL_INT_SAMPLER_2D_RECT:
+					case eGL_UNSIGNED_INT_SAMPLER_1D:
+					case eGL_UNSIGNED_INT_SAMPLER_2D:
+					case eGL_UNSIGNED_INT_SAMPLER_3D:
+					case eGL_UNSIGNED_INT_SAMPLER_CUBE:
+					case eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_SAMPLER_BUFFER:
+					case eGL_UNSIGNED_INT_SAMPLER_2D_RECT:
+					case eGL_IMAGE_1D:
+					case eGL_IMAGE_2D:
+					case eGL_IMAGE_3D:
+					case eGL_IMAGE_2D_RECT:
+					case eGL_IMAGE_CUBE:
+					case eGL_IMAGE_BUFFER:
+					case eGL_IMAGE_1D_ARRAY:
+					case eGL_IMAGE_2D_ARRAY:
+					case eGL_IMAGE_2D_MULTISAMPLE:
+					case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_INT_IMAGE_1D:
+					case eGL_INT_IMAGE_2D:
+					case eGL_INT_IMAGE_3D:
+					case eGL_INT_IMAGE_2D_RECT:
+					case eGL_INT_IMAGE_CUBE:
+					case eGL_INT_IMAGE_BUFFER:
+					case eGL_INT_IMAGE_1D_ARRAY:
+					case eGL_INT_IMAGE_2D_ARRAY:
+					case eGL_INT_IMAGE_2D_MULTISAMPLE:
+					case eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_1D:
+					case eGL_UNSIGNED_INT_IMAGE_2D:
+					case eGL_UNSIGNED_INT_IMAGE_3D:
+					case eGL_UNSIGNED_INT_IMAGE_2D_RECT:
+					case eGL_UNSIGNED_INT_IMAGE_CUBE:
+					case eGL_UNSIGNED_INT_IMAGE_BUFFER:
+					case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
+					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
 					case eGL_INT:                      gl.glProgramUniform1iv(progDst, newloc, 1, iv); break;
 					case eGL_INT_VEC2:                 gl.glProgramUniform2iv(progDst, newloc, 1, iv); break;
 					case eGL_INT_VEC3:                 gl.glProgramUniform3iv(progDst, newloc, 1, iv); break;
