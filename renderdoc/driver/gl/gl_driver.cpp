@@ -335,7 +335,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 {
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
-	
+
 	globalExts.push_back("GL_ARB_arrays_of_arrays");
 	globalExts.push_back("GL_ARB_base_instance");
 	globalExts.push_back("GL_ARB_blend_func_extended");
@@ -368,8 +368,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_framebuffer_no_attachments");
 	globalExts.push_back("GL_ARB_framebuffer_object");
 	globalExts.push_back("GL_ARB_framebuffer_sRGB");
-	globalExts.push_back("GL_ARB_get_program_binary");
 	globalExts.push_back("GL_ARB_geometry_shader4");
+	globalExts.push_back("GL_ARB_get_program_binary");
 	globalExts.push_back("GL_ARB_gpu_shader_fp64");
 	globalExts.push_back("GL_ARB_gpu_shader5");
 	globalExts.push_back("GL_ARB_half_float_pixel");
@@ -454,22 +454,59 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_vertex_type_10f_11f_11f_rev");
 	globalExts.push_back("GL_ARB_vertex_type_2_10_10_10_rev");
 	globalExts.push_back("GL_ARB_viewport_array");
+	globalExts.push_back("GL_EXT_bgra");
+	globalExts.push_back("GL_EXT_blend_color");
+	globalExts.push_back("GL_EXT_blend_equation_separate");
+	globalExts.push_back("GL_EXT_blend_func_separate");
+	globalExts.push_back("GL_EXT_blend_minmax");
+	globalExts.push_back("GL_EXT_blend_subtract");
 	globalExts.push_back("GL_EXT_depth_bounds_test");
 	globalExts.push_back("GL_EXT_direct_state_access");
+	globalExts.push_back("GL_EXT_draw_buffers2");
+	globalExts.push_back("GL_EXT_draw_instanced");
+	globalExts.push_back("GL_EXT_draw_range_elements");
 	globalExts.push_back("GL_EXT_framebuffer_blit");
+	globalExts.push_back("GL_EXT_framebuffer_multisample");
+	globalExts.push_back("GL_EXT_framebuffer_multisample_blit_scaled");
 	globalExts.push_back("GL_EXT_framebuffer_object");
+	globalExts.push_back("GL_EXT_framebuffer_sRGB");
+	globalExts.push_back("GL_EXT_gpu_shader4");
+	globalExts.push_back("GL_EXT_multi_draw_arrays");
+	globalExts.push_back("GL_EXT_packed_depth_stencil");
+	globalExts.push_back("GL_EXT_packed_float");
 	globalExts.push_back("GL_EXT_pixel_buffer_object");
+	globalExts.push_back("GL_EXT_pixel_buffer_object");
+	globalExts.push_back("GL_EXT_point_parameters");
 	globalExts.push_back("GL_EXT_polygon_offset_clamp");
+	globalExts.push_back("GL_EXT_provoking_vertex");
+	globalExts.push_back("GL_EXT_shader_image_load_store");
+	globalExts.push_back("GL_EXT_shader_integer_mix");
+	globalExts.push_back("GL_EXT_shadow_funcs");
+	globalExts.push_back("GL_EXT_stencil_wrap");
+	globalExts.push_back("GL_EXT_texture_array");
+	globalExts.push_back("GL_EXT_texture_buffer_object");
+	globalExts.push_back("GL_EXT_texture_compression_dxt1");
+	globalExts.push_back("GL_EXT_texture_compression_rgtc");
 	globalExts.push_back("GL_EXT_texture_compression_s3tc");
+	globalExts.push_back("GL_EXT_texture_cube_map");
+	globalExts.push_back("GL_EXT_texture_edge_clamp");
 	globalExts.push_back("GL_EXT_texture_filter_anisotropic");
+	globalExts.push_back("GL_EXT_texture_integer");
+	globalExts.push_back("GL_EXT_texture_lod_bias");
 	globalExts.push_back("GL_EXT_texture_mirror_clamp");
+	globalExts.push_back("GL_EXT_texture_shared_exponent");
+	globalExts.push_back("GL_EXT_texture_sRGB");
 	globalExts.push_back("GL_EXT_texture_sRGB_decode");
+	globalExts.push_back("GL_EXT_texture_swizzle");
+	globalExts.push_back("GL_EXT_texture3D");
 	globalExts.push_back("GL_EXT_timer_query");
-	globalExts.push_back("GL_GREMEDY_string_marker");
+	globalExts.push_back("GL_EXT_transform_feedback");
+	globalExts.push_back("GL_EXT_vertex_attrib_64bit");
 	globalExts.push_back("GL_GREMEDY_frame_terminator");
-	globalExts.push_back("GL_KHR_debug");
+	globalExts.push_back("GL_GREMEDY_string_marker");
 	globalExts.push_back("GL_KHR_blend_equation_advanced");
 	globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
+	globalExts.push_back("GL_KHR_debug");
 
 	// we'll be sorting the implementation extension array, so make sure the
 	// sorts are identical so we can do the intersection easily
