@@ -167,6 +167,22 @@ void WrappedOpenGL::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, 
 	m_Real.glDebugMessageInsert(source, type, id, severity, length, buf);
 }
 
+void WrappedOpenGL::glFrameTerminatorGREMEDY()
+{
+	Present(NULL);
+}
+
+void WrappedOpenGL::glStringMarkerGREMEDY(GLsizei len, const void *string)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+		Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, len, (const GLchar *)string);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
 {
 	string name = message ? string(message, message + (length > 0 ? length : strlen(message))) : "";

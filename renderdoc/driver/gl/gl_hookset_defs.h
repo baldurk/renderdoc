@@ -862,6 +862,8 @@
     HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBLOFFSETEXTPROC, glVertexArrayVertexAttribLOffsetEXT); \
     HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC, glVertexArrayVertexAttribDivisorEXT); \
     HookExtension(PFNGLPOLYGONOFFSETCLAMPEXTPROC, glPolygonOffsetClampEXT); \
+    HookExtension(PFNGLFRAMETERMINATORGREMEDYPROC, glFrameTerminatorGREMEDY); \
+    HookExtension(PFNGLSTRINGMARKERGREMEDYPROC, glStringMarkerGREMEDY); \
     HookExtension(PFNGLCULLFACEPROC, glCullFace); \
     HookExtension(PFNGLFRONTFACEPROC, glFrontFace); \
     HookExtension(PFNGLHINTPROC, glHint); \
@@ -1634,6 +1636,8 @@
     HookWrapper7(void, glVertexArrayVertexAttribLOffsetEXT, GLuint, vaobj, GLuint, buffer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
     HookWrapper3(void, glVertexArrayVertexAttribDivisorEXT, GLuint, vaobj, GLuint, index, GLuint, divisor); \
     HookWrapper3(void, glPolygonOffsetClampEXT, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
+    HookWrapper0(void, glFrameTerminatorGREMEDY); \
+    HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
 
 
 
@@ -2722,8 +2726,6 @@
     HookWrapper1(void, glvertexweightfvext, const GLfloat *, weight); \
     HookWrapper4(void, glvertexweightpointerext, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
     HookWrapper3(GLsync, glimportsyncext, GLenum, external_sync_type, GLintptr, external_sync, GLbitfield, flags); \
-    HookWrapper0(void, glframeterminatorgremedy); \
-    HookWrapper2(void, glstringmarkergremedy, GLsizei, len, const void *, string); \
     HookWrapper3(void, glimagetransformparameterihp, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glimagetransformparameterfhp, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glimagetransformparameterivhp, GLenum, target, GLenum, pname, const GLint *, params); \
@@ -4419,8 +4421,6 @@
     HandleUnsupported(PFNGLVERTEXWEIGHTFVEXTPROC, glvertexweightfvext); \
     HandleUnsupported(PFNGLVERTEXWEIGHTPOINTEREXTPROC, glvertexweightpointerext); \
     HandleUnsupported(PFNGLIMPORTSYNCEXTPROC, glimportsyncext); \
-    HandleUnsupported(PFNGLFRAMETERMINATORGREMEDYPROC, glframeterminatorgremedy); \
-    HandleUnsupported(PFNGLSTRINGMARKERGREMEDYPROC, glstringmarkergremedy); \
     HandleUnsupported(PFNGLIMAGETRANSFORMPARAMETERIHPPROC, glimagetransformparameterihp); \
     HandleUnsupported(PFNGLIMAGETRANSFORMPARAMETERFHPPROC, glimagetransformparameterfhp); \
     HandleUnsupported(PFNGLIMAGETRANSFORMPARAMETERIVHPPROC, glimagetransformparameterivhp); \

@@ -460,6 +460,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_texture_mirror_clamp");
 	globalExts.push_back("GL_EXT_texture_sRGB_decode");
 	globalExts.push_back("GL_EXT_timer_query");
+	globalExts.push_back("GL_GREMEDY_string_marker");
+	globalExts.push_back("GL_GREMEDY_frame_terminator");
 	globalExts.push_back("GL_KHR_debug");
 
 	// we'll be sorting the implementation extension array, so make sure the

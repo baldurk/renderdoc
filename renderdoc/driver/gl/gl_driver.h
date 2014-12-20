@@ -493,6 +493,9 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPopDebugGroup());
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFrameTerminatorGREMEDY());
+		IMPLEMENT_FUNCTION_SERIALISED(void, glStringMarkerGREMEDY(GLsizei len, const void *string));
 		
 		bool Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags);
 		GLsync glFenceSync(GLenum condition, GLbitfield flags);
