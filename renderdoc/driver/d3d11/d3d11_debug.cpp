@@ -4630,8 +4630,6 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
 			m_MeshDisplayLayout = NULL;
 		}
-		
-		layoutdesc[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
 		hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode, m_DebugRender.MeshHomogVSBytelen, &m_PostMeshDisplayLayout);
 
@@ -4645,8 +4643,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	m_PrevMeshFmt = resFmt;
 	m_PrevMeshFmt2 = resFmt2;
 
-	if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
-		(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
+	if(cfg.unproject || events.size() > 1)
 	{
 		float nearp = 0.1f;
 		float farp = 1000.0f;
@@ -4832,16 +4829,28 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		UINT str[] = { cfg.position.stride, cfg.second.stride };
 		UINT offs[] = { cfg.position.offset, cfg.second.offset };
 
-		auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
+		if(cfg.type == eMeshDataStage_VSIn)
+		{
+			auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
 
-		if(it != WrappedID3D11Buffer::m_BufferList.end())
-			vbs[0] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+			if(it != WrappedID3D11Buffer::m_BufferList.end())
+				vbs[0] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
 
-		it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.buf);
+			it = WrappedID3D11Buffer::m_BufferList.find(cfg.second.buf);
 
-		if(it != WrappedID3D11Buffer::m_BufferList.end())
-			vbs[1] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+			if(it != WrappedID3D11Buffer::m_BufferList.end())
+				vbs[1] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+		}
+		else
+		{
+			PostVSData data = GetPostVSBuffers(frameID, events[0]);
 
+			if(cfg.type == eMeshDataStage_VSOut)
+				vbs[0] = vbs[1] = UNWRAP(WrappedID3D11Buffer, data.vsout.buf);
+			if(cfg.type == eMeshDataStage_GSOut)
+				vbs[0] = vbs[1] = UNWRAP(WrappedID3D11Buffer, data.gsout.buf);
+		}
+		
 		m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
 		m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
 
@@ -4914,8 +4923,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	}
 	
 	// axis markers
-	if(cfg.type == eMeshDataStage_VSIn ||
-		(cfg.type == eMeshDataStage_VSOut && pipeState.m_HS.Shader != ResourceId()))
+	if(!cfg.unproject)
 	{
 		m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 		
@@ -5440,8 +5448,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	}
 
 	// 'fake' helper frustum
-	if((cfg.type != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
-		(cfg.type == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
+	if(cfg.unproject)
 	{
 		UINT strides[] = { sizeof(Vec3f) };
 		UINT offsets[] = { 0 };

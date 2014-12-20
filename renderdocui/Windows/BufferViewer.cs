@@ -2208,6 +2208,13 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.compType = pos.format.compType;
                 m_MeshDisplay.position.specialFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
                 m_MeshDisplay.position.showAlpha = false;
+
+                m_MeshDisplay.unproject = false;
+
+                if ((ui.m_Stage == MeshDataStage.VSOut && !m_Core.CurPipelineState.IsTessellationEnabled) || ui.m_Stage == MeshDataStage.GSOut)
+                {
+                    m_MeshDisplay.unproject = pos.name.ToUpperInvariant() == "SV_POSITION";
+                }
             }
 
             if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
@@ -2408,13 +2415,12 @@ namespace renderdocui.Windows
             if (m_Core.LogLoaded && MeshView)
             {
                 m_ContextUIState = GetUIState(sender);
-                bool input = (m_ContextUIState == m_VSIn);
 
                 if (e.Button == MouseButtons.Right &&
                     m_ContextUIState.m_Input != null &&
                     m_ContextUIState.m_Input.BufferFormats != null)
                 {
-                    selectColumnAsPositionToolStripMenuItem.Visible = input;
+                    selectColumnAsPositionToolStripMenuItem.Visible = true;
                     selectAlphaAsSecondaryToolStripMenuItem.Visible = true;
 
                     m_ContextColumn = 0;

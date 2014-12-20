@@ -57,6 +57,7 @@ struct MeshDisplay
 	uint32_t highlightVert;
 	MeshFormat position;
 	MeshFormat second;
+	bool32 unproject;
 
 	FloatVector prevMeshColour;
 	FloatVector currentMeshColour;

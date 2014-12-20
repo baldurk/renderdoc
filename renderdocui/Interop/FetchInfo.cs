@@ -383,6 +383,7 @@ namespace renderdoc
         public UInt32 highlightVert;
         public MeshFormat position;
         public MeshFormat secondary;
+        public bool unproject;
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();
