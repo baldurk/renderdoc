@@ -33,7 +33,7 @@ extern "C" {
 ** used to make the header, and the header can be found at
 **   http://www.opengl.org/registry/
 **
-** Khronos $Revision: 27684 $ on $Date: 2014-08-11 01:21:35 -0700 (Mon, 11 Aug 2014) $
+** Khronos $Revision: 28299 $ on $Date: 2014-09-25 04:11:58 -0700 (Thu, 25 Sep 2014) $
 */
 
 #if defined(_WIN32) && !defined(APIENTRY) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__)
@@ -2102,6 +2102,10 @@ GLAPI void APIENTRY glGetDoublei_v (GLenum target, GLuint index, GLdouble *data)
 
 #ifndef GL_VERSION_4_2
 #define GL_VERSION_4_2 1
+#define GL_COPY_READ_BUFFER_BINDING       0x8F36
+#define GL_COPY_WRITE_BUFFER_BINDING      0x8F37
+#define GL_TRANSFORM_FEEDBACK_ACTIVE      0x8E24
+#define GL_TRANSFORM_FEEDBACK_PAUSED      0x8E23
 #define GL_UNPACK_COMPRESSED_BLOCK_WIDTH  0x9127
 #define GL_UNPACK_COMPRESSED_BLOCK_HEIGHT 0x9128
 #define GL_UNPACK_COMPRESSED_BLOCK_DEPTH  0x9129
@@ -2751,6 +2755,10 @@ typedef void (APIENTRYP PFNGLGETVERTEXARRAYINDEXED64IVPROC) (GLuint vaobj, GLuin
 typedef void (APIENTRYP PFNGLCREATESAMPLERSPROC) (GLsizei n, GLuint *samplers);
 typedef void (APIENTRYP PFNGLCREATEPROGRAMPIPELINESPROC) (GLsizei n, GLuint *pipelines);
 typedef void (APIENTRYP PFNGLCREATEQUERIESPROC) (GLenum target, GLsizei n, GLuint *ids);
+typedef void (APIENTRYP PFNGLGETQUERYBUFFEROBJECTI64VPROC) (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+typedef void (APIENTRYP PFNGLGETQUERYBUFFEROBJECTIVPROC) (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+typedef void (APIENTRYP PFNGLGETQUERYBUFFEROBJECTUI64VPROC) (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+typedef void (APIENTRYP PFNGLGETQUERYBUFFEROBJECTUIVPROC) (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
 typedef void (APIENTRYP PFNGLMEMORYBARRIERBYREGIONPROC) (GLbitfield barriers);
 typedef void (APIENTRYP PFNGLGETTEXTURESUBIMAGEPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels);
 typedef void (APIENTRYP PFNGLGETCOMPRESSEDTEXTURESUBIMAGEPROC) (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei bufSize, void *pixels);
@@ -2858,6 +2866,10 @@ GLAPI void APIENTRY glGetVertexArrayIndexed64iv (GLuint vaobj, GLuint index, GLe
 GLAPI void APIENTRY glCreateSamplers (GLsizei n, GLuint *samplers);
 GLAPI void APIENTRY glCreateProgramPipelines (GLsizei n, GLuint *pipelines);
 GLAPI void APIENTRY glCreateQueries (GLenum target, GLsizei n, GLuint *ids);
+GLAPI void APIENTRY glGetQueryBufferObjecti64v (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+GLAPI void APIENTRY glGetQueryBufferObjectiv (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+GLAPI void APIENTRY glGetQueryBufferObjectui64v (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
+GLAPI void APIENTRY glGetQueryBufferObjectuiv (GLuint id, GLuint buffer, GLenum pname, GLintptr offset);
 GLAPI void APIENTRY glMemoryBarrierByRegion (GLbitfield barriers);
 GLAPI void APIENTRY glGetTextureSubImage (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels);
 GLAPI void APIENTRY glGetCompressedTextureSubImage (GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei bufSize, void *pixels);
@@ -2995,8 +3007,6 @@ GLAPI void APIENTRY glDispatchComputeGroupSizeARB (GLuint num_groups_x, GLuint n
 
 #ifndef GL_ARB_copy_buffer
 #define GL_ARB_copy_buffer 1
-#define GL_COPY_READ_BUFFER_BINDING       0x8F36
-#define GL_COPY_WRITE_BUFFER_BINDING      0x8F37
 #endif /* GL_ARB_copy_buffer */
 
 #ifndef GL_ARB_copy_image
@@ -3351,13 +3361,13 @@ GLAPI void APIENTRY glGetNamedStringivARB (GLint namelen, const GLchar *name, GL
 #define GL_ARB_sparse_buffer 1
 #define GL_SPARSE_STORAGE_BIT_ARB         0x0400
 #define GL_SPARSE_BUFFER_PAGE_SIZE_ARB    0x82F8
-typedef void (APIENTRYP PFNGLBUFFERPAGECOMMITMENTARBPROC) (GLenum target, GLintptr offset, GLsizei size, GLboolean commit);
-typedef void (APIENTRYP PFNGLNAMEDBUFFERPAGECOMMITMENTEXTPROC) (GLuint buffer, GLintptr offset, GLsizei size, GLboolean commit);
-typedef void (APIENTRYP PFNGLNAMEDBUFFERPAGECOMMITMENTARBPROC) (GLuint buffer, GLintptr offset, GLsizei size, GLboolean commit);
+typedef void (APIENTRYP PFNGLBUFFERPAGECOMMITMENTARBPROC) (GLenum target, GLintptr offset, GLsizeiptr size, GLboolean commit);
+typedef void (APIENTRYP PFNGLNAMEDBUFFERPAGECOMMITMENTEXTPROC) (GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
+typedef void (APIENTRYP PFNGLNAMEDBUFFERPAGECOMMITMENTARBPROC) (GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
 #ifdef GL_GLEXT_PROTOTYPES
-GLAPI void APIENTRY glBufferPageCommitmentARB (GLenum target, GLintptr offset, GLsizei size, GLboolean commit);
-GLAPI void APIENTRY glNamedBufferPageCommitmentEXT (GLuint buffer, GLintptr offset, GLsizei size, GLboolean commit);
-GLAPI void APIENTRY glNamedBufferPageCommitmentARB (GLuint buffer, GLintptr offset, GLsizei size, GLboolean commit);
+GLAPI void APIENTRY glBufferPageCommitmentARB (GLenum target, GLintptr offset, GLsizeiptr size, GLboolean commit);
+GLAPI void APIENTRY glNamedBufferPageCommitmentEXT (GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
+GLAPI void APIENTRY glNamedBufferPageCommitmentARB (GLuint buffer, GLintptr offset, GLsizeiptr size, GLboolean commit);
 #endif
 #endif /* GL_ARB_sparse_buffer */
 
@@ -3365,7 +3375,7 @@ GLAPI void APIENTRY glNamedBufferPageCommitmentARB (GLuint buffer, GLintptr offs
 #define GL_ARB_sparse_texture 1
 #define GL_TEXTURE_SPARSE_ARB             0x91A6
 #define GL_VIRTUAL_PAGE_SIZE_INDEX_ARB    0x91A7
-#define GL_MIN_SPARSE_LEVEL_ARB           0x919B
+#define GL_NUM_SPARSE_LEVELS_ARB          0x91AA
 #define GL_NUM_VIRTUAL_PAGE_SIZES_ARB     0x91A8
 #define GL_VIRTUAL_PAGE_SIZE_X_ARB        0x9195
 #define GL_VIRTUAL_PAGE_SIZE_Y_ARB        0x9196
@@ -3484,8 +3494,6 @@ GLAPI void APIENTRY glTexPageCommitmentARB (GLenum target, GLint level, GLint xo
 
 #ifndef GL_ARB_transform_feedback2
 #define GL_ARB_transform_feedback2 1
-#define GL_TRANSFORM_FEEDBACK_PAUSED      0x8E23
-#define GL_TRANSFORM_FEEDBACK_ACTIVE      0x8E24
 #endif /* GL_ARB_transform_feedback2 */
 
 #ifndef GL_ARB_transform_feedback3
