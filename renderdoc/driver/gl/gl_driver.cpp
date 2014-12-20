@@ -143,6 +143,7 @@ const char *GLChunkNames[] =
 	"glClearTexSubImage",
 	"glPolygonMode",
 	"glPolygonOffset",
+	"glPolygonOffsetClampEXT",
 	"glCullFace",
 	"glHint",
 	"glEnable",
@@ -453,6 +454,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_framebuffer_blit");
 	globalExts.push_back("GL_EXT_framebuffer_object");
 	globalExts.push_back("GL_EXT_pixel_buffer_object");
+	globalExts.push_back("GL_EXT_polygon_offset_clamp");
 	globalExts.push_back("GL_EXT_texture_compression_s3tc");
 	globalExts.push_back("GL_EXT_texture_filter_anisotropic");
 	globalExts.push_back("GL_EXT_texture_mirror_clamp");
@@ -2150,6 +2152,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case POLYGON_OFFSET:
 		Serialise_glPolygonOffset(0, 0);
+		break;
+	case POLYGON_OFFSET_CLAMP:
+		Serialise_glPolygonOffsetClampEXT(0, 0, 0);
 		break;
 	case CULL_FACE:
 		Serialise_glCullFace(eGL_NONE);

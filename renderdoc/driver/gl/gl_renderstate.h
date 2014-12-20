@@ -170,7 +170,7 @@ struct GLRenderState
 	} PatchParams;
 
 	GLenum PolygonMode;
-	float PolygonOffset[2]; // Factor, Units
+	float PolygonOffset[3]; // Factor, Units, (extension) Clamp
 
 	uint8_t DepthWriteMask;
 	float DepthClearValue;

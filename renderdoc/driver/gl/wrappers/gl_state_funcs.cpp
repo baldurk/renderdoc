@@ -1508,3 +1508,30 @@ void WrappedOpenGL::glPolygonOffset(GLfloat factor, GLfloat units)
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
+
+bool WrappedOpenGL::Serialise_glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+{
+	SERIALISE_ELEMENT(float, f, factor);
+	SERIALISE_ELEMENT(float, u, units);
+	SERIALISE_ELEMENT(float, c, clamp);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glPolygonOffsetClampEXT(f, u, c);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+{
+	m_Real.glPolygonOffsetClampEXT(factor, units, clamp);
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET_CLAMP);
+		Serialise_glPolygonOffsetClampEXT(factor, units, clamp);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}

@@ -296,6 +296,10 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	
 	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
 	m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
+	if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp])
+		m_Real->glGetFloatv(eGL_POLYGON_OFFSET_CLAMP_EXT, &PolygonOffset[2]);
+	else
+		PolygonOffset[2] = 0.0f;
 
 	m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
 	m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
@@ -539,7 +543,10 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
 
 	m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
-	m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
+	if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp])
+		m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
+	else
+		m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
 
 	m_Real->glFrontFace(FrontFace);
 	m_Real->glCullFace(CullFace);
@@ -837,6 +844,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	m_pSerialiser->Serialise("GL_POLYGON_MODE", PolygonMode);
 	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_FACTOR", PolygonOffset[0]);
 	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_UNITS", PolygonOffset[1]);
+	m_pSerialiser->Serialise("GL_POLYGON_OFFSET_CLAMP_EXT", PolygonOffset[2]);
 		
 	m_pSerialiser->Serialise("GL_FRONT_FACE", FrontFace);
 	m_pSerialiser->Serialise("GL_CULL_FACE_MODE", CullFace);

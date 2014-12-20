@@ -418,6 +418,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPixelStoref(GLenum pname, GLfloat param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonMode(GLenum face, GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffset(GLfloat factor, GLfloat units));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameteri(GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPatchParameterfv(GLenum pname, const GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPointParameterf(GLenum pname, GLfloat param));

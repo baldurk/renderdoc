@@ -77,6 +77,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
 			EXT_CHECK(ARB_clip_control);
 			EXT_CHECK(ARB_enhanced_layouts);
+			EXT_CHECK(EXT_polygon_offset_clamp);
 
 #undef EXT_CHECK
 		}

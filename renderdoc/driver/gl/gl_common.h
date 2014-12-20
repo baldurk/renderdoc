@@ -97,6 +97,7 @@ enum ExtensionCheckEnum
 {
 	ExtensionSupported_ARB_enhanced_layouts = 0,
 	ExtensionSupported_ARB_clip_control,
+	ExtensionSupported_EXT_polygon_offset_clamp,
 	ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
@@ -247,6 +248,7 @@ enum GLChunkType
 	CLEARTEXSUBIMAGE,
 	POLYGON_MODE,
 	POLYGON_OFFSET,
+	POLYGON_OFFSET_CLAMP,
 	CULL_FACE,
 	HINT,
 	ENABLE,
