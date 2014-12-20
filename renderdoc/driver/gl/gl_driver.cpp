@@ -535,6 +535,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	Extensions I never plan to support due to only referring to old/outdated functionality listed below.
 
+	Vendor specific extensions aren't listed here. Only very important/commonly used vendor extensions
+	will be supported, generally I'll stick to ARB, EXT and KHR.
+
 	I'm not sure what to do about GL_ARB_imaging, it seems like it's somewhat used in modern GL? For now
 	I'm hoping I can get away with not reporting it but implementing the functionality it still describes.
 
