@@ -135,7 +135,12 @@ void WrappedOpenGL::glGetDoublev(GLenum pname, GLdouble *params)
 
 void WrappedOpenGL::glGetPointerv(GLenum pname, void **params)
 {
-	m_Real.glGetPointerv(pname, params);
+	if(pname == eGL_DEBUG_CALLBACK_FUNCTION)
+		*params = (void *)m_RealDebugFunc;
+	else if(pname == eGL_DEBUG_CALLBACK_USER_PARAM)
+		*params = (void *)m_RealDebugFuncParam;
+	else
+		m_Real.glGetPointerv(pname, params);
 }
 
 void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
@@ -818,7 +823,12 @@ void WrappedOpenGL::glGetTextureLevelParameterfvEXT(GLuint texture, GLenum targe
 
 void WrappedOpenGL::glGetPointeri_vEXT(GLenum pname, GLuint index, void **params)
 {
-	m_Real.glGetPointeri_vEXT(pname, index, params);
+	if(pname == eGL_DEBUG_CALLBACK_FUNCTION)
+		*params = (void *)m_RealDebugFunc;
+	else if(pname == eGL_DEBUG_CALLBACK_USER_PARAM)
+		*params = (void *)m_RealDebugFuncParam;
+	else
+		m_Real.glGetPointeri_vEXT(pname, index, params);
 }
 
 void WrappedOpenGL::glGetDoubleIndexedvEXT(GLenum target, GLuint index, GLdouble *data)
