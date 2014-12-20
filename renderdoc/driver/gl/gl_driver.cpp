@@ -508,6 +508,53 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
 	globalExts.push_back("GL_KHR_debug");
 
+	/************************************************************************
+
+	Extensions I never plan to support due to only referring to old/outdated functionality listed below.
+
+	I'm not sure what to do about GL_ARB_imaging, it seems like it's somewhat used in modern GL? For now
+	I'm hoping I can get away with not reporting it but implementing the functionality it still describes.
+
+	* GL_ARB_fragment_program
+	* GL_ARB_fragment_program_shadow
+	* GL_ARB_fragment_shader
+	* GL_ARB_texture_env_add
+	* GL_ARB_texture_env_combine
+	* GL_ARB_texture_env_crossbar
+	* GL_ARB_texture_env_dot3
+	* GL_ARB_transpose_matrix
+	* GL_ARB_vertex_program
+	* GL_ARB_vertex_shader
+	* GL_ARB_window_pos
+	* GL_ATI_draw_buffers
+	* GL_ATI_texture_float
+	* GL_ATI_texture_mirror_once
+	* GL_EXT_abgr
+	* GL_EXT_bindable_uniform
+	* GL_EXT_Cg_shader
+	* GL_EXT_compiled_vertex_array
+	* GL_EXT_fog_coord
+	* GL_EXT_geometry_shader4
+	* GL_EXT_gpu_program_parameters
+	* GL_EXT_import_sync_object
+	* GL_EXT_packed_pixels
+	* GL_EXT_rescale_normal
+	* GL_EXT_secondary_color
+	* GL_EXT_separate_shader_objects
+	* GL_EXT_separate_specular_color
+	* GL_EXT_stencil_two_side
+	* GL_EXT_texture_compression_latc
+	* GL_EXT_texture_env_add
+	* GL_EXT_texture_env_combine
+	* GL_EXT_texture_env_dot3
+	* GL_EXT_texture_lod
+	* GL_EXT_texture_storage
+	* GL_EXT_vertex_array
+	* GL_EXT_vertex_array_bgra
+	* GL_S3_s3tc
+
+	************************************************************************/
+
 	// we'll be sorting the implementation extension array, so make sure the
 	// sorts are identical so we can do the intersection easily
 	std::sort(globalExts.begin(), globalExts.end());
