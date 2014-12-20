@@ -76,12 +76,21 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_MASK,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
+			eGL_BLEND_ADVANCED_COHERENT_KHR,
 		};
 
 		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
 		
 		for(GLuint i=0; i < eEnabled_Count; i++)
+		{
+			if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR && !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
+			{
+				Enabled[i] = true;
+				continue;
+			}
+
 			Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
+		}
 	}
 
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
@@ -340,12 +349,18 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_MASK,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
+			eGL_BLEND_ADVANCED_COHERENT_KHR,
 		};
 		
 		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
 		
 		for(GLuint i=0; i < eEnabled_Count; i++)
+		{
+			if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR && !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
+				continue;
+
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
+		}
 	}
 
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)

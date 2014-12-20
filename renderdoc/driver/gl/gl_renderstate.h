@@ -75,6 +75,7 @@ struct GLRenderState
 		//eEnabled_ScissorTest, handled below with scissor values
 		eEnabled_StencilTest,
 		eEnabled_TexCubeSeamless,
+		eEnabled_BlendCoherent,
 		eEnabled_Count,
 	};
 

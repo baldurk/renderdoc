@@ -739,6 +739,7 @@
     HookExtension(PFNGLREADNPIXELSPROC, glReadnPixels); \
     HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
     HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
+    HookExtension(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HookExtension(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT); \
     HookExtension(PFNGLTEXTUREPARAMETERFEXTPROC, glTextureParameterfEXT); \
     HookExtension(PFNGLTEXTUREPARAMETERFVEXTPROC, glTextureParameterfvEXT); \
@@ -1513,6 +1514,7 @@
     HookWrapper4(void, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
+    HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper2(void, glDepthBoundsEXT, GLclampd, zmin, GLclampd, zmax); \
     HookWrapper4(void, glTextureParameterfEXT, GLuint, texture, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper4(void, glTextureParameterfvEXT, GLuint, texture, GLenum, target, GLenum, pname, const GLfloat *, params); \
@@ -2048,7 +2050,6 @@
     HookWrapper1(void, glwindowpos3ivarb, const GLint *, v); \
     HookWrapper3(void, glwindowpos3sarb, GLshort, x, GLshort, y, GLshort, z); \
     HookWrapper1(void, glwindowpos3svarb, const GLshort *, v); \
-    HookWrapper0(void, glblendbarrierkhr); \
     HookWrapper2(void, glmultitexcoord1boes, GLenum, texture, GLbyte, s); \
     HookWrapper2(void, glmultitexcoord1bvoes, GLenum, texture, const GLbyte *, coords); \
     HookWrapper3(void, glmultitexcoord2boes, GLenum, texture, GLbyte, s, GLbyte, t); \
@@ -3743,7 +3744,6 @@
     HandleUnsupported(PFNGLWINDOWPOS3IVARBPROC, glwindowpos3ivarb); \
     HandleUnsupported(PFNGLWINDOWPOS3SARBPROC, glwindowpos3sarb); \
     HandleUnsupported(PFNGLWINDOWPOS3SVARBPROC, glwindowpos3svarb); \
-    HandleUnsupported(PFNGLBLENDBARRIERKHRPROC, glblendbarrierkhr); \
     HandleUnsupported(PFNGLMULTITEXCOORD1BOESPROC, glmultitexcoord1boes); \
     HandleUnsupported(PFNGLMULTITEXCOORD1BVOESPROC, glmultitexcoord1bvoes); \
     HandleUnsupported(PFNGLMULTITEXCOORD2BOESPROC, glmultitexcoord2boes); \

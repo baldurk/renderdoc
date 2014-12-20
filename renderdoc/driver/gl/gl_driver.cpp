@@ -160,6 +160,7 @@ const char *GLChunkNames[] =
 	"glBlendEquationi",
 	"glBlendEquationSeparate",
 	"glBlendEquationSeparatei",
+	"glBlendBarrierKHR",
 	"glLogicOp",
 	"glStencilOp",
 	"glStencilOpSeparate",
@@ -463,6 +464,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_GREMEDY_string_marker");
 	globalExts.push_back("GL_GREMEDY_frame_terminator");
 	globalExts.push_back("GL_KHR_debug");
+	globalExts.push_back("GL_KHR_blend_equation_advanced");
+	globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
 
 	// we'll be sorting the implementation extension array, so make sure the
 	// sorts are identical so we can do the intersection easily
@@ -2205,6 +2208,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BLEND_EQ_SEPI:
 		Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE);
+		break;
+	case BLEND_BARRIER:
+		Serialise_glBlendBarrierKHR();
 		break;
 
 	case LOGIC_OP:

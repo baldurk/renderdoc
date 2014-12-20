@@ -98,6 +98,7 @@ enum ExtensionCheckEnum
 	ExtensionSupported_ARB_enhanced_layouts = 0,
 	ExtensionSupported_ARB_clip_control,
 	ExtensionSupported_EXT_polygon_offset_clamp,
+	ExtensionSupported_KHR_blend_equation_advanced_coherent,
 	ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
@@ -265,6 +266,7 @@ enum GLChunkType
 	BLEND_EQI,
 	BLEND_EQ_SEP,
 	BLEND_EQ_SEPI,
+	BLEND_BARRIER,
 	LOGIC_OP,
 	STENCIL_OP,
 	STENCIL_OP_SEP,

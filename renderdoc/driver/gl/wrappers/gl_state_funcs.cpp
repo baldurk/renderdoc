@@ -269,6 +269,27 @@ void WrappedOpenGL::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum 
 	}
 }
 
+bool WrappedOpenGL::Serialise_glBlendBarrierKHR()
+{
+	if(m_State <= EXECUTING)
+		m_Real.glBlendBarrierKHR();
+
+	return true;
+}
+
+void WrappedOpenGL::glBlendBarrierKHR()
+{
+	m_Real.glBlendBarrierKHR();
+	
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLEND_BARRIER);
+		Serialise_glBlendBarrierKHR();
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glLogicOp(GLenum opcode)
 {
 	SERIALISE_ELEMENT(GLenum, Op, opcode);

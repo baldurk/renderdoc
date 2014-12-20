@@ -237,6 +237,7 @@ struct GLHookSet
 	PFNGLBLENDEQUATIONIPROC glBlendEquationi; // aliases glBlendEquationiARB
 	PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate; // aliases glBlendEquationSeparateARB
 	PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei; // aliases glBlendEquationSeparateiARB
+	PFNGLBLENDBARRIERKHRPROC glBlendBarrierKHR;
 	PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
 	PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
 	PFNGLSTENCILOPSEPARATEPROC glStencilOpSeparate;
