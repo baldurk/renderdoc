@@ -113,6 +113,7 @@ struct TextureStateInitialData
 	GLenum depthMode;
 	GLenum compareFunc, compareMode;
 	GLenum minFilter, magFilter;
+	int32_t seamless;
 	GLenum swizzle[4];
 	GLenum wrap[3];
 	float border[4];
@@ -131,6 +132,7 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 	Serialise("depthMode", el.depthMode);
 	Serialise("compareFunc", el.compareFunc);
 	Serialise("compareMode", el.compareMode);
+	Serialise("seamless", el.seamless);
 	Serialise("minFilter", el.minFilter);
 	Serialise("magFilter", el.magFilter);
 	Serialise<4>("swizzle", el.swizzle);
@@ -241,6 +243,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			state->depthMode = eGL_NONE;
 			if(IsDepthStencilFormat(details.internalFormat))
 				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
+
+			state->seamless = GL_FALSE;
+			if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+				gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS, (GLint *)&state->seamless);
 
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
@@ -1239,6 +1245,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
+			
+			if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS, (GLint *)&state->seamless);
 
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
