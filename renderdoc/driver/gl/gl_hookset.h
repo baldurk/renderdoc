@@ -264,7 +264,7 @@ struct GLHookSet
 	PFNGLDETACHSHADERPROC glDetachShader;
 	PFNGLRELEASESHADERCOMPILERPROC glReleaseShaderCompiler;
 	PFNGLLINKPROGRAMPROC glLinkProgram;
-	PFNGLPROGRAMPARAMETERIPROC glProgramParameteri;
+	PFNGLPROGRAMPARAMETERIPROC glProgramParameteri; // aliases glProgramParameteriARB
 	PFNGLUSEPROGRAMPROC glUseProgram;
 	PFNGLSHADERBINARYPROC glShaderBinary;
 	PFNGLPROGRAMBINARYPROC glProgramBinary;
@@ -301,12 +301,12 @@ struct GLHookSet
 	PFNGLDRAWBUFFERSPROC glDrawBuffers; // aliases glDrawBuffersARB
 	PFNGLGENFRAMEBUFFERSPROC glGenFramebuffers; // aliases glGenFramebuffersEXT
 	PFNGLBINDFRAMEBUFFERPROC glBindFramebuffer; // aliases glBindFramebufferEXT
-	PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture;
+	PFNGLFRAMEBUFFERTEXTUREPROC glFramebufferTexture; // aliases glFramebufferTextureARB
 	PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D; // aliases glFramebufferTexture1DEXT
 	PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D; // aliases glFramebufferTexture2DEXT
 	PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D; // aliases glFramebufferTexture3DEXT
 	PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer; // aliases glFramebufferRenderbufferEXT
-	PFNGLFRAMEBUFFERTEXTURELAYERPROC glFramebufferTextureLayer;
+	PFNGLFRAMEBUFFERTEXTURELAYERPROC glFramebufferTextureLayer; // aliases glFramebufferTextureLayerARB
 	PFNGLFRAMEBUFFERPARAMETERIPROC glFramebufferParameteri;
 	PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers; // aliases glDeleteFramebuffersEXT
 	PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers; // aliases glGenRenderbuffersEXT
@@ -463,6 +463,7 @@ struct GLHookSet
 	PFNGLPOINTPARAMETERIPROC glPointParameteri;
 	PFNGLPOINTPARAMETERIVPROC glPointParameteriv;
 	PFNGLDISPATCHCOMPUTEPROC glDispatchCompute;
+	PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC glDispatchComputeGroupSizeARB;
 	PFNGLDISPATCHCOMPUTEINDIRECTPROC glDispatchComputeIndirect;
 	PFNGLMEMORYBARRIERPROC glMemoryBarrier;
 	PFNGLMEMORYBARRIERBYREGIONPROC glMemoryBarrierByRegion;

@@ -412,6 +412,7 @@
     HookExtensionAlias(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer, glBlitFramebufferEXT); \
     HookExtension(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURELAYERPROC, glFramebufferTextureLayer); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERTEXTURELAYERPROC, glFramebufferTextureLayer, glFramebufferTextureLayerARB); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
     HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
@@ -448,6 +449,7 @@
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
     HookExtension(PFNGLGETBUFFERPARAMETERI64VPROC, glGetBufferParameteri64v); \
     HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
+    HookExtensionAlias(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture, glFramebufferTextureARB); \
     HookExtension(PFNGLTEXIMAGE2DMULTISAMPLEPROC, glTexImage2DMultisample); \
     HookExtension(PFNGLTEXIMAGE3DMULTISAMPLEPROC, glTexImage3DMultisample); \
     HookExtension(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
@@ -542,6 +544,7 @@
     HookExtension(PFNGLGETPROGRAMBINARYPROC, glGetProgramBinary); \
     HookExtension(PFNGLPROGRAMBINARYPROC, glProgramBinary); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
+    HookExtensionAlias(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri, glProgramParameteriARB); \
     HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
     HookExtension(PFNGLACTIVESHADERPROGRAMPROC, glActiveShaderProgram); \
     HookExtension(PFNGLCREATESHADERPROGRAMVPROC, glCreateShaderProgramv); \
@@ -739,6 +742,7 @@
     HookExtension(PFNGLREADNPIXELSPROC, glReadnPixels); \
     HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
     HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
+    HookExtension(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, glDispatchComputeGroupSizeARB); \
     HookExtension(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HookExtension(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT); \
     HookExtension(PFNGLTEXTUREPARAMETERFEXTPROC, glTextureParameterfEXT); \
@@ -1514,6 +1518,7 @@
     HookWrapper4(void, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
+    HookWrapper6(void, glDispatchComputeGroupSizeARB, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
     HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper2(void, glDepthBoundsEXT, GLclampd, zmin, GLclampd, zmax); \
     HookWrapper4(void, glTextureParameterfEXT, GLuint, texture, GLenum, target, GLenum, pname, GLfloat, param); \
@@ -1738,7 +1743,6 @@
     HookWrapper2(void, glvertexattribl1ui64varb, GLuint, index, const GLuint64EXT *, v); \
     HookWrapper3(void, glgetvertexattriblui64varb, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
     HookWrapper3(GLsync, glcreatesyncfromcleventarb, struct _cl_context *, context, struct _cl_event *, event, GLbitfield, flags); \
-    HookWrapper6(void, gldispatchcomputegroupsizearb, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
     HookWrapper5(void, glmultidrawarraysindirectcountarb, GLenum, mode, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookWrapper6(void, glmultidrawelementsindirectcountarb, GLenum, mode, GLenum, type, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookWrapper5(void, glnamedstringarb, GLenum, type, GLint, namelen, const GLchar *, name, GLint, stringlen, const GLchar *, string); \
@@ -1887,9 +1891,6 @@
     HookWrapper3(void, glgetprogramivarb, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glgetprogramstringarb, GLenum, target, GLenum, pname, void *, string); \
     HookWrapper1(GLboolean, glisprogramarb, GLuint, program); \
-    HookWrapper3(void, glprogramparameteriarb, GLuint, program, GLenum, pname, GLint, value); \
-    HookWrapper4(void, glframebuffertexturearb, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
-    HookWrapper5(void, glframebuffertexturelayerarb, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper5(void, glframebuffertexturefacearb, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLenum, face); \
     HookWrapper6(void, glcolortable, GLenum, target, GLenum, internalformat, GLsizei, width, GLenum, format, GLenum, type, const void *, table); \
     HookWrapper3(void, glcolortableparameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
@@ -3432,7 +3433,6 @@
     HandleUnsupported(PFNGLVERTEXATTRIBL1UI64VARBPROC, glvertexattribl1ui64varb); \
     HandleUnsupported(PFNGLGETVERTEXATTRIBLUI64VARBPROC, glgetvertexattriblui64varb); \
     HandleUnsupported(PFNGLCREATESYNCFROMCLEVENTARBPROC, glcreatesyncfromcleventarb); \
-    HandleUnsupported(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, gldispatchcomputegroupsizearb); \
     HandleUnsupported(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC, glmultidrawarraysindirectcountarb); \
     HandleUnsupported(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC, glmultidrawelementsindirectcountarb); \
     HandleUnsupported(PFNGLNAMEDSTRINGARBPROC, glnamedstringarb); \
@@ -3581,9 +3581,6 @@
     HandleUnsupported(PFNGLGETPROGRAMIVARBPROC, glgetprogramivarb); \
     HandleUnsupported(PFNGLGETPROGRAMSTRINGARBPROC, glgetprogramstringarb); \
     HandleUnsupported(PFNGLISPROGRAMARBPROC, glisprogramarb); \
-    HandleUnsupported(PFNGLPROGRAMPARAMETERIARBPROC, glprogramparameteriarb); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREARBPROC, glframebuffertexturearb); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTURELAYERARBPROC, glframebuffertexturelayerarb); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREFACEARBPROC, glframebuffertexturefacearb); \
     HandleUnsupported(PFNGLCOLORTABLEPROC, glcolortable); \
     HandleUnsupported(PFNGLCOLORTABLEPARAMETERFVPROC, glcolortableparameterfv); \

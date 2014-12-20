@@ -600,6 +600,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint id, GLuint stream, GLsizei instancecount));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDispatchComputeIndirect(GLintptr indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMemoryBarrier(GLbitfield barriers));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMemoryBarrierByRegion(GLbitfield barriers));

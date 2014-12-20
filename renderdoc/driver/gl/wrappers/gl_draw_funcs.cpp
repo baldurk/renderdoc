@@ -74,6 +74,60 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 	}
 }
 
+bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z)
+{
+	SERIALISE_ELEMENT(uint32_t, X, num_groups_x);
+	SERIALISE_ELEMENT(uint32_t, Y, num_groups_y);
+	SERIALISE_ELEMENT(uint32_t, Z, num_groups_z);
+	SERIALISE_ELEMENT(uint32_t, sX, group_size_x);
+	SERIALISE_ELEMENT(uint32_t, sY, group_size_y);
+	SERIALISE_ELEMENT(uint32_t, sZ, group_size_z);
+	
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glDispatchComputeGroupSizeARB(X, Y, Z, sX, sY, sZ);
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(DISPATCH_COMPUTE, desc);
+		string name = "glDispatchComputeGroupSizeARB(" +
+						ToStr::Get(X) + ", " +
+						ToStr::Get(Y) + ", " +
+						ToStr::Get(Z) + ", " +
+						ToStr::Get(sX) + ", " +
+						ToStr::Get(sY) + ", " +
+						ToStr::Get(sZ) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Dispatch;
+
+		draw.debugMessages = debugMessages;
+
+		AddDrawcall(draw, true);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z)
+{
+	m_Real.glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE_GROUP_SIZE);
+		Serialise_glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
 {
 	SERIALISE_ELEMENT(uint64_t, offs, indirect);

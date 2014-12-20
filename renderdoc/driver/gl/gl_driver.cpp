@@ -199,6 +199,7 @@ const char *GLChunkNames[] =
 	"glBindVertexBuffers",
 	"glVertexBindingDivisor",
 	"glDispatchCompute",
+	"glDispatchComputeGroupSizeARB",
 	"glDispatchComputeIndirect",
 	"glMemoryBarrier",
 	"glMemoryBarrierByRegion",
@@ -343,6 +344,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_clear_texture");
 	globalExts.push_back("GL_ARB_color_buffer_float");
 	globalExts.push_back("GL_ARB_compute_shader");
+	globalExts.push_back("GL_ARB_compute_variable_group_size");
 	globalExts.push_back("GL_ARB_conservative_depth");
 	globalExts.push_back("GL_ARB_copy_buffer");
 	globalExts.push_back("GL_ARB_copy_image");
@@ -367,6 +369,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_framebuffer_object");
 	globalExts.push_back("GL_ARB_framebuffer_sRGB");
 	globalExts.push_back("GL_ARB_get_program_binary");
+	globalExts.push_back("GL_ARB_geometry_shader4");
 	globalExts.push_back("GL_ARB_gpu_shader_fp64");
 	globalExts.push_back("GL_ARB_gpu_shader5");
 	globalExts.push_back("GL_ARB_half_float_pixel");
@@ -450,6 +453,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_vertex_program");
 	globalExts.push_back("GL_ARB_vertex_type_10f_11f_11f_rev");
 	globalExts.push_back("GL_ARB_vertex_type_2_10_10_10_rev");
+	globalExts.push_back("GL_ARB_viewport_array");
 	globalExts.push_back("GL_EXT_depth_bounds_test");
 	globalExts.push_back("GL_EXT_direct_state_access");
 	globalExts.push_back("GL_EXT_framebuffer_blit");
@@ -2328,6 +2332,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case DISPATCH_COMPUTE:
 		Serialise_glDispatchCompute(0, 0, 0);
+		break;
+	case DISPATCH_COMPUTE_GROUP_SIZE:
+		Serialise_glDispatchComputeGroupSizeARB(0, 0, 0, 0, 0, 0);
 		break;
 	case DISPATCH_COMPUTE_INDIRECT:
 		Serialise_glDispatchComputeIndirect(0);
