@@ -108,6 +108,7 @@
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
     HookExtensionAlias(PFNGLACTIVETEXTUREPROC, glActiveTexture, glActiveTextureARB); \
     HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
+    HookExtensionAlias(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage, glSampleCoverageARB); \
     HookExtension(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D); \
     HookExtensionAlias(PFNGLCOMPRESSEDTEXIMAGE3DPROC, glCompressedTexImage3D, glCompressedTexImage3DARB); \
     HookExtension(PFNGLCOMPRESSEDTEXIMAGE2DPROC, glCompressedTexImage2D); \
@@ -175,6 +176,7 @@
     HookExtension(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate); \
     HookExtensionAlias(PFNGLBLENDEQUATIONSEPARATEPROC, glBlendEquationSeparate, glBlendEquationSeparateARB); \
     HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
+    HookExtensionAlias(PFNGLDRAWBUFFERSPROC, glDrawBuffers, glDrawBuffersARB); \
     HookExtension(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
     HookExtension(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
     HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \
@@ -407,6 +409,7 @@
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtensionAlias(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap, glGenerateMipmapEXT); \
     HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
+    HookExtensionAlias(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer, glBlitFramebufferEXT); \
     HookExtension(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURELAYERPROC, glFramebufferTextureLayer); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
@@ -416,8 +419,11 @@
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
     HookExtension(PFNGLISVERTEXARRAYPROC, glIsVertexArray); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
+    HookExtensionAlias(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced, glDrawArraysInstancedARB); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
+    HookExtensionAlias(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced, glDrawElementsInstancedARB); \
     HookExtension(PFNGLTEXBUFFERPROC, glTexBuffer); \
+    HookExtensionAlias(PFNGLTEXBUFFERPROC, glTexBuffer, glTexBufferARB); \
     HookExtension(PFNGLPRIMITIVERESTARTINDEXPROC, glPrimitiveRestartIndex); \
     HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HookExtension(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
@@ -468,6 +474,7 @@
     HookExtension(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v); \
     HookExtensionAlias(PFNGLGETQUERYOBJECTUI64VPROC, glGetQueryObjectui64v, glGetQueryObjectui64vEXT); \
     HookExtension(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
+    HookExtensionAlias(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor, glVertexAttribDivisorARB); \
     HookExtension(PFNGLVERTEXATTRIBP1UIPROC, glVertexAttribP1ui); \
     HookExtension(PFNGLVERTEXATTRIBP1UIVPROC, glVertexAttribP1uiv); \
     HookExtension(PFNGLVERTEXATTRIBP2UIPROC, glVertexAttribP2ui); \
@@ -1849,9 +1856,6 @@
     HookWrapper8(void, glgetnseparablefilter, GLenum, target, GLenum, format, GLenum, type, GLsizei, rowBufSize, void *, row, GLsizei, columnBufSize, void *, column, void *, span); \
     HookWrapper6(void, glgetnhistogram, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
     HookWrapper6(void, glgetnminmax, GLenum, target, GLboolean, reset, GLenum, format, GLenum, type, GLsizei, bufSize, void *, values); \
-    HookWrapper2(void, gldrawbuffersarb, GLsizei, n, const GLenum *, bufs); \
-    HookWrapper4(void, gldrawarraysinstancedarb, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
-    HookWrapper5(void, gldrawelementsinstancedarb, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
     HookWrapper4(void, glprogramstringarb, GLenum, target, GLenum, format, GLsizei, len, const void *, string); \
     HookWrapper2(void, glbindprogramarb, GLenum, target, GLuint, program); \
     HookWrapper2(void, gldeleteprogramsarb, GLsizei, n, const GLuint *, programs); \
@@ -1907,13 +1911,11 @@
     HookWrapper3(void, glminmax, GLenum, target, GLenum, internalformat, GLboolean, sink); \
     HookWrapper1(void, glresethistogram, GLenum, target); \
     HookWrapper1(void, glresetminmax, GLenum, target); \
-    HookWrapper2(void, glvertexattribdivisorarb, GLuint, index, GLuint, divisor); \
     HookWrapper1(void, glcurrentpalettematrixarb, GLint, index); \
     HookWrapper2(void, glmatrixindexubvarb, GLint, size, const GLubyte *, indices); \
     HookWrapper2(void, glmatrixindexusvarb, GLint, size, const GLushort *, indices); \
     HookWrapper2(void, glmatrixindexuivarb, GLint, size, const GLuint *, indices); \
     HookWrapper4(void, glmatrixindexpointerarb, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-    HookWrapper2(void, glsamplecoveragearb, GLfloat, value, GLboolean, invert); \
     HookWrapper1(void, glclientactivetexturearb, GLenum, texture); \
     HookWrapper2(void, glmultitexcoord1darb, GLenum, target, GLdouble, s); \
     HookWrapper2(void, glmultitexcoord1dvarb, GLenum, target, const GLdouble *, v); \
@@ -1998,7 +2000,6 @@
     HookWrapper3(void, glgetuniformfvarb, GLhandleARB, programObj, GLint, location, GLfloat *, params); \
     HookWrapper3(void, glgetuniformivarb, GLhandleARB, programObj, GLint, location, GLint *, params); \
     HookWrapper4(void, glgetshadersourcearb, GLhandleARB, obj, GLsizei, maxLength, GLsizei *, length, GLcharARB *, source); \
-    HookWrapper3(void, gltexbufferarb, GLenum, target, GLenum, internalformat, GLuint, buffer); \
     HookWrapper1(void, glloadtransposematrixfarb, const GLfloat *, m); \
     HookWrapper1(void, glloadtransposematrixdarb, const GLdouble *, m); \
     HookWrapper1(void, glmulttransposematrixfarb, const GLfloat *, m); \
@@ -2551,7 +2552,6 @@
     HookWrapper1(void, glfogcoorddext, GLdouble, coord); \
     HookWrapper1(void, glfogcoorddvext, const GLdouble *, coord); \
     HookWrapper3(void, glfogcoordpointerext, GLenum, type, GLsizei, stride, const void *, pointer); \
-    HookWrapper10(void, glblitframebufferext, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
     HookWrapper5(void, glrenderbufferstoragemultisampleext, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glprogramparameteriext, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper4(void, glprogramenvparameters4fvext, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
@@ -3539,9 +3539,6 @@
     HandleUnsupported(PFNGLGETNSEPARABLEFILTERPROC, glgetnseparablefilter); \
     HandleUnsupported(PFNGLGETNHISTOGRAMPROC, glgetnhistogram); \
     HandleUnsupported(PFNGLGETNMINMAXPROC, glgetnminmax); \
-    HandleUnsupported(PFNGLDRAWBUFFERSARBPROC, gldrawbuffersarb); \
-    HandleUnsupported(PFNGLDRAWARRAYSINSTANCEDARBPROC, gldrawarraysinstancedarb); \
-    HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDARBPROC, gldrawelementsinstancedarb); \
     HandleUnsupported(PFNGLPROGRAMSTRINGARBPROC, glprogramstringarb); \
     HandleUnsupported(PFNGLBINDPROGRAMARBPROC, glbindprogramarb); \
     HandleUnsupported(PFNGLDELETEPROGRAMSARBPROC, gldeleteprogramsarb); \
@@ -3597,13 +3594,11 @@
     HandleUnsupported(PFNGLMINMAXPROC, glminmax); \
     HandleUnsupported(PFNGLRESETHISTOGRAMPROC, glresethistogram); \
     HandleUnsupported(PFNGLRESETMINMAXPROC, glresetminmax); \
-    HandleUnsupported(PFNGLVERTEXATTRIBDIVISORARBPROC, glvertexattribdivisorarb); \
     HandleUnsupported(PFNGLCURRENTPALETTEMATRIXARBPROC, glcurrentpalettematrixarb); \
     HandleUnsupported(PFNGLMATRIXINDEXUBVARBPROC, glmatrixindexubvarb); \
     HandleUnsupported(PFNGLMATRIXINDEXUSVARBPROC, glmatrixindexusvarb); \
     HandleUnsupported(PFNGLMATRIXINDEXUIVARBPROC, glmatrixindexuivarb); \
     HandleUnsupported(PFNGLMATRIXINDEXPOINTERARBPROC, glmatrixindexpointerarb); \
-    HandleUnsupported(PFNGLSAMPLECOVERAGEARBPROC, glsamplecoveragearb); \
     HandleUnsupported(PFNGLCLIENTACTIVETEXTUREARBPROC, glclientactivetexturearb); \
     HandleUnsupported(PFNGLMULTITEXCOORD1DARBPROC, glmultitexcoord1darb); \
     HandleUnsupported(PFNGLMULTITEXCOORD1DVARBPROC, glmultitexcoord1dvarb); \
@@ -3688,7 +3683,6 @@
     HandleUnsupported(PFNGLGETUNIFORMFVARBPROC, glgetuniformfvarb); \
     HandleUnsupported(PFNGLGETUNIFORMIVARBPROC, glgetuniformivarb); \
     HandleUnsupported(PFNGLGETSHADERSOURCEARBPROC, glgetshadersourcearb); \
-    HandleUnsupported(PFNGLTEXBUFFERARBPROC, gltexbufferarb); \
     HandleUnsupported(PFNGLLOADTRANSPOSEMATRIXFARBPROC, glloadtransposematrixfarb); \
     HandleUnsupported(PFNGLLOADTRANSPOSEMATRIXDARBPROC, glloadtransposematrixdarb); \
     HandleUnsupported(PFNGLMULTTRANSPOSEMATRIXFARBPROC, glmulttransposematrixfarb); \
@@ -4241,7 +4235,6 @@
     HandleUnsupported(PFNGLFOGCOORDDEXTPROC, glfogcoorddext); \
     HandleUnsupported(PFNGLFOGCOORDDVEXTPROC, glfogcoorddvext); \
     HandleUnsupported(PFNGLFOGCOORDPOINTEREXTPROC, glfogcoordpointerext); \
-    HandleUnsupported(PFNGLBLITFRAMEBUFFEREXTPROC, glblitframebufferext); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC, glrenderbufferstoragemultisampleext); \
     HandleUnsupported(PFNGLPROGRAMPARAMETERIEXTPROC, glprogramparameteriext); \
     HandleUnsupported(PFNGLPROGRAMENVPARAMETERS4FVEXTPROC, glprogramenvparameters4fvext); \
