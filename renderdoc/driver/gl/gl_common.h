@@ -99,6 +99,7 @@ enum ExtensionCheckEnum
 	ExtensionSupported_ARB_clip_control,
 	ExtensionSupported_EXT_polygon_offset_clamp,
 	ExtensionSupported_KHR_blend_equation_advanced_coherent,
+	ExtensionSupported_EXT_raster_multisample,
 	ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
@@ -279,6 +280,7 @@ enum GLChunkType
 	SAMPLE_MASK,
 	SAMPLE_COVERAGE,
 	MIN_SAMPLE_SHADING,
+	RASTER_SAMPLES,
 	DEPTH_FUNC,
 	DEPTH_MASK,
 	DEPTH_RANGE,

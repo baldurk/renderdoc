@@ -754,7 +754,9 @@
     HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
+    HookExtensionAlias(PFNGLOBJECTLABELPROC, glObjectLabel, glLabelObjectEXT); \
     HookExtension(PFNGLGETOBJECTLABELPROC, glGetObjectLabel); \
+    HookExtensionAlias(PFNGLGETOBJECTLABELPROC, glGetObjectLabel, glGetObjectLabelEXT); \
     HookExtension(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
     HookExtension(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
     HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
@@ -815,6 +817,9 @@
     HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
     HookExtension(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, glDispatchComputeGroupSizeARB); \
     HookExtension(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
+    HookExtension(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
+    HookExtension(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
+    HookExtension(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
     HookExtension(PFNGLDEPTHBOUNDSEXTPROC, glDepthBoundsEXT); \
     HookExtension(PFNGLTEXTUREPARAMETERFEXTPROC, glTextureParameterfEXT); \
     HookExtension(PFNGLTEXTUREPARAMETERFVEXTPROC, glTextureParameterfvEXT); \
@@ -938,6 +943,7 @@
     HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBLOFFSETEXTPROC, glVertexArrayVertexAttribLOffsetEXT); \
     HookExtension(PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC, glVertexArrayVertexAttribDivisorEXT); \
     HookExtension(PFNGLPOLYGONOFFSETCLAMPEXTPROC, glPolygonOffsetClampEXT); \
+    HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
     HookExtension(PFNGLFRAMETERMINATORGREMEDYPROC, glFrameTerminatorGREMEDY); \
     HookExtension(PFNGLSTRINGMARKERGREMEDYPROC, glStringMarkerGREMEDY); \
     HookExtension(PFNGLCULLFACEPROC, glCullFace); \
@@ -1591,6 +1597,9 @@
     HookWrapper0(void, glTextureBarrier); \
     HookWrapper6(void, glDispatchComputeGroupSizeARB, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
     HookWrapper0(void, glBlendBarrierKHR); \
+    HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
+    HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
+    HookWrapper0(void, glPopGroupMarkerEXT); \
     HookWrapper2(void, glDepthBoundsEXT, GLclampd, zmin, GLclampd, zmax); \
     HookWrapper4(void, glTextureParameterfEXT, GLuint, texture, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper4(void, glTextureParameterfvEXT, GLuint, texture, GLenum, target, GLenum, pname, const GLfloat *, params); \
@@ -1714,6 +1723,7 @@
     HookWrapper7(void, glVertexArrayVertexAttribLOffsetEXT, GLuint, vaobj, GLuint, buffer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
     HookWrapper3(void, glVertexArrayVertexAttribDivisorEXT, GLuint, vaobj, GLuint, index, GLuint, divisor); \
     HookWrapper3(void, glPolygonOffsetClampEXT, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
+    HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper0(void, glFrameTerminatorGREMEDY); \
     HookWrapper2(void, glStringMarkerGREMEDY, GLsizei, len, const void *, string); \
 
@@ -2494,11 +2504,6 @@
     HookWrapper9(void, glcopytexsubimage3dext, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glcullparameterdvext, GLenum, pname, GLdouble *, params); \
     HookWrapper2(void, glcullparameterfvext, GLenum, pname, GLfloat *, params); \
-    HookWrapper4(void, gllabelobjectext, GLenum, type, GLuint, object, GLsizei, length, const GLchar *, label); \
-    HookWrapper5(void, glgetobjectlabelext, GLenum, type, GLuint, object, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
-    HookWrapper2(void, glinserteventmarkerext, GLsizei, length, const GLchar *, marker); \
-    HookWrapper2(void, glpushgroupmarkerext, GLsizei, length, const GLchar *, marker); \
-    HookWrapper0(void, glpopgroupmarkerext); \
     HookWrapper2(void, glmatrixloadfext, GLenum, mode, const GLfloat *, m); \
     HookWrapper2(void, glmatrixloaddext, GLenum, mode, const GLdouble *, m); \
     HookWrapper2(void, glmatrixmultfext, GLenum, mode, const GLfloat *, m); \
@@ -2662,7 +2667,6 @@
     HookWrapper2(void, glpointparameterfext, GLenum, pname, GLfloat, param); \
     HookWrapper2(void, glpointparameterfvext, GLenum, pname, const GLfloat *, params); \
     HookWrapper2(void, glpolygonoffsetext, GLfloat, factor, GLfloat, bias); \
-    HookWrapper2(void, glrastersamplesext, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper3(void, glsecondarycolor3bext, GLbyte, red, GLbyte, green, GLbyte, blue); \
     HookWrapper1(void, glsecondarycolor3bvext, const GLbyte *, v); \
     HookWrapper3(void, glsecondarycolor3dext, GLdouble, red, GLdouble, green, GLdouble, blue); \
@@ -4115,11 +4119,6 @@
     HandleUnsupported(PFNGLCOPYTEXSUBIMAGE3DEXTPROC, glcopytexsubimage3dext); \
     HandleUnsupported(PFNGLCULLPARAMETERDVEXTPROC, glcullparameterdvext); \
     HandleUnsupported(PFNGLCULLPARAMETERFVEXTPROC, glcullparameterfvext); \
-    HandleUnsupported(PFNGLLABELOBJECTEXTPROC, gllabelobjectext); \
-    HandleUnsupported(PFNGLGETOBJECTLABELEXTPROC, glgetobjectlabelext); \
-    HandleUnsupported(PFNGLINSERTEVENTMARKEREXTPROC, glinserteventmarkerext); \
-    HandleUnsupported(PFNGLPUSHGROUPMARKEREXTPROC, glpushgroupmarkerext); \
-    HandleUnsupported(PFNGLPOPGROUPMARKEREXTPROC, glpopgroupmarkerext); \
     HandleUnsupported(PFNGLMATRIXLOADFEXTPROC, glmatrixloadfext); \
     HandleUnsupported(PFNGLMATRIXLOADDEXTPROC, glmatrixloaddext); \
     HandleUnsupported(PFNGLMATRIXMULTFEXTPROC, glmatrixmultfext); \
@@ -4283,7 +4282,6 @@
     HandleUnsupported(PFNGLPOINTPARAMETERFEXTPROC, glpointparameterfext); \
     HandleUnsupported(PFNGLPOINTPARAMETERFVEXTPROC, glpointparameterfvext); \
     HandleUnsupported(PFNGLPOLYGONOFFSETEXTPROC, glpolygonoffsetext); \
-    HandleUnsupported(PFNGLRASTERSAMPLESEXTPROC, glrastersamplesext); \
     HandleUnsupported(PFNGLSECONDARYCOLOR3BEXTPROC, glsecondarycolor3bext); \
     HandleUnsupported(PFNGLSECONDARYCOLOR3BVEXTPROC, glsecondarycolor3bvext); \
     HandleUnsupported(PFNGLSECONDARYCOLOR3DEXTPROC, glsecondarycolor3dext); \

@@ -72,6 +72,8 @@ struct GLRenderState
 		eEnabled_SampleAlphaToOne,
 		eEnabled_SampleCoverage,
 		eEnabled_SampleMask,
+		eEnabled_RasterMultisample,
+		eEnabled_RasterMultisampleFixed,
 		//eEnabled_ScissorTest, handled below with scissor values
 		eEnabled_StencilTest,
 		eEnabled_TexCubeSeamless,
@@ -204,6 +206,8 @@ struct GLRenderState
 		uint8_t red, green, blue, alpha;
 	} ColorMasks[8];
 
+	uint32_t RasterSamples;
+	bool RasterFixed;
 	uint32_t SampleMask[2];
 	float SampleCoverage;
 	bool SampleCoverageInvert;

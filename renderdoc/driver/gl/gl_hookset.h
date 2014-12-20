@@ -151,7 +151,7 @@ struct GLHookSet
 	PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC glGetProgramResourceLocationIndex;
 	PFNGLGETPROGRAMSTAGEIVPROC glGetProgramStageiv;
 	PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus; // aliases glGetGraphicsResetStatusARB
-	PFNGLGETOBJECTLABELPROC glGetObjectLabel;
+	PFNGLGETOBJECTLABELPROC glGetObjectLabel; // aliases glGetObjectLabelEXT
 	PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;
 	PFNGLGETDEBUGMESSAGELOGPROC glGetDebugMessageLog; // aliases glGetDebugMessageLogARB
 	PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC glGetFramebufferAttachmentParameteriv; // aliases glGetFramebufferAttachmentParameterivEXT
@@ -243,6 +243,7 @@ struct GLHookSet
 	PFNGLSTENCILOPSEPARATEPROC glStencilOpSeparate;
 	PFNGLCOLORMASKIPROC glColorMaski; // aliases glColorMaskIndexedEXT
 	PFNGLSAMPLEMASKIPROC glSampleMaski;
+	PFNGLRASTERSAMPLESEXTPROC glRasterSamplesEXT;
 	PFNGLSAMPLECOVERAGEPROC glSampleCoverage; // aliases glSampleCoverageARB
 	PFNGLMINSAMPLESHADINGPROC glMinSampleShading; // aliases glMinSampleShadingARB
 	PFNGLDEPTHRANGEFPROC glDepthRangef;
@@ -280,7 +281,10 @@ struct GLHookSet
 	PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert; // aliases glDebugMessageInsertARB
 	PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;
 	PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;
-	PFNGLOBJECTLABELPROC glObjectLabel;
+	PFNGLPUSHGROUPMARKEREXTPROC glPushGroupMarkerEXT;
+	PFNGLPOPGROUPMARKEREXTPROC glPopGroupMarkerEXT;
+	PFNGLINSERTEVENTMARKEREXTPROC glInsertEventMarkerEXT;
+	PFNGLOBJECTLABELPROC glObjectLabel; // aliases glLabelObjectEXT
 	PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;
 	PFNGLENABLEIPROC glEnablei; // aliases glEnableIndexedEXT
 	PFNGLDISABLEIPROC glDisablei; // aliases glDisableIndexedEXT

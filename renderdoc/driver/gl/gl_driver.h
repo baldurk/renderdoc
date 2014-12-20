@@ -389,6 +389,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSampleMaski(GLuint maskNumber, GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glSampleCoverage(GLfloat value, GLboolean invert));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMinSampleShading(GLfloat value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClear(GLbitfield mask));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glClearDepth(GLdouble depth));
@@ -494,6 +495,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *buf));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glPopDebugGroup());
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPushGroupMarkerEXT(GLsizei length, const GLchar *marker));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glPopGroupMarkerEXT());
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInsertEventMarkerEXT(GLsizei length, const GLchar *marker));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFrameTerminatorGREMEDY());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glStringMarkerGREMEDY(GLsizei len, const void *string));

@@ -173,6 +173,7 @@ const char *GLChunkNames[] =
 	"glSampleMaski",
 	"glSampleCoverage",
 	"glMinSampleShading",
+	"glRasterSamplesEXT",
 	"glDepthFunc",
 	"glDepthMask",
 	"glDepthRange",
@@ -342,16 +343,20 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_buffer_storage");
 	globalExts.push_back("GL_ARB_clear_buffer_object");
 	globalExts.push_back("GL_ARB_clear_texture");
+	globalExts.push_back("GL_ARB_clip_control");
 	globalExts.push_back("GL_ARB_color_buffer_float");
 	globalExts.push_back("GL_ARB_compute_shader");
 	globalExts.push_back("GL_ARB_compute_variable_group_size");
+	globalExts.push_back("GL_ARB_conditional_render_inverted");
 	globalExts.push_back("GL_ARB_conservative_depth");
 	globalExts.push_back("GL_ARB_copy_buffer");
 	globalExts.push_back("GL_ARB_copy_image");
+	globalExts.push_back("GL_ARB_cull_distance");
 	globalExts.push_back("GL_ARB_debug_output");
 	globalExts.push_back("GL_ARB_depth_buffer_float");
 	globalExts.push_back("GL_ARB_depth_clamp");
 	globalExts.push_back("GL_ARB_depth_texture");
+	globalExts.push_back("GL_ARB_derivative_control");
 	globalExts.push_back("GL_ARB_draw_buffers");
 	globalExts.push_back("GL_ARB_draw_buffers_blend");
 	globalExts.push_back("GL_ARB_draw_elements_base_vertex");
@@ -370,11 +375,13 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_framebuffer_sRGB");
 	globalExts.push_back("GL_ARB_geometry_shader4");
 	globalExts.push_back("GL_ARB_get_program_binary");
+	globalExts.push_back("GL_ARB_get_texture_sub_image");
 	globalExts.push_back("GL_ARB_gpu_shader_fp64");
 	globalExts.push_back("GL_ARB_gpu_shader5");
 	globalExts.push_back("GL_ARB_half_float_pixel");
 	globalExts.push_back("GL_ARB_half_float_vertex");
 	globalExts.push_back("GL_ARB_indirect_parameters");
+	globalExts.push_back("GL_ARB_instanced_arrays");
 	globalExts.push_back("GL_ARB_internalformat_query");
 	globalExts.push_back("GL_ARB_internalformat_query2");
 	globalExts.push_back("GL_ARB_invalidate_subdata");
@@ -386,6 +393,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_occlusion_query");
 	globalExts.push_back("GL_ARB_occlusion_query2");
 	globalExts.push_back("GL_ARB_pixel_buffer_object");
+	globalExts.push_back("GL_ARB_pipeline_statistics_query");
 	globalExts.push_back("GL_ARB_point_parameters");
 	globalExts.push_back("GL_ARB_point_sprite");
 	globalExts.push_back("GL_ARB_program_interface_query");
@@ -393,6 +401,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_query_buffer_object");
 	globalExts.push_back("GL_ARB_robust_buffer_access_behavior");
 	globalExts.push_back("GL_ARB_robustness");
+	globalExts.push_back("GL_ARB_robustness_application_isolation");
+	globalExts.push_back("GL_ARB_robustness_share_group_isolation");
 	globalExts.push_back("GL_ARB_sample_shading");
 	globalExts.push_back("GL_ARB_sampler_objects");
 	globalExts.push_back("GL_ARB_seamless_cube_map");
@@ -405,16 +415,20 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_shader_image_load_store");
 	globalExts.push_back("GL_ARB_shader_image_size");
 	globalExts.push_back("GL_ARB_shader_precision");
+	globalExts.push_back("GL_ARB_shader_stencil_export");
 	globalExts.push_back("GL_ARB_shader_storage_buffer_object");
 	globalExts.push_back("GL_ARB_shader_subroutine");
+	globalExts.push_back("GL_ARB_shader_texture_image_samples");
 	globalExts.push_back("GL_ARB_shader_texture_lod");
 	globalExts.push_back("GL_ARB_shading_language_100");
 	globalExts.push_back("GL_ARB_shading_language_420pack");
 	globalExts.push_back("GL_ARB_shading_language_packing");
 	globalExts.push_back("GL_ARB_shadow");
+	globalExts.push_back("GL_ARB_shadow_ambient");
 	globalExts.push_back("GL_ARB_stencil_texturing");
 	globalExts.push_back("GL_ARB_sync");
 	globalExts.push_back("GL_ARB_tessellation_shader");
+	globalExts.push_back("GL_ARB_texture_barrier");
 	globalExts.push_back("GL_ARB_texture_border_clamp");
 	globalExts.push_back("GL_ARB_texture_buffer_object");
 	globalExts.push_back("GL_ARB_texture_buffer_object_rgb32");
@@ -442,6 +456,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_texture_view");
 	globalExts.push_back("GL_ARB_timer_query");
 	globalExts.push_back("GL_ARB_transform_feedback_instanced");
+	globalExts.push_back("GL_ARB_transform_feedback_overflow_query");
 	globalExts.push_back("GL_ARB_transform_feedback2");
 	globalExts.push_back("GL_ARB_transform_feedback3");
 	globalExts.push_back("GL_ARB_uniform_buffer_object");
@@ -460,6 +475,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_blend_func_separate");
 	globalExts.push_back("GL_EXT_blend_minmax");
 	globalExts.push_back("GL_EXT_blend_subtract");
+	globalExts.push_back("GL_EXT_debug_label");
+	globalExts.push_back("GL_EXT_debug_marker");
 	globalExts.push_back("GL_EXT_depth_bounds_test");
 	globalExts.push_back("GL_EXT_direct_state_access");
 	globalExts.push_back("GL_EXT_draw_buffers2");
@@ -471,6 +488,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_framebuffer_object");
 	globalExts.push_back("GL_EXT_framebuffer_sRGB");
 	globalExts.push_back("GL_EXT_gpu_shader4");
+	globalExts.push_back("GL_EXT_multisample");
 	globalExts.push_back("GL_EXT_multi_draw_arrays");
 	globalExts.push_back("GL_EXT_packed_depth_stencil");
 	globalExts.push_back("GL_EXT_packed_float");
@@ -478,8 +496,11 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_pixel_buffer_object");
 	globalExts.push_back("GL_EXT_point_parameters");
 	globalExts.push_back("GL_EXT_polygon_offset_clamp");
+	globalExts.push_back("GL_EXT_post_depth_coverage");
 	globalExts.push_back("GL_EXT_provoking_vertex");
+	globalExts.push_back("GL_EXT_raster_multisample");
 	globalExts.push_back("GL_EXT_shader_image_load_store");
+	globalExts.push_back("GL_EXT_shader_image_load_formatted");
 	globalExts.push_back("GL_EXT_shader_integer_mix");
 	globalExts.push_back("GL_EXT_shadow_funcs");
 	globalExts.push_back("GL_EXT_stencil_wrap");
@@ -491,10 +512,12 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_EXT_texture_cube_map");
 	globalExts.push_back("GL_EXT_texture_edge_clamp");
 	globalExts.push_back("GL_EXT_texture_filter_anisotropic");
+	globalExts.push_back("GL_EXT_texture_filter_minmax");
 	globalExts.push_back("GL_EXT_texture_integer");
 	globalExts.push_back("GL_EXT_texture_lod_bias");
 	globalExts.push_back("GL_EXT_texture_mirror_clamp");
 	globalExts.push_back("GL_EXT_texture_shared_exponent");
+	globalExts.push_back("GL_EXT_texture_snorm");
 	globalExts.push_back("GL_EXT_texture_sRGB");
 	globalExts.push_back("GL_EXT_texture_sRGB_decode");
 	globalExts.push_back("GL_EXT_texture_swizzle");
@@ -515,42 +538,74 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	I'm not sure what to do about GL_ARB_imaging, it seems like it's somewhat used in modern GL? For now
 	I'm hoping I can get away with not reporting it but implementing the functionality it still describes.
 
+	* GL_ARB_compatibility
 	* GL_ARB_fragment_program
 	* GL_ARB_fragment_program_shadow
 	* GL_ARB_fragment_shader
+	* GL_ARB_matrix_palette
+	* GL_ARB_shader_objects
 	* GL_ARB_texture_env_add
 	* GL_ARB_texture_env_combine
 	* GL_ARB_texture_env_crossbar
 	* GL_ARB_texture_env_dot3
 	* GL_ARB_transpose_matrix
+	* GL_ARB_vertex_blend
 	* GL_ARB_vertex_program
 	* GL_ARB_vertex_shader
 	* GL_ARB_window_pos
 	* GL_ATI_draw_buffers
 	* GL_ATI_texture_float
 	* GL_ATI_texture_mirror_once
+	* GL_EXT_422_pixels
 	* GL_EXT_abgr
 	* GL_EXT_bindable_uniform
+	* GL_EXT_blend_logic_op
 	* GL_EXT_Cg_shader
+	* GL_EXT_clip_volume_hint
+	* GL_EXT_cmyka
+	* GL_EXT_color_subtable
 	* GL_EXT_compiled_vertex_array
+	* GL_EXT_convolution
+	* GL_EXT_coordinate_frame
+	* GL_EXT_copy_texture
+	* GL_EXT_cull_vertex
 	* GL_EXT_fog_coord
+	* GL_EXT_fragment_lighting
 	* GL_EXT_geometry_shader4
 	* GL_EXT_gpu_program_parameters
+	* GL_EXT_histogram
 	* GL_EXT_import_sync_object
+	* GL_EXT_index_array_formats
+	* GL_EXT_index_func
+	* GL_EXT_index_material
+	* GL_EXT_index_texture
+	* GL_EXT_light_texture
+	* GL_EXT_misc_attribute
 	* GL_EXT_packed_pixels
+	* GL_EXT_paletted_texture
+	* GL_EXT_pixel_transform
+	* GL_EXT_pixel_transform_color_table
 	* GL_EXT_rescale_normal
+	* GL_EXT_scene_marker
 	* GL_EXT_secondary_color
 	* GL_EXT_separate_shader_objects
 	* GL_EXT_separate_specular_color
+	* GL_EXT_shared_texture_palette
+	* GL_EXT_stencil_clear_tag
 	* GL_EXT_stencil_two_side
+	* GL_EXT_subtexture
 	* GL_EXT_texture_compression_latc
 	* GL_EXT_texture_env_add
 	* GL_EXT_texture_env_combine
 	* GL_EXT_texture_env_dot3
 	* GL_EXT_texture_lod
+	* GL_EXT_texture_object
+	* GL_EXT_texture_perturb_normal
 	* GL_EXT_texture_storage
 	* GL_EXT_vertex_array
 	* GL_EXT_vertex_array_bgra
+	* GL_EXT_vertex_shader
+	* GL_EXT_vertex_weighting
 	* GL_S3_s3tc
 
 	************************************************************************/
@@ -2338,6 +2393,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case MIN_SAMPLE_SHADING:
 		Serialise_glMinSampleShading(0.0f);
+		break;
+	case RASTER_SAMPLES:
+		Serialise_glRasterSamplesEXT(0, 0);
 		break;
 	case DEPTH_FUNC:
 		Serialise_glDepthFunc(eGL_NONE);

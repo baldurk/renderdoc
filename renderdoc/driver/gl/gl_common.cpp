@@ -79,6 +79,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 			EXT_CHECK(ARB_enhanced_layouts);
 			EXT_CHECK(EXT_polygon_offset_clamp);
 			EXT_CHECK(KHR_blend_equation_advanced_coherent);
+			EXT_CHECK(EXT_raster_multisample);
 
 #undef EXT_CHECK
 		}

@@ -1133,6 +1133,32 @@ void WrappedOpenGL::glMinSampleShading(GLfloat value)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
+{
+	SERIALISE_ELEMENT(uint32_t, s, samples);
+	SERIALISE_ELEMENT(bool, f, fixedsamplelocations != 0);
+
+	if(m_State <= EXECUTING)
+	{
+		m_Real.glRasterSamplesEXT(s, f);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
+{
+	m_Real.glRasterSamplesEXT(samples, fixedsamplelocations);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(RASTER_SAMPLES);
+		Serialise_glRasterSamplesEXT(samples, fixedsamplelocations);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 bool WrappedOpenGL::Serialise_glPatchParameteri(GLenum pname, GLint value)
 {
 	SERIALISE_ELEMENT(GLenum, PName, pname);

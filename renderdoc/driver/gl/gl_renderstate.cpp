@@ -74,6 +74,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
+			eGL_RASTER_MULTISAMPLE_EXT,
+			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
@@ -86,6 +88,13 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 			if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR && !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
 			{
 				Enabled[i] = true;
+				continue;
+			}
+			
+			if((pnames[i] == eGL_RASTER_MULTISAMPLE_EXT || pnames[i] == eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT)
+				 && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+			{
+				Enabled[i] = false;
 				continue;
 			}
 
@@ -279,6 +288,16 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_VALUE, (GLint *)&SampleCoverage);
 	m_Real->glGetIntegerv(eGL_SAMPLE_COVERAGE_INVERT, (GLint *)&boolread); SampleCoverageInvert = (boolread != 0);
 	m_Real->glGetFloatv(eGL_MIN_SAMPLE_SHADING_VALUE, &MinSampleShading);
+
+	if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+		m_Real->glGetIntegerv(eGL_RASTER_SAMPLES_EXT, (GLint *)&RasterSamples);
+	else
+		RasterSamples = 0;
+	
+	if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+		m_Real->glGetIntegerv(eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT, (GLint *)&RasterFixed);
+	else
+		RasterFixed = false;
 	
 	m_Real->glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
 
@@ -347,6 +366,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
+			eGL_RASTER_MULTISAMPLE_EXT,
+			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
@@ -357,6 +378,10 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 		for(GLuint i=0; i < eEnabled_Count; i++)
 		{
 			if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR && !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
+				continue;
+			
+			if((pnames[i] == eGL_RASTER_MULTISAMPLE_EXT || pnames[i] == eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT)
+				 && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
 				continue;
 
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
@@ -549,6 +574,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
 	m_Real->glMinSampleShading(MinSampleShading);
 
+	if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+		m_Real->glRasterSamplesEXT(RasterSamples, RasterFixed);
+
 	m_Real->glLogicOp(LogicOp);
 
 	m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue, ColorClearValue.alpha);
@@ -624,6 +652,8 @@ void GLRenderState::Clear()
 	RDCEraseEl(StencilClearValue);
 	RDCEraseEl(ColorMasks);
 	RDCEraseEl(SampleMask);
+	RDCEraseEl(RasterSamples);
+	RDCEraseEl(RasterFixed);
 	RDCEraseEl(SampleCoverage);
 	RDCEraseEl(SampleCoverageInvert);
 	RDCEraseEl(MinSampleShading);
@@ -845,6 +875,9 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_VALUE", SampleCoverage);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_INVERT", SampleCoverageInvert);
 	m_pSerialiser->Serialise("GL_MIN_SAMPLE_SHADING", MinSampleShading);
+
+	m_pSerialiser->Serialise("GL_RASTER_SAMPLES_EXT", RasterSamples);
+	m_pSerialiser->Serialise("GL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT", RasterFixed);
 
 	m_pSerialiser->Serialise("GL_LOGIC_OP_MODE", LogicOp);
 
