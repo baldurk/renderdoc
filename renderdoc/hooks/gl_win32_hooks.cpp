@@ -217,27 +217,6 @@ class OpenGLHook : LibraryHook
 		OpenGLHook()
 		{
 			LibraryHooks::GetInstance().RegisterHook(DLL_NAME, this);
-			
-			// TODO: need to check against implementation to ensure we don't claim to support
-			// an extension that it doesn't!
-
-			wglExts.push_back("WGL_ARB_extensions_string");
-			wglExts.push_back("WGL_EXT_extensions_string");
-			wglExts.push_back("WGL_ARB_multisample");
-			wglExts.push_back("WGL_ARB_framebuffer_sRGB");
-			wglExts.push_back("WGL_EXT_framebuffer_sRGB");
-			wglExts.push_back("WGL_ARB_create_context");
-			wglExts.push_back("WGL_ARB_create_context_profile");
-			wglExts.push_back("WGL_ARB_create_context_robustness");
-			wglExts.push_back("WGL_EXT_create_context_es_profile");
-			wglExts.push_back("WGL_EXT_create_context_es2_profile");
-			wglExts.push_back("WGL_ARB_pixel_format");
-			wglExts.push_back("WGL_ARB_pixel_format_float");
-			wglExts.push_back("WGL_EXT_pixel_format_packed_float");
-			wglExts.push_back("WGL_EXT_swap_control");
-			wglExts.push_back("WGL_EXT_swap_control_tear");
-			
-			merge(wglExts, wglExtsString, ' ');
 
 			m_GLDriver = NULL;
 
@@ -573,27 +552,6 @@ class OpenGLHook : LibraryHook
 
 			return DISP_CHANGE_SUCCESSFUL;
 		}
-		
-		static const char * WINAPI wglGetExtensionsStringARB_hooked(HDC dc)
-		{
-#if !defined(_RELEASE)
-			PFNWGLGETEXTENSIONSSTRINGARBPROC wglGetExtStrARB = (PFNWGLGETEXTENSIONSSTRINGARBPROC)glhooks.wglGetProcAddress_hook()("wglGetExtensionsStringARB");
-			string realExtsString = wglGetExtStrARB(dc);
-			vector<string> realExts;
-			split(realExtsString, realExts, ' ');
-#endif
-			return glhooks.wglExtsString.c_str();
-		}
-		static const char * WINAPI wglGetExtensionsStringEXT_hooked()
-		{
-#if !defined(_RELEASE)
-			PFNWGLGETEXTENSIONSSTRINGEXTPROC wglGetExtStrEXT = (PFNWGLGETEXTENSIONSSTRINGEXTPROC)glhooks.wglGetProcAddress_hook()("wglGetExtensionsStringEXT");
-			string realExtsString = wglGetExtStrEXT();
-			vector<string> realExts;
-			split(realExtsString, realExts, ' ');
-#endif
-			return glhooks.wglExtsString.c_str();
-		}
 
 		static PROC WINAPI wglGetProcAddress_hooked(const char *func)
 		{
@@ -607,14 +565,6 @@ class OpenGLHook : LibraryHook
 			if(realFunc == NULL)
 				return realFunc;
 			
-			if(!strcmp(func, "wglGetExtensionsStringEXT"))
-			{
-				return (PROC)&wglGetExtensionsStringEXT_hooked;
-			}
-			if(!strcmp(func, "wglGetExtensionsStringARB"))
-			{
-				return (PROC)&wglGetExtensionsStringARB_hooked;
-			}
 			if(!strcmp(func, "wglCreateContextAttribsARB"))
 			{
 				glhooks.wglCreateContextAttribsARB_realfunc = (PFNWGLCREATECONTEXTATTRIBSARBPROC)realFunc;
@@ -635,8 +585,7 @@ class OpenGLHook : LibraryHook
 				glhooks.wglGetPixelFormatAttribivARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)realFunc;
 				return (PROC)&wglGetPixelFormatAttribivARB_hooked;
 			}
-			if(!strcmp(func, "wglSwapIntervalEXT") ||
-				!strcmp(func, "wglGetSwapIntervalEXT"))
+			if(!strncmp(func, "wgl", 3)) // assume wgl functions are safe to just pass straight through
 			{
 				return realFunc;
 			}
@@ -657,9 +606,6 @@ class OpenGLHook : LibraryHook
 		WrappedOpenGL *m_GLDriver;
 		
 		GLHookSet GL;
-		
-		vector<string> wglExts;
-		string wglExtsString;
 
 		bool m_PopulatedHooks;
 		bool m_HasHooks;
