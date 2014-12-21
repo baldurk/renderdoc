@@ -36,6 +36,10 @@
 using std::vector;
 using std::map;
 
+// map from address of IAT entry, to original contents
+map<void **, void *> s_InstalledHooks;
+Threading::CriticalSection installedLock;
+
 struct FunctionHook
 {
 	FunctionHook(const char *f, void **o, void *d)
@@ -53,6 +57,12 @@ struct FunctionHook
 
 		if(*IATentry == hookptr)
 			return false;
+
+		{
+			SCOPED_LOCK(installedLock);
+			if(s_InstalledHooks.find(IATentry) == s_InstalledHooks.end())
+				s_InstalledHooks[IATentry] = *IATentry;
+		}
 
 		BOOL success = TRUE;
 
@@ -388,6 +398,33 @@ void Win32_IAT_EndHooks()
 		std::sort(it->second.FunctionHooks.begin(), it->second.FunctionHooks.end());
 
 	HookAllModules();
+}
+
+void Win32_IAT_RemoveHooks()
+{
+	for(auto it=s_InstalledHooks.begin(); it != s_InstalledHooks.end(); ++it)
+	{
+		DWORD oldProtection = PAGE_EXECUTE;
+		BOOL success = TRUE;
+		
+		void **IATentry = it->first;
+
+		success = VirtualProtect(IATentry, sizeof(void*), PAGE_READWRITE, &oldProtection);
+		if(!success)
+		{
+			RDCERR("Failed to make IAT entry writeable 0x%p", IATentry);
+			continue;
+		}
+		
+		*IATentry = it->second;
+
+		success = VirtualProtect(IATentry, sizeof(void*), oldProtection, &oldProtection);
+		if(!success)
+		{
+			RDCERR("Failed to restore IAT entry protection 0x%p", IATentry);
+			continue;
+		}
+	}
 }
 
 bool Win32_IAT_Hook(void **orig_function_ptr, const char *module_name, const char *function, void *destination_function_ptr)

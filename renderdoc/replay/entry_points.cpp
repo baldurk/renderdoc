@@ -27,6 +27,7 @@
 #include "maths/formatpacking.h"
 #include "serialise/serialiser.h"
 #include "core/core.h"
+#include "hooks/hooks.h"
 #include "replay/replay_renderer.h"
 #include "api/replay/renderdoc_replay.h"
 
@@ -88,6 +89,13 @@ extern "C" RENDERDOC_API
 int RENDERDOC_CC RENDERDOC_GetAPIVersion()
 {
 	return RENDERDOC_API_VERSION;
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_Shutdown()
+{
+	RenderDoc::Inst().Shutdown();
+	LibraryHooks::GetInstance().RemoveHooks();
 }
 
 extern "C" RENDERDOC_API

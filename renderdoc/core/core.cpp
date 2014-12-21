@@ -265,14 +265,35 @@ RenderDoc::~RenderDoc()
 	
 	FileIO::Delete(m_LoggingFilename.c_str());
 
-	m_RemoteServerThreadShutdown = true;
-	// don't join, just close the thread, as we can't wait while in the middle of module unloading
-	Threading::CloseThread(m_RemoteThread);
-	m_RemoteThread = 0;
+	if(m_RemoteThread)
+	{
+		m_RemoteServerThreadShutdown = true;
+		// don't join, just close the thread, as we can't wait while in the middle of module unloading
+		Threading::CloseThread(m_RemoteThread);
+		m_RemoteThread = 0;
+	}
 
 	Network::Shutdown();
 
 	FileIO::Delete(m_LoggingFilename.c_str());
+}
+
+void RenderDoc::Shutdown()
+{
+	if(m_ExHandler)
+	{
+		UnloadCrashHandler();
+	}
+	
+	if(m_RemoteThread)
+	{
+		// explicitly wait for thread to shutdown, this call is not from module unloading and
+		// we want to be sure everything is gone before we remove our module & hooks
+		m_RemoteServerThreadShutdown = true;
+		Threading::JoinThread(m_RemoteThread);
+		Threading::CloseThread(m_RemoteThread);
+		m_RemoteThread = 0;
+	}
 }
 
 void RenderDoc::StartFrameCapture(void *wnd)

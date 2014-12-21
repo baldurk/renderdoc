@@ -169,6 +169,7 @@ class RenderDoc
 		const char *GetCurrentTarget() const { return m_Target.c_str(); }
 
 		void Initialise();
+		void Shutdown();
 
 		void SetReplayApp(bool replay) { m_Replay = replay; }
 		bool IsReplayApp() const { return m_Replay; }

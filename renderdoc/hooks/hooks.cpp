@@ -56,6 +56,13 @@ void LibraryHooks::CreateHooks()
 	HOOKS_END();
 }
 
+void LibraryHooks::RemoveHooks()
+{
+	if(m_HooksRemoved) return;
+	m_HooksRemoved = true;
+	HOOKS_REMOVE();
+}
+
 void LibraryHooks::EnableHooks(bool enable)
 {
 	RDCDEBUG("%s hooks!", enable ? "Enabling" : "Disabling");

@@ -72,6 +72,7 @@ class Hook
 
 #define HOOKS_BEGIN() Win32_IAT_BeginHooks()
 #define HOOKS_END() Win32_IAT_EndHooks()
+#define HOOKS_REMOVE() Win32_IAT_RemoveHooks()
 
 #elif defined(LINUX)
 
@@ -80,6 +81,7 @@ class Hook
 
 #define HOOKS_BEGIN()
 #define HOOKS_END()
+#define HOOKS_REMOVE()
 
 #else
 
@@ -101,13 +103,17 @@ struct LibraryHook
 class LibraryHooks
 {
 	public:
+		LibraryHooks() : m_HooksRemoved(false) {}
 		static LibraryHooks &GetInstance();
 		void RegisterHook(const char *libName, LibraryHook *hook);
 		void CreateHooks();
 		void EnableHooks(bool enable);
+		void RemoveHooks();
 
 	private:
 		typedef map<const char *, LibraryHook *> HookMap;
+
+		bool m_HooksRemoved;
 
 		HookMap m_Hooks;
 };

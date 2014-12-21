@@ -235,6 +235,9 @@ enum InAppOverlay
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPIVersion();
 typedef int (RENDERDOC_CC *pRENDERDOC_GetAPIVersion)();
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_Shutdown();
+typedef void (RENDERDOC_CC *pRENDERDOC_Shutdown)();
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetLogFile(const char *logfile);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const char *logfile);
 
