@@ -4953,9 +4953,6 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 		MeshDataStage stage = cfg.type;
 		
-		if(cfg.type == eMeshDataStage_VSOut && pipeState.m_HS.Shader != ResourceId())
-			stage = eMeshDataStage_VSIn;
-
 		if(m_HighlightCache.EID != events.back() || m_HighlightCache.buf != cfg.position.buf || stage != m_HighlightCache.stage)
 		{
 			m_HighlightCache.EID = events.back();
@@ -4990,7 +4987,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 				bytesize = index16 ? 2 : 4; 
 			}
 
-			if((drawcall->flags & eDraw_UseIBuffer) == 0)
+			if((drawcall->flags & eDraw_UseIBuffer) == 0 || stage == eMeshDataStage_GSOut)
 			{
 				m_HighlightCache.indices.clear();
 				m_HighlightCache.useidx = false;
@@ -5320,8 +5317,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			// prepare rendering (for both vertices & primitives)
 
 			// if data is from post transform, it will be in clipspace
-			if((stage != eMeshDataStage_VSIn && pipeState.m_HS.Shader == ResourceId()) ||
-				(stage == eMeshDataStage_GSOut && pipeState.m_HS.Shader != ResourceId()))
+			if(cfg.unproject)
 			{
 				vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 				m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
@@ -5443,7 +5439,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 		}
 
-		if(stage != eMeshDataStage_VSIn)
+		if(cfg.unproject)
 			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
 	}
 
