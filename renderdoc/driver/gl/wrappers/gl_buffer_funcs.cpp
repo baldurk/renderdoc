@@ -102,7 +102,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 			// if we're just reading, make sure not to trample state (e.g. element array buffer
 			// binding in a VAO), since this is just a bind-to-create chunk.
 			GLuint prevbuf = 0;
-                       if(m_State == READING && m_CurEventID == 0)
+			if(m_State == READING && m_CurEventID == 0)
 				m_Real.glGetIntegerv(BufferBinding(Target), (GLint *)&prevbuf);
 
 			GLResource res = GetResourceManager()->GetLiveResource(Id);
@@ -110,7 +110,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 
 			m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
 
-                       if(m_State == READING && m_CurEventID == 0)
+			if(m_State == READING && m_CurEventID == 0)
 				m_Real.glBindBuffer(Target, prevbuf);
 		}
 	}
@@ -2121,7 +2121,8 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-				Serialise_glVertexArrayVertexAttribOffsetEXT(varecord->Resource.name, bufrecord->Resource.name, index, size, type, normalized, stride, (GLintptr)pointer);
+				Serialise_glVertexArrayVertexAttribOffsetEXT(varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
+				                                             index, size, type, normalized, stride, (GLintptr)pointer);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2215,7 +2216,8 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
-				Serialise_glVertexArrayVertexAttribIOffsetEXT(varecord->Resource.name, bufrecord->Resource.name, index, size, type, stride, (GLintptr)pointer);
+				Serialise_glVertexArrayVertexAttribIOffsetEXT(varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
+				                                              index, size, type, stride, (GLintptr)pointer);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2309,7 +2311,8 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLPOINTER);
-				Serialise_glVertexArrayVertexAttribLOffsetEXT(varecord->Resource.name, bufrecord->Resource.name, index, size, type, stride, (GLintptr)pointer);
+				Serialise_glVertexArrayVertexAttribLOffsetEXT(varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0,
+				                                              index, size, type, stride, (GLintptr)pointer);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2351,7 +2354,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint att
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
-				Serialise_glVertexArrayVertexAttribBindingEXT(varecord->Resource.name, attribindex, bindingindex);
+				Serialise_glVertexArrayVertexAttribBindingEXT(vaobj, attribindex, bindingindex);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2378,7 +2381,7 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
-				Serialise_glVertexArrayVertexAttribBindingEXT(varecord->Resource.name, attribindex, bindingindex);
+				Serialise_glVertexArrayVertexAttribBindingEXT(varecord ? varecord->Resource.name : 0, attribindex, bindingindex);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2451,7 +2454,7 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
-				Serialise_glVertexArrayVertexAttribFormatEXT(varecord->Resource.name, attribindex, size, type, normalized, relativeoffset);
+				Serialise_glVertexArrayVertexAttribFormatEXT(varecord ? varecord->Resource.name : 0, attribindex, size, type, normalized, relativeoffset);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2523,7 +2526,7 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
-				Serialise_glVertexArrayVertexAttribIFormatEXT(varecord->Resource.name, attribindex, size, type, relativeoffset);
+				Serialise_glVertexArrayVertexAttribIFormatEXT(varecord ? varecord->Resource.name : 0, attribindex, size, type, relativeoffset);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2595,7 +2598,7 @@ void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
-				Serialise_glVertexArrayVertexAttribLFormatEXT(varecord->Resource.name, attribindex, size, type, relativeoffset);
+				Serialise_glVertexArrayVertexAttribLFormatEXT(varecord ? varecord->Resource.name : 0, attribindex, size, type, relativeoffset);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2677,7 +2680,7 @@ void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
-				Serialise_glVertexArrayVertexAttribDivisorEXT(varecord->Resource.name, index, divisor);
+				Serialise_glVertexArrayVertexAttribDivisorEXT(varecord ? varecord->Resource.name : 0, index, divisor);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2729,7 +2732,7 @@ void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
-				Serialise_glEnableVertexArrayAttribEXT(varecord->Resource.name, index);
+				Serialise_glEnableVertexArrayAttribEXT(vaobj, index);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2756,7 +2759,7 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
-				Serialise_glEnableVertexArrayAttribEXT(varecord->Resource.name, index);
+				Serialise_glEnableVertexArrayAttribEXT(varecord ? varecord->Resource.name : 0, index);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2808,7 +2811,7 @@ void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
-				Serialise_glDisableVertexArrayAttribEXT(varecord->Resource.name, index);
+				Serialise_glDisableVertexArrayAttribEXT(vaobj, index);
 
 				r->AddChunk(scope.Get());
 			}
@@ -2835,7 +2838,7 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
-				Serialise_glDisableVertexArrayAttribEXT(varecord->Resource.name, index);
+				Serialise_glDisableVertexArrayAttribEXT(varecord ? varecord->Resource.name : 0, index);
 
 				r->AddChunk(scope.Get());
 			}
@@ -3031,7 +3034,7 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
-				Serialise_glVertexArrayBindVertexBufferEXT(varecord->Resource.name, bindingindex, buffer, offset, stride);
+				Serialise_glVertexArrayBindVertexBufferEXT(varecord ? varecord->Resource.name : 0, bindingindex, buffer, offset, stride);
 
 				r->AddChunk(scope.Get());
 			}
@@ -3078,7 +3081,7 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, c
 
 	if(m_State <= EXECUTING)
 	{
-               if(m_State == READING && m_CurEventID == 0)
+		if(m_State == READING && m_CurEventID == 0)
 		{
 			if(vid != ResourceId())
 			{
@@ -3196,7 +3199,7 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
-				Serialise_glVertexArrayVertexBindingDivisorEXT(varecord->Resource.name, bindingindex, divisor);
+				Serialise_glVertexArrayVertexBindingDivisorEXT(varecord ? varecord->Resource.name : 0, bindingindex, divisor);
 
 				r->AddChunk(scope.Get());
 			}

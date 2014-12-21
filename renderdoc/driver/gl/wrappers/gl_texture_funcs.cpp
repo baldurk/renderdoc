@@ -4064,12 +4064,12 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
 		m_Real.glTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, Format, Type, buf ? buf : (const void *)bufoffs);
-		
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -4251,12 +4251,12 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
 		m_Real.glTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
-		
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -4440,12 +4440,12 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-	
+
 		m_Real.glTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf ? buf : (const void *)bufoffs);
-		
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -4611,15 +4611,15 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, !UnpackBufBound);
 
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-	
+
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
 		m_Real.glCompressedTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, fmt, byteSize, buf ? buf : (const void *)bufoffs);
-		
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -4790,12 +4790,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 	
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
 		m_Real.glCompressedTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf ? buf : (const void *)bufoffs);
 
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -4968,12 +4968,12 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 	
 	if(m_State <= EXECUTING)
 	{
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
 		m_Real.glCompressedTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf ? buf : (const void *)bufoffs);
-		
-               if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+
+		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
 		SAFE_DELETE_ARRAY(buf);
@@ -5137,7 +5137,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
 	
 	if(m_State < WRITING)
 	{
-               if(m_State == READING && m_CurEventID == 0)
+		if(m_State == READING && m_CurEventID == 0)
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
 			m_Textures[liveId].width = uint32_t(Size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
@@ -5216,7 +5216,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 	{
 		buffer = GetResourceManager()->GetLiveResource(bufid).name;
 
-               if(m_State == READING && m_CurEventID == 0)
+		if(m_State == READING && m_CurEventID == 0)
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
 			uint32_t Size = 1;
