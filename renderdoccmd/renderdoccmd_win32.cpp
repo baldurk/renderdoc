@@ -265,8 +265,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 	for(int i=0; i < argc; i++)
 	{
 		size_t len = wcslen(wargv[i]);
-		argv[i] = new char[len*4 + 1];
-		argv[i][len*4] = 0;
+		len *= 4; // worst case, every UTF-8 character takes 4 bytes
+		argv[i] = new char[len + 1];
+		argv[i][len] = 0;
 	
 		WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, &argv[i][0], (int)len+1, NULL, NULL);
 	}
