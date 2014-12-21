@@ -330,9 +330,11 @@ bool WrappedID3D11DeviceContext::Serialise_IASetInputLayout(ID3D11InputLayout *p
 {
 	SERIALISE_ELEMENT(ResourceId, InputLayout, GetIDForResource(pInputLayout));
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(InputLayout))
+	if(m_State <= EXECUTING)
 	{
-		pInputLayout = (ID3D11InputLayout *)m_pDevice->GetResourceManager()->GetLiveResource(InputLayout);
+		pInputLayout = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(InputLayout))
+			pInputLayout = (ID3D11InputLayout *)m_pDevice->GetResourceManager()->GetLiveResource(InputLayout);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->IA.Layout, pInputLayout);
 		m_pRealContext->IASetInputLayout(UNWRAP(WrappedID3D11InputLayout, pInputLayout));
 		VerifyState();
@@ -443,9 +445,11 @@ bool WrappedID3D11DeviceContext::Serialise_IASetIndexBuffer(ID3D11Buffer *pIndex
 	SERIALISE_ELEMENT(DXGI_FORMAT, Format, Format_);
 	SERIALISE_ELEMENT(uint32_t, Offset, Offset_);
 	
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Buffer))
+	if(m_State <= EXECUTING)
 	{
-		pIndexBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(Buffer);
+		pIndexBuffer = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Buffer))
+			pIndexBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(Buffer);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->IA.IndexBuffer, pIndexBuffer);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->IA.IndexFormat, Format);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->IA.IndexOffset, Offset);
@@ -2271,9 +2275,12 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetState(ID3D11RasterizerState *pRa
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(pRasterizerState));
 	
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
+	if(m_State <= EXECUTING)
 	{
-		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(id);
+		ID3D11DeviceChild *live = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+			live = m_pDevice->GetResourceManager()->GetLiveResource(id);
+
 #if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11RasterizerState1::IsAlloc(live))
 		{
@@ -3169,9 +3176,12 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 
 	SERIALISE_ELEMENT(uint32_t, SampleMask, SampleMask_);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(State))
+	if(m_State <= EXECUTING)
 	{
-		ID3D11DeviceChild *live = m_pDevice->GetResourceManager()->GetLiveResource(State);
+		ID3D11DeviceChild *live = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(State))
+			live = m_pDevice->GetResourceManager()->GetLiveResource(State);
+
 #if defined(INCLUDE_D3D_11_1)
 		if(WrappedID3D11BlendState1::IsAlloc(live))
 		{
@@ -3235,9 +3245,11 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetDepthStencilState(ID3D11DepthSte
 	SERIALISE_ELEMENT(ResourceId, State, GetIDForResource(pDepthStencilState));
 	SERIALISE_ELEMENT(uint32_t, StencilRef, StencilRef_&0xff);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(State))
+	if(m_State <= EXECUTING)
 	{
-		pDepthStencilState = (ID3D11DepthStencilState *)m_pDevice->GetResourceManager()->GetLiveResource(State);
+		pDepthStencilState = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(State))
+			pDepthStencilState = (ID3D11DepthStencilState *)m_pDevice->GetResourceManager()->GetLiveResource(State);
 		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->OM.DepthStencilState, pDepthStencilState);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.StencRef, StencilRef&0xff);
 		m_pRealContext->OMSetDepthStencilState(UNWRAP(WrappedID3D11DepthStencilState, pDepthStencilState), StencilRef);
