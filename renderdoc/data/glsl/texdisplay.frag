@@ -26,9 +26,16 @@ layout (location = 0) out vec4 color_out;
 
 void main(void)
 {
-	bool uintTex = (OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
-	bool sintTex = (OutputDisplayFormat & TEXDISPLAY_SINT_TEX) != 0;
-	bool depthTex = (OutputDisplayFormat & TEXDISPLAY_DEPTH_TEX) != 0;
+#if UINT_TEX
+	bool uintTex = true;
+	bool sintTex = false;
+#elif SINT_TEX
+	bool uintTex = false;
+	bool sintTex = true;
+#else
+	bool uintTex = false;
+	bool sintTex = false;
+#endif
 
 	vec4 col;
 	uvec4 ucol;
@@ -55,18 +62,13 @@ void main(void)
 	}
 
 	// sample the texture.
-	if (uintTex)
-	{
+#if UINT_TEX
 		ucol = SampleTextureUInt4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx);
-	}
-	else if (sintTex)
-	{
+#elif SINT_TEX
 		scol = SampleTextureSInt4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx);
-	}
-	else
-	{
+#else
 		col = SampleTextureFloat4(scr, texType, FlipY == 0, int(MipLevel), Slice, SampleIdx, NumSamples);
-	}
+#endif
 
 	if(RawOutput != 0)
 	{

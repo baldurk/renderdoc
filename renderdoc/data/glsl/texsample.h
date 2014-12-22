@@ -22,37 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
-// optionally TEXDISPLAY_UINT_TEX or TEXDISPLAY_SINT_TEX, OR'd with RESTYPE_*
-layout (binding = 1) uniform sampler1D tex1D;
-layout (binding = 2) uniform sampler2D tex2D;
-layout (binding = 3) uniform sampler3D tex3D;
-layout (binding = 4) uniform samplerCube texCube;
-layout (binding = 5) uniform sampler1DArray tex1DArray;
-layout (binding = 6) uniform sampler2DArray tex2DArray;
-layout (binding = 7) uniform samplerCubeArray texCubeArray;
-layout (binding = 8) uniform sampler2DRect tex2DRect;
-layout (binding = 9) uniform samplerBuffer texBuffer;
-layout (binding = 10) uniform sampler2DMS tex2DMS;
-
-layout (binding = 17) uniform usampler1D texUInt1D;
-layout (binding = 18) uniform usampler2D texUInt2D;
-layout (binding = 19) uniform usampler3D texUInt3D;
-layout (binding = 20) uniform usampler1DArray texUInt1DArray;
-layout (binding = 21) uniform usampler2DArray texUInt2DArray;
-layout (binding = 22) uniform usampler2DRect texUInt2DRect;
-layout (binding = 23) uniform usamplerBuffer texUIntBuffer;
-layout (binding = 24) uniform usampler2DMS texUInt2DMS;
-
-layout (binding = 33) uniform isampler1D texSInt1D;
-layout (binding = 34) uniform isampler2D texSInt2D;
-layout (binding = 35) uniform isampler3D texSInt3D;
-layout (binding = 36) uniform isampler1DArray texSInt1DArray;
-layout (binding = 37) uniform isampler2DArray texSInt2DArray;
-layout (binding = 38) uniform isampler2DRect texSInt2DRect;
-layout (binding = 39) uniform isamplerBuffer texSIntBuffer;
-layout (binding = 40) uniform isampler2DMS texSInt2DMS;
-
 vec3 CalcCubeCoord(vec2 uv, int face)
 {
 	// Map UVs to [-0.5, 0.5] and rotate
@@ -72,6 +41,21 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 		coord = vec3(-uv.x, -uv.y, -0.5);
 	return coord;
 }
+
+#if UINT_TEX
+
+// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+
+layout (binding = 1) uniform usampler1D texUInt1D;
+layout (binding = 2) uniform usampler2D texUInt2D;
+layout (binding = 3) uniform usampler3D texUInt3D;
+// cube = 4
+layout (binding = 5) uniform usampler1DArray texUInt1DArray;
+layout (binding = 6) uniform usampler2DArray texUInt2DArray;
+// cube array = 7
+layout (binding = 8) uniform usampler2DRect texUInt2DRect;
+layout (binding = 9) uniform usamplerBuffer texUIntBuffer;
+layout (binding = 10) uniform usampler2DMS texUInt2DMS;
 
 uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
 {
@@ -144,6 +128,21 @@ uvec4 SampleTextureUInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	return col;
 }
 
+#elif SINT_TEX
+
+// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+
+layout (binding = 1) uniform isampler1D texSInt1D;
+layout (binding = 2) uniform isampler2D texSInt2D;
+layout (binding = 3) uniform isampler3D texSInt3D;
+// cube = 4
+layout (binding = 5) uniform isampler1DArray texSInt1DArray;
+layout (binding = 6) uniform isampler2DArray texSInt2DArray;
+// cube array = 7
+layout (binding = 8) uniform isampler2DRect texSInt2DRect;
+layout (binding = 9) uniform isamplerBuffer texSIntBuffer;
+layout (binding = 10) uniform isampler2DMS texSInt2DMS;
+
 ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx)
 {
 	ivec4 col;
@@ -215,6 +214,20 @@ ivec4 SampleTextureSInt4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	return col;
 }
 
+#else
+
+// these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
+
+layout (binding = 1) uniform sampler1D tex1D;
+layout (binding = 2) uniform sampler2D tex2D;
+layout (binding = 3) uniform sampler3D tex3D;
+layout (binding = 4) uniform samplerCube texCube;
+layout (binding = 5) uniform sampler1DArray tex1DArray;
+layout (binding = 6) uniform sampler2DArray tex2DArray;
+layout (binding = 7) uniform samplerCubeArray texCubeArray;
+layout (binding = 8) uniform sampler2DRect tex2DRect;
+layout (binding = 9) uniform samplerBuffer texBuffer;
+layout (binding = 10) uniform sampler2DMS tex2DMS;
 
 vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float slice, int sampleIdx, int sampleCount)
 {
@@ -357,3 +370,5 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 	
 	return col;
 }
+
+#endif

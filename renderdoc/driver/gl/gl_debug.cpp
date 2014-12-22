@@ -141,12 +141,21 @@ void GLReplay::InitDebugData()
 	DebugData.blitfsSource = GetEmbeddedResource(blit_frag);
 
 	DebugData.blitProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.blitfsSource.c_str());
+	
+	string glslheader = GetEmbeddedResource(debuguniforms_h);
 
-	string texfs = GetEmbeddedResource(debuguniforms_h);
-	texfs += GetEmbeddedResource(texsample_h);
+	string texfs = GetEmbeddedResource(texsample_h);
 	texfs += GetEmbeddedResource(texdisplay_frag);
 
-	DebugData.texDisplayProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), texfs.c_str());
+	for(int i=0; i < 3; i++)
+	{
+		string glsl = glslheader;
+		glsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+		glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+		glsl += texfs;
+
+		DebugData.texDisplayProg[i] = CreateShaderProgram(DebugData.blitvsSource.c_str(), glsl.c_str());
+	}
 
 	string checkerfs = GetEmbeddedResource(checkerboard_frag);
 	
@@ -194,6 +203,12 @@ void GLReplay::InitDebugData()
 	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
 	gl.glSamplerParameteri(DebugData.pointSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 	
+	gl.glGenSamplers(1, &DebugData.pointNoMipSampler);
+	gl.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+	gl.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+	gl.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+	gl.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+	
 	gl.glGenBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
@@ -225,8 +240,6 @@ void GLReplay::InitDebugData()
 	
 	// histogram/minmax data
 	{
-		string glslheader = GetEmbeddedResource(debuguniforms_h);
-
 		string histogramglsl = GetEmbeddedResource(texsample_h);
 		histogramglsl += GetEmbeddedResource(histogram_comp);
 
@@ -407,14 +420,16 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 	cdata->HistogramMax = 1.0f;
 	cdata->HistogramChannels = 0xf;
 	
+	int progIdx = texSlot;
+
 	if(details.format.compType == eCompType_UInt)
 	{
-		texSlot |= TEXDISPLAY_UINT_TEX;
+		progIdx |= TEXDISPLAY_UINT_TEX;
 		intIdx = 1;
 	}
 	if(details.format.compType == eCompType_SInt)
 	{
-		texSlot |= TEXDISPLAY_SINT_TEX;
+		progIdx |= TEXDISPLAY_SINT_TEX;
 		intIdx = 2;
 	}
 	
@@ -428,11 +443,14 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
 	gl.glBindTexture(target, texname);
-	gl.glBindSampler(texSlot, DebugData.pointSampler);
+	if(texSlot == RESTYPE_TEXRECT || texSlot == RESTYPE_TEXBUFFER)
+		gl.glBindSampler(texSlot, DebugData.pointNoMipSampler);
+	else
+		gl.glBindSampler(texSlot, DebugData.pointSampler);
 	
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxTileResult);
 
-	gl.glUseProgram(DebugData.minmaxTileProgram[texSlot]);
+	gl.glUseProgram(DebugData.minmaxTileProgram[progIdx]);
 	gl.glDispatchCompute(blocksX, blocksY, 1);
 
 	gl.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -572,14 +590,16 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	if(channels[3]) cdata->HistogramChannels |= 0x8;
 	cdata->HistogramFlags = 0;
 
+	int progIdx = texSlot;
+
 	if(details.format.compType == eCompType_UInt)
 	{
-		texSlot |= TEXDISPLAY_UINT_TEX;
+		progIdx |= TEXDISPLAY_UINT_TEX;
 		intIdx = 1;
 	}
 	if(details.format.compType == eCompType_SInt)
 	{
-		texSlot |= TEXDISPLAY_SINT_TEX;
+		progIdx |= TEXDISPLAY_SINT_TEX;
 		intIdx = 2;
 	}
 
@@ -593,14 +613,17 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + texSlot));
 	gl.glBindTexture(target, texname);
-	gl.glBindSampler(texSlot, DebugData.pointSampler);
+	if(texSlot == RESTYPE_TEXRECT || texSlot == RESTYPE_TEXBUFFER)
+		gl.glBindSampler(texSlot, DebugData.pointNoMipSampler);
+	else
+		gl.glBindSampler(texSlot, DebugData.pointSampler);
 
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
 
 	GLuint zero = 0;
 	gl.glClearBufferData(eGL_SHADER_STORAGE_BUFFER, eGL_R32UI, eGL_RED, eGL_UNSIGNED_INT, &zero);
 
-	gl.glUseProgram(DebugData.histogramProgram[texSlot]);
+	gl.glUseProgram(DebugData.histogramProgram[progIdx]);
 	gl.glDispatchCompute(blocksX, blocksY, 1);
 
 	gl.glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
@@ -661,6 +684,8 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	auto &texDetails = m_pDriver->m_Textures[cfg.texid];
 
 	bool renderbuffer = false;
+
+	int intIdx = 0;
 
 	int resType;
 	switch (texDetails.curType)
@@ -734,8 +759,6 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	
 	MakeCurrentReplayContext(m_DebugCtx);
 	
-	gl.glUseProgram(DebugData.texDisplayProg);
-
 	RDCGLenum dsTexMode = eGL_NONE;
 	if(IsDepthStencilFormat(texDetails.internalFormat))
 	{
@@ -744,7 +767,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 			dsTexMode = eGL_STENCIL_INDEX;
 
 			// Stencil texture sampling is not normalized in OpenGL
-			resType |= TEXDISPLAY_UINT_TEX;
+			intIdx = 1;
 			float rangeScale;
 			switch (texDetails.internalFormat)
 			{
@@ -774,11 +797,13 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	else
 	{
 		if(IsUIntFormat(texDetails.internalFormat))
-				resType |= TEXDISPLAY_UINT_TEX;
+				intIdx = 1;
 		if(IsSIntFormat(texDetails.internalFormat))
-				resType |= TEXDISPLAY_SINT_TEX;
+				intIdx = 2;
 	}
 	
+	gl.glUseProgram(DebugData.texDisplayProg[intIdx]);
+
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
 	gl.glBindTexture(target, texname);
 
@@ -805,13 +830,16 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 		maxlevel = -1;
 	}
 
-	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != eGL_TEXTURE_BUFFER)
+	if(cfg.mip == 0 && cfg.scale < 1.0f && dsTexMode == eGL_NONE && resType != RESTYPE_TEXBUFFER && resType != RESTYPE_TEXRECT)
 	{
 		gl.glBindSampler(resType, DebugData.linearSampler);
 	}
 	else
 	{
-		gl.glBindSampler(resType, DebugData.pointSampler);
+		if(resType == RESTYPE_TEXRECT || resType == RESTYPE_TEX2DMS || resType == RESTYPE_TEXBUFFER)
+			gl.glBindSampler(resType, DebugData.pointNoMipSampler);
+		else
+			gl.glBindSampler(resType, DebugData.pointSampler);
 	}
 	
 	GLint tex_x = texDetails.width, tex_y = texDetails.height, tex_z = texDetails.depth;
@@ -875,9 +903,6 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	ubo->Slice = (float)cfg.sliceFace;
 
 	ubo->OutputDisplayFormat = resType;
-
-	if(dsTexMode != eGL_NONE)
-		ubo->OutputDisplayFormat |= TEXDISPLAY_DEPTH_TEX;
 	
 	if(cfg.overlay == eTexOverlay_NaN)
 		ubo->OutputDisplayFormat |= TEXDISPLAY_NANS;

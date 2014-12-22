@@ -189,9 +189,10 @@ class GLReplay : public IReplayDriver
 			// no transformation or scaling
 			GLuint blitProg;
 
-			GLuint texDisplayProg;
+			GLuint texDisplayProg[3];      // float/uint/sint
 
 			GLuint pointSampler;
+			GLuint pointNoMipSampler;
 			GLuint linearSampler;
 
 			GLuint checkerProg;
