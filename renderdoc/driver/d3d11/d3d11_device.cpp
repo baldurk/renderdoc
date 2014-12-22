@@ -340,6 +340,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_DeviceRecord->Length = 0;
 		m_DeviceRecord->NumSubResources = 0;
 		m_DeviceRecord->SubResources = NULL;
+
+		RenderDoc::Inst().AddFrameCapturer(m_pDevice, this);
 	}
 	
 	ID3D11DeviceContext *context = NULL;
@@ -450,6 +452,9 @@ WrappedID3D11Device::~WrappedID3D11Device()
 		SAFE_DELETE(it->second);
 	m_LayoutDXBC.clear();
 	m_LayoutDescs.clear();
+
+	if(!RenderDoc::Inst().IsReplayApp())
+		RenderDoc::Inst().RemoveFrameCapturer(m_pDevice);
 	
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -2415,6 +2420,8 @@ void WrappedID3D11Device::StartFrameCapture(void *wnd)
 
 	SCOPED_LOCK(m_D3DLock);
 
+	RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
+
 	m_State = WRITING_CAPFRAME;
 
 	m_AppControlledCapture = true;
@@ -2484,22 +2491,25 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 
 	IDXGISwapChain *swap = NULL;
 	
-	for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
+	if(wnd)
 	{
-		DXGI_SWAP_CHAIN_DESC swapDesc;
-		it->first->GetDesc(&swapDesc);
-
-		if(swapDesc.OutputWindow == wnd)
+		for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
 		{
-			swap = it->first;
-			break;
-		}
-	}
+			DXGI_SWAP_CHAIN_DESC swapDesc;
+			it->first->GetDesc(&swapDesc);
 
-	if(swap == NULL)
-	{
-		RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
-		return false;
+			if(swapDesc.OutputWindow == wnd)
+			{
+				swap = it->first;
+				break;
+			}
+		}
+
+		if(swap == NULL)
+		{
+			RDCERR("Output window %p provided for frame capture corresponds with no known swap chain", wnd);
+			return false;
+		}
 	}
 
 	if(m_pImmediateContext->HasSuccessfulCapture(reason))
@@ -2535,6 +2545,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 		uint32_t thwidth = 0;
 		uint32_t thheight = 0;
 
+		if(swap != NULL)
 		{
 			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
 
@@ -2684,6 +2695,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 		byte *jpgbuf = NULL;
 		int len = thwidth*thheight;
 
+		if(wnd)
 		{
 			jpgbuf = new byte[len];
 
@@ -2783,7 +2795,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 
 		m_Failures++;
 
-		if(RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled)
+		if((RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled) && swap != NULL)
 		{
 			D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
 

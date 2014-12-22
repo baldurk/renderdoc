@@ -298,6 +298,19 @@ void RenderDoc::Shutdown()
 
 void RenderDoc::StartFrameCapture(void *wnd)
 {
+	if(wnd == NULL)
+	{
+		if(m_WindowFrameCapturers.size() == 1)
+		{
+			m_WindowFrameCapturers.begin()->second.FrameCapturer->StartFrameCapture(wnd);
+		}
+		else
+		{
+			RDCERR("Multiple frame capture methods registered, can't capture by NULL window");
+		}
+		return;
+	}
+
 	auto it = m_WindowFrameCapturers.find(wnd);
 	if(it == m_WindowFrameCapturers.end())
 	{
@@ -322,6 +335,19 @@ void RenderDoc::SetActiveWindow(void *wnd)
 
 bool RenderDoc::EndFrameCapture(void *wnd)
 {
+	if(wnd == NULL)
+	{
+		if(m_WindowFrameCapturers.size() == 1)
+		{
+			return m_WindowFrameCapturers.begin()->second.FrameCapturer->EndFrameCapture(wnd);
+		}
+		else
+		{
+			RDCERR("Multiple frame capture methods registered, can't capture by NULL window");
+		}
+		return false;
+	}
+
 	auto it = m_WindowFrameCapturers.find(wnd);
 	if(it == m_WindowFrameCapturers.end())
 	{
