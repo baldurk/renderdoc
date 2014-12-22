@@ -742,6 +742,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_SAMPLER_2D_MULTISAMPLE:
 					case eGL_SAMPLER_2D_MULTISAMPLE_ARRAY:
 					case eGL_SAMPLER_CUBE_SHADOW:
+					case eGL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
 					case eGL_SAMPLER_BUFFER:
 					case eGL_SAMPLER_2D_RECT:
 					case eGL_SAMPLER_2D_RECT_SHADOW:
@@ -749,6 +750,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_INT_SAMPLER_2D:
 					case eGL_INT_SAMPLER_3D:
 					case eGL_INT_SAMPLER_CUBE:
+					case eGL_INT_SAMPLER_CUBE_MAP_ARRAY:
 					case eGL_INT_SAMPLER_1D_ARRAY:
 					case eGL_INT_SAMPLER_2D_ARRAY:
 					case eGL_INT_SAMPLER_2D_MULTISAMPLE:
@@ -773,6 +775,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_IMAGE_BUFFER:
 					case eGL_IMAGE_1D_ARRAY:
 					case eGL_IMAGE_2D_ARRAY:
+					case eGL_IMAGE_CUBE_MAP_ARRAY:
 					case eGL_IMAGE_2D_MULTISAMPLE:
 					case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
 					case eGL_INT_IMAGE_1D:
@@ -793,8 +796,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_UNSIGNED_INT_IMAGE_BUFFER:
 					case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
 					case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
 					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
 					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
 					case eGL_INT:                      gl.glGetUniformiv(progSrc, srcLocation, iv); break;
 					case eGL_INT_VEC2:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
 					case eGL_INT_VEC3:                 gl.glGetUniformiv(progSrc, srcLocation, iv); break;
@@ -861,6 +866,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_SAMPLER_2D_MULTISAMPLE:
 					case eGL_SAMPLER_2D_MULTISAMPLE_ARRAY:
 					case eGL_SAMPLER_CUBE_SHADOW:
+					case eGL_SAMPLER_CUBE_MAP_ARRAY_SHADOW:
 					case eGL_SAMPLER_BUFFER:
 					case eGL_SAMPLER_2D_RECT:
 					case eGL_SAMPLER_2D_RECT_SHADOW:
@@ -868,6 +874,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_INT_SAMPLER_2D:
 					case eGL_INT_SAMPLER_3D:
 					case eGL_INT_SAMPLER_CUBE:
+					case eGL_INT_SAMPLER_CUBE_MAP_ARRAY:
 					case eGL_INT_SAMPLER_1D_ARRAY:
 					case eGL_INT_SAMPLER_2D_ARRAY:
 					case eGL_INT_SAMPLER_2D_MULTISAMPLE:
@@ -892,6 +899,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_IMAGE_BUFFER:
 					case eGL_IMAGE_1D_ARRAY:
 					case eGL_IMAGE_2D_ARRAY:
+					case eGL_IMAGE_CUBE_MAP_ARRAY:
 					case eGL_IMAGE_2D_MULTISAMPLE:
 					case eGL_IMAGE_2D_MULTISAMPLE_ARRAY:
 					case eGL_INT_IMAGE_1D:
@@ -912,8 +920,10 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 					case eGL_UNSIGNED_INT_IMAGE_BUFFER:
 					case eGL_UNSIGNED_INT_IMAGE_1D_ARRAY:
 					case eGL_UNSIGNED_INT_IMAGE_2D_ARRAY:
+					case eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY:
 					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE:
 					case eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY:
+					case eGL_UNSIGNED_INT_ATOMIC_COUNTER:
 					case eGL_INT:                      gl.glProgramUniform1iv(progDst, newloc, 1, iv); break;
 					case eGL_INT_VEC2:                 gl.glProgramUniform2iv(progDst, newloc, 1, iv); break;
 					case eGL_INT_VEC3:                 gl.glProgramUniform3iv(progDst, newloc, 1, iv); break;
