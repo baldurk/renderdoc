@@ -427,7 +427,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	else if(res.Namespace == eResFramebuffer)
 	{
 		// need to be on the right context, as feedback objects are never shared
-		void *oldctx = m_GL->SwitchToContext(res.Context);
+		void *oldctx = NULL;
+		
+		if(!VendorCheck[VendorCheck_EXT_fbo_shared])
+			oldctx = m_GL->SwitchToContext(res.Context);
 		
 		GLuint prevread = 0, prevdraw = 0;
 		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
@@ -450,7 +453,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
 
 		// restore the previous context
-		m_GL->SwitchToContext(oldctx);
+		if(!VendorCheck[VendorCheck_EXT_fbo_shared])
+			m_GL->SwitchToContext(oldctx);
 	}
 	else if(res.Namespace == eResFeedback)
 	{
@@ -486,7 +490,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	else if(res.Namespace == eResVertexArray)
 	{
 		// need to be on the right context, as VAOs are never shared
-		void *oldctx = m_GL->SwitchToContext(res.Context);
+		void *oldctx = NULL;
+		
+		if(!VendorCheck[VendorCheck_EXT_vao_shared])
+			oldctx = m_GL->SwitchToContext(res.Context);
 
 		GLuint prevVAO = 0;
 		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
@@ -524,7 +531,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glBindVertexArray(prevVAO);
 
 		// restore the previous context
-		m_GL->SwitchToContext(oldctx);
+		if(!VendorCheck[VendorCheck_EXT_vao_shared])
+			m_GL->SwitchToContext(oldctx);
 	}
 	else
 	{
