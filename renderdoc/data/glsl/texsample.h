@@ -342,7 +342,7 @@ vec4 SampleTextureFloat4(vec2 pos, int type, bool flipY, int mipLevel, float sli
 		if (flipY)
 			pos.y = size.y - pos.y;
 
-		col = textureLod(tex3D, vec3(pos / size.xy, slice), float(mipLevel));
+		col = textureLod(tex3D, vec3(pos / size.xy, slice / size.z), float(mipLevel));
 	}
 	else if (type == RESTYPE_TEXCUBE)
 	{
