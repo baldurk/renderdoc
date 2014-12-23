@@ -913,6 +913,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				sig.semanticIndex = 0;
 				sig.needSemanticIndex = false;
 				sig.stream = 0;
+
+				int rows = 1;
 				
 				switch(values[1])
 				{
@@ -948,8 +950,62 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 						sig.compCount = 4;
 						sig.regChannelMask = 0xf;
 						break;
+					case eGL_FLOAT_MAT4:
+					case eGL_DOUBLE_MAT4:
+						sig.compCount = 4;
+						rows = 4;
+						sig.regChannelMask = 0xf;
+						break;
+					case eGL_FLOAT_MAT4x3:
+					case eGL_DOUBLE_MAT4x3:
+						sig.compCount = 4;
+						rows = 3;
+						sig.regChannelMask = 0xf;
+						break;
+					case eGL_FLOAT_MAT4x2:
+					case eGL_DOUBLE_MAT4x2:
+						sig.compCount = 4;
+						rows = 2;
+						sig.regChannelMask = 0xf;
+						break;
+					case eGL_FLOAT_MAT3:
+					case eGL_DOUBLE_MAT3:
+						sig.compCount = 3;
+						rows = 3;
+						sig.regChannelMask = 0x7;
+						break;
+					case eGL_FLOAT_MAT3x4:
+					case eGL_DOUBLE_MAT3x4:
+						sig.compCount = 3;
+						rows = 2;
+						sig.regChannelMask = 0x7;
+						break;
+					case eGL_FLOAT_MAT3x2:
+					case eGL_DOUBLE_MAT3x2:
+						sig.compCount = 3;
+						rows = 2;
+						sig.regChannelMask = 0x7;
+						break;
+					case eGL_FLOAT_MAT2:
+					case eGL_DOUBLE_MAT2:
+						sig.compCount = 2;
+						rows = 2;
+						sig.regChannelMask = 0x3;
+						break;
+					case eGL_FLOAT_MAT2x3:
+					case eGL_DOUBLE_MAT2x3:
+						sig.compCount = 2;
+						rows = 3;
+						sig.regChannelMask = 0x3;
+						break;
+					case eGL_FLOAT_MAT2x4:
+					case eGL_DOUBLE_MAT2x4:
+						sig.compCount = 2;
+						rows = 4;
+						sig.regChannelMask = 0x3;
+						break;
 					default:
-						RDCWARN("Unhandled signature element type %x", values[1]);
+						RDCWARN("Unhandled signature element type %s", ToStr::Get((GLenum)values[1]).c_str());
 						sig.compCount = 4;
 						sig.regChannelMask = 0xf;
 						break;
@@ -1024,9 +1080,22 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				else
 					sig.regIndex = values[2] >= 0 ? values[2] : 0;
 
-				delete[] nm;
+				if(rows == 1)
+				{
+					sigs.push_back(sig);
+				}
+				else
+				{
+					for(int i=0; i < rows; i++)
+					{
+						SigParameter s = sig;
+						s.varName = StringFormat::Fmt("%s.row%d", nm, i);
+						s.regIndex += i;
+						sigs.push_back(s);
+					}
+				}
 
-				sigs.push_back(sig);
+				delete[] nm;
 			}
 			struct sig_param_sort
 			{
