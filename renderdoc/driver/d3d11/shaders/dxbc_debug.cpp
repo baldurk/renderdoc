@@ -2208,6 +2208,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					fmt.numComps = global.groupshared[resIndex].bytestride/4;
 					fmt.reversed = false;
 				}
+				texData = false;
 			}
 
 			RDCASSERT(data);
