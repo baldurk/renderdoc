@@ -3622,6 +3622,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	// render as normal and it will just be swizzled (which we were doing manually anyway).
 	if(details.texFmt == DXGI_FORMAT_B8G8R8A8_UNORM) details.texFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
 
+	// other transformations, B8G8R8X8 also as R8G8B8A8 (alpha will be ignored)
+	if(details.texFmt == DXGI_FORMAT_B8G8R8X8_UNORM) details.texFmt = DXGI_FORMAT_R8G8B8A8_UNORM;
+	
+	// R32G32B32 as R32G32B32A32 (alpha will be ignored)
+	if(details.texFmt == DXGI_FORMAT_R32G32B32_FLOAT) details.texFmt = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	if(details.texFmt == DXGI_FORMAT_R32G32B32_UINT) details.texFmt = DXGI_FORMAT_R32G32B32A32_UINT;
+	if(details.texFmt == DXGI_FORMAT_R32G32B32_SINT) details.texFmt = DXGI_FORMAT_R32G32B32A32_SINT;
+
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
 		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
