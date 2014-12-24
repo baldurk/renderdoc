@@ -3911,6 +3911,110 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
 		m_pDevice->CreateQuery(&occlDesc, &testQueries[i]);
 
+	//////////////////////////////////////////////////////////////////
+	// Check that everything we need has successfully created.
+	// We free everything together at the end
+
+	bool allCreated = true;
+	
+	for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
+	{
+		if(!testQueries[i])
+		{
+			RDCERR("Failed to create test query %d", i);
+			allCreated = false;
+		}
+	}
+	
+	if(!pixstore || !pixstoreUAV || !pixstoreReadback)
+	{
+		RDCERR("Failed to create pixstore (%p %p %p) (%u slots @ fmt %u)", pixstore, pixstoreUAV, pixstoreReadback, pixstoreSlots, details.texFmt);
+		allCreated = false;
+	}
+	
+	if(!pixstoreDepth || !pixstoreDepthUAV || !pixstoreDepthReadback)
+	{
+		RDCERR("Failed to create pixstoreDepth (%p %p %p) (%u slots @ fmt %u)", pixstoreDepth, pixstoreDepthUAV, pixstoreDepthReadback, pixstoreSlots, details.texFmt);
+		allCreated = false;
+	}
+	
+	if(!shadoutStore || !shadoutStoreUAV || !shadoutStoreReadback)
+	{
+		RDCERR("Failed to create shadoutStore (%p %p %p) (%u slots @ fmt %u)", shadoutStore, shadoutStoreUAV, shadoutStoreReadback, pixstoreSlots, details.texFmt);
+		allCreated = false;
+	}
+	
+	if(!shadOutput || !shadOutputSRV || !shadOutputRTV)
+	{
+		RDCERR("Failed to create shadoutStore (%p %p %p) (%ux%u [%u,%u] @ fmt %u)",
+			shadOutput, shadOutputSRV, shadOutputRTV,
+			details.texWidth, details.texHeight,
+			details.sampleCount, details.sampleQuality,
+			details.texFmt);
+		allCreated = false;
+	}
+	
+	if(!shaddepthOutput || !shaddepthOutputDSV || !shaddepthOutputDepthSRV || !shaddepthOutputStencilSRV)
+	{
+		RDCERR("Failed to create shadoutStore (%p %p %p %p) (%ux%u [%u,%u] @ fmt %u)",
+			shaddepthOutput, shaddepthOutputDSV, shaddepthOutputDepthSRV, shaddepthOutputStencilSRV,
+			details.texWidth, details.texHeight,
+			details.sampleCount, details.sampleQuality,
+			details.texFmt);
+		allCreated = false;
+	}
+
+	if(!srcxyCBuf || !storexyCBuf)
+	{
+		RDCERR("Failed to create cbuffers (%p %p)", srcxyCBuf, storexyCBuf);
+		allCreated = false;
+	}
+
+	if(!allCreated)
+	{
+		for(size_t i=0; i < ARRAY_COUNT(testQueries); i++)
+			SAFE_RELEASE(testQueries[i]);
+
+		SAFE_RELEASE(pixstore);
+		SAFE_RELEASE(shadoutStore);
+		SAFE_RELEASE(pixstoreDepth);
+
+		SAFE_RELEASE(pixstoreReadback);
+		SAFE_RELEASE(shadoutStoreReadback);
+		SAFE_RELEASE(pixstoreDepthReadback);
+
+		SAFE_RELEASE(pixstoreUAV);
+		SAFE_RELEASE(shadoutStoreUAV);
+		SAFE_RELEASE(pixstoreDepthUAV);
+
+		SAFE_RELEASE(shadOutput);
+		SAFE_RELEASE(shadOutputSRV);
+		SAFE_RELEASE(shadOutputRTV);
+		SAFE_RELEASE(shaddepthOutput);
+		SAFE_RELEASE(shaddepthOutputDSV);
+		SAFE_RELEASE(shaddepthOutputDepthSRV);
+		SAFE_RELEASE(shaddepthOutputStencilSRV);
+
+		SAFE_RELEASE(depthCopyD24S8);
+		SAFE_RELEASE(depthCopyD24S8_DepthSRV);
+		SAFE_RELEASE(depthCopyD24S8_StencilSRV);
+
+		SAFE_RELEASE(depthCopyD32S8);
+		SAFE_RELEASE(depthCopyD32S8_DepthSRV);
+		SAFE_RELEASE(depthCopyD32S8_StencilSRV);
+
+		SAFE_RELEASE(depthCopyD32);
+		SAFE_RELEASE(depthCopyD32_DepthSRV);
+
+		SAFE_RELEASE(depthCopyD16);
+		SAFE_RELEASE(depthCopyD16_DepthSRV);
+
+		SAFE_RELEASE(srcxyCBuf);
+		SAFE_RELEASE(storexyCBuf);
+
+		return history;
+	}
+
 	m_WrappedDevice->ReplayLog(frameID, 0, events[0].eventID, eReplay_WithoutDraw);
 
 	ID3D11RasterizerState *curRS = NULL;
