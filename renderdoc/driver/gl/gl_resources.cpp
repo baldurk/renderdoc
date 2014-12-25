@@ -25,6 +25,10 @@
 #include "gl_hookset.h"
 #include "gl_resources.h"
 
+// no longer in glcorearb.h or glext.h
+const GLenum eGL_LUMINANCE = (GLenum)0x1909;
+const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
+
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align)
 {
 	size_t elemSize = 0;
@@ -103,7 +107,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 			break;
 	}
 
-	switch(format)
+	switch((int)format)
 	{
 		case eGL_RED:
 		case eGL_RED_INTEGER:
@@ -111,11 +115,13 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_GREEN_INTEGER:
 		case eGL_BLUE:
 		case eGL_BLUE_INTEGER:
+		case eGL_LUMINANCE:
 		case eGL_DEPTH_COMPONENT:
 		case eGL_STENCIL_INDEX:
 			return ((w*elemSize + alignAdd) & alignMask)*h*d;
 		case eGL_RG:
 		case eGL_RG_INTEGER:
+		case eGL_LUMINANCE_ALPHA:
 		case eGL_DEPTH_STENCIL:
 			return ((w*elemSize*2 + alignAdd) & alignMask)*h*d;
 		case eGL_RGB:
@@ -454,6 +460,72 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 	}
 
 	return internalFormat;
+}
+
+void EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat)
+{
+	GLenum swizzle[] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
+
+	bool dataFormatLum = (dataFormat == eGL_LUMINANCE || dataFormat == eGL_LUMINANCE_ALPHA);
+
+	switch((int)internalFormat)
+	{
+		case eGL_LUMINANCE:
+		case eGL_LUMINANCE8_EXT:
+			internalFormat = eGL_R8;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_SLUMINANCE8_EXT:
+			internalFormat = eGL_SRGB8;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_LUMINANCE16_EXT:
+			internalFormat = eGL_R16;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_LUMINANCE32F_ARB:
+			internalFormat = eGL_R32F;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_LUMINANCE32I_EXT:
+			internalFormat = eGL_R32I;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_LUMINANCE32UI_EXT:
+			internalFormat = eGL_R32UI;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			break;
+		case eGL_LUMINANCE_ALPHA:
+		case eGL_LUMINANCE8_ALPHA8_EXT:
+			internalFormat = eGL_RG8;
+			if(dataFormatLum) dataFormat = eGL_RG;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = eGL_GREEN;
+			break;
+		case eGL_SLUMINANCE8_ALPHA8_EXT:
+			internalFormat = eGL_SRGB8_ALPHA8;
+			if(dataFormatLum) dataFormat = eGL_RG;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = eGL_GREEN;
+			break;
+		case eGL_LUMINANCE16_ALPHA16_EXT:
+			internalFormat = eGL_RG16;
+			if(dataFormatLum) dataFormat = eGL_RG;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = eGL_GREEN;
+			break;
+		default:
+			return;
+	}
+
+	if(tex)
+		gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)swizzle);
 }
 
 bool IsCompressedFormat(GLenum internalFormat)

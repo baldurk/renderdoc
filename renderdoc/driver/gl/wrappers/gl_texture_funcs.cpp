@@ -1696,6 +1696,8 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(id);
@@ -1929,6 +1931,8 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(id);
@@ -2169,6 +2173,8 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(id);
