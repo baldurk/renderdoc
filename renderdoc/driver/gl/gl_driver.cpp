@@ -227,6 +227,8 @@ const char *GLChunkNames[] =
 	"glMultiDrawElementsBaseVertex",
 	"glMultiDrawArraysIndirect",
 	"glMultiDrawElementsIndirect",
+	"glMultiDrawArraysIndirectCountARB",
+	"glMultiDrawElementsIndirectCountARB",
 
 	"glGenFramebuffers",
 	"glFramebufferTexture",
@@ -2569,6 +2571,12 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case MULTI_DRAWELEMENTS_INDIRECT:
 		Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
+		break;
+	case MULTI_DRAWARRAYS_INDIRECT_COUNT:
+		Serialise_glMultiDrawArraysIndirectCountARB(eGL_NONE, NULL, 0, 0, 0);
+		break;
+	case MULTI_DRAWELEMENTS_INDIRECT_COUNT:
+		Serialise_glMultiDrawElementsIndirectCountARB(eGL_NONE, eGL_NONE, NULL, 0, 0, 0);
 		break;
 		
 	case GEN_FRAMEBUFFERS:

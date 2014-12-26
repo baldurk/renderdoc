@@ -185,6 +185,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,       (GLint*)&BufferBindings[eBufIdx_Pixel_Unpack]);
 	m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Query]);
 	m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING,            (GLint*)&BufferBindings[eBufIdx_Texture]);
+	if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
+		m_Real->glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING_ARB,    (GLint*)&BufferBindings[eBufIdx_Parameter]);
 
 	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum start; GLenum size; GLenum maxcount; } idxBufs[] =
 	{
@@ -447,6 +449,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER,       BufferBindings[eBufIdx_Pixel_Unpack]);
 	m_Real->glBindBuffer(eGL_QUERY_BUFFER,              BufferBindings[eBufIdx_Query]);
 	m_Real->glBindBuffer(eGL_TEXTURE_BUFFER,            BufferBindings[eBufIdx_Texture]);
+	if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
+		m_Real->glBindBuffer(eGL_PARAMETER_BUFFER_ARB,    BufferBindings[eBufIdx_Parameter]);
 
 	struct { IdxRangeBuffer *bufs; int count; GLenum binding; GLenum maxcount; } idxBufs[] =
 	{

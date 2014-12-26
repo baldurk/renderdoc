@@ -55,7 +55,7 @@ struct GLInitParams : public RDCInitParams
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x0000003;
+	static const uint32_t GL_SERIALISE_VERSION = 0x0000004;
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;
@@ -1053,7 +1053,9 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElements(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount, const GLint *basevertex));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirect(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride))
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride))
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysIndirect(GLenum mode, const void *indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteBuffers(GLsizei n, const GLuint *buffers));

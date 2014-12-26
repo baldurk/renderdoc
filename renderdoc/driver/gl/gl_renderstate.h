@@ -108,6 +108,7 @@ struct GLRenderState
 		eBufIdx_Pixel_Unpack,
 		eBufIdx_Query,
 		eBufIdx_Texture,
+		eBufIdx_Parameter,
 	};
 	
 	GLuint VAO;

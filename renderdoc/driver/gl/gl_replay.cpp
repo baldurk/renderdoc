@@ -653,6 +653,7 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 			break;
 		case eGL_DRAW_INDIRECT_BUFFER:
 		case eGL_DISPATCH_INDIRECT_BUFFER:
+		case eGL_PARAMETER_BUFFER_ARB:
 			ret.creationFlags = eBufferCreate_Indirect;
 			break;
 		case eGL_PIXEL_PACK_BUFFER:

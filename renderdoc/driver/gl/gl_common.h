@@ -100,6 +100,7 @@ enum ExtensionCheckEnum
 	ExtensionSupported_EXT_polygon_offset_clamp,
 	ExtensionSupported_KHR_blend_equation_advanced_coherent,
 	ExtensionSupported_EXT_raster_multisample,
+	ExtensionSupported_ARB_indirect_parameters,
 	ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
@@ -334,6 +335,8 @@ enum GLChunkType
 	MULTI_DRAWELEMENTSBASEVERTEX,
 	MULTI_DRAWARRAYS_INDIRECT,
 	MULTI_DRAWELEMENTS_INDIRECT,
+	MULTI_DRAWARRAYS_INDIRECT_COUNT,
+	MULTI_DRAWELEMENTS_INDIRECT_COUNT,
 
 	GEN_FRAMEBUFFERS,
 	FRAMEBUFFER_TEX,

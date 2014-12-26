@@ -552,11 +552,11 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 		
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawArraysIndirect(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", <" +
 						ToStr::Get(params.first) + ", " +
 						ToStr::Get(params.count) + ", " +
 						ToStr::Get(params.instanceCount) + ", " +
-						ToStr::Get(params.baseInstance) + ")";
+						ToStr::Get(params.baseInstance) + ">)";
 		
 		FetchDrawcall draw;
 		draw.name = name;
@@ -796,11 +796,11 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 		AddEvent(DRAWELEMENTS_INDIRECT, desc);
 		string name = "glDrawElementsIndirect(" +
 						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
+						ToStr::Get(Type) + ", <" +
 						ToStr::Get(params.count) + ", " +
-						ToStr::Get(Type) + ", " +
 						ToStr::Get(params.instanceCount) + ", " + 
 						ToStr::Get(params.baseVertex) + ", " +
-						ToStr::Get(params.baseInstance) + ")";
+						ToStr::Get(params.baseInstance) + ">)";
 		
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1841,11 +1841,11 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 			if(i == 0)
 				draw.debugMessages = debugMessages;
 			
-			draw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](" +
+			draw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
 						ToStr::Get(draw.numIndices) + ", " +
 						ToStr::Get(draw.numInstances) + ", " + 
 						ToStr::Get(draw.vertexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ")";
+						ToStr::Get(draw.instanceOffset) + ">)";
 
 			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 			
@@ -1995,11 +1995,11 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 			if(i == 0)
 				draw.debugMessages = debugMessages;
 			
-			draw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +
+			draw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](<" +
 						ToStr::Get(draw.numIndices) + ", " +
 						ToStr::Get(draw.numInstances) + ", " + 
 						ToStr::Get(draw.indexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ")";
+						ToStr::Get(draw.instanceOffset) + ">)";
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
 			
@@ -2030,6 +2030,328 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 	{
 		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTS_INDIRECT);
 		Serialise_glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
+	SERIALISE_ELEMENT(uint64_t, Count, (uint64_t)drawcount);
+	SERIALISE_ELEMENT(uint32_t, MaxCount, maxdrawcount);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
+	
+	uint32_t realdrawcount = 0;
+
+	if(m_State < WRITING)
+	{
+		m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Count, sizeof(realdrawcount), &realdrawcount);
+
+		realdrawcount = RDCMIN(MaxCount, realdrawcount);
+	}
+
+	if(m_State == READING)
+	{
+		m_Real.glMultiDrawArraysIndirectCountARB(Mode, (GLintptr)Offset, (GLintptr)Count, MaxCount, Stride);
+	}
+	else if(m_State <= EXECUTING)
+	{
+		size_t i=0;
+		for(; i < m_Events.size(); i++)
+		{
+			if(m_Events[i].eventID >= m_CurEventID)
+				break;
+		}
+
+		while(i > 1 && m_Events[i-1].fileOffset == m_Events[i].fileOffset) i--;
+
+		uint32_t baseEventID = m_Events[i].eventID;
+
+		if(m_LastEventID < baseEventID)
+		{
+			// To add the multidraw, we made an event N that is the 'parent' marker, then
+			// N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+			// then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+			// the first sub-draw in that range.
+		}
+		else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+		{
+			// if we're replaying part-way into a multidraw, we can replay the first part 'easily'
+			// by just reducing the Count parameter to however many we want to replay. This only
+			// works if we're replaying from the first multidraw to the nth (n less than Count)
+			m_Real.glMultiDrawArraysIndirect(Mode, (const void *)Offset, RDCMIN(realdrawcount, m_LastEventID - baseEventID + 1), Stride);
+		}
+		else
+		{
+			// otherwise we do the 'hard' case, draw only one multidraw
+			// note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+			// a single draw.
+			RDCASSERT(m_LastEventID == m_FirstEventID);
+
+			uint32_t drawidx = (m_LastEventID - baseEventID);
+			
+			DrawArraysIndirectCommand params;
+			
+			GLintptr offs = (GLintptr)Offset;
+			if(Stride != 0)
+				offs += Stride*drawidx;
+			else
+				offs += sizeof(params)*drawidx;
+
+			m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
+
+			m_Real.glDrawArraysInstancedBaseInstance(Mode, params.first, params.count, params.instanceCount, params.baseInstance);
+		}
+	}
+	
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		string name = "glMultiDrawArraysIndirectCountARB(" +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", <" +
+						ToStr::Get(realdrawcount) + "> " +
+						ToStr::Get(MaxCount) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+
+		draw.flags |= eDraw_MultiDraw;
+
+		AddDrawcall(draw, false);
+
+		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+		m_CurEventID++;
+
+		GLintptr offs = (GLintptr)Offset;
+
+		for(uint32_t i=0; i < realdrawcount; i++)
+		{
+			DrawArraysIndirectCommand params;
+
+			m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
+
+			if(Stride)
+				offs += Stride;
+			else
+				offs += sizeof(params);
+
+			FetchDrawcall draw;
+			draw.numIndices = params.count;
+			draw.numInstances = params.instanceCount;
+			draw.vertexOffset = params.first;
+			draw.instanceOffset = params.baseInstance;
+		
+			if(i == 0)
+				draw.debugMessages = debugMessages;
+			
+			draw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
+						ToStr::Get(draw.numIndices) + ", " +
+						ToStr::Get(draw.numInstances) + ", " + 
+						ToStr::Get(draw.vertexOffset) + ", " +
+						ToStr::Get(draw.instanceOffset) + ">)";
+
+			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+			
+			AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
+			AddDrawcall(draw, true);
+
+			m_CurEventID++;
+		}
+		
+		m_DrawcallStack.pop_back();
+	}
+	else
+	{
+		m_CurEventID += realdrawcount+1;
+	}
+
+	m_LastDrawMode = Mode;
+
+	return true;
+}
+
+
+void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
+{
+	m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWARRAYS_INDIRECT_COUNT);
+		Serialise_glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
+{
+	SERIALISE_ELEMENT(GLenum, Mode, mode);
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
+	SERIALISE_ELEMENT(uint64_t, Count, (uint64_t)drawcount);
+	SERIALISE_ELEMENT(uint32_t, MaxCount, maxdrawcount);
+	SERIALISE_ELEMENT(uint32_t, Stride, stride);
+	
+	uint32_t IdxSize =
+			Type == eGL_UNSIGNED_BYTE  ? 1
+		: Type == eGL_UNSIGNED_SHORT ? 2
+		: /*Type == eGL_UNSIGNED_INT*/ 4;
+		
+	uint32_t realdrawcount = 0;
+
+	if(m_State < WRITING)
+	{
+		m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Count, sizeof(realdrawcount), &realdrawcount);
+
+		realdrawcount = RDCMIN(MaxCount, realdrawcount);
+	}
+
+	if(m_State == READING)
+	{
+		m_Real.glMultiDrawElementsIndirectCountARB(Mode, Type, (GLintptr)Offset, (GLintptr)Count, MaxCount, Stride);
+	}
+	else if(m_State <= EXECUTING)
+	{
+		size_t i=0;
+		for(; i < m_Events.size(); i++)
+		{
+			if(m_Events[i].eventID >= m_CurEventID)
+				break;
+		}
+
+		while(i > 1 && m_Events[i-1].fileOffset == m_Events[i].fileOffset) i--;
+
+		uint32_t baseEventID = m_Events[i].eventID;
+
+		if(m_LastEventID < baseEventID)
+		{
+			// To add the multidraw, we made an event N that is the 'parent' marker, then
+			// N+1, N+2, N+3, ... for each of the sub-draws. If the first sub-draw is selected
+			// then we'll replay up to N but not N+1, so just do nothing - we DON'T want to draw
+			// the first sub-draw in that range.
+		}
+		else if(m_FirstEventID <= baseEventID && m_LastEventID >= baseEventID)
+		{
+			// if we're replaying part-way into a multidraw, we can replay the first part 'easily'
+			// by just reducing the Count parameter to however many we want to replay. This only
+			// works if we're replaying from the first multidraw to the nth (n less than Count)
+			m_Real.glMultiDrawElementsIndirect(Mode, Type, (const void *)Offset, RDCMIN(realdrawcount, m_LastEventID - baseEventID + 1), Stride);
+		}
+		else
+		{
+			// otherwise we do the 'hard' case, draw only one multidraw
+			// note we'll never be asked to do e.g. 3rd-7th of a multidraw. Only ever 0th-nth or
+			// a single draw.
+			RDCASSERT(m_LastEventID == m_FirstEventID);
+
+			uint32_t drawidx = (m_LastEventID - baseEventID);
+			
+			DrawElementsIndirectCommand params;
+			
+			GLintptr offs = (GLintptr)Offset;
+			if(Stride != 0)
+				offs += Stride*drawidx;
+			else
+				offs += sizeof(params)*drawidx;
+
+			m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
+
+			m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, params.count, Type, (const void *)ptrdiff_t(params.firstIndex*IdxSize),
+			                                                     params.instanceCount, params.baseVertex, params.baseInstance);
+
+			m_LastIndexOffset = (GLuint)(params.firstIndex*IdxSize);
+		}
+	}
+	
+	const string desc = m_pSerialiser->GetDebugStr();
+	
+	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	
+	if(m_State == READING)
+	{
+		string name = "glMultiDrawElementsIndirectCountARB(" +
+						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
+						ToStr::Get(Type) + ", <" + 
+						ToStr::Get(realdrawcount) + ">, " +
+						ToStr::Get(MaxCount) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+
+		draw.flags |= eDraw_MultiDraw;
+		
+		AddDrawcall(draw, false);
+
+		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+		m_CurEventID++;
+
+		GLintptr offs = (GLintptr)Offset;
+
+		for(uint32_t i=0; i < realdrawcount; i++)
+		{
+			DrawElementsIndirectCommand params;
+
+			m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
+
+			if(Stride)
+				offs += Stride;
+			else
+				offs += sizeof(params);
+
+			FetchDrawcall draw;
+			draw.numIndices = params.count;
+			draw.numInstances = params.instanceCount;
+			draw.indexOffset = params.firstIndex*IdxSize;
+			draw.vertexOffset = params.baseVertex;
+			draw.instanceOffset = params.baseInstance;
+		
+			if(i == 0)
+				draw.debugMessages = debugMessages;
+			
+			draw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +
+						ToStr::Get(draw.numIndices) + ", " +
+						ToStr::Get(draw.numInstances) + ", " + 
+						ToStr::Get(draw.indexOffset) + ", " +
+						ToStr::Get(draw.instanceOffset) + ")";
+
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+			
+			AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
+			AddDrawcall(draw, true);
+
+			m_CurEventID++;
+		}
+		
+		m_DrawcallStack.pop_back();
+	}
+	else
+	{
+		m_CurEventID += realdrawcount+1;
+	}
+
+	m_LastIndexSize = Type;
+	m_LastDrawMode = Mode;
+
+	return true;
+}
+
+void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
+{
+	m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount, maxdrawcount, stride);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(MULTI_DRAWELEMENTS_INDIRECT_COUNT);
+		Serialise_glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount, maxdrawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
 	}

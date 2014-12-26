@@ -727,6 +727,8 @@ GLenum BufferBinding(GLenum target)
 			return eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
 		case eGL_UNIFORM_BUFFER:
 			return eGL_UNIFORM_BUFFER_BINDING;
+		case eGL_PARAMETER_BUFFER_ARB:
+			return eGL_PARAMETER_BUFFER_BINDING_ARB;
 		default:
 			break;
 	}

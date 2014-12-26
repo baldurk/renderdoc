@@ -816,6 +816,8 @@
     HookExtensionAlias(PFNGLREADNPIXELSPROC, glReadnPixels, glReadnPixelsARB); \
     HookExtension(PFNGLTEXTUREBARRIERPROC, glTextureBarrier); \
     HookExtension(PFNGLDISPATCHCOMPUTEGROUPSIZEARBPROC, glDispatchComputeGroupSizeARB); \
+    HookExtension(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC, glMultiDrawArraysIndirectCountARB); \
+    HookExtension(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC, glMultiDrawElementsIndirectCountARB); \
     HookExtension(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HookExtension(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
     HookExtension(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
@@ -1596,6 +1598,8 @@
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper0(void, glTextureBarrier); \
     HookWrapper6(void, glDispatchComputeGroupSizeARB, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z, GLuint, group_size_x, GLuint, group_size_y, GLuint, group_size_z); \
+    HookWrapper5(void, glMultiDrawArraysIndirectCountARB, GLenum, mode, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
+    HookWrapper6(void, glMultiDrawElementsIndirectCountARB, GLenum, mode, GLenum, type, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
@@ -1824,8 +1828,6 @@
     HookWrapper2(void, glvertexattribl1ui64varb, GLuint, index, const GLuint64EXT *, v); \
     HookWrapper3(void, glgetvertexattriblui64varb, GLuint, index, GLenum, pname, GLuint64EXT *, params); \
     HookWrapper3(GLsync, glcreatesyncfromcleventarb, struct _cl_context *, context, struct _cl_event *, event, GLbitfield, flags); \
-    HookWrapper5(void, glmultidrawarraysindirectcountarb, GLenum, mode, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
-    HookWrapper6(void, glmultidrawelementsindirectcountarb, GLenum, mode, GLenum, type, GLintptr, indirect, GLintptr, drawcount, GLsizei, maxdrawcount, GLsizei, stride); \
     HookWrapper5(void, glnamedstringarb, GLenum, type, GLint, namelen, const GLchar *, name, GLint, stringlen, const GLchar *, string); \
     HookWrapper2(void, gldeletenamedstringarb, GLint, namelen, const GLchar *, name); \
     HookWrapper4(void, glcompileshaderincludearb, GLuint, shader, GLsizei, count, const GLchar *const*, path, const GLint *, length); \
@@ -3439,8 +3441,6 @@
     HandleUnsupported(PFNGLVERTEXATTRIBL1UI64VARBPROC, glvertexattribl1ui64varb); \
     HandleUnsupported(PFNGLGETVERTEXATTRIBLUI64VARBPROC, glgetvertexattriblui64varb); \
     HandleUnsupported(PFNGLCREATESYNCFROMCLEVENTARBPROC, glcreatesyncfromcleventarb); \
-    HandleUnsupported(PFNGLMULTIDRAWARRAYSINDIRECTCOUNTARBPROC, glmultidrawarraysindirectcountarb); \
-    HandleUnsupported(PFNGLMULTIDRAWELEMENTSINDIRECTCOUNTARBPROC, glmultidrawelementsindirectcountarb); \
     HandleUnsupported(PFNGLNAMEDSTRINGARBPROC, glnamedstringarb); \
     HandleUnsupported(PFNGLDELETENAMEDSTRINGARBPROC, gldeletenamedstringarb); \
     HandleUnsupported(PFNGLCOMPILESHADERINCLUDEARBPROC, glcompileshaderincludearb); \

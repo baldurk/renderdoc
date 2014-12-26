@@ -89,6 +89,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 			EXT_CHECK(EXT_polygon_offset_clamp);
 			EXT_CHECK(KHR_blend_equation_advanced_coherent);
 			EXT_CHECK(EXT_raster_multisample);
+			EXT_CHECK(ARB_indirect_parameters);
 
 #undef EXT_CHECK
 		}
@@ -316,6 +317,7 @@ size_t BufferIdx(GLenum buf)
 		case eGL_TEXTURE_BUFFER:            return 11;
 		case eGL_TRANSFORM_FEEDBACK_BUFFER: return 12;
 		case eGL_UNIFORM_BUFFER:            return 13;
+		case eGL_PARAMETER_BUFFER_ARB:      return 14;
 		default:
 			RDCERR("Unexpected enum as buffer target: %s", ToStr::Get(buf).c_str());
 	}
@@ -340,6 +342,7 @@ GLenum BufferEnum(size_t idx)
 		eGL_TEXTURE_BUFFER,
 		eGL_TRANSFORM_FEEDBACK_BUFFER,
 		eGL_UNIFORM_BUFFER,
+		eGL_PARAMETER_BUFFER_ARB,
 	};
 
 	if(idx < ARRAY_COUNT(enums))
