@@ -341,7 +341,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_DeviceRecord->NumSubResources = 0;
 		m_DeviceRecord->SubResources = NULL;
 
-		RenderDoc::Inst().AddFrameCapturer(m_pDevice, this);
+		RenderDoc::Inst().AddFrameCapturer(this, this);
 	}
 	
 	ID3D11DeviceContext *context = NULL;
@@ -454,7 +454,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
 	m_LayoutDescs.clear();
 
 	if(!RenderDoc::Inst().IsReplayApp())
-		RenderDoc::Inst().RemoveFrameCapturer(m_pDevice);
+		RenderDoc::Inst().RemoveFrameCapturer(this);
 	
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
