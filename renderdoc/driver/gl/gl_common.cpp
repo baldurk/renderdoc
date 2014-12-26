@@ -63,6 +63,15 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 	RDCEraseEl(ExtensionSupported);
 	RDCEraseEl(VendorCheck);
 
+	if(gl.glGetString)
+	{
+		const char *vendor = (const char *)gl.glGetString(eGL_VENDOR);
+		const char *renderer = (const char *)gl.glGetString(eGL_RENDERER);
+		const char *version = (const char *)gl.glGetString(eGL_VERSION);
+
+		RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
+	}
+
 	if(gl.glGetStringi)
 	{
 		for(int i=0; i < numExts; i++)
