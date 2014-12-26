@@ -40,7 +40,7 @@ int64_t Chunk::m_MaxChunks = 0;
 const uint32_t Serialiser::MAGIC_HEADER = MAKE_FOURCC('R', 'D', 'O', 'C');
 const size_t Serialiser::BufferAlignment = 16;
 
-Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
+Chunk::Chunk(Serialiser *ser, uint32_t chunkType, size_t alignment, bool temporary)
 {
 	m_Length = (uint32_t)ser->GetOffset();
 
@@ -50,7 +50,12 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 
 	m_Temporary = temporary;
 
-	if(ser->HasAlignedData())
+	if(alignment)
+	{
+		m_Data = Serialiser::AllocAlignedBuffer(m_Length, alignment);
+		m_AlignedData = true;
+	}
+	else if(ser->HasAlignedData())
 	{
 		m_Data = Serialiser::AllocAlignedBuffer(m_Length);
 		m_AlignedData = true;
@@ -331,7 +336,7 @@ void Serialiser::ReadFromFile(uint64_t destOffs, size_t chunkLen)
 	FileIO::fread(m_Buffer + destOffs - m_ReadOffset, 1, chunkLen, m_ReadFileHandle);
 }
 
-byte *Serialiser::AllocAlignedBuffer(size_t size)
+byte *Serialiser::AllocAlignedBuffer(size_t size, size_t alignment)
 {
 	byte *rawAlloc = NULL;
 	
@@ -339,7 +344,7 @@ byte *Serialiser::AllocAlignedBuffer(size_t size)
 	try
 #endif
 	{
-		rawAlloc = new byte[size+sizeof(byte*)+16];
+		rawAlloc = new byte[size+sizeof(byte*)+alignment];
 	}
 #if defined(__EXCEPTIONS) || defined(_CPPUNWIND)
 	catch(std::bad_alloc&)
@@ -353,7 +358,7 @@ byte *Serialiser::AllocAlignedBuffer(size_t size)
 
 	RDCASSERT(rawAlloc);
 
-	byte *alignedAlloc = (byte *)AlignUp16((size_t)(rawAlloc+sizeof(byte*)));
+	byte *alignedAlloc = (byte *)AlignUp((size_t)(rawAlloc+sizeof(byte*)), alignment);
 
 	byte **realPointer = (byte **)alignedAlloc;
 	realPointer[-1] = rawAlloc;

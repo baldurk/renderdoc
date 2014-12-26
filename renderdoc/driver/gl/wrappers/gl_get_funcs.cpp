@@ -145,6 +145,12 @@ void WrappedOpenGL::glGetPointerv(GLenum pname, void **params)
 
 void WrappedOpenGL::glGetIntegerv(GLenum pname, GLint *params)
 {
+	if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
+	{
+		if(params)
+			*params = (GLint)64;
+		return;
+	}
 	if(pname == eGL_NUM_EXTENSIONS)
 	{
 		if(params)
@@ -162,6 +168,12 @@ void WrappedOpenGL::glGetBooleanv(GLenum pname, GLboolean *data)
 
 void WrappedOpenGL::glGetInteger64v(GLenum pname, GLint64 *data)
 {
+	if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
+	{
+		if(data)
+			*data = (GLint)64;
+		return;
+	}
 	m_Real.glGetInteger64v(pname, data);
 }
 
@@ -172,6 +184,12 @@ void WrappedOpenGL::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
 
 void WrappedOpenGL::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
 {
+	if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
+	{
+		if(data)
+			*data = (GLint)64;
+		return;
+	}
 	m_Real.glGetIntegeri_v(pname, index, data);
 }
 
@@ -187,6 +205,12 @@ void WrappedOpenGL::glGetDoublei_v(GLenum pname, GLuint index, GLdouble *data)
 
 void WrappedOpenGL::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)
 {
+	if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
+	{
+		if(data)
+			*data = (GLint)64;
+		return;
+	}
 	m_Real.glGetInteger64i_v(pname, index, data);
 }
 

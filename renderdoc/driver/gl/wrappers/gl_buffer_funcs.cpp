@@ -294,6 +294,9 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
 		Serialise_glNamedBufferStorageEXT(buffer, size, data, flags);
 
+		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+		scope.SetAlignment(64);
+
 		Chunk *chunk = scope.Get();
 
 		if(m_State == WRITING_CAPFRAME)
@@ -323,6 +326,9 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
 		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
 		Serialise_glNamedBufferStorageEXT(record->Resource.name,
 																   size, data, flags);
+
+		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+		scope.SetAlignment(64);
 
 		Chunk *chunk = scope.Get();
 
@@ -455,6 +461,9 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
 
+		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+		scope.SetAlignment(64);
+
 		Chunk *chunk = scope.Get();
 
 		if(m_State == WRITING_CAPFRAME)
@@ -551,6 +560,9 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
+
+		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+		scope.SetAlignment(64);
 
 		Chunk *chunk = scope.Get();
 
@@ -1301,7 +1313,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 
 				if(shadow == NULL)
 				{
-					record->AllocShadowStorage(length);
+					record->AllocShadowStorage(length, 64);
 					shadow = (byte *)record->GetShadowPtr(0);
 
 					if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
@@ -1397,8 +1409,6 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 			return record->Map.ptr;
 		}
 
-		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
-
 		if((access & GL_MAP_READ_BIT) != 0)
 		{
 			byte *ptr = record->GetDataPtr();
@@ -1455,7 +1465,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 					GLint buflength;
 					m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
 
-					record->AllocShadowStorage(buflength);
+					record->AllocShadowStorage(buflength, 64);
 					shadow = (byte *)record->GetShadowPtr(0);
 
 					if(!invalidateMap)

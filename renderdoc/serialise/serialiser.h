@@ -105,7 +105,7 @@ class Chunk
 #endif
 		
 		// grab current contents of the serialiser into this chunk
-		Chunk(Serialiser *ser, uint32_t chunkType, bool temp); 
+		Chunk(Serialiser *ser, uint32_t chunkType, size_t alignment, bool temp); 
 
 	private:
 		// no copy semantics
@@ -505,7 +505,7 @@ class Serialiser
 		// prints to the debug output log
 		void DebugPrint(const char *fmt, ...);
 
-		static byte *AllocAlignedBuffer(size_t size);
+		static byte *AllocAlignedBuffer(size_t size, size_t align = 16);
 		static void FreeAlignedBuffer(byte *buf);
 
 		uint64_t FlushToDisk();
@@ -753,6 +753,7 @@ class ScopedContext
 			, m_DebugSer(debugser)
 #endif
 		{
+			m_Alignment = 0;
 			m_Name = string(n) + " = " + t;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
 			
@@ -770,6 +771,7 @@ class ScopedContext
 			, m_DebugSer(debugser)
 #endif
 		{
+			m_Alignment = 0;
 			m_Name = n;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
 
@@ -787,14 +789,20 @@ class ScopedContext
 				End();
 		}
 
+		void SetAlignment(size_t align)
+		{
+			m_Alignment = align;
+		}
+
 		Chunk *Get(bool temporary = false)
 		{
 			End();
-			return new Chunk(m_Ser, m_Idx, temporary);
+			return new Chunk(m_Ser, m_Idx, m_Alignment, temporary);
 		}
 	private:
 		std::string m_Name;
 		uint32_t m_Idx;
+		size_t m_Alignment;
 		Serialiser *m_Ser;
 #ifdef DEBUG_TEXT_SERIALISER
 		Serialiser *m_DebugSer;

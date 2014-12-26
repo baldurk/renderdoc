@@ -387,6 +387,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_internalformat_query");
 	globalExts.push_back("GL_ARB_internalformat_query2");
 	globalExts.push_back("GL_ARB_invalidate_subdata");
+	globalExts.push_back("GL_ARB_map_buffer_alignment");
 	globalExts.push_back("GL_ARB_map_buffer_range");
 	globalExts.push_back("GL_ARB_multi_bind");
 	globalExts.push_back("GL_ARB_multi_draw_indirect");
