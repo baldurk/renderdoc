@@ -174,6 +174,24 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		if(r->datatype != target)
 		{
 			Chunk *chunk = NULL;
+			
+			r->LockChunks();
+			while(true)
+			{
+				Chunk *end = r->GetLastChunk();
+
+				if(end->GetChunkType() == BIND_BUFFER)
+				{
+					SAFE_DELETE(end);
+
+					r->PopChunk();
+
+					continue;
+				}
+
+				break;
+			}
+			r->UnlockChunks();
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
