@@ -256,6 +256,8 @@ class WrappedOpenGL
 		GLuint m_FakeBB_Color;
 		GLuint m_FakeBB_DepthStencil;
 		GLuint m_FakeVAO;
+
+		ResourceId m_FakeVAOID;
 		
 		bool m_DoStateVerify;
 		//GLRenderState *m_CurrentPipelineState;

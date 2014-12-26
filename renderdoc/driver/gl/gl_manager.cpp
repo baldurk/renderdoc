@@ -492,7 +492,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		// need to be on the right context, as VAOs are never shared
 		void *oldctx = NULL;
 		
-		if(!VendorCheck[VendorCheck_EXT_vao_shared])
+		if(!VendorCheck[VendorCheck_EXT_vao_shared] && res.Context)
 			oldctx = m_GL->SwitchToContext(res.Context);
 
 		GLuint prevVAO = 0;
@@ -531,7 +531,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		gl.glBindVertexArray(prevVAO);
 
 		// restore the previous context
-		if(!VendorCheck[VendorCheck_EXT_vao_shared])
+		if(!VendorCheck[VendorCheck_EXT_vao_shared] && res.Context)
 			m_GL->SwitchToContext(oldctx);
 	}
 	else
@@ -1325,11 +1325,14 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 	{
 		GLuint VAO = 0;
 		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
-
-		gl.glBindVertexArray(live.name);
-	
+		
 		VAOInitialData *initialdata = (VAOInitialData *)initial.blob;	
 
+		if(live.name == 0)
+			gl.glBindVertexArray(m_GL->GetFakeVAO());
+		else
+			gl.glBindVertexArray(live.name);
+	
 		for(GLuint i=0; i < 16; i++)
 		{
 			VertexAttribInitialData &attrib = initialdata->VertexAttribs[i];

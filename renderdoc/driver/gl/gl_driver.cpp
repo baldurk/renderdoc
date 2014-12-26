@@ -705,6 +705,12 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_ContextRecord->NumSubResources = 0;
 		m_ContextRecord->SpecialResource = true;
 		m_ContextRecord->SubResources = NULL;
+		
+		// register VAO 0 as a special VAO, so that it can be tracked if the app uses it
+		// we immediately mark it dirty since the vertex array tracking functions expect a proper VAO
+		m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
+		GetResourceManager()->AddResourceRecord(m_FakeVAOID);
+		GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
 	}
 	else
 	{
@@ -1563,6 +1569,7 @@ void WrappedOpenGL::Present(void *windowHandle)
 				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
 
 				SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
+				SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
 
 				m_pFileSerialiser->Insert(scope.Get(true));
 			}
@@ -2012,8 +2019,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case DEVICE_INIT:
 		{
 			SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
+			SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
 
-			m_ResourceManager->AddLiveResource(immContextId, GLResource(NULL, eResSpecial, eSpecialResContext));
+			GetResourceManager()->AddLiveResource(immContextId, GLResource(NULL, eResSpecial, eSpecialResContext));
+			GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
 			break;
 		}
 	case GEN_TEXTURE:
