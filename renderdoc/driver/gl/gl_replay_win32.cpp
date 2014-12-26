@@ -395,6 +395,40 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		return eReplayCreate_APIInitFailed;
 	}
 
+	PFNGLGETINTEGERVPROC getInt = (PFNGLGETINTEGERVPROC)GetProcAddress(lib, "glGetIntegerv");
+	PFNGLGETSTRINGIPROC getStr = (PFNGLGETSTRINGIPROC)wglGetProc("glGetStringi");
+
+	if(getInt == NULL || getStr == NULL)
+	{
+		RDCERR("Couldn't get glGetIntegerv (%p) or glGetStringi (%p) entry points", getInt, getStr);
+		return eReplayCreate_APIInitFailed;
+	}
+	else
+	{
+		// eventually we want to emulate EXT_dsa on replay if it isn't present, but for
+		// now we just require it.
+		bool found = false;
+
+		GLint numExts = 0;
+		getInt(eGL_NUM_EXTENSIONS, &numExts);
+		for(GLint i=0; i < numExts; i++)
+		{
+			const char *ext = (const char *)getStr(eGL_EXTENSIONS, (GLuint)i);
+
+			if(!strcmp(ext, "GL_EXT_direct_state_access"))
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if(!found)
+		{
+			RDCERR("RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try updating your drivers.");
+			return eReplayCreate_APIHardwareUnsupported;
+		}
+	}
+
 	WrappedOpenGL *gl = new WrappedOpenGL(logfile, GetRealFunctions());
 	gl->Initialise(initParams);
 
