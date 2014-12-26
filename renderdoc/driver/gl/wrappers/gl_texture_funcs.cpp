@@ -5171,6 +5171,13 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
 
+		if(record->datatype == TextureBinding(target) && m_Textures[record->GetResourceID()].internalFormat == internalformat && m_State == WRITING_IDLE)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			return;
+		}
+
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER_RANGE);
 		Serialise_glTextureBufferRangeEXT(texture, target, internalformat, buffer, offset, size);
 		
@@ -5184,6 +5191,19 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
 	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 1;
+		m_Textures[texId].internalFormat = internalformat;
+	}
 }
 
 void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size)
@@ -5194,6 +5214,13 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
+		
+		if(record->datatype == TextureBinding(target) && m_Textures[record->GetResourceID()].internalFormat == internalformat && m_State == WRITING_IDLE)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER_RANGE);
 		Serialise_glTextureBufferRangeEXT(record->Resource.name,
@@ -5208,6 +5235,19 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 			record->AddChunk(scope.Get());
 			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
+	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 1;
+		m_Textures[texId].internalFormat = internalformat;
 	}
 }
 
@@ -5250,6 +5290,13 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
 		RDCASSERT(record);
+		
+		if(record->datatype == TextureBinding(target) && m_Textures[record->GetResourceID()].internalFormat == internalformat && m_State == WRITING_IDLE)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER);
 		Serialise_glTextureBufferEXT(texture, target, internalformat, buffer);
@@ -5266,6 +5313,21 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
 	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		
+		uint32_t size = 1;
+		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 1;
+		m_Textures[texId].internalFormat = internalformat;
+	}
 }
 
 void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffer)
@@ -5276,6 +5338,13 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 	{
 		GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
 		RDCASSERT(record);
+		
+		if(record->datatype == TextureBinding(target) && m_Textures[record->GetResourceID()].internalFormat == internalformat && m_State == WRITING_IDLE)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER);
 		Serialise_glTextureBufferEXT(record->Resource.name,
@@ -5293,6 +5362,21 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
 	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		
+		uint32_t size = 1;
+		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 1;
+		m_Textures[texId].internalFormat = internalformat;
+	}
 }
 
 void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum internalformat, GLuint buffer)
@@ -5303,6 +5387,13 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
 	{
 		GLResourceRecord *record = GetCtxData().m_TextureRecord[texunit-eGL_TEXTURE0];
 		RDCASSERT(record);
+		
+		if(record->datatype == TextureBinding(target) && m_Textures[record->GetResourceID()].internalFormat == internalformat && m_State == WRITING_IDLE)
+		{
+			GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			return;
+		}
 
 		SCOPED_SERIALISE_CONTEXT(TEXBUFFER);
 		Serialise_glTextureBufferEXT(record->Resource.name,
@@ -5319,6 +5410,21 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
 			record->AddChunk(chunk);
 			record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
 		}
+	}
+
+	{
+		GLuint texture = 0;
+		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+		
+		uint32_t size = 1;
+		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].height = 1;
+		m_Textures[texId].depth = 1;
+		m_Textures[texId].curType = TextureTarget(target);
+		m_Textures[texId].dimension = 1;
+		m_Textures[texId].internalFormat = internalformat;
 	}
 }
 
