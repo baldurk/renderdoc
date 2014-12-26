@@ -101,6 +101,7 @@ class WrappedOpenGL
 
 		GLDEBUGPROC m_RealDebugFunc;
 		const void *m_RealDebugFuncParam;
+		string m_DebugMsgContext;
 
 		void DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message);
 		static void APIENTRY DebugSnoopStatic(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
@@ -347,6 +348,8 @@ class WrappedOpenGL
 		GLReplay *GetReplay() { return &m_Replay; }
 		void *GetCtx();
 		void *SwitchToContext(void *ctx);
+
+		void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
 		
 		// replay interface
 		void Initialise(GLInitParams &params);
@@ -1184,4 +1187,24 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bindingindex, GLuint divisor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint index, GLuint divisor));
+};
+
+class ScopedDebugContext
+{
+	public:
+		ScopedDebugContext(WrappedOpenGL *gl, const char *fmt, ...)
+		{
+			va_list args;
+			va_start(args, fmt);
+			char buf[1024]; buf[1023] = 0;
+			StringFormat::vsnprintf(buf, 1023, fmt, args);
+			va_end(args);
+
+			m_GL = gl;
+			m_GL->SetDebugMsgContext(buf);
+		}
+
+		~ScopedDebugContext() { m_GL->SetDebugMsgContext(""); }
+	private:
+		WrappedOpenGL *m_GL;
 };
