@@ -31,6 +31,23 @@
 
 #include "maths/vec.h"
 
+struct PixelUnpackState
+{
+	int32_t swapBytes;
+	int32_t rowlength, imageheight;
+	int32_t skipPixels, skipRows, skipImages;
+	int32_t alignment;
+
+	int32_t compressedBlockWidth, compressedBlockHeight, compressedBlockDepth;
+	int32_t compressedBlockSize;
+
+	void Fetch(const GLHookSet *funcs, bool compressed);
+
+	bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat=eGL_NONE, GLenum basetype=eGL_NONE);
+	byte *Unpack(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);
+	byte *UnpackCompressed(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLsizei &imageSize);
+};
+
 struct GLRenderState
 {
 	GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state);
@@ -231,7 +248,8 @@ struct GLRenderState
 
 	GLenum FrontFace;
 	GLenum CullFace;
-	//
+
+	PixelUnpackState Unpack;
 
 private:
 	Serialiser *m_pSerialiser;

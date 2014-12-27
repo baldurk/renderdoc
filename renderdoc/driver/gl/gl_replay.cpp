@@ -590,7 +590,7 @@ void GLReplay::CacheTexture(ResourceId id)
 			else if(tex.format.special)
 			{
 				tex.byteSize += GetByteSize(RDCMAX(1U, tex.width>>m), RDCMAX(1U, tex.height>>m), RDCMAX(1U, tex.depth>>m), 
-																		GetBaseFormat((GLenum)fmt), GetDataType((GLenum)fmt), 1);
+																		GetBaseFormat((GLenum)fmt), GetDataType((GLenum)fmt));
 			}
 			else
 			{

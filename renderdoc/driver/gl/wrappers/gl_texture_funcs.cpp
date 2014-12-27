@@ -1613,17 +1613,14 @@ void WrappedOpenGL::glPixelStorei(GLenum pname, GLint param)
 {
 	m_Real.glPixelStorei(pname, param);
 
-	if(m_State >= WRITING)
+	// except for capturing frames we ignore this and embed the relevant
+	// parameters in the chunks that reference them.
+	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(PIXELSTORE);
 		Serialise_glPixelStorei(pname, param);
 
-		if(GetCtxData().GetActiveTexRecord())
-			GetCtxData().GetActiveTexRecord()->AddChunk(scope.Get());
-		else if(m_State == WRITING_IDLE)
-			m_DeviceRecord->AddChunk(scope.Get());
-		else if(m_State == WRITING_CAPFRAME)
-			m_ContextRecord->AddChunk(scope.Get());
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
@@ -1683,16 +1680,25 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
 	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
 
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, 1, 1, Format, Type, align);
+		if(unpack.FastPath(Width, 0, 0, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, 0, 0, Format, Type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, 1, 1, Format, Type);
 
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -1918,16 +1924,25 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
 	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
 
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, Height, 1, Format, Type, align);
-	
+		if(unpack.FastPath(Width, Height, 0, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, 0, Format, Type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type);
+
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -2160,16 +2175,25 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
 	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
 
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, Height, Depth, Format, Type, align);
+		if(unpack.FastPath(Width, Height, Depth, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, Depth, Format, Type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, Height, Depth, Format, Type);
 
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -2400,10 +2424,25 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(GLenum, fmt, internalformat);
 	SERIALISE_ELEMENT(int32_t, Border, border);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
+		if(unpack.FastPath(Width, 0, 0))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, 0, 0, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -2639,10 +2678,25 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(GLenum, fmt, internalformat);
 	SERIALISE_ELEMENT(int32_t, Border, border);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
+		if(unpack.FastPath(Width, Height, 0))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -2882,10 +2936,25 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
 	SERIALISE_ELEMENT(uint32_t, Depth, depth);
 	SERIALISE_ELEMENT(GLenum, fmt, internalformat);
 	SERIALISE_ELEMENT(int32_t, Border, border);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
+		if(unpack.FastPath(Width, Height, Depth))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(bool, DataProvided, pixels != NULL);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, DataProvided);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, DataProvided);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State == READING)
 	{
@@ -4052,21 +4121,30 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
-
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, 1, 1, Format, Type, align);
-	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
+
+		if(unpack.FastPath(Width, 0, 0, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, 0, 0, format, type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, 1, 1, Format, Type);
+
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -4235,25 +4313,31 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
-	
-	GLint imgheight = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imgheight);
-
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, imgheight > 0 ? imgheight : Height, 1, Format, Type, align);
 	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
+
+		if(unpack.FastPath(Width, Height, 0, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, 0, Format, Type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type);
+
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -4424,25 +4508,31 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 	SERIALISE_ELEMENT(GLenum, Format, format);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-
-	GLint align = 1;
-	m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-	
-	GLint rowlen = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlen);
-	
-	GLint imgheight = 0;
-	m_Real.glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imgheight);
-
-	size_t subimageSize = GetByteSize(rowlen > 0 ? rowlen : Width, imgheight > 0 ? imgheight : Height, Depth, Format, Type, align);
 	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-
+	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, subimageSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, false);
+
+		if(unpack.FastPath(Width, Height, Depth, Format, Type))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, Depth, Format, Type);
+	}
+
+	size_t subimageSize = GetByteSize(Width, Height, Depth, Format, Type);
+
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -4607,17 +4697,32 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 	SERIALISE_ELEMENT(int32_t, xoff, xoffset);
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
+
+		if(unpack.FastPath(Width, 0, 0))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, 0, 0, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
 
+	SAFE_DELETE_ARRAY(unpackedPixels);
+	
 	if(m_State <= EXECUTING)
 	{
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
@@ -4783,16 +4888,31 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 	SERIALISE_ELEMENT(uint32_t, Width, width);
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
+
+		if(unpack.FastPath(Width, Height, 0))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -4961,16 +5081,31 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 	SERIALISE_ELEMENT(uint32_t, Height, height);
 	SERIALISE_ELEMENT(uint32_t, Depth, depth);
 	SERIALISE_ELEMENT(GLenum, fmt, format);
-	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-
+	
 	GLint unpackbuf = 0;
 	m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
 	
 	SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, pixels, byteSize, !UnpackBufBound);
 
+	byte *unpackedPixels = NULL;
+	byte *srcPixels = NULL;
+	
+	if(m_State >= WRITING && pixels && !UnpackBufBound)
+	{
+		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
+
+		if(unpack.FastPath(Width, Height, Depth))
+			srcPixels = (byte *)pixels;
+		else
+			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
+	}
+	
+	SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+	SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
 	SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+	SAFE_DELETE_ARRAY(unpackedPixels);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -5146,7 +5281,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
 		if(m_State == READING && m_CurEventID == 0)
 		{
 			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
-			m_Textures[liveId].width = uint32_t(Size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
+			m_Textures[liveId].width = uint32_t(Size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
 			m_Textures[liveId].height = 1;
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = TextureTarget(Target);
@@ -5197,7 +5332,7 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 
-		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
 		m_Textures[texId].height = 1;
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
@@ -5242,7 +5377,7 @@ void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuin
 		m_Real.glGetIntegerv(TextureBinding(target), (GLint *)&texture);
 		ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
 		
-		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
 		m_Textures[texId].height = 1;
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
@@ -5267,7 +5402,7 @@ bool WrappedOpenGL::Serialise_glTextureBufferEXT(GLuint texture, GLenum target, 
 			ResourceId liveId = GetResourceManager()->GetLiveID(texid);
 			uint32_t Size = 1;
 			m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&Size);
-			m_Textures[liveId].width = Size/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt), 1));
+			m_Textures[liveId].width = Size/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
 			m_Textures[liveId].height = 1;
 			m_Textures[liveId].depth = 1;
 			m_Textures[liveId].curType = TextureTarget(Target);
@@ -5321,7 +5456,7 @@ void WrappedOpenGL::glTextureBufferEXT(GLuint texture, GLenum target, GLenum int
 		
 		uint32_t size = 1;
 		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
-		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
 		m_Textures[texId].height = 1;
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
@@ -5370,7 +5505,7 @@ void WrappedOpenGL::glTexBuffer(GLenum target, GLenum internalformat, GLuint buf
 		
 		uint32_t size = 1;
 		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
-		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
 		m_Textures[texId].height = 1;
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);
@@ -5419,7 +5554,7 @@ void WrappedOpenGL::glMultiTexBufferEXT(GLenum texunit, GLenum target, GLenum in
 		
 		uint32_t size = 1;
 		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
-		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat), 1));
+		m_Textures[texId].width = uint32_t(size)/uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
 		m_Textures[texId].height = 1;
 		m_Textures[texId].depth = 1;
 		m_Textures[texId].curType = TextureTarget(target);

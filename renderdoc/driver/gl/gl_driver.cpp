@@ -347,6 +347,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_clear_texture");
 	globalExts.push_back("GL_ARB_clip_control");
 	globalExts.push_back("GL_ARB_color_buffer_float");
+	globalExts.push_back("GL_ARB_compressed_texture_pixel_storage");
 	globalExts.push_back("GL_ARB_compute_shader");
 	globalExts.push_back("GL_ARB_compute_variable_group_size");
 	globalExts.push_back("GL_ARB_conditional_render_inverted");

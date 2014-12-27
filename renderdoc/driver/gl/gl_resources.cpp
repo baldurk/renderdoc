@@ -29,30 +29,9 @@
 const GLenum eGL_LUMINANCE = (GLenum)0x1909;
 const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
 
-size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, int align)
+size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 {
 	size_t elemSize = 0;
-
-	GLsizei alignMask = ~0x0;
-	GLsizei alignAdd = 0;
-	switch(align)
-	{
-		default:
-		case 1:
-			break;
-		case 2:
-			alignMask = ~0x1;
-			alignAdd = 1;
-			break;
-		case 4:
-			alignMask = ~0x3;
-			alignAdd = 3;
-			break;
-		case 8:
-			alignMask = ~0x7;
-			alignAdd = 7;
-			break;
-	}
 
 	switch(type)
 	{
@@ -75,14 +54,14 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 			break;
 		case eGL_UNSIGNED_BYTE_3_3_2:
 		case eGL_UNSIGNED_BYTE_2_3_3_REV:
-			return ((w + alignAdd) & alignMask)*h*d;
+			return w*h*d;
 		case eGL_UNSIGNED_SHORT_5_6_5:
 		case eGL_UNSIGNED_SHORT_5_6_5_REV:
 		case eGL_UNSIGNED_SHORT_4_4_4_4:
 		case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
 		case eGL_UNSIGNED_SHORT_5_5_5_1:
 		case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
-			return ((w*2 + alignAdd) & alignMask)*h*d;
+			return w*h*d*2;
 		case eGL_UNSIGNED_INT_8_8_8_8:
 		case eGL_UNSIGNED_INT_8_8_8_8_REV:
 		case eGL_UNSIGNED_INT_10_10_10_2:
@@ -90,18 +69,18 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_INT_2_10_10_10_REV:
 		case eGL_UNSIGNED_INT_10F_11F_11F_REV:
 		case eGL_UNSIGNED_INT_5_9_9_9_REV:
-			return ((w*4 + alignAdd) & alignMask)*h*d;
+			return w*h*d*4;
 		case eGL_DEPTH_COMPONENT16:
-			return ((w*2 + alignAdd) & alignMask)*h*d;
+			return w*h*d*2;
 		case eGL_DEPTH_COMPONENT24:
 		case eGL_DEPTH24_STENCIL8:
 		case eGL_DEPTH_COMPONENT32:
 		case eGL_DEPTH_COMPONENT32F:
 		case eGL_UNSIGNED_INT_24_8:
-			return ((w*4 + alignAdd) & alignMask)*h*d;
+			return w*h*d*4;
 		case eGL_DEPTH32F_STENCIL8:
 		case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV:
-			return ((w*8 + alignAdd) & alignMask)*h*d;
+			return w*h*d*8;
 		default:
 			RDCERR("Unhandled Byte Size type %d!", type);
 			break;
@@ -118,22 +97,22 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type, 
 		case eGL_LUMINANCE:
 		case eGL_DEPTH_COMPONENT:
 		case eGL_STENCIL_INDEX:
-			return ((w*elemSize + alignAdd) & alignMask)*h*d;
+			return w*h*d*elemSize;
 		case eGL_RG:
 		case eGL_RG_INTEGER:
 		case eGL_LUMINANCE_ALPHA:
 		case eGL_DEPTH_STENCIL:
-			return ((w*elemSize*2 + alignAdd) & alignMask)*h*d;
+			return w*h*d*elemSize*2;
 		case eGL_RGB:
 		case eGL_RGB_INTEGER:
 		case eGL_BGR:
 		case eGL_BGR_INTEGER:
-			return ((w*elemSize*3 + alignAdd) & alignMask)*h*d;
+			return w*h*d*elemSize*3;
 		case eGL_RGBA:
 		case eGL_RGBA_INTEGER:
 		case eGL_BGRA:
 		case eGL_BGRA_INTEGER:
-			return ((w*elemSize*4 + alignAdd) & alignMask)*h*d;
+			return w*h*d*elemSize*4;
 		default:
 			RDCERR("Unhandled Byte Size format %d!", format);
 			break;

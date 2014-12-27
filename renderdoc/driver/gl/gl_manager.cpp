@@ -758,7 +758,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				GLenum fmt = GetBaseFormat(details.internalFormat);
 				GLenum type = GetDataType(details.internalFormat);
 					
-				size_t size = GetByteSize(details.width, details.height, details.depth, fmt, type, 0);
+				size_t size = GetByteSize(details.width, details.height, details.depth, fmt, type);
 
 				byte *buf = new byte[size];
 
@@ -780,7 +780,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 						 t == eGL_TEXTURE_2D_ARRAY)
 						d = details.depth;
 
-					size = GetByteSize(w, h, d, fmt, type, 0);
+					size = GetByteSize(w, h, d, fmt, type);
 					
 					GLenum targets[] = {
 						eGL_TEXTURE_CUBE_MAP_POSITIVE_X,

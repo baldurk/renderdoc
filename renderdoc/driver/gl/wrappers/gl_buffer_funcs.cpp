@@ -2091,7 +2091,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
                         Size == 2 ? eGL_RG   :
                         Size == 3 ? eGL_RGB  :
                         eGL_RGBA;
-			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type, 1);
+			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
 		}
 		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}
@@ -2186,7 +2186,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, 
                         Size == 2 ? eGL_RG   :
                         Size == 3 ? eGL_RGB  :
                         eGL_RGBA;
-			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type, 1);
+			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
 		}
 		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}
@@ -2281,7 +2281,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, 
                         Size == 2 ? eGL_RG   :
                         Size == 3 ? eGL_RGB  :
                         eGL_RGBA;
-			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type, 1);
+			Stride = (uint32_t)GetByteSize(1, 1, 1, SizeEnum, Type);
 		}
 		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, Index, buffer, (GLintptr)Offset, Stride);
 	}

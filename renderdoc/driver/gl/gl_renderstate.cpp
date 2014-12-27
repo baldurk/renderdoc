@@ -25,6 +25,204 @@
 #include "gl_renderstate.h"
 #include "gl_driver.h"
 
+void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
+{
+	funcs->glGetIntegerv(eGL_UNPACK_SWAP_BYTES, &swapBytes);
+	funcs->glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
+	funcs->glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
+	funcs->glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &skipPixels);
+	funcs->glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &skipRows);
+	funcs->glGetIntegerv(eGL_UNPACK_SKIP_IMAGES, &skipImages);
+	funcs->glGetIntegerv(eGL_UNPACK_ALIGNMENT, &alignment);
+
+	if(compressed)
+	{
+		funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
+		funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
+		funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
+		funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
+	}
+}
+
+bool PixelUnpackState::FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype)
+{
+	if(swapBytes)
+		return false;
+
+	if(skipPixels)
+		return false;
+
+	if(height > 0 && skipRows)
+		return false;
+
+	if(depth > 0 && skipImages)
+		return false;
+
+	if(width > 0 && rowlength > 0 && width < rowlength)
+		return false;
+
+	if(height > 0 && imageheight > 0 && height < imageheight)
+		return false;
+
+	if(dataformat != eGL_NONE && alignment > (int32_t)GetByteSize(1, 1, 1, dataformat, basetype))
+		return false;
+
+	return true;
+}
+
+byte *PixelUnpackState::Unpack(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype)
+{
+	size_t pixelSize = GetByteSize(1, 1, 1, dataformat, basetype);
+
+	size_t srcrowstride = pixelSize   *RDCMAX(RDCMAX(width,  1), rowlength);
+	size_t srcimgstride = srcrowstride*RDCMAX(RDCMAX(height, 1), imageheight);
+	
+	size_t destrowstride = pixelSize*width;
+	size_t destimgstride = destrowstride*height;
+
+	size_t elemSize = 1;
+	switch(basetype)
+	{
+		case eGL_UNSIGNED_BYTE:
+		case eGL_BYTE:
+			elemSize = 1;
+			break;
+		case eGL_UNSIGNED_SHORT:
+		case eGL_SHORT:
+		case eGL_HALF_FLOAT:
+			elemSize = 2;
+			break;
+		case eGL_UNSIGNED_INT:
+		case eGL_INT:
+		case eGL_FLOAT:
+			elemSize = 4;
+			break;
+		case eGL_DOUBLE:
+			elemSize = 8;
+			break;
+		default:
+			break;
+	}
+
+	size_t allocsize = width*RDCMAX(1, height)*RDCMAX(1, depth)*pixelSize;
+	byte *ret = new byte[allocsize];
+
+	byte *source = pixels;
+
+	if(skipPixels > 0)
+		source += skipPixels*pixelSize;
+	if(skipRows > 0 && height > 0)
+		source += skipRows*srcrowstride;
+	if(skipImages > 0 && depth > 0)
+		source += skipImages*srcimgstride;
+
+	size_t align = 1;
+	// "If the number of bits per element is not 1, 2, 4, or 8 times the number of
+	// bits in a GL ubyte, then k = nl for all values of a"
+	// ie. alignment is only used for pixel formats of those pixel sizes.
+	if(pixelSize == 1 || pixelSize == 2 || pixelSize == 4 || pixelSize == 8)
+		align = RDCMAX(align, (size_t)alignment);
+
+	byte *dest = ret;
+
+	for(GLsizei img=0; img < RDCMAX(1, depth); img++)
+	{
+		byte *rowsource = source;
+		byte *rowdest = dest;
+
+		for(GLsizei row=0; row < RDCMAX(1, height); row++)
+		{
+			memcpy(rowdest, rowsource, destrowstride);
+
+			if(swapBytes && elemSize > 1)
+			{
+				for(size_t el=0; el < pixelSize*width; el += elemSize)
+				{
+					byte *element = rowdest + el;
+
+					if(elemSize == 2)
+					{
+						std::swap(element[0], element[1]);
+					}
+					else if(elemSize == 4)
+					{
+						std::swap(element[0], element[3]);
+						std::swap(element[1], element[2]);
+					}
+					else if(elemSize == 8)
+					{
+						std::swap(element[0], element[7]);
+						std::swap(element[1], element[6]);
+						std::swap(element[2], element[5]);
+						std::swap(element[3], element[4]);
+					}
+				}
+			}
+
+			rowdest += destrowstride;
+			rowsource += srcrowstride;
+			rowsource = (byte *)AlignUp((size_t)rowsource, align);
+		}
+
+		dest += destimgstride;
+		source += srcimgstride;
+		source = (byte *)AlignUp((size_t)source, align);
+	}
+
+	return ret;
+}
+
+byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLsizei &imageSize)
+{
+	size_t blocksX = (width+compressedBlockWidth-1)/compressedBlockWidth;
+	size_t blocksY = (height+compressedBlockHeight-1)/compressedBlockHeight;
+	size_t blocksZ = (depth+compressedBlockDepth-1)/compressedBlockDepth;
+
+	blocksY = RDCMAX(1U, blocksY);
+	blocksZ = RDCMAX(1U, blocksZ);
+	
+	size_t srcrowstride = compressedBlockSize*RDCMAX(RDCMAX(width,  compressedBlockWidth),  rowlength)/compressedBlockWidth;
+	size_t srcimgstride = srcrowstride       *RDCMAX(RDCMAX(height, compressedBlockHeight), imageheight)/compressedBlockHeight;
+
+	size_t destrowstride = compressedBlockSize*RDCMAX(width,  compressedBlockWidth)/compressedBlockWidth;
+	size_t destimgstride = destrowstride      *RDCMAX(height, compressedBlockHeight)/compressedBlockHeight;
+
+	size_t allocsize = blocksX*blocksY*blocksZ*compressedBlockSize;
+	byte *ret = new byte[allocsize];
+
+	imageSize = (GLsizei)allocsize;
+
+	byte *source = pixels;
+
+	if(skipPixels > 0)
+		source += (skipPixels/compressedBlockWidth)*compressedBlockSize;
+	if(skipRows > 0 && height > 0)
+		source += (skipRows/compressedBlockHeight)*srcrowstride;
+	if(skipImages > 0 && depth > 0)
+		source += skipImages*srcimgstride;
+
+	byte *dest = ret;
+
+	for(GLsizei img=0; img < RDCMAX(1, depth); img++)
+	{
+		byte *rowsource = source;
+		byte *rowdest = dest;
+
+		for(size_t row=0; row < blocksY; row++)
+		{
+			memcpy(rowdest, rowsource, destrowstride);
+
+			rowsource += srcrowstride;
+			rowdest += destrowstride;
+		}
+
+		source += srcimgstride;
+		dest += destimgstride;
+	}
+
+	return ret;
+}
+
 GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state)
 	: m_Real(funcs)
 	, m_pSerialiser(ser)
@@ -337,6 +535,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 
 	m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
 	m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
+
+	Unpack.Fetch(m_Real, true);
 }
 
 void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
@@ -601,6 +801,18 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 
 	m_Real->glFrontFace(FrontFace);
 	m_Real->glCullFace(CullFace);
+
+	m_Real->glPixelStorei(eGL_UNPACK_SWAP_BYTES, Unpack.swapBytes);
+	m_Real->glPixelStorei(eGL_UNPACK_ROW_LENGTH, Unpack.rowlength);
+	m_Real->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, Unpack.imageheight);
+	m_Real->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, Unpack.skipPixels);
+	m_Real->glPixelStorei(eGL_UNPACK_SKIP_ROWS, Unpack.skipRows);
+	m_Real->glPixelStorei(eGL_UNPACK_SKIP_IMAGES, Unpack.skipImages);
+	m_Real->glPixelStorei(eGL_UNPACK_ALIGNMENT, Unpack.alignment);
+	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, Unpack.compressedBlockWidth);
+	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, Unpack.compressedBlockHeight);
+	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, Unpack.compressedBlockDepth);
+	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, Unpack.compressedBlockSize);
 }
 
 void GLRenderState::Clear()
@@ -671,6 +883,8 @@ void GLRenderState::Clear()
 	RDCEraseEl(Hints);
 	RDCEraseEl(FrontFace);
 	RDCEraseEl(CullFace);
+
+	RDCEraseEl(Unpack);
 }
 
 void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
@@ -904,4 +1118,16 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		
 	m_pSerialiser->Serialise("GL_FRONT_FACE", FrontFace);
 	m_pSerialiser->Serialise("GL_CULL_FACE_MODE", CullFace);
+
+	m_pSerialiser->Serialise("GL_UNPACK_SWAP_BYTES", Unpack.swapBytes);
+	m_pSerialiser->Serialise("GL_UNPACK_ROW_LENGTH", Unpack.rowlength);
+	m_pSerialiser->Serialise("GL_UNPACK_IMAGE_HEIGHT", Unpack.imageheight);
+	m_pSerialiser->Serialise("GL_UNPACK_SKIP_PIXELS", Unpack.skipPixels);
+	m_pSerialiser->Serialise("GL_UNPACK_SKIP_ROWS", Unpack.skipRows);
+	m_pSerialiser->Serialise("GL_UNPACK_SKIP_IMAGES", Unpack.skipImages);
+	m_pSerialiser->Serialise("GL_UNPACK_ALIGNMENT", Unpack.alignment);
+	m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_WIDTH", Unpack.compressedBlockWidth);
+	m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", Unpack.compressedBlockHeight);
+	m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH", Unpack.compressedBlockDepth);
+	m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE", Unpack.compressedBlockSize);
 }
