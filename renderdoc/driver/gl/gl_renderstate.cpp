@@ -178,8 +178,8 @@ byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei he
 	size_t blocksY = (height+compressedBlockHeight-1)/compressedBlockHeight;
 	size_t blocksZ = (depth+compressedBlockDepth-1)/compressedBlockDepth;
 
-	blocksY = RDCMAX(1U, blocksY);
-	blocksZ = RDCMAX(1U, blocksZ);
+	blocksY = RDCMAX((size_t)1, blocksY);
+	blocksZ = RDCMAX((size_t)1, blocksZ);
 	
 	size_t srcrowstride = compressedBlockSize*RDCMAX(RDCMAX(width,  compressedBlockWidth),  rowlength)/compressedBlockWidth;
 	size_t srcimgstride = srcrowstride       *RDCMAX(RDCMAX(height, compressedBlockHeight), imageheight)/compressedBlockHeight;
