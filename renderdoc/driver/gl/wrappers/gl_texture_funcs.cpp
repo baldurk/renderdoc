@@ -4150,6 +4150,22 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	{
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+		
+		if(Format == eGL_LUMINANCE)
+		{
+			Format = eGL_RED;
+		}
+		else if(Format == eGL_LUMINANCE_ALPHA)
+		{
+			Format = eGL_RG;
+		}
+		else if(Format == eGL_ALPHA)
+		{
+			// check if format was converted from alpha-only format to R8, and substitute
+			ResourceId liveId = GetResourceManager()->GetLiveID(id);
+			if(m_Textures[liveId].internalFormat == eGL_R8)
+				Format = eGL_RED;
+		}
 
 		m_Real.glTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, Format, Type, buf ? buf : (const void *)bufoffs);
 
@@ -4343,6 +4359,22 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 	{
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+		
+		if(Format == eGL_LUMINANCE)
+		{
+			Format = eGL_RED;
+		}
+		else if(Format == eGL_LUMINANCE_ALPHA)
+		{
+			Format = eGL_RG;
+		}
+		else if(Format == eGL_ALPHA)
+		{
+			// check if format was converted from alpha-only format to R8, and substitute
+			ResourceId liveId = GetResourceManager()->GetLiveID(id);
+			if(m_Textures[liveId].internalFormat == eGL_R8)
+				Format = eGL_RED;
+		}
 
 		m_Real.glTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
 
@@ -4538,6 +4570,22 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 	{
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+		
+		if(Format == eGL_LUMINANCE)
+		{
+			Format = eGL_RED;
+		}
+		else if(Format == eGL_LUMINANCE_ALPHA)
+		{
+			Format = eGL_RG;
+		}
+		else if(Format == eGL_ALPHA)
+		{
+			// check if format was converted from alpha-only format to R8, and substitute
+			ResourceId liveId = GetResourceManager()->GetLiveID(id);
+			if(m_Textures[liveId].internalFormat == eGL_R8)
+				Format = eGL_RED;
+		}
 
 		m_Real.glTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf ? buf : (const void *)bufoffs);
 

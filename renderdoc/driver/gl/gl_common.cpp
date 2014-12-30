@@ -458,7 +458,7 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	ret.strname = ToStr::Get(fmt).substr(3); // 3 == strlen("GL_")
 
 	// special handling for formats that don't query neatly
-	if(fmt == eGL_LUMINANCE8_EXT)
+	if(fmt == eGL_LUMINANCE8_EXT || fmt == eGL_INTENSITY8_EXT || fmt == eGL_ALPHA8_EXT)
 	{
 		ret.compByteWidth = 1;
 		ret.compCount = 1;

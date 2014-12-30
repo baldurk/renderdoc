@@ -25,10 +25,6 @@
 #include "gl_hookset.h"
 #include "gl_resources.h"
 
-// no longer in glcorearb.h or glext.h
-const GLenum eGL_LUMINANCE = (GLenum)0x1909;
-const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
-
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 {
 	size_t elemSize = 0;
@@ -95,6 +91,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 		case eGL_BLUE:
 		case eGL_BLUE_INTEGER:
 		case eGL_LUMINANCE:
+		case eGL_ALPHA:
 		case eGL_DEPTH_COMPONENT:
 		case eGL_STENCIL_INDEX:
 			return w*h*d*elemSize;
@@ -134,6 +131,8 @@ GLenum GetBaseFormat(GLenum internalFormat)
 		case eGL_R16F:
 		case eGL_R32F:
 			return eGL_RED;
+		case eGL_ALPHA8_EXT:
+			return eGL_ALPHA;
 		case eGL_R8I:
 		case eGL_R16I:
 		case eGL_R32I:
@@ -313,6 +312,8 @@ GLenum GetDataType(GLenum internalFormat)
 			return eGL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 		case eGL_STENCIL_INDEX8:
 			return eGL_UNSIGNED_BYTE;
+		case eGL_ALPHA8_EXT:
+			return eGL_UNSIGNED_BYTE;
 		default:
 			break;
 	}
@@ -445,40 +446,64 @@ void EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
 {
 	GLenum swizzle[] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
 
-	bool dataFormatLum = (dataFormat == eGL_LUMINANCE || dataFormat == eGL_LUMINANCE_ALPHA);
+	bool dataFormatLum = (dataFormat == eGL_LUMINANCE || dataFormat == eGL_LUMINANCE_ALPHA || dataFormat == eGL_ALPHA || dataFormat == eGL_INTENSITY);
 
 	switch((int)internalFormat)
 	{
+		case eGL_INTENSITY:
+		case eGL_INTENSITY8_EXT:
+			internalFormat = eGL_R8;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = swizzle[3] = eGL_RED; // intensity replicates across all 4 of RGBA
+			break;
+		case eGL_INTENSITY16_EXT:
+			internalFormat = eGL_R16;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = swizzle[3] = eGL_RED; // intensity replicates across all 4 of RGBA
+			break;
+		case eGL_ALPHA:
+		case eGL_ALPHA8_EXT:
+			internalFormat = eGL_R8;
+			if(dataFormatLum) dataFormat = eGL_RED;
+			swizzle[0] = swizzle[1] = swizzle[2] = eGL_NONE;
+			swizzle[3] = eGL_RED; // single component alpha channel
+			break;
 		case eGL_LUMINANCE:
 		case eGL_LUMINANCE8_EXT:
 			internalFormat = eGL_R8;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_SLUMINANCE8_EXT:
 			internalFormat = eGL_SRGB8;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_LUMINANCE16_EXT:
 			internalFormat = eGL_R16;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_LUMINANCE32F_ARB:
 			internalFormat = eGL_R32F;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_LUMINANCE32I_EXT:
 			internalFormat = eGL_R32I;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_LUMINANCE32UI_EXT:
 			internalFormat = eGL_R32UI;
 			if(dataFormatLum) dataFormat = eGL_RED;
 			swizzle[0] = swizzle[1] = swizzle[2] = eGL_RED;
+			swizzle[3] = (GLenum)1; // alpha explicitly set to 1 in luminance formats
 			break;
 		case eGL_LUMINANCE_ALPHA:
 		case eGL_LUMINANCE8_ALPHA8_EXT:
