@@ -1387,10 +1387,13 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			gl.glVertexAttribBinding(i, attrib.vbslot);
 
-			if(initialdata->VertexAttribs[i].integer == 0)
-				gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized, attrib.offset);
-			else
-				gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+			if(attrib.size != 0)
+			{
+				if(initialdata->VertexAttribs[i].integer == 0)
+					gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized, attrib.offset);
+				else
+					gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+			}
 
 			VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
 
