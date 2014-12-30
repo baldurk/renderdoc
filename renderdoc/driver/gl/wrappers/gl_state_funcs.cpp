@@ -839,6 +839,15 @@ void WrappedOpenGL::glDisable(GLenum cap)
 	
 	if(m_State == WRITING_CAPFRAME)
 	{
+		// Skip some compatibility caps purely for the sake of avoiding debug message spam.
+		// We don't explicitly support compatibility, but where it's trivial we try and support it.
+		// If these are enabled anywhere in the program/capture then the replay will probably be
+		// wrong, but some legacy codebases running compatibility might still disable these.
+		// So we don't skip these on glEnable (they will be serialised, and fire an error as
+		// appropriate).
+		if(cap == 0x0B50) return; // GL_LIGHTING
+		if(cap == 0x0BC0) return; // GL_ALPHA_TEST
+
 		SCOPED_SERIALISE_CONTEXT(DISABLE);
 		Serialise_glDisable(cap);
 
