@@ -1336,9 +1336,14 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 		FramebufferInitialData *data = (FramebufferInitialData *)initial.blob;
 
+		// set invalid caps to GL_COLOR_ATTACHMENT0
 		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
-			gl.glDrawBuffers(ARRAY_COUNT(data->DrawBuffers), data->DrawBuffers);
+			if(data->DrawBuffers[i] == eGL_BACK || data->DrawBuffers[i] == eGL_FRONT)
+				data->DrawBuffers[i] = eGL_COLOR_ATTACHMENT0;
+		if(data->ReadBuffer == eGL_BACK || data->ReadBuffer == eGL_FRONT) data->ReadBuffer = eGL_COLOR_ATTACHMENT0;
 
+		gl.glDrawBuffers(ARRAY_COUNT(data->DrawBuffers), data->DrawBuffers);
+		
 		gl.glReadBuffer(data->ReadBuffer);
 
 		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
