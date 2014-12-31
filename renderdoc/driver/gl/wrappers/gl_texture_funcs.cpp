@@ -1965,8 +1965,30 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 		GLuint unpackbuf = 0;
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+		
+		if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
+		{
+			m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Border, Format, Type, buf);
+		}
+		else
+		{
+			GLenum ts[] = {
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			};
 
-		m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Border, Format, Type, buf);
+			// special case handling for cubemaps, as we might have skipped the 'allocation' teximage chunks to avoid
+			// serialising tons of 'data upload' teximage chunks. Sigh.
+			// Any further chunks & initial data can overwrite this, but cubemaps must be square so all parameters will be the same.
+			for(int i=0; i < ARRAY_COUNT(ts); i++)
+			{
+				m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, ts[i], Level, IntFormat, Width, Height, Border, Format, Type, buf);
+			}
+		}
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
@@ -2729,8 +2751,30 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 		GLuint unpackbuf = 0;
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+		
+		if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
+		{
+			m_Real.glCompressedTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, fmt, Width, Height, Border, byteSize, databuf);
+		}
+		else
+		{
+			GLenum ts[] = {
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			};
 
-		m_Real.glCompressedTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, fmt, Width, Height, Border, byteSize, databuf);
+			// special case handling for cubemaps, as we might have skipped the 'allocation' teximage chunks to avoid
+			// serialising tons of 'data upload' teximage chunks. Sigh.
+			// Any further chunks & initial data can overwrite this, but cubemaps must be square so all parameters will be the same.
+			for(int i=0; i < ARRAY_COUNT(ts); i++)
+			{
+				m_Real.glCompressedTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, ts[i], Level, fmt, Width, Height, Border, byteSize, databuf);
+			}
+		}
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
 
