@@ -2575,10 +2575,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
 		break;
 	case MULTI_DRAWARRAYS_INDIRECT_COUNT:
-		Serialise_glMultiDrawArraysIndirectCountARB(eGL_NONE, NULL, 0, 0, 0);
+		Serialise_glMultiDrawArraysIndirectCountARB(eGL_NONE, 0, 0, 0, 0);
 		break;
 	case MULTI_DRAWELEMENTS_INDIRECT_COUNT:
-		Serialise_glMultiDrawElementsIndirectCountARB(eGL_NONE, eGL_NONE, NULL, 0, 0, 0);
+		Serialise_glMultiDrawElementsIndirectCountARB(eGL_NONE, eGL_NONE, 0, 0, 0, 0);
 		break;
 		
 	case GEN_FRAMEBUFFERS:

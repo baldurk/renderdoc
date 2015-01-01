@@ -1984,7 +1984,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 			// special case handling for cubemaps, as we might have skipped the 'allocation' teximage chunks to avoid
 			// serialising tons of 'data upload' teximage chunks. Sigh.
 			// Any further chunks & initial data can overwrite this, but cubemaps must be square so all parameters will be the same.
-			for(int i=0; i < ARRAY_COUNT(ts); i++)
+			for(size_t i=0; i < ARRAY_COUNT(ts); i++)
 			{
 				m_Real.glTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, ts[i], Level, IntFormat, Width, Height, Border, Format, Type, buf);
 			}
@@ -2770,7 +2770,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 			// special case handling for cubemaps, as we might have skipped the 'allocation' teximage chunks to avoid
 			// serialising tons of 'data upload' teximage chunks. Sigh.
 			// Any further chunks & initial data can overwrite this, but cubemaps must be square so all parameters will be the same.
-			for(int i=0; i < ARRAY_COUNT(ts); i++)
+			for(size_t i=0; i < ARRAY_COUNT(ts); i++)
 			{
 				m_Real.glCompressedTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, ts[i], Level, fmt, Width, Height, Border, byteSize, databuf);
 			}
