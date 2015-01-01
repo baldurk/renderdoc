@@ -123,10 +123,6 @@
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\breakpad_common.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\crash_generation_client.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\exception_handler.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>
-      </Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -152,9 +148,6 @@
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\breakpad_common.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\crash_generation_client.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\exception_handler.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /Y /Q /S "$(SolutionDir)\Win32\$(ConfigurationName)\pdblocate" "$(OutputPath)\pdblocate\"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
     <ClCompile>
@@ -184,10 +177,6 @@
       <AdditionalDependencies>ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
-    <PostBuildEvent>
-      <Command>
-      </Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <ClCompile>
@@ -216,9 +205,6 @@
       <AdditionalDependencies>ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
-    <PostBuildEvent>
-      <Command>xcopy /Y /Q /S "$(SolutionDir)\Win32\$(ConfigurationName)\pdblocate" "$(OutputPath)\pdblocate\"</Command>
-    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
@@ -358,7 +344,7 @@
     <ClCompile Include="os\os_specific.cpp" />
     <ClCompile Include="os\win32\win32_callstack.cpp" />
     <ClCompile Include="os\win32\win32_hook.cpp" />
-		<ClCompile Include="os\win32\win32_network.cpp" />
+    <ClCompile Include="os\win32\win32_network.cpp" />
     <ClCompile Include="os\win32\win32_process.cpp" />
     <ClCompile Include="os\win32\win32_shellext.cpp" />
     <ClCompile Include="os\win32\win32_stringio.cpp" />

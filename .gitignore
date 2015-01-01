@@ -3,6 +3,10 @@ Debug/
 Documentation/
 Release/
 Profile/
+Profile32/
+Profile64/
+Release32/
+Release64/
 dist/
 Resources/*.png
 *.exe
