@@ -32,6 +32,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <pwd.h>
 
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
@@ -119,6 +120,18 @@ namespace Keyboard
 
 namespace FileIO
 {
+	string GetAppFolderFilename(string filename)
+	{
+		passwd *pw = getpwuid(getuid());
+		const char *homedir = pw->pw_dir;
+
+		string ret = string(homedir) + "/.renderdoc/";
+
+		mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+		return ret + filename;
+	}
+
 	void GetExecutableFilename(string &selfName)
 	{
 		char path[512] = {0};
