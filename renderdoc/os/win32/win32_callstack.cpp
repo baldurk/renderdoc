@@ -46,7 +46,7 @@ class Win32Callstack : public Callstack::Stackwalk
 		~Win32Callstack();
 
 		size_t NumLevels() const { return m_NumLevels; }
-		uint64_t *GetAddrs() const { return m_AddrStack; }
+		const uint64_t *GetAddrs() const { return m_AddrStack; }
 	private:
 		Win32Callstack(const Callstack::Stackwalk &other);
 

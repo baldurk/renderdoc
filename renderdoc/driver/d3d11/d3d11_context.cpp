@@ -462,7 +462,7 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
 		RDCASSERT(call->NumLevels() < 0xff);
 
 		size_t numLevels = call->NumLevels();
-		uint64_t *stack = call->GetAddrs();
+		uint64_t *stack = (uint64_t *)call->GetAddrs();
 
 		m_pSerialiser->Serialise("callstack", stack, numLevels);
 

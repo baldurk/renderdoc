@@ -139,7 +139,7 @@ namespace Callstack
 	public:
 		virtual ~Stackwalk() {}
 		virtual size_t NumLevels() const = 0;
-		virtual uint64_t *GetAddrs() const = 0;
+		virtual const uint64_t *GetAddrs() const = 0;
 	};
 
 	struct AddressDetails
