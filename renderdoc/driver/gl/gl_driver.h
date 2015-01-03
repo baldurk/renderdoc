@@ -283,7 +283,18 @@ class WrappedOpenGL
 		{
 			ContextData()
 			{
-				RDCEraseEl(*this);
+				built = ready = false;
+				isCore = false;
+				Program = GeneralUBO = StringUBO = GlyphUBO = 0;
+				GlyphTexture = DummyVAO = 0;
+				CharSize = CharAspect = 0.0f;
+				RDCEraseEl(m_TextureRecord);
+				RDCEraseEl(m_BufferRecord);
+				m_VertexArrayRecord = m_FeedbackRecord = m_DrawFramebufferRecord = NULL;
+				m_ReadFramebufferRecord = NULL;
+				m_Renderbuffer = ResourceId();
+				m_TextureUnit = 0;
+				m_ProgramPipeline = m_Program = 0;
 			}
 
 			bool built;
