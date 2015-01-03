@@ -181,7 +181,45 @@ namespace FileIO
 		if(from[0] == 0 || to[0] == 0)
 			return;
 
-		RDCUNIMPLEMENTED();
+		FILE *ff = ::fopen(from, "r");
+
+		if(!ff)
+		{
+			RDCERR("Can't open source file for copy '%s'", from);
+			return;
+		}
+
+		FILE *tf = ::fopen(to, "r");
+
+		if(tf && !allowOverwrite)
+		{
+			RDCERR("Destination file for non-overwriting copy '%s' already exists", from);
+			::fclose(ff);
+			::fclose(tf);
+			return;
+		}
+
+		if(tf)
+			::fclose(tf);
+
+		tf = ::fopen(to, "w");
+
+		if(!tf)
+		{
+			::fclose(ff);
+			RDCERR("Can't open destination file for copy '%s'", to);
+		}
+
+		char buffer[BUFSIZ];
+
+		while(!feof(ff))
+		{
+			size_t nread = ::fread(buffer, 1, BUFSIZ, ff);
+			::fwrite(buffer, 1, nread, tf);
+		}
+
+		::fclose(ff);
+		::fclose(tf);
 	}
 
 	void Delete(const char *path)
