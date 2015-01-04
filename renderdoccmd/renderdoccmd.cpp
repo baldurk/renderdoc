@@ -180,7 +180,18 @@ int renderdoccmd(int argc, char **argv)
 		// capture a program with default capture options
 		else if(argequal(argv[1], "--capture") || argequal(argv[1], "-c"))
 		{
-			if(argc >= 3)
+			if(argc >= 4)
+			{
+				uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2], NULL, argv[3], NULL, &opts, false);
+
+				if(ident == 0)
+					fprintf(stderr, "Failed to create & inject to '%s' with params \"%s\"\n", argv[2], argv[3]);
+				else
+					fprintf(stderr, "Created & injected '%s' with params \"%s\" as %d\n", argv[2], argv[3], ident);
+
+				return ident;
+			}
+			else if(argc >= 3)
 			{
 				uint32_t ident = RENDERDOC_ExecuteAndInject(argv[2], NULL, NULL, NULL, &opts, false);
 
