@@ -47,6 +47,24 @@ void library_loaded()
 	else
 	{
 		RenderDoc::Inst().Initialise();
+
+		char *logfile = getenv("RENDERDOC_LOGFILE");
+		char *opts = getenv("RENDERDOC_CAPTUREOPTS");
+
+		if(opts)
+		{
+			string optstr = opts;
+
+			CaptureOptions optstruct;
+			optstruct.FromString(optstr);
+
+			RenderDoc::Inst().SetCaptureOptions(&optstruct);
+		}
+
+		if(logfile)
+		{
+			RenderDoc::Inst().SetLogFile(logfile);
+		}
 	
 		RDCLOG("Loading into %s", curfile.c_str());
 	
