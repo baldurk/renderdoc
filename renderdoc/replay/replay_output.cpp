@@ -41,6 +41,8 @@ ReplayOutput::ReplayOutput(ReplayRenderer *parent, void *w)
 	m_pDevice = parent->GetDevice();
 
 	m_OverlayResourceId = ResourceId();
+
+	RDCEraseEl(m_RenderData);
 	
 	m_PixelContext.wndHandle = 0;
 	m_PixelContext.outputID = 0;
