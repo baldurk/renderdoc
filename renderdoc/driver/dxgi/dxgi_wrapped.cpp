@@ -33,8 +33,10 @@
 
 WRAPPED_POOL_INST(WrappedIDXGIDevice);
 WRAPPED_POOL_INST(WrappedIDXGIDevice1);
+#if defined(INCLUDE_DXGI_1_2)
 WRAPPED_POOL_INST(WrappedIDXGIDevice2);
 WRAPPED_POOL_INST(WrappedIDXGIDevice3);
+#endif
 
 HRESULT WrappedIDXGIFactory::staticCreateSwapChain(IDXGIFactory *factory,
 	IUnknown *pDevice,
@@ -43,10 +45,10 @@ HRESULT WrappedIDXGIFactory::staticCreateSwapChain(IDXGIFactory *factory,
 {
 	if(WrappedID3D11Device::IsAlloc(pDevice) ||
 		WrappedIDXGIDevice::IsAlloc(pDevice) ||
-		WrappedIDXGIDevice1::IsAlloc(pDevice) ||
+		WrappedIDXGIDevice1::IsAlloc(pDevice)
 #if defined(INCLUDE_DXGI_1_2)
-		WrappedIDXGIDevice2::IsAlloc(pDevice) ||
-		WrappedIDXGIDevice3::IsAlloc(pDevice)
+		|| WrappedIDXGIDevice2::IsAlloc(pDevice)
+		|| WrappedIDXGIDevice3::IsAlloc(pDevice)
 #endif
 		)
 	{
@@ -285,7 +287,9 @@ WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 			wrapped->ViewRelease();
 		m_pBackBuffers[i] = NULL;
 	}
+#if defined(INCLUDE_DXGI_1_2)
 	SAFE_RELEASE(m_pReal2);
+#endif
 	SAFE_RELEASE(m_pReal);
 
 	SAFE_RELEASE(m_pDevice);
@@ -454,6 +458,7 @@ HRESULT WrappedIDXGISwapChain2::Present(
 	return m_pReal->Present(SyncInterval, Flags);
 }
 
+#if defined(INCLUDE_DXGI_1_2)
 HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags, const DXGI_PRESENT_PARAMETERS *pPresentParameters)
 {
 	if(!RenderDoc::Inst().GetCaptureOptions().AllowVSync)
@@ -465,6 +470,7 @@ HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags, const DX
 
 	return m_pReal2->Present1(SyncInterval, Flags, pPresentParameters);
 }
+#endif
 
 bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
 {

@@ -317,7 +317,7 @@ struct RDCThumbnailProviderFactory : public IClassFactory
 };
 
 _Check_return_
-STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, _Outptr_ LPVOID* ppv)
+STDAPI DllGetClassObject(_In_ REFCLSID rclsid, _In_ REFIID riid, LPVOID* ppv)
 {
 	if(rclsid == CLSID_RDCThumbnailProvider)
 	{
