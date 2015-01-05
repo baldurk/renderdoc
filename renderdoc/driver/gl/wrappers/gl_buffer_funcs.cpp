@@ -1409,7 +1409,8 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 			return record->Map.ptr;
 		}
 
-		if((access & GL_MAP_READ_BIT) != 0)
+		// only squirrel away read-only maps, read-write can just be treated as write-only
+		if((access & (GL_MAP_READ_BIT|GL_MAP_WRITE_BIT)) == GL_MAP_READ_BIT)
 		{
 			byte *ptr = record->GetDataPtr();
 
