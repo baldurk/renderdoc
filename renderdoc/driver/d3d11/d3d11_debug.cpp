@@ -1269,6 +1269,8 @@ void D3D11DebugManager::ShutdownStreamOut()
 	SAFE_RELEASE(m_SOStagingBuffer);
 
 	SAFE_RELEASE(m_WireframeHelpersRS);
+	SAFE_RELEASE(m_WireframeHelpersCullCCWRS);
+	SAFE_RELEASE(m_WireframeHelpersCullCWRS);
 	SAFE_RELEASE(m_WireframeHelpersBS);
 	SAFE_RELEASE(m_SolidHelpersRS);
 

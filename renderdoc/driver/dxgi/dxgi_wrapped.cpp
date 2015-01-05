@@ -278,7 +278,6 @@ WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 	
 	if(m_Wnd) RenderDoc::Inst().RemoveFrameCapturer(m_Wnd);
 
-	SAFE_RELEASE(m_pReal);
 	for(int i=0; i < MAX_NUM_BACKBUFFERS; i++)
 	{
 		WrappedID3D11Texture2D *wrapped = (WrappedID3D11Texture2D *)m_pBackBuffers[i];
@@ -286,6 +285,8 @@ WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 			wrapped->ViewRelease();
 		m_pBackBuffers[i] = NULL;
 	}
+	SAFE_RELEASE(m_pReal2);
+	SAFE_RELEASE(m_pReal);
 
 	SAFE_RELEASE(m_pDevice);
 }
