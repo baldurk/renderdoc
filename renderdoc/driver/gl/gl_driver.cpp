@@ -533,14 +533,35 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_GREMEDY_string_marker");
 	globalExts.push_back("GL_KHR_blend_equation_advanced");
 	globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
+	globalExts.push_back("GL_KHR_context_flush_control");
 	globalExts.push_back("GL_KHR_debug");
+	globalExts.push_back("GL_KHR_robustness");
+	globalExts.push_back("GL_KHR_robust_buffer_access_behavior");
+
+	/************************************************************************
+
+	Extensions I plan to support, but haven't implemented yet for one reason or another.
+	Usually complexity/time considerations.
+
+	Vendor specific extensions aren't listed here, or below in the 'will never support' list.
+	Only very important/commonly used vendor extensions will be supported, generally I'll
+	stick to ARB, EXT and KHR.
+
+	* GL_ARB_direct_state_access (Required for 4.5)
+	* GL_ARB_bindless_texture
+	* GL_ARB_cl_event
+	* GL_ARB_direct_state_access
+	* GL_ARB_shading_language_include
+	* GL_ARB_sparse_buffer
+	* GL_ARB_sparse_texture
+	* GL_EXT_sparse_texture2
+	* GL_EXT_x11_sync_object
+
+	************************************************************************/
 
 	/************************************************************************
 
 	Extensions I never plan to support due to only referring to old/outdated functionality listed below.
-
-	Vendor specific extensions aren't listed here. Only very important/commonly used vendor extensions
-	will be supported, generally I'll stick to ARB, EXT and KHR.
 
 	I'm not sure what to do about GL_ARB_imaging, it seems like it's somewhat used in modern GL? For now
 	I'm hoping I can get away with not reporting it but implementing the functionality it still describes.
