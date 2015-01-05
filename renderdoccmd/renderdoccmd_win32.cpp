@@ -272,6 +272,8 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		WideCharToMultiByte(CP_UTF8, 0, wargv[i], -1, &argv[i][0], (int)len+1, NULL, NULL);
 	}
 
+	LocalFree(wargv);
+
 	hInstance = hInst;
 	
 	WNDCLASSEX wc;
@@ -574,5 +576,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		return 0;
 	}
 
-	return renderdoccmd(argc, argv);
+	int retval = renderdoccmd(argc, argv);
+	
+	for(int i=0; i < argc; i++)
+		delete[] argv[i];
+	delete[] argv;
+
+	return retval;
 }
