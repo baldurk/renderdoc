@@ -55,7 +55,12 @@ struct array
 
 	array() : elems(0), count(0) {}
 	~array() { Delete(); }
-	void Delete() { deallocate(elems); elems = 0; count = 0; }
+	void Delete()
+	{
+		for(int32_t i=0; i < count; i++) elems[i].~T();
+		deallocate(elems);
+		elems = 0; count = 0;
+	}
 
 	static void deallocate(const void *p) { free((void *)p); }
 	static void *allocate(size_t s) { return malloc(s); }
