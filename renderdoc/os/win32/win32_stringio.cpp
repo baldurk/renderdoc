@@ -282,6 +282,8 @@ namespace StringFormat
 
 		string result = StringFormat::Wide2UTF8(wstring(buf));
 
+		delete[] buf;
+
 		if(result.length()+1 < bufSize)
 		{
 			memcpy(str, result.c_str(), result.length());
