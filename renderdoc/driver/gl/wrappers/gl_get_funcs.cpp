@@ -123,6 +123,11 @@ GLboolean WrappedOpenGL::glIsVertexArray(GLuint array)
 	return m_Real.glIsVertexArray(array);
 }
 
+GLboolean WrappedOpenGL::glIsNamedStringARB(GLint namelen, const GLchar *name)
+{
+	return m_Real.glIsNamedStringARB(namelen, name);
+}
+
 void WrappedOpenGL::glGetFloatv(GLenum pname, GLfloat *params)
 {
 	m_Real.glGetFloatv(pname, params);
@@ -548,6 +553,16 @@ GLint WrappedOpenGL::glGetProgramResourceLocation(GLuint program, GLenum program
 GLint WrappedOpenGL::glGetProgramResourceLocationIndex(GLuint program, GLenum programInterface, const GLchar *name)
 {
 	return m_Real.glGetProgramResourceLocationIndex(program, programInterface, name);
+}
+
+void WrappedOpenGL::glGetNamedStringARB(GLint namelen, const GLchar *name, GLsizei bufSize, GLint *stringlen, GLchar *string)
+{
+	return m_Real.glGetNamedStringARB(namelen, name, bufSize, stringlen, string);
+}
+
+void WrappedOpenGL::glGetNamedStringivARB(GLint namelen, const GLchar *name, GLenum pname, GLint *params)
+{
+	return m_Real.glGetNamedStringivARB(namelen, name, pname, params);
 }
 
 GLint WrappedOpenGL::glGetUniformLocation(GLuint program, const GLchar *name)

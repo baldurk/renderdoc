@@ -92,8 +92,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 	for(uint32_t i=0; i < Count; i++)
 	{
 		string s;
-		if(source)
-			s = length ? string(source[i], source[i] + length[i]) : string(source[i]);
+		if(source && source[i])
+			s = length > 0 ? string(source[i], source[i] + length[i]) : string(source[i]);
 		
 		m_pSerialiser->SerialiseString("source", s);
 
@@ -118,6 +118,8 @@ bool WrappedOpenGL::Serialise_glShaderSource(GLuint shader, GLsizei count, const
 			m_Shaders[liveId].sources.push_back(strings[i]);
 
 		m_Real.glShaderSource(GetResourceManager()->GetLiveResource(id).name, Count, strings, NULL);
+
+		delete[] strings;
 	}
 
 	return true;
@@ -150,7 +152,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 
 		auto &shadDetails = m_Shaders[liveId];
 
-		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources);
+		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, NULL);
 
 		if(sepProg == 0)
 		{
@@ -1018,6 +1020,153 @@ void WrappedOpenGL::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
 	}
 	
 	m_Real.glDeleteProgramPipelines(n, pipelines);
+}
+
+#pragma endregion
+
+#pragma region ARB_shading_language_include
+
+bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei count, const GLchar *const*path, const GLint *length)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+	SERIALISE_ELEMENT(int32_t, Count, count);
+
+	vector<string> paths;
+
+	for(int32_t i=0; i < Count; i++)
+	{
+		string s;
+		if(path && path[i])
+			s = length > 0 ? string(path[i], path[i] + length[i]) : string(path[i]);
+		
+		m_pSerialiser->SerialiseString("path", s);
+
+		if(m_State == READING)
+			paths.push_back(s);
+	}
+	
+	if(m_State == READING)
+	{
+		size_t numStrings = paths.size();
+
+		const char **pathstrings = new const char*[numStrings];
+		for(size_t i=0; i < numStrings; i++)
+			pathstrings[i] = paths[i].c_str();
+
+		ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
+		auto &shadDetails = m_Shaders[liveId];
+		
+		shadDetails.includepaths.clear();
+		shadDetails.includepaths.reserve(Count);
+
+		for(int32_t i=0; i < Count; i++)
+			shadDetails.includepaths.push_back(pathstrings[i]);
+
+		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, &paths);
+
+		if(sepProg == 0)
+		{
+			RDCERR("Couldn't make separable program for shader via patching - functionality will be broken.");
+		}
+		else
+		{
+			shadDetails.prog = sepProg;
+			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection);
+			
+			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
+			for(size_t i=0; i < shadDetails.sources.size(); i++)
+			{
+				shadDetails.reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
+				shadDetails.reflection.DebugInfo.files[i].second = shadDetails.sources[i];
+			}
+		}
+
+		m_Real.glCompileShaderIncludeARB(GetResourceManager()->GetLiveResource(id).name, Count, pathstrings, NULL);
+		
+		delete[] pathstrings;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count, const GLchar *const*path, const GLint *length)
+{
+	m_Real.glCompileShaderIncludeARB(shader, count, path, length);
+	
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
+		RDCASSERT(record);
+		{
+			SCOPED_SERIALISE_CONTEXT(COMPILESHADERINCLUDE);
+			Serialise_glCompileShaderIncludeARB(shader, count, path, length);
+
+			record->AddChunk(scope.Get());
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glNamedStringARB(GLenum type, GLint namelen, const GLchar *name, GLint stringlen, const GLchar *str)
+{
+	SERIALISE_ELEMENT(GLenum, Type, type);
+	
+	string namestr = name ? string(name, name + (namelen > 0 ? namelen : strlen(name))) : "";
+	string valstr = str ? string(str, str + (stringlen > 0 ? stringlen : strlen(str))) : "";
+
+	m_pSerialiser->Serialise("Name", namestr);
+	m_pSerialiser->Serialise("String", valstr);
+	
+	if(m_State == READING)
+	{
+		m_Real.glNamedStringARB(Type, (GLint)namestr.length(), namestr.c_str(), (GLint)valstr.length(), valstr.c_str());
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glNamedStringARB(GLenum type, GLint namelen, const GLchar *name, GLint stringlen, const GLchar *str)
+{
+	m_Real.glNamedStringARB(type, namelen, name, stringlen, str);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(NAMEDSTRING);
+		Serialise_glNamedStringARB(type, namelen, name, stringlen, str);
+
+		// if a program repeatedly created/destroyed named strings this will fill up with useless strings,
+		// but chances are that won't be the case - a few will be created at init time and that's it
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glDeleteNamedStringARB(GLint namelen, const GLchar *name)
+{
+	string namestr = name ? string(name, name + (namelen > 0 ? namelen : strlen(name))) : "";
+
+	m_pSerialiser->Serialise("Name", namestr);
+	
+	if(m_State == READING)
+	{
+		m_Real.glDeleteNamedStringARB((GLint)namestr.length(), namestr.c_str());
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glDeleteNamedStringARB(GLint namelen, const GLchar *name)
+{
+	m_Real.glDeleteNamedStringARB(namelen, name);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(DELETENAMEDSTRING);
+		Serialise_glDeleteNamedStringARB(namelen, name);
+
+		// if a program repeatedly created/destroyed named strings this will fill up with useless strings,
+		// but chances are that won't be the case - a few will be created at init time and that's it
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
 }
 
 #pragma endregion

@@ -105,6 +105,10 @@ const char *GLChunkNames[] =
 	"glProgramUniformMatrix*",
 	"glLinkProgram",
 	
+	"glNamedStringARB",
+	"glDeleteNamedStringARB",
+	"glCompileShaderIncludeARB",
+
 	"glGenTransformFeedbacks",
 	"glBindTransformFeedback",
 	"glBeginTransformFeedback",
@@ -426,6 +430,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_shader_texture_lod");
 	globalExts.push_back("GL_ARB_shading_language_100");
 	globalExts.push_back("GL_ARB_shading_language_420pack");
+	globalExts.push_back("GL_ARB_shading_language_include");
 	globalExts.push_back("GL_ARB_shading_language_packing");
 	globalExts.push_back("GL_ARB_shadow");
 	globalExts.push_back("GL_ARB_shadow_ambient");
@@ -551,7 +556,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	* GL_ARB_bindless_texture
 	* GL_ARB_cl_event
 	* GL_ARB_direct_state_access
-	* GL_ARB_shading_language_include
 	* GL_ARB_sparse_buffer
 	* GL_ARB_sparse_texture
 	* GL_EXT_sparse_texture2
@@ -2232,6 +2236,16 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case LINKPROGRAM:
 		Serialise_glLinkProgram(0);
+		break;
+		
+	case NAMEDSTRING:
+		Serialise_glNamedStringARB(eGL_NONE, 0, NULL, 0, NULL);
+		break;
+	case DELETENAMEDSTRING:
+		Serialise_glDeleteNamedStringARB(0, NULL);
+		break;
+	case COMPILESHADERINCLUDE:
+		Serialise_glCompileShaderIncludeARB(0, 0, NULL, NULL);
 		break;
 		
 	case GEN_FEEDBACK:

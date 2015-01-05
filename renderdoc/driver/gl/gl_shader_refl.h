@@ -27,4 +27,4 @@
 #include "replay/replay_driver.h"
 
 void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl);
-GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, std::vector<std::string> sources);
+GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, std::vector<std::string> sources, vector<string> *includepaths);

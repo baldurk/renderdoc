@@ -96,15 +96,61 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
 	}
 }
 
-GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources)
+// little utility function that if necessary emulates glCreateShaderProgramv functionality but using glCompileShaderIncludeARB
+static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSources, const char **sources, GLsizei numPaths, const char **paths)
+{
+	if(paths == NULL)
+		return gl.glCreateShaderProgramv(type, numSources, sources);
+
+	// definition of glCreateShaderProgramv from the spec
+	GLuint shader = gl.glCreateShader(type);
+	if(shader)
+	{
+		gl.glShaderSource(shader, numSources, sources, NULL);
+		gl.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+
+		GLuint program = gl.glCreateProgram();
+		if(program)
+		{
+			GLint compiled = 0;
+
+			gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &compiled);
+			gl.glProgramParameteri(program, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+
+			if(compiled)
+			{
+				gl.glAttachShader(program, shader);
+				gl.glLinkProgram(program);
+				gl.glDetachShader(program, shader);
+			}
+		}
+		gl.glDeleteShader(shader);
+		return program;
+	}
+
+	return 0;
+}
+
+GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources, vector<string> *includepaths)
 {
 	const string block = "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
 
 	const char **strings = new const char*[sources.size()];
 	for(size_t i=0; i < sources.size(); i++)
 		strings[i] = sources[i].c_str();
+	
+	const char **paths = NULL;
+	GLsizei numPaths = 0;
+	if(includepaths)
+	{
+		numPaths = (GLsizei)includepaths->size();
 
-	GLuint sepProg = gl.glCreateShaderProgramv(type, (GLsizei)sources.size(), strings);
+		paths = new const char*[includepaths->size()];
+		for(size_t i=0; i < includepaths->size(); i++)
+			paths[i] = (*includepaths)[i].c_str();
+	}
+
+	GLuint sepProg = CreateSepProgram(gl, type, (GLsizei)sources.size(), strings, numPaths, paths);
 
 	GLint status;
 	gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
@@ -158,7 +204,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 			break;
 		}
 
-		sepProg = gl.glCreateShaderProgramv(type, (GLsizei)sources.size(), strings);
+		sepProg = CreateSepProgram(gl, type, (GLsizei)sources.size(), strings, numPaths, paths);
 
 		gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
 		if(status == 0)
@@ -169,6 +215,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 	}
 
 	delete[] strings;
+	if(paths) delete[] paths;
 
 	return sepProg;
 }

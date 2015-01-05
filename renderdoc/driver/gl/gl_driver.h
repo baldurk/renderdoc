@@ -209,6 +209,7 @@ class WrappedOpenGL
 		{
 			GLenum type;
 			vector<string> sources;
+			vector<string> includepaths;
 			ShaderReflection reflection;
 			GLuint prog;
 		};
@@ -576,6 +577,9 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glLinkProgram(GLuint program));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramParameteri(GLuint program, GLenum pname, GLint value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedStringARB(GLenum type, GLint namelen, const GLchar *name, GLint stringlen, const GLchar *str));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteNamedStringARB(GLint namelen, const GLchar *name));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCompileShaderIncludeARB(GLuint shader, GLsizei count, const GLchar *const*path, const GLint *length));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex, GLuint uniformBlockBinding));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glShaderStorageBlockBinding(GLuint program, GLuint storageBlockIndex, GLuint storageBlockBinding));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glUniformSubroutinesuiv(GLenum shadertype, GLsizei count, const GLuint *indices));
@@ -769,6 +773,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsSync(GLsync sync));
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsTransformFeedback(GLuint id));
 		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsVertexArray(GLuint array));
+		IMPLEMENT_FUNCTION_SERIALISED(GLboolean, glIsNamedStringARB(GLint namelen, const GLchar *name));
 
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetError());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params));
@@ -813,6 +818,8 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetProgramResourceLocation(GLuint program, GLenum programInterface, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(GLint, glGetProgramResourceLocationIndex(GLuint program, GLenum programInterface, const GLchar *name));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetProgramStageiv(GLuint program, GLenum shadertype, GLenum pname, GLint *values));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedStringARB(GLint namelen, const GLchar *name, GLsizei bufSize, GLint *stringlen, GLchar *string));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedStringivARB(GLint namelen, const GLchar *name, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetGraphicsResetStatus());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label));
