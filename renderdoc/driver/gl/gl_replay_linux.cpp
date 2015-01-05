@@ -64,6 +64,7 @@ void GLReplay::CloseReplayContext()
 {
 	if(glXDestroyCtxProc)
 	{
+		glXMakeContextCurrentProc(m_ReplayCtx.dpy, None, None, NULL);
 		glXDestroyCtxProc(m_ReplayCtx.dpy, m_ReplayCtx.ctx);
 	}
 }
@@ -170,6 +171,7 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 
 	OutputWindow &outw = it->second;
 
+	glXMakeContextCurrentProc(outw.dpy, None, None, NULL);
 	glXDestroyCtxProc(outw.dpy, outw.ctx);
 
 	m_OutputWindows.erase(it);

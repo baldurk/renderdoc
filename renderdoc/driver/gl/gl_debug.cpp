@@ -28,6 +28,8 @@
 #include "maths/matrix.h"
 #include "maths/camera.h"
 
+#include "data/glsl/debuguniforms.h"
+
 #include "serialise/string_utils.h"
 
 GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
@@ -66,6 +68,8 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 		gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
 		RDCERR("Link error: %s", buffer);
 	}
+
+	gl.glDetachShader(ret, cs);
 
 	gl.glDeleteShader(cs);
 
@@ -115,13 +119,14 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 
 	gl.glLinkProgram(ret);
 
+	gl.glDetachShader(ret, vs);
+	gl.glDetachShader(ret, fs);
+
 	gl.glDeleteShader(vs);
 	gl.glDeleteShader(fs);
 
 	return ret;
 }
-
-#include "data/glsl/debuguniforms.h"
 
 void GLReplay::InitDebugData()
 {
@@ -130,6 +135,7 @@ void GLReplay::InitDebugData()
 	{
 		uint64_t id = MakeOutputWindow(NULL, true);
 
+		m_DebugID = id;
 		m_DebugCtx = &m_OutputWindows[id];
 
 		MakeCurrentReplayContext(m_DebugCtx);
@@ -315,6 +321,61 @@ void GLReplay::InitDebugData()
 	gl.glBindVertexArray(DebugData.meshVAO);
 	
 	DebugData.replayQuadProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.genericfsSource.c_str());
+}
+
+void GLReplay::DeleteDebugData()
+{
+	MakeCurrentReplayContext(m_DebugCtx);
+
+	WrappedOpenGL &gl = *m_pDriver;
+
+	gl.glDeleteProgram(DebugData.blitProg);
+
+	for(int i=0; i < 3; i++)
+		gl.glDeleteProgram(DebugData.texDisplayProg[i]);
+
+	gl.glDeleteProgram(DebugData.checkerProg);
+	gl.glDeleteProgram(DebugData.genericProg);
+	gl.glDeleteProgram(DebugData.meshProg);
+
+	gl.glDeleteBuffers(1, &DebugData.outlineStripVB);
+	gl.glDeleteVertexArrays(1, &DebugData.outlineStripVAO);
+
+	gl.glDeleteSamplers(1, &DebugData.linearSampler);
+	gl.glDeleteSamplers(1, &DebugData.pointSampler);
+	gl.glDeleteSamplers(1, &DebugData.pointNoMipSampler);
+	gl.glDeleteBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
+	gl.glDeleteFramebuffers(1, &DebugData.pickPixelFBO);
+	gl.glDeleteTextures(1, &DebugData.pickPixelTex);
+
+	gl.glDeleteVertexArrays(1, &DebugData.emptyVAO);
+
+	for(int t=1; t <= RESTYPE_TEXTYPEMAX; t++)
+	{
+		// float, uint, sint
+		for(int i=0; i < 3; i++)
+		{
+			int idx = t;
+			if(i == 1) idx |= TEXDISPLAY_UINT_TEX;
+			if(i == 2) idx |= TEXDISPLAY_SINT_TEX;
+
+			gl.glDeleteProgram(DebugData.minmaxTileProgram[idx]);
+			gl.glDeleteProgram(DebugData.histogramProgram[idx]);
+
+			if(t == 1)
+				gl.glDeleteProgram(DebugData.minmaxResultProgram[i]);
+		}
+	}
+
+	gl.glDeleteBuffers(1, &DebugData.minmaxTileResult);
+	gl.glDeleteBuffers(1, &DebugData.minmaxResult);
+	gl.glDeleteBuffers(1, &DebugData.histogramBuf);
+
+	MakeCurrentReplayContext(&m_ReplayCtx);
+
+	gl.glDeleteVertexArrays(1, &DebugData.meshVAO);
+
+	gl.glDeleteProgram(DebugData.replayQuadProg);
 }
 
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval)

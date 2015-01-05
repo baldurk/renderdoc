@@ -218,6 +218,7 @@ class GLReplay : public IReplayDriver
 		} DebugData;
 
 		void InitDebugData();
+		void DeleteDebugData();
 		
 		GLuint CreateShaderProgram(const char *vs, const char *ps);
 		GLuint CreateCShaderProgram(const char *cs);
@@ -226,6 +227,7 @@ class GLReplay : public IReplayDriver
 		void CreateOutputWindowBackbuffer(OutputWindow &outwin);
 
 		GLWindowingData m_ReplayCtx;
+		int64_t m_DebugID;
 		OutputWindow *m_DebugCtx;
 
 		void MakeCurrentReplayContext(GLWindowingData *ctx);

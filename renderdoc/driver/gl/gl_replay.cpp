@@ -27,6 +27,8 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
+#include "data/glsl/debuguniforms.h"
+
 #include "serialise/string_utils.h"
 
 GLReplay::GLReplay()
@@ -42,6 +44,10 @@ GLReplay::GLReplay()
 
 void GLReplay::Shutdown()
 {
+	DeleteDebugData();
+
+	DestroyOutputWindow(m_DebugID);
+
 	CloseReplayContext();
 
 	delete m_pDriver;

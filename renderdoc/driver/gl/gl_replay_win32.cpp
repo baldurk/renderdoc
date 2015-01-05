@@ -61,6 +61,7 @@ void GLReplay::CloseReplayContext()
 {
 	if(wglDeleteRC)
 	{
+		wglMakeCurrentProc(NULL, NULL);
 		wglDeleteRC(m_ReplayCtx.ctx);
 		ReleaseDC(m_ReplayCtx.wnd, m_ReplayCtx.DC);
 		::DestroyWindow(m_ReplayCtx.wnd);
@@ -198,7 +199,8 @@ void GLReplay::DestroyOutputWindow(uint64_t id)
 		return;
 
 	OutputWindow &outw = it->second;
-
+	
+	wglMakeCurrentProc(NULL, NULL);
 	wglDeleteRC(outw.ctx);
 	ReleaseDC(outw.wnd, outw.DC);
 
