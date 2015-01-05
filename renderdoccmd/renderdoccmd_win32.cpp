@@ -245,6 +245,8 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 
 		Sleep(40);
 	}
+
+	DestroyWindow(wnd);
 }
 
 int renderdoccmd(int argc, char **argv);
