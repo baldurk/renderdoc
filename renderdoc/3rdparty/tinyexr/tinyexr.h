@@ -49,12 +49,22 @@ typedef struct {
 } DeepImage;
 
 // Loads single-frame OpenEXR image. Assume EXR image contains RGB(A) channels.
+// Takes filename as parameter
 // Application must free image data as returned by `out_rgba`
 // Result image format is: float x RGBA x width x hight
 // Return 0 if success
 // Returns error string in `err` when there's an error
 extern int LoadEXR(float **out_rgba, int *width, int *height,
                    const char *filename, const char **err);
+
+// Loads single-frame OpenEXR image. Assume EXR image contains RGB(A) channels.
+// Takes file pointer as parameter.
+// Application must free image data as returned by `out_rgba`
+// Result image format is: float x RGBA x width x hight
+// Return 0 if success
+// Returns error string in `err` when there's an error
+extern int LoadEXRFP(float **out_rgba, int *width, int *height,
+                     FILE *fp, const char **err);
 
 // Loads multi-channel, single-frame OpenEXR image.
 // Application must free EXRImage
@@ -64,11 +74,20 @@ extern int LoadMultiChannelEXR(EXRImage *image, const char *filename,
                                const char **err);
 
 // Saves floating point RGBA image as OpenEXR.
+// Takes filename as parameter
 // Image is compressed with ZIP.
 // Return 0 if success
 // Returns error string in `err` when there's an error
 extern int SaveEXR(const float *in_rgba, int width, int height,
                    const char *filename, const char **err);
+
+// Saves floating point RGBA image as OpenEXR.
+// Takes file pointer as parameter.
+// Image is compressed with ZIP.
+// Return 0 if success
+// Returns error string in `err` when there's an error
+extern int SaveEXRFP(const float *in_rgba, int width, int height,
+                     FILE *fp, const char **err);
 
 // Saves multi-channel, single-frame OpenEXR image.
 // Application must free EXRImage

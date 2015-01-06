@@ -6979,7 +6979,7 @@ void DecompressZip(unsigned char *dst, unsigned long &uncompressedSize,
 
 int LoadEXR(float **out_rgba, int *width, int *height, const char *filename,
             const char **err) {
-  if (out_rgba == NULL) {
+  if (filename == NULL) {
     if (err) {
       (*err) = "Invalid argument.";
     }
@@ -6990,6 +6990,23 @@ int LoadEXR(float **out_rgba, int *width, int *height, const char *filename,
   if (!fp) {
     if (err) {
       (*err) = "Cannot read file.";
+    }
+    return -1;
+  }
+
+  int ret = LoadEXRFP(out_rgba, width, height, fp, err);
+
+  fclose(fp);
+
+  return ret;
+}
+
+int LoadEXRFP(float **out_rgba, int *width, int *height, FILE *fp,
+              const char **err)
+{
+  if (out_rgba == NULL || fp == NULL) {
+    if (err) {
+      (*err) = "Invalid argument.";
     }
     return -1;
   }
@@ -7005,7 +7022,6 @@ int LoadEXR(float **out_rgba, int *width, int *height, const char *filename,
     size_t ret;
     ret = fread(&buf[0], 1, filesize, fp);
     assert(ret == filesize);
-    fclose(fp);
   }
 
   const char *head = &buf[0];
@@ -7570,7 +7586,7 @@ int LoadMultiChannelEXR(EXRImage *exrImage, const char *filename,
 
 int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
             const char **err) {
-  if (in_rgba == NULL || filename == NULL) {
+  if (filename == NULL) {
     if (err) {
       (*err) = "Invalid argument.";
     }
@@ -7581,6 +7597,22 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
   if (!fp) {
     if (err) {
       (*err) = "Cannot write a file.";
+    }
+    return -1;
+  }
+
+  int ret = SaveEXRFP(in_rgba, width, height, fp, err);
+
+  fclose(fp);
+
+  return ret;
+}
+
+int SaveEXRFP(const float *in_rgba, int width, int height, FILE *fp,
+            const char **err) {
+  if (in_rgba == NULL || fp == NULL) {
+    if (err) {
+      (*err) = "Invalid argument.";
     }
     return -1;
   }
@@ -7732,8 +7764,6 @@ int SaveEXR(const float *in_rgba, int width, int height, const char *filename,
   fwrite(&offsets.at(0), 1, sizeof(unsigned long long) * numBlocks, fp);
 
   fwrite(&data.at(0), 1, data.size(), fp);
-
-  fclose(fp);
 
   return 0; // OK
 }
