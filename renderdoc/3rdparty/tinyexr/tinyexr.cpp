@@ -35,6 +35,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "tinyexr.h"
 
+// BK modification - disable warnings generated in below code
+#ifdef _MSC_VER
+#pragma warning(push)
+#pragma warning(disable : 4244) // argument conversion, possible loss of data
+#pragma warning(disable : 4996) // function unsafe (fopen vs fopen_s)
+#pragma warning(disable : 4101) // unreferenced local variable
+#pragma warning(disable : 4201) // nonstandard extension used: nameless
+                                // struct/union
+#pragma warning(disable : 4018) // signed/unsigned mismatch
+#endif
+
 namespace {
 
 namespace miniz {
