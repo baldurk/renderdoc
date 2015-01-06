@@ -555,7 +555,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	* GL_ARB_direct_state_access (Required for 4.5)
 	* GL_ARB_bindless_texture
 	* GL_ARB_cl_event
-	* GL_ARB_direct_state_access
 	* GL_ARB_sparse_buffer
 	* GL_ARB_sparse_texture
 	* GL_EXT_sparse_texture2
