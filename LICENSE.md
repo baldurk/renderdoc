@@ -76,3 +76,7 @@ RenderDoc also uses several external libraries and components which include thei
 - [IronPython](http://ironpython.net/)
   distributed under the Apache 2.0 license.
   Copyright IronPython Team
+
+- [tinyexr](https://github.com/syoyo/tinyexr)
+  distributed under the New BSD License (3 Clause).
+  Copyright 2014, Syoyo Fujita

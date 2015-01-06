@@ -121,6 +121,14 @@
   
   <listItem><para>
   <externalLink>
+<linkText>tinyexr</linkText>
+<linkAlternateText>Used for the OpenEXR file loading and saving.</linkAlternateText>
+<linkUri>https://github.com/syoyo/tinyexr</linkUri>
+</externalLink>
+  </para></listItem>
+  
+  <listItem><para>
+  <externalLink>
 <linkText>Sandcastle Help File Builder</linkText>
 <linkAlternateText>Sandcastle Help File Builder for creating this documentation that you're reading!</linkAlternateText>
 <linkUri>http://shfb.codeplex.com/</linkUri>
