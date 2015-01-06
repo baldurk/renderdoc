@@ -38,6 +38,7 @@
 #include "jpeg-compressor/jpge.h"
 #include "stb/stb_image.h"
 #include "stb/stb_image_write.h"
+#include "tinyexr/tinyexr.h"
 #include "common/dds_readwrite.h"
 
 float ConvertComponent(ResourceFormat fmt, byte *data)
@@ -561,8 +562,8 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 		downcast = true;
 
 	// for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
-	// for HDR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
-	if((sd.destType != eFileType_DDS && sd.destType != eFileType_HDR && 
+	// for HDR&EXR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
+	if((sd.destType != eFileType_DDS && sd.destType != eFileType_HDR && sd.destType != eFileType_EXR && 
 		    (td.format.compByteWidth != 1 || td.format.compType != eCompType_UNorm)
 		 ) ||
 		 downcast ||
@@ -945,9 +946,9 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
 			delete[] jpgdst;
 		}
-		else if(sd.destType == eFileType_HDR)
+		else if(sd.destType == eFileType_HDR || sd.destType == eFileType_EXR)
 		{
-			float *fldata = new float[td.width*td.height*3];
+			float *fldata = new float[td.width*td.height*4];
 
 			byte *srcData = subdata[0];
 			
@@ -958,6 +959,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 					float r = 0.0f;
 					float g = 0.0f;
 					float b = 0.0f;
+					float a = 1.0f;
 
 					if(td.format.special && td.format.specialFormat == eSpecial_R10G10B10A2)
 					{
@@ -968,6 +970,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 						r = vec.x;
 						g = vec.y;
 						b = vec.z;
+						a = vec.w;
 
 						srcData += 4;
 					}
@@ -980,6 +983,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 						r = vec.x;
 						g = vec.y;
 						b = vec.z;
+						a = 1.0f;
 
 						srcData += 4;
 					}
@@ -991,18 +995,32 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 							g = ConvertComponent(td.format, srcData + td.format.compByteWidth*1);
 						if(td.format.compCount >= 3)
 							b = ConvertComponent(td.format, srcData + td.format.compByteWidth*2);
+						if(td.format.compCount >= 4)
+							a = ConvertComponent(td.format, srcData + td.format.compByteWidth*3);
 
 						srcData += td.format.compCount * td.format.compByteWidth;
 					}
 
-					fldata[(y*td.width + x) * 3 + 0] = r;
-					fldata[(y*td.width + x) * 3 + 1] = g;
-					fldata[(y*td.width + x) * 3 + 2] = b;
+					fldata[(y*td.width + x) * 4 + 0] = r;
+					fldata[(y*td.width + x) * 4 + 1] = g;
+					fldata[(y*td.width + x) * 4 + 2] = b;
+					fldata[(y*td.width + x) * 4 + 3] = a;
 				}
 			}
 
-			int ret = stbi_write_hdr_to_file(f, td.width, td.height, 3, fldata);
-			success = (ret != 0);
+			if(sd.destType == eFileType_HDR)
+			{
+				int ret = stbi_write_hdr_to_file(f, td.width, td.height, 4, fldata);
+				success = (ret != 0);
+			}
+			else if(sd.destType == eFileType_EXR)
+			{
+				const char *err = NULL;
+				int ret = SaveEXRFP(fldata, (int)td.width, (int)td.height, f, &err);
+				success = (ret == 0);
+				if(!success)
+					RDCERR("Error saving EXR file %d: '%s'", ret, err);
+			}
 
 			delete[] fldata;
 		}

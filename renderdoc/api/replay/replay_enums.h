@@ -136,6 +136,7 @@ enum FileType
 	eFileType_BMP,
 	eFileType_TGA,
 	eFileType_HDR,
+	eFileType_EXR,
 };
 
 enum AlphaMapping

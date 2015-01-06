@@ -33,6 +33,7 @@ os/os_specific.o \
 3rdparty/jpeg-compressor/jpge.o \
 3rdparty/lz4/lz4.o \
 3rdparty/stb/stb_impl.o \
+3rdparty/tinyexr/tinyexr.o \
 driver/gl/gl_common.o \
 driver/gl/gl_driver.o \
 driver/gl/gl_manager.o \

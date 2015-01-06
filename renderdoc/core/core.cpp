@@ -36,6 +36,21 @@
 #include "stb/stb_image.h"
 #include "common/dds_readwrite.h"
 
+// not provided by tinyexr, just do by hand
+bool is_exr_file(FILE *f)
+{
+	FileIO::fseek64(f, 0, SEEK_SET);
+
+	const uint32_t openexr_magic = MAKE_FOURCC(0x76, 0x2f, 0x31, 0x01);
+
+	uint32_t magic = 0;
+	FileIO::fread(&magic, sizeof(magic), 1, f);
+
+	FileIO::fseek64(f, 0, SEEK_SET);
+
+	return magic == openexr_magic;
+}
+
 template<>
 string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 {
@@ -478,6 +493,9 @@ ReplayCreateStatus RenderDoc::FillInitParams(const char *logFile, RDCDriver &dri
 			FileIO::fseek64(f, 0, SEEK_SET);
 
 			if(is_dds_file(f))
+				ret = x = y = comp = 1;
+			
+			if(is_exr_file(f))
 				ret = x = y = comp = 1;
 			
 			FileIO::fclose(f);

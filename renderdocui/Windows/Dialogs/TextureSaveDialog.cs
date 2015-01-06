@@ -150,7 +150,9 @@ namespace renderdocui.Windows.Dialogs
 
             jpegCompression.Enabled = (saveData.destType == FileType.JPG);
 
-            alphaLDRGroup.Visible = (saveData.destType != FileType.HDR && saveData.destType != FileType.DDS);
+            alphaLDRGroup.Visible = (saveData.destType != FileType.HDR &&
+                saveData.destType != FileType.EXR &&
+                saveData.destType != FileType.DDS);
 
             bool noAlphaFormat = (saveData.destType == FileType.BMP || saveData.destType == FileType.JPG);
 

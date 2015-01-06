@@ -27,6 +27,7 @@
 #include "replay/type_helpers.h"
 
 #include "stb/stb_image.h"
+#include "tinyexr/tinyexr.h"
 #include "common/dds_readwrite.h"
 
 class ImageViewer : public IReplayDriver
@@ -194,7 +195,26 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 
 	bool dds = false;
 
-	if(stbi_is_hdr_from_file(f))
+	if(is_exr_file(f))
+	{
+		texDetails.format = rgba32_float;
+		
+		FileIO::fseek64(f, 0, SEEK_SET);
+
+		const char *err = NULL;
+
+		int ret = LoadEXRFP((float **)&data, (int *)&texDetails.width, (int *)&texDetails.height, f, &err);
+		datasize = texDetails.width*texDetails.height*4*sizeof(float);
+
+		// could be an unsupported form of EXR, like deep image or other
+		if(ret != 0)
+		{
+			if(data) free(data);
+			RDCERR("EXR file detected, but couldn't load with LoadEXR %d: '%s'", ret, err);
+			return eReplayCreate_APIUnsupported;
+		}
+	}
+	else if(stbi_is_hdr_from_file(f))
 	{
 		texDetails.format = rgba32_float;
 

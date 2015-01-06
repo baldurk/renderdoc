@@ -138,6 +138,7 @@ namespace renderdoc
         BMP,
         TGA,
         HDR,
+        EXR,
     };
 
     public enum AlphaMapping

@@ -46,6 +46,9 @@ class Chunk;
 #include "os/os_specific.h"
 #include "common/threading.h"
 
+// not provided by tinyexr, just do by hand
+bool is_exr_file(FILE *f);
+
 struct ICrashHandler
 {
 	virtual ~ICrashHandler() {}

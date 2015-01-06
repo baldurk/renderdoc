@@ -88,6 +88,9 @@
     <Filter Include="Common\Strings">
       <UniqueIdentifier>{ce0b860f-38b7-48af-b49d-7dcb23378f82}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\tinyexr">
+      <UniqueIdentifier>{aadadb32-abbc-45b3-8f86-026eed994ba9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -308,6 +311,9 @@
     </ClInclude>
     <ClInclude Include="serialise\string_utils.h">
       <Filter>Common\Strings</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\tinyexr\tinyexr.h">
+      <Filter>3rdparty\tinyexr</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -535,6 +541,9 @@
     </ClCompile>
     <ClCompile Include="serialise\string_utils.cpp">
       <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
+      <Filter>3rdparty\tinyexr</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
