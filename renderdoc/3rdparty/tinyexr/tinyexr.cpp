@@ -44,6 +44,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4201) // nonstandard extension used: nameless
                                 // struct/union
 #pragma warning(disable : 4018) // signed/unsigned mismatch
+
+#pragma warning(disable : 4267) // argument conversion, possible loss of data
 #endif
 
 namespace {
