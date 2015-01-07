@@ -6942,6 +6942,8 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 
 					record->DataInSerialiser = true;
 				}
+
+				record->FreeShadowStorage();
 			}
 		}
 	}
