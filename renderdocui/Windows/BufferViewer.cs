@@ -1333,9 +1333,11 @@ namespace renderdocui.Windows
                         index = 0;
                     }
 
-                    try
+                    int elemsWithData = 0;
+
+                    for (int el = 0; el < bufferFormats.Length; el++)
                     {
-                        for (int el = 0; el < bufferFormats.Length; el++)
+                        try
                         {
                             byte[] bytedata = d[bufferFormats[el].buffer];
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
@@ -1374,7 +1376,7 @@ namespace renderdocui.Windows
                             rawWriter.Write(bytes);
 
                             if (bytes.Length != bytesToRead)
-                                throw new System.IO.EndOfStreamException();
+                                continue;
 
                             if (elname == "POSITION" || elname == "SV_POSITION")
                             {
@@ -1418,12 +1420,16 @@ namespace renderdocui.Windows
                                     }
                                 }
                             }
+
+                            elemsWithData++;
+                        }
+                        catch (System.IO.EndOfStreamException)
+                        {
+                            // don't increment elemsWithData
                         }
                     }
-                    catch (System.IO.EndOfStreamException)
-                    {
-                        finished = true;
-                    }
+
+                    finished = (elemsWithData > 0);
 
                     rownum++;
                 }
@@ -1589,9 +1595,11 @@ namespace renderdocui.Windows
                         x = 1;
                     }
 
-                    try
+                    for (int el = 0; el < bufferFormats.Length; el++)
                     {
-                        for (int el = 0; el < bufferFormats.Length; el++)
+                        int xstart = x;
+
+                        try
                         {
                             byte[] bytedata = d[bufferFormats[el].buffer];
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
@@ -1648,11 +1656,15 @@ namespace renderdocui.Windows
                                 }
                             }
                         }
-                    }
-                    catch (System.IO.EndOfStreamException)
-                    {
-                        for (int leftovers = x; leftovers < rowlen; leftovers++)
-                            rowdata[leftovers] = "-";
+                        catch (System.IO.EndOfStreamException)
+                        {
+                            for (int i = 0; i < bufferFormats[el].format.compCount; i++)
+                            {
+                                rowdata[xstart + i] = "-";
+                            }
+
+                            x = (int)(xstart + bufferFormats[el].format.compCount);
+                        }
                     }
 
                     if (rowdata != null)
