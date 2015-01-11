@@ -521,7 +521,6 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	
 	Serialise("", el.events);
 	Serialise("", el.children);
-	Serialise("", el.debugMessages);
 }
 
 template<>
@@ -747,13 +746,16 @@ bool ProxySerialiser::Tick()
 			GetTexture(ResourceId());
 			break;
 		case eCommand_GetBuffers:
-			GetTextures();
+			GetBuffers();
 			break;
 		case eCommand_GetBuffer:
 			GetTexture(ResourceId());
 			break;
 		case eCommand_GetShader:
 			GetShader(ResourceId());
+			break;
+		case eCommand_GetDebugMessages:
+			GetDebugMessages();
 			break;
 		case eCommand_SavePipelineState:
 			SavePipelineState();
@@ -903,6 +905,25 @@ vector<ResourceId> ProxySerialiser::GetTextures()
 	else
 	{
 		if(!SendReplayCommand(eCommand_GetTextures))
+			return ret;
+	}
+
+	m_FromReplaySerialiser->Serialise("", ret);
+
+	return ret;
+}
+
+vector<DebugMessage> ProxySerialiser::GetDebugMessages()
+{
+	vector<DebugMessage> ret;
+
+	if(m_ReplayHost)
+	{
+		ret = m_Remote->GetDebugMessages();
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_GetDebugMessages))
 			return ret;
 	}
 

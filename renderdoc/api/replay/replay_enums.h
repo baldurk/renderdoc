@@ -286,6 +286,16 @@ enum DebugMessageSeverity
 	eDbgSeverity_Info,
 };
 
+enum DebugMessageSource
+{
+	eDbgSource_API = 0,
+	eDbgSource_RedundantAPIUse,
+	eDbgSource_IncorrectAPIUse,
+	eDbgSource_GeneralPerformance,
+	eDbgSource_GCNPerformance,
+	eDbgSource_RuntimeWarning,
+};
+
 enum ResourceUsage
 {
 	eUsage_None,

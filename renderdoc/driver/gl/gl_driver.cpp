@@ -1778,7 +1778,14 @@ void WrappedOpenGL::FinishCapture()
 	//m_SuccessfulCapture = false;
 }
 
-vector<DebugMessage> WrappedOpenGL::Serialise_DebugMessages()
+vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
+{
+	vector<DebugMessage> ret;
+	ret.swap(m_DebugMessages);
+	return ret;
+}
+
+void WrappedOpenGL::Serialise_DebugMessages()
 {
 	SCOPED_SERIALISE_CONTEXT(DEBUG_MESSAGES);
 
@@ -1838,16 +1845,16 @@ vector<DebugMessage> WrappedOpenGL::Serialise_DebugMessages()
 		if(m_State == READING)
 		{
 			DebugMessage msg;
+			msg.eventID = m_CurEventID;
+			msg.source = eDbgSource_API;
 			msg.category = (DebugMessageCategory)Category;
 			msg.severity = (DebugMessageSeverity)Severity;
 			msg.messageID = ID;
 			msg.description = Description;
 
-			debugMessages.push_back(msg);
+			m_DebugMessages.push_back(msg);
 		}
 	}
-
-	return debugMessages;
 }
 
 bool WrappedOpenGL::RecordUpdateCheck(GLResourceRecord *record)
@@ -2934,6 +2941,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	if(m_State == READING)
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
+		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
 
 		m_ParentDrawcall.children.clear();
 	}

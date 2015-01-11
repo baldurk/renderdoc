@@ -263,6 +263,16 @@ namespace renderdoc
         Compute,
     };
 
+    public enum DebugMessageSource
+    {
+        API = 0,
+        RedundantAPIUse,
+        IncorrectAPIUse,
+        GeneralPerformance,
+        GCNPerformance,
+        RuntimeWarning,
+    };
+
     public enum DebugMessageCategory
     {
         Defined = 0,
@@ -396,6 +406,21 @@ namespace renderdoc
 
     public static class EnumString
     {
+        public static string Str(this DebugMessageSource source)
+        {
+            switch (source)
+            {
+                case DebugMessageSource.API: return "API's debug messages";
+                case DebugMessageSource.RedundantAPIUse: return "Redundant use of API";
+                case DebugMessageSource.IncorrectAPIUse: return "Incorrect use of API";
+                case DebugMessageSource.GeneralPerformance: return "General Performance issues";
+                case DebugMessageSource.GCNPerformance: return "GCN (AMD) Performance issues";
+                case DebugMessageSource.RuntimeWarning: return "Issues raised while debugging";
+            }
+
+            return "Unknown Source";
+        }
+
         public static string Str(this VarType type)
         {
             switch (type)

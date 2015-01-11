@@ -54,6 +54,8 @@ class GLReplay : public IReplayDriver
 
 		ShaderReflection *GetShader(ResourceId id);
 		
+		vector<DebugMessage> GetDebugMessages();
+		
 		vector<EventUsage> GetUsage(ResourceId id);
 
 		vector<FetchFrameRecord> GetFrameRecord();

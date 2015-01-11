@@ -40,6 +40,7 @@ enum CommandPacketType
 	eCommand_GetBuffers,
 	eCommand_GetBuffer,
 	eCommand_GetShader,
+	eCommand_GetDebugMessages,
 
 	eCommand_GetBufferData,
 	eCommand_GetTextureData,
@@ -262,6 +263,8 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		FetchTexture GetTexture(ResourceId id);
 
 		APIProperties GetAPIProperties();
+
+		vector<DebugMessage> GetDebugMessages();
 		
 		void SavePipelineState();
 		D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }

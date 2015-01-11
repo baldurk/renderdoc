@@ -105,6 +105,7 @@ class ImageViewer : public IReplayDriver
 		void ReadLogInitialisation() {}
 		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) {}
 		vector<ResourceId> GetBuffers() { return vector<ResourceId>(); }
+		vector<DebugMessage> GetDebugMessages() { return vector<DebugMessage>(); }
 		FetchBuffer GetBuffer(ResourceId id) { FetchBuffer ret; RDCEraseEl(ret); return ret; }
 		void SavePipelineState() {}
 		GLPipelineState GetGLPipelineState() { return GLPipelineState(); }

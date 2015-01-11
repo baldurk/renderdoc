@@ -703,6 +703,11 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
 	return ret;
 }
 
+vector<DebugMessage> GLReplay::GetDebugMessages()
+{
+	return m_pDriver->GetDebugMessages();
+}
+
 ShaderReflection *GLReplay::GetShader(ResourceId id)
 {
 	WrappedOpenGL &gl = *m_pDriver;

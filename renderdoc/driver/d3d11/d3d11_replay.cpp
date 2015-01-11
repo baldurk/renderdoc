@@ -317,6 +317,11 @@ vector<EventUsage> D3D11Replay::GetUsage(ResourceId id)
 	return m_pDevice->GetImmediateContext()->GetUsage(id);
 }
 
+vector<DebugMessage> D3D11Replay::GetDebugMessages()
+{
+	return m_pDevice->GetDebugMessages();
+}
+
 APIProperties D3D11Replay::GetAPIProperties()
 {
 	APIProperties ret;

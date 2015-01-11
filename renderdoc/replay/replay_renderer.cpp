@@ -334,6 +334,17 @@ bool ReplayRenderer::GetResolve(uint64_t *callstack, uint32_t callstackLen, rdct
 	return true;
 }
 
+bool ReplayRenderer::GetDebugMessages(rdctype::array<DebugMessage> *msgs)
+{
+	if(msgs)
+	{
+		*msgs = m_pDevice->GetDebugMessages();
+		return true;
+	}
+
+	return false;
+}
+
 bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
 {
 	if(usage)
@@ -1481,6 +1492,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRen
 { return rend->GetResolve(callstack, callstackLen, trace); }
 extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
 { return rend->GetShaderDetails(shader); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDebugMessages(ReplayRenderer *rend, rdctype::array<DebugMessage> *msgs)
+{ return rend->GetDebugMessages(msgs); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(ReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history)
 { return rend->PixelHistory(target, x, y, sampleIdx, history); }

@@ -60,6 +60,8 @@ class IRemoteDriver
 		virtual vector<ResourceId> GetTextures() = 0;
 		virtual FetchTexture GetTexture(ResourceId id) = 0;
 
+		virtual vector<DebugMessage> GetDebugMessages() = 0;
+
 		virtual ShaderReflection *GetShader(ResourceId id) = 0;
 		
 		virtual vector<EventUsage> GetUsage(ResourceId id) = 0;

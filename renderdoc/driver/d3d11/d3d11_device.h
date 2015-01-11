@@ -213,6 +213,8 @@ private:
 	vector<double> m_FrameTimes;
 	double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
+	vector<DebugMessage> m_DebugMessages;
+
 	vector<FetchFrameRecord> m_FrameRecord;
 	const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
 public:
@@ -250,6 +252,7 @@ public:
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 	vector<DebugMessage> GetDebugMessages();
+	void AddDebugMessage(DebugMessage msg) { m_DebugMessages.push_back(msg); }
 	const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout) { return m_LayoutDescs[layout]; }
 	ShaderReflection *GetLayoutDXBC(ID3D11InputLayout *layout) { return m_LayoutDXBC[layout]; }
 

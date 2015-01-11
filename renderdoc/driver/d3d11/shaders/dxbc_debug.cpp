@@ -2551,11 +2551,29 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						else
 						{
 							RDCERR("Unexpected UAV dimension %d passed to bufinfo", uavDesc.ViewDimension);
+
+							DebugMessage msg = {0};
+							msg.source = eDbgSource_RuntimeWarning;
+							msg.category = eDbgCategory_Shaders;
+							msg.severity = eDbgSeverity_Medium;
+							char time[512] = {0};
+							StringFormat::sntimef(time, 511, "%H:%M:%S");
+							msg.description = StringFormat::Fmt("%s- Shader debugging %d: %s\nUAV being queried by bufinfo is not a buffer", time, s.nextInstruction, op.str);
+							device->AddDebugMessage(msg);
 						}
 					}
 					else
 					{
 						RDCERR("UAV is NULL being queried by bufinfo");
+
+						DebugMessage msg = {0};
+						msg.source = eDbgSource_RuntimeWarning;
+						msg.category = eDbgCategory_Shaders;
+						msg.severity = eDbgSeverity_Medium;
+						char time[512] = {0};
+						StringFormat::sntimef(time, 511, "%H:%M:%S");
+						msg.description = StringFormat::Fmt("%s- Shader debugging %d: %s\nUAV being queried by bufinfo is NULL", time, s.nextInstruction, op.str);
+						device->AddDebugMessage(msg);
 					}
 
 					SAFE_RELEASE(uav);

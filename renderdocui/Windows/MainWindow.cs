@@ -135,6 +135,8 @@ namespace renderdocui.Windows
 
             renderdocplugin.PluginHelpers.GetPlugins();
 
+            statusIcon.Text = "";
+            statusIcon.Image = null;
             statusText.Text = "";
 
             SetTitle();
@@ -255,6 +257,7 @@ namespace renderdocui.Windows
                     {
                         statusProgress.Visible = false;
                         statusText.Text = "";
+                        statusIcon.Image = null;
                     }
                     else
                     {
@@ -271,7 +274,11 @@ namespace renderdocui.Windows
         public void OnLogfileClosed()
         {
             statusText.Text = "";
+            statusIcon.Image = null;
             statusProgress.Visible = false;
+
+            m_MessageTick.Dispose();
+            m_MessageTick = null;
 
             logStatisticsToolStripMenuItem.Enabled = false;
 
@@ -287,9 +294,82 @@ namespace renderdocui.Windows
             SetTitle();
         }
 
+        private static void MessageCheck(object m)
+        {
+            if (!(m is MainWindow)) return;
+
+            var me = (MainWindow)m;
+
+            if (me.m_Core.LogLoaded)
+            {
+                me.m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    DebugMessage[] msgs = r.GetDebugMessages();
+
+                    me.BeginInvoke(new Action(() =>
+                    {
+                        if (msgs.Length > 0)
+                        {
+                            me.m_Core.AddMessages(msgs);
+                            me.m_Core.GetDebugMessages().RefreshMessageList();
+                        }
+
+                        if (me.m_Core.UnreadMessageCount > 0)
+                        {
+                            me.m_MessageAlternate = !me.m_MessageAlternate;
+                        }
+                        else
+                        {
+                            me.m_MessageAlternate = false;
+                        }
+
+                        me.LogHasErrors = (me.m_Core.DebugMessages.Count > 0);
+                    }));
+                });
+            }
+
+            if (me == null) return;
+            if (me.m_MessageTick != null) me.m_MessageTick.Change(500, System.Threading.Timeout.Infinite);
+        }
+
+        private System.Threading.Timer m_MessageTick = null;
+        private bool m_MessageAlternate = false;
+
+        private bool LogHasErrors
+        {
+            set
+            {
+                if (value == true)
+                {
+                    statusIcon.Image = m_MessageAlternate
+                        ? null
+                        : global::renderdocui.Properties.Resources.delete;
+                    statusText.Text = String.Format("{0} loaded. Log has {1} errors, warnings or performance notes. " +
+                        "See the 'Log Errors and Warnings' window.", Path.GetFileName(m_Core.LogFileName), m_Core.DebugMessages.Count);
+                    if (m_Core.UnreadMessageCount > 0)
+                    {
+                        statusText.Text += String.Format(" {0} Unread.", m_Core.UnreadMessageCount);
+                    }
+                }
+                else
+                {
+                    statusIcon.Image = global::renderdocui.Properties.Resources.tick;
+                    statusText.Text = String.Format("{0} loaded. No problems detected.", Path.GetFileName(m_Core.LogFileName));
+                }
+            }
+        }
+
+        private void status_DoubleClick(object sender, EventArgs e)
+        {
+            m_Core.GetDebugMessages().Show(dockPanel);
+        }
+
         public void OnLogfileLoaded()
         {
-            statusText.Text = "";
+            LogHasErrors = (m_Core.DebugMessages.Count > 0);
+
+            m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, System.Threading.Timeout.Infinite);
+
             statusProgress.Visible = false;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) => {
@@ -670,6 +750,7 @@ namespace renderdocui.Windows
                         BeginInvoke(new Action(() =>
                         {
                             statusText.Text = "";
+                            statusIcon.Image = null;
                             statusProgress.Visible = false;
                         }));
                     }));

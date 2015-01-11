@@ -229,7 +229,7 @@ private:
 
 	const char *GetChunkName(D3D11ChunkType idx);
 	
-	vector<DebugMessage> Serialise_DebugMessages();
+	void Serialise_DebugMessages();
 
 	void DrainAnnotationQueue();
 

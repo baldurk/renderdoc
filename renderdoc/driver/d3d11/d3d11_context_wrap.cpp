@@ -3284,7 +3284,7 @@ void WrappedID3D11DeviceContext::OMSetDepthStencilState(ID3D11DepthStencilState 
 
 #pragma region Draw
 
-vector<DebugMessage> WrappedID3D11DeviceContext::Serialise_DebugMessages()
+void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 {
 	SCOPED_SERIALISE_CONTEXT(DEBUG_MESSAGES);
 	
@@ -3347,16 +3347,19 @@ vector<DebugMessage> WrappedID3D11DeviceContext::Serialise_DebugMessages()
 		if(m_State == READING)
 		{
 			DebugMessage msg;
+			msg.eventID = m_CurEventID;
+			msg.source = eDbgSource_API;
 			msg.category = (DebugMessageCategory)Category;
 			msg.severity = (DebugMessageSeverity)Severity;
 			msg.messageID = ID;
 			msg.description = Description;
+			
+			if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
+				msg.eventID = m_pDevice->GetImmediateContext()->GetEventID();
 
-			debugMessages.push_back(msg);
+			m_pDevice->AddDebugMessage(msg);
 		}
 	}
-
-	return debugMessages;
 }
 
 
@@ -3376,7 +3379,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(UINT IndexCountP
 
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3393,8 +3396,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstanced(UINT IndexCountP
 		draw.instanceOffset = StartInstanceLocation;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_UseIBuffer;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3441,7 +3442,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(UINT VertexCountPerInst
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3457,8 +3458,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstanced(UINT VertexCountPerInst
 		draw.instanceOffset = StartInstanceLocation;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3503,7 +3502,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT St
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3517,8 +3516,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexed(UINT IndexCount_, UINT St
 		draw.indexOffset = StartIndexLocation;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3562,7 +3559,7 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(UINT VertexCount_, UINT StartVer
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3575,8 +3572,6 @@ bool WrappedID3D11DeviceContext::Serialise_Draw(UINT VertexCount_, UINT StartVer
 		draw.vertexOffset = StartVertexLocation;
 
 		draw.flags |= eDraw_Drawcall;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3666,7 +3661,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3681,8 +3676,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawAuto()
 		draw.indexOffset = 0;
 		draw.instanceOffset = 0;
 		draw.numInstances = 1;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3726,7 +3719,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3758,8 +3751,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 		draw.name = name;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_UseIBuffer|eDraw_Indirect;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -3806,7 +3797,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -3834,8 +3825,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 		draw.name = name;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -4345,7 +4334,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -4354,8 +4343,6 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_CmdList|eDraw_PushMarker;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 
@@ -4443,7 +4430,7 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(UINT ThreadGroupCountX_, UIN
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -4456,8 +4443,6 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(UINT ThreadGroupCountX_, UIN
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -4501,7 +4486,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 		
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -4524,8 +4509,6 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch|eDraw_Indirect;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
@@ -4589,7 +4572,7 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -4599,8 +4582,6 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_CmdList;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 
@@ -5447,7 +5428,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -5462,8 +5443,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Clear|eDraw_ClearColour;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 
@@ -5806,7 +5785,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -5819,8 +5798,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Clear|eDraw_ClearDepth;
-
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 		

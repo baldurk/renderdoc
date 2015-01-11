@@ -273,6 +273,9 @@ namespace renderdoc
         public UInt64 fileOffset;
         public UInt64 captureTime;
         public ResourceId immContextId;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public DebugMessage[] debugMessages;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -294,8 +297,10 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class DebugMessage
     {
+        public UInt32 eventID;
         public DebugMessageCategory category;
         public DebugMessageSeverity severity;
+        public DebugMessageSource source;
         public UInt32 messageID;
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string description;
@@ -347,9 +352,6 @@ namespace renderdoc
         public FetchAPIEvent[] events;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public FetchDrawcall[] children;
-
-        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public DebugMessage[] debugMessages;
     };
 
     [StructLayout(LayoutKind.Sequential)]

@@ -1230,6 +1230,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 	if(m_State == READING)
 	{
 		m_pDevice->GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
+		m_pDevice->GetFrameRecord().back().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
 
 		m_ParentDrawcall.children.clear();
 

@@ -50,6 +50,8 @@ class D3D11Replay : public IReplayDriver
 
 		vector<ResourceId> GetTextures();
 		FetchTexture GetTexture(ResourceId id);
+		
+		vector<DebugMessage> GetDebugMessages();
 
 		ShaderReflection *GetShader(ResourceId id);
 		

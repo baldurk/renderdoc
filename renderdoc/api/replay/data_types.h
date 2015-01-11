@@ -106,15 +106,6 @@ struct FetchTexture
 	uint64_t byteSize;
 };
 
-struct FetchFrameInfo
-{
-	uint32_t frameNumber;
-	uint32_t firstEvent;
-	uint64_t fileOffset;
-	uint64_t captureTime;
-	ResourceId immContextId;
-};
-
 struct FetchAPIEvent
 {
 	uint32_t eventID;
@@ -130,10 +121,22 @@ struct FetchAPIEvent
 
 struct DebugMessage
 {
+	uint32_t eventID;
 	DebugMessageCategory category;
 	DebugMessageSeverity severity;
+	DebugMessageSource source;
 	uint32_t messageID;
 	rdctype::str description;
+};
+
+struct FetchFrameInfo
+{
+	uint32_t frameNumber;
+	uint32_t firstEvent;
+	uint64_t fileOffset;
+	uint64_t captureTime;
+	ResourceId immContextId;
+	rdctype::array<DebugMessage> debugMessages;
 };
 
 struct EventUsage
@@ -199,8 +202,6 @@ struct FetchDrawcall
 
 	rdctype::array<FetchAPIEvent> events;
 	rdctype::array<FetchDrawcall> children;
-
-	rdctype::array<DebugMessage> debugMessages;
 };
 
 struct APIProperties

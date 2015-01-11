@@ -127,6 +127,15 @@ namespace renderdocui.Code
         public FetchTexture[] CurTextures { get { return m_Textures; } }
         public FetchBuffer[] CurBuffers { get { return m_Buffers; } }
 
+        public List<DebugMessage> DebugMessages = new List<DebugMessage>();
+        public int UnreadMessageCount = 0;
+        public void AddMessages(DebugMessage[] msgs)
+        {
+            UnreadMessageCount += msgs.Length;
+            foreach(var msg in msgs)
+                DebugMessages.Add(msg);
+        }
+
         // the RenderManager can be used when you want to perform an operation, it will let you Invoke or
         // BeginInvoke onto the thread that's used to access the renderdoc project.
         public RenderManager Renderer { get { return m_Renderer; } }
@@ -492,6 +501,9 @@ namespace renderdocui.Code
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState);
 
+                UnreadMessageCount = 0;
+                AddMessages(m_FrameInfo[0].debugMessages);
+
                 postloadProgress = 1.0f;
             });
 
@@ -555,6 +567,9 @@ namespace renderdocui.Code
             m_D3D11PipelineState = null;
             m_GLPipelineState = null;
             m_PipelineState.SetStates(null, null, null);
+
+            DebugMessages.Clear();
+            UnreadMessageCount = 0;
 
             m_LogLoaded = false;
 

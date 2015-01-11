@@ -97,7 +97,8 @@ class WrappedOpenGL
 		const GLHookSet &GetHookset() { return m_Real; }
 
 		vector<DebugMessage> m_DebugMessages;
-		vector<DebugMessage> Serialise_DebugMessages();
+		void Serialise_DebugMessages();
+		vector<DebugMessage> GetDebugMessages();
 
 		GLDEBUGPROC m_RealDebugFunc;
 		const void *m_RealDebugFuncParam;

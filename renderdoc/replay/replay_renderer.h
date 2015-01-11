@@ -159,6 +159,7 @@ struct ReplayRenderer
 		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
 		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
 		ShaderReflection *GetShaderDetails(ResourceId shader);
+		bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 		
 		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history);
 		bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);

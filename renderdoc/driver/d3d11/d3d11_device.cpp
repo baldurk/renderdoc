@@ -664,6 +664,12 @@ void WrappedID3D11Device::LazyInit()
 vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 {
 	vector<DebugMessage> ret;
+	
+	if(m_State < WRITING)
+	{
+		ret.swap(m_DebugMessages);
+		return ret;
+	}
 
 	if(!m_pInfoQueue)
 		return ret;
@@ -681,6 +687,8 @@ vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 		m_pInfoQueue->GetMessage(i, message, &len);
 
 		DebugMessage msg;
+		msg.eventID = 0;
+		msg.source = eDbgSource_API;
 		msg.category = eDbgCategory_Miscellaneous;
 		msg.severity = eDbgSeverity_Medium;
 

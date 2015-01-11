@@ -391,7 +391,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
-	vector<DebugMessage> debugMessages = Serialise_DebugMessages();
+	Serialise_DebugMessages();
 
 	if(m_State == READING)
 	{
@@ -411,7 +411,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 		draw.flags |= eDraw_Clear;
 
 		draw.duration = 0.1f;
-		draw.debugMessages = debugMessages;
 
 		AddDrawcall(draw, true);
 	}
