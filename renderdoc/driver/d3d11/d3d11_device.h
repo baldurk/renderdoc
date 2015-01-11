@@ -253,6 +253,7 @@ public:
 
 	vector<DebugMessage> GetDebugMessages();
 	void AddDebugMessage(DebugMessage msg) { m_DebugMessages.push_back(msg); }
+	void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, std::string d);
 	const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout) { return m_LayoutDescs[layout]; }
 	ShaderReflection *GetLayoutDXBC(ID3D11InputLayout *layout) { return m_LayoutDXBC[layout]; }
 
