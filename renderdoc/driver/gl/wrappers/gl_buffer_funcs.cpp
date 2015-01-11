@@ -1650,9 +1650,11 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 				}
 				else
 				{
-					SCOPED_SERIALISE_CONTEXT(UNMAP);
-					Serialise_glUnmapNamedBufferEXT(buffer);
-					record->AddChunk(scope.Get());
+					// if we are here for WRITING_IDLE, the app wrote directly into our backing
+					// store memory. Just need to copy the data across to GL, no other work needed
+					void *ptr = m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset, GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
+					memcpy(ptr, record->Map.ptr, record->Map.length);
+					m_Real.glUnmapNamedBufferEXT(buffer);
 				}
 				
 				break;
