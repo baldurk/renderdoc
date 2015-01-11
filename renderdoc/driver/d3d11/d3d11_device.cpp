@@ -661,16 +661,19 @@ void WrappedID3D11Device::LazyInit()
 	}
 }
 
-void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, std::string d)
+void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d)
 {
-	DebugMessage msg;
-	msg.eventID = m_pImmediateContext->GetEventID();
-	msg.messageID = 0;
-	msg.source = eDbgSource_RuntimeWarning;
-	msg.category = c;
-	msg.severity = sv;
-	msg.description = d;
-	m_DebugMessages.push_back(msg);
+	if(m_State == READING || src == eDbgSource_RuntimeWarning)
+	{
+		DebugMessage msg;
+		msg.eventID = m_pImmediateContext->GetEventID();
+		msg.messageID = 0;
+		msg.source = src;
+		msg.category = c;
+		msg.severity = sv;
+		msg.description = d;
+		m_DebugMessages.push_back(msg);
+	}
 }
 
 vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()

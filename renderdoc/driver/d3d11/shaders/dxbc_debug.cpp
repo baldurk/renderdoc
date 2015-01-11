@@ -2191,7 +2191,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			if(load && !srv && (fmt.numComps != 1 || fmt.byteWidth != 4))
 			{
-				device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+				device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\n" \
 						"UAV loads aren't supported from anything but 32-bit single channel resources", s.nextInstruction-1, op.str));
 			}
@@ -2323,7 +2323,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				{
 					RDCWARN("No targets bound for sampleinfo on rasterizer");
 					
-					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\nNo targets bound for sampleinfo on rasterizer", s.nextInstruction-1, op.str));
 				}
 
@@ -2359,7 +2359,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				{
 					RDCWARN("SRV is NULL being queried by sampleinfo");
 					
-					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo", s.nextInstruction-1, op.str));
 				}
 
@@ -2391,7 +2391,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			{
 				RDCWARN("Non multisampled resource provided to sample_info");
 				
-				device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+				device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 					StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo", s.nextInstruction-1, op.str));
 			}
 
@@ -2421,7 +2421,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					{
 						RDCWARN("Non-multisampled texture being passed to sample_pos");
 						
-						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 							StringFormat::Fmt("Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos", s.nextInstruction-1, op.str));
 						
 						sample_pattern = NULL;
@@ -2579,7 +2579,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						{
 							RDCWARN("Unexpected UAV dimension %d passed to bufinfo", uavDesc.ViewDimension);
 							
-							device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High,
+							device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
 								StringFormat::Fmt("Shader debugging %d: %s\nUAV being queried by bufinfo is not a buffer", s.nextInstruction-1, op.str));
 						}
 					}
@@ -2587,7 +2587,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					{
 						RDCWARN("UAV is NULL being queried by bufinfo");
 
-						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 							StringFormat::Fmt("Shader debugging %d: %s\nUAV being queried by bufinfo is NULL", s.nextInstruction-1, op.str));
 					}
 
@@ -2628,7 +2628,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						{
 							RDCWARN("Unexpected SRV dimension %d passed to bufinfo", srvDesc.ViewDimension);
 							
-							device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High,
+							device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
 								StringFormat::Fmt("Shader debugging %d: %s\nSRV being queried by bufinfo is not a buffer", s.nextInstruction-1, op.str));
 						}
 					}
@@ -2636,7 +2636,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					{
 						RDCWARN("SRV is NULL being queried by bufinfo");
 
-						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium,
+						device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
 							StringFormat::Fmt("Shader debugging %d: %s\nSRV being queried by bufinfo is NULL", s.nextInstruction-1, op.str));
 					}
 
@@ -3576,7 +3576,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					RDCWARN("NaN or Inf in texlookup");
 					ddxCalc.value.fv[i] = 0.0f;
 					
-					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High,
+					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead", s.nextInstruction-1, op.str));
 				}
 				if(_isnan(ddyCalc.value.fv[i]) || !_finite(ddyCalc.value.fv[i]))
@@ -3584,7 +3584,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					RDCWARN("NaN or Inf in texlookup");
 					ddyCalc.value.fv[i] = 0.0f;
 					
-					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High,
+					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead", s.nextInstruction-1, op.str));
 				}
 				if(_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i]))
@@ -3592,7 +3592,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					RDCWARN("NaN or Inf in texlookup");
 					uv.value.fv[i] = 0.0f;
 					
-					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High,
+					device->AddDebugMessage(eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
 						StringFormat::Fmt("Shader debugging %d: %s\nNaN or Inf found in texture lookup - using 0.0 instead", s.nextInstruction-1, op.str));
 				}
 			}
