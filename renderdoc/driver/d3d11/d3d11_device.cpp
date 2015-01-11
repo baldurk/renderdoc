@@ -2234,6 +2234,8 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 		GetResourceManager()->ApplyInitialContents();
 		GetResourceManager()->ReleaseInFrameResources();
 	}
+
+	m_State = EXECUTING;
 	
 	if(m_ReplayDefCtx == ResourceId())
 	{

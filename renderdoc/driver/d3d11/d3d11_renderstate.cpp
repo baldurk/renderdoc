@@ -1272,6 +1272,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 		if(renderdim[i] != dim)
 		{
 			valid = false;
+			m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+				"Invalid output merger - Render targets of different type");
 			break;
 		}
 	}
@@ -1280,6 +1282,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 		dim != D3D11_RESOURCE_DIMENSION_UNKNOWN &&
 		depthdim != dim)
 	{
+		m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+			"Invalid output merger - Render target(s) and depth target of different type");
 		valid = false;
 	}
 
@@ -1368,6 +1372,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 				desc2.SampleDesc.Count != d2.SampleDesc.Count ||
 				desc2.SampleDesc.Quality != d2.SampleDesc.Quality)
 			{
+				m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+					"Invalid output merger - Render targets are different dimensions");
 				valid = false;
 				break;
 			}
@@ -1392,19 +1398,37 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 			else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
 			{
 				((ID3D11Texture2D *)DepthResource)->GetDesc(&d2);
-				d3.Width = RDCMAX(1U, d2.Width >> DepthDesc.Texture2D.MipSlice);
-				d3.Height = RDCMAX(1U, d2.Height >> DepthDesc.Texture2D.MipSlice);
 
 				if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D)
+				{
+					d3.Width = RDCMAX(1U, d2.Width >> DepthDesc.Texture2D.MipSlice);
+					d3.Height = RDCMAX(1U, d2.Height >> DepthDesc.Texture2D.MipSlice);
 					d3.Depth = 1;
+				}
 				else if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY)
+				{
+					d3.Width = RDCMAX(1U, d2.Width >> DepthDesc.Texture2DArray.MipSlice);
+					d3.Height = RDCMAX(1U, d2.Height >> DepthDesc.Texture2DArray.MipSlice);
 					d3.Depth = RDCMIN(d2.ArraySize, DepthDesc.Texture2DArray.ArraySize);
+				}
+				else if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMS)
+				{
+					d3.Width = d2.Width;
+					d3.Height = d2.Height;
+					d3.Depth = 1;
+				}
 				else if(DepthDesc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY)
+				{
+					d3.Width = d2.Width;
+					d3.Height = d2.Height;
 					d3.Depth = RDCMIN(d2.ArraySize, DepthDesc.Texture2DMSArray.ArraySize);
+				}
 			}
 			else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE3D ||
 					dim == D3D11_RESOURCE_DIMENSION_BUFFER)
 			{
+				m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+					"Invalid output merger - Depth target is Texture3D or Buffer (shouldn't be possible! How did you create this view?!)");
 				valid = false;
 			}
 
@@ -1417,14 +1441,25 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 					desc2.SampleDesc.Quality != d2.SampleDesc.Quality)
 				{
 					valid = false;
+
+					// explicitly allow over-sized depth targets
+					if(desc.Width < d3.Width &&
+						desc.Height < d3.Height &&
+						desc.Depth < d3.Depth &&
+						desc2.SampleDesc.Count == d2.SampleDesc.Count &&
+						desc2.SampleDesc.Quality == d2.SampleDesc.Quality)
+					{
+						valid = true;
+						m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+							"Valid but unusual output merger - Depth target is larger than render target(s)");
+					}
+					else
+					{
+						m_pDevice->AddDebugMessage(eDbgCategory_State_Setting, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+							"Invalid output merger - Depth target is different size or MS count to render target(s)");
+					}
 				}
 			}
-		}
-
-		if(!valid)
-		{
-			//RDCDEBUG("Different effective dimensions between output views");
-			valid = true;
 		}
 	}
 

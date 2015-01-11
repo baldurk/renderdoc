@@ -421,6 +421,7 @@ struct D3D11RenderState
 	void Serialise(LogState state, WrappedID3D11Device *device);
 
 	void SetImmediatePipeline(WrappedID3D11Device *device) { m_ImmediatePipeline = true; m_pDevice = device; }
+	void SetDevice(WrappedID3D11Device *device) { m_pDevice = device; }
 
 	void MarkReferenced(WrappedID3D11DeviceContext *ctx, bool initial) const;
 	void MarkDirty(D3D11ResourceManager *manager) const;

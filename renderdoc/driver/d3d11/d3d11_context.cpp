@@ -165,6 +165,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 	}
 	else
 	{
+		m_CurrentPipelineState->SetDevice(m_pDevice);
 		m_pDevice->SoftRef();
 
 		if(m_State >= WRITING && RenderDoc::Inst().GetCaptureOptions().CaptureAllCmdLists)
@@ -229,6 +230,7 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
 		m_DoStateVerify = false;
 		{
 			*m_CurrentPipelineState = state;
+			m_CurrentPipelineState->SetDevice(m_pDevice);
 			state.ApplyState(this);
 		}
 		m_DoStateVerify = true;

@@ -2910,6 +2910,29 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews, ID3D11RenderT
 		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.DepthView, pDepthStencilView);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, NumViews);
 	}
+	else if(m_State >= WRITING)
+	{
+		// make sure to mark resources referenced if the OM state is invalid, so they aren't eliminated from the
+		// log (which might make this combination valid on replay without some of the targets!)
+		for(UINT i=0; i < NumViews; i++)
+		{
+			if(ppRenderTargetViews && ppRenderTargetViews[i])
+			{
+				ID3D11Resource *res = NULL;
+				ppRenderTargetViews[i]->GetResource(&res);
+				MarkResourceReferenced(GetIDForResource(res), eFrameRef_Read);
+				SAFE_RELEASE(res);
+			}
+		}
+
+		if(pDepthStencilView)
+		{
+			ID3D11Resource *res = NULL;
+			pDepthStencilView->GetResource(&res);
+			MarkResourceReferenced(GetIDForResource(res), eFrameRef_Read);
+			SAFE_RELEASE(res);
+		}
+	}
 
 	ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
 	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
@@ -3085,6 +3108,29 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 		{
 			m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets, RTs, 0, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
 			m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.DepthView, pDepthStencilView);
+		}
+		else if(m_State >= WRITING)
+		{
+			// make sure to mark resources referenced if the OM state is invalid, so they aren't eliminated from the
+			// log (which might make this combination valid on replay without some of the targets!)
+			for(UINT i=0; i < NumRTVs; i++)
+			{
+				if(ppRenderTargetViews && ppRenderTargetViews[i])
+				{
+					ID3D11Resource *res = NULL;
+					ppRenderTargetViews[i]->GetResource(&res);
+					MarkResourceReferenced(GetIDForResource(res), eFrameRef_Read);
+					SAFE_RELEASE(res);
+				}
+			}
+
+			if(pDepthStencilView)
+			{
+				ID3D11Resource *res = NULL;
+				pDepthStencilView->GetResource(&res);
+				MarkResourceReferenced(GetIDForResource(res), eFrameRef_Read);
+				SAFE_RELEASE(res);
+			}
 		}
 	}
 
