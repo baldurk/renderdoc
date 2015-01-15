@@ -322,15 +322,17 @@ namespace renderdocui.Windows.PipelineState
             inputLayouts.NodesSelection.Clear();
             inputLayouts.EndUpdate();
 
-            topology.Text = draw.topology.ToString();
-            if (draw.topology > PrimitiveTopology.PatchList)
+            PrimitiveTopology topo = draw != null ? draw.topology : PrimitiveTopology.Unknown;
+
+            topology.Text = topo.ToString();
+            if (topo > PrimitiveTopology.PatchList)
             {
-                int numCPs = (int)draw.topology - (int)PrimitiveTopology.PatchList + 1;
+                int numCPs = (int)topo - (int)PrimitiveTopology.PatchList + 1;
 
                 topology.Text = string.Format("PatchList ({0} Control Points)", numCPs);
             }
 
-            switch (draw.topology)
+            switch (topo)
             {
                 case PrimitiveTopology.PointList:
                     topologyDiagram.Image = global::renderdocui.Properties.Resources.topo_pointlist;
@@ -391,7 +393,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, draw.indexByteWidth, 0, length });
+                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, draw != null ? draw.indexByteWidth : 0, 0, length });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
