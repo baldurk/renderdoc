@@ -387,7 +387,7 @@ namespace TreelistView
 		{
 			Invalidate();
 		}
-		void SetVScrollValue(int value)
+		public void SetVScrollValue(int value)
 		{
 			if (value < 0)
 				value = 0;
@@ -404,7 +404,7 @@ namespace TreelistView
 				OnVScroll(m_vScroll, e);
 			}
 		}
-		int VScrollValue()
+		public int VScrollValue()
 		{
 			if (m_vScroll.Visible == false)
 				return 0;

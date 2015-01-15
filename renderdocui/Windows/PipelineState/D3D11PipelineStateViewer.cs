@@ -198,6 +198,9 @@ namespace renderdocui.Windows.PipelineState
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 
                                 Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
 
+            int vs = 0;
+            
+            vs = resources.VScrollValue();
             resources.BeginUpdate();
             resources.Nodes.Clear();
             if (stage.SRVs != null)
@@ -318,7 +321,9 @@ namespace renderdocui.Windows.PipelineState
             }
             resources.EndUpdate();
             resources.NodesSelection.Clear();
+            resources.SetVScrollValue(vs);
 
+            vs = samplers.VScrollValue();
             samplers.BeginUpdate();
             samplers.Nodes.Clear();
             if (stage.Samplers != null)
@@ -401,7 +406,9 @@ namespace renderdocui.Windows.PipelineState
             }
             samplers.EndUpdate();
             samplers.NodesSelection.Clear();
+            samplers.SetVScrollValue(vs);
 
+            vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
             if (stage.ConstantBuffers != null)
@@ -464,7 +471,9 @@ namespace renderdocui.Windows.PipelineState
             }
             cbuffers.EndUpdate();
             cbuffers.NodesSelection.Clear();
+            cbuffers.SetVScrollValue(vs);
 
+            vs = classes.VScrollValue();
             classes.BeginUpdate();
             classes.Nodes.Clear();
             {
@@ -483,6 +492,7 @@ namespace renderdocui.Windows.PipelineState
             }
             classes.EndUpdate();
             classes.NodesSelection.Clear();
+            classes.SetVScrollValue(vs);
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -603,6 +613,9 @@ namespace renderdocui.Windows.PipelineState
                 }
             }
 
+            int vs = 0;
+            
+            vs = inputLayouts.VScrollValue();
             inputLayouts.Nodes.Clear();
             inputLayouts.BeginUpdate();
             if (state.m_IA.layouts != null)
@@ -638,6 +651,7 @@ namespace renderdocui.Windows.PipelineState
             }
             inputLayouts.NodesSelection.Clear();
             inputLayouts.EndUpdate();
+            inputLayouts.SetVScrollValue(vs);
 
             PrimitiveTopology topo = draw != null ? draw.topology : PrimitiveTopology.Unknown;
 
@@ -683,6 +697,7 @@ namespace renderdocui.Windows.PipelineState
                     break;
             }
 
+            vs = iabuffers.VScrollValue();
             iabuffers.Nodes.Clear();
             iabuffers.BeginUpdate();
 
@@ -793,6 +808,7 @@ namespace renderdocui.Windows.PipelineState
             }
             iabuffers.NodesSelection.Clear();
             iabuffers.EndUpdate();
+            iabuffers.SetVScrollValue(vs);
 
             SetShaderState(texs, bufs, state.m_VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
             SetShaderState(texs, bufs, state.m_GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
@@ -801,6 +817,7 @@ namespace renderdocui.Windows.PipelineState
             SetShaderState(texs, bufs, state.m_PS, psShader, psResources, psSamplers, psCBuffers, psClasses);
             SetShaderState(texs, bufs, state.m_CS, csShader, csResources, csSamplers, csCBuffers, csClasses);
 
+            vs = csUAVs.VScrollValue();
             csUAVs.Nodes.Clear();
             csUAVs.BeginUpdate();
 
@@ -920,7 +937,9 @@ namespace renderdocui.Windows.PipelineState
             }
             csUAVs.NodesSelection.Clear();
             csUAVs.EndUpdate();
+            csUAVs.SetVScrollValue(vs);
 
+            vs = gsStreams.VScrollValue();
             gsStreams.BeginUpdate();
             gsStreams.Nodes.Clear();
             if (state.m_SO.Outputs != null)
@@ -975,10 +994,12 @@ namespace renderdocui.Windows.PipelineState
             }
             gsStreams.EndUpdate();
             gsStreams.NodesSelection.Clear();
+            gsStreams.SetVScrollValue(vs);
 
             ////////////////////////////////////////////////
             // Rasterizer
 
+            vs = viewports.VScrollValue();
             viewports.BeginUpdate();
             viewports.Nodes.Clear();
             if (state.m_RS.Viewports != null)
@@ -999,7 +1020,9 @@ namespace renderdocui.Windows.PipelineState
             }
             viewports.NodesSelection.Clear();
             viewports.EndUpdate();
+            viewports.SetVScrollValue(vs);
 
+            vs = scissors.VScrollValue();
             scissors.BeginUpdate();
             scissors.Nodes.Clear();
             if (state.m_RS.Scissors != null)
@@ -1020,6 +1043,7 @@ namespace renderdocui.Windows.PipelineState
             }
             scissors.NodesSelection.Clear();
             scissors.EndUpdate();
+            scissors.SetVScrollValue(vs);
 
             fillMode.Text = state.m_RS.m_State.FillMode.ToString();
             cullMode.Text = state.m_RS.m_State.CullMode.ToString();
@@ -1043,6 +1067,7 @@ namespace renderdocui.Windows.PipelineState
             for (int i = 0; i < 8; i++)
                 targets[i] = false;
 
+            vs = targetOutputs.VScrollValue();
             targetOutputs.BeginUpdate();
             targetOutputs.Nodes.Clear();
             if (state.m_OM.RenderTargets != null)
@@ -1263,7 +1288,9 @@ namespace renderdocui.Windows.PipelineState
             }
             targetOutputs.EndUpdate();
             targetOutputs.NodesSelection.Clear();
+            targetOutputs.SetVScrollValue(vs);
 
+            vs = blendOperations.VScrollValue();
             blendOperations.BeginUpdate();
             blendOperations.Nodes.Clear();
             {
@@ -1312,6 +1339,7 @@ namespace renderdocui.Windows.PipelineState
             }
             blendOperations.NodesSelection.Clear();
             blendOperations.EndUpdate();
+            blendOperations.SetVScrollValue(vs);
 
 
             alphaToCoverage.Image = state.m_OM.m_BlendState.AlphaToCoverage ? tick : cross;
@@ -1592,8 +1620,12 @@ namespace renderdocui.Windows.PipelineState
                 ((DataGridView)sender).ClearSelection();
             else if (sender is TreelistView.TreeListView)
             {
-                ((TreelistView.TreeListView)sender).NodesSelection.Clear();
-                ((TreelistView.TreeListView)sender).FocusedNode = null;
+                TreelistView.TreeListView tv = (TreelistView.TreeListView)sender;
+
+                int vs = tv.VScrollValue();
+                tv.NodesSelection.Clear();
+                tv.FocusedNode = null;
+                tv.SetVScrollValue(vs);
             }
         }
 
