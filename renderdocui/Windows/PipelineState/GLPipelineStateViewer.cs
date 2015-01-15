@@ -302,18 +302,47 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var l in state.m_VtxIn.attributes)
                 {
-                    if (l.Enabled || showDisabled.Checked)
+                    bool filledSlot = true; // there's always an attribute, either from a buffer (if it's enabled)
+                                            // or generic (if disabled)
+                    bool usedSlot = false;
+
+                    string name = String.Format("Attribute {0}", i);
+
+                    if (state.m_VS.Shader != ResourceId.Null)
+                    {
+                        int attrib = state.m_VS.BindpointMapping.InputAttributes[i];
+
+                        if (attrib >= 0 && attrib < state.m_VS.ShaderDetails.InputSig.Length)
+                        {
+                            name = state.m_VS.ShaderDetails.InputSig[attrib].varName;
+                            usedSlot = true;
+                        }
+                    }
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
                     {
                         string byteOffs = l.RelativeOffset.ToString();
 
-                        var node = inputLayouts.Nodes.Add(new object[] { i, "", l.Format, l.BufferSlot.ToString(), byteOffs, });
+                        string genericVal = String.Format("Generic=<{0}, {1}, {2}, {3}>",
+                            l.GenericValue.x, l.GenericValue.y, l.GenericValue.z, l.GenericValue.w);
 
-                        usedVBuffers[l.BufferSlot] = true;
+                        var node = inputLayouts.Nodes.Add(new object[] {
+                            i,
+                            l.Enabled ? "Enabled" : "Disabled", name,
+                            l.Enabled ? l.Format.ToString() : genericVal,
+                            l.BufferSlot.ToString(), byteOffs, });
+
+                        if(l.Enabled)
+                            usedVBuffers[l.BufferSlot] = true;
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
 
-                        if (!l.Enabled)
+                        if (!usedSlot)
                             InactiveRow(node);
                     }
 

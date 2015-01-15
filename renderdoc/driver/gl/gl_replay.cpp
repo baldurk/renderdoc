@@ -816,6 +816,27 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 			}
 		}
 	}
+	
+	GLint numVAttribBindings = 16;
+	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+
+	create_array_uninit(mapping.InputAttributes, numVAttribBindings);
+	for(int32_t i=0; i < numVAttribBindings; i++)
+		mapping.InputAttributes[i] = -1;
+
+	// override identity map with bindings
+	if(shadIdx == 0)
+	{
+		for(int32_t i=0; i < refl->InputSig.count; i++)
+		{
+			GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig.elems[i].varName.elems);
+
+			if(loc >= 0 && loc < numVAttribBindings)
+			{
+				mapping.InputAttributes[loc] = i;
+			}
+		}
+	}
 
 #if !defined(RELEASE)
 	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
@@ -878,6 +899,9 @@ void GLReplay::SavePipelineState()
 
 		GLint integer = 0;
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
+		
+		RDCEraseEl(pipe.m_VtxIn.attributes[i].GenericValue);
+		gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &pipe.m_VtxIn.attributes[i].GenericValue.x);
 
 		ResourceFormat fmt;
 

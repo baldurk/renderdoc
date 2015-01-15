@@ -417,6 +417,8 @@ namespace renderdoc
     public class ShaderBindpointMapping
     {
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public int[] InputAttributes;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public BindpointMap[] ConstantBlocks;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public BindpointMap[] Resources;

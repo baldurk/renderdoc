@@ -88,6 +88,7 @@ void Serialiser::Serialise(const char *name, BindpointMap &el)
 template<>
 void Serialiser::Serialise(const char *name, ShaderBindpointMapping &el)
 {
+	Serialise("", el.InputAttributes);
 	Serialise("", el.ConstantBlocks);
 	Serialise("", el.Resources);
 }

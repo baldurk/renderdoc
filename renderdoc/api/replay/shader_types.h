@@ -225,6 +225,7 @@ struct BindpointMap
 
 struct ShaderBindpointMapping
 {
+	rdctype::array<int> InputAttributes;
 	rdctype::array<BindpointMap> ConstantBlocks;
 	rdctype::array<BindpointMap> Resources;
 };

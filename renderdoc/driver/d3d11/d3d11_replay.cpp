@@ -492,6 +492,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 			dst.ShaderName = str;
 
 			// create identity bindpoint mapping
+			create_array_uninit(dst.BindpointMapping.InputAttributes, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT);
+			for(int s=0; s < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; s++)
+			{
+				// TODO: this should do any semantic rematching as defined by the bytecode
+				// the input layout was built with (not necessarily the vertex shader's bytecode - 
+				// in the case of a mismatch). It's commonly, but not always the identity mapping
+				dst.BindpointMapping.InputAttributes[s] = s;
+			}
+
 			create_array_uninit(dst.BindpointMapping.ConstantBlocks, D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT);
 			for(int s=0; s < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; s++)
 			{

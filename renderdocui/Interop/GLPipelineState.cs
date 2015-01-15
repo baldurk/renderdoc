@@ -39,6 +39,7 @@ namespace renderdoc
                 public bool Enabled;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public ResourceFormat Format;
+                public FloatVector GenericValue;
                 public UInt32 BufferSlot;
                 public UInt32 RelativeOffset;
             };
