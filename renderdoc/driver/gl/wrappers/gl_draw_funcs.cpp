@@ -275,11 +275,11 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -329,11 +329,11 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -383,11 +383,11 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -438,11 +438,11 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -494,10 +494,10 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 
 		draw.flags |= eDraw_Drawcall;
 
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -550,11 +550,11 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 		draw.instanceOffset = params.baseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -606,11 +606,11 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -664,11 +664,11 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_Instanced;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -725,13 +725,12 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -787,17 +786,17 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 		draw.name = name;
 		draw.numIndices = params.count;
 		draw.numInstances = params.instanceCount;
-		draw.indexOffset = params.firstIndex*IdxSize;
+		draw.indexOffset = params.firstIndex;
 		draw.vertexOffset = params.baseVertex;
 		draw.instanceOffset = params.baseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
 
 	return true;
 }
@@ -856,13 +855,12 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -923,13 +921,12 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -988,13 +985,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1053,13 +1049,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1120,13 +1115,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1187,13 +1181,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 		draw.instanceOffset = 0;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1256,13 +1249,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 		draw.instanceOffset = BaseInstance;
 
 		draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, true);
 	}
-
-	m_LastDrawMode = Mode;
-	m_LastIndexSize = Type;
-	m_LastIndexOffset = (GLuint)IdxOffset;
 
 	return true;
 }
@@ -1346,6 +1338,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 		draw.name = name;
 		draw.flags |= eDraw_MultiDraw;
 
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
 		AddDrawcall(draw, false);
 
 		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
@@ -1363,6 +1357,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 						ToStr::Get(draw.vertexOffset) + ")";
 
 			draw.flags |= eDraw_Drawcall;
+
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS, desc);
 			AddDrawcall(draw, true);
@@ -1376,8 +1372,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 	{
 		m_CurEventID += Count+1;
 	}
-
-	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(firstArray);
 	SAFE_DELETE_ARRAY(countArray);
@@ -1487,6 +1481,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 		draw.name = name;
 
 		draw.flags |= eDraw_MultiDraw;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
 		AddDrawcall(draw, false);
 
@@ -1506,6 +1502,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
 			AddEvent(MULTI_DRAWELEMENTS, desc);
 			AddDrawcall(draw, true);
 
@@ -1518,8 +1516,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 	{
 		m_CurEventID += Count+1;
 	}
-
-	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(countArray);
 	SAFE_DELETE_ARRAY(idxOffsArray);
@@ -1626,10 +1622,18 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 
 		draw.flags |= eDraw_MultiDraw;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, false);
 
@@ -1651,6 +1655,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			draw.indexByteWidth = IdxSize;
+
 			AddEvent(MULTI_DRAWELEMENTSBASEVERTEX, desc);
 			AddDrawcall(draw, true);
 
@@ -1663,9 +1670,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 	{
 		m_CurEventID += Count+1;
 	}
-	
-	m_LastIndexSize = Type;
-	m_LastDrawMode = Mode;
 
 	SAFE_DELETE_ARRAY(countArray);
 	SAFE_DELETE_ARRAY(baseArray);
@@ -1764,6 +1768,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 
 		draw.flags |= eDraw_MultiDraw;
 
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
 		AddDrawcall(draw, false);
 
 		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
@@ -1796,6 +1802,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 						ToStr::Get(draw.instanceOffset) + ">)";
 
 			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
 			AddDrawcall(draw, true);
@@ -1809,8 +1817,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 	{
 		m_CurEventID += Count+1;
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -1893,8 +1899,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 
 			m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, params.count, Type, (const void *)ptrdiff_t(params.firstIndex*IdxSize),
 			                                                     params.instanceCount, params.baseVertex, params.baseInstance);
-
-			m_LastIndexOffset = (GLuint)(params.firstIndex*IdxSize);
 		}
 	}
 	
@@ -1909,10 +1913,18 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 
 		draw.flags |= eDraw_MultiDraw;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, false);
 
@@ -1936,7 +1948,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 			FetchDrawcall draw;
 			draw.numIndices = params.count;
 			draw.numInstances = params.instanceCount;
-			draw.indexOffset = params.firstIndex*IdxSize;
+			draw.indexOffset = params.firstIndex;
 			draw.vertexOffset = params.baseVertex;
 			draw.instanceOffset = params.baseInstance;
 		
@@ -1947,6 +1959,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 						ToStr::Get(draw.instanceOffset) + ">)";
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			draw.indexByteWidth = IdxSize;
 			
 			AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
 			AddDrawcall(draw, true);
@@ -1960,9 +1975,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 	{
 		m_CurEventID += Count+1;
 	}
-
-	m_LastIndexSize = Type;
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -2068,6 +2080,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 
 		draw.flags |= eDraw_MultiDraw;
 
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
 		AddDrawcall(draw, false);
 
 		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
@@ -2100,6 +2114,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 						ToStr::Get(draw.instanceOffset) + ">)";
 
 			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
 			AddDrawcall(draw, true);
@@ -2113,8 +2129,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 	{
 		m_CurEventID += realdrawcount+1;
 	}
-
-	m_LastDrawMode = Mode;
 
 	return true;
 }
@@ -2208,8 +2222,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 
 			m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, params.count, Type, (const void *)ptrdiff_t(params.firstIndex*IdxSize),
 			                                                     params.instanceCount, params.baseVertex, params.baseInstance);
-
-			m_LastIndexOffset = (GLuint)(params.firstIndex*IdxSize);
 		}
 	}
 	
@@ -2225,10 +2237,18 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 						ToStr::Get(realdrawcount) + ">, " +
 						ToStr::Get(MaxCount) + ")";
 
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
+
 		FetchDrawcall draw;
 		draw.name = name;
 
 		draw.flags |= eDraw_MultiDraw;
+
+		draw.topology = MakePrimitiveTopology(m_Real, Mode);
+		draw.indexByteWidth = IdxSize;
 		
 		AddDrawcall(draw, false);
 
@@ -2252,7 +2272,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 			FetchDrawcall draw;
 			draw.numIndices = params.count;
 			draw.numInstances = params.instanceCount;
-			draw.indexOffset = params.firstIndex*IdxSize;
+			draw.indexOffset = params.firstIndex;
 			draw.vertexOffset = params.baseVertex;
 			draw.instanceOffset = params.baseInstance;
 		
@@ -2263,6 +2283,9 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 						ToStr::Get(draw.instanceOffset) + ")";
 
 			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+
+			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			draw.indexByteWidth = IdxSize;
 			
 			AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
 			AddDrawcall(draw, true);
@@ -2276,9 +2299,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 	{
 		m_CurEventID += realdrawcount+1;
 	}
-
-	m_LastIndexSize = Type;
-	m_LastDrawMode = Mode;
 
 	return true;
 }

@@ -30,7 +30,7 @@ struct D3D11PipelineState
 	
 	struct InputAssembler
 	{
-		InputAssembler() : Bytecode(NULL), Topology(eTopology_Unknown) {}
+		InputAssembler() : Bytecode(NULL) {}
 
 		struct LayoutInput
 		{
@@ -60,11 +60,8 @@ struct D3D11PipelineState
 		{
 			IndexBuffer() : Buffer(), Offset(0) {}
 			ResourceId Buffer;
-			ResourceFormat Format;
 			uint32_t Offset;
 		} ibuffer;
-
-		PrimitiveTopology Topology;
 	} m_IA;
 
 	struct ShaderStage

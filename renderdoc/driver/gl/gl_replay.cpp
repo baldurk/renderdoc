@@ -837,35 +837,11 @@ void GLReplay::SavePipelineState()
 
 	// Index buffer
 
-	pipe.m_VtxIn.ibuffer.Offset = m_pDriver->m_LastIndexOffset;
-	
-	pipe.m_VtxIn.ibuffer.Format = ResourceFormat();
-	pipe.m_VtxIn.ibuffer.Format.special = false;
-	pipe.m_VtxIn.ibuffer.Format.compCount = 1;
-	pipe.m_VtxIn.ibuffer.Format.compType = eCompType_UInt;
-	switch(m_pDriver->m_LastIndexSize)
-	{
-		default:
-			break;
-		case eGL_UNSIGNED_BYTE:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 1;
-			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_BYTE";
-			break;
-		case eGL_UNSIGNED_SHORT:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 2;
-			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_SHORT";
-			break;
-		case eGL_UNSIGNED_INT:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 4;
-			pipe.m_VtxIn.ibuffer.Format.strname = "GL_UNSIGNED_INT";
-			break;
-	}
-
 	void *ctx = m_ReplayCtx.ctx;
 
 	GLuint ibuffer = 0;
 	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
+	pipe.m_VtxIn.ibuffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
 
 	// Vertex buffers and attributes
 	GLint numVBufferBindings = 16;
@@ -1012,54 +988,6 @@ void GLReplay::SavePipelineState()
 
 		pipe.m_VtxIn.attributes[i].Format = fmt;
 	}
-
-	switch(m_pDriver->m_LastDrawMode)
-	{
-		default:
-			pipe.m_VtxIn.Topology = eTopology_Unknown;
-			break;
-		case eGL_POINTS:
-			pipe.m_VtxIn.Topology = eTopology_PointList;
-			break;
-		case eGL_LINE_STRIP:
-			pipe.m_VtxIn.Topology = eTopology_LineStrip;
-			break;
-		case eGL_LINE_LOOP:
-			pipe.m_VtxIn.Topology = eTopology_LineLoop;
-			break;
-		case eGL_LINES:
-			pipe.m_VtxIn.Topology = eTopology_LineList;
-			break;
-		case eGL_LINE_STRIP_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_LineStrip_Adj;
-			break;
-		case eGL_LINES_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_LineList_Adj;
-			break;
-		case eGL_TRIANGLE_STRIP:
-			pipe.m_VtxIn.Topology = eTopology_TriangleStrip;
-			break;
-		case eGL_TRIANGLE_FAN:
-			pipe.m_VtxIn.Topology = eTopology_TriangleFan;
-			break;
-		case eGL_TRIANGLES:
-			pipe.m_VtxIn.Topology = eTopology_TriangleList;
-			break;
-		case eGL_TRIANGLE_STRIP_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_TriangleStrip_Adj;
-			break;
-		case eGL_TRIANGLES_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_TriangleList_Adj;
-			break;
-		case eGL_PATCHES:
-		{
-			GLint patchCount = 3;
-			gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
-			pipe.m_VtxIn.Topology = PrimitiveTopology(eTopology_PatchList_1CPs+patchCount);
-			break;
-		}
-	}
-	
 	// Shader stages & Textures
 	
 	GLint numTexUnits = 8;

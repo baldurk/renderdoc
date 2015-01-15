@@ -30,7 +30,7 @@ struct GLPipelineState
 
 	struct VertexInput
 	{
-		VertexInput() : Topology(eTopology_Unknown) {}
+		VertexInput() {}
 		
 		struct VertexAttribute
 		{
@@ -53,15 +53,7 @@ struct GLPipelineState
 		};
 		rdctype::array<VertexBuffer> vbuffers;
 
-		struct IndexBuffer
-		{
-			IndexBuffer() : Buffer(), Offset(0) {}
-			ResourceId Buffer;
-			ResourceFormat Format;
-			uint32_t Offset;
-		} ibuffer;
-
-		PrimitiveTopology Topology;
+		ResourceId ibuffer;
 	} m_VtxIn;
 
 	struct ShaderStage

@@ -166,10 +166,6 @@ class WrappedOpenGL
 
 		list<DrawcallTreeNode *> m_DrawcallStack;
 
-		GLenum m_LastIndexSize;
-		GLuint m_LastIndexOffset;
-		GLenum m_LastDrawMode;
-
 		// buffer used
 		vector<byte> m_ScratchBuf;
 

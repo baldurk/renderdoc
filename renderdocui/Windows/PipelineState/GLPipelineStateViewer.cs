@@ -322,15 +322,15 @@ namespace renderdocui.Windows.PipelineState
             inputLayouts.NodesSelection.Clear();
             inputLayouts.EndUpdate();
 
-            topology.Text = state.m_VtxIn.Topology.ToString();
-            if (state.m_VtxIn.Topology > PrimitiveTopology.PatchList)
+            topology.Text = draw.topology.ToString();
+            if (draw.topology > PrimitiveTopology.PatchList)
             {
-                int numCPs = (int)state.m_VtxIn.Topology - (int)PrimitiveTopology.PatchList + 1;
+                int numCPs = (int)draw.topology - (int)PrimitiveTopology.PatchList + 1;
 
                 topology.Text = string.Format("PatchList ({0} Control Points)", numCPs);
             }
 
-            switch (state.m_VtxIn.Topology)
+            switch (draw.topology)
             {
                 case PrimitiveTopology.PointList:
                     topologyDiagram.Image = global::renderdocui.Properties.Resources.topo_pointlist;
@@ -373,7 +373,7 @@ namespace renderdocui.Windows.PipelineState
             {
                 if (ibufferUsed || showDisabled.Checked)
                 {
-                    string ptr = "Buffer " + state.m_VtxIn.ibuffer.Buffer.ToString();
+                    string ptr = "Buffer " + state.m_VtxIn.ibuffer.ToString();
                     string name = ptr;
                     UInt32 length = 1;
 
@@ -384,23 +384,23 @@ namespace renderdocui.Windows.PipelineState
 
                     for (int t = 0; t < bufs.Length; t++)
                     {
-                        if (bufs[t].ID == state.m_VtxIn.ibuffer.Buffer)
+                        if (bufs[t].ID == state.m_VtxIn.ibuffer)
                         {
                             name = bufs[t].name;
                             length = bufs[t].length;
                         }
                     }
 
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, state.m_VtxIn.ibuffer.Format.compByteWidth, state.m_VtxIn.ibuffer.Offset, length });
+                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, draw.indexByteWidth, 0, length });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_VtxIn.ibuffer.Buffer;
+                    node.Tag = state.m_VtxIn.ibuffer;
 
                     if (!ibufferUsed)
                         InactiveRow(node);
 
-                    if (state.m_VtxIn.ibuffer.Buffer == ResourceId.Null)
+                    if (state.m_VtxIn.ibuffer == ResourceId.Null)
                         EmptyRow(node);
                 }
             }
@@ -413,7 +413,7 @@ namespace renderdocui.Windows.PipelineState
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                    node.Tag = state.m_VtxIn.ibuffer.Buffer;
+                    node.Tag = state.m_VtxIn.ibuffer;
 
                     EmptyRow(node);
 

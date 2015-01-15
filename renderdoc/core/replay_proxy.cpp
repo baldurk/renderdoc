@@ -107,10 +107,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler:
 template<>
 void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler &el)
 {
-	Serialise("", el.Topology);
 	Serialise("", el.ibuffer.Buffer);
 	Serialise("", el.ibuffer.Offset);
-	Serialise("", el.ibuffer.Format);
 	
 	Serialise("", el.vbuffers);
 	Serialise("", el.layouts);
@@ -291,20 +289,11 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 }
 
 template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::IndexBuffer &el)
-{
-	Serialise("", el.Buffer);
-	Serialise("", el.Offset);
-	Serialise("", el.Format);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
 {
 	Serialise("", el.attributes);
 	Serialise("", el.ibuffer);
 	Serialise("", el.vbuffers);
-	Serialise("", el.Topology);
 }
 
 template<>
@@ -507,6 +496,9 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.vertexOffset);
 	Serialise("", el.instanceOffset);
 	
+	Serialise("", el.indexByteWidth);
+	Serialise("", el.topology);
+
 	Serialise("", el.context);
 	
 	Serialise("", el.duration);

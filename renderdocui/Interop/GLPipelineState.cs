@@ -57,18 +57,7 @@ namespace renderdoc
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public VertexBuffer[] vbuffers;
 
-            [StructLayout(LayoutKind.Sequential)]
-            public class IndexBuffer
-            {
-                public ResourceId Buffer;
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                public ResourceFormat Format;
-                public UInt32 Offset;
-            };
-            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-            public IndexBuffer ibuffer;
-
-            public PrimitiveTopology Topology;
+            public ResourceId ibuffer;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public VertexInputs m_VtxIn;

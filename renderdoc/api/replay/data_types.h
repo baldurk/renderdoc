@@ -166,6 +166,8 @@ struct FetchDrawcall
 		indexOffset = 0;
 		vertexOffset = 0;
 		instanceOffset = 0;
+		topology = eTopology_Unknown;
+		indexByteWidth = 0;
 		flags = 0;
 		context = ResourceId();
 		duration = -1.0f;
@@ -187,6 +189,9 @@ struct FetchDrawcall
 	uint32_t indexOffset;
 	uint32_t vertexOffset;
 	uint32_t instanceOffset;
+	
+	uint32_t indexByteWidth;
+	PrimitiveTopology topology;
 
 	ResourceId context;
 

@@ -639,15 +639,15 @@ namespace renderdocui.Windows.PipelineState
             inputLayouts.NodesSelection.Clear();
             inputLayouts.EndUpdate();
 
-            topology.Text = state.m_IA.Topology.ToString();
-            if (state.m_IA.Topology > PrimitiveTopology.PatchList)
+            topology.Text = draw.topology.ToString();
+            if (draw.topology > PrimitiveTopology.PatchList)
             {
-                int numCPs = (int)state.m_IA.Topology - (int)PrimitiveTopology.PatchList + 1;
+                int numCPs = (int)draw.topology - (int)PrimitiveTopology.PatchList + 1;
 
                 topology.Text = string.Format("PatchList ({0} Control Points)", numCPs);
             }
 
-            switch (state.m_IA.Topology)
+            switch (draw.topology)
             {
                 case PrimitiveTopology.PointList:
                     topologyDiagram.Image = global::renderdocui.Properties.Resources.topo_pointlist;
@@ -708,7 +708,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, state.m_IA.ibuffer.Format.compByteWidth, state.m_IA.ibuffer.Offset, length });
+                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, draw.indexByteWidth, state.m_IA.ibuffer.Offset, length });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -2505,14 +2505,20 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
 
+                string ifmt = "UNKNOWN";
+                if (m_Core.CurDrawcall.indexByteWidth == 2)
+                    ifmt = "R16_UINT";
+                if (m_Core.CurDrawcall.indexByteWidth == 4)
+                    ifmt = "R32_UINT";
+
                 ExportHTMLTable(writer, new string[] { "Buffer", "Format", "Offset", "Byte Length" },
-                    new object[] { name, ia.ibuffer.Format.ToString(), ia.ibuffer.Offset.ToString(), length.ToString() });
+                    new object[] { name, ifmt, ia.ibuffer.Offset.ToString(), length.ToString() });
             }
 
             writer.WriteStartElement("p");
             writer.WriteEndElement();
 
-            ExportHTMLTable(writer, new string[] { "Primitive Topology" }, new object[] { ia.Topology.Str() });
+            ExportHTMLTable(writer, new string[] { "Primitive Topology" }, new object[] { m_Core.CurDrawcall.topology.Str() });
         }
 
         private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.ShaderStage sh)

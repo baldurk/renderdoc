@@ -593,6 +593,31 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	return ret;
 }
 
+PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
+{
+	switch(Topo)
+	{
+		default:                             return eTopology_Unknown;
+		case eGL_POINTS:                     return eTopology_PointList;
+		case eGL_LINE_STRIP:                 return eTopology_LineStrip;
+		case eGL_LINE_LOOP:                  return eTopology_LineLoop;
+		case eGL_LINES:                      return eTopology_LineList;
+		case eGL_LINE_STRIP_ADJACENCY:       return eTopology_LineStrip_Adj;
+		case eGL_LINES_ADJACENCY:            return eTopology_LineList_Adj;
+		case eGL_TRIANGLE_STRIP:             return eTopology_TriangleStrip;
+		case eGL_TRIANGLE_FAN:               return eTopology_TriangleFan;
+		case eGL_TRIANGLES:                  return eTopology_TriangleList;
+		case eGL_TRIANGLE_STRIP_ADJACENCY:   return eTopology_TriangleStrip_Adj;
+		case eGL_TRIANGLES_ADJACENCY:        return eTopology_TriangleList_Adj;
+		case eGL_PATCHES:
+		{
+			GLint patchCount = 3;
+			gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
+			return PrimitiveTopology(eTopology_PatchList_1CPs+patchCount);
+		}
+	}
+}
+
 template<const bool CopyUniforms, const bool SerialiseUniforms>
 static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint progSrc, GLuint progDst, map<GLint, GLint> *locTranslate, bool writing)
 {

@@ -674,10 +674,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_ActiveConditional = false;
 	m_ActiveFeedback = false;
 	
-	m_LastIndexSize = eGL_NONE;
-	m_LastIndexOffset = 0;
-	m_LastDrawMode = eGL_NONE;
-
 	m_DisplayListRecord = NULL;
 	
 #if defined(RELEASE)

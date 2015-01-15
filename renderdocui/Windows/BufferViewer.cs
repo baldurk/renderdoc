@@ -74,7 +74,6 @@ namespace renderdocui.Windows
 
             public FetchDrawcall Drawcall = null;
 
-            public FormatElement IndexFormat = new FormatElement();
             public ResourceId IndexBuffer = ResourceId.Null;
             public uint IndexOffset = 0;
         }
@@ -697,13 +696,12 @@ namespace renderdocui.Windows
             FormatElement[] f = null;
             Input ret = new Input();
             ret.Drawcall = draw;
-            ret.Topology = m_Core.CurPipelineState.DrawTopology;
+            ret.Topology = draw.topology;
 
             ResourceId ibuffer = ResourceId.Null;
             uint ioffset = 0;
-            ResourceFormat ifmt = null;
 
-            m_Core.CurPipelineState.GetIBuffer(out ibuffer, out ioffset, out ifmt);
+            m_Core.CurPipelineState.GetIBuffer(out ibuffer, out ioffset);
 
             if (draw != null && (draw.flags & DrawcallFlags.UseIBuffer) == 0)
             {
@@ -711,7 +709,6 @@ namespace renderdocui.Windows
                 ioffset = 0;
             }
 
-            ret.IndexFormat = new FormatElement("", 0, 0, false, false, 1, ifmt, false);
             ret.IndexBuffer = ibuffer;
             ret.IndexOffset = ioffset;
 
@@ -872,12 +869,12 @@ namespace renderdocui.Windows
                     ret.IndexCount = input.Drawcall.numIndices;
 
                     byte[] rawidxs = r.GetBufferData(input.IndexBuffer,
-                                                     input.IndexOffset + input.Drawcall.indexOffset * input.IndexFormat.format.compByteWidth,
-                                                     ret.IndexCount * input.IndexFormat.format.compByteWidth);
+                                                     input.IndexOffset + input.Drawcall.indexOffset * input.Drawcall.indexByteWidth,
+                                                     ret.IndexCount * input.Drawcall.indexByteWidth);
 
-                    ret.Indices = new uint[rawidxs.Length / input.IndexFormat.format.compByteWidth];
+                    ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
 
-                    if (input.IndexFormat.format.compByteWidth == 2)
+                    if (input.Drawcall.indexByteWidth == 2)
                     {
                         ushort[] tmp = new ushort[rawidxs.Length / 2];
 
@@ -888,7 +885,7 @@ namespace renderdocui.Windows
                             ret.Indices[i] = tmp[i];
                         }
                     }
-                    else if (input.IndexFormat.format.compByteWidth == 4)
+                    else if (input.Drawcall.indexByteWidth == 4)
                     {
                         Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
                     }
@@ -896,9 +893,9 @@ namespace renderdocui.Windows
                     uint minIndex = ret.Indices.Length > 0 ? ret.Indices[0] : 0;
                     foreach (var i in ret.Indices)
                     {
-                        if (input.IndexFormat.format.compByteWidth == 2 && i == UInt16.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 2 && i == UInt16.MaxValue)
                             continue;
-                        if (input.IndexFormat.format.compByteWidth == 4 && i == UInt32.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 4 && i == UInt32.MaxValue)
                             continue;
 
                         minIndex = Math.Min(minIndex, i);
@@ -921,18 +918,18 @@ namespace renderdocui.Windows
                     input.IndexBuffer != ResourceId.Null)
                 {
                     byte[] rawidxs = r.GetBufferData(input.IndexBuffer,
-                                                     input.IndexOffset + input.Drawcall.indexOffset * input.IndexFormat.format.compByteWidth,
-                                                     ret.IndexCount * input.IndexFormat.format.compByteWidth);
+                                                     input.IndexOffset + input.Drawcall.indexOffset * input.Drawcall.indexByteWidth,
+                                                     ret.IndexCount * input.Drawcall.indexByteWidth);
 
-                    if (input.IndexFormat.format.compByteWidth == 0)
+                    if (input.Drawcall.indexByteWidth == 0)
                     {
                         ret.Indices = new uint[0];
                     }
                     else
                     {
-                        ret.Indices = new uint[rawidxs.Length / input.IndexFormat.format.compByteWidth];
+                        ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
 
-                        if (input.IndexFormat.format.compByteWidth == 2)
+                        if (input.Drawcall.indexByteWidth == 2)
                         {
                             ushort[] tmp = new ushort[rawidxs.Length / 2];
 
@@ -943,7 +940,7 @@ namespace renderdocui.Windows
                                 ret.Indices[i] = tmp[i];
                             }
                         }
-                        else if (input.IndexFormat.format.compByteWidth == 4)
+                        else if (input.Drawcall.indexByteWidth == 4)
                         {
                             Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
                         }
@@ -952,9 +949,9 @@ namespace renderdocui.Windows
                     maxIndex = 0;
                     foreach (var i in ret.Indices)
                     {
-                        if(input.IndexFormat.format.compByteWidth == 2 && i == UInt16.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 2 && i == UInt16.MaxValue)
                             continue;
-                        if (input.IndexFormat.format.compByteWidth == 4 && i == UInt32.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 4 && i == UInt32.MaxValue)
                             continue;
 
                         maxIndex = Math.Max(maxIndex, i);
@@ -1579,9 +1576,9 @@ namespace renderdocui.Windows
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip ||
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip_Adj;
 
-                        if (state.m_Input.IndexFormat.ByteSize == 2 && index == ushort.MaxValue && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 2 && index == ushort.MaxValue && strip)
                             rowdata[1] = "-1";
-                        if (state.m_Input.IndexFormat.ByteSize == 4 && index == uint.MaxValue && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 4 && index == uint.MaxValue && strip)
                             rowdata[1] = "-1";
 
                         x = 2;

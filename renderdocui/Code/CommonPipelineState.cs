@@ -90,23 +90,6 @@ namespace renderdocui.Code
             }
         }
 
-        public PrimitiveTopology DrawTopology
-        {
-            get
-            {
-                if (LogLoaded)
-                {
-                    if (IsLogD3D11)
-                        return m_D3D11.m_IA.Topology;
-
-                    if (IsLogGL)
-                        return m_GL.m_VtxIn.Topology;
-                }
-
-                return PrimitiveTopology.Unknown;
-            }
-        }
-
         // there's a lot of redundancy in these functions
 
         public ShaderBindpointMapping GetBindpointMapping(ShaderStageType stage)
@@ -241,7 +224,7 @@ namespace renderdocui.Code
             return "";
         }
 
-        public void GetIBuffer(out ResourceId buf, out uint ByteOffset, out ResourceFormat IndexFormat)
+        public void GetIBuffer(out ResourceId buf, out uint ByteOffset)
         {
             if (LogLoaded)
             {
@@ -249,15 +232,13 @@ namespace renderdocui.Code
                 {
                     buf = m_D3D11.m_IA.ibuffer.Buffer;
                     ByteOffset = m_D3D11.m_IA.ibuffer.Offset;
-                    IndexFormat = m_D3D11.m_IA.ibuffer.Format;
 
                     return;
                 }
                 else if (IsLogGL)
                 {
-                    buf = m_GL.m_VtxIn.ibuffer.Buffer;
-                    ByteOffset = m_GL.m_VtxIn.ibuffer.Offset;
-                    IndexFormat = m_GL.m_VtxIn.ibuffer.Format;
+                    buf = m_GL.m_VtxIn.ibuffer;
+                    ByteOffset = 0; // GL only has per-draw index offset
 
                     return;
                 }
@@ -265,7 +246,6 @@ namespace renderdocui.Code
 
             buf = ResourceId.Null;
             ByteOffset = 0;
-            IndexFormat = new ResourceFormat(FormatComponentType.UInt, 1, 2);
         }
 
         public struct VBuffer

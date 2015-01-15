@@ -329,6 +329,9 @@ namespace renderdoc
         public UInt32 vertexOffset;
         public UInt32 instanceOffset;
 
+        public UInt32 indexByteWidth;
+        public PrimitiveTopology topology;
+
         public ResourceId context;
 
         public double duration;

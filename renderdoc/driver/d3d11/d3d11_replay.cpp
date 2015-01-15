@@ -416,8 +416,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 	/////////////////////////////////////////////////
 	// Input Assembler
 	/////////////////////////////////////////////////
-	
-	ret.m_IA.Topology = MakePrimitiveTopology(rs->IA.Topo);
 
 	D3D11ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -458,7 +456,6 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 	}
 
 	ret.m_IA.ibuffer.Buffer = rm->GetOriginalID(GetIDForResource(rs->IA.IndexBuffer));
-	ret.m_IA.ibuffer.Format = MakeResourceFormat(rs->IA.IndexFormat);
 	ret.m_IA.ibuffer.Offset = rs->IA.IndexOffset;
 
 	/////////////////////////////////////////////////
