@@ -4856,8 +4856,10 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
 		m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
 
+		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, events.back());
+
 		// draw solid shaded mode
-		if(cfg.solidShadeMode != eShade_None && pipeState.m_IA.Topology < eTopology_PatchList_1CPs)
+		if(cfg.solidShadeMode != eShade_None && drawcall->topology < eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
@@ -4888,7 +4890,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		}
 		
 		// draw wireframe mode
-		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
+		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || drawcall->topology >= eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
@@ -4900,7 +4902,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-			if(pipeState.m_IA.Topology >= eTopology_PatchList_1CPs)
+			if(drawcall->topology >= eTopology_PatchList_1CPs)
 				m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
