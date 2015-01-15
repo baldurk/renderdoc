@@ -1591,14 +1591,14 @@ string ToStrHelper<false, D3D11_COMPARISON_FUNC>::Get(const D3D11_COMPARISON_FUN
 {
 	switch(el)
 	{
-		case D3D11_COMPARISON_NEVER:			return "NEVER";
-		case D3D11_COMPARISON_LESS:				return "LESS";
-		case D3D11_COMPARISON_EQUAL:			return "EQUAL";
-		case D3D11_COMPARISON_LESS_EQUAL:		return "LESS_EQUAL";
-		case D3D11_COMPARISON_GREATER:			return "GREATER";
-		case D3D11_COMPARISON_NOT_EQUAL:		return "NOT_EQUAL";
-		case D3D11_COMPARISON_GREATER_EQUAL:	return "GREATER_EQUAL";
-		case D3D11_COMPARISON_ALWAYS:			return "ALWAYS";
+		case D3D11_COMPARISON_NEVER:           return "NEVER";
+		case D3D11_COMPARISON_LESS:            return "LESS";
+		case D3D11_COMPARISON_EQUAL:           return "EQUAL";
+		case D3D11_COMPARISON_LESS_EQUAL:      return "LESS_EQUAL";
+		case D3D11_COMPARISON_GREATER:         return "GREATER";
+		case D3D11_COMPARISON_NOT_EQUAL:       return "NOT_EQUAL";
+		case D3D11_COMPARISON_GREATER_EQUAL:   return "GREATER_EQUAL";
+		case D3D11_COMPARISON_ALWAYS:          return "ALWAYS";
 		default: break;
 	}
 	

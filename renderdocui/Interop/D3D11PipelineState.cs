@@ -159,6 +159,8 @@ namespace renderdoc
                 public string Comparison;
                 [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Filter;
+                public bool UseBorder;
+                public bool UseComparison;
                 public UInt32 MaxAniso;
                 public float MaxLOD;
                 public float MinLOD;

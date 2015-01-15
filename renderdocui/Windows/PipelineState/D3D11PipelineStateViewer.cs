@@ -388,10 +388,21 @@ namespace renderdocui.Windows.PipelineState
 
                         addressing += addPrefix + ": " + addVal;
 
-                        var node = samplers.Nodes.Add(new object[] { slotname, addressing, borderColor,
-                                                            s.Comparison, s.Filter, s.MaxAniso.ToString(),
-                                                            s.MinLOD == -float.MaxValue ? "-FLT_MAX" : s.MinLOD.ToString(),
-                                                            s.MaxLOD == float.MaxValue ? "FLT_MAX" : s.MaxLOD.ToString(),
+                        if(s.UseBorder)
+                            addressing += String.Format("<{0}>", borderColor);
+
+                        string filter = s.Filter;
+
+                        if (s.MaxAniso > 0)
+                            filter += String.Format(" {0}x", s.MaxAniso);
+
+                        if (s.UseComparison)
+                            filter += String.Format(" ({0})", s.Comparison);
+
+                        var node = samplers.Nodes.Add(new object[] { slotname, addressing,
+                                                            filter,
+                                                            (s.MinLOD == -float.MaxValue ? "0" : s.MinLOD.ToString()) + " - " +
+                                                            (s.MaxLOD == float.MaxValue ? "FLT_MAX" : s.MaxLOD.ToString()),
                                                             s.MipLODBias.ToString() });
 
                         if (!filledSlot)
@@ -454,7 +465,10 @@ namespace renderdocui.Windows.PipelineState
                         if (shaderCBuf != null && shaderCBuf.name.Length > 0)
                             slotname += ": " + shaderCBuf.name;
 
-                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, b.VecOffset, b.VecCount, numvars, length });
+                        string sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                        string vecrange = String.Format("{0} - {1}", b.VecOffset, b.VecOffset + b.VecCount);
+
+                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, vecrange, sizestr });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -493,6 +507,8 @@ namespace renderdocui.Windows.PipelineState
             classes.EndUpdate();
             classes.NodesSelection.Clear();
             classes.SetVScrollValue(vs);
+
+            classes.Visible = classes.Parent.Visible = (stage.ClassInstances.Length > 0);
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -939,6 +955,7 @@ namespace renderdocui.Windows.PipelineState
             csUAVs.EndUpdate();
             csUAVs.SetVScrollValue(vs);
 
+            bool streamoutSet = false;
             vs = gsStreams.VScrollValue();
             gsStreams.BeginUpdate();
             gsStreams.Nodes.Clear();
@@ -949,6 +966,8 @@ namespace renderdocui.Windows.PipelineState
                 {
                     bool filledSlot = (s.Buffer != ResourceId.Null);
                     bool usedSlot = (filledSlot);
+
+                    streamoutSet |= filledSlot;
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -995,6 +1014,12 @@ namespace renderdocui.Windows.PipelineState
             gsStreams.EndUpdate();
             gsStreams.NodesSelection.Clear();
             gsStreams.SetVScrollValue(vs);
+
+            gsStreams.Visible = gsStreams.Parent.Visible = streamoutSet;
+            if (gsStreams.Visible)
+                geomTableLayout.ColumnStyles[1].Width = 50.0f;
+            else
+                geomTableLayout.ColumnStyles[1].Width = 0;
 
             ////////////////////////////////////////////////
             // Rasterizer
