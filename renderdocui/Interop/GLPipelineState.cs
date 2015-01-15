@@ -59,6 +59,8 @@ namespace renderdoc
             public VertexBuffer[] vbuffers;
 
             public ResourceId ibuffer;
+            public bool primitiveRestart;
+            public UInt32 restartIndex;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public VertexInputs m_VtxIn;

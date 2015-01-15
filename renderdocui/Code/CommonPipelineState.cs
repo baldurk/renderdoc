@@ -248,6 +248,47 @@ namespace renderdocui.Code
             ByteOffset = 0;
         }
 
+        public bool IsStripRestartEnabled()
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    // D3D11 this is always enabled
+                    return true;
+                }
+                else if (IsLogGL)
+                {
+                    return m_GL.m_VtxIn.primitiveRestart;
+                }
+            }
+
+            return false;
+        }
+
+        public uint GetStripRestartIndex(uint indexByteWidth)
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    // D3D11 this is always '-1' in whichever size of index we're using
+                    return indexByteWidth == 2 ? ushort.MaxValue : uint.MaxValue;
+                }
+                else if (IsLogGL)
+                {
+                    uint maxval = uint.MaxValue;
+                    if (indexByteWidth == 2)
+                        maxval = ushort.MaxValue;
+                    else if (indexByteWidth == 1)
+                        maxval = 0xff;
+                    return Math.Min(maxval, m_GL.m_VtxIn.restartIndex);
+                }
+            }
+
+            return uint.MaxValue;
+        }
+
         public struct VBuffer
         {
             public ResourceId Buffer;

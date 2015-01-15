@@ -54,6 +54,8 @@ struct GLPipelineState
 		rdctype::array<VertexBuffer> vbuffers;
 
 		ResourceId ibuffer;
+		bool32 primitiveRestart;
+		uint32_t restartIndex;
 	} m_VtxIn;
 
 	struct ShaderStage

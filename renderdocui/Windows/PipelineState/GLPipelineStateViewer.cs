@@ -403,6 +403,18 @@ namespace renderdocui.Windows.PipelineState
 
             bool ibufferUsed = draw != null && (draw.flags & DrawcallFlags.UseIBuffer) != 0;
 
+            if (ibufferUsed)
+            {
+                if(state.m_VtxIn.primitiveRestart)
+                    restartIndex.Text = String.Format("Restart Idx: 0x{0:X8}", state.m_VtxIn.restartIndex);
+                else
+                    restartIndex.Text = "Restart Idx: Disabled";
+            }
+            else
+            {
+                restartIndex.Text = "";
+            }
+
             if (state.m_VtxIn.ibuffer != null)
             {
                 if (ibufferUsed || showDisabled.Checked)

@@ -76,6 +76,8 @@ namespace renderdocui.Windows
 
             public ResourceId IndexBuffer = ResourceId.Null;
             public uint IndexOffset = 0;
+            public bool IndexRestart = true;
+            public uint IndexRestartValue = uint.MaxValue;
         }
 
         // contains the raw bytes (and any state necessary from the drawcall itself)
@@ -711,6 +713,8 @@ namespace renderdocui.Windows
 
             ret.IndexBuffer = ibuffer;
             ret.IndexOffset = ioffset;
+            ret.IndexRestart = m_Core.CurPipelineState.IsStripRestartEnabled();
+            ret.IndexRestartValue = m_Core.CurPipelineState.GetStripRestartIndex(draw != null ? draw.indexByteWidth : 0);
 
             if (type != MeshDataStage.VSIn)
             {
@@ -893,9 +897,9 @@ namespace renderdocui.Windows
                     uint minIndex = ret.Indices.Length > 0 ? ret.Indices[0] : 0;
                     foreach (var i in ret.Indices)
                     {
-                        if (input.Drawcall.indexByteWidth == 2 && i == UInt16.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 2 && i == input.IndexRestartValue && input.IndexRestart)
                             continue;
-                        if (input.Drawcall.indexByteWidth == 4 && i == UInt32.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 4 && i == input.IndexRestartValue && input.IndexRestart)
                             continue;
 
                         minIndex = Math.Min(minIndex, i);
@@ -949,9 +953,9 @@ namespace renderdocui.Windows
                     maxIndex = 0;
                     foreach (var i in ret.Indices)
                     {
-                        if (input.Drawcall.indexByteWidth == 2 && i == UInt16.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 2 && i == input.IndexRestartValue && input.IndexRestart)
                             continue;
-                        if (input.Drawcall.indexByteWidth == 4 && i == UInt32.MaxValue)
+                        if (input.Drawcall.indexByteWidth == 4 && i == input.IndexRestartValue && input.IndexRestart)
                             continue;
 
                         maxIndex = Math.Max(maxIndex, i);
@@ -1576,9 +1580,9 @@ namespace renderdocui.Windows
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip ||
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip_Adj;
 
-                        if (state.m_Input.Drawcall.indexByteWidth == 2 && index == ushort.MaxValue && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 2 && index == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
                             rowdata[1] = "-1";
-                        if (state.m_Input.Drawcall.indexByteWidth == 4 && index == uint.MaxValue && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 4 && index == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
                             rowdata[1] = "-1";
 
                         x = 2;

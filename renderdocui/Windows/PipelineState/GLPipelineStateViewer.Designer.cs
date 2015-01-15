@@ -287,6 +287,7 @@
             this.tableLayoutPanel13 = new System.Windows.Forms.TableLayoutPanel();
             this.topologyDiagram = new System.Windows.Forms.PictureBox();
             this.topology = new System.Windows.Forms.Label();
+            this.restartIndex = new System.Windows.Forms.Label();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
             this.iabuffers = new TreelistView.TreeListView();
             this.inputLayouts = new TreelistView.TreeListView();
@@ -787,12 +788,14 @@
             this.tableLayoutPanel13.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel13.Controls.Add(this.topologyDiagram, 0, 1);
             this.tableLayoutPanel13.Controls.Add(this.topology, 0, 0);
+            this.tableLayoutPanel13.Controls.Add(this.restartIndex, 0, 2);
             this.tableLayoutPanel13.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel13.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel13.Name = "tableLayoutPanel13";
-            this.tableLayoutPanel13.RowCount = 2;
+            this.tableLayoutPanel13.RowCount = 3;
             this.tableLayoutPanel13.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel13.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.tableLayoutPanel13.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel13.Size = new System.Drawing.Size(336, 278);
             this.tableLayoutPanel13.TabIndex = 2;
             // 
@@ -802,7 +805,7 @@
             this.topologyDiagram.Image = global::renderdocui.Properties.Resources.topo_trilist;
             this.topologyDiagram.Location = new System.Drawing.Point(3, 26);
             this.topologyDiagram.Name = "topologyDiagram";
-            this.topologyDiagram.Size = new System.Drawing.Size(330, 249);
+            this.topologyDiagram.Size = new System.Drawing.Size(330, 226);
             this.topologyDiagram.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.topologyDiagram.TabIndex = 1;
             this.topologyDiagram.TabStop = false;
@@ -820,6 +823,16 @@
             this.topology.TabIndex = 0;
             this.topology.Text = "Triangle List";
             this.topology.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            // 
+            // restartIndex
+            // 
+            this.restartIndex.AutoSize = true;
+            this.restartIndex.Font = new System.Drawing.Font("Tahoma", 14.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.restartIndex.Location = new System.Drawing.Point(3, 255);
+            this.restartIndex.Name = "restartIndex";
+            this.restartIndex.Size = new System.Drawing.Size(214, 23);
+            this.restartIndex.TabIndex = 2;
+            this.restartIndex.Text = "Restart Idx: 0xFFFFFFFF";
             // 
             // groupBox4
             // 
@@ -2405,7 +2418,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 687F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 688F));
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
             this.tableLayoutPanel8.Controls.Add(this.cullMode, 3, 0);
             this.tableLayoutPanel8.Controls.Add(label1, 0, 1);
@@ -4553,5 +4566,6 @@
         private System.Windows.Forms.PictureBox psShaderEdit;
         private System.Windows.Forms.PictureBox csShaderEdit;
         private System.Windows.Forms.PictureBox meshView;
+        private System.Windows.Forms.Label restartIndex;
     }
 }
