@@ -2724,17 +2724,28 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 	{
 		AddEvent(CLEARBUFFERF, desc);
 		string name = "glClear(";
-		if(Mask & GL_DEPTH_BUFFER_BIT)
-			name += "GL_DEPTH_BUFFER_BIT | ";
 		if(Mask & GL_COLOR_BUFFER_BIT)
-			name += "GL_COLOR_BUFFER_BIT | ";
+		{
+			float col[4] = {0};
+			m_Real.glGetFloatv(eGL_COLOR_CLEAR_VALUE, &col[0]);
+			name += StringFormat::Fmt("Color = <%f, %f, %f, %f>, ", col[0], col[1], col[2], col[3]);
+		}
+		if(Mask & GL_DEPTH_BUFFER_BIT)
+		{
+			float depth = 0;
+			m_Real.glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &depth);
+			name += StringFormat::Fmt("Depth = <%f>, ", depth);
+		}
 		if(Mask & GL_STENCIL_BUFFER_BIT)
-			name += "GL_STENCIL_BUFFER_BIT | ";
+		{
+			GLint stencil = 0;
+			m_Real.glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, &stencil);
+			name += StringFormat::Fmt("Stencil = <0x%02x>, ", stencil);
+		}
 
 		if(Mask & (eGL_DEPTH_BUFFER_BIT|eGL_COLOR_BUFFER_BIT|eGL_STENCIL_BUFFER_BIT))
 		{
-			name.pop_back(); // ' '
-			name.pop_back(); // '|'
+			name.pop_back(); // ','
 			name.pop_back(); // ' '
 		}
 
