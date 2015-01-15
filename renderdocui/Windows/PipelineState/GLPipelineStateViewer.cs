@@ -292,6 +292,9 @@ namespace renderdocui.Windows.PipelineState
             ////////////////////////////////////////////////
             // Input Assembler
 
+            int vs = 0;
+
+            vs = inputLayouts.VScrollValue();
             inputLayouts.Nodes.Clear();
             inputLayouts.BeginUpdate();
             if (state.m_VtxIn.attributes != null)
@@ -303,9 +306,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string byteOffs = l.RelativeOffset.ToString();
 
-                        var node = inputLayouts.Nodes.Add(new object[] {
-                                              i, l.Enabled ? "Enabled" : "Disabled", "", l.Format, l.BufferSlot.ToString(), byteOffs,
-                                              "", "" });
+                        var node = inputLayouts.Nodes.Add(new object[] { i, "", l.Format, l.BufferSlot.ToString(), byteOffs, });
 
                         usedVBuffers[l.BufferSlot] = true;
 
@@ -321,6 +322,7 @@ namespace renderdocui.Windows.PipelineState
             }
             inputLayouts.NodesSelection.Clear();
             inputLayouts.EndUpdate();
+            inputLayouts.SetVScrollValue(vs);
 
             PrimitiveTopology topo = draw != null ? draw.topology : PrimitiveTopology.Unknown;
 
@@ -366,6 +368,7 @@ namespace renderdocui.Windows.PipelineState
                     break;
             }
 
+            vs = iabuffers.VScrollValue();
             iabuffers.Nodes.Clear();
             iabuffers.BeginUpdate();
 
@@ -393,7 +396,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", name, draw != null ? draw.indexByteWidth : 0, 0, length });
+                    var node = iabuffers.Nodes.Add(new object[] { "Element", name, draw != null ? draw.indexByteWidth : 0, 0, 0, length });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -408,10 +411,9 @@ namespace renderdocui.Windows.PipelineState
             }
             else
             {
-                if (showEmpty.Checked &&
-                    (ibufferUsed || showDisabled.Checked))
+                if (ibufferUsed || showEmpty.Checked)
                 {
-                    var node = iabuffers.Nodes.Add(new object[] { "Index", "-", "-", "-", "-" });
+                    var node = iabuffers.Nodes.Add(new object[] { "Element", "No Buffer Set", "-", "-", "-", "-" });
 
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -458,7 +460,7 @@ namespace renderdocui.Windows.PipelineState
                             }
                         }
 
-                        var node = iabuffers.Nodes.Add(new object[] { i, name, v.Stride, v.Offset, length });
+                        var node = iabuffers.Nodes.Add(new object[] { i, name, v.Stride, v.Offset, v.Divisor, length });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -478,6 +480,7 @@ namespace renderdocui.Windows.PipelineState
             }
             iabuffers.NodesSelection.Clear();
             iabuffers.EndUpdate();
+            iabuffers.SetVScrollValue(vs);
 
             SetShaderState(texs, bufs, state, state.m_VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
             SetShaderState(texs, bufs, state, state.m_GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);

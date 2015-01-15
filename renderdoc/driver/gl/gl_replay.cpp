@@ -862,8 +862,6 @@ void GLReplay::SavePipelineState()
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Divisor);
-
-		pipe.m_VtxIn.vbuffers[i].PerInstance = (pipe.m_VtxIn.vbuffers[i].Divisor != 0);
 	}
 	
 	for(GLuint i=0; i < (GLuint)numVAttribBindings; i++)
@@ -895,47 +893,47 @@ void GLReplay::SavePipelineState()
 			case eGL_BYTE:
 				fmt.compByteWidth = 1;
 				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_BYTE%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_BYTE%d", fmt.compCount) : string("GL_BYTE")) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_BYTE:
 				fmt.compByteWidth = 1;
 				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount) : string("GL_UNSIGNED_BYTE")) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_SHORT:
 				fmt.compByteWidth = 2;
 				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_SHORT%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_SHORT%d", fmt.compCount) : string("GL_SHORT")) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_SHORT:
 				fmt.compByteWidth = 2;
 				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount) : string("GL_UNSIGNED_SHORT")) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_INT:
 				fmt.compByteWidth = 4;
 				fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::Fmt("GL_INT%d", fmt.compCount) + (intComponent ? "" : "_SNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_INT%d", fmt.compCount) : string("GL_INT")) + (intComponent ? "" : "_SNORM");
 				break;
 			case eGL_UNSIGNED_INT:
 				fmt.compByteWidth = 4;
 				fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount) + (intComponent ? "" : "_UNORM");
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount) : string("GL_UNSIGNED_INT")) + (intComponent ? "" : "_UNORM");
 				break;
 			case eGL_FLOAT:
 				fmt.compByteWidth = 4;
 				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::Fmt("GL_FLOAT%d", fmt.compCount);
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_FLOAT%d", fmt.compCount) : string("GL_FLOAT"));
 				break;
 			case eGL_DOUBLE:
 				fmt.compByteWidth = 8;
 				fmt.compType = eCompType_Double;
-				fmt.strname = StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount);
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount) : string("GL_DOUBLE"));
 				break;
 			case eGL_HALF_FLOAT:
 				fmt.compByteWidth = 2;
 				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::Fmt("GL_HALF_FLOAT%d", fmt.compCount);
+				fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_HALF_FLOAT%d", fmt.compCount) : string("GL_HALF_FLOAT"));
 				break;
 			case eGL_INT_2_10_10_10_REV:
 				fmt.special = true;

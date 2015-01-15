@@ -44,11 +44,10 @@ struct GLPipelineState
 
 		struct VertexBuffer
 		{
-			VertexBuffer() : Buffer(), Stride(0), Offset(0), PerInstance(false), Divisor(0) {}
+			VertexBuffer() : Buffer(), Stride(0), Offset(0), Divisor(0) {}
 			ResourceId Buffer;
 			uint32_t Stride;
 			uint32_t Offset;
-			bool32 PerInstance;
 			uint32_t Divisor;
 		};
 		rdctype::array<VertexBuffer> vbuffers;

@@ -284,7 +284,6 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 	Serialise("", el.Buffer);
 	Serialise("", el.Divisor);
 	Serialise("", el.Offset);
-	Serialise("", el.PerInstance);
 	Serialise("", el.Stride);
 }
 
