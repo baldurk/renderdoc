@@ -96,12 +96,12 @@ namespace renderdocui.Windows.PipelineState
             topology.Text = "";
             topologyDiagram.Image = null;
 
-            ClearShaderState(vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            ClearShaderState(gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            ClearShaderState(tesShader, tesResources, tesSamplers, tesCBuffers, tesClasses);
-            ClearShaderState(tcsShader, tcsResources, tcsSamplers, tcsCBuffers, tcsClasses);
-            ClearShaderState(fsShader, fsResources, fsSamplers, fsCBuffers, fsClasses);
-            ClearShaderState(csShader, csResources, csSamplers, csCBuffers, csClasses);
+            ClearShaderState(vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines);
+            ClearShaderState(gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines);
+            ClearShaderState(tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines);
+            ClearShaderState(tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines);
+            ClearShaderState(fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines);
+            ClearShaderState(csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
 
             csUAVs.Nodes.Clear();
             gsStreams.Nodes.Clear();
@@ -172,10 +172,11 @@ namespace renderdocui.Windows.PipelineState
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
                                     GLPipelineState state, GLPipelineState.ShaderStage stage,
-                                    Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
-                                    TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
+                                    Label shader, TreelistView.TreeListView textures, TreelistView.TreeListView samplers,
+                                    TreelistView.TreeListView cbuffers, TreelistView.TreeListView subs)
         {
             ShaderReflection shaderDetails = stage.ShaderDetails;
+            var mapping = stage.BindpointMapping;
 
             if (stage.Shader == ResourceId.Null)
                 shader.Text = "Unbound";
@@ -186,6 +187,128 @@ namespace renderdocui.Windows.PipelineState
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 
                                 Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
 
+            int vs = 0;
+            int vs2 = 0;
+
+            // simultaneous update of resources and samplers
+            vs = textures.VScrollValue();
+            textures.BeginUpdate();
+            textures.Nodes.Clear();
+            vs2 = samplers.VScrollValue();
+            samplers.BeginUpdate();
+            samplers.Nodes.Clear();
+            if (state.Textures != null)
+            {
+                int i = 0;
+                foreach (var r in state.Textures)
+                {
+                    ShaderResource shaderInput = null;
+                    BindpointMap map = null;
+
+                    if (shaderDetails != null)
+                    {
+                        foreach (var bind in shaderDetails.Resources)
+                        {
+                            if (bind.IsSRV && mapping.Resources[bind.bindPoint].bind == i)
+                            {
+                                shaderInput = bind;
+                                map = mapping.Resources[bind.bindPoint];
+                            }
+                        }
+                    }
+
+                    bool filledSlot = (r.Resource != ResourceId.Null);
+                    bool usedSlot = (shaderInput != null && map.used);
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        string slotname = i.ToString();
+
+                        if (shaderInput != null && shaderInput.name != "")
+                            slotname += ": " + shaderInput.name;
+
+                        UInt32 w = 1, h = 1, d = 1;
+                        UInt32 a = 1;
+                        string format = "Unknown";
+                        string name = "Shader Resource " + r.Resource.ToString();
+                        string typename = "Unknown";
+                        object tag = null;
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            format = "-";
+                            typename = "-";
+                            w = h = d = a = 0;
+                        }
+
+                        // check to see if it's a texture
+                        for (int t = 0; t < texs.Length; t++)
+                        {
+                            if (texs[t].ID == r.Resource)
+                            {
+                                w = texs[t].width;
+                                h = texs[t].height;
+                                d = texs[t].depth;
+                                a = texs[t].arraysize;
+                                format = texs[t].format.ToString();
+                                name = texs[t].name;
+                                typename = string.Format("Texture{0}D", texs[t].dimension);
+                                if (texs[t].cubemap)
+                                    typename = "TexCube";
+
+                                tag = texs[t];
+                            }
+                        }
+
+                        // if not a texture, it must be a buffer
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == r.Resource)
+                            {
+                                w = bufs[t].length;
+                                h = 0;
+                                d = 0;
+                                a = 0;
+                                format = "";
+                                name = bufs[t].name;
+                                typename = "Buffer";
+
+                                // for structured buffers, display how many 'elements' there are in the buffer
+                                if (bufs[t].structureSize > 0)
+                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+
+                                tag = bufs[t];
+                            }
+                        }
+
+                        var node = textures.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = tag;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+                    i++;
+                }
+            }
+            textures.EndUpdate();
+            textures.NodesSelection.Clear();
+            textures.SetVScrollValue(vs);
+            samplers.EndUpdate();
+            samplers.NodesSelection.Clear();
+            samplers.SetVScrollValue(vs2);
+
+            vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
             if(shaderDetails != null)
@@ -195,8 +318,13 @@ namespace renderdocui.Windows.PipelineState
                 {
                     int bindPoint = stage.BindpointMapping.ConstantBlocks[i].bind;
 
+                    GLPipelineState.Buffer b = null;
+
+                    if (bindPoint >= 0 && bindPoint < state.UniformBuffers.Length)
+                        b = state.UniformBuffers[bindPoint];
+
                     bool filledSlot = !shaderCBuf.bufferBacked ||
-                        (bindPoint >= 0 && bindPoint < state.UniformBuffers.Length && state.UniformBuffers[bindPoint].Resource != ResourceId.Null);
+                        (b != null && b.Resource != ResourceId.Null);
                     bool usedSlot = stage.BindpointMapping.ConstantBlocks[i].used;
 
                     // show if
@@ -205,12 +333,43 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string name = shaderCBuf.name;
+                        ulong offset = 0;
+                        ulong length = 0;
                         int numvars = shaderCBuf.variables.Length;
 
-                        string slotname = i.ToString();
+                        string slotname = "Uniforms";
+                        string name = "";
+                        string sizestr = String.Format("{0} Variables", numvars);
+                        string byterange = "";
 
-                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, bindPoint, "", numvars, "" });
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            length = 0;
+                        }
+
+                        if (b != null)
+                        {
+                            slotname = String.Format("{0}: {1}", bindPoint, shaderCBuf.name);
+                            name = "UBO " + b.Resource.ToString();
+                            offset = b.Offset;
+                            length = b.Size;
+
+                            for (int t = 0; t < bufs.Length; t++)
+                            {
+                                if (bufs[t].ID == b.Resource)
+                                {
+                                    name = bufs[t].name;
+                                    if (length == 0)
+                                        length = bufs[t].length;
+                                }
+                            }
+
+                            sizestr = String.Format("{0} Variables, {1} bytes", numvars, length);
+                            byterange = String.Format("{0} - {1}", offset, offset + length);
+                        }
+
+                        var node = cbuffers.Nodes.Add(new object[] { slotname, name, byterange, sizestr });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -227,6 +386,19 @@ namespace renderdocui.Windows.PipelineState
             }
             cbuffers.EndUpdate();
             cbuffers.NodesSelection.Clear();
+            cbuffers.SetVScrollValue(vs);
+
+            vs = subs.VScrollValue();
+            subs.BeginUpdate();
+            subs.Nodes.Clear();
+            {
+                // TODO fetch subroutines
+            }
+            subs.EndUpdate();
+            subs.NodesSelection.Clear();
+            subs.SetVScrollValue(vs);
+
+            subs.Visible = subs.Parent.Visible = true; //(stage.Subroutines.Length > 0);
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -521,124 +693,13 @@ namespace renderdocui.Windows.PipelineState
             iabuffers.EndUpdate();
             iabuffers.SetVScrollValue(vs);
 
-            SetShaderState(texs, bufs, state, state.m_VS, vsShader, vsResources, vsSamplers, vsCBuffers, vsClasses);
-            SetShaderState(texs, bufs, state, state.m_GS, gsShader, gsResources, gsSamplers, gsCBuffers, gsClasses);
-            SetShaderState(texs, bufs, state, state.m_TES, tesShader, tesResources, tesSamplers, tesCBuffers, tesClasses);
-            SetShaderState(texs, bufs, state, state.m_TCS, tcsShader, tcsResources, tcsSamplers, tcsCBuffers, tcsClasses);
-            SetShaderState(texs, bufs, state, state.m_FS, fsShader, fsResources, fsSamplers, fsCBuffers, fsClasses);
-            SetShaderState(texs, bufs, state, state.m_CS, csShader, csResources, csSamplers, csCBuffers, csClasses);
+            SetShaderState(texs, bufs, state, state.m_VS, vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines);
+            SetShaderState(texs, bufs, state, state.m_GS, gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines);
+            SetShaderState(texs, bufs, state, state.m_TES, tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines);
+            SetShaderState(texs, bufs, state, state.m_TCS, tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines);
+            SetShaderState(texs, bufs, state, state.m_FS, fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines);
+            SetShaderState(texs, bufs, state, state.m_CS, csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
 
-            fsResources.BeginUpdate();
-            fsResources.Nodes.Clear();
-            if (state.Textures != null)
-            {
-                var shaderDetails = state.m_FS.ShaderDetails;
-                var mapping = state.m_FS.BindpointMapping;
-
-                int i = 0;
-                foreach (var r in state.Textures)
-                {
-                    ShaderResource shaderInput = null;
-                    BindpointMap map = null;
-
-                    if (shaderDetails != null)
-                    {
-                        foreach (var bind in shaderDetails.Resources)
-                        {
-                            if (bind.IsSRV && mapping.Resources[bind.bindPoint].bind == i)
-                            {
-                                shaderInput = bind;
-                                map = mapping.Resources[bind.bindPoint];
-                            }
-                        }
-                    }
-
-                    bool filledSlot = (r.Resource != ResourceId.Null);
-                    bool usedSlot = (shaderInput != null && map.used);
-
-                    // show if
-                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
-                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
-                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
-                        )
-                    {
-                        string slotname = i.ToString();
-
-                        if (shaderInput != null && shaderInput.name != "")
-                            slotname += ": " + shaderInput.name;
-
-                        UInt32 w = 1, h = 1, d = 1;
-                        UInt32 a = 1;
-                        string format = "Unknown";
-                        string name = "Shader Resource " + r.Resource.ToString();
-                        string typename = "Unknown";
-                        object tag = null;
-
-                        if (!filledSlot)
-                        {
-                            name = "Empty";
-                            format = "-";
-                            typename = "-";
-                            w = h = d = a = 0;
-                        }
-
-                        // check to see if it's a texture
-                        for (int t = 0; t < texs.Length; t++)
-                        {
-                            if (texs[t].ID == r.Resource)
-                            {
-                                w = texs[t].width;
-                                h = texs[t].height;
-                                d = texs[t].depth;
-                                a = texs[t].arraysize;
-                                format = texs[t].format.ToString();
-                                name = texs[t].name;
-                                typename = string.Format("Texture{0}D", texs[t].dimension);
-                                if (texs[t].cubemap)
-                                    typename = "TexCube";
-
-                                tag = texs[t];
-                            }
-                        }
-
-                        // if not a texture, it must be a buffer
-                        for (int t = 0; t < bufs.Length; t++)
-                        {
-                            if (bufs[t].ID == r.Resource)
-                            {
-                                w = bufs[t].length;
-                                h = 0;
-                                d = 0;
-                                a = 0;
-                                format = "";
-                                name = bufs[t].name;
-                                typename = "Buffer";
-
-                                // for structured buffers, display how many 'elements' there are in the buffer
-                                if (bufs[t].structureSize > 0)
-                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
-
-                                tag = bufs[t];
-                            }
-                        }
-
-                        var node = fsResources.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
-
-                        node.Image = global::renderdocui.Properties.Resources.action;
-                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = tag;
-
-                        if (!filledSlot)
-                            EmptyRow(node);
-
-                        if (!usedSlot)
-                            InactiveRow(node);
-                    }
-                    i++;
-                }
-            }
-            fsResources.EndUpdate();
-            fsResources.NodesSelection.Clear();
 
             csUAVs.Nodes.Clear();
             csUAVs.BeginUpdate();
