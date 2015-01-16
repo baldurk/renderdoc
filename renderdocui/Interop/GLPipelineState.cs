@@ -221,7 +221,7 @@ namespace renderdoc
         {
             public ResourceId FBO;
 
-            bool FramebufferSRGB;
+            public bool FramebufferSRGB;
 
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public ResourceId[] Color;

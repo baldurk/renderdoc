@@ -960,6 +960,9 @@ namespace renderdocui.Windows.PipelineState
                                     typename = "TexCube";
 
                                 tag = texs[t];
+
+                                if (texs[t].format.srgbCorrected && !state.m_FB.FramebufferSRGB)
+                                    name += " (GL_FRAMEBUFFER_SRGB = 0)";
                             }
                         }
 
