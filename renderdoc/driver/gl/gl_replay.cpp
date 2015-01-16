@@ -1261,30 +1261,32 @@ void GLReplay::SavePipelineState()
 	int polygonOffsetEnableEnum;
 	switch (rs.PolygonMode)
 	{
-	default:
-		RDCWARN("Unexpected value for POLYGON_MODE");
-	case eGL_FILL:
-		pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
-		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
-		break;
-	case eGL_LINES:
-		pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
-		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
-		break;
-	case eGL_POINT:
-		pipe.m_Rasterizer.m_State.FillMode = eFill_Point;
-		polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetPoint;
-		break;
+		default:
+			RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
+		case eGL_FILL:
+			pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
+			polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
+			break;
+		case eGL_LINES:
+			pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
+			polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
+			break;
+		case eGL_POINT:
+			pipe.m_Rasterizer.m_State.FillMode = eFill_Point;
+			polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetPoint;
+			break;
 	}
 	if (rs.Enabled[polygonOffsetEnableEnum])
 	{
 		pipe.m_Rasterizer.m_State.DepthBias = rs.PolygonOffset[1];
 		pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = rs.PolygonOffset[0];
+		pipe.m_Rasterizer.m_State.OffsetClamp = rs.PolygonOffset[2];
 	}
 	else
 	{
 		pipe.m_Rasterizer.m_State.DepthBias = 0.0f;
 		pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = 0.0f;
+		pipe.m_Rasterizer.m_State.OffsetClamp = 0.0f;
 	}
 
 	if (rs.Enabled[GLRenderState::eEnabled_CullFace])
@@ -1313,7 +1315,6 @@ void GLReplay::SavePipelineState()
 	pipe.m_Rasterizer.m_State.FrontCCW = rs.FrontFace == eGL_CCW;
 	pipe.m_Rasterizer.m_State.DepthClamp = rs.Enabled[GLRenderState::eEnabled_DepthClamp];
 	pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
-	pipe.m_Rasterizer.m_State.AntialiasedLineEnable = rs.Enabled[GLRenderState::eEnabled_LineSmooth];
 
 	// depth and stencil states
 

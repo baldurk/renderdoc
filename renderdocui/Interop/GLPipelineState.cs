@@ -142,9 +142,9 @@ namespace renderdoc
                 public bool FrontCCW;
                 public float DepthBias;
                 public float SlopeScaledDepthBias;
+                public float OffsetClamp;
                 public bool DepthClamp;
                 public bool MultisampleEnable;
-                public bool AntialiasedLineEnable;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public RasterizerState m_State;

@@ -114,12 +114,13 @@ namespace renderdocui.Windows.PipelineState
             frontCCW.Image = tick;
 
             scissorEnable.Image = tick;
-            lineAAEnable.Image = tick;
             multisampleEnable.Image = tick;
 
-            depthClip.Image = tick;
+            depthClamp.Image = tick;
             depthBias.Text = "0.0";
             slopeScaledBias.Text = "0.0";
+            offsetClamp.Text = "";
+            offsetClamp.Image = cross;
 
             viewports.Nodes.Clear();
             scissors.Nodes.Clear();
@@ -653,64 +654,134 @@ namespace renderdocui.Windows.PipelineState
             ////////////////////////////////////////////////
             // Rasterizer
 
+            vs = viewports.VScrollValue();
             viewports.BeginUpdate();
             viewports.Nodes.Clear();
             if (state.m_RS.Viewports != null)
             {
-                int i = 0;
-                foreach (var v in state.m_RS.Viewports)
+                // accumulate identical viewports to save on visual repetition
+                int prev = 0;
+                for (int i = 0; i < state.m_RS.Viewports.Length; i++)
                 {
-                    if (v.Width != v.Height || v.Width != 0 || v.Height != 0 || showEmpty.Checked)
-                    {
-                        var node = viewports.Nodes.Add(new object[] { i, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth });
+                    var v1 = state.m_RS.Viewports[prev];
+                    var v2 = state.m_RS.Viewports[i];
 
-                        if (v.Width == v.Height && v.Width == 0 && v.Height == 0)
+                    if (v1.Width != v2.Width ||
+                        v1.Height != v2.Height ||
+                        v1.Left != v2.Left ||
+                        v1.Bottom != v2.Bottom ||
+                        v1.MinDepth != v2.MinDepth ||
+                        v1.MaxDepth != v2.MaxDepth)
+                    {
+                        if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || showEmpty.Checked)
+                        {
+                            string indexstring = prev.ToString();
+                            if (prev < i - 1)
+                                indexstring = String.Format("{0}-{1}", prev, i - 1);
+                            var node = viewports.Nodes.Add(new object[] { indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth });
+
+                            if (v1.Width == v1.Height && v1.Width == 0 && v1.Height == 0)
+                                EmptyRow(node);
+                        }
+
+                        prev = i;
+                    }
+                }
+
+                // handle the last batch (the loop above leaves the last batch un-added)
+                {
+                    var v1 = state.m_RS.Viewports[prev];
+
+                    if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || showEmpty.Checked)
+                    {
+                        string indexstring = prev.ToString();
+                        if (prev < state.m_RS.Viewports.Length-1)
+                            indexstring = String.Format("{0}-{1}", prev, state.m_RS.Viewports.Length - 1);
+                        var node = viewports.Nodes.Add(new object[] { indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth });
+
+                        if (v1.Width == v1.Height && v1.Width == 0 && v1.Height == 0)
                             EmptyRow(node);
                     }
-
-                    i++;
                 }
             }
             viewports.NodesSelection.Clear();
             viewports.EndUpdate();
+            viewports.SetVScrollValue(vs);
 
             bool anyScissorEnable = false;
 
+            vs = scissors.VScrollValue();
             scissors.BeginUpdate();
             scissors.Nodes.Clear();
             if (state.m_RS.Scissors != null)
             {
-                int i = 0;
-                foreach (var s in state.m_RS.Scissors)
+                // accumulate identical scissors to save on visual repetition
+                int prev = 0;
+                for (int i = 0; i < state.m_RS.Scissors.Length; i++)
                 {
-                    if (s.Width != 0 || s.Height != 0 || showEmpty.Checked)
-                    {
-                        var node = scissors.Nodes.Add(new object[] { i, s.Left, s.Bottom, s.Width, s.Height, s.Enabled });
+                    var s1 = state.m_RS.Scissors[prev];
+                    var s2 = state.m_RS.Scissors[i];
 
-                        if (s.Width == 0 && s.Height == 0)
+                    if (s1.Width != s2.Width ||
+                        s1.Height != s2.Height ||
+                        s1.Left != s2.Left ||
+                        s1.Bottom != s2.Bottom)
+                    {
+                        if (s1.Width != s1.Height || s1.Width != 0 || s1.Height != 0 || showEmpty.Checked)
+                        {
+                            string indexstring = prev.ToString();
+                            if (prev < i - 1)
+                                indexstring = String.Format("{0}-{1}", prev, i - 1);
+                            var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
+
+                            if (s1.Width == s1.Height && s1.Width == 0 && s1.Height == 0)
+                                EmptyRow(node);
+                        }
+
+                        prev = i;
+                    }
+                }
+
+                // handle the last batch (the loop above leaves the last batch un-added)
+                {
+                    var s1 = state.m_RS.Scissors[prev];
+
+                    if (s1.Width != s1.Height || s1.Width != 0 || s1.Height != 0 || showEmpty.Checked)
+                    {
+                        string indexstring = prev.ToString();
+                        if (prev < state.m_RS.Scissors.Length - 1)
+                            indexstring = String.Format("{0}-{1}", prev, state.m_RS.Scissors.Length - 1);
+                        var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
+
+                        if (s1.Width == s1.Height && s1.Width == 0 && s1.Height == 0)
                             EmptyRow(node);
                     }
-
-                    if (s.Enabled)
-                        anyScissorEnable = true;
-
-                    i++;
                 }
             }
             scissors.NodesSelection.Clear();
             scissors.EndUpdate();
+            scissors.SetVScrollValue(vs);
 
             fillMode.Text = state.m_RS.m_State.FillMode.ToString();
             cullMode.Text = state.m_RS.m_State.CullMode.ToString();
             frontCCW.Image = state.m_RS.m_State.FrontCCW ? tick : cross;
 
             scissorEnable.Image = anyScissorEnable  ? tick : cross;
-            lineAAEnable.Image = state.m_RS.m_State.AntialiasedLineEnable ? tick : cross;
             multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? tick : cross;
 
-            depthClip.Image = state.m_RS.m_State.DepthClamp ? cross : tick;
+            depthClamp.Image = state.m_RS.m_State.DepthClamp ? cross : tick;
             depthBias.Text = Formatter.Format(state.m_RS.m_State.DepthBias);
             slopeScaledBias.Text = Formatter.Format(state.m_RS.m_State.SlopeScaledDepthBias);
+            if (state.m_RS.m_State.OffsetClamp == 0.0f || float.IsNaN(state.m_RS.m_State.OffsetClamp))
+            {
+                offsetClamp.Text = "";
+                offsetClamp.Image = cross;
+            }
+            else
+            {
+                offsetClamp.Text = Formatter.Format(state.m_RS.m_State.OffsetClamp);
+                offsetClamp.Image = null;
+            }
 
             ////////////////////////////////////////////////
             // Output Merger

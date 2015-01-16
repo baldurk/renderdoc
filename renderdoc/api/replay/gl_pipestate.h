@@ -107,16 +107,16 @@ struct GLPipelineState
 		{
 			RasterizerState()
 				: FillMode(eFill_Solid), CullMode(eCull_None), FrontCCW(false), DepthBias(0),
-				  SlopeScaledDepthBias(0.0f), DepthClamp(false),
-				  MultisampleEnable(false), AntialiasedLineEnable(false) {}
+				  SlopeScaledDepthBias(0.0f), OffsetClamp(0.0f), DepthClamp(false),
+				  MultisampleEnable(false) {}
 			TriangleFillMode FillMode;
 			TriangleCullMode CullMode;
 			bool32 FrontCCW;
 			float DepthBias;
 			float SlopeScaledDepthBias;
+			float OffsetClamp;
 			bool32 DepthClamp;
 			bool32 MultisampleEnable;
-			bool32 AntialiasedLineEnable;
 		} m_State;
 	} m_Rasterizer;
 	
