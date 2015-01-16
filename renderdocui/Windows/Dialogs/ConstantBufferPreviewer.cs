@@ -211,7 +211,10 @@ namespace renderdocui.Controls
         {
             get
             {
-                return String.Format("{0} CB {1}", Stage.ToString(), Slot);
+                return String.Format("{0} {1} {2}",
+                    Stage.ToString(),
+                    m_Core == null || m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
+                    Slot);
             }
         }
 
