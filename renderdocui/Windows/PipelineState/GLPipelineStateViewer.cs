@@ -96,6 +96,8 @@ namespace renderdocui.Windows.PipelineState
             topology.Text = "";
             topologyDiagram.Image = null;
 
+            restartIndex.Text = "";
+
             ClearShaderState(vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines);
             ClearShaderState(gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines);
             ClearShaderState(tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines);
