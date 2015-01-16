@@ -819,6 +819,7 @@ namespace renderdocui.Windows.PipelineState
                 }
 
                 // handle the last batch (the loop above leaves the last batch un-added)
+                if(prev < state.m_RS.Viewports.Length)
                 {
                     var v1 = state.m_RS.Viewports[prev];
 
@@ -873,6 +874,7 @@ namespace renderdocui.Windows.PipelineState
                 }
 
                 // handle the last batch (the loop above leaves the last batch un-added)
+                if (prev < state.m_RS.Scissors.Length)
                 {
                     var s1 = state.m_RS.Scissors[prev];
 
@@ -1048,6 +1050,7 @@ namespace renderdocui.Windows.PipelineState
             vs = blendOperations.VScrollValue();
             blendOperations.BeginUpdate();
             blendOperations.Nodes.Clear();
+            if(state.m_FB.m_BlendState.Blends.Length > 0)
             {
                 bool logic = (state.m_FB.m_BlendState.Blends[0].LogicOp != "");
 
