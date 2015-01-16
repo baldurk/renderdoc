@@ -34,9 +34,9 @@ using System.Resources;
 [assembly: AssemblyTitle("RenderDoc")]
 [assembly: AssemblyDescription("RenderDoc UI replay app + launcher - http://renderdoc.org/")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Crytek")]
+[assembly: AssemblyCompany("Baldur Karlsson")]
 [assembly: AssemblyProduct("RenderDoc UI")]
-[assembly: AssemblyCopyright("Copyright © 2014 Crytek")]
+[assembly: AssemblyCopyright("Copyright © 2015 Baldur Karlsson")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 

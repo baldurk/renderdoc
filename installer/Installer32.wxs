@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='windows-1252'?>
 <Wix xmlns='http://schemas.microsoft.com/wix/2006/wi'>
   <Product Name='RenderDoc' Id='*' UpgradeCode='D320753C-4B18-4905-A752-E68959943E7D'
-    Language='1033' Codepage='1252' Version='$(env.RENDERDOC_VERSION)' Manufacturer='Crytek'>
+    Language='1033' Codepage='1252' Version='$(env.RENDERDOC_VERSION)' Manufacturer='Baldur Karlsson'>
 
     <Package Id='*' Keywords='Installer' Description="Installer for RenderDoc"
-      Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Crytek'
+      Comments='RenderDoc Homepage is http://renderdoc.org/' Manufacturer='Baldur Karlsson'
       InstallerVersion='100' Languages='1033' Compressed='yes' SummaryCodepage='1252' />
 
     <UI> 
@@ -34,111 +34,108 @@
 
     <Directory Id='TARGETDIR' Name='SourceDir'>
       <Directory Id='ProgramFilesFolder' Name='PFiles'>
-        <Directory Id='Crytek' Name='Crytek'>
-          <Directory Id='INSTALLDIR' Name='RenderDoc'>
+        <Directory Id='INSTALLDIR' Name='RenderDoc'>
 
-            <Component Id='RenderDocUI' Guid='0DB375D5-7712-4853-AA75-536DF863C827'>
-              <File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release32/renderdocui.exe' KeyPath='yes'>
-                <Shortcut Id="startmenuRenderDoc" Directory="ProgramMenuDir" Name="RenderDoc" WorkingDirectory='INSTALLDIR' Icon="icon.ico" IconIndex="0" Advertise="yes" />
-              </File>
-              <File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release32/renderdocui.pdb' />
-              <File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release32/renderdocui.exe.config' />
+          <Component Id='RenderDocUI' Guid='0DB375D5-7712-4853-AA75-536DF863C827'>
+            <File Id='renderdocuiEXE' Name='renderdocui.exe' DiskId='1' Source='dist/Release32/renderdocui.exe' KeyPath='yes'>
+              <Shortcut Id="startmenuRenderDoc" Directory="ProgramMenuDir" Name="RenderDoc" WorkingDirectory='INSTALLDIR' Icon="icon.ico" IconIndex="0" Advertise="yes" />
+            </File>
+            <File Id='renderdocuiPDB' Name='renderdocui.pdb' DiskId='1' Source='dist/Release32/renderdocui.pdb' />
+            <File Id='renderdocuiCFG' Name='renderdocui.exe.config' DiskId='1' Source='dist/Release32/renderdocui.exe.config' />
 
-              <RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCCapture.1\shell\open\command" 
-                Value='"[#renderdocuiEXE]" "%1"' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="VerbDescRDC" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCCapture.1" 
-                Value='RenderDoc Capture Log (.rdc)' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="VerbIconRDC" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCCapture.1\DefaultIcon" 
-                Value='[#renderdocuiEXE]' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="RDCProgIDCLSID" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCCapture.1\CLSID" 
-                Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
-                Type="expandable" />
+            <RegistryValue Root="HKLM" Id="VerbRDC" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCCapture.1\shell\open\command" 
+              Value='"[#renderdocuiEXE]" "%1"' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="VerbDescRDC" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCCapture.1" 
+              Value='RenderDoc Capture Log (.rdc)' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="VerbIconRDC" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCCapture.1\DefaultIcon" 
+              Value='[#renderdocuiEXE]' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="RDCProgIDCLSID" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCCapture.1\CLSID" 
+              Value='{5D6BF029-A6BA-417A-8523-120492B1DCE3}' 
+              Type="expandable" />
 
-              <RegistryValue Root="HKLM" Id="VerbCAP" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCSettings.1\shell\open\command" 
-                Value='"[#renderdocuiEXE]" "%1"' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="VerbDescCAP" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCSettings.1" 
-                Value='RenderDoc Capture Settings (.cap)' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="VerbIconCAP" Action="write" 
-                Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
-                Value='[#renderdocuiEXE]' 
-                Type="expandable" />
-              
+            <RegistryValue Root="HKLM" Id="VerbCAP" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCSettings.1\shell\open\command" 
+              Value='"[#renderdocuiEXE]" "%1"' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="VerbDescCAP" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCSettings.1" 
+              Value='RenderDoc Capture Settings (.cap)' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="VerbIconCAP" Action="write" 
+              Key="Software\Classes\RenderDoc.RDCSettings.1\DefaultIcon" 
+              Value='[#renderdocuiEXE]' 
+              Type="expandable" />
+            
+          </Component>
+
+          <Component Id='RenderDocCPP' Guid='2E6F718F-8BCC-4D41-9688-E99CF2F6B303'>
+            <File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release32/renderdoc.dll' KeyPath='yes' />
+            <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
+            <File Id='RenderDocSHIM' Name='renderdocshim32.dll' DiskId='1' Source='dist/Release32/renderdocshim32.dll' />
+            
+            <RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
+              Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
+              Value='RenderDoc Thumbnail Handler' 
+              Type="expandable" />
+            <RegistryValue Root="HKLM" Id="RDCCLSIDServer" Action="write" 
+              Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}\InprocServer32" 
+              Value='[#RenderDocCPP]' 
+              Type="expandable" />
+
+          </Component>
+
+          <Component Id='LICENSE' Guid='107AD4E6-D64F-4284-A1F6-D8AAAA6CFC42'>
+            <File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='installer/LICENSE.rtf' KeyPath='yes' />
+          </Component>
+
+          <Component Id='RenderDocCMD' Guid='97338A5D-8FDB-4DF5-AEC7-14B36F234F29'>
+            <File Id='RenderDocCMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release32/renderdoccmd.exe' KeyPath='yes' />
+          </Component>
+
+          <Component Id='Scintilla' Guid='63C1C176-5B7C-4D29-9382-8E0FA75C5B80'>
+            <File Id='ScintillaNET' Name='ScintillaNET.dll' DiskId='1' Source='dist/Release32/ScintillaNET.dll' KeyPath='yes' />
+            <File Id='SciLexer' Name='SciLexer.dll' DiskId='1' Source='dist/Release32/SciLexer.dll' />
+            <File Id='SciLexer64' Name='SciLexer64.dll' DiskId='1' Source='dist/Release32/SciLexer64.dll' />
+          </Component>
+
+          <Component Id='DockingUI' Guid='5FA0B96B-66C9-44B8-B20F-1680FAA47CD1'>
+            <File Id='WinFormsUIDLL' Name='WeifenLuo.WinFormsUI.Docking.dll' DiskId='1' Source='dist/Release32/WeifenLuo.WinFormsUI.Docking.dll' KeyPath='yes' />
+          </Component>
+
+          <Component Id='IronPython' Guid='63C5667D-38DA-464B-8E2F-B2857B8EAEC8'>
+            <File Id='IronPythonDLL' Name='IronPython.dll' DiskId='1' Source='dist/Release32/IronPython.dll' KeyPath='yes' />
+            <File Id='IronPythonModulesDLL' Name='IronPython.Modules.dll' DiskId='1' Source='dist/Release32/IronPython.Modules.dll' />
+            <File Id='MicrosoftScriptingDLL' Name='Microsoft.Scripting.dll' DiskId='1' Source='dist/Release32/Microsoft.Scripting.dll' />
+            <File Id='MicrosoftDynamicDLL' Name='Microsoft.Dynamic.dll' DiskId='1' Source='dist/Release32/Microsoft.Dynamic.dll' />
+            <File Id='PythonLibsDLL' Name='pythonlibs.dll' DiskId='1' Source='dist/Release32/pythonlibs.dll' />
+          </Component>
+
+          <Component Id='Documentation' Guid='CD32B446-6DC1-49E4-8FE9-509E1AFB126D'>
+            <File Id='Documentation' Name='renderdoc.chm' DiskId='1' Source='dist/Release32/renderdoc.chm' KeyPath='yes'>
+              <Shortcut Id="startmenuDocs" Directory="ProgramMenuDir" Name="RenderDoc Documentation" Icon='chm.ico' Advertise="yes" />
+            </File>
+          </Component>
+
+          <Directory Id='pdblocate' Name='pdblocate'>
+
+            <Component Id='pdblocateEXE' Guid='733FCA6A-EC84-4E96-BFD2-F2A9A62DEAEB'>
+              <File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release32/pdblocate/pdblocate.exe' KeyPath='yes' />
             </Component>
 
-            <Component Id='RenderDocCPP' Guid='2E6F718F-8BCC-4D41-9688-E99CF2F6B303'>
-              <File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release32/renderdoc.dll' KeyPath='yes' />
-              <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
-              <File Id='RenderDocSHIM' Name='renderdocshim32.dll' DiskId='1' Source='dist/Release32/renderdocshim32.dll' />
-              
-              <RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
-                Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
-                Value='RenderDoc Thumbnail Handler' 
-                Type="expandable" />
-              <RegistryValue Root="HKLM" Id="RDCCLSIDServer" Action="write" 
-                Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}\InprocServer32" 
-                Value='[#RenderDocCPP]' 
-                Type="expandable" />
+            <Directory Id='pdblocateDeps32' Name='x86'>
 
-            </Component>
-
-            <Component Id='LICENSE' Guid='107AD4E6-D64F-4284-A1F6-D8AAAA6CFC42'>
-              <File Id='LICENSE' Name='LICENSE.rtf' DiskId='1' Source='installer/LICENSE.rtf' KeyPath='yes' />
-            </Component>
-
-            <Component Id='RenderDocCMD' Guid='97338A5D-8FDB-4DF5-AEC7-14B36F234F29'>
-              <File Id='RenderDocCMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release32/renderdoccmd.exe' KeyPath='yes' />
-            </Component>
-
-            <Component Id='Scintilla' Guid='63C1C176-5B7C-4D29-9382-8E0FA75C5B80'>
-              <File Id='ScintillaNET' Name='ScintillaNET.dll' DiskId='1' Source='dist/Release32/ScintillaNET.dll' KeyPath='yes' />
-              <File Id='SciLexer' Name='SciLexer.dll' DiskId='1' Source='dist/Release32/SciLexer.dll' />
-              <File Id='SciLexer64' Name='SciLexer64.dll' DiskId='1' Source='dist/Release32/SciLexer64.dll' />
-            </Component>
-
-            <Component Id='DockingUI' Guid='5FA0B96B-66C9-44B8-B20F-1680FAA47CD1'>
-              <File Id='WinFormsUIDLL' Name='WeifenLuo.WinFormsUI.Docking.dll' DiskId='1' Source='dist/Release32/WeifenLuo.WinFormsUI.Docking.dll' KeyPath='yes' />
-            </Component>
-
-            <Component Id='IronPython' Guid='63C5667D-38DA-464B-8E2F-B2857B8EAEC8'>
-              <File Id='IronPythonDLL' Name='IronPython.dll' DiskId='1' Source='dist/Release32/IronPython.dll' KeyPath='yes' />
-              <File Id='IronPythonModulesDLL' Name='IronPython.Modules.dll' DiskId='1' Source='dist/Release32/IronPython.Modules.dll' />
-              <File Id='MicrosoftScriptingDLL' Name='Microsoft.Scripting.dll' DiskId='1' Source='dist/Release32/Microsoft.Scripting.dll' />
-              <File Id='MicrosoftDynamicDLL' Name='Microsoft.Dynamic.dll' DiskId='1' Source='dist/Release32/Microsoft.Dynamic.dll' />
-              <File Id='PythonLibsDLL' Name='pythonlibs.dll' DiskId='1' Source='dist/Release32/pythonlibs.dll' />
-            </Component>
-
-            <Component Id='Documentation' Guid='CD32B446-6DC1-49E4-8FE9-509E1AFB126D'>
-              <File Id='Documentation' Name='renderdoc.chm' DiskId='1' Source='dist/Release32/renderdoc.chm' KeyPath='yes'>
-                <Shortcut Id="startmenuDocs" Directory="ProgramMenuDir" Name="RenderDoc Documentation" Icon='chm.ico' Advertise="yes" />
-              </File>
-            </Component>
-
-            <Directory Id='pdblocate' Name='pdblocate'>
-
-              <Component Id='pdblocateEXE' Guid='733FCA6A-EC84-4E96-BFD2-F2A9A62DEAEB'>
-                <File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release32/pdblocate/pdblocate.exe' KeyPath='yes' />
+              <Component Id='pdblocateDeps' Guid='CC83B1BB-8E47-4415-9308-5BEF2A7242A0'>
+                <File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
+                <File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.dll' />
+                <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.yes' />
               </Component>
-
-              <Directory Id='pdblocateDeps32' Name='x86'>
-
-                <Component Id='pdblocateDeps' Guid='CC83B1BB-8E47-4415-9308-5BEF2A7242A0'>
-                  <File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
-                  <File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.dll' />
-                  <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.yes' />
-                </Component>
-
-              </Directory>
 
             </Directory>
 
