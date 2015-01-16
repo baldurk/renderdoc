@@ -1315,6 +1315,32 @@ void GLReplay::SavePipelineState()
 	pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
 	pipe.m_Rasterizer.m_State.AntialiasedLineEnable = rs.Enabled[GLRenderState::eEnabled_LineSmooth];
 
+	// depth and stencil states
+
+	pipe.m_DepthState.DepthEnable = rs.Enabled[GLRenderState::eEnabled_DepthTest];
+	pipe.m_DepthState.DepthWrites = rs.DepthWriteMask != 0;
+	pipe.m_DepthState.DepthFunc = ToStr::Get(rs.DepthFunc).substr(3);
+
+	pipe.m_DepthState.DepthBounds = rs.Enabled[GLRenderState::eEnabled_DepthBoundsEXT];
+	pipe.m_DepthState.NearBound = rs.DepthBounds.nearZ;
+	pipe.m_DepthState.FarBound = rs.DepthBounds.farZ;
+
+	pipe.m_StencilState.StencilEnable = rs.Enabled[GLRenderState::eEnabled_StencilTest];
+	pipe.m_StencilState.m_FrontFace.ValueMask = rs.StencilFront.valuemask;
+	pipe.m_StencilState.m_FrontFace.WriteMask = rs.StencilFront.writemask;
+	pipe.m_StencilState.m_FrontFace.Ref = rs.StencilFront.ref;
+	pipe.m_StencilState.m_FrontFace.Func = ToStr::Get(rs.StencilFront.func).substr(3);
+	pipe.m_StencilState.m_FrontFace.PassOp = ToStr::Get(rs.StencilFront.pass).substr(3);
+	pipe.m_StencilState.m_FrontFace.FailOp = ToStr::Get(rs.StencilFront.stencilFail).substr(3);
+	pipe.m_StencilState.m_FrontFace.DepthFailOp = ToStr::Get(rs.StencilFront.depthFail).substr(3);
+	pipe.m_StencilState.m_BackFace.ValueMask = rs.StencilBack.valuemask;
+	pipe.m_StencilState.m_BackFace.WriteMask = rs.StencilBack.writemask;
+	pipe.m_StencilState.m_BackFace.Ref = rs.StencilBack.ref;
+	pipe.m_StencilState.m_BackFace.Func = ToStr::Get(rs.StencilBack.func).substr(3);
+	pipe.m_StencilState.m_BackFace.PassOp = ToStr::Get(rs.StencilBack.pass).substr(3);
+	pipe.m_StencilState.m_BackFace.FailOp = ToStr::Get(rs.StencilBack.stencilFail).substr(3);
+	pipe.m_StencilState.m_BackFace.DepthFailOp = ToStr::Get(rs.StencilBack.depthFail).substr(3);
+
 	// Frame buffer
 
 	GLuint curFBO = 0;

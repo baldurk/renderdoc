@@ -153,6 +153,8 @@ namespace renderdocui.Windows.PipelineState
             stencilWriteMask.Text = "FF";
             stencilRef.Text = "FF";
 
+            stencilFuncs.Nodes.Clear();
+
             pipeFlow.SetStagesEnabled(new bool[] { true, true, true, true, true, true, true, true, true });
         }
         

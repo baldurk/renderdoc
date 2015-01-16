@@ -119,6 +119,37 @@ struct GLPipelineState
 			bool32 AntialiasedLineEnable;
 		} m_State;
 	} m_Rasterizer;
+	
+	struct DepthState
+	{
+		DepthState()
+			: DepthEnable(false), DepthWrites(false), DepthBounds(false),
+				NearBound(0), FarBound(0) {}
+		bool32 DepthEnable;
+		rdctype::str DepthFunc;
+		bool32 DepthWrites;
+		bool32 DepthBounds;
+		double NearBound, FarBound;
+	} m_DepthState;
+
+	struct StencilState
+	{
+		StencilState()
+			: StencilEnable(false) {}
+		bool32 StencilEnable;
+
+		struct StencilOp
+		{
+			StencilOp() : Ref(0), ValueMask(0), WriteMask(0) {}
+			rdctype::str FailOp;
+			rdctype::str DepthFailOp;
+			rdctype::str PassOp;
+			rdctype::str Func;
+			uint32_t Ref;
+			uint32_t ValueMask;
+			uint32_t WriteMask;
+		} m_FrontFace, m_BackFace;
+	} m_StencilState;
 
 	struct FrameBuffer
 	{

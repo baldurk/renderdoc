@@ -153,6 +153,46 @@ namespace renderdoc
         public Rasterizer m_RS;
 
         [StructLayout(LayoutKind.Sequential)]
+        public class DepthState
+        {
+            public bool DepthEnable;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string DepthFunc;
+            public bool DepthWrites;
+            public bool DepthBounds;
+            public double NearBound;
+            public double FarBound;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public DepthState m_DepthState;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class StencilState
+        {
+            public bool StencilEnable;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class StencilOp
+            {
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string FailOp;
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string DepthFailOp;
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string PassOp;
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string Func;
+                public UInt32 Ref;
+                public UInt32 ValueMask;
+                public UInt32 WriteMask;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public StencilOp m_FrontFace, m_BackFace;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public StencilState m_StencilState;
+
+        [StructLayout(LayoutKind.Sequential)]
         public class FrameBuffer
         {
             public ResourceId FBO;

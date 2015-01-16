@@ -129,16 +129,16 @@ namespace renderdocui.Windows.PipelineState
 
             blendFactor.Text = "0.00, 0.00, 0.00, 0.00";
 
-            sampleMask.Text = "FFFFFFFF";
-
             depthEnable.Image = tick;
             depthFunc.Text = "GREATER_EQUAL";
             depthWrite.Image = tick;
 
+            depthBounds.Image = tick;
+            depthBounds.Text = "0.000 - 1.000";
+
             stencilEnable.Image = tick;
-            stencilReadMask.Text = "FF";
-            stencilWriteMask.Text = "FF";
-            stencilRef.Text = "FF";
+
+            stencilFuncs.Nodes.Clear();
 
             pipeFlow.SetStagesEnabled(new bool[] { true, true, true, true, true, true, true, true, true });
         }
@@ -923,12 +923,21 @@ namespace renderdocui.Windows.PipelineState
                                 state.m_FB.m_BlendState.BlendFactor[2].ToString("F2") + ", " +
                                 state.m_FB.m_BlendState.BlendFactor[3].ToString("F2");
 
+            depthEnable.Image = state.m_DepthState.DepthEnable ? tick : cross;
+            depthFunc.Text = state.m_DepthState.DepthFunc;
+            depthWrite.Image = state.m_DepthState.DepthWrites ? tick : cross;
+
+            depthBounds.Image = state.m_DepthState.DepthBounds ? tick : cross;
+            depthBounds.Text = String.Format("{0:F3} - {1:F3}", state.m_DepthState.NearBound, state.m_DepthState.FarBound);
+
+            stencilEnable.Image = state.m_StencilState.StencilEnable ? tick : cross;
+
             stencilFuncs.BeginUpdate();
             stencilFuncs.Nodes.Clear();
-            stencilFuncs.Nodes.Add(new object[] { "Front", "", "", 
-                                                 "", "" });
-            stencilFuncs.Nodes.Add(new object[] { "Back", "", "", 
-                                                 "", "" });
+            var sop = state.m_StencilState.m_FrontFace;
+            stencilFuncs.Nodes.Add(new object[] { "Front", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref, sop.WriteMask, sop.ValueMask });
+            sop = state.m_StencilState.m_BackFace;
+            stencilFuncs.Nodes.Add(new object[] { "Back", sop.Func, sop.FailOp, sop.DepthFailOp, sop.PassOp, sop.Ref, sop.WriteMask, sop.ValueMask });
             stencilFuncs.EndUpdate();
             stencilFuncs.NodesSelection.Clear();
 
