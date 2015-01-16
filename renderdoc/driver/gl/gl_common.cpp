@@ -452,35 +452,62 @@ const char *BlendString(GLenum blendenum)
 {
 	switch(blendenum)
 	{
-		case GL_FUNC_ADD:                         return "ADD";
-		case GL_FUNC_SUBTRACT:                    return "SUBTRACT";
-		case GL_FUNC_REVERSE_SUBTRACT:            return "INV_SUBTRACT";
-		case GL_MIN:                              return "MIN";
-		case GL_MAX:                              return "MAX";
-		case GL_ZERO:                             return "ZERO";
-		case GL_ONE:                              return "ONE";
-		case GL_SRC_COLOR:                        return "SRC_COLOR";
-		case GL_ONE_MINUS_SRC_COLOR:              return "INV_SRC_COLOR";
-		case GL_DST_COLOR:                        return "DST_COLOR";
-		case GL_ONE_MINUS_DST_COLOR:              return "INV_DST_COLOR";
-		case GL_SRC_ALPHA:                        return "SRC_ALPHA";
-		case GL_ONE_MINUS_SRC_ALPHA:              return "INV_SRC_ALPHA";
-		case GL_DST_ALPHA:                        return "DST_ALPHA";
-		case GL_ONE_MINUS_DST_ALPHA:              return "INV_DST_ALPHA";
-		case GL_CONSTANT_COLOR:                   return "CONST_COLOR";
-		case GL_ONE_MINUS_CONSTANT_COLOR:         return "INV_CONST_COLOR";
-		case GL_CONSTANT_ALPHA:                   return "CONST_ALPHA";
-		case GL_ONE_MINUS_CONSTANT_ALPHA:         return "INV_CONST_ALPHA";
-		case GL_SRC_ALPHA_SATURATE:               return "SRC_ALPHA_SAT";
-		case GL_SRC1_COLOR:                       return "SRC1_COL";
-		case GL_ONE_MINUS_SRC1_COLOR:             return "INV_SRC1_COL";
-		case GL_SRC1_ALPHA:                       return "SRC1_ALPHA";
-		case GL_ONE_MINUS_SRC1_ALPHA:             return "INV_SRC1_ALPHA";
+		case eGL_FUNC_ADD:                         return "ADD";
+		case eGL_FUNC_SUBTRACT:                    return "SUBTRACT";
+		case eGL_FUNC_REVERSE_SUBTRACT:            return "INV_SUBTRACT";
+		case eGL_MIN:                              return "MIN";
+		case eGL_MAX:                              return "MAX";
+		case  GL_ZERO:                             return "ZERO";
+		case  GL_ONE:                              return "ONE";
+		case eGL_SRC_COLOR:                        return "SRC_COLOR";
+		case eGL_ONE_MINUS_SRC_COLOR:              return "INV_SRC_COLOR";
+		case eGL_DST_COLOR:                        return "DST_COLOR";
+		case eGL_ONE_MINUS_DST_COLOR:              return "INV_DST_COLOR";
+		case eGL_SRC_ALPHA:                        return "SRC_ALPHA";
+		case eGL_ONE_MINUS_SRC_ALPHA:              return "INV_SRC_ALPHA";
+		case eGL_DST_ALPHA:                        return "DST_ALPHA";
+		case eGL_ONE_MINUS_DST_ALPHA:              return "INV_DST_ALPHA";
+		case eGL_CONSTANT_COLOR:                   return "CONST_COLOR";
+		case eGL_ONE_MINUS_CONSTANT_COLOR:         return "INV_CONST_COLOR";
+		case eGL_CONSTANT_ALPHA:                   return "CONST_ALPHA";
+		case eGL_ONE_MINUS_CONSTANT_ALPHA:         return "INV_CONST_ALPHA";
+		case eGL_SRC_ALPHA_SATURATE:               return "SRC_ALPHA_SAT";
+		case eGL_SRC1_COLOR:                       return "SRC1_COL";
+		case eGL_ONE_MINUS_SRC1_COLOR:             return "INV_SRC1_COL";
+		case eGL_SRC1_ALPHA:                       return "SRC1_ALPHA";
+		case eGL_ONE_MINUS_SRC1_ALPHA:             return "INV_SRC1_ALPHA";
 		default:
 			break;
 	}
 
 	static string unknown = ToStr::Get(blendenum).substr(3); // 3 = strlen("GL_");
+	
+	RDCERR("Unknown blend enum: %s", unknown.c_str());
+
+	return unknown.c_str();
+}
+
+const char *SamplerString(GLenum smpenum)
+{
+	switch(smpenum)
+	{
+		case eGL_NONE:                      return "NONE";
+		case eGL_NEAREST:                   return "NEAREST";
+		case eGL_LINEAR:                    return "LINEAR";
+		case eGL_NEAREST_MIPMAP_NEAREST:    return "NEAREST_MIP_NEAREST";
+		case eGL_LINEAR_MIPMAP_NEAREST:     return "LINEAR_MIP_NEAREST";
+		case eGL_NEAREST_MIPMAP_LINEAR:     return "NEAREST_MIP_LINEAR";
+		case eGL_LINEAR_MIPMAP_LINEAR:      return "LINEAR_MIP_LINEAR";
+		case eGL_CLAMP_TO_EDGE:             return "CLAMP_EDGE";
+		case eGL_MIRRORED_REPEAT:           return "MIRR_REPEAT";
+		case eGL_REPEAT:                    return "REPEAT";
+		case eGL_MIRROR_CLAMP_TO_EDGE:      return "MIRR_CLAMP_EDGE";
+		case eGL_CLAMP_TO_BORDER:           return "CLAMP_BORDER";
+		default:
+			break;
+	}
+
+	static string unknown = ToStr::Get(smpenum).substr(3); // 3 = strlen("GL_");
 	
 	RDCERR("Unknown blend enum: %s", unknown.c_str());
 

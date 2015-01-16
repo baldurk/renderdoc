@@ -1018,6 +1018,7 @@ void GLReplay::SavePipelineState()
 	GLint numTexUnits = 8;
 	gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
 	create_array_uninit(pipe.Textures, numTexUnits);
+	create_array_uninit(pipe.Samplers, numTexUnits);
 
 	GLenum activeTexture = eGL_TEXTURE0;
 	gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint*)&activeTexture);
@@ -1059,8 +1060,8 @@ void GLReplay::SavePipelineState()
 		{
 			for(GLint unit=0; unit < numTexUnits; unit++)
 			{
-				pipe.Textures[unit].FirstSlice = 0;
-				pipe.Textures[unit].Resource = ResourceId();
+				RDCEraseEl(pipe.Textures[unit]);
+				RDCEraseEl(pipe.Samplers[unit]);
 			}
 		}
 		else
@@ -1121,6 +1122,8 @@ void GLReplay::SavePipelineState()
 		GLenum binding = eGL_NONE;
 		GLenum target = eGL_NONE;
 
+		bool shadow = false;
+
 		for(size_t s=0; s < ARRAY_COUNT(refls); s++)
 		{
 			if(refls[s] == NULL) continue;
@@ -1131,6 +1134,9 @@ void GLReplay::SavePipelineState()
 				if(mappings[s]->Resources[ refls[s]->Resources[r].bindPoint ].bind == unit)
 				{
 					GLenum t = eGL_NONE;
+
+					if(strstr(refls[s]->Resources[r].variableType.descriptor.name.elems, "Shadow"))
+						shadow = true;
 
 					switch(refls[s]->Resources[r].resType)
 					{
@@ -1207,6 +1213,74 @@ void GLReplay::SavePipelineState()
 
 			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
 			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+			
+			GLuint samp;
+			gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+
+			pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
+
+			if(samp != 0)
+				gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+			else
+				gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+
+			pipe.Samplers[unit].UseBorder = false;
+			pipe.Samplers[unit].UseComparison = shadow;
+
+			GLint v;
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
+			pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
+			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
+			pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
+			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
+			pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
+			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+			
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
+			pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
+			
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
+			pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
+			
+			v=0;
+			if(samp != 0)
+				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
+			else
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
+			pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+
+			if(samp != 0)
+				gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+			else
+				gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+			
+			gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
+			gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
+			gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
 		}
 		else
 		{

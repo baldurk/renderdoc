@@ -101,6 +101,30 @@ namespace renderdoc
         public Texture[] Textures;
 
         [StructLayout(LayoutKind.Sequential)]
+        public class Sampler
+        {
+            public ResourceId Samp;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string AddressS, AddressT, AddressR;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            public float[] BorderColor;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string Comparison;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string MinFilter;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string MagFilter;
+            public bool UseBorder;
+            public bool UseComparison;
+            public float MaxAniso;
+            public float MaxLOD;
+            public float MinLOD;
+            public float MipLODBias;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public Sampler[] Samplers;
+
+        [StructLayout(LayoutKind.Sequential)]
         public class Buffer
         {
             public ResourceId Resource;

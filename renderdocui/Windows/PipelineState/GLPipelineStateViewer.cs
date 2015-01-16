@@ -199,9 +199,11 @@ namespace renderdocui.Windows.PipelineState
             samplers.Nodes.Clear();
             if (state.Textures != null)
             {
-                int i = 0;
-                foreach (var r in state.Textures)
+                for (int i = 0; i < state.Textures.Length; i++)
                 {
+                    var r = state.Textures[i];
+                    var s = state.Samplers[i];
+
                     ShaderResource shaderInput = null;
                     BindpointMap map = null;
 
@@ -226,79 +228,144 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string slotname = i.ToString();
-
-                        if (shaderInput != null && shaderInput.name != "")
-                            slotname += ": " + shaderInput.name;
-
-                        UInt32 w = 1, h = 1, d = 1;
-                        UInt32 a = 1;
-                        string format = "Unknown";
-                        string name = "Shader Resource " + r.Resource.ToString();
-                        string typename = "Unknown";
-                        object tag = null;
-
-                        if (!filledSlot)
+                        // do texture
                         {
-                            name = "Empty";
-                            format = "-";
-                            typename = "-";
-                            w = h = d = a = 0;
-                        }
+                            string slotname = i.ToString();
 
-                        // check to see if it's a texture
-                        for (int t = 0; t < texs.Length; t++)
-                        {
-                            if (texs[t].ID == r.Resource)
+                            if (shaderInput != null && shaderInput.name != "")
+                                slotname += ": " + shaderInput.name;
+
+                            UInt32 w = 1, h = 1, d = 1;
+                            UInt32 a = 1;
+                            string format = "Unknown";
+                            string name = "Shader Resource " + r.Resource.ToString();
+                            string typename = "Unknown";
+                            object tag = null;
+
+                            if (!filledSlot)
                             {
-                                w = texs[t].width;
-                                h = texs[t].height;
-                                d = texs[t].depth;
-                                a = texs[t].arraysize;
-                                format = texs[t].format.ToString();
-                                name = texs[t].name;
-                                typename = string.Format("Texture{0}D", texs[t].dimension);
-                                if (texs[t].cubemap)
-                                    typename = "TexCube";
-
-                                tag = texs[t];
+                                name = "Empty";
+                                format = "-";
+                                typename = "-";
+                                w = h = d = a = 0;
                             }
-                        }
 
-                        // if not a texture, it must be a buffer
-                        for (int t = 0; t < bufs.Length; t++)
-                        {
-                            if (bufs[t].ID == r.Resource)
+                            // check to see if it's a texture
+                            for (int t = 0; t < texs.Length; t++)
                             {
-                                w = bufs[t].length;
-                                h = 0;
-                                d = 0;
-                                a = 0;
-                                format = "";
-                                name = bufs[t].name;
-                                typename = "Buffer";
+                                if (texs[t].ID == r.Resource)
+                                {
+                                    w = texs[t].width;
+                                    h = texs[t].height;
+                                    d = texs[t].depth;
+                                    a = texs[t].arraysize;
+                                    format = texs[t].format.ToString();
+                                    name = texs[t].name;
+                                    typename = string.Format("Texture{0}D", texs[t].dimension);
+                                    if (texs[t].cubemap)
+                                        typename = "TexCube";
 
-                                // for structured buffers, display how many 'elements' there are in the buffer
-                                if (bufs[t].structureSize > 0)
-                                    typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
-
-                                tag = bufs[t];
+                                    tag = texs[t];
+                                }
                             }
+
+                            // if not a texture, it must be a buffer
+                            for (int t = 0; t < bufs.Length; t++)
+                            {
+                                if (bufs[t].ID == r.Resource)
+                                {
+                                    w = bufs[t].length;
+                                    h = 0;
+                                    d = 0;
+                                    a = 0;
+                                    format = "";
+                                    name = bufs[t].name;
+                                    typename = "Buffer";
+
+                                    // for structured buffers, display how many 'elements' there are in the buffer
+                                    if (bufs[t].structureSize > 0)
+                                        typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
+
+                                    tag = bufs[t];
+                                }
+                            }
+
+                            var node = textures.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
+
+                            node.Image = global::renderdocui.Properties.Resources.action;
+                            node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                            node.Tag = tag;
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
                         }
 
-                        var node = textures.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
+                        // do sampler
+                        {
+                            string slotname = i.ToString();
 
-                        node.Image = global::renderdocui.Properties.Resources.action;
-                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = tag;
+                            if (shaderInput != null && shaderInput.name.Length > 0)
+                                slotname += ": " + shaderInput.name;
 
-                        if (!filledSlot)
-                            EmptyRow(node);
+                            string borderColor = s.BorderColor[0].ToString() + ", " +
+                                                    s.BorderColor[1].ToString() + ", " +
+                                                    s.BorderColor[2].ToString() + ", " +
+                                                    s.BorderColor[3].ToString();
 
-                        if (!usedSlot)
-                            InactiveRow(node);
+                            string addressing = "";
+
+                            string addPrefix = "";
+                            string addVal = "";
+
+                            string[] addr = { s.AddressS, s.AddressT, s.AddressR };
+
+                            // arrange like either STR: WRAP or ST: WRAP, R: CLAMP
+                            for (int a = 0; a < 3; a++)
+                            {
+                                string prefix = "" + "STR"[a];
+
+                                if (a == 0 || addr[a] == addr[a - 1])
+                                {
+                                    addPrefix += prefix;
+                                }
+                                else
+                                {
+                                    addressing += addPrefix + ": " + addVal + ", ";
+
+                                    addPrefix = prefix;
+                                }
+                                addVal = addr[a];
+                            }
+
+                            addressing += addPrefix + ": " + addVal;
+
+                            if (s.UseBorder)
+                                addressing += String.Format("<{0}>", borderColor);
+
+                            string minfilter = s.MinFilter;
+
+                            if (s.MaxAniso > 1)
+                                minfilter += String.Format(" Aniso{0}x", s.MaxAniso);
+
+                            if (s.UseComparison)
+                                minfilter = String.Format("{0}", s.Comparison);
+
+                            var node = samplers.Nodes.Add(new object[] { slotname, addressing,
+                                                            minfilter, s.MagFilter,
+                                                            (s.MinLOD == -float.MaxValue ? "0" : s.MinLOD.ToString()) + " - " +
+                                                            (s.MaxLOD == float.MaxValue ? "FLT_MAX" : s.MaxLOD.ToString()),
+                                                            s.MipLODBias.ToString() });
+
+                            if (!filledSlot)
+                                EmptyRow(node);
+
+                            if (!usedSlot)
+                                InactiveRow(node);
+                        }
                     }
-                    i++;
                 }
             }
             textures.EndUpdate();

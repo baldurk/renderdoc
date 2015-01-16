@@ -74,6 +74,27 @@ struct GLPipelineState
 		uint32_t FirstSlice;
 	};
 	rdctype::array<Texture> Textures;
+	
+	struct Sampler
+	{
+		Sampler()
+			: Samp(), MaxAniso(0.0f), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
+			, UseBorder(false), UseComparison(false)
+		{ BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f; }
+		ResourceId Samp;
+		rdctype::str AddressS, AddressT, AddressR;
+		float BorderColor[4];
+		rdctype::str Comparison;
+		rdctype::str MinFilter;
+		rdctype::str MagFilter;
+		bool32 UseBorder;
+		bool32 UseComparison;
+		float MaxAniso;
+		float MaxLOD;
+		float MinLOD;
+		float MipLODBias;
+	};
+	rdctype::array<Sampler> Samplers;
 
 	struct Buffer
 	{
