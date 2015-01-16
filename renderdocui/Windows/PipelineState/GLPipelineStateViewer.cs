@@ -127,9 +127,6 @@ namespace renderdocui.Windows.PipelineState
             targetOutputs.Nodes.Clear();
             blendOperations.Nodes.Clear();
 
-            alphaToCoverage.Image = tick;
-            independentBlend.Image = tick;
-
             blendFactor.Text = "0.00, 0.00, 0.00, 0.00";
 
             sampleMask.Text = "FFFFFFFF";
@@ -723,6 +720,7 @@ namespace renderdocui.Windows.PipelineState
             for (int i = 0; i < 8; i++)
                 targets[i] = false;
 
+            vs = targetOutputs.VScrollValue();
             targetOutputs.BeginUpdate();
             targetOutputs.Nodes.Clear();
             {
@@ -841,11 +839,89 @@ namespace renderdocui.Windows.PipelineState
             }
             targetOutputs.EndUpdate();
             targetOutputs.NodesSelection.Clear();
+            targetOutputs.SetVScrollValue(vs);
 
+            vs = blendOperations.VScrollValue();
             blendOperations.BeginUpdate();
             blendOperations.Nodes.Clear();
+            {
+                bool logic = (state.m_FB.m_BlendState.Blends[0].LogicOp != "");
+
+                int i = 0;
+                foreach (var blend in state.m_FB.m_BlendState.Blends)
+                {
+                    bool filledSlot = (blend.Enabled == true || targets[i]);
+                    bool usedSlot = (targets[i]);
+
+                    // if logic operation is enabled, blending is disabled
+                    if (logic)
+                        filledSlot = (i == 0);
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        TreelistView.Node node = null;
+                        if (i == 0 && logic)
+                        {
+                            node = blendOperations.Nodes.Add(new object[] { i,
+                                                        true,
+
+                                                        "-",
+                                                        "-",
+                                                        blend.LogicOp,
+
+                                                        "-",
+                                                        "-",
+                                                        "-",
+
+                                                        ((blend.WriteMask & 0x1) == 0 ? "_" : "R") +
+                                                        ((blend.WriteMask & 0x2) == 0 ? "_" : "G") +
+                                                        ((blend.WriteMask & 0x4) == 0 ? "_" : "B") +
+                                                        ((blend.WriteMask & 0x8) == 0 ? "_" : "A")
+                            });
+                        }
+                        else
+                        {
+                            node = blendOperations.Nodes.Add(new object[] { i,
+                                                        blend.Enabled,
+
+                                                        blend.m_Blend.Source,
+                                                        blend.m_Blend.Destination,
+                                                        blend.m_Blend.Operation,
+
+                                                        blend.m_AlphaBlend.Source,
+                                                        blend.m_AlphaBlend.Destination,
+                                                        blend.m_AlphaBlend.Operation,
+
+                                                        ((blend.WriteMask & 0x1) == 0 ? "_" : "R") +
+                                                        ((blend.WriteMask & 0x2) == 0 ? "_" : "G") +
+                                                        ((blend.WriteMask & 0x4) == 0 ? "_" : "B") +
+                                                        ((blend.WriteMask & 0x8) == 0 ? "_" : "A")
+                            });
+                        }
+
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+
+                    i++;
+                }
+            }
             blendOperations.NodesSelection.Clear();
             blendOperations.EndUpdate();
+            blendOperations.SetVScrollValue(vs);
+
+            blendFactor.Text = state.m_FB.m_BlendState.BlendFactor[0].ToString("F2") + ", " +
+                                state.m_FB.m_BlendState.BlendFactor[1].ToString("F2") + ", " +
+                                state.m_FB.m_BlendState.BlendFactor[2].ToString("F2") + ", " +
+                                state.m_FB.m_BlendState.BlendFactor[3].ToString("F2");
 
             stencilFuncs.BeginUpdate();
             stencilFuncs.Nodes.Clear();

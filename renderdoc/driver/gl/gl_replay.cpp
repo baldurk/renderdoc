@@ -1359,6 +1359,34 @@ void GLReplay::SavePipelineState()
 
 	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
 	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+
+	memcpy(pipe.m_FB.m_Blending.BlendFactor, rs.BlendColor, sizeof(rs.BlendColor));
+
+	pipe.m_FB.FramebufferSRGB = rs.Enabled[GLRenderState::eEnabled_FramebufferSRGB];
+
+	RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Blends) == ARRAY_COUNT(rs.ColorMasks), "Color masks and blends mismatched");
+	create_array_uninit(pipe.m_FB.m_Blending.Blends, ARRAY_COUNT(rs.Blends));
+	for(size_t i=0; i < ARRAY_COUNT(rs.Blends); i++)
+	{
+		pipe.m_FB.m_Blending.Blends[i].Enabled = rs.Blends[i].Enabled;
+		pipe.m_FB.m_Blending.Blends[i].LogicOp = "";
+		if(rs.LogicOp != eGL_NONE && rs.LogicOp != eGL_COPY && rs.Enabled[GLRenderState::eEnabled_ColorLogicOp])
+			pipe.m_FB.m_Blending.Blends[i].LogicOp = ToStr::Get(rs.LogicOp).substr(3); // 3 == strlen("GL_")
+
+		pipe.m_FB.m_Blending.Blends[i].m_Blend.Source = BlendString(rs.Blends[i].SourceRGB);
+		pipe.m_FB.m_Blending.Blends[i].m_Blend.Destination = BlendString(rs.Blends[i].DestinationRGB);
+		pipe.m_FB.m_Blending.Blends[i].m_Blend.Operation = BlendString(rs.Blends[i].EquationRGB);
+
+		pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Source = BlendString(rs.Blends[i].SourceAlpha);
+		pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Destination = BlendString(rs.Blends[i].DestinationAlpha);
+		pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Operation = BlendString(rs.Blends[i].EquationAlpha);
+
+		pipe.m_FB.m_Blending.Blends[i].WriteMask = 0;
+		if(rs.ColorMasks[i].red)   pipe.m_FB.m_Blending.Blends[i].WriteMask |= 1;
+		if(rs.ColorMasks[i].green) pipe.m_FB.m_Blending.Blends[i].WriteMask |= 2;
+		if(rs.ColorMasks[i].blue)  pipe.m_FB.m_Blending.Blends[i].WriteMask |= 4;
+		if(rs.ColorMasks[i].alpha) pipe.m_FB.m_Blending.Blends[i].WriteMask |= 8;
+	}
 }
 
 void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,

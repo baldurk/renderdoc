@@ -126,8 +126,36 @@ struct GLPipelineState
 
 		ResourceId FBO;
 
+		bool32 FramebufferSRGB;
+
 		rdctype::array<ResourceId> Color;
 		ResourceId Depth;
 		ResourceId Stencil;
+		
+		struct BlendState
+		{
+			BlendState()
+			{ BlendFactor[0] = BlendFactor[1] = BlendFactor[2] = BlendFactor[3] = 0.0f; }
+
+			struct RTBlend
+			{
+				RTBlend() : Enabled(false), WriteMask(0) {}
+				struct BlendOp
+				{
+					rdctype::str Source;
+					rdctype::str Destination;
+					rdctype::str Operation;
+				} m_Blend, m_AlphaBlend;
+
+				rdctype::str LogicOp;
+
+				bool32 Enabled;
+				byte WriteMask;
+			};
+			rdctype::array<RTBlend> Blends;
+
+			float BlendFactor[4];
+		} m_Blending;
+
 	} m_FB;
 };

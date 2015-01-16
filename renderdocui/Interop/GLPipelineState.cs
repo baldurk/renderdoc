@@ -157,10 +157,46 @@ namespace renderdoc
         {
             public ResourceId FBO;
 
+            bool FramebufferSRGB;
+
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public ResourceId[] Color;
             public ResourceId Depth;
             public ResourceId Stencil;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class BlendState
+            {
+                [StructLayout(LayoutKind.Sequential)]
+                public class RTBlend
+                {
+                    [StructLayout(LayoutKind.Sequential)]
+                    public class BlendOp
+                    {
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string Source;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string Destination;
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                        public string Operation;
+                    };
+                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                    public BlendOp m_Blend, m_AlphaBlend;
+
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                    public string LogicOp;
+
+                    public bool Enabled;
+                    public byte WriteMask;
+                };
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public RTBlend[] Blends;
+
+                [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+                public float[] BlendFactor;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public BlendState m_BlendState;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public FrameBuffer m_FB;
