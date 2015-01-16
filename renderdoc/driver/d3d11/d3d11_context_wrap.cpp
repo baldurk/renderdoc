@@ -809,6 +809,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(ID3D11VertexShader *pShad
 		VerifyState();
 	}
 
+	SAFE_DELETE_ARRAY(Instances);
+
 	return true;
 }
 
@@ -1168,6 +1170,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(ID3D11HullShader *pShader
 		VerifyState();
 	}
 
+	SAFE_DELETE_ARRAY(Instances);
+
 	return true;
 }
 
@@ -1526,6 +1530,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(ID3D11DomainShader *pShad
 		VerifyState();
 	}
 
+	SAFE_DELETE_ARRAY(Instances);
+
 	return true;
 }
 
@@ -1883,6 +1889,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(ID3D11GeometryShader *pSh
 		m_pRealContext->GSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11GeometryShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
 	}
+
+	SAFE_DELETE_ARRAY(Instances);
 
 	return true;
 }
@@ -2650,6 +2658,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(ID3D11PixelShader *pShade
 		m_pRealContext->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
 	}
+
+	SAFE_DELETE_ARRAY(Instances);
 
 	return true;
 }
@@ -4320,6 +4330,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(ID3D11ComputeShader *pSha
 		m_pRealContext->CSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11ComputeShader>, pShader), Instances, NumClassInstances);
 		VerifyState();
 	}
+
+	SAFE_DELETE_ARRAY(Instances);
 
 	return true;
 }
