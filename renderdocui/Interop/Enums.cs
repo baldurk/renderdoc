@@ -447,7 +447,7 @@ namespace renderdoc
                 case ReplayCreateStatus.FileCorrupted: return "Logfile data is corrupted";
                 case ReplayCreateStatus.APIUnsupported: return "API used in logfile is not supported";
                 case ReplayCreateStatus.APIInitFailed: return "Replay API failed to initialise";
-                case ReplayCreateStatus.APIIncompatibleVersion: return "API-speciifc data used in logfile is of an incompatible version";
+                case ReplayCreateStatus.APIIncompatibleVersion: return "API-specific data used in logfile is of an incompatible version";
                 case ReplayCreateStatus.APIHardwareUnsupported: return "Your hardware or software configuration doesn't meet this API's minimum requirements";
             }
 
