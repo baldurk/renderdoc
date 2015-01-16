@@ -116,6 +116,7 @@ class WrappedIDXGISwapChain2 : public SWAPCHAINPARENT, public RefCountDXGIObject
 {
 	IDXGISwapChain* m_pReal;
 #if defined(INCLUDE_DXGI_1_2)
+	IDXGISwapChain1* m_pReal1;
 	IDXGISwapChain2* m_pReal2;
 #endif
 	WrappedID3D11Device *m_pDevice;

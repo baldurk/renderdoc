@@ -239,6 +239,8 @@ WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain* real, HWND wnd, W
 	real->GetDesc(&desc);
 	
 #if defined(INCLUDE_DXGI_1_2)
+	m_pReal1 = NULL;
+	real->QueryInterface(__uuidof(IDXGISwapChain1), (void **)&m_pReal1);
 	m_pReal2 = NULL;
 	real->QueryInterface(__uuidof(IDXGISwapChain2), (void **)&m_pReal2);
 #endif
@@ -288,6 +290,7 @@ WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 		m_pBackBuffers[i] = NULL;
 	}
 #if defined(INCLUDE_DXGI_1_2)
+	SAFE_RELEASE(m_pReal1);
 	SAFE_RELEASE(m_pReal2);
 #endif
 	SAFE_RELEASE(m_pReal);
@@ -579,9 +582,29 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain2::QueryInterface(REFIID riid, vo
 #if defined(INCLUDE_DXGI_1_2)
 	else if(riid == __uuidof(IDXGISwapChain1))
 	{
-		AddRef();
-		*ppvObject = (IDXGISwapChain1 *)this;
-		return S_OK;
+		if(m_pReal1)
+		{
+			AddRef();
+			*ppvObject = (IDXGISwapChain1 *)this;
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
+	}
+	else if(riid == __uuidof(IDXGISwapChain2))
+	{
+		if(m_pReal2)
+		{
+			AddRef();
+			*ppvObject = (IDXGISwapChain2 *)this;
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 #endif
 	else
@@ -612,6 +635,8 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice::QueryInterface( REFIID riid, void 
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface( REFIID riid, void **ppvObject )
 {
+	HRESULT hr = S_OK;
+
 	if(riid == __uuidof(ID3D11Device))
 	{
 		m_pD3DDevice->AddRef();
@@ -627,19 +652,33 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface( REFIID riid, void
 #if defined(INCLUDE_DXGI_1_2)
 	else if(riid == __uuidof(IDXGIDevice2))
 	{
-		m_pReal->QueryInterface(riid, ppvObject);
+		hr = m_pReal->QueryInterface(riid, ppvObject);
 
-		IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice2(real, m_pD3DDevice);
-		return S_OK;
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice2(real, m_pD3DDevice);
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else if(riid == __uuidof(IDXGIDevice3))
 	{
-		m_pReal->QueryInterface(riid, ppvObject);
+		hr = m_pReal->QueryInterface(riid, ppvObject);
 
-		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
-		return S_OK;
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 #endif
 	else
@@ -675,11 +714,18 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface( REFIID riid, void
 	}
 	else if(riid == __uuidof(IDXGIDevice3))
 	{
-		m_pReal->QueryInterface(riid, ppvObject);
-
-		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
-		return S_OK;
+		HRESULT hr = m_pReal->QueryInterface(riid, ppvObject);
+		
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice3(real, m_pD3DDevice);
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else
 	{

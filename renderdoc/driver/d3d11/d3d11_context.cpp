@@ -1326,6 +1326,8 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID riid, void **ppvObject )
 {
+	HRESULT hr = S_OK;
+
 	if(riid == __uuidof(ID3D11DeviceContext))
 	{
 		*ppvObject = (ID3D11DeviceContext *)this;
@@ -1341,16 +1343,30 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface( REFIID rii
 #if defined(INCLUDE_D3D_11_1)
 	else if(riid == __uuidof(ID3D11DeviceContext1))
 	{
-		*ppvObject = (ID3D11DeviceContext1 *)this;
-		AddRef();
-		return S_OK;
+		if(m_pRealContext1)
+		{
+			*ppvObject = (ID3D11DeviceContext1 *)this;
+			AddRef();
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else if(riid == __uuidof(ID3D11DeviceContext2))
 	{
-		*ppvObject = (ID3D11DeviceContext2 *)this;
-		AddRef();
-		RDCWARN("Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
-		return S_OK;
+		if(m_pRealContext2)
+		{
+			*ppvObject = (ID3D11DeviceContext2 *)this;
+			AddRef();
+			RDCWARN("Trying to get ID3D11DeviceContext2. DX11.2 tiled resources are not supported at this time.");
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else if(riid == __uuidof(ID3DUserDefinedAnnotation))
 	{

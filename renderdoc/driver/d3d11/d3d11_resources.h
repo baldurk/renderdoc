@@ -156,6 +156,18 @@ public:
 	
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
 	{
+		// ensure the real object has this interface
+		void *outObj;
+		HRESULT hr = m_pWrapped->QueryInterface(riid, &outObj);
+
+		IUnknown *unk = (IUnknown *)outObj;
+		SAFE_RELEASE(unk);
+
+		if(FAILED(hr))
+		{
+			return hr;
+		}
+
 		if(riid == __uuidof(IDXGIObject))
 		{
 			*ppvObject = (IDXGIObject *)(IDXGIKeyedMutex *)this;

@@ -493,38 +493,72 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	// DEFINE_GUID(IID_IDirect3DDevice9, 0xd0223b96, 0xbf7a, 0x43fd, 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb);
 	static const GUID IDirect3DDevice9_uuid = { 0xd0223b96, 0xbf7a, 0x43fd, { 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb } };
 
+	HRESULT hr = S_OK;
+
 	if(riid == __uuidof(IDXGIDevice))
 	{
-		m_pDevice->QueryInterface(riid, ppvObject);
+		hr = m_pDevice->QueryInterface(riid, ppvObject);
 
-		IDXGIDevice *real = (IDXGIDevice *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice(real, this);
-		return S_OK;
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice *real = (IDXGIDevice *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice(real, this);
+			return S_OK;
+		}
+		else
+		{
+			*ppvObject = NULL;
+			return hr;
+		}
 	}
 	else if(riid == __uuidof(IDXGIDevice1))
 	{
-		m_pDevice->QueryInterface(riid, ppvObject);
-
-		IDXGIDevice1 *real = (IDXGIDevice1 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice1(real, this);
-		return S_OK;
+		hr = m_pDevice->QueryInterface(riid, ppvObject);
+		
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice1 *real = (IDXGIDevice1 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice1(real, this);
+			return S_OK;
+		}
+		else
+		{
+			*ppvObject = NULL;
+			return hr;
+		}
 	}
 #if defined(INCLUDE_DXGI_1_2)
 	else if(riid == __uuidof(IDXGIDevice2))
 	{
-		m_pDevice->QueryInterface(riid, ppvObject);
-
-		IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice2(real, this);
-		return S_OK;
+		hr = m_pDevice->QueryInterface(riid, ppvObject);
+		
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice2(real, this);
+			return S_OK;
+		}
+		else
+		{
+			*ppvObject = NULL;
+			return hr;
+		}
 	}
 	else if(riid == __uuidof(IDXGIDevice3))
 	{
-		m_pDevice->QueryInterface(riid, ppvObject);
-
-		IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-		*ppvObject = new WrappedIDXGIDevice3(real, this);
-		return S_OK;
+		hr = m_pDevice->QueryInterface(riid, ppvObject);
+		
+		if(SUCCEEDED(hr))
+		{
+			IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
+			*ppvObject = new WrappedIDXGIDevice3(real, this);
+			return S_OK;
+		}
+		else
+		{
+			*ppvObject = NULL;
+			return hr;
+		}
 	}
 #endif
 	else if(riid == __uuidof(ID3D11Device))
@@ -548,16 +582,30 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 #if defined(INCLUDE_D3D_11_1)
 	else if(riid == __uuidof(ID3D11Device1))
 	{
-		AddRef();
-		*ppvObject = (ID3D11Device1 *)this;
-		return S_OK;
+		if(m_pDevice1)
+		{
+			AddRef();
+			*ppvObject = (ID3D11Device1 *)this;
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else if(riid == __uuidof(ID3D11Device2))
 	{
-		AddRef();
-		*ppvObject = (ID3D11Device2 *)this;
-		RDCWARN("Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
-		return S_OK;
+		if(m_pDevice2)
+		{
+			AddRef();
+			*ppvObject = (ID3D11Device2 *)this;
+			RDCWARN("Trying to get ID3D11Device2. DX11.2 tiled resources are not supported at this time.");
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else if(riid == __uuidof(ID3D11ShaderTraceFactory))
 	{
