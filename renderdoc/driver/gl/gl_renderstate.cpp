@@ -272,11 +272,13 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
+			eGL_SAMPLE_SHADING,
 			eGL_RASTER_MULTISAMPLE_EXT,
 			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
+			eGL_RASTERIZER_DISCARD,
 		};
 
 		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
@@ -302,12 +304,34 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 	
-	// TODO fetch bindings for other types than 2D
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D, (GLint*)&Tex1D[i]);
 		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&Tex2D[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_3D, (GLint*)&Tex3D[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D_ARRAY, (GLint*)&Tex1DArray[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint*)&Tex2DArray[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint*)&TexCubeArray[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_RECTANGLE, (GLint*)&TexRect[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint*)&TexBuffer[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint*)&TexCube[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint*)&Tex2DMS[i]);
+		m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY, (GLint*)&Tex2DMSArray[i]);
 		m_Real->glGetIntegerv(eGL_SAMPLER_BINDING, (GLint*)&Samplers[i]);
+	}
+	
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Images); i++)
+	{
+		GLboolean layered = GL_FALSE;
+
+		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_NAME, (GLint*)&Images[i].name);
+		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_LEVEL, (GLint*)&Images[i].level);
+		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_ACCESS, (GLint*)&Images[i].access);
+		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_FORMAT, (GLint*)&Images[i].format);
+		m_Real->glGetBooleanv(eGL_IMAGE_BINDING_LAYERED, &layered); Images[i].layered = (layered == GL_TRUE);
+		if(layered)
+			m_Real->glGetIntegerv(eGL_IMAGE_BINDING_LAYER, (GLint*)&Images[i].layer);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
@@ -572,11 +596,13 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_ALPHA_TO_ONE,
 			eGL_SAMPLE_COVERAGE,
 			eGL_SAMPLE_MASK,
+			eGL_SAMPLE_SHADING,
 			eGL_RASTER_MULTISAMPLE_EXT,
 			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
+			eGL_RASTERIZER_DISCARD,
 		};
 		
 		RDCCOMPILE_ASSERT(ARRAY_COUNT(pnames) == eEnabled_Count, "Wrong number of pnames");
@@ -597,8 +623,26 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
+		m_Real->glBindTexture(eGL_TEXTURE_1D, Tex1D[i]);
 		m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_3D, Tex3D[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_1D_ARRAY, Tex1DArray[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, TexCubeArray[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i]);
+		m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, Tex2DMSArray[i]);
 		m_Real->glBindSampler(i, Samplers[i]);
+	}
+	
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Images); i++)
+	{
+		m_Real->glBindImageTexture(i,
+			Images[i].name, (GLint)Images[i].level,
+			Images[i].layered, (GLint)Images[i].layer,
+			Images[i].access, Images[i].format);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
@@ -818,10 +862,22 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 void GLRenderState::Clear()
 {
 	RDCEraseEl(Enabled);
-
+	
+	RDCEraseEl(Tex1D);
 	RDCEraseEl(Tex2D);
+	RDCEraseEl(Tex3D);
+	RDCEraseEl(Tex1DArray);
+	RDCEraseEl(Tex2DArray);
+	RDCEraseEl(TexCubeArray);
+	RDCEraseEl(TexRect);
+	RDCEraseEl(TexBuffer);
+	RDCEraseEl(TexCube);
+	RDCEraseEl(Tex2DMS);
+	RDCEraseEl(Tex2DMSArray);
 	RDCEraseEl(Samplers);
 	RDCEraseEl(ActiveTexture);
+	
+	RDCEraseEl(Images);
 	
 	RDCEraseEl(Program);
 	RDCEraseEl(Pipeline);
@@ -893,13 +949,50 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	// TODO check GL_MAX_*
 
 	m_pSerialiser->Serialise<eEnabled_Count>("GL_ENABLED", Enabled);
-	
-	for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
+
+	ResourceId ids[128];
+
+	GLuint *texArrays[] = {
+		Tex1D,
+		Tex2D,
+		Tex3D,
+		Tex1DArray,
+		Tex2DArray,
+		TexCubeArray,
+		TexRect,
+		TexBuffer,
+		TexCube,
+		Tex2DMS,
+		Tex2DMSArray,
+		Samplers,
+	};
+
+	const char *names[] = {
+		"GL_TEXTURE_BINDING_1D",
+		"GL_TEXTURE_BINDING_2D",
+		"GL_TEXTURE_BINDING_3D",
+		"GL_TEXTURE_BINDING_1D_ARRAY",
+		"GL_TEXTURE_BINDING_2D_ARRAY",
+		"GL_TEXTURE_BINDING_CUBE_MAP_ARRAY",
+		"GL_TEXTURE_BINDING_RECTANGLE",
+		"GL_TEXTURE_BINDING_BUFFER",
+		"GL_TEXTURE_BINDING_CUBE_MAP",
+		"GL_TEXTURE_BINDING_2D_MULTISAMPLE",
+		"GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY",
+	};
+
+	for(int t=0; t < ARRAY_COUNT(texArrays); t++)
 	{
-		ResourceId ID = ResourceId();
-		if(state >= WRITING) ID = rm->GetID(TextureRes(ctx, Tex2D[i]));
-		m_pSerialiser->Serialise("GL_TEXTURE_BINDING_2D", ID);
-		if(state < WRITING && ID != ResourceId()) Tex2D[i] = rm->GetLiveResource(ID).name;
+		RDCEraseEl(ids);
+		if(state >= WRITING)
+			for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
+				if(texArrays[t][i]) ids[i] = rm->GetID(TextureRes(ctx, texArrays[t][i]));
+
+		m_pSerialiser->Serialise<ARRAY_COUNT(Tex2D)>(names[t], ids);
+
+		if(state < WRITING)
+			for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
+				if(ids[i] != ResourceId()) texArrays[t][i] = rm->GetLiveResource(ids[i]).name;
 	}
 	
 	for(size_t i=0; i < ARRAY_COUNT(Samplers); i++)
@@ -909,7 +1002,20 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_SAMPLER_BINDING", ID);
 		if(state < WRITING && ID != ResourceId()) Samplers[i] = rm->GetLiveResource(ID).name;
 	}
-
+	
+	for(size_t i=0; i < ARRAY_COUNT(Images); i++)
+	{
+		ResourceId ID = ResourceId();
+		if(state >= WRITING) ID = rm->GetID(TextureRes(ctx, Images[i].name));
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_NAME", ID);
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_LEVEL", Images[i].level);
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_LAYERED", Images[i].layered);
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_LAYER", Images[i].layer);
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_ACCESS", Images[i].access);
+		m_pSerialiser->Serialise("GL_IMAGE_BINDING_FORMAT", Images[i].format);
+		if(state < WRITING && ID != ResourceId()) Images[i].name = rm->GetLiveResource(ID).name;
+	}
+	
 	m_pSerialiser->Serialise("GL_ACTIVE_TEXTURE", ActiveTexture);
 	
 	{

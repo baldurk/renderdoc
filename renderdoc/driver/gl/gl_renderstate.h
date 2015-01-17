@@ -89,21 +89,42 @@ struct GLRenderState
 		eEnabled_SampleAlphaToOne,
 		eEnabled_SampleCoverage,
 		eEnabled_SampleMask,
+		eEnabled_SampleShading,
 		eEnabled_RasterMultisample,
 		eEnabled_RasterMultisampleFixed,
 		//eEnabled_ScissorTest, handled below with scissor values
 		eEnabled_StencilTest,
 		eEnabled_TexCubeSeamless,
 		eEnabled_BlendCoherent,
+		eEnabled_RasterizerDiscard,
 		eEnabled_Count,
 	};
 
 	bool Enabled[eEnabled_Count];
 
-	//
+	uint32_t Tex1D[128];
 	uint32_t Tex2D[128];
+	uint32_t Tex3D[128];
+	uint32_t Tex1DArray[128];
+	uint32_t Tex2DArray[128];
+	uint32_t TexCubeArray[128];
+	uint32_t TexRect[128];
+	uint32_t TexBuffer[128];
+	uint32_t TexCube[128];
+	uint32_t Tex2DMS[128];
+	uint32_t Tex2DMSArray[128];
 	uint32_t Samplers[128];
 	GLenum ActiveTexture;
+
+	struct
+	{
+		uint32_t name;
+		uint32_t level;
+		bool layered;
+		uint32_t layer;
+		GLenum access;
+		GLenum format;
+	} Images[8];
 
 	GLuint Program;
 	GLuint Pipeline;
@@ -177,11 +198,6 @@ struct GLRenderState
 	// Other FBOs serialise them in their resource records.
 	GLenum ReadBuffer;
 	GLenum DrawBuffers[8];
-
-	// TODO:
-	// Image state (GL_IMAGE_BINDING_NAME)
-	// multisampling
-	// other misc state :)
 	
 	struct
 	{
