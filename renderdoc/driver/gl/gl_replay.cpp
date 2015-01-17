@@ -431,7 +431,6 @@ void GLReplay::CacheTexture(ResourceId id)
 	if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
 		levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
-	// TODO if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
 	GLint width = 1, height = 1, depth = 1, samples=1;
 	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
 	gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);

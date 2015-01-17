@@ -1280,8 +1280,6 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 			return record->Map.ptr;
 		}
 
-		// TODO align return pointer to GL_MIN_MAP_BUFFER_ALIGNMENT (min 64)
-
 		if(access == eGL_READ_ONLY)
 		{
 			record->Map.status = GLResourceRecord::Mapped_Read_Real;
