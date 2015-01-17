@@ -96,6 +96,9 @@ namespace renderdoc
             public ResourceId Resource;
             public UInt32 FirstSlice;
             public ShaderResourceType ResType;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            public TextureSwizzle[] Swizzle;
+            public Int32 DepthReadChannel;
         };
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public Texture[] Textures;

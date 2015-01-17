@@ -265,6 +265,29 @@ namespace renderdocui.Windows.PipelineState
                                     name = texs[t].name;
                                     typename = texs[t].resType.ToString();
 
+                                    if (texs[t].format.special &&
+                                        (texs[t].format.specialFormat == SpecialFormat.D24S8 ||
+                                         texs[t].format.specialFormat == SpecialFormat.D32S8)
+                                        )
+                                    {
+                                        if (r.DepthReadChannel == 0)
+                                            format += " Depth-Read";
+                                        else if (r.DepthReadChannel == 1)
+                                            format += " Stencil-Read";
+                                    }
+                                    else if (
+                                        r.Swizzle[0] != TextureSwizzle.Red ||
+                                        r.Swizzle[1] != TextureSwizzle.Green ||
+                                        r.Swizzle[2] != TextureSwizzle.Blue ||
+                                        r.Swizzle[3] != TextureSwizzle.Alpha)
+                                    {
+                                        format += String.Format(" swizzle[{0}{1}{2}{3}]",
+                                            r.Swizzle[0].Str(),
+                                            r.Swizzle[1].Str(),
+                                            r.Swizzle[2].Str(),
+                                            r.Swizzle[3].Str());
+                                    }
+
                                     tag = texs[t];
                                 }
                             }

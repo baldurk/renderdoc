@@ -48,6 +48,16 @@ namespace renderdoc
         Double,
     };
 
+    public enum TextureSwizzle
+    {
+        Red,
+        Green,
+        Blue,
+        Alpha,
+        Zero,
+        One,
+    };
+
     public enum ShaderResourceType
     {
         None,
@@ -432,6 +442,21 @@ namespace renderdoc
             }
 
             return "Unknown Type";
+        }
+
+        public static string Str(this TextureSwizzle swiz)
+        {
+            switch (swiz)
+            {
+                case TextureSwizzle.Red: return "R";
+                case TextureSwizzle.Green: return "G";
+                case TextureSwizzle.Blue: return "B";
+                case TextureSwizzle.Alpha: return "A";
+                case TextureSwizzle.Zero: return "0";
+                case TextureSwizzle.One: return "1";
+            }
+
+            return "Unknown";
         }
 
         public static string Str(this ReplayCreateStatus status)

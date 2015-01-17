@@ -46,6 +46,16 @@ enum FormatComponentType
 	eCompType_Double,
 };
 
+enum TextureSwizzle
+{
+	eSwizzle_Red,
+	eSwizzle_Green,
+	eSwizzle_Blue,
+	eSwizzle_Alpha,
+	eSwizzle_Zero,
+	eSwizzle_One,
+};
+
 enum ShaderResourceType
 {
 	eResType_None,

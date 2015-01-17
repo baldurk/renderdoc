@@ -73,6 +73,9 @@ struct GLPipelineState
 		ResourceId Resource;
 		uint32_t FirstSlice;
 		ShaderResourceType ResType;
+
+		TextureSwizzle Swizzle[4];
+		int32_t DepthReadChannel;
 	};
 	rdctype::array<Texture> Textures;
 	

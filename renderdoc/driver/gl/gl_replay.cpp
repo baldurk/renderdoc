@@ -1259,7 +1259,53 @@ void GLReplay::SavePipelineState()
 			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
 			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
 			pipe.Textures[unit].ResType = resType;
-			
+
+			pipe.Textures[unit].DepthReadChannel = -1;
+
+			GLenum levelQueryType = target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
+			GLenum fmt = eGL_NONE;
+			gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+			if(IsDepthStencilFormat(fmt))
+			{
+				GLint depthMode;
+				gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+
+				if(depthMode == eGL_DEPTH_COMPONENT)
+					pipe.Textures[unit].DepthReadChannel = 0;
+				else if(depthMode == eGL_STENCIL_INDEX)
+					pipe.Textures[unit].DepthReadChannel = 1;
+			}
+
+			GLint swizzles[4] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
+			if(target != eGL_TEXTURE_BUFFER)
+				gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+
+			for(int i=0; i < 4; i++)
+			{
+				switch(swizzles[i])
+				{
+					default:
+					case GL_ZERO:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_Zero;
+						break;
+					case GL_ONE:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_One;
+						break;
+					case eGL_RED:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_Red;
+						break;
+					case eGL_GREEN:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_Green;
+						break;
+					case eGL_BLUE:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_Blue;
+						break;
+					case eGL_ALPHA:
+						pipe.Textures[unit].Swizzle[i] = eSwizzle_Alpha;
+						break;
+				}
+			}
+
 			GLuint samp;
 			gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
 
