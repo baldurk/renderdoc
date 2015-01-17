@@ -263,9 +263,7 @@ namespace renderdocui.Windows.PipelineState
                                     a = texs[t].arraysize;
                                     format = texs[t].format.ToString();
                                     name = texs[t].name;
-                                    typename = string.Format("Texture{0}D", texs[t].dimension);
-                                    if (texs[t].cubemap)
-                                        typename = "TexCube";
+                                    typename = texs[t].resType.ToString();
 
                                     tag = texs[t];
                                 }
@@ -957,9 +955,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = string.Format("Texture{0}D", texs[t].dimension);
-                                if (texs[t].cubemap)
-                                    typename = "TexCube";
+                                typename = texs[t].resType.ToString();
 
                                 tag = texs[t];
 
@@ -1019,9 +1015,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = string.Format("Texture{0}D", texs[t].dimension);
-                                if (texs[t].cubemap)
-                                    typename = "TexCube";
+                                typename = texs[t].resType.ToString();
 
                                 tag = texs[t];
                             }

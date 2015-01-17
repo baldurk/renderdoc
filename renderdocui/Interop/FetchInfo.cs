@@ -248,6 +248,7 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ResourceFormat format;
         public UInt32 dimension;
+        public ShaderResourceType resType;
         public UInt32 width, height, depth;
         public ResourceId ID;
         public bool cubemap;

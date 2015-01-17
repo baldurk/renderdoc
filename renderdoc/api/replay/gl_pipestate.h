@@ -72,6 +72,7 @@ struct GLPipelineState
 	{
 		ResourceId Resource;
 		uint32_t FirstSlice;
+		ShaderResourceType ResType;
 	};
 	rdctype::array<Texture> Textures;
 	

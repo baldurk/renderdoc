@@ -95,6 +95,7 @@ struct FetchTexture
 	bool32 customName;
 	ResourceFormat format;
 	uint32_t dimension;
+	ShaderResourceType resType;
 	uint32_t width, height, depth;
 	ResourceId ID;
 	bool32 cubemap;

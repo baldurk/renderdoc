@@ -87,6 +87,8 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.mips = tex.numSubresources;
 		tex.arraysize = desc.ArraySize;
 		
+		tex.resType = tex.arraysize > 1 ? eResType_Texture1DArray : eResType_Texture1D;
+		
 		tex.msQual = 0; tex.msSamp = 1;
 
 		tex.numSubresources *= desc.ArraySize;
@@ -165,6 +167,12 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 
 		tex.msQual = desc.SampleDesc.Quality; tex.msSamp = desc.SampleDesc.Count;
 
+		tex.resType = tex.arraysize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
+		if(tex.cubemap)
+			tex.resType = tex.arraysize > 1 ? eResType_TextureCubeArray : eResType_TextureCube;
+		if(tex.msSamp > 1)
+			tex.resType = tex.arraysize > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
+
 		tex.numSubresources *= desc.ArraySize;
 		
 		tex.customName = true;
@@ -228,6 +236,8 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 		tex.format = MakeResourceFormat(desc.Format);
 
 		tex.numSubresources = desc.MipLevels;
+
+		tex.resType = eResType_Texture3D;
 
 		tex.creationFlags = 0;
 		if(desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)

@@ -94,8 +94,8 @@ namespace renderdoc
         public class Texture
         {
             public ResourceId Resource;
-
             public UInt32 FirstSlice;
+            public ShaderResourceType ResType;
         };
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public Texture[] Textures;

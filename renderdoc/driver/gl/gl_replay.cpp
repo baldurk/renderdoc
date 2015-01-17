@@ -360,6 +360,7 @@ void GLReplay::CacheTexture(ResourceId id)
 		tex.customName = false;
 		tex.format = ResourceFormat();
 		tex.dimension = 1;
+		tex.resType = eResType_None;
 		tex.width = tex.height = tex.depth = 1;
 		tex.cubemap = false;
 		tex.mips = 1;
@@ -377,6 +378,7 @@ void GLReplay::CacheTexture(ResourceId id)
 	if(res.resource.Namespace == eResRenderbuffer || res.curType == eGL_RENDERBUFFER)
 	{
 		tex.dimension = 2;
+		tex.resType = eResType_Texture2D;
 		tex.width = res.width;
 		tex.height = res.height;
 		tex.depth = 1;
@@ -458,7 +460,48 @@ void GLReplay::CacheTexture(ResourceId id)
 	tex.msSamp = 1;
 	tex.width = tex.height = tex.depth = tex.arraysize = 1;
 	tex.cubemap = false;
+	
+	switch(target)
+	{
+		case eGL_TEXTURE_BUFFER:
+			tex.resType = eResType_Buffer;
+			break;
+		case eGL_TEXTURE_1D:
+			tex.resType = eResType_Texture1D;
+			break;
+		case eGL_TEXTURE_2D:
+			tex.resType = eResType_Texture2D;
+			break;
+		case eGL_TEXTURE_3D:
+			tex.resType = eResType_Texture3D;
+			break;
+		case eGL_TEXTURE_1D_ARRAY:
+			tex.resType = eResType_Texture1DArray;
+			break;
+		case eGL_TEXTURE_2D_ARRAY:
+			tex.resType = eResType_Texture2DArray;
+			break;
+		case eGL_TEXTURE_RECTANGLE:
+			tex.resType = eResType_TextureRect;
+			break;
+		case eGL_TEXTURE_2D_MULTISAMPLE:
+			tex.resType = eResType_Texture2DMS;
+			break;
+		case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+			tex.resType = eResType_Texture2DMSArray;
+			break;
+		case eGL_TEXTURE_CUBE_MAP:
+			tex.resType = eResType_TextureCube;
+			break;
+		case eGL_TEXTURE_CUBE_MAP_ARRAY:
+			tex.resType = eResType_TextureCubeArray;
+			break;
 
+		default:
+			tex.resType = eResType_None;
+			RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
+	}
+	
 	switch(target)
 	{
 		case eGL_TEXTURE_1D:
@@ -1120,6 +1163,7 @@ void GLReplay::SavePipelineState()
 	{
 		GLenum binding = eGL_NONE;
 		GLenum target = eGL_NONE;
+		ShaderResourceType resType = eResType_None;
 
 		bool shadow = false;
 
@@ -1180,6 +1224,8 @@ void GLReplay::SavePipelineState()
 					if(target != eGL_NONE)
 						t = TextureBinding(target);
 
+					resType = refls[s]->Resources[r].resType;
+
 					if(binding == eGL_NONE)
 					{
 						binding = t;
@@ -1212,6 +1258,7 @@ void GLReplay::SavePipelineState()
 
 			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
 			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+			pipe.Textures[unit].ResType = resType;
 			
 			GLuint samp;
 			gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
