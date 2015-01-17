@@ -964,7 +964,6 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		TexCube,
 		Tex2DMS,
 		Tex2DMSArray,
-		Samplers,
 	};
 
 	const char *names[] = {
