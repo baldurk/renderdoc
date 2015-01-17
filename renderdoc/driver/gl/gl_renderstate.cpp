@@ -325,13 +325,13 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	{
 		GLboolean layered = GL_FALSE;
 
-		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_NAME, (GLint*)&Images[i].name);
-		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_LEVEL, (GLint*)&Images[i].level);
-		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_ACCESS, (GLint*)&Images[i].access);
-		m_Real->glGetIntegerv(eGL_IMAGE_BINDING_FORMAT, (GLint*)&Images[i].format);
-		m_Real->glGetBooleanv(eGL_IMAGE_BINDING_LAYERED, &layered); Images[i].layered = (layered == GL_TRUE);
+		m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint*)&Images[i].name);
+		m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, i, (GLint*)&Images[i].level);
+		m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, i, (GLint*)&Images[i].access);
+		m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, i, (GLint*)&Images[i].format);
+		m_Real->glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, i, &layered); Images[i].layered = (layered == GL_TRUE);
 		if(layered)
-			m_Real->glGetIntegerv(eGL_IMAGE_BINDING_LAYER, (GLint*)&Images[i].layer);
+			m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, i, (GLint*)&Images[i].layer);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
@@ -639,10 +639,14 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Images); i++)
 	{
-		m_Real->glBindImageTexture(i,
-			Images[i].name, (GLint)Images[i].level,
-			Images[i].layered, (GLint)Images[i].layer,
-			Images[i].access, Images[i].format);
+		// use sanitised parameters when no image is bound
+		if(Images[i].name == 0)
+			m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R8);
+		else
+			m_Real->glBindImageTexture(i,
+				Images[i].name, (GLint)Images[i].level,
+				Images[i].layered, (GLint)Images[i].layer,
+				Images[i].access, Images[i].format);
 	}
 	
 	m_Real->glActiveTexture(ActiveTexture);
