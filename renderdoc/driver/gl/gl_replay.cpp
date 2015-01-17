@@ -1520,7 +1520,23 @@ void GLReplay::SavePipelineState()
 	RDCASSERT(rs.FrontFace == eGL_CCW || rs.FrontFace == eGL_CW);
 	pipe.m_Rasterizer.m_State.FrontCCW = rs.FrontFace == eGL_CCW;
 	pipe.m_Rasterizer.m_State.DepthClamp = rs.Enabled[GLRenderState::eEnabled_DepthClamp];
+
 	pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
+	pipe.m_Rasterizer.m_State.SampleShading = rs.Enabled[GLRenderState::eEnabled_SampleShading];
+	pipe.m_Rasterizer.m_State.SampleMask = rs.Enabled[GLRenderState::eEnabled_SampleMask];
+	pipe.m_Rasterizer.m_State.SampleMaskValue = rs.SampleMask[0]; // assume number of samples is less than 32
+	pipe.m_Rasterizer.m_State.SampleCoverage = rs.Enabled[GLRenderState::eEnabled_SampleCoverage];
+	pipe.m_Rasterizer.m_State.SampleCoverageInvert = rs.SampleCoverageInvert;
+	pipe.m_Rasterizer.m_State.SampleCoverageValue = rs.SampleCoverage;
+	pipe.m_Rasterizer.m_State.SampleAlphaToCoverage = rs.Enabled[GLRenderState::eEnabled_SampleAlphaToCoverage];
+	pipe.m_Rasterizer.m_State.SampleAlphaToOne = rs.Enabled[GLRenderState::eEnabled_SampleAlphaToOne];
+	pipe.m_Rasterizer.m_State.MinSampleShadingRate = rs.MinSampleShading;
+
+	pipe.m_Rasterizer.m_State.ProgrammablePointSize = rs.Enabled[rs.eEnabled_ProgramPointSize];
+	pipe.m_Rasterizer.m_State.PointSize = rs.PointSize;
+	pipe.m_Rasterizer.m_State.LineWidth = rs.LineWidth;
+	pipe.m_Rasterizer.m_State.PointFadeThreshold = rs.PointFadeThresholdSize;
+	pipe.m_Rasterizer.m_State.PointOriginUpperLeft = (rs.PointSpriteOrigin != eGL_LOWER_LEFT);
 
 	// depth and stencil states
 
@@ -1705,6 +1721,9 @@ void GLReplay::SavePipelineState()
 	  case eGL_NICEST:    pipe.m_Hints.TexCompression = eQuality_Nicest; break;
 	  case eGL_FASTEST:   pipe.m_Hints.TexCompression = eQuality_Fastest; break;
 	}
+
+	pipe.m_Hints.LineSmoothEnabled = rs.Enabled[GLRenderState::eEnabled_LineSmooth];
+	pipe.m_Hints.PolySmoothEnabled = rs.Enabled[GLRenderState::eEnabled_PolySmooth];
 }
 
 void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,

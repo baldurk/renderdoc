@@ -191,7 +191,23 @@ namespace renderdoc
                 public float SlopeScaledDepthBias;
                 public float OffsetClamp;
                 public bool DepthClamp;
+
                 public bool MultisampleEnable;
+                public bool SampleShading;
+                public bool SampleMask;
+                public UInt32 SampleMaskValue;
+                public bool SampleCoverage;
+                public bool SampleCoverageInvert;
+                public float SampleCoverageValue;
+                public bool SampleAlphaToCoverage;
+                public bool SampleAlphaToOne;
+                public float MinSampleShadingRate;
+
+                public bool ProgrammablePointSize;
+                public float PointSize;
+                public float LineWidth;
+                public float PointFadeThreshold;
+                public bool PointOriginUpperLeft;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public RasterizerState m_State;
@@ -305,6 +321,8 @@ namespace renderdoc
             public Int32 LineSmooth;
             public Int32 PolySmooth;
             public Int32 TexCompression;
+            public bool LineSmoothEnabled;
+            public bool PolySmoothEnabled;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public Hints m_Hints;

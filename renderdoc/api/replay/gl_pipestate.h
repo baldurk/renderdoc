@@ -177,7 +177,23 @@ struct GLPipelineState
 			float SlopeScaledDepthBias;
 			float OffsetClamp;
 			bool32 DepthClamp;
+
 			bool32 MultisampleEnable;
+			bool32 SampleShading;
+			bool32 SampleMask;
+			uint32_t SampleMaskValue;
+			bool32 SampleCoverage;
+			bool32 SampleCoverageInvert;
+			float SampleCoverageValue;
+			bool32 SampleAlphaToCoverage;
+			bool32 SampleAlphaToOne;
+			float MinSampleShadingRate;
+
+			bool32 ProgrammablePointSize;
+			float PointSize;
+			float LineWidth;
+			float PointFadeThreshold;
+			bool32 PointOriginUpperLeft;
 		} m_State;
 	} m_Rasterizer;
 	
@@ -265,11 +281,15 @@ struct GLPipelineState
 			, LineSmooth(eQuality_DontCare)
 			, PolySmooth(eQuality_DontCare)
 			, TexCompression(eQuality_DontCare)
+			, LineSmoothEnabled(0)
+			, PolySmoothEnabled(0)
 		{}
 
 		QualityHint Derivatives;
 		QualityHint LineSmooth;
 		QualityHint PolySmooth;
 		QualityHint TexCompression;
+		bool32 LineSmoothEnabled;
+		bool32 PolySmoothEnabled;
 	} m_Hints;
 };
