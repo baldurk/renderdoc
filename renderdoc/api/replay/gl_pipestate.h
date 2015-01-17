@@ -72,6 +72,20 @@ struct GLPipelineState
 	
 	struct FixedVertexProcessing
 	{
+		FixedVertexProcessing() : discard(0), clipOriginLowerLeft(0), clipNegativeOneToOne(0)
+		{
+			defaultInnerLevel[0] = defaultInnerLevel[1] = 0.0f;
+			defaultOuterLevel[0] = defaultOuterLevel[1] = defaultOuterLevel[2] = defaultOuterLevel[3] = 0.0f;
+			clipPlanes[0] =
+				clipPlanes[1] =
+				clipPlanes[2] =
+				clipPlanes[3] =
+				clipPlanes[4] =
+				clipPlanes[5] =
+				clipPlanes[6] =
+				clipPlanes[7] = 0;
+		}
+
 		float defaultInnerLevel[2];
 		float defaultOuterLevel[4];
 		bool32 discard;
@@ -83,6 +97,13 @@ struct GLPipelineState
 
 	struct Texture
 	{
+		Texture() : Resource(), FirstSlice(0), ResType(eResType_None), DepthReadChannel(-1)
+		{
+			Swizzle[0] = eSwizzle_Red;
+			Swizzle[1] = eSwizzle_Green;
+			Swizzle[2] = eSwizzle_Blue;
+			Swizzle[3] = eSwizzle_Alpha;
+		}
 		ResourceId Resource;
 		uint32_t FirstSlice;
 		ShaderResourceType ResType;
@@ -115,6 +136,7 @@ struct GLPipelineState
 
 	struct Buffer
 	{
+		Buffer() : Resource(), Offset(0), Size(0) {}
 		ResourceId Resource;
 		uint64_t Offset;
 		uint64_t Size;
@@ -230,6 +252,13 @@ struct GLPipelineState
 
 	struct Hints 
 	{
+		Hints()
+			: Derivatives(eQuality_DontCare)
+			, LineSmooth(eQuality_DontCare)
+			, PolySmooth(eQuality_DontCare)
+			, TexCompression(eQuality_DontCare)
+		{}
+
 		QualityHint Derivatives;
 		QualityHint LineSmooth;
 		QualityHint PolySmooth;
