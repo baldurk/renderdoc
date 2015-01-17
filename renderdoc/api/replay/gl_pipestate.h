@@ -146,6 +146,16 @@ struct GLPipelineState
 	};
 	rdctype::array<Buffer> UniformBuffers;
 
+	struct Feedback
+	{
+		ResourceId Obj;
+		ResourceId BufferBinding[4];
+		uint64_t Offset[4];
+		uint64_t Size[4];
+		bool32 Active;
+		bool32 Paused;
+	} m_Feedback;
+
 	struct Rasterizer
 	{
 		struct Viewport

@@ -162,6 +162,22 @@ namespace renderdoc
         public Buffer[] UniformBuffers;
 
         [StructLayout(LayoutKind.Sequential)]
+        public class Feedback
+        {
+            ResourceId Obj;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            ResourceId[] BufferBinding;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            UInt64[] Offset;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            UInt64[] Size;
+            bool Active;
+            bool Paused;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public Feedback m_Feedback;
+
+        [StructLayout(LayoutKind.Sequential)]
         public class Rasterizer
         {
             [StructLayout(LayoutKind.Sequential)]
