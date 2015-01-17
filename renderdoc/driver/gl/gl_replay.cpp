@@ -1480,7 +1480,73 @@ void GLReplay::SavePipelineState()
 			pipe.UniformBuffers[b].Size = rs.UniformBinding[b].size;
 		}
 	}
+	
+	create_array_uninit(pipe.AtomicBuffers, ARRAY_COUNT(rs.AtomicCounter));
+	for(int32_t b=0; b < pipe.AtomicBuffers.count; b++)
+	{
+		if(rs.AtomicCounter[b].name == 0)
+		{
+			pipe.AtomicBuffers[b].Resource = ResourceId();
+			pipe.AtomicBuffers[b].Offset = pipe.AtomicBuffers[b].Size = 0;
+		}
+		else
+		{
+			pipe.AtomicBuffers[b].Resource = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.AtomicCounter[b].name)));
+			pipe.AtomicBuffers[b].Offset = rs.AtomicCounter[b].start;
+			pipe.AtomicBuffers[b].Size = rs.AtomicCounter[b].size;
+		}
+	}
+	
+	create_array_uninit(pipe.ShaderStorageBuffers, ARRAY_COUNT(rs.ShaderStorage));
+	for(int32_t b=0; b < pipe.ShaderStorageBuffers.count; b++)
+	{
+		if(rs.ShaderStorage[b].name == 0)
+		{
+			pipe.ShaderStorageBuffers[b].Resource = ResourceId();
+			pipe.ShaderStorageBuffers[b].Offset = pipe.ShaderStorageBuffers[b].Size = 0;
+		}
+		else
+		{
+			pipe.ShaderStorageBuffers[b].Resource = rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.ShaderStorage[b].name)));
+			pipe.ShaderStorageBuffers[b].Offset = rs.ShaderStorage[b].start;
+			pipe.ShaderStorageBuffers[b].Size = rs.ShaderStorage[b].size;
+		}
+	}
+	
+	create_array_uninit(pipe.Images, ARRAY_COUNT(rs.Images));
+	for(int32_t i=0; i < pipe.Images.count; i++)
+	{
+		if(rs.Images[i].name == 0)
+		{
+			RDCEraseEl(pipe.Images[i]);
+		}
+		else
+		{
+			ResourceId id = rm->GetID(TextureRes(ctx, rs.Images[i].name));
+			pipe.Images[i].Resource = rm->GetOriginalID(id);
+			pipe.Images[i].Level = rs.Images[i].level;
+			pipe.Images[i].Layered = rs.Images[i].layered;
+			pipe.Images[i].Layer = rs.Images[i].layer;
+			if(rs.Images[i].access == eGL_READ_ONLY)
+			{
+				pipe.Images[i].readAllowed = true;
+				pipe.Images[i].writeAllowed = false;
+			}
+			else if(rs.Images[i].access == eGL_WRITE_ONLY)
+			{
+				pipe.Images[i].readAllowed = false;
+				pipe.Images[i].writeAllowed = true;
+			}
+			else
+			{
+				pipe.Images[i].readAllowed = true;
+				pipe.Images[i].writeAllowed = true;
+			}
+			pipe.Images[i].Format = MakeResourceFormat(gl, eGL_TEXTURE_2D, rs.Images[i].format);
 
+			pipe.Images[i].ResType = m_CachedTextures[id].resType;
+		}
+	}
 
 	// Vertex post processing and rasterization
 

@@ -144,8 +144,28 @@ struct GLPipelineState
 		uint64_t Offset;
 		uint64_t Size;
 	};
+	rdctype::array<Buffer> AtomicBuffers;
 	rdctype::array<Buffer> UniformBuffers;
-
+	rdctype::array<Buffer> ShaderStorageBuffers;
+	
+	struct Image
+	{
+		Image()
+			: Resource(), Level(0), Layered(false), Layer(0),
+			  ResType(eResType_None), readAllowed(false), writeAllowed(false)
+		{
+		}
+		ResourceId Resource;
+		uint32_t Level;
+		bool32 Layered;
+		uint32_t Layer;
+		ShaderResourceType ResType;
+		bool32 readAllowed;
+		bool32 writeAllowed;
+		ResourceFormat Format;
+	};
+	rdctype::array<Image> Images;
+	
 	struct Feedback
 	{
 		ResourceId Obj;
