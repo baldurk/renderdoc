@@ -117,7 +117,7 @@ struct GLPipelineState
 	{
 		Sampler()
 			: Samp(), MaxAniso(0.0f), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
-			, UseBorder(false), UseComparison(false)
+			, UseBorder(false), UseComparison(false), SeamlessCube(false)
 		{ BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f; }
 		ResourceId Samp;
 		rdctype::str AddressS, AddressT, AddressR;
@@ -127,6 +127,7 @@ struct GLPipelineState
 		rdctype::str MagFilter;
 		bool32 UseBorder;
 		bool32 UseComparison;
+		bool32 SeamlessCube;
 		float MaxAniso;
 		float MaxLOD;
 		float MinLOD;

@@ -1360,6 +1360,13 @@ void GLReplay::SavePipelineState()
 
 				v=0;
 				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+				pipe.Samplers[unit].SeamlessCube = (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
+
+				v=0;
+				if(samp != 0)
 					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
 				else
 					gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
@@ -1400,6 +1407,7 @@ void GLReplay::SavePipelineState()
 				pipe.Samplers[unit].MagFilter = "";
 				pipe.Samplers[unit].UseBorder = false;
 				pipe.Samplers[unit].UseComparison = false;
+				pipe.Samplers[unit].SeamlessCube = false;
 				pipe.Samplers[unit].MaxAniso = 0.0f;
 				pipe.Samplers[unit].MaxLOD = 0.0f;
 				pipe.Samplers[unit].MinLOD = 0.0f;

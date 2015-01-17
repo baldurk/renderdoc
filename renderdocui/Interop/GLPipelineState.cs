@@ -138,6 +138,7 @@ namespace renderdoc
             public string MagFilter;
             public bool UseBorder;
             public bool UseComparison;
+            public bool SeamlessCube;
             public float MaxAniso;
             public float MaxLOD;
             public float MinLOD;
