@@ -241,14 +241,24 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class FrameBuffer
         {
-            public ResourceId FBO;
-
             public bool FramebufferSRGB;
 
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ResourceId[] Color;
-            public ResourceId Depth;
-            public ResourceId Stencil;
+            [StructLayout(LayoutKind.Sequential)]
+            public class FBO
+            {
+                public ResourceId Obj;
+
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public ResourceId[] Color;
+                public ResourceId Depth;
+                public ResourceId Stencil;
+
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public Int32[] DrawBuffers;
+                public Int32 ReadBuffer;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public FBO m_DrawFBO, m_ReadFBO;
 
             [StructLayout(LayoutKind.Sequential)]
             public class BlendState

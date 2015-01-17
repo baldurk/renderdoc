@@ -537,7 +537,15 @@ namespace renderdocui.Code
                 }
                 else if (IsLogGL)
                 {
-                    return m_GL.m_FB.Color;
+                    ResourceId[] ret = new ResourceId[m_GL.m_FB.m_DrawFBO.DrawBuffers.Length];
+                    for(int i=0; i < m_GL.m_FB.m_DrawFBO.DrawBuffers.Length; i++)
+                    {
+                        int db = m_GL.m_FB.m_DrawFBO.DrawBuffers[i];
+                        if(db >= 0)
+                            ret[i] = m_GL.m_FB.m_DrawFBO.Color[db];
+                    }
+
+                    return ret;
                 }
             }
 
@@ -554,7 +562,7 @@ namespace renderdocui.Code
                         return m_D3D11.m_OM.DepthTarget.Resource;
 
                     if (IsLogGL)
-                        return m_GL.m_FB.Depth;
+                        return m_GL.m_FB.m_DrawFBO.Depth;
                 }
 
                 return ResourceId.Null;
@@ -571,7 +579,7 @@ namespace renderdocui.Code
                         return m_D3D11.m_OM.DepthTarget.Resource;
 
                     if (IsLogGL)
-                        return m_GL.m_FB.Stencil;
+                        return m_GL.m_FB.m_DrawFBO.Stencil;
                 }
 
                 return ResourceId.Null;

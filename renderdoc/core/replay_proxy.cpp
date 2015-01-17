@@ -299,10 +299,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
 template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 {
-	Serialise("", el.FBO);
-	Serialise("", el.Color);
-	Serialise("", el.Depth);
-	Serialise("", el.Stencil);
+	Serialise("", el.FramebufferSRGB);
 }
 
 template<>

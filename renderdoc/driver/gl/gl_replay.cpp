@@ -327,14 +327,14 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 
 bool GLReplay::IsRenderOutput(ResourceId id)
 {
-	for(int32_t i=0; i < m_CurPipelineState.m_FB.Color.count; i++)
+	for(int32_t i=0; i < m_CurPipelineState.m_FB.m_DrawFBO.Color.count; i++)
 	{
-		if(m_CurPipelineState.m_FB.Color[i] == id)
+		if(m_CurPipelineState.m_FB.m_DrawFBO.Color[i] == id)
 				return true;
 	}
 	
-	if(m_CurPipelineState.m_FB.Depth == id ||
-		 m_CurPipelineState.m_FB.Stencil == id)
+	if(m_CurPipelineState.m_FB.m_DrawFBO.Depth == id ||
+		 m_CurPipelineState.m_FB.m_DrawFBO.Stencil == id)
 			return true;
 
 	return false;
@@ -1542,8 +1542,10 @@ void GLReplay::SavePipelineState()
 
 	// Frame buffer
 
-	GLuint curFBO = 0;
-	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
+	GLuint curDrawFBO = 0;
+	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
+	GLuint curReadFBO = 0;
+	gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
 	
 	GLint numCols = 8;
 	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
@@ -1558,7 +1560,8 @@ void GLReplay::SavePipelineState()
 	RDCASSERT(numCols <= 32);
 
 	// we should never bind the true default framebuffer - if the app did, we will have our fake bound
-	RDCASSERT(curFBO != 0);
+	RDCASSERT(curDrawFBO != 0);
+	RDCASSERT(curReadFBO != 0);
 
 	{
 		GLenum type = eGL_TEXTURE;
@@ -1575,19 +1578,69 @@ void GLReplay::SavePipelineState()
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
 		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
 		if(type == eGL_RENDERBUFFER) rbStencil = true;
+
+		pipe.m_FB.m_DrawFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curDrawFBO)));
+		create_array_uninit(pipe.m_FB.m_DrawFBO.Color, numCols);
+		for(GLint i=0; i < numCols; i++)
+			pipe.m_FB.m_DrawFBO.Color[i] = rm->GetOriginalID(rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+
+		pipe.m_FB.m_DrawFBO.Depth = rm->GetOriginalID(rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+		pipe.m_FB.m_DrawFBO.Stencil = rm->GetOriginalID(rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+		
+		create_array_uninit(pipe.m_FB.m_DrawFBO.DrawBuffers, numCols);
+		for(GLint i=0; i < numCols; i++)
+		{
+			GLenum b = eGL_NONE;
+			gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&b);
+			if(b >= eGL_COLOR_ATTACHMENT0 && b <= GLenum(eGL_COLOR_ATTACHMENT0+numCols))
+				pipe.m_FB.m_DrawFBO.DrawBuffers[i] = b-eGL_COLOR_ATTACHMENT0;
+			else
+				pipe.m_FB.m_DrawFBO.DrawBuffers[i] = -1;
+		}
+
+		pipe.m_FB.m_DrawFBO.ReadBuffer = -1;
 	}
 
-	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curFBO)));
-	create_array_uninit(pipe.m_FB.Color, numCols);
-	for(GLint i=0; i < numCols; i++)
-		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+	{
+		GLenum type = eGL_TEXTURE;
+		for(GLint i=0; i < numCols; i++)
+		{
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curCol[i]);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+			if(type == eGL_RENDERBUFFER) rbCol[i] = true;
+		}
 
-	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
-	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+		gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+		if(type == eGL_RENDERBUFFER) rbDepth = true;
+		gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+		if(type == eGL_RENDERBUFFER) rbStencil = true;
+
+		pipe.m_FB.m_ReadFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curReadFBO)));
+		create_array_uninit(pipe.m_FB.m_ReadFBO.Color, numCols);
+		for(GLint i=0; i < numCols; i++)
+			pipe.m_FB.m_ReadFBO.Color[i] = rm->GetOriginalID(rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+
+		pipe.m_FB.m_ReadFBO.Depth = rm->GetOriginalID(rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+		pipe.m_FB.m_ReadFBO.Stencil = rm->GetOriginalID(rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+		
+		create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
+		for(GLint i=0; i < numCols; i++)
+			pipe.m_FB.m_ReadFBO.DrawBuffers[i] = -1;
+		
+		GLenum b = eGL_NONE;
+		gl.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&b);
+		if(b >= eGL_COLOR_ATTACHMENT0 && b <= GLenum(eGL_COLOR_ATTACHMENT0+numCols))
+			pipe.m_FB.m_DrawFBO.ReadBuffer = b-eGL_COLOR_ATTACHMENT0;
+		else
+			pipe.m_FB.m_DrawFBO.ReadBuffer = -1;
+	}
 
 	memcpy(pipe.m_FB.m_Blending.BlendFactor, rs.BlendColor, sizeof(rs.BlendColor));
 
 	pipe.m_FB.FramebufferSRGB = rs.Enabled[GLRenderState::eEnabled_FramebufferSRGB];
+	pipe.m_FB.Dither = rs.Enabled[GLRenderState::eEnabled_Dither];
 
 	RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Blends) == ARRAY_COUNT(rs.ColorMasks), "Color masks and blends mismatched");
 	create_array_uninit(pipe.m_FB.m_Blending.Blends, ARRAY_COUNT(rs.Blends));

@@ -213,15 +213,22 @@ struct GLPipelineState
 
 	struct FrameBuffer
 	{
-		FrameBuffer() : FBO(), Depth(), Stencil() {}
-
-		ResourceId FBO;
+		FrameBuffer() : FramebufferSRGB(false), Dither(false) {}
 
 		bool32 FramebufferSRGB;
+		bool32 Dither;
 
-		rdctype::array<ResourceId> Color;
-		ResourceId Depth;
-		ResourceId Stencil;
+		struct FBO
+		{
+			FBO() : Obj(), Depth(), Stencil() {}
+			ResourceId Obj;
+			rdctype::array<ResourceId> Color;
+			ResourceId Depth;
+			ResourceId Stencil;
+
+			rdctype::array<int32_t> DrawBuffers;
+			int32_t ReadBuffer;
+		} m_DrawFBO, m_ReadFBO;
 		
 		struct BlendState
 		{
