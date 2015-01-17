@@ -1265,68 +1265,88 @@ void GLReplay::SavePipelineState()
 
 			pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
 
-			if(samp != 0)
-				gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
-			else
-				gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+			if(target != eGL_TEXTURE_BUFFER)
+			{
+				if(samp != 0)
+					gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+				else
+					gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
 
-			pipe.Samplers[unit].UseBorder = false;
-			pipe.Samplers[unit].UseComparison = shadow;
+				pipe.Samplers[unit].UseBorder = false;
+				pipe.Samplers[unit].UseComparison = shadow;
 
-			GLint v;
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
-			pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
-			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+				GLint v;
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
+				pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
+				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
 
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
-			pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
-			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
+				pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
+				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
 
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
-			pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
-			pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
-			
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
-			pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
-			
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
-			pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
-			
-			v=0;
-			if(samp != 0)
-				gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
-			else
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
-			pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
+				pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
+				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
 
-			if(samp != 0)
-				gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
+				pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
+
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
+				pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
+
+				v=0;
+				if(samp != 0)
+					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
+				else
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
+				pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+
+				if(samp != 0)
+					gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+				else
+					gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+
+				gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
+				gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
+				gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
+			}
 			else
-				gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
-			
-			gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
-			gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
-			gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
+			{
+				// texture buffers don't support sampling
+				RDCEraseEl(pipe.Samplers[unit].BorderColor);
+				pipe.Samplers[unit].AddressS = "";
+				pipe.Samplers[unit].AddressT = "";
+				pipe.Samplers[unit].AddressR = "";
+				pipe.Samplers[unit].Comparison = "";
+				pipe.Samplers[unit].MinFilter = "";
+				pipe.Samplers[unit].MagFilter = "";
+				pipe.Samplers[unit].UseBorder = false;
+				pipe.Samplers[unit].UseComparison = false;
+				pipe.Samplers[unit].MaxAniso = 0.0f;
+				pipe.Samplers[unit].MaxLOD = 0.0f;
+				pipe.Samplers[unit].MinLOD = 0.0f;
+				pipe.Samplers[unit].MipLODBias = 0.0f;
+			}
 		}
 		else
 		{
