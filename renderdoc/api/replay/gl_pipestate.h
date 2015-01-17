@@ -56,6 +56,8 @@ struct GLPipelineState
 		ResourceId ibuffer;
 		bool32 primitiveRestart;
 		uint32_t restartIndex;
+
+		bool32 provokingVertexLast;
 	} m_VtxIn;
 
 	struct ShaderStage
@@ -67,6 +69,17 @@ struct GLPipelineState
 
 		ShaderStageType stage;
 	} m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
+	
+	struct FixedVertexProcessing
+	{
+		float defaultInnerLevel[2];
+		float defaultOuterLevel[4];
+		bool32 discard;
+
+		bool32 clipPlanes[8];
+		bool32 clipOriginLowerLeft;
+		bool32 clipNegativeOneToOne;
+	} m_VtxProcess;
 
 	struct Texture
 	{
@@ -214,4 +227,12 @@ struct GLPipelineState
 		} m_Blending;
 
 	} m_FB;
+
+	struct Hints 
+	{
+		QualityHint Derivatives;
+		QualityHint LineSmooth;
+		QualityHint PolySmooth;
+		QualityHint TexCompression;
+	} m_Hints;
 };

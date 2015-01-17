@@ -178,6 +178,13 @@ enum SpecialFormat
 	eSpecial_YUV,
 };
 
+enum QualityHint
+{
+	eQuality_DontCare,
+	eQuality_Nicest,
+	eQuality_Fastest,
+};
+
 enum APIPipelineStateType
 {
 	ePipelineState_D3D11,

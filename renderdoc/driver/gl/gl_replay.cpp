@@ -1055,6 +1055,18 @@ void GLReplay::SavePipelineState()
 
 		pipe.m_VtxIn.attributes[i].Format = fmt;
 	}
+
+	pipe.m_VtxIn.provokingVertexLast = (rs.ProvokingVertex != eGL_FIRST_VERTEX_CONVENTION);
+	
+	memcpy(pipe.m_VtxProcess.defaultInnerLevel, rs.PatchParams.defaultInnerLevel, sizeof(rs.PatchParams.defaultInnerLevel));
+	memcpy(pipe.m_VtxProcess.defaultOuterLevel, rs.PatchParams.defaultOuterLevel, sizeof(rs.PatchParams.defaultOuterLevel));
+
+	pipe.m_VtxProcess.discard = rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard];
+	pipe.m_VtxProcess.clipOriginLowerLeft = (rs.ClipOrigin != eGL_UPPER_LEFT);
+	pipe.m_VtxProcess.clipNegativeOneToOne = (rs.ClipDepth != eGL_ZERO_TO_ONE);
+	for(int i=0; i < 8; i++)
+		pipe.m_VtxProcess.clipPlanes[i] = rs.Enabled[GLRenderState::eEnabled_ClipDistance0+i];
+	
 	// Shader stages & Textures
 	
 	GLint numTexUnits = 8;
@@ -1071,7 +1083,7 @@ void GLReplay::SavePipelineState()
 	pipe.m_GS.stage = eShaderStage_Geometry;
 	pipe.m_FS.stage = eShaderStage_Fragment;
 	pipe.m_CS.stage = eShaderStage_Compute;
-	
+
 	GLuint curProg = 0;
 	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
 	
@@ -1599,6 +1611,38 @@ void GLReplay::SavePipelineState()
 		if(rs.ColorMasks[i].green) pipe.m_FB.m_Blending.Blends[i].WriteMask |= 2;
 		if(rs.ColorMasks[i].blue)  pipe.m_FB.m_Blending.Blends[i].WriteMask |= 4;
 		if(rs.ColorMasks[i].alpha) pipe.m_FB.m_Blending.Blends[i].WriteMask |= 8;
+	}
+
+	switch(rs.Hints.Derivatives)
+	{
+		default:
+	  case eGL_DONT_CARE: pipe.m_Hints.Derivatives = eQuality_DontCare; break;
+	  case eGL_NICEST:    pipe.m_Hints.Derivatives = eQuality_Nicest; break;
+	  case eGL_FASTEST:   pipe.m_Hints.Derivatives = eQuality_Fastest; break;
+	}
+
+	switch(rs.Hints.LineSmooth)
+	{
+		default:
+	  case eGL_DONT_CARE: pipe.m_Hints.LineSmooth = eQuality_DontCare; break;
+	  case eGL_NICEST:    pipe.m_Hints.LineSmooth = eQuality_Nicest; break;
+	  case eGL_FASTEST:   pipe.m_Hints.LineSmooth = eQuality_Fastest; break;
+	}
+
+	switch(rs.Hints.PolySmooth)
+	{
+		default:
+	  case eGL_DONT_CARE: pipe.m_Hints.PolySmooth = eQuality_DontCare; break;
+	  case eGL_NICEST:    pipe.m_Hints.PolySmooth = eQuality_Nicest; break;
+	  case eGL_FASTEST:   pipe.m_Hints.PolySmooth = eQuality_Fastest; break;
+	}
+
+	switch(rs.Hints.TexCompression)
+	{
+		default:
+	  case eGL_DONT_CARE: pipe.m_Hints.TexCompression = eQuality_DontCare; break;
+	  case eGL_NICEST:    pipe.m_Hints.TexCompression = eQuality_Nicest; break;
+	  case eGL_FASTEST:   pipe.m_Hints.TexCompression = eQuality_Fastest; break;
 	}
 }
 

@@ -61,6 +61,8 @@ namespace renderdoc
             public ResourceId ibuffer;
             public bool primitiveRestart;
             public UInt32 restartIndex;
+
+            public bool provokingVertexLast;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public VertexInputs m_VtxIn;
@@ -89,6 +91,23 @@ namespace renderdoc
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderStage m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class FixedVertexProcessing
+        {
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 2)]
+            public float[] defaultInnerLevel;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            public float[] defaultOuterLevel;
+            public bool discard;
+
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 8)]
+            public bool[] clipPlanes;
+            public bool clipOriginLowerLeft;
+            public bool clipNegativeOneToOne;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public FixedVertexProcessing m_VtxProcess;
 
         [StructLayout(LayoutKind.Sequential)]
         public class Texture
@@ -267,5 +286,16 @@ namespace renderdoc
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public FrameBuffer m_FB;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class Hints
+        {
+            public Int32 Derivatives;
+            public Int32 LineSmooth;
+            public Int32 PolySmooth;
+            public Int32 TexCompression;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public Hints m_Hints;
     }
 }
