@@ -68,6 +68,8 @@ struct GLPipelineState
 		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;
+
+		rdctype::array<uint32_t> Subroutines;
 	} m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
 	
 	struct FixedVertexProcessing

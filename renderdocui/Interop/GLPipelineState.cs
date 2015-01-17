@@ -88,6 +88,9 @@ namespace renderdoc
             public ShaderBindpointMapping BindpointMapping;
 
             public ShaderStageType stage;
+
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public UInt32[] Subroutines;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderStage m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;

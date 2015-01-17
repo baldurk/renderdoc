@@ -1156,6 +1156,20 @@ void GLReplay::SavePipelineState()
 		}
 	}
 
+	for(int i=0; i < 6; i++)
+	{
+		size_t num = RDCMIN(128, rs.Subroutines[i].numSubroutines);
+		if(num == 0)
+		{
+			RDCEraseEl(stages[i]->Subroutines);
+		}
+		else
+		{
+			create_array_uninit(stages[i]->Subroutines, num);
+			memcpy(stages[i]->Subroutines.elems, rs.Subroutines[i].Values, num);
+		}
+	}
+
 	// GL is ass-backwards in its handling of texture units. When a shader is active
 	// the types in the glsl samplers inform which targets are used from which texture units
 	//
