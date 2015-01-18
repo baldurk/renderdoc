@@ -89,6 +89,14 @@ namespace renderdocui.Controls
             Invalidate();
         }
 
+        public void SetStageName(int index, KeyValuePair<string, string> name)
+        {
+            if (index >= 0 && index < m_StageNames.Length)
+                m_StageNames[index] = name;
+
+            Invalidate();
+        }
+
         public void IsolateStage(int index)
         {
             if (m_StageNames != null && index >= 0 && index < m_StageNames.Length)
