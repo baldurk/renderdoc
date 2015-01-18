@@ -2855,29 +2855,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	RDCASSERT(header == CONTEXT_CAPTURE_HEADER);
 
 	WrappedOpenGL *context = this;
-
-	Serialise_BeginCaptureFrame(!partial);
-
-	m_pSerialiser->PopContext(NULL, header);
-
-	m_CurEvents.clear();
 	
-	if(m_State == EXECUTING)
-	{
-		FetchAPIEvent ev = GetEvent(startEventID);
-		m_CurEventID = ev.eventID;
-		m_pSerialiser->SetOffset(ev.fileOffset);
-		m_FirstEventID = startEventID;
-		m_LastEventID = endEventID;
-	}
-	else if(m_State == READING)
-	{
-		m_CurEventID = 1;
-               m_CurDrawcallID = 1;
-		m_FirstEventID = 0;
-		m_LastEventID = ~0U;
-	}
-
 	if(m_State == EXECUTING && !partial)
 	{
 		for(size_t i=0; i < 8; i++)
@@ -2906,6 +2884,28 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 			m_Real.glEndTransformFeedback();
 			m_ActiveFeedback = false;
 		}
+	}
+
+	Serialise_BeginCaptureFrame(!partial);
+
+	m_pSerialiser->PopContext(NULL, header);
+
+	m_CurEvents.clear();
+	
+	if(m_State == EXECUTING)
+	{
+		FetchAPIEvent ev = GetEvent(startEventID);
+		m_CurEventID = ev.eventID;
+		m_pSerialiser->SetOffset(ev.fileOffset);
+		m_FirstEventID = startEventID;
+		m_LastEventID = endEventID;
+	}
+	else if(m_State == READING)
+	{
+		m_CurEventID = 1;
+               m_CurDrawcallID = 1;
+		m_FirstEventID = 0;
+		m_LastEventID = ~0U;
 	}
 
 	GetResourceManager()->MarkInFrame(true);
