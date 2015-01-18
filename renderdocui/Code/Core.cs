@@ -461,7 +461,12 @@ namespace renderdocui.Code
             }
 
             if (!temporary)
+            {
                 m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
+
+                if (File.Exists(Core.ConfigFilename))
+                    m_Config.Serialize(Core.ConfigFilename);
+            }
 
             m_FrameID = 0;
             m_EventID = 0;
