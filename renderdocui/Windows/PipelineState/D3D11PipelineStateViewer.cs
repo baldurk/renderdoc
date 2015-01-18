@@ -1014,7 +1014,7 @@ namespace renderdocui.Windows.PipelineState
             gsStreams.SetVScrollValue(vs);
 
             gsStreams.Visible = gsStreams.Parent.Visible = streamoutSet;
-            if (gsStreams.Visible)
+            if (streamoutSet)
                 geomTableLayout.ColumnStyles[1].Width = 50.0f;
             else
                 geomTableLayout.ColumnStyles[1].Width = 0;

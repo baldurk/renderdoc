@@ -106,7 +106,7 @@ namespace renderdocui.Windows.PipelineState
             ClearShaderState(csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
 
             csUAVs.Nodes.Clear();
-            gsStreams.Nodes.Clear();
+            gsFeedback.Nodes.Clear();
 
             var tick = global::renderdocui.Properties.Resources.tick;
             var cross = global::renderdocui.Properties.Resources.cross;
@@ -505,13 +505,19 @@ namespace renderdocui.Windows.PipelineState
             subs.BeginUpdate();
             subs.Nodes.Clear();
             {
-                // TODO fetch subroutines
+                UInt32 i = 0;
+                foreach (var subval in stage.Subroutines)
+                {
+                    subs.Nodes.Add(new object[] { i.ToString(), subval.ToString() });
+
+                    i++;
+                }
             }
             subs.EndUpdate();
             subs.NodesSelection.Clear();
             subs.SetVScrollValue(vs);
 
-            subs.Visible = subs.Parent.Visible = true; //(stage.Subroutines.Length > 0);
+            subs.Visible = subs.Parent.Visible = (stage.Subroutines.Length > 0);
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -820,10 +826,68 @@ namespace renderdocui.Windows.PipelineState
             csUAVs.NodesSelection.Clear();
             csUAVs.EndUpdate();
 
-            gsStreams.BeginUpdate();
-            gsStreams.Nodes.Clear();
-            gsStreams.EndUpdate();
-            gsStreams.NodesSelection.Clear();
+            vs = gsFeedback.VScrollValue();
+            gsFeedback.BeginUpdate();
+            gsFeedback.Nodes.Clear();
+            if (state.m_Feedback.Active)
+            {
+                feedbackPaused.Image = state.m_Feedback.Paused ? tick : cross;
+                for(int i=0; i < state.m_Feedback.BufferBinding.Length; i++)
+                {
+                    bool filledSlot = (state.m_Feedback.BufferBinding[i] != ResourceId.Null);
+                    bool usedSlot = (filledSlot);
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        string name = "Buffer " + state.m_Feedback.BufferBinding[i].ToString();
+                        ulong length = state.m_Feedback.Size[i];
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                        }
+
+                        FetchBuffer fetch = null;
+
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == state.m_Feedback.BufferBinding[i])
+                            {
+                                name = bufs[t].name;
+                                if(length == 0)
+                                    length = bufs[t].length;
+
+                                fetch = bufs[t];
+                            }
+                        }
+
+                        var node = gsFeedback.Nodes.Add(new object[] { i, name, length, state.m_Feedback.Offset[i] });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = fetch;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+                }
+            }
+            gsFeedback.EndUpdate();
+            gsFeedback.NodesSelection.Clear();
+            gsFeedback.SetVScrollValue(vs);
+
+            gsFeedback.Visible = gsFeedback.Parent.Visible = state.m_Feedback.Active;
+            if (state.m_Feedback.Active)
+                geomTableLayout.ColumnStyles[1].Width = 50.0f;
+            else
+                geomTableLayout.ColumnStyles[1].Width = 0;
 
             ////////////////////////////////////////////////
             // Rasterizer
@@ -1267,23 +1331,35 @@ namespace renderdocui.Windows.PipelineState
             }
             else
             {
+                bool raster = true;
+                bool fbo = true;
+
+                if (state.m_VtxProcess.discard)
+                {
+                    raster = fbo = false;
+                }
+
+                if (state.m_GS.Shader == ResourceId.Null &&
+                    state.m_Feedback.Active)
+                {
+                    pipeFlow.SetStageName(4, new KeyValuePair<string, string>("XFB", "Transform Feedback"));
+                }
+                else
+                {
+                    pipeFlow.SetStageName(4, new KeyValuePair<string, string>("GS", "Geometry Shader"));
+                }
+
                 pipeFlow.SetStagesEnabled(new bool[] {
                     true,
                     true,
                     state.m_TES.Shader != ResourceId.Null,
                     state.m_TCS.Shader != ResourceId.Null,
-                    state.m_GS.Shader != ResourceId.Null,
-                    true,
-                    state.m_FS.Shader != ResourceId.Null,
-                    true,
+                    state.m_GS.Shader != ResourceId.Null || state.m_Feedback.Active,
+                    raster,
+                    !state.m_VtxProcess.discard && state.m_FS.Shader != ResourceId.Null,
+                    fbo,
                     false
                 });
-
-                // if(streamout only)
-                //{
-                //    pipeFlow.Rasterizer = false;
-                //    pipeFlow.OutputMerger = false;
-                //}
             }
         }
 
