@@ -183,15 +183,15 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Feedback
         {
-            ResourceId Obj;
+            public ResourceId Obj;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
-            ResourceId[] BufferBinding;
+            public ResourceId[] BufferBinding;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
-            UInt64[] Offset;
+            public UInt64[] Offset;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
-            UInt64[] Size;
-            bool Active;
-            bool Paused;
+            public UInt64[] Size;
+            public bool Active;
+            public bool Paused;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public Feedback m_Feedback;
