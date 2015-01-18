@@ -116,7 +116,14 @@ namespace renderdocui.Windows.PipelineState
             frontCCW.Image = tick;
 
             scissorEnable.Image = tick;
-            multisampleEnable.Image = tick;
+            provokingVertex.Text = "Last";
+            rasterizerDiscard.Image = cross;
+
+            pointSize.Text = "1.0";
+            lineWidth.Text = "1.0";
+
+            clipSetup.Text = "0,0 Lower Left, Z= -1 to 1";
+            clipDistances.Text = "-";
 
             depthClamp.Image = tick;
             depthBias.Text = "0.0";
@@ -926,7 +933,43 @@ namespace renderdocui.Windows.PipelineState
             frontCCW.Image = state.m_RS.m_State.FrontCCW ? tick : cross;
 
             scissorEnable.Image = anyScissorEnable  ? tick : cross;
-            multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? tick : cross;
+            provokingVertex.Text = state.m_VtxIn.provokingVertexLast ? "Last" : "First";
+
+            rasterizerDiscard.Image = state.m_VtxProcess.discard ? tick : cross;
+
+            pointSize.Text = state.m_RS.m_State.ProgrammablePointSize ? "Program" : Formatter.Format(state.m_RS.m_State.PointSize);
+            lineWidth.Text = Formatter.Format(state.m_RS.m_State.LineWidth);
+
+            clipSetup.Text = "";
+            if(state.m_VtxProcess.clipOriginLowerLeft)
+                clipSetup.Text += "0,0 Lower Left";
+            else
+                clipSetup.Text += "0,0 Upper Left";
+            clipSetup.Text += ", ";
+            if (state.m_VtxProcess.clipNegativeOneToOne)
+                clipSetup.Text += "Z= -1 to 1";
+            else
+                clipSetup.Text += "Z= 0 to 1";
+            
+            clipDistances.Text = "";
+
+            int numDist = 0;
+            for (int i = 0; i < state.m_VtxProcess.clipPlanes.Length; i++)
+            {
+                if (state.m_VtxProcess.clipPlanes[i])
+                {
+                    if (numDist > 0)
+                        clipDistances.Text += ", ";
+                    clipDistances.Text += i.ToString();
+
+                    numDist++;
+                }
+            }
+
+            if (numDist == 0)
+                clipDistances.Text = "-";
+            else
+                clipDistances.Text += " enabled";
 
             depthClamp.Image = state.m_RS.m_State.DepthClamp ? cross : tick;
             depthBias.Text = Formatter.Format(state.m_RS.m_State.DepthBias);
