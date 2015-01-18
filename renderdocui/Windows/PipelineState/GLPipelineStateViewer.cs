@@ -368,6 +368,12 @@ namespace renderdocui.Windows.PipelineState
                             if (s.UseBorder)
                                 addressing += String.Format("<{0}>", borderColor);
 
+                            if (r.ResType == ShaderResourceType.TextureCube ||
+                                r.ResType == ShaderResourceType.TextureCubeArray)
+                            {
+                                addressing += s.SeamlessCube ? " Seamless" : " Non-Seamless";
+                            }
+
                             string minfilter = s.MinFilter;
 
                             if (s.MaxAniso > 1)
