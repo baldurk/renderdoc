@@ -1162,27 +1162,26 @@ void GLReplay::SavePipelineState()
 	gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint*)&feedback);
 
 	if(feedback != 0)
+		pipe.m_Feedback.Obj = rm->GetOriginalID(rm->GetID(FeedbackRes(ctx, feedback)));
+
+	GLint maxCount = 0;
+	gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+	for(int i=0; i < (int)ARRAY_COUNT(pipe.m_Feedback.BufferBinding) && i < maxCount; i++)
 	{
-		pipe.m_Feedback.Obj = rm->GetID(FeedbackRes(ctx, feedback));
-
-		GLint maxCount = 0;
-		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
-
-		for(int i=0; i < (int)ARRAY_COUNT(pipe.m_Feedback.BufferBinding) && i < maxCount; i++)
-		{
-			GLuint buffer = 0;
-			gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);pipe.m_Feedback.BufferBinding[i] = rm->GetID(BufferRes(ctx, buffer));
-			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64*)&pipe.m_Feedback.Offset[i]);
-			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE,  i, (GLint64*)&pipe.m_Feedback.Size[i]);
-		}
-
-		GLint p=0;
-		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
-		pipe.m_Feedback.Paused = (p != 0);
-
-		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
-		pipe.m_Feedback.Active = (p != 0);
+		GLuint buffer = 0;
+		gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);
+		pipe.m_Feedback.BufferBinding[i] = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
+		gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64*)&pipe.m_Feedback.Offset[i]);
+		gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE,  i, (GLint64*)&pipe.m_Feedback.Size[i]);
 	}
+
+	GLint p=0;
+	gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
+	pipe.m_Feedback.Paused = (p != 0);
+
+	gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
+	pipe.m_Feedback.Active = (p != 0);
 
 	for(int i=0; i < 6; i++)
 	{
