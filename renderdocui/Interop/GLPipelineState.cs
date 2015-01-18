@@ -159,7 +159,26 @@ namespace renderdoc
             public UInt64 Size;
         };
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public Buffer[] AtomicBuffers;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public Buffer[] UniformBuffers;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public Buffer[] ShaderStorageBuffers;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class ImageLoadStore
+        {
+            public ResourceId Resource;
+            public UInt32 Level;
+            public bool Layered;
+            public UInt32 Layer;
+            public ShaderResourceType ResType;
+            public bool readAllowed;
+            public bool writeAllowed;
+            public ResourceFormat Format;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public ImageLoadStore[] Images;
 
         [StructLayout(LayoutKind.Sequential)]
         public class Feedback

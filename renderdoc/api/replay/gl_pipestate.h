@@ -148,9 +148,9 @@ struct GLPipelineState
 	rdctype::array<Buffer> UniformBuffers;
 	rdctype::array<Buffer> ShaderStorageBuffers;
 	
-	struct Image
+	struct ImageLoadStore
 	{
-		Image()
+		ImageLoadStore()
 			: Resource(), Level(0), Layered(false), Layer(0),
 			  ResType(eResType_None), readAllowed(false), writeAllowed(false)
 		{
@@ -164,7 +164,7 @@ struct GLPipelineState
 		bool32 writeAllowed;
 		ResourceFormat Format;
 	};
-	rdctype::array<Image> Images;
+	rdctype::array<ImageLoadStore> Images;
 	
 	struct Feedback
 	{
