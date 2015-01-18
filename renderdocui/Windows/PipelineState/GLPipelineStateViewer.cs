@@ -131,6 +131,16 @@ namespace renderdocui.Windows.PipelineState
             offsetClamp.Text = "";
             offsetClamp.Image = cross;
 
+            multisampleEnable.Image = tick;
+            sampleShading.Image = tick;
+            minSampleShadingRate.Text = "0.0";
+            alphaToCoverage.Image = tick;
+            alphaToOne.Image = tick;
+            sampleCoverage.Text = "";
+            sampleCoverage.Image = cross;
+            sampleMask.Text = "";
+            sampleMask.Image = cross;
+
             viewports.Nodes.Clear();
             scissors.Nodes.Clear();
 
@@ -983,6 +993,34 @@ namespace renderdocui.Windows.PipelineState
             {
                 offsetClamp.Text = Formatter.Format(state.m_RS.m_State.OffsetClamp);
                 offsetClamp.Image = null;
+            }
+
+            multisampleEnable.Image = state.m_RS.m_State.MultisampleEnable ? cross : tick;
+            sampleShading.Image = state.m_RS.m_State.SampleShading ? cross : tick;
+            minSampleShadingRate.Text = Formatter.Format(state.m_RS.m_State.MinSampleShadingRate);
+            alphaToCoverage.Image = state.m_RS.m_State.SampleAlphaToCoverage ? cross : tick;
+            alphaToOne.Image = state.m_RS.m_State.SampleAlphaToOne ? cross : tick;
+            if (state.m_RS.m_State.SampleCoverage)
+            {
+                sampleCoverage.Text = Formatter.Format(state.m_RS.m_State.SampleCoverageValue);
+                if (state.m_RS.m_State.SampleCoverageInvert)
+                    sampleCoverage.Text += " inverted";
+                sampleCoverage.Image = null;
+            }
+            else
+            {
+                sampleCoverage.Text = "";
+                sampleCoverage.Image = cross;
+            }
+            if (state.m_RS.m_State.SampleMask)
+            {
+                sampleMask.Text = state.m_RS.m_State.SampleMaskValue.ToString("X8");
+                sampleMask.Image = null;
+            }
+            else
+            {
+                sampleMask.Text = "";
+                sampleMask.Image = cross;
             }
 
             ////////////////////////////////////////////////
