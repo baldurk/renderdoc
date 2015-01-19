@@ -40,6 +40,18 @@ namespace renderdocui.Windows.PipelineState
 {
     public partial class GLPipelineStateViewer : UserControl, ILogViewerForm
     {
+        private struct ReadWriteTag
+        {
+            public ReadWriteTag(UInt32 i, FetchBuffer b)
+            {
+                idx = i;
+                buf = b;
+            }
+
+            public UInt32 idx;
+            public FetchBuffer buf;
+        };
+
         private Core m_Core;
         private DockContent m_DockContent;
 
@@ -105,7 +117,7 @@ namespace renderdocui.Windows.PipelineState
             ClearShaderState(fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines);
             ClearShaderState(csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
 
-            csUAVs.Nodes.Clear();
+            csReadWrite.Nodes.Clear();
             gsFeedback.Nodes.Clear();
 
             var tick = global::renderdocui.Properties.Resources.tick;
@@ -191,8 +203,10 @@ namespace renderdocui.Windows.PipelineState
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
                                     GLPipelineState state, GLPipelineState.ShaderStage stage,
-                                    Label shader, TreelistView.TreeListView textures, TreelistView.TreeListView samplers,
-                                    TreelistView.TreeListView cbuffers, TreelistView.TreeListView subs)
+                                    TableLayoutPanel table, Label shader,
+                                    TreelistView.TreeListView textures, TreelistView.TreeListView samplers,
+                                    TreelistView.TreeListView cbuffers, TreelistView.TreeListView subs,
+                                    TreelistView.TreeListView readwrites)
         {
             ShaderReflection shaderDetails = stage.ShaderDetails;
             var mapping = stage.BindpointMapping;
@@ -203,7 +217,7 @@ namespace renderdocui.Windows.PipelineState
                 shader.Text = "Shader " + stage.Shader.ToString();
 
             if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc != "" && shaderDetails.DebugInfo.files.Length > 0)
-                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 
+                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " +
                                 Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
 
             int vs = 0;
@@ -230,7 +244,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         foreach (var bind in shaderDetails.Resources)
                         {
-                            if (bind.IsSRV && mapping.Resources[bind.bindPoint].bind == i)
+                            if (bind.IsSRV && !bind.IsReadWrite && mapping.Resources[bind.bindPoint].bind == i)
                             {
                                 shaderInput = bind;
                                 map = mapping.Resources[bind.bindPoint];
@@ -306,27 +320,6 @@ namespace renderdocui.Windows.PipelineState
                                     }
 
                                     tag = texs[t];
-                                }
-                            }
-
-                            // if not a texture, it must be a buffer
-                            for (int t = 0; t < bufs.Length; t++)
-                            {
-                                if (bufs[t].ID == r.Resource)
-                                {
-                                    w = bufs[t].length;
-                                    h = 0;
-                                    d = 0;
-                                    a = 0;
-                                    format = "";
-                                    name = bufs[t].name;
-                                    typename = "Buffer";
-
-                                    // for structured buffers, display how many 'elements' there are in the buffer
-                                    if (bufs[t].structureSize > 0)
-                                        typename = "StructuredBuffer[" + (bufs[t].length / bufs[t].structureSize) + "]";
-
-                                    tag = bufs[t];
                                 }
                             }
 
@@ -424,7 +417,7 @@ namespace renderdocui.Windows.PipelineState
             vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
-            if(shaderDetails != null)
+            if (shaderDetails != null)
             {
                 UInt32 i = 0;
                 foreach (var shaderCBuf in shaderDetails.ConstantBlocks)
@@ -517,7 +510,188 @@ namespace renderdocui.Windows.PipelineState
             subs.NodesSelection.Clear();
             subs.SetVScrollValue(vs);
 
-            subs.Visible = subs.Parent.Visible = (stage.Subroutines.Length > 0);
+            {
+                subs.Visible = subs.Parent.Visible = (stage.Subroutines.Length > 0);
+                var pos = table.GetPositionFromControl(subs.Parent);
+                if (stage.Subroutines.Length > 0)
+                    table.RowStyles[pos.Row].Height = table.RowStyles[1].Height;
+                else
+                    table.RowStyles[pos.Row].Height = 0;
+            }
+
+            vs = readwrites.VScrollValue();
+            readwrites.BeginUpdate();
+            readwrites.Nodes.Clear();
+            if (shaderDetails != null)
+            {
+                UInt32 i = 0;
+                foreach (var res in shaderDetails.Resources)
+                {
+                    int bindPoint = stage.BindpointMapping.Resources[i].bind;
+
+                    bool atomic = false;
+                    bool ssbo = false;
+                    bool image = false;
+
+                    if (!res.IsReadWrite)
+                    {
+                        i++;
+                        continue;
+                    }
+
+                    GLPipelineState.Buffer bf = null;
+                    GLPipelineState.ImageLoadStore im = null;
+                    ResourceId id = ResourceId.Null;
+
+                    if (res.IsTexture)
+                    {
+                        image = true;
+                        if (bindPoint >= 0 && bindPoint < state.Images.Length)
+                        {
+                            im = state.Images[bindPoint];
+                            id = state.Images[bindPoint].Resource;
+                        }
+                    }
+                    else
+                    {
+                        if (res.variableType.descriptor.rows == 1 &&
+                            res.variableType.descriptor.cols == 1 &&
+                            res.variableType.descriptor.type == VarType.UInt)
+                        {
+                            atomic = true;
+                            if (bindPoint >= 0 && bindPoint < state.AtomicBuffers.Length)
+                            {
+                                bf = state.AtomicBuffers[bindPoint];
+                                id = state.AtomicBuffers[bindPoint].Resource;
+                            }
+                        }
+                        else
+                        {
+                            ssbo = true;
+                            if (bindPoint >= 0 && bindPoint < state.ShaderStorageBuffers.Length)
+                            {
+                                bf = state.ShaderStorageBuffers[bindPoint];
+                                id = state.ShaderStorageBuffers[bindPoint].Resource;
+                            }
+                        }
+                    }
+
+                    bool filledSlot = id != ResourceId.Null;
+                    bool usedSlot = stage.BindpointMapping.Resources[i].used;
+
+                    // show if
+                    if (usedSlot || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !usedSlot && filledSlot) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
+                        )
+                    {
+                        string binding = image ? "Image" :
+                            atomic ? "Atomic" :
+                            ssbo ? "SSBO" :
+                            "Unknown";
+
+                        string slotname = String.Format("{0}: {1}", bindPoint, res.name);
+                        string name = "";
+                        string dimensions = "";
+                        string format = "-";
+                        string access = "Read/Write";
+                        if (im != null)
+                        {
+                            if (im.readAllowed && !im.writeAllowed) access = "Read-Only";
+                            if (!im.readAllowed && im.writeAllowed) access = "Write-Only";
+                            format = im.Format.ToString();
+                        }
+
+                        object tag = null;
+
+                        // check to see if it's a texture
+                        for (int t = 0; t < texs.Length; t++)
+                        {
+                            if (texs[t].ID == id)
+                            {
+                                if (texs[t].dimension == 1)
+                                {
+                                    if(texs[t].arraysize > 1)
+                                        dimensions = String.Format("{0}[{1}]", texs[t].width, texs[t].arraysize);
+                                    else
+                                        dimensions = String.Format("{0}", texs[t].width);
+                                }
+                                else if (texs[t].dimension == 2)
+                                {
+                                    if (texs[t].arraysize > 1)
+                                        dimensions = String.Format("{0}x{1}[{2}]", texs[t].width, texs[t].height, texs[t].arraysize);
+                                    else
+                                        dimensions = String.Format("{0}x{1}", texs[t].width, texs[t].height);
+                                }
+                                else if (texs[t].dimension == 3)
+                                {
+                                    dimensions = String.Format("{0}x{1}x{2}", texs[t].width, texs[t].height, texs[t].depth);
+                                }
+
+                                name = texs[t].name;
+
+                                tag = texs[t];
+                            }
+                        }
+
+                        // if not a texture, it must be a buffer
+                        for (int t = 0; t < bufs.Length; t++)
+                        {
+                            if (bufs[t].ID == id)
+                            {
+                                ulong offset = 0;
+                                ulong length = bufs[t].length;
+                                if (bf != null && bf.Size > 0)
+                                {
+                                    offset = bf.Offset;
+                                    length = bf.Size;
+                                }
+
+                                if(offset > 0)
+                                    dimensions = String.Format("{0} bytes at offset {1} bytes", length, offset);
+                                else
+                                    dimensions = String.Format("{0} bytes", length);
+
+                                name = bufs[t].name;
+
+                                tag = new ReadWriteTag(i, bufs[t]);
+                            }
+                        }
+
+                        if (!filledSlot)
+                        {
+                            name = "Empty";
+                            dimensions = "-";
+                            access = "-";
+                        }
+
+                        var node = readwrites.Nodes.Add(new object[] { binding, slotname, name, dimensions, format, access });
+
+                        node.Image = global::renderdocui.Properties.Resources.action;
+                        node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
+                        node.Tag = tag;
+
+                        if (!filledSlot)
+                            EmptyRow(node);
+
+                        if (!usedSlot)
+                            InactiveRow(node);
+                    }
+                    i++;
+                }
+            }
+            readwrites.EndUpdate();
+            readwrites.NodesSelection.Clear();
+            readwrites.SetVScrollValue(vs);
+
+            {
+                readwrites.Visible = readwrites.Parent.Visible = (readwrites.Nodes.Count > 0);
+                var pos = table.GetPositionFromControl(readwrites.Parent);
+                if (readwrites.Nodes.Count > 0)
+                    table.RowStyles[pos.Row].Height = table.RowStyles[1].Height;
+                else
+                    table.RowStyles[pos.Row].Height = 0;
+            }
         }
 
         // from https://gist.github.com/mjijackson/5311256
@@ -812,19 +986,12 @@ namespace renderdocui.Windows.PipelineState
             iabuffers.EndUpdate();
             iabuffers.SetVScrollValue(vs);
 
-            SetShaderState(texs, bufs, state, state.m_VS, vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines);
-            SetShaderState(texs, bufs, state, state.m_GS, gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines);
-            SetShaderState(texs, bufs, state, state.m_TES, tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines);
-            SetShaderState(texs, bufs, state, state.m_TCS, tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines);
-            SetShaderState(texs, bufs, state, state.m_FS, fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines);
-            SetShaderState(texs, bufs, state, state.m_CS, csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
-
-
-            csUAVs.Nodes.Clear();
-            csUAVs.BeginUpdate();
-
-            csUAVs.NodesSelection.Clear();
-            csUAVs.EndUpdate();
+            SetShaderState(texs, bufs, state, state.m_VS, vsTable, vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines, vsReadWrite);
+            SetShaderState(texs, bufs, state, state.m_GS, gsTable, gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines, gsReadWrite);
+            SetShaderState(texs, bufs, state, state.m_TES, tesTable, tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines, tesReadWrite);
+            SetShaderState(texs, bufs, state, state.m_TCS, tcsTable, tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines, tcsReadWrite);
+            SetShaderState(texs, bufs, state, state.m_FS, fsTable, fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines, fsReadWrite);
+            SetShaderState(texs, bufs, state, state.m_CS, csTable, csShader, csTextures, csSamplers, csCBuffers, csSubroutines, csReadWrite);
 
             vs = gsFeedback.VScrollValue();
             gsFeedback.BeginUpdate();
@@ -885,9 +1052,9 @@ namespace renderdocui.Windows.PipelineState
 
             gsFeedback.Visible = gsFeedback.Parent.Visible = state.m_Feedback.Active;
             if (state.m_Feedback.Active)
-                geomTableLayout.ColumnStyles[1].Width = 50.0f;
+                gsTable.ColumnStyles[1].Width = 50.0f;
             else
-                geomTableLayout.ColumnStyles[1].Width = 0;
+                gsTable.ColumnStyles[1].Width = 0;
 
             ////////////////////////////////////////////////
             // Rasterizer
@@ -1408,8 +1575,39 @@ namespace renderdocui.Windows.PipelineState
                 if (!viewer.IsDisposed)
                     viewer.ViewTexture(tex.ID, true);
             }
-            else if(tag is FetchBuffer)
+            else if(tag is ReadWriteTag)
             {
+                ReadWriteTag rwtag = (ReadWriteTag)tag;
+                FetchBuffer buf = rwtag.buf;
+
+                string format = "";
+
+                var deets = stage.ShaderDetails;
+                
+                ShaderResource r = deets.Resources[rwtag.idx];
+
+                if (deets != null)
+                {
+                    if (r.variableType.members.Length == 0)
+                    {
+                        if (format == "" && r.variableType.Name.Length > 0)
+                            format = r.variableType.Name + " " + r.name + ";";
+                    }
+                    else
+                    {
+                        format = FormatMembers(0, "", r.variableType.members);
+                    }
+                }
+
+                if (buf.ID != ResourceId.Null)
+                {
+                    var viewer = new BufferViewer(m_Core, false);
+                    if (format.Length == 0)
+                        viewer.ViewRawBuffer(buf.ID);
+                    else
+                        viewer.ViewRawBuffer(buf.ID, format);
+                    viewer.Show(m_DockContent.DockPanel);
+                }
             }
         }
 
@@ -1595,7 +1793,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     if (i > 0)
                         ret += "\n";
-                    ret += indentstr + "// struct " + v.type.Name + Environment.NewLine;
+                    ret += indentstr + "// struct " + v.name + Environment.NewLine;
                     ret += indentstr + "{" + Environment.NewLine +
                                 FormatMembers(indent + 1, v.name + "_", v.type.members) +
                            indentstr + "}" + Environment.NewLine;
