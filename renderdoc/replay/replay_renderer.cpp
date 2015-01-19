@@ -1012,6 +1012,15 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 						srcData += td.format.compCount * td.format.compByteWidth;
 					}
 
+					// HDR can't represent negative values
+					if(sd.destType == eFileType_HDR)
+					{
+						r = RDCMAX(r, 0.0f);
+						g = RDCMAX(g, 0.0f);
+						b = RDCMAX(b, 0.0f);
+						a = RDCMAX(a, 0.0f);
+					}
+
 					fldata[(y*td.width + x) * 4 + 0] = r;
 					fldata[(y*td.width + x) * 4 + 1] = g;
 					fldata[(y*td.width + x) * 4 + 2] = b;
