@@ -344,7 +344,7 @@ namespace renderdoc
         public bool IsSampler;
         public bool IsTexture;
         public bool IsSRV;
-        public bool IsUAV;
+        public bool IsReadWrite;
 
         public ShaderResourceType resType;
 

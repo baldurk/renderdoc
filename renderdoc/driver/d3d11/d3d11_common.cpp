@@ -877,12 +877,12 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		             r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
 		             r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
 		             r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
-		res.IsUAV = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
-		             r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-		             r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-		             r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-		             r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-		             r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
+		res.IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
+		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
+		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
+		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
+		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
+		                   r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
 		
 		switch(r.dimension)
 		{

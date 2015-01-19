@@ -346,7 +346,7 @@ namespace renderdocui.Windows
                         Regex rgx = new Regex(needle);
                         disasm = rgx.Replace(disasm, replacement);
                     }
-                    if (r.IsUAV)
+                    if (r.IsReadWrite)
                     {
                         var needle = string.Format(", u{0}([^0-9])", r.bindPoint);
                         var replacement = string.Format(", {0}$1", r.name);
@@ -837,7 +837,7 @@ namespace renderdocui.Windows
 
                     var res = m_Stage.SRVs[slot.bindPoint];
 
-                    if (slot.IsUAV)
+                    if (slot.IsReadWrite)
                     {
                         if(m_Stage.stage == ShaderStageType.Pixel)
                             res = pipestate.m_OM.UAVs[slot.bindPoint - pipestate.m_OM.UAVStartSlot];

@@ -891,7 +891,7 @@ namespace renderdocui.Windows
                     {
                         foreach (var bind in details.Resources)
                         {
-                            if (mapping.Resources[bind.bindPoint].bind == i && bind.IsUAV)
+                            if (mapping.Resources[bind.bindPoint].bind == i && bind.IsReadWrite)
                             {
                                 bindName = "<" + bind.name + ">";
                             }

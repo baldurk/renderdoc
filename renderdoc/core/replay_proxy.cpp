@@ -397,7 +397,7 @@ void Serialiser::Serialise(const char *name, ShaderResource &el)
 	Serialise("", el.IsSampler);
 	Serialise("", el.IsTexture);
 	Serialise("", el.IsSRV);
-	Serialise("", el.IsUAV);
+	Serialise("", el.IsReadWrite);
 	Serialise("", el.name);
 	Serialise("", el.variableType);
 	Serialise("", el.bindPoint);

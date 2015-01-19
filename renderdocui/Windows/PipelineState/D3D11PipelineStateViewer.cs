@@ -848,7 +848,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         foreach (var bind in state.m_CS.ShaderDetails.Resources)
                         {
-                            if (bind.IsUAV && bind.bindPoint == i)
+                            if (bind.IsReadWrite && bind.bindPoint == i)
                                 shaderInput = bind;
                         }
                     }
@@ -1162,7 +1162,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         foreach (var bind in state.m_PS.ShaderDetails.Resources)
                         {
-                            if (bind.IsUAV && bind.bindPoint == i + state.m_OM.UAVStartSlot)
+                            if (bind.IsReadWrite && bind.bindPoint == i + state.m_OM.UAVStartSlot)
                                 shaderInput = bind;
                         }
                     }
@@ -1512,7 +1512,7 @@ namespace renderdocui.Windows.PipelineState
                         if(r.IsTexture)
                             continue;
 
-                        if ( (r.IsSRV && !uav) || (r.IsUAV && uav) )
+                        if ((r.IsSRV && !uav) || (r.IsReadWrite && uav))
                         {
                             if (r.bindPoint == bind)
                             {
@@ -1821,7 +1821,7 @@ namespace renderdocui.Windows.PipelineState
                     {
                         char regChar = 't';
 
-                        if (res.IsUAV)
+                        if (res.IsReadWrite)
                         {
                             hlsl += "RW";
                             regChar = 'u';
@@ -2367,7 +2367,7 @@ namespace renderdocui.Windows.PipelineState
             {
                 foreach (var bind in refl.Resources)
                 {
-                    if (bind.IsUAV && bind.bindPoint == i)
+                    if (bind.IsReadWrite && bind.bindPoint == i)
                         shaderInput = bind;
                 }
             }
