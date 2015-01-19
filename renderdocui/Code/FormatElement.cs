@@ -323,6 +323,8 @@ namespace renderdocui.Code
                           @"|ubyte|ushort|uint" + // unsigned ints
                           @"|xbyte|xshort|xint" + // hex ints
                           @"|half|float|double" + // float types
+                          @"|vec|uvec|ivec" + // OpenGL vector types
+                          @"|mat|umat|imat" + // OpenGL matrix types
                           @")" +
                           @"([1-9])?" + // might be a vector
                           @"(x[1-9])?" + // or a matrix
@@ -435,12 +437,12 @@ namespace renderdocui.Code
                         type = FormatComponentType.UInt;
                         width = 2;
                     }
-                    else if (basetype == "int")
+                    else if (basetype == "int" || basetype == "ivec" || basetype == "imat")
                     {
                         type = FormatComponentType.SInt;
                         width = 4;
                     }
-                    else if (basetype == "uint" || basetype == "xint")
+                    else if (basetype == "uint" || basetype == "xint" || basetype == "uvec" || basetype == "umat")
                     {
                         type = FormatComponentType.UInt;
                         width = 4;
@@ -450,7 +452,7 @@ namespace renderdocui.Code
                         type = FormatComponentType.Float;
                         width = 2;
                     }
-                    else if (basetype == "float")
+                    else if (basetype == "float" || basetype == "vec" || basetype == "mat")
                     {
                         type = FormatComponentType.Float;
                         width = 4;
