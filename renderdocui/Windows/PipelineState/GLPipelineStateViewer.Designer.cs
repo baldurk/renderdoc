@@ -323,7 +323,7 @@
             this.vsShader = new System.Windows.Forms.Label();
             this.vsShaderCog = new System.Windows.Forms.PictureBox();
             this.vsShaderEdit = new System.Windows.Forms.PictureBox();
-            this.groupBox5 = new System.Windows.Forms.GroupBox();
+            this.vsSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.vsSubroutines = new TreelistView.TreeListView();
             this.groupBox7 = new System.Windows.Forms.GroupBox();
             this.vsTextures = new TreelistView.TreeListView();
@@ -341,7 +341,7 @@
             this.tesShader = new System.Windows.Forms.Label();
             this.tesShaderCog = new System.Windows.Forms.PictureBox();
             this.hsShaderEdit = new System.Windows.Forms.PictureBox();
-            this.groupBox11 = new System.Windows.Forms.GroupBox();
+            this.tesSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.tesSubroutines = new TreelistView.TreeListView();
             this.groupBox12 = new System.Windows.Forms.GroupBox();
             this.tesTextures = new TreelistView.TreeListView();
@@ -359,7 +359,7 @@
             this.tcsShader = new System.Windows.Forms.Label();
             this.tcsShaderCog = new System.Windows.Forms.PictureBox();
             this.dsShaderEdit = new System.Windows.Forms.PictureBox();
-            this.groupBox17 = new System.Windows.Forms.GroupBox();
+            this.tcsSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.tcsSubroutines = new TreelistView.TreeListView();
             this.groupBox18 = new System.Windows.Forms.GroupBox();
             this.tcsTextures = new TreelistView.TreeListView();
@@ -377,7 +377,7 @@
             this.gsShader = new System.Windows.Forms.Label();
             this.gsShaderCog = new System.Windows.Forms.PictureBox();
             this.gsShaderEdit = new System.Windows.Forms.PictureBox();
-            this.groupBox23 = new System.Windows.Forms.GroupBox();
+            this.gsSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.gsSubroutines = new TreelistView.TreeListView();
             this.groupBox24 = new System.Windows.Forms.GroupBox();
             this.gsTextures = new TreelistView.TreeListView();
@@ -425,7 +425,7 @@
             this.fsShader = new System.Windows.Forms.Label();
             this.fsShaderCog = new System.Windows.Forms.PictureBox();
             this.psShaderEdit = new System.Windows.Forms.PictureBox();
-            this.groupBox19 = new System.Windows.Forms.GroupBox();
+            this.fsSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.fsSubroutines = new TreelistView.TreeListView();
             this.groupBox28 = new System.Windows.Forms.GroupBox();
             this.fsTextures = new TreelistView.TreeListView();
@@ -466,7 +466,7 @@
             this.csTable = new System.Windows.Forms.TableLayoutPanel();
             this.csReadWriteGroup = new System.Windows.Forms.GroupBox();
             this.csReadWrite = new TreelistView.TreeListView();
-            this.groupBox27 = new System.Windows.Forms.GroupBox();
+            this.csSubroutinesGroup = new System.Windows.Forms.GroupBox();
             this.csSubroutines = new TreelistView.TreeListView();
             this.groupBox6 = new System.Windows.Forms.GroupBox();
             this.flowLayoutPanel7 = new System.Windows.Forms.FlowLayoutPanel();
@@ -550,7 +550,7 @@
             this.flowLayoutPanel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderEdit)).BeginInit();
-            this.groupBox5.SuspendLayout();
+            this.vsSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsSubroutines)).BeginInit();
             this.groupBox7.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsTextures)).BeginInit();
@@ -567,7 +567,7 @@
             this.flowLayoutPanel4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tesShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderEdit)).BeginInit();
-            this.groupBox11.SuspendLayout();
+            this.tesSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tesSubroutines)).BeginInit();
             this.groupBox12.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tesTextures)).BeginInit();
@@ -584,7 +584,7 @@
             this.flowLayoutPanel5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tcsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderEdit)).BeginInit();
-            this.groupBox17.SuspendLayout();
+            this.tcsSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tcsSubroutines)).BeginInit();
             this.groupBox18.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tcsTextures)).BeginInit();
@@ -601,7 +601,7 @@
             this.flowLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderEdit)).BeginInit();
-            this.groupBox23.SuspendLayout();
+            this.gsSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsSubroutines)).BeginInit();
             this.groupBox24.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsTextures)).BeginInit();
@@ -641,7 +641,7 @@
             this.flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderEdit)).BeginInit();
-            this.groupBox19.SuspendLayout();
+            this.fsSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fsSubroutines)).BeginInit();
             this.groupBox28.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fsTextures)).BeginInit();
@@ -673,7 +673,7 @@
             this.csTable.SuspendLayout();
             this.csReadWriteGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csReadWrite)).BeginInit();
-            this.groupBox27.SuspendLayout();
+            this.csSubroutinesGroup.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csSubroutines)).BeginInit();
             this.groupBox6.SuspendLayout();
             this.flowLayoutPanel7.SuspendLayout();
@@ -1067,15 +1067,14 @@
             // 
             // vsTable
             // 
-            this.vsTable.ColumnCount = 2;
-            this.vsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.vsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.vsTable.Controls.Add(this.vsReadWriteGroup, 0, 5);
+            this.vsTable.ColumnCount = 1;
+            this.vsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.vsTable.Controls.Add(this.groupBox3, 0, 0);
-            this.vsTable.Controls.Add(this.groupBox5, 1, 3);
             this.vsTable.Controls.Add(this.groupBox7, 0, 1);
             this.vsTable.Controls.Add(this.groupBox8, 0, 2);
             this.vsTable.Controls.Add(this.groupBox9, 0, 3);
+            this.vsTable.Controls.Add(this.vsSubroutinesGroup, 0, 4);
+            this.vsTable.Controls.Add(this.vsReadWriteGroup, 0, 5);
             this.vsTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.vsTable.Location = new System.Drawing.Point(0, 0);
             this.vsTable.Name = "vsTable";
@@ -1215,17 +1214,16 @@
             this.toolTip.SetToolTip(this.vsShaderEdit, "HLSL edit and replace this shader");
             this.vsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
-            // groupBox5
+            // vsSubroutinesGroup
             // 
-            this.vsTable.SetColumnSpan(this.groupBox5, 2);
-            this.groupBox5.Controls.Add(this.vsSubroutines);
-            this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox5.Location = new System.Drawing.Point(3, 386);
-            this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(1151, 105);
-            this.groupBox5.TabIndex = 16;
-            this.groupBox5.TabStop = false;
-            this.groupBox5.Text = "Shader Subroutines";
+            this.vsSubroutinesGroup.Controls.Add(this.vsSubroutines);
+            this.vsSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.vsSubroutinesGroup.Location = new System.Drawing.Point(3, 386);
+            this.vsSubroutinesGroup.Name = "vsSubroutinesGroup";
+            this.vsSubroutinesGroup.Size = new System.Drawing.Size(1151, 105);
+            this.vsSubroutinesGroup.TabIndex = 16;
+            this.vsSubroutinesGroup.TabStop = false;
+            this.vsSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // vsSubroutines
             // 
@@ -1445,12 +1443,12 @@
             this.tcsTable.ColumnCount = 2;
             this.tcsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tcsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tcsTable.Controls.Add(this.tcsReadWriteGroup, 0, 5);
             this.tcsTable.Controls.Add(this.groupBox10, 0, 0);
-            this.tcsTable.Controls.Add(this.groupBox11, 1, 3);
             this.tcsTable.Controls.Add(this.groupBox12, 0, 1);
             this.tcsTable.Controls.Add(this.groupBox14, 0, 2);
             this.tcsTable.Controls.Add(this.groupBox15, 0, 3);
+            this.tcsTable.Controls.Add(this.tcsSubroutinesGroup, 0, 4);
+            this.tcsTable.Controls.Add(this.tcsReadWriteGroup, 0, 5);
             this.tcsTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tcsTable.Location = new System.Drawing.Point(0, 0);
             this.tcsTable.Name = "tcsTable";
@@ -1590,17 +1588,16 @@
             this.toolTip.SetToolTip(this.hsShaderEdit, "HLSL edit and replace this shader");
             this.hsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
-            // groupBox11
+            // tesSubroutinesGroup
             // 
-            this.tcsTable.SetColumnSpan(this.groupBox11, 2);
-            this.groupBox11.Controls.Add(this.tesSubroutines);
-            this.groupBox11.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox11.Location = new System.Drawing.Point(3, 386);
-            this.groupBox11.Name = "groupBox11";
-            this.groupBox11.Size = new System.Drawing.Size(1151, 105);
-            this.groupBox11.TabIndex = 16;
-            this.groupBox11.TabStop = false;
-            this.groupBox11.Text = "Shader Subroutines";
+            this.tesSubroutinesGroup.Controls.Add(this.tesSubroutines);
+            this.tesSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tesSubroutinesGroup.Location = new System.Drawing.Point(3, 386);
+            this.tesSubroutinesGroup.Name = "tesSubroutinesGroup";
+            this.tesSubroutinesGroup.Size = new System.Drawing.Size(1151, 105);
+            this.tesSubroutinesGroup.TabIndex = 16;
+            this.tesSubroutinesGroup.TabStop = false;
+            this.tesSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // tesSubroutines
             // 
@@ -1822,12 +1819,12 @@
             this.tesTable.ColumnCount = 2;
             this.tesTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tesTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tesTable.Controls.Add(this.tesReadWriteGroup, 0, 5);
             this.tesTable.Controls.Add(this.groupBox16, 0, 0);
-            this.tesTable.Controls.Add(this.groupBox17, 1, 3);
             this.tesTable.Controls.Add(this.groupBox18, 0, 1);
             this.tesTable.Controls.Add(this.groupBox20, 0, 2);
             this.tesTable.Controls.Add(this.groupBox21, 0, 3);
+            this.tesTable.Controls.Add(this.tesSubroutinesGroup, 0, 4);
+            this.tesTable.Controls.Add(this.tesReadWriteGroup, 0, 5);
             this.tesTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tesTable.Location = new System.Drawing.Point(0, 0);
             this.tesTable.Name = "tesTable";
@@ -1967,17 +1964,16 @@
             this.toolTip.SetToolTip(this.dsShaderEdit, "HLSL edit and replace this shader");
             this.dsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
-            // groupBox17
+            // tcsSubroutinesGroup
             // 
-            this.tesTable.SetColumnSpan(this.groupBox17, 2);
-            this.groupBox17.Controls.Add(this.tcsSubroutines);
-            this.groupBox17.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox17.Location = new System.Drawing.Point(3, 386);
-            this.groupBox17.Name = "groupBox17";
-            this.groupBox17.Size = new System.Drawing.Size(1151, 105);
-            this.groupBox17.TabIndex = 16;
-            this.groupBox17.TabStop = false;
-            this.groupBox17.Text = "Shader Subroutines";
+            this.tcsSubroutinesGroup.Controls.Add(this.tcsSubroutines);
+            this.tcsSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tcsSubroutinesGroup.Location = new System.Drawing.Point(3, 386);
+            this.tcsSubroutinesGroup.Name = "tcsSubroutinesGroup";
+            this.tcsSubroutinesGroup.Size = new System.Drawing.Size(1151, 105);
+            this.tcsSubroutinesGroup.TabIndex = 16;
+            this.tcsSubroutinesGroup.TabStop = false;
+            this.tcsSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // tcsSubroutines
             // 
@@ -2199,13 +2195,13 @@
             this.gsTable.ColumnCount = 2;
             this.gsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.gsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.gsTable.Controls.Add(this.gsReadWriteGroup, 0, 5);
             this.gsTable.Controls.Add(this.groupBox22, 0, 0);
-            this.gsTable.Controls.Add(this.groupBox23, 0, 4);
             this.gsTable.Controls.Add(this.groupBox24, 0, 1);
             this.gsTable.Controls.Add(this.groupBox25, 0, 2);
             this.gsTable.Controls.Add(this.groupBox26, 0, 3);
             this.gsTable.Controls.Add(this.feedbackGroup, 1, 3);
+            this.gsTable.Controls.Add(this.gsSubroutinesGroup, 0, 4);
+            this.gsTable.Controls.Add(this.gsReadWriteGroup, 0, 5);
             this.gsTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsTable.Location = new System.Drawing.Point(0, 0);
             this.gsTable.Name = "gsTable";
@@ -2345,17 +2341,17 @@
             this.toolTip.SetToolTip(this.gsShaderEdit, "HLSL edit and replace this shader");
             this.gsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
-            // groupBox23
+            // gsSubroutinesGroup
             // 
-            this.gsTable.SetColumnSpan(this.groupBox23, 2);
-            this.groupBox23.Controls.Add(this.gsSubroutines);
-            this.groupBox23.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox23.Location = new System.Drawing.Point(3, 386);
-            this.groupBox23.Name = "groupBox23";
-            this.groupBox23.Size = new System.Drawing.Size(1151, 105);
-            this.groupBox23.TabIndex = 16;
-            this.groupBox23.TabStop = false;
-            this.groupBox23.Text = "Shader Subroutines";
+            this.gsTable.SetColumnSpan(this.gsSubroutinesGroup, 2);
+            this.gsSubroutinesGroup.Controls.Add(this.gsSubroutines);
+            this.gsSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.gsSubroutinesGroup.Location = new System.Drawing.Point(3, 386);
+            this.gsSubroutinesGroup.Name = "gsSubroutinesGroup";
+            this.gsSubroutinesGroup.Size = new System.Drawing.Size(1151, 105);
+            this.gsSubroutinesGroup.TabIndex = 16;
+            this.gsSubroutinesGroup.TabStop = false;
+            this.gsSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // gsSubroutines
             // 
@@ -3379,12 +3375,12 @@
             this.fsTable.ColumnCount = 2;
             this.fsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.fsTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.fsTable.Controls.Add(this.fsReadWriteGroup, 0, 5);
             this.fsTable.Controls.Add(this.groupBox13, 0, 0);
-            this.fsTable.Controls.Add(this.groupBox19, 1, 3);
             this.fsTable.Controls.Add(this.groupBox28, 0, 1);
             this.fsTable.Controls.Add(this.groupBox29, 0, 2);
             this.fsTable.Controls.Add(this.groupBox30, 0, 3);
+            this.fsTable.Controls.Add(this.fsSubroutinesGroup, 0, 4);
+            this.fsTable.Controls.Add(this.fsReadWriteGroup, 0, 5);
             this.fsTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.fsTable.Location = new System.Drawing.Point(0, 0);
             this.fsTable.Name = "fsTable";
@@ -3524,17 +3520,16 @@
             this.toolTip.SetToolTip(this.psShaderEdit, "HLSL edit and replace this shader");
             this.psShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
-            // groupBox19
+            // fsSubroutinesGroup
             // 
-            this.fsTable.SetColumnSpan(this.groupBox19, 2);
-            this.groupBox19.Controls.Add(this.fsSubroutines);
-            this.groupBox19.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox19.Location = new System.Drawing.Point(3, 386);
-            this.groupBox19.Name = "groupBox19";
-            this.groupBox19.Size = new System.Drawing.Size(1151, 105);
-            this.groupBox19.TabIndex = 16;
-            this.groupBox19.TabStop = false;
-            this.groupBox19.Text = "Shader Subroutines";
+            this.fsSubroutinesGroup.Controls.Add(this.fsSubroutines);
+            this.fsSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.fsSubroutinesGroup.Location = new System.Drawing.Point(3, 386);
+            this.fsSubroutinesGroup.Name = "fsSubroutinesGroup";
+            this.fsSubroutinesGroup.Size = new System.Drawing.Size(1151, 105);
+            this.fsSubroutinesGroup.TabIndex = 16;
+            this.fsSubroutinesGroup.TabStop = false;
+            this.fsSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // fsSubroutines
             // 
@@ -4225,12 +4220,12 @@
             // 
             this.csTable.ColumnCount = 1;
             this.csTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.csTable.Controls.Add(this.csReadWriteGroup, 0, 5);
-            this.csTable.Controls.Add(this.groupBox27, 0, 4);
             this.csTable.Controls.Add(this.groupBox6, 0, 0);
             this.csTable.Controls.Add(this.groupBox34, 0, 1);
             this.csTable.Controls.Add(this.groupBox35, 0, 2);
             this.csTable.Controls.Add(this.groupBox36, 0, 3);
+            this.csTable.Controls.Add(this.csSubroutinesGroup, 0, 4);
+            this.csTable.Controls.Add(this.csReadWriteGroup, 0, 5);
             this.csTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csTable.Location = new System.Drawing.Point(0, 0);
             this.csTable.Name = "csTable";
@@ -4306,17 +4301,16 @@
             this.csReadWrite.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csReadWrite.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
-            // groupBox27
+            // csSubroutinesGroup
             // 
-            this.csTable.SetColumnSpan(this.groupBox27, 2);
-            this.groupBox27.Controls.Add(this.csSubroutines);
-            this.groupBox27.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox27.Location = new System.Drawing.Point(3, 390);
-            this.groupBox27.Name = "groupBox27";
-            this.groupBox27.Size = new System.Drawing.Size(1151, 103);
-            this.groupBox27.TabIndex = 18;
-            this.groupBox27.TabStop = false;
-            this.groupBox27.Text = "Shader Subroutines";
+            this.csSubroutinesGroup.Controls.Add(this.csSubroutines);
+            this.csSubroutinesGroup.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.csSubroutinesGroup.Location = new System.Drawing.Point(3, 390);
+            this.csSubroutinesGroup.Name = "csSubroutinesGroup";
+            this.csSubroutinesGroup.Size = new System.Drawing.Size(1151, 103);
+            this.csSubroutinesGroup.TabIndex = 18;
+            this.csSubroutinesGroup.TabStop = false;
+            this.csSubroutinesGroup.Text = "Shader Subroutines";
             // 
             // csSubroutines
             // 
@@ -4743,7 +4737,7 @@
             this.flowLayoutPanel3.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderEdit)).EndInit();
-            this.groupBox5.ResumeLayout(false);
+            this.vsSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.vsSubroutines)).EndInit();
             this.groupBox7.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.vsTextures)).EndInit();
@@ -4761,7 +4755,7 @@
             this.flowLayoutPanel4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tesShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderEdit)).EndInit();
-            this.groupBox11.ResumeLayout(false);
+            this.tesSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.tesSubroutines)).EndInit();
             this.groupBox12.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.tesTextures)).EndInit();
@@ -4779,7 +4773,7 @@
             this.flowLayoutPanel5.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.tcsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderEdit)).EndInit();
-            this.groupBox17.ResumeLayout(false);
+            this.tcsSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.tcsSubroutines)).EndInit();
             this.groupBox18.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.tcsTextures)).EndInit();
@@ -4797,7 +4791,7 @@
             this.flowLayoutPanel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderEdit)).EndInit();
-            this.groupBox23.ResumeLayout(false);
+            this.gsSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gsSubroutines)).EndInit();
             this.groupBox24.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gsTextures)).EndInit();
@@ -4841,7 +4835,7 @@
             this.flowLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.fsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderEdit)).EndInit();
-            this.groupBox19.ResumeLayout(false);
+            this.fsSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.fsSubroutines)).EndInit();
             this.groupBox28.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.fsTextures)).EndInit();
@@ -4880,7 +4874,7 @@
             this.csTable.ResumeLayout(false);
             this.csReadWriteGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csReadWrite)).EndInit();
-            this.groupBox27.ResumeLayout(false);
+            this.csSubroutinesGroup.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csSubroutines)).EndInit();
             this.groupBox6.ResumeLayout(false);
             this.flowLayoutPanel7.ResumeLayout(false);
@@ -4920,7 +4914,7 @@
         private System.Windows.Forms.Panel panel6;
         private System.Windows.Forms.TableLayoutPanel fsTable;
         private System.Windows.Forms.GroupBox groupBox13;
-        private System.Windows.Forms.GroupBox groupBox19;
+        private System.Windows.Forms.GroupBox fsSubroutinesGroup;
         private System.Windows.Forms.GroupBox groupBox28;
         private System.Windows.Forms.GroupBox groupBox29;
         private System.Windows.Forms.GroupBox groupBox30;
@@ -4978,7 +4972,7 @@
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel2;
         private System.Windows.Forms.Label gsShader;
         private System.Windows.Forms.PictureBox gsShaderCog;
-        private System.Windows.Forms.GroupBox groupBox23;
+        private System.Windows.Forms.GroupBox gsSubroutinesGroup;
         private TreelistView.TreeListView gsSubroutines;
         private System.Windows.Forms.GroupBox groupBox24;
         private TreelistView.TreeListView gsTextures;
@@ -4992,7 +4986,7 @@
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel3;
         private System.Windows.Forms.Label vsShader;
         private System.Windows.Forms.PictureBox vsShaderCog;
-        private System.Windows.Forms.GroupBox groupBox5;
+        private System.Windows.Forms.GroupBox vsSubroutinesGroup;
         private TreelistView.TreeListView vsSubroutines;
         private System.Windows.Forms.GroupBox groupBox7;
         private TreelistView.TreeListView vsTextures;
@@ -5006,7 +5000,7 @@
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel4;
         private System.Windows.Forms.Label tesShader;
         private System.Windows.Forms.PictureBox tesShaderCog;
-        private System.Windows.Forms.GroupBox groupBox11;
+        private System.Windows.Forms.GroupBox tesSubroutinesGroup;
         private TreelistView.TreeListView tesSubroutines;
         private System.Windows.Forms.GroupBox groupBox12;
         private TreelistView.TreeListView tesTextures;
@@ -5020,7 +5014,7 @@
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel5;
         private System.Windows.Forms.Label tcsShader;
         private System.Windows.Forms.PictureBox tcsShaderCog;
-        private System.Windows.Forms.GroupBox groupBox17;
+        private System.Windows.Forms.GroupBox tcsSubroutinesGroup;
         private TreelistView.TreeListView tcsSubroutines;
         private System.Windows.Forms.GroupBox groupBox18;
         private TreelistView.TreeListView tcsTextures;
@@ -5036,7 +5030,7 @@
         private Controls.PipelineFlowchart pipeFlow;
         private System.Windows.Forms.Panel panel7;
         private System.Windows.Forms.TableLayoutPanel csTable;
-        private System.Windows.Forms.GroupBox groupBox27;
+        private System.Windows.Forms.GroupBox csSubroutinesGroup;
         private TreelistView.TreeListView csSubroutines;
         private System.Windows.Forms.GroupBox groupBox6;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanel7;
