@@ -11,7 +11,8 @@ Quick Links:
 * **Email contact**: baldurk@baldurk.org
 * **IRC channel**: #renderdoc on freenode
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
-* **Starting place for developing/contributing**: [COMPILE.md](COMPILE.md)
+* **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
+* **How to compile**: [COMPILE.md](COMPILE.md)
 
 API Support
 --------------
