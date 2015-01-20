@@ -512,11 +512,14 @@ namespace renderdocui.Windows.PipelineState
 
             {
                 subs.Visible = subs.Parent.Visible = (stage.Subroutines.Length > 0);
-                var pos = table.GetPositionFromControl(subs.Parent);
-                if (stage.Subroutines.Length > 0)
-                    table.RowStyles[pos.Row].Height = table.RowStyles[1].Height;
-                else
-                    table.RowStyles[pos.Row].Height = 0;
+                int row = table.GetRow(subs.Parent);
+                if (row >= 0 && row < table.RowStyles.Count)
+                {
+                    if (stage.Subroutines.Length > 0)
+                        table.RowStyles[row].Height = table.RowStyles[1].Height;
+                    else
+                        table.RowStyles[row].Height = 0;
+                }
             }
 
             vs = readwrites.VScrollValue();
@@ -686,11 +689,14 @@ namespace renderdocui.Windows.PipelineState
 
             {
                 readwrites.Visible = readwrites.Parent.Visible = (readwrites.Nodes.Count > 0);
-                var pos = table.GetPositionFromControl(readwrites.Parent);
-                if (readwrites.Nodes.Count > 0)
-                    table.RowStyles[pos.Row].Height = table.RowStyles[1].Height;
-                else
-                    table.RowStyles[pos.Row].Height = 0;
+                int row = table.GetRow(readwrites.Parent);
+                if (row >= 0 && row < table.RowStyles.Count)
+                {
+                    if (readwrites.Nodes.Count > 0)
+                        table.RowStyles[row].Height = table.RowStyles[1].Height;
+                    else
+                        table.RowStyles[row].Height = 0;
+                }
             }
         }
 
