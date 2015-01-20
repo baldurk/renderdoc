@@ -1452,6 +1452,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 void GLReplay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
 {
+#if 0
 	WrappedOpenGL &gl = *m_pDriver;
 	
 	MakeCurrentReplayContext(m_DebugCtx);
@@ -1575,4 +1576,5 @@ void GLReplay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, Mesh
 	gl.glUseProgram(curProg);
 	gl.glViewport(viewport[0], viewport[1], (GLsizei)viewport[2], (GLsizei)viewport[3]);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, curFBO);
+#endif
 }
