@@ -1262,7 +1262,7 @@
             this.vsSamplers.RowOptions.ShowHeader = false;
             this.vsSamplers.Size = new System.Drawing.Size(1145, 86);
             this.vsSamplers.TabIndex = 12;
-            this.vsSamplers.Text = "Constant Buffers";
+            this.vsSamplers.Text = "Uniforms and UBOs";
             this.vsSamplers.TreeColumn = -1;
             this.vsSamplers.ViewOptions.Indent = 0;
             this.vsSamplers.ViewOptions.ShowLine = false;
@@ -1279,7 +1279,7 @@
             this.groupBox9.Size = new System.Drawing.Size(1151, 105);
             this.groupBox9.TabIndex = 12;
             this.groupBox9.TabStop = false;
-            this.groupBox9.Text = "Constant Buffers";
+            this.groupBox9.Text = "Uniforms and UBOs";
             // 
             // vsCBuffers
             // 
@@ -1311,7 +1311,7 @@
             this.vsCBuffers.RowOptions.ShowHeader = false;
             this.vsCBuffers.Size = new System.Drawing.Size(1145, 86);
             this.vsCBuffers.TabIndex = 11;
-            this.vsCBuffers.Text = "Constant Buffers";
+            this.vsCBuffers.Text = "Uniforms and UBOs";
             this.vsCBuffers.TreeColumn = 4;
             this.vsCBuffers.ViewOptions.Indent = 0;
             this.vsCBuffers.ViewOptions.ShowLine = false;
@@ -1631,7 +1631,7 @@
             this.tcsSamplers.RowOptions.ShowHeader = false;
             this.tcsSamplers.Size = new System.Drawing.Size(1145, 86);
             this.tcsSamplers.TabIndex = 12;
-            this.tcsSamplers.Text = "Constant Buffers";
+            this.tcsSamplers.Text = "Uniforms and UBOs";
             this.tcsSamplers.TreeColumn = -1;
             this.tcsSamplers.ViewOptions.Indent = 0;
             this.tcsSamplers.ViewOptions.ShowLine = false;
@@ -1648,7 +1648,7 @@
             this.tcsCBuffersGroup.Size = new System.Drawing.Size(1151, 105);
             this.tcsCBuffersGroup.TabIndex = 12;
             this.tcsCBuffersGroup.TabStop = false;
-            this.tcsCBuffersGroup.Text = "Constant Buffers";
+            this.tcsCBuffersGroup.Text = "Uniforms and UBOs";
             // 
             // tcsCBuffers
             // 
@@ -1680,7 +1680,7 @@
             this.tcsCBuffers.RowOptions.ShowHeader = false;
             this.tcsCBuffers.Size = new System.Drawing.Size(1145, 86);
             this.tcsCBuffers.TabIndex = 11;
-            this.tcsCBuffers.Text = "Constant Buffers";
+            this.tcsCBuffers.Text = "Uniforms and UBOs";
             this.tcsCBuffers.TreeColumn = 4;
             this.tcsCBuffers.ViewOptions.Indent = 0;
             this.tcsCBuffers.ViewOptions.ShowLine = false;
@@ -1957,7 +1957,7 @@
             this.tesSamplers.RowOptions.ShowHeader = false;
             this.tesSamplers.Size = new System.Drawing.Size(1145, 86);
             this.tesSamplers.TabIndex = 12;
-            this.tesSamplers.Text = "Constant Buffers";
+            this.tesSamplers.Text = "Uniforms and UBOs";
             this.tesSamplers.TreeColumn = -1;
             this.tesSamplers.ViewOptions.Indent = 0;
             this.tesSamplers.ViewOptions.ShowLine = false;
@@ -1974,7 +1974,7 @@
             this.tesCBuffersGroup.Size = new System.Drawing.Size(1151, 105);
             this.tesCBuffersGroup.TabIndex = 12;
             this.tesCBuffersGroup.TabStop = false;
-            this.tesCBuffersGroup.Text = "Constant Buffers";
+            this.tesCBuffersGroup.Text = "Uniforms and UBOs";
             // 
             // tesCBuffers
             // 
@@ -2006,7 +2006,7 @@
             this.tesCBuffers.RowOptions.ShowHeader = false;
             this.tesCBuffers.Size = new System.Drawing.Size(1145, 86);
             this.tesCBuffers.TabIndex = 11;
-            this.tesCBuffers.Text = "Constant Buffers";
+            this.tesCBuffers.Text = "Uniforms and UBOs";
             this.tesCBuffers.TreeColumn = 4;
             this.tesCBuffers.ViewOptions.Indent = 0;
             this.tesCBuffers.ViewOptions.ShowLine = false;
@@ -2377,7 +2377,7 @@
             this.gsSamplers.RowOptions.ShowHeader = false;
             this.gsSamplers.Size = new System.Drawing.Size(1145, 86);
             this.gsSamplers.TabIndex = 12;
-            this.gsSamplers.Text = "Constant Buffers";
+            this.gsSamplers.Text = "Uniforms and UBOs";
             this.gsSamplers.TreeColumn = -1;
             this.gsSamplers.ViewOptions.Indent = 0;
             this.gsSamplers.ViewOptions.ShowLine = false;
@@ -2392,7 +2392,7 @@
             this.groupBox26.Size = new System.Drawing.Size(572, 105);
             this.groupBox26.TabIndex = 12;
             this.groupBox26.TabStop = false;
-            this.groupBox26.Text = "Constant Buffers";
+            this.groupBox26.Text = "Uniforms and UBOs";
             // 
             // gsCBuffers
             // 
@@ -2424,7 +2424,7 @@
             this.gsCBuffers.RowOptions.ShowHeader = false;
             this.gsCBuffers.Size = new System.Drawing.Size(566, 86);
             this.gsCBuffers.TabIndex = 11;
-            this.gsCBuffers.Text = "Constant Buffers";
+            this.gsCBuffers.Text = "Uniforms and UBOs";
             this.gsCBuffers.TreeColumn = 4;
             this.gsCBuffers.ViewOptions.Indent = 0;
             this.gsCBuffers.ViewOptions.ShowLine = false;
@@ -3553,7 +3553,7 @@
             this.fsSamplers.RowOptions.ShowHeader = false;
             this.fsSamplers.Size = new System.Drawing.Size(1145, 86);
             this.fsSamplers.TabIndex = 12;
-            this.fsSamplers.Text = "Constant Buffers";
+            this.fsSamplers.Text = "Uniforms and UBOs";
             this.fsSamplers.TreeColumn = -1;
             this.fsSamplers.ViewOptions.Indent = 0;
             this.fsSamplers.ViewOptions.ShowLine = false;
@@ -3570,7 +3570,7 @@
             this.groupBox30.Size = new System.Drawing.Size(1151, 105);
             this.groupBox30.TabIndex = 12;
             this.groupBox30.TabStop = false;
-            this.groupBox30.Text = "Constant Buffers";
+            this.groupBox30.Text = "Uniforms and UBOs";
             // 
             // fsCBuffers
             // 
@@ -3602,7 +3602,7 @@
             this.fsCBuffers.RowOptions.ShowHeader = false;
             this.fsCBuffers.Size = new System.Drawing.Size(1145, 86);
             this.fsCBuffers.TabIndex = 11;
-            this.fsCBuffers.Text = "Constant Buffers";
+            this.fsCBuffers.Text = "Uniforms and UBOs";
             this.fsCBuffers.TreeColumn = 4;
             this.fsCBuffers.ViewOptions.Indent = 0;
             this.fsCBuffers.ViewOptions.ShowLine = false;
@@ -4503,7 +4503,7 @@
             this.csSamplers.RowOptions.ShowHeader = false;
             this.csSamplers.Size = new System.Drawing.Size(1145, 84);
             this.csSamplers.TabIndex = 12;
-            this.csSamplers.Text = "Constant Buffers";
+            this.csSamplers.Text = "Uniforms and UBOs";
             this.csSamplers.TreeColumn = -1;
             this.csSamplers.ViewOptions.Indent = 0;
             this.csSamplers.ViewOptions.ShowLine = false;
@@ -4520,7 +4520,7 @@
             this.groupBox36.Size = new System.Drawing.Size(1151, 103);
             this.groupBox36.TabIndex = 12;
             this.groupBox36.TabStop = false;
-            this.groupBox36.Text = "Constant Buffers";
+            this.groupBox36.Text = "Uniforms and UBOs";
             // 
             // csCBuffers
             // 
@@ -4552,7 +4552,7 @@
             this.csCBuffers.RowOptions.ShowHeader = false;
             this.csCBuffers.Size = new System.Drawing.Size(1145, 84);
             this.csCBuffers.TabIndex = 11;
-            this.csCBuffers.Text = "Constant Buffers";
+            this.csCBuffers.Text = "Uniforms and UBOs";
             this.csCBuffers.TreeColumn = 4;
             this.csCBuffers.ViewOptions.Indent = 0;
             this.csCBuffers.ViewOptions.ShowLine = false;
