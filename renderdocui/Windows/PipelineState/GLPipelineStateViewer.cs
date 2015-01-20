@@ -805,6 +805,8 @@ namespace renderdocui.Windows.PipelineState
                             l.Enabled ? l.Format.ToString() : genericVal,
                             l.BufferSlot.ToString(), byteOffs, });
 
+                        node.Tag = l.BufferSlot;
+
                         if(l.Enabled)
                             usedVBuffers[l.BufferSlot] = true;
 
@@ -1907,14 +1909,8 @@ namespace renderdocui.Windows.PipelineState
 
             if (hoverNode != null)
             {
-                int index = inputLayouts.Nodes.GetNodeIndex(hoverNode);
-
-                if (index >= 0 && index < VtxIn.attributes.Length)
-                {
-                    uint slot = VtxIn.attributes[index].BufferSlot;
-
-                    HighlightVtxAttribSlot(slot);
-                }
+                if(hoverNode.Tag != null && hoverNode.Tag is uint) 
+                    HighlightVtxAttribSlot((uint)hoverNode.Tag);
             }
         }
 
@@ -1930,7 +1926,8 @@ namespace renderdocui.Windows.PipelineState
             for (int i = 0; i < inputLayouts.Nodes.Count; i++)
             {
                 var n = inputLayouts.Nodes[i];
-                if (VtxIn.attributes[i].BufferSlot == slot)
+                uint buf = (uint)n.Tag;
+                if (buf == slot)
                     n.DefaultBackColor = c;
                 else
                     n.DefaultBackColor = Color.Transparent;
