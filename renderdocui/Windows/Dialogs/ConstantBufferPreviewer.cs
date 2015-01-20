@@ -212,7 +212,7 @@ namespace renderdocui.Controls
             get
             {
                 return String.Format("{0} {1} {2}",
-                    Stage.ToString(),
+                    Stage.Str(m_Core != null ? m_Core.APIProps.pipelineType : APIPipelineStateType.D3D11),
                     m_Core == null || m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
                     Slot);
             }
@@ -246,8 +246,7 @@ namespace renderdocui.Controls
 
             nameLabel.Text = BufferName;
 
-            slotLabel.Text = Stage.ToString();
-            slotLabel.Text += " Shader Slot " + Slot;
+            slotLabel.Text = Text;
         }
 
         private void variables_KeyDown(object sender, KeyEventArgs e)
