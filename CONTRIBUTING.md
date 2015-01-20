@@ -9,6 +9,8 @@ We can discuss changes if there need to be any, then merge it in. Please make su
 
 If you're tackling anything large then please contact me and post an issue so that everyone knows you're working on it and there's not duplicated effort. *Specifically* if you want to extend RenderDoc to a platform or API that it doesn't already support please get in touch, as there might already be code that isn't committed yet. Particularly if this is not a public API that anyone can write against.
 
+To get started compiling there are instructions in [COMPILE.md](COMPILE.md)
+
 Commit Messages
 --------------
 
@@ -26,7 +28,7 @@ I like to make the second paragraph bulletted with *s as you can probably see if
 Copyright / Contributor License Agreement
 --------------
 
-Any code you submit will become part of the repository and be distributed under the [LICENSE.md](RenderDoc license). By submitting code to the project you agree that the code is your own work and that you have the ability to give it to the project. You also agree by submitting your code that you grant all transferrable rights to the code to the project maintainer, including for example re-licensing the code, modifying the code, distributing in source or binary forms.
+Any code you submit will become part of the repository and be distributed under the [RenderDoc license](LICENSE.md). By submitting code to the project you agree that the code is your own work and that you have the ability to give it to the project. You also agree by submitting your code that you grant all transferrable rights to the code to the project maintainer, including for example re-licensing the code, modifying the code, distributing in source or binary forms.
 
 Code Explanation
 --------------
