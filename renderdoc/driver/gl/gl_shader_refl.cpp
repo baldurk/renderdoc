@@ -850,7 +850,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 			res.variableType.descriptor.type = eVar_UInt;
 		}
 		// float images
-		if(values[0] == eGL_IMAGE_BUFFER)
+		else if(values[0] == eGL_IMAGE_BUFFER)
 		{
 			res.resType = eResType_Buffer;
 			res.variableType.descriptor.name = "imageBuffer";
