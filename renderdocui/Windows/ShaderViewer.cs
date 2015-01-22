@@ -1108,6 +1108,9 @@ namespace renderdocui.Windows
 
         void m_DisassemblyView_KeyDown(object sender, KeyEventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             if (e.KeyCode == Keys.F10)
             {
                 if (e.Control)
@@ -1133,31 +1136,49 @@ namespace renderdocui.Windows
 
         private void runBack_Click(object sender, EventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             RunBack();
         }
 
         private void run_Click(object sender, EventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             Run();
         }
 
         private void stepBack_Click(object sender, EventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             StepBack();
         }
 
         private void stepNext_Click(object sender, EventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             StepNext();
         }
 
         private void runToCursor_Click(object sender, EventArgs e)
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             RunToCursor();
         }
 
         private bool StepBack()
         {
+            if (m_Trace == null || m_Trace.states == null)
+                return false;
+
             if (CurrentStep == 0)
                 return false;
 
