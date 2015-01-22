@@ -805,9 +805,20 @@ void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, Shader
 				gl.glGetUniformiv(curProg, loc, dummyReadback);
 				mapping.Resources[i].bind = dummyReadback[0];
 			}
+
+			// handle sampler arrays, use the base name
+			string name = refl->Resources.elems[i].name.elems;
+			if(name.back() == ']')
+			{
+				do
+				{
+					name.pop_back();
+				} while(name.back() != '[');
+				name.pop_back();
+			}
 			
 			GLuint idx = 0;
-			idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
+			idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
 
 			if(idx == GL_INVALID_INDEX)
 			{
