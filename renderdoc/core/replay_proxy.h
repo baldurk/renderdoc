@@ -288,7 +288,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
+		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 		
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 

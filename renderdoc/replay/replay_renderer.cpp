@@ -356,15 +356,14 @@ bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
 	return false;
 }
 
-bool ReplayRenderer::GetPostVSData(MeshDataStage stage, PostVSMeshData *data)
+bool ReplayRenderer::GetPostVSData(MeshDataStage stage, MeshFormat *data)
 {
 	if(data == NULL) return false;
 
 	FetchDrawcall *draw = GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
 	
-	PostVSMeshData ret;
-	ret.numVerts = 0;
-	ret.topo = eTopology_Unknown;
+	MeshFormat ret;
+	RDCEraseEl(ret);
 
 	if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0) return false;
 
@@ -1522,7 +1521,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableCo
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const char *path)
 { return rend->SaveTexture(saveData, path); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, PostVSMeshData *data)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, MeshFormat *data)
 { return rend->GetPostVSData(stage, data); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval)

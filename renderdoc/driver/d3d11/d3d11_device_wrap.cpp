@@ -167,6 +167,12 @@ HRESULT WrappedID3D11Device::CreateBuffer(
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 		}
+		else
+		{
+			WrappedID3D11Buffer *w = (WrappedID3D11Buffer *)wrapped;
+
+			GetResourceManager()->AddLiveResource(w->GetResourceID(), wrapped);
+		}
 
 		*ppBuffer = wrapped;
 	}

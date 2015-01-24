@@ -3718,18 +3718,39 @@ PostVSData D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventI
 	return empty;
 }
 
-PostVSMeshData D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
 {
-	PostVSMeshData ret;
+	MeshFormat ret;
 
 	PostVSData postvs = GetPostVSBuffers(frameID, eventID);
 	PostVSData::StageData s = postvs.GetStage(stage);
-	ret.numVerts = s.numVerts;
-	ret.topo = MakePrimitiveTopology(s.topo);
-	if(s.buf != NULL)
-		ret.buf = GetBufferData(s.buf, 0, 0);
+
+	if(s.useIndices && s.idxBuf)
+		ret.idxbuf = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
 	else
-		RDCWARN("No buffer for this stage!");
+		ret.idxbuf = ResourceId();
+	ret.idxByteWidth = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+
+	if(s.buf)
+		ret.buf = ((WrappedID3D11Buffer *)s.buf)->GetResourceID();
+	else
+		ret.buf = ResourceId();
+
+	ret.offset = s.posOffset;
+	ret.stride = s.vertStride;
+
+	ret.compCount = 4;
+	ret.compByteWidth = 4;
+	ret.compType = eCompType_Float;
+	ret.specialFormat = eSpecial_Unknown;
+
+	ret.showAlpha = false;
+
+	ret.topo = MakePrimitiveTopology(s.topo);
+
+	ret.unproject = true;
+	ret.nearPlane = s.nearPlane;
+	ret.farPlane = s.farPlane;
 
 	return ret;
 }
@@ -4645,7 +4666,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	m_PrevMeshFmt = resFmt;
 	m_PrevMeshFmt2 = resFmt2;
 
-	if(cfg.unproject || events.size() > 1)
+	if(cfg.position.unproject || events.size() > 1)
 	{
 		float nearp = 0.1f;
 		float farp = 1000.0f;
@@ -4663,17 +4684,17 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 		}
 
+		if(cfg.position.nearPlane > -FLT_MAX) nearp = cfg.position.nearPlane;
+		if(cfg.position.farPlane > -FLT_MAX) farp = cfg.position.farPlane;
+		if(cfg.aspect > 0.0f) aspect = cfg.aspect;
+
 		// the derivation of the projection matrix might not be right (hell, it could be an
 		// orthographic projection). But it'll be close enough likely.
-		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov,
-												  cfg.nearPlane > -FLT_MAX ? cfg.nearPlane : nearp,
-												  cfg.farPlane > -FLT_MAX ? cfg.farPlane : farp,
-												  cfg.aspect > 0.0f ? cfg.aspect : aspect);
+		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, nearp, farp, aspect);
 
 		if(cfg.ortho)
 		{
-			guessProj = Matrix4f::Orthographic(cfg.nearPlane > -FLT_MAX ? cfg.nearPlane : nearp,
-											   cfg.farPlane > -FLT_MAX ? cfg.farPlane : farp);
+			guessProj = Matrix4f::Orthographic(nearp, farp);
 		}
 		
 		guessProjInv = guessProj.Inverse();
@@ -4927,7 +4948,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	}
 	
 	// axis markers
-	if(!cfg.unproject)
+	if(!cfg.position.unproject)
 	{
 		m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 		
@@ -4977,9 +4998,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 			else
 			{
-				PostVSMeshData postvs = GetPostVSBuffers(frameID, events.back(), stage);
-				m_HighlightCache.data.resize(postvs.buf.count);
-				memcpy(&m_HighlightCache.data[0], postvs.buf.elems, postvs.buf.count);
+				MeshFormat postvs = GetPostVSBuffers(frameID, events.back(), stage);
+				m_HighlightCache.data = GetBufferData(postvs.buf, 0, 0);
 
 				const PostVSData::StageData &stagedata = GetPostVSBuffers(frameID, events.back()).GetStage(stage);
 
@@ -5321,7 +5341,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			// prepare rendering (for both vertices & primitives)
 
 			// if data is from post transform, it will be in clipspace
-			if(cfg.unproject)
+			if(cfg.position.unproject)
 			{
 				vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 				m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
@@ -5443,12 +5463,12 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			}
 		}
 
-		if(cfg.unproject)
+		if(cfg.position.unproject)
 			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
 	}
 
 	// 'fake' helper frustum
-	if(cfg.unproject)
+	if(cfg.position.unproject)
 	{
 		UINT strides[] = { sizeof(Vec3f) };
 		UINT offsets[] = { 0 };

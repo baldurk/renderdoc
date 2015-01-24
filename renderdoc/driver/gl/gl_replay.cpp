@@ -2168,9 +2168,9 @@ void GLReplay::FreeCustomShader(ResourceId id)
 	RDCUNIMPLEMENTED("FreeCustomShader");
 }
 
-PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
 {
-	PostVSMeshData ret;
+	MeshFormat ret;
 	RDCEraseEl(ret);
 
 	GLNOTIMP("GLReplay::GetPostVSBuffers");

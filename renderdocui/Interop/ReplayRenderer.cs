@@ -636,16 +636,17 @@ namespace renderdoc
             return ret;
         }
 
-        public PostVSMeshData GetPostVSData(MeshDataStage stage)
+        public MeshFormat GetPostVSData(MeshDataStage stage)
         {
-            IntPtr mem = CustomMarshal.Alloc(typeof(PostVSMeshData));
+            IntPtr mem = CustomMarshal.Alloc(typeof(MeshFormat));
 
-            PostVSMeshData ret = null;
+            MeshFormat ret = new MeshFormat();
+            ret.buf = ResourceId.Null;
 
             bool success = ReplayRenderer_GetPostVSData(m_Real, stage, mem);
 
             if (success)
-                ret = (PostVSMeshData)CustomMarshal.PtrToStructure(mem, typeof(PostVSMeshData), true);
+                ret = (MeshFormat)CustomMarshal.PtrToStructure(mem, typeof(MeshFormat), true);
 
             CustomMarshal.Free(mem);
 

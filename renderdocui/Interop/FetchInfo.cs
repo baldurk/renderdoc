@@ -361,14 +361,25 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public struct MeshFormat
     {
+        public ResourceId idxbuf;
+        public UInt32 idxByteWidth;
         public ResourceId buf;
+
         public UInt32 offset;
         public UInt32 stride;
+
         public UInt32 compCount;
         public UInt32 compByteWidth;
         public FormatComponentType compType;
         public SpecialFormat specialFormat;
+
         public bool showAlpha;
+
+        public PrimitiveTopology topo;
+
+        public bool unproject;
+        public float nearPlane;
+        public float farPlane;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -382,14 +393,13 @@ namespace renderdoc
 
         public bool ortho = false;
         public float fov = 90.0f;
-        public float aspect = 0.0f, nearPlane = 0.0f, farPlane = 0.0f;
+        public float aspect = 0.0f;
 
         public bool thisDrawOnly = true;
 
         public UInt32 highlightVert;
         public MeshFormat position;
         public MeshFormat secondary;
-        public bool unproject;
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();
@@ -541,14 +551,5 @@ namespace renderdoc
                 !scissorClipped && !shaderDiscarded && !depthTestFailed &&
                 !stencilTestFailed;
         }
-    };
-
-    [StructLayout(LayoutKind.Sequential)]
-    public class PostVSMeshData
-    {
-        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public byte[] buf;
-        public UInt32 numVerts;
-        public PrimitiveTopology topo;
     };
 }

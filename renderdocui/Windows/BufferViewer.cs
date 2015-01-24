@@ -844,18 +844,18 @@ namespace renderdocui.Windows
 
                 ret.Buffers = new byte[1][];
 
-                if (postvs == null)
+                if (postvs.buf == ResourceId.Null)
                 {
                     ret.IndexCount = 0;
                     ret.Topology = PrimitiveTopology.Unknown;
                 }
                 else
                 {
-                    ret.Buffers[0] = postvs.buf;
+                    ret.Buffers[0] = r.GetBufferData(postvs.buf, 0, 0);
 
                     ret.Topology = postvs.topo;
 
-                    ret.IndexCount = postvs.numVerts;
+                    ret.IndexCount = (uint)ret.Buffers[0].Length / postvs.stride;
 
                     uint stride = 0;
                     foreach (var f in input.BufferFormats)
@@ -867,7 +867,7 @@ namespace renderdocui.Windows
 
                 ret.Indices = null;
 
-                if (postvs != null && type == MeshDataStage.VSOut &&
+                if (postvs.buf != ResourceId.Null && type == MeshDataStage.VSOut &&
                     (input.Drawcall.flags & DrawcallFlags.UseIBuffer) > 0 && input.IndexBuffer != ResourceId.Null)
                 {
                     ret.IndexCount = input.Drawcall.numIndices;
@@ -2222,11 +2222,11 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.specialFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
                 m_MeshDisplay.position.showAlpha = false;
 
-                m_MeshDisplay.unproject = false;
+                m_MeshDisplay.position.unproject = false;
 
                 if ((ui.m_Stage == MeshDataStage.VSOut && !m_Core.CurPipelineState.IsTessellationEnabled) || ui.m_Stage == MeshDataStage.GSOut)
                 {
-                    m_MeshDisplay.unproject = pos.name.ToUpperInvariant() == "SV_POSITION";
+                    m_MeshDisplay.position.unproject = pos.name.ToUpperInvariant() == "SV_POSITION";
                 }
             }
 
@@ -2292,7 +2292,7 @@ namespace renderdocui.Windows
                 float.TryParse(nearGuess.Text, out near);
             }
 
-            m_MeshDisplay.nearPlane = near;
+            m_MeshDisplay.position.nearPlane = near;
 
             nearGuess.Text = near > -float.MaxValue ? near.ToString("G") : "";
 
@@ -2304,7 +2304,7 @@ namespace renderdocui.Windows
                 float.TryParse(farGuess.Text, out far);
             }
 
-            m_MeshDisplay.farPlane = far;
+            m_MeshDisplay.position.farPlane = far;
 
             farGuess.Text = far > -float.MaxValue ? far.ToString("G") : "";
 

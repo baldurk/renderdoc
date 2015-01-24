@@ -114,7 +114,7 @@ class D3D11DebugManager
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
 		PostVSData GetPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		PostVSMeshData GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
+		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 
 		uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
 		vector<byte> GetBufferData(ID3D11Buffer *buff, uint32_t offset, uint32_t len);

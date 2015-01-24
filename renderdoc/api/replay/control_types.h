@@ -31,14 +31,25 @@ struct OutputConfig
 
 struct MeshFormat
 {
+	ResourceId idxbuf;
+	uint32_t idxByteWidth;
 	ResourceId buf;
+
 	uint32_t offset;
 	uint32_t stride;
+
 	uint32_t compCount;
 	uint32_t compByteWidth;
 	FormatComponentType compType;
 	SpecialFormat specialFormat;
+
 	bool showAlpha;
+
+	PrimitiveTopology topo;
+
+	bool32 unproject;
+	float nearPlane;
+	float farPlane;
 };
 
 struct MeshDisplay
@@ -50,14 +61,13 @@ struct MeshDisplay
 	FloatVector cameraRot;
 
 	bool32 ortho;
-	float fov, aspect, nearPlane, farPlane;
+	float fov, aspect;
 
 	bool32 thisDrawOnly;
 
 	uint32_t highlightVert;
 	MeshFormat position;
 	MeshFormat second;
-	bool32 unproject;
 
 	FloatVector prevMeshColour;
 	FloatVector currentMeshColour;

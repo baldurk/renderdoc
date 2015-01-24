@@ -535,11 +535,20 @@ void Serialiser::Serialise(const char *name, ShaderVariable &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, PostVSMeshData &el)
+void Serialiser::Serialise(const char *name, MeshFormat &el)
 {
-	Serialise("", el.numVerts);
-	Serialise("", el.topo);
 	Serialise("", el.buf);
+	Serialise("", el.offset);
+	Serialise("", el.stride);
+	Serialise("", el.compCount);
+	Serialise("", el.compByteWidth);
+	Serialise("", el.compType);
+	Serialise("", el.specialFormat);
+	Serialise("", el.showAlpha);
+	Serialise("", el.topo);
+	Serialise("", el.unproject);
+	Serialise("", el.nearPlane);
+	Serialise("", el.farPlane);
 }
 
 template<>
@@ -1298,9 +1307,9 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 }
 
-PostVSMeshData ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
 {
-	PostVSMeshData ret;
+	MeshFormat ret;
 	
 	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);

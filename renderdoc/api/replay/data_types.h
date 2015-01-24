@@ -254,10 +254,3 @@ struct PixelModification
 	bool32 depthTestFailed;
 	bool32 stencilTestFailed;
 };
-
-struct PostVSMeshData
-{
-	rdctype::array<byte> buf;
-	uint32_t numVerts;
-	PrimitiveTopology topo;
-};
