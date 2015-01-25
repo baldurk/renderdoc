@@ -1008,6 +1008,8 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 		gl.glBlendFunc(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA);
 	}
 
+	gl.glDisable(eGL_DEPTH_TEST);
+
 	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
 	gl.glBindVertexArray(DebugData.emptyVAO);
@@ -1452,61 +1454,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-#if 0
 	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(m_DebugCtx);
-	
-	GLuint curFBO = 0;
-	gl.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
 
-	OutputWindow *outw = NULL;
-	for(auto it = m_OutputWindows.begin(); it != m_OutputWindows.end(); ++it)
-	{
-		if(it->second.BlitData.windowFBO == curFBO)
-		{
-			outw = &it->second;
-			break;
-		}
-	}
-
-	if(!outw) return;
-	
-	const auto &attr = m_CurPipelineState.m_VtxIn.attributes[0];
-	const auto &vb = m_CurPipelineState.m_VtxIn.vbuffers[attr.BufferSlot];
-
-	if(vb.Buffer == ResourceId())
+	if(cfg.position.buf == ResourceId())
 		return;
 	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-
-	GLint viewport[4];
-	gl.glGetIntegerv(eGL_VIEWPORT, viewport);
-	
-	gl.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
-
-	if(outw->BlitData.replayFBO == 0)
-	{
-		gl.glGenFramebuffers(1, &outw->BlitData.replayFBO);
-		gl.glBindFramebuffer(eGL_FRAMEBUFFER, outw->BlitData.replayFBO);
-
-		gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outw->BlitData.backbuffer, 0);
-	}
-	else
-	{
-		gl.glBindFramebuffer(eGL_FRAMEBUFFER, outw->BlitData.replayFBO);
-	}
-	
-	gl.glViewport(0, 0, (GLsizei)DebugData.outWidth, (GLsizei)DebugData.outHeight);
-	
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	gl.glUseProgram(DebugData.meshProg);
-	
-	float wireCol[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	GLint colLoc = gl.glGetUniformLocation(DebugData.meshProg, "RENDERDOC_GenericFS_Color");
-	gl.glUniform4fv(colLoc, 1, wireCol);
+	MakeCurrentReplayContext(m_DebugCtx);
 	
 	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, DebugData.outWidth/DebugData.outHeight);
 
@@ -1519,62 +1472,203 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	Matrix4f camMat = cam.GetMatrix();
 
 	Matrix4f ModelViewProj = projMat.Mul(camMat);
-
-	GLint mvpLoc = gl.glGetUniformLocation(DebugData.meshProg, "ModelViewProj");
-	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
 	
-	GLuint curVAO = 0;
-	gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint*)&curVAO);
-	
-	GLuint curArr = 0;
-	gl.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint*)&curArr);
-
 	gl.glBindVertexArray(DebugData.meshVAO);
 
-	// TODO: we should probably use glBindVertexBuffer, glVertexAttribFormat, glVertexAttribBinding.
-	// For now just assume things about the format and vbuffer.
+	const MeshFormat *fmts[2] = { &cfg.position, &cfg.second };
 
-	gl.glBindBuffer(eGL_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetLiveResource(vb.Buffer).name);
+	for(uint32_t i=0; i < 2; i++)
+	{
+		if(fmts[i]->buf == ResourceId()) continue;
 
-	if(attr.Format.compType == eCompType_Float && attr.Format.compByteWidth == 4)
-	{
-		gl.glVertexAttribPointer(0, attr.Format.compCount, eGL_FLOAT, GL_FALSE, 0, (void *)intptr_t(vb.Offset + attr.RelativeOffset));
-	}
-	else if(attr.Format.compType == eCompType_Float && attr.Format.compByteWidth == 2)
-	{
-		gl.glVertexAttribPointer(0, attr.Format.compCount, eGL_HALF_FLOAT, GL_FALSE, 0, (void *)intptr_t(vb.Offset + attr.RelativeOffset));
-	}
-	else
-	{
-		RDCERR("Not handling mesh display of unsupported format");
-		return;
+		if(fmts[i]->specialFormat != eSpecial_Unknown)
+		{
+			if(fmts[i]->specialFormat == eSpecial_R10G10B10A2)
+			{
+				if(fmts[i]->compType == eCompType_UInt)
+					gl.glVertexAttribIFormat(i, 4, eGL_UNSIGNED_INT_2_10_10_10_REV, 0);
+				if(fmts[i]->compType == eCompType_SInt)
+					gl.glVertexAttribIFormat(i, 4, eGL_INT_2_10_10_10_REV, 0);
+			}
+			else if(fmts[i]->specialFormat == eSpecial_R11G11B10)
+			{
+				gl.glVertexAttribFormat(i, 4, eGL_UNSIGNED_INT_10F_11F_11F_REV, GL_FALSE, 0);
+			}
+			else
+			{
+				RDCWARN("Unsupported special vertex attribute format: %x", fmts[i]->specialFormat);
+			}
+		}
+		else if(fmts[i]->compType == eCompType_Float ||
+			fmts[i]->compType == eCompType_UNorm ||
+			fmts[i]->compType == eCompType_SNorm)
+		{
+			GLenum fmttype = eGL_UNSIGNED_INT;
+
+			if(fmts[i]->compByteWidth == 4)
+			{
+				if(fmts[i]->compType == eCompType_Float) fmttype = eGL_FLOAT;
+				else if(fmts[i]->compType == eCompType_UNorm) fmttype = eGL_UNSIGNED_INT;
+				else if(fmts[i]->compType == eCompType_SNorm) fmttype = eGL_INT;
+			}
+			else if(fmts[i]->compByteWidth == 2)
+			{
+				if(fmts[i]->compType == eCompType_Float) fmttype = eGL_HALF_FLOAT;
+				else if(fmts[i]->compType == eCompType_UNorm) fmttype = eGL_UNSIGNED_SHORT;
+				else if(fmts[i]->compType == eCompType_SNorm) fmttype = eGL_SHORT;
+			}
+			else if(fmts[i]->compByteWidth == 1)
+			{
+				if(fmts[i]->compType == eCompType_UNorm) fmttype = eGL_UNSIGNED_BYTE;
+				else if(fmts[i]->compType == eCompType_SNorm) fmttype = eGL_BYTE;
+			}
+
+			gl.glVertexAttribFormat(i, fmts[i]->compCount, fmttype, fmts[i]->compType != eCompType_Float, 0);
+		}
+		else if(fmts[i]->compType == eCompType_UInt ||
+			fmts[i]->compType == eCompType_SInt)
+		{
+			GLenum fmttype = eGL_UNSIGNED_INT;
+
+			if(fmts[i]->compByteWidth == 4)
+			{
+				if(fmts[i]->compType == eCompType_UInt)  fmttype = eGL_UNSIGNED_INT;
+				else if(fmts[i]->compType == eCompType_SInt)  fmttype = eGL_INT;
+			}
+			else if(fmts[i]->compByteWidth == 2)
+			{
+				if(fmts[i]->compType == eCompType_UInt)  fmttype = eGL_UNSIGNED_SHORT;
+				else if(fmts[i]->compType == eCompType_SInt)  fmttype = eGL_SHORT;
+			}
+			else if(fmts[i]->compByteWidth == 1)
+			{
+				if(fmts[i]->compType == eCompType_UInt)  fmttype = eGL_UNSIGNED_BYTE;
+				else if(fmts[i]->compType == eCompType_SInt)  fmttype = eGL_BYTE;
+			}
+
+			gl.glVertexAttribIFormat(i, fmts[i]->compCount, fmttype, 0);
+		}
+		else if(fmts[i]->compType == eCompType_Double)
+		{
+			gl.glVertexAttribLFormat(i, fmts[i]->compCount, eGL_DOUBLE, 0);
+		}
+
+		gl.glBindVertexBuffer(i, m_pDriver->GetResourceManager()->GetCurrentResource(fmts[i]->buf).name, fmts[i]->offset, fmts[i]->stride);
 	}
 
+	// enable position attribute
 	gl.glEnableVertexAttribArray(0);
+	
+	GLenum topo = MakeGLPrimitiveTopology(cfg.position.topo);
 
+	gl.glDisable(eGL_DEPTH_TEST);
+
+	GLuint prog = DebugData.meshProg;
+	
+	if(cfg.solidShadeMode == eShade_Lit)
 	{
-		GLint depthTest = GL_FALSE;
-		gl.glGetIntegerv(eGL_DEPTH_TEST, (GLint*)&depthTest);
-		GLenum polyMode = eGL_FILL;
-		if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
-			gl.glGetIntegerv(eGL_POLYGON_MODE, (GLint*)&polyMode);
+		// pick program with GS for per-face lighting
+	}
+	
+	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
+	GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
+	GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
+	
+	gl.glUseProgram(prog);
 
-		gl.glDisable(eGL_DEPTH_TEST);
+	if(cfg.position.unproject)
+	{
+		// calc reproject matrix
+	}
+	
+	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+	
+	// solid render
+	if(cfg.solidShadeMode != eShade_None && topo != eGL_PATCHES)
+	{
+		if(cfg.solidShadeMode == eShade_Lit)
+		{
+			// set GS-specific uniform
+		}
+
+		float wireCol[] = { 0.8f, 0.8f, 0.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, wireCol);
+		
+		GLint OutputDisplayFormat = (int)cfg.solidShadeMode;
+		if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+			OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+		gl.glUniform1i(fmtLoc, OutputDisplayFormat);
+		
+		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+
+		if(cfg.position.idxbuf != ResourceId())
+		{
+			GLenum idxtype = eGL_UNSIGNED_BYTE;
+			if(cfg.position.idxByteWidth == 2)
+				idxtype = eGL_UNSIGNED_SHORT;
+			else if(cfg.position.idxByteWidth == 4)
+				idxtype = eGL_UNSIGNED_INT;
+
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name);
+			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
+		}
+		else
+		{
+			gl.glDrawArrays(topo, 0, cfg.position.numVerts);
+		}
+	}
+
+	colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
+	mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
+	fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
+	
+	gl.glUseProgram(prog);
+	
+	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+	
+	// wireframe render
+	if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
+	{
+		float wireCol[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, wireCol);
+
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
+		if(topo == eGL_PATCHES) topo = eGL_POINTS;
 
-		if(depthTest)
-			gl.glEnable(eGL_DEPTH_TEST);
-		if(polyMode != eGL_LINE)
-			gl.glPolygonMode(eGL_FRONT_AND_BACK, polyMode);
+		if(cfg.position.idxbuf != ResourceId())
+		{
+			GLenum idxtype = eGL_UNSIGNED_BYTE;
+			if(cfg.position.idxByteWidth == 2)
+				idxtype = eGL_UNSIGNED_SHORT;
+			else if(cfg.position.idxByteWidth == 4)
+				idxtype = eGL_UNSIGNED_INT;
+
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name);
+			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
+		}
+		else
+		{
+			gl.glDrawArrays(topo, 0, cfg.position.numVerts);
+		}
+	}
+	
+	if(!cfg.position.unproject)
+	{
+		// draw axis markers
+	}
+	
+	if(cfg.highlightVert != ~0U)
+	{
+		// show highlighted vertex
 	}
 
-	gl.glBindVertexArray(curVAO);
-	gl.glBindBuffer(eGL_ARRAY_BUFFER, curArr);
-	
-	gl.glUseProgram(curProg);
-	gl.glViewport(viewport[0], viewport[1], (GLsizei)viewport[2], (GLsizei)viewport[3]);
-	gl.glBindFramebuffer(eGL_FRAMEBUFFER, curFBO);
-#endif
+	if(cfg.position.unproject)
+	{
+		// 'fake' helper frustum
+	}
+
+	// set this back as most other things want fill, and we don't want to have to a) track it
+	// b) set fill explicitly everywhere else
+	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 }

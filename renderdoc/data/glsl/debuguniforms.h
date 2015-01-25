@@ -113,6 +113,11 @@ BINDING(0) uniform HistogramCBufferData
 #define RESTYPE_TEX2DMS        0xA
 #define RESTYPE_TEXTYPEMAX     0xA
 
+#define MESHDISPLAY_SOLID           0x1
+#define MESHDISPLAY_FACELIT         0x2
+#define MESHDISPLAY_SECONDARY       0x3
+#define MESHDISPLAY_SECONDARY_ALPHA 0x4
+
 #define TEXDISPLAY_TYPEMASK    0xF
 #define TEXDISPLAY_UINT_TEX    0x10
 #define TEXDISPLAY_SINT_TEX    0x20

@@ -406,6 +406,18 @@ namespace renderdocui.Code
                         ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
                         ret[a].Format = attrs[i].Format;
 
+                        if (m_GL.m_VS.ShaderDetails != null)
+                        {
+                            foreach (var isig in m_GL.m_VS.ShaderDetails.InputSig)
+                            {
+                                if (isig.regIndex == attrs[i].BufferSlot)
+                                {
+                                    ret[a].Name = isig.varName;
+                                    break;
+                                }
+                            }
+                        }
+
                         a++;
                     }
 

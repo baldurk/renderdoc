@@ -1100,7 +1100,7 @@ void GLReplay::SavePipelineState()
 				fmt.special = true;
 				fmt.specialFormat = eSpecial_R11G11B10;
 				fmt.compCount = 3;
-				fmt.compType = eCompType_SInt;
+				fmt.compType = eCompType_Float;
 				fmt.strname = "GL_UNSIGNED_INT_10F_11F_11F_REV";
 				break;
 		}

@@ -659,6 +659,58 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	return ret;
 }
 
+GLenum MakeGLPrimitiveTopology(PrimitiveTopology Topo)
+{
+	switch(Topo)
+	{
+		default:                            return eGL_NONE;
+		case eTopology_PointList:           return eGL_POINTS;
+		case eTopology_LineStrip:           return eGL_LINE_STRIP;
+		case eTopology_LineLoop:            return eGL_LINE_LOOP;
+		case eTopology_LineList:            return eGL_LINES;
+		case eTopology_LineStrip_Adj:       return eGL_LINE_STRIP_ADJACENCY;
+		case eTopology_LineList_Adj:        return eGL_LINES_ADJACENCY;
+		case eTopology_TriangleStrip:       return eGL_TRIANGLE_STRIP;
+		case eTopology_TriangleFan:         return eGL_TRIANGLE_FAN;
+		case eTopology_TriangleList:        return eGL_TRIANGLES;
+		case eTopology_TriangleStrip_Adj:   return eGL_TRIANGLE_STRIP_ADJACENCY;
+		case eTopology_TriangleList_Adj:    return eGL_TRIANGLES_ADJACENCY;
+		case eTopology_PatchList_1CPs:
+		case eTopology_PatchList_2CPs:
+		case eTopology_PatchList_3CPs:
+		case eTopology_PatchList_4CPs:
+		case eTopology_PatchList_5CPs:
+		case eTopology_PatchList_6CPs:
+		case eTopology_PatchList_7CPs:
+		case eTopology_PatchList_8CPs:
+		case eTopology_PatchList_9CPs:
+		case eTopology_PatchList_10CPs:
+		case eTopology_PatchList_11CPs:
+		case eTopology_PatchList_12CPs:
+		case eTopology_PatchList_13CPs:
+		case eTopology_PatchList_14CPs:
+		case eTopology_PatchList_15CPs:
+		case eTopology_PatchList_16CPs:
+		case eTopology_PatchList_17CPs:
+		case eTopology_PatchList_18CPs:
+		case eTopology_PatchList_19CPs:
+		case eTopology_PatchList_20CPs:
+		case eTopology_PatchList_21CPs:
+		case eTopology_PatchList_22CPs:
+		case eTopology_PatchList_23CPs:
+		case eTopology_PatchList_24CPs:
+		case eTopology_PatchList_25CPs:
+		case eTopology_PatchList_26CPs:
+		case eTopology_PatchList_27CPs:
+		case eTopology_PatchList_28CPs:
+		case eTopology_PatchList_29CPs:
+		case eTopology_PatchList_30CPs:
+		case eTopology_PatchList_31CPs:
+		case eTopology_PatchList_32CPs:
+			return eGL_PATCHES;
+	}
+}
+
 PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
 {
 	switch(Topo)

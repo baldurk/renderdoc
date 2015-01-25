@@ -87,6 +87,7 @@ GLenum ShaderEnum(size_t idx);
 ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, GLenum target, ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo);
+GLenum MakeGLPrimitiveTopology(PrimitiveTopology Topo);
 const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 
