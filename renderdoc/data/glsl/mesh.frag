@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,23 +21,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
-#version 420 core
-
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 secondary;
-
-uniform mat4 ModelViewProj;
-
-out v2f
+ 
+in v2f
 {
 	vec4 secondary;
 	vec4 norm;
-} OUT;
+} IN;
+
+layout (location = 0) out vec4 color_out;
+
+uniform vec4 RENDERDOC_GenericFS_Color;
+
+uniform uint Mesh_DisplayFormat;
 
 void main(void)
 {
-	gl_Position = ModelViewProj * position;
-	OUT.secondary = secondary;
-	OUT.norm = vec4(0, 0, 0, 0);
+	uint type = Mesh_DisplayFormat;
+	
+	if(type == MESHDISPLAY_SECONDARY)
+	{
+		color_out = vec4(IN.secondary.xyz, 1);
+	}
+	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
+	{
+		color_out = vec4(IN.secondary.www, 1);
+	}
+	else if(type == MESHDISPLAY_FACELIT)
+	{
+		color_out = vec4(0, 1, 0, 1);
+		/*
+		float3 lightDir = normalize(float3(0, -0.3f, -1));
+
+		return float4(WireframeColour.xyz*saturate(dot(lightDir, IN.norm)), 1);
+		*/
+	}
+	else //if(type == MESHDISPLAY_SOLID)
+	{
+		color_out = vec4(RENDERDOC_GenericFS_Color.xyz, 1);
+	}
 }

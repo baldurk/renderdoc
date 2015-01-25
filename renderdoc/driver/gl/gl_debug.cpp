@@ -173,8 +173,10 @@ void GLReplay::InitDebugData()
 	DebugData.genericProg = CreateShaderProgram(DebugData.genericvsSource.c_str(), DebugData.genericfsSource.c_str());
 	
 	string meshvs = GetEmbeddedResource(mesh_vert);
+	string meshfs = GetEmbeddedResource(mesh_frag);
+	meshfs = glslheader + meshfs;
 	
-	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), DebugData.genericfsSource.c_str());
+	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
 	
 	WrappedOpenGL &gl = *m_pDriver;
 
@@ -1591,13 +1593,15 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			// set GS-specific uniform
 		}
 
+		gl.glEnableVertexAttribArray(1);
+
 		float wireCol[] = { 0.8f, 0.8f, 0.0f, 1.0f };
 		gl.glUniform4fv(colLoc, 1, wireCol);
 		
 		GLint OutputDisplayFormat = (int)cfg.solidShadeMode;
 		if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
 			OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-		gl.glUniform1i(fmtLoc, OutputDisplayFormat);
+		gl.glUniform1ui(fmtLoc, OutputDisplayFormat);
 		
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
@@ -1616,6 +1620,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		{
 			gl.glDrawArrays(topo, 0, cfg.position.numVerts);
 		}
+
+		gl.glEnableVertexAttribArray(0);
 	}
 
 	colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
@@ -1631,6 +1637,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	{
 		float wireCol[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 		gl.glUniform4fv(colLoc, 1, wireCol);
+
+		gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
 
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 

@@ -36,6 +36,8 @@ DECLARE_EMBED(texdisplay_frag);
 DECLARE_EMBED(checkerboard_frag);
 DECLARE_EMBED(histogram_comp);
 DECLARE_EMBED(mesh_vert);
+DECLARE_EMBED(mesh_frag);
+DECLARE_EMBED(mesh_geom);
 DECLARE_EMBED(generic_vert);
 DECLARE_EMBED(generic_frag);
 DECLARE_EMBED(text_frag);

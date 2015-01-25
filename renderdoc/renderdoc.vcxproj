@@ -370,6 +370,8 @@
     <None Include="data\glsl\generic.frag" />
     <None Include="data\glsl\generic.vert" />
     <None Include="data\glsl\histogram.comp" />
+    <None Include="data\glsl\mesh.frag" />
+    <None Include="data\glsl\mesh.geom" />
     <None Include="data\glsl\mesh.vert" />
     <None Include="data\glsl\texdisplay.frag" />
     <None Include="data\glsl\text.frag" />

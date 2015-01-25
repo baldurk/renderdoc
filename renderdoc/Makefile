@@ -69,6 +69,8 @@ data/glsl/checkerboard.frago \
 data/glsl/generic.frago \
 data/glsl/generic.verto \
 data/glsl/mesh.verto \
+data/glsl/mesh.frago \
+data/glsl/mesh.geomo \
 data/glsl/text.verto \
 data/glsl/text.frago \
 data/glsl/histogram.compo \
@@ -100,6 +102,9 @@ $(OBJDIR)/%.verto: %.vert
 	@echo Object building $@
 	@$(OBJGEN)
 $(OBJDIR)/%.frago: %.frag
+	@echo Object building $@
+	@$(OBJGEN)
+$(OBJDIR)/%.geomo: %.geom
 	@echo Object building $@
 	@$(OBJGEN)
 $(OBJDIR)/%.compo: %.comp

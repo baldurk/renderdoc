@@ -23,6 +23,8 @@
 #define RESOURCE_text_frag          210
 #define RESOURCE_texsample_h        211
 #define RESOURCE_histogram_comp     212
+#define RESOURCE_mesh_frag          213
+#define RESOURCE_mesh_geom          214
 
 #define RESOURCE_sourcecodepro_ttf  301
 

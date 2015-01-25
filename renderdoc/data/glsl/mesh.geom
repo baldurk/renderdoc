@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,23 +21,5 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
+ 
 #version 420 core
-
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 secondary;
-
-uniform mat4 ModelViewProj;
-
-out v2f
-{
-	vec4 secondary;
-	vec4 norm;
-} OUT;
-
-void main(void)
-{
-	gl_Position = ModelViewProj * position;
-	OUT.secondary = secondary;
-	OUT.norm = vec4(0, 0, 0, 0);
-}

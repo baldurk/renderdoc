@@ -595,6 +595,12 @@
     <None Include="data\glsl\histogram.comp">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\mesh.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\mesh.geom">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

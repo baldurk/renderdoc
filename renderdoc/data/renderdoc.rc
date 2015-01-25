@@ -121,6 +121,8 @@ RESOURCE_text_vert         TYPE_EMBED   "glsl/text.vert"
 RESOURCE_text_frag         TYPE_EMBED   "glsl/text.frag"
 RESOURCE_texsample_h       TYPE_EMBED   "glsl/texsample.h"
 RESOURCE_histogram_comp    TYPE_EMBED   "glsl/histogram.comp"
+RESOURCE_mesh_frag         TYPE_EMBED   "glsl/mesh.frag"
+RESOURCE_mesh_geom         TYPE_EMBED   "glsl/mesh.geom"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 
