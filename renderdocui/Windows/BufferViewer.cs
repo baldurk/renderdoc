@@ -567,14 +567,9 @@ namespace renderdocui.Windows
                     if (curReq != m_ReqID)
                         return;
 
-                    if (MeshView)
-                        UI_UpdateMeshRenderComponents();
-
                     m_VSIn.AbortThread();
                     m_VSOut.AbortThread();
                     m_GSOut.AbortThread();
-
-                    UI_SetAllColumns();
 
                     if (m_VSIn.m_Input != null)
                         UI_SetRowsData(MeshDataStage.VSIn, contentsVSIn, horizscroll[0]);
@@ -582,6 +577,11 @@ namespace renderdocui.Windows
                         UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut, horizscroll[1]);
                     if (m_GSOut.m_Input != null)
                         UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, horizscroll[2]);
+
+                    if (MeshView)
+                        UI_UpdateMeshRenderComponents();
+
+                    UI_SetAllColumns();
 
                     camGuess_PropChanged();
 
@@ -2271,7 +2271,7 @@ namespace renderdocui.Windows
                 else if (ui.m_Stage != MeshDataStage.VSIn && ui.m_Data != null && ui.m_Data.PostVS.buf != ResourceId.Null)
                 {
                     m_MeshDisplay.position.idxbuf = ui.m_Data.PostVS.idxbuf;
-                    m_MeshDisplay.position.idxoffs = ui.m_Input.Drawcall.indexOffset * ui.m_Data.PostVS.idxByteWidth;
+                    m_MeshDisplay.position.idxoffs = 0;
                     m_MeshDisplay.position.idxByteWidth = ui.m_Data.PostVS.idxByteWidth;
 
                     m_MeshDisplay.position.buf = ui.m_Data.PostVS.buf;
