@@ -389,34 +389,52 @@ namespace renderdocui.Code
                     int num = 0;
                     for (int i = 0; i < attrs.Length; i++)
                     {
+                        if (m_GL.m_VS.ShaderDetails != null)
+                        {
+                            bool found = false;
+                            foreach (var isig in m_GL.m_VS.ShaderDetails.InputSig)
+                            {
+                                if (isig.regIndex == attrs[i].BufferSlot)
+                                {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) continue;
+                        }
+
                         if (attrs[i].Enabled)
                             num++;
                     }
 
                     int a = 0;
                     VertexInputAttribute[] ret = new VertexInputAttribute[num];
-                    for (int i = 0; i < attrs.Length; i++)
+                    for (int i = 0; i < attrs.Length && a < num; i++)
                     {
                         if (!attrs[i].Enabled) continue;
 
                         ret[a].Name = String.Format("attr{0}", i);
-                        ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
-                        ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
-                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].PerInstance;
-                        ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
-                        ret[a].Format = attrs[i].Format;
 
                         if (m_GL.m_VS.ShaderDetails != null)
                         {
+                            bool found = false;
                             foreach (var isig in m_GL.m_VS.ShaderDetails.InputSig)
                             {
                                 if (isig.regIndex == attrs[i].BufferSlot)
                                 {
                                     ret[a].Name = isig.varName;
+                                    found = true;
                                     break;
                                 }
                             }
+                            if (!found) continue;
                         }
+
+                        ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
+                        ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
+                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].PerInstance;
+                        ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
+                        ret[a].Format = attrs[i].Format;
 
                         a++;
                     }
