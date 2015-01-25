@@ -1290,9 +1290,9 @@ void D3D11Replay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
 	return m_pDevice->GetDebugManager()->TimeDrawcalls(arr);
 }
 
-void D3D11Replay::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
+void D3D11Replay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-	return m_pDevice->GetDebugManager()->RenderMesh(frameID, events, cfg);
+	return m_pDevice->GetDebugManager()->RenderMesh(frameID, eventID, secondaryDraws, cfg);
 }
 
 void D3D11Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)

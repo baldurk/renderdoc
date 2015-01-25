@@ -519,6 +519,32 @@ namespace renderdocui.Code
             return null;
         }
 
+        public ResourceId GetDepthTarget()
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                    return m_D3D11.m_OM.DepthTarget.Resource;
+                else if (IsLogGL)
+                    return m_GL.m_FB.m_DrawFBO.Depth;
+            }
+
+            return ResourceId.Null;
+        }
+
+        public ResourceId GetStencilTarget()
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                    return m_D3D11.m_OM.DepthTarget.Resource;
+                else if (IsLogGL)
+                    return m_GL.m_FB.m_DrawFBO.Stencil;
+            }
+
+            return ResourceId.Null;
+        }
+
         public ResourceId[] GetOutputTargets()
         {
             if (LogLoaded)

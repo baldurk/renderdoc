@@ -214,7 +214,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 			}
 		}
 			
-		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
+		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 		{
 			if(m_Proxy)
 				m_Proxy->RenderCheckerboard(Vec3f(0.7f, 0.3f, 0.3f), Vec3f(0.3f, 0.3f, 0.7f));

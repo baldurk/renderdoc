@@ -134,7 +134,7 @@ class D3D11DebugManager
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
 
 		void RenderText(float x, float y, const char *textfmt, ...);
-		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
+		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
 
 		ID3D11Buffer *MakeCBuffer(float *data, size_t size);
 		
@@ -299,9 +299,8 @@ class D3D11DebugManager
 		// mesh, not jumping back and forth much between meshes.
 		struct HighlightCache
 		{
-			HighlightCache() : EID(0), buf(), stage(eMeshDataStage_Unknown), useidx(false) {}
+			HighlightCache() : EID(0), stage(eMeshDataStage_Unknown), useidx(false) {}
 			uint32_t EID;
-			ResourceId buf;
 			MeshDataStage stage;
 			bool useidx;
 			D3D11_PRIMITIVE_TOPOLOGY topo;

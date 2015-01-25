@@ -362,9 +362,10 @@ namespace renderdoc
     public struct MeshFormat
     {
         public ResourceId idxbuf;
+        public UInt32 idxoffs;
         public UInt32 idxByteWidth;
-        public ResourceId buf;
 
+        public ResourceId buf;
         public UInt32 offset;
         public UInt32 stride;
 
@@ -376,6 +377,7 @@ namespace renderdoc
         public bool showAlpha;
 
         public PrimitiveTopology topo;
+        public UInt32 numVerts;
 
         public bool unproject;
         public float nearPlane;

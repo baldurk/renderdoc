@@ -86,6 +86,8 @@ namespace renderdocui.Windows
             public uint IndexCount = 0;
             public uint IndexAdd = 0;
 
+            public MeshFormat PostVS;
+
             public PrimitiveTopology Topology = PrimitiveTopology.Unknown;
 
             public byte[][] Buffers = null;
@@ -475,6 +477,8 @@ namespace renderdocui.Windows
                             UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut, 0);
                         if (m_GSOut.m_Input != null)
                             UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, 0);
+
+                        camGuess_PropChanged();
                     }));
                 });
             }
@@ -578,6 +582,8 @@ namespace renderdocui.Windows
                         UI_SetRowsData(MeshDataStage.VSOut, contentsVSOut, horizscroll[1]);
                     if (m_GSOut.m_Input != null)
                         UI_SetRowsData(MeshDataStage.GSOut, contentsGSOut, horizscroll[2]);
+
+                    camGuess_PropChanged();
 
                     render.Invalidate();
                 }));
@@ -840,22 +846,22 @@ namespace renderdocui.Windows
 
             if (type != MeshDataStage.VSIn)
             {
-                var postvs = r.GetPostVSData(type);
+                ret.PostVS = r.GetPostVSData(type);
 
                 ret.Buffers = new byte[1][];
 
-                if (postvs.buf == ResourceId.Null)
+                if (ret.PostVS.buf == ResourceId.Null)
                 {
                     ret.IndexCount = 0;
                     ret.Topology = PrimitiveTopology.Unknown;
                 }
                 else
                 {
-                    ret.Buffers[0] = r.GetBufferData(postvs.buf, 0, 0);
+                    ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, 0, 0);
 
-                    ret.Topology = postvs.topo;
+                    ret.Topology = ret.PostVS.topo;
 
-                    ret.IndexCount = (uint)ret.Buffers[0].Length / postvs.stride;
+                    ret.IndexCount = (uint)ret.Buffers[0].Length / ret.PostVS.stride;
 
                     uint stride = 0;
                     foreach (var f in input.BufferFormats)
@@ -867,7 +873,7 @@ namespace renderdocui.Windows
 
                 ret.Indices = null;
 
-                if (postvs.buf != ResourceId.Null && type == MeshDataStage.VSOut &&
+                if (ret.PostVS.buf != ResourceId.Null && type == MeshDataStage.VSOut &&
                     (input.Drawcall.flags & DrawcallFlags.UseIBuffer) > 0 && input.IndexBuffer != ResourceId.Null)
                 {
                     ret.IndexCount = input.Drawcall.numIndices;
@@ -2197,32 +2203,87 @@ namespace renderdocui.Windows
         {
             var ui = GetUIState(m_MeshDisplay.type);
 
+            // set position data etc from postvs if relevant
+            // also need to bake in drawcall offsets etc
+            // set numVerts from drawcall or postvs data
+
             if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
                 CurPosElement == -1 || CurPosElement >= ui.m_Input.BufferFormats.Length)
             {
+                m_MeshDisplay.position.idxbuf = ResourceId.Null;
+                m_MeshDisplay.position.idxoffs = 0;
+                m_MeshDisplay.position.idxByteWidth = 0;
+
                 m_MeshDisplay.position.buf = ResourceId.Null;
                 m_MeshDisplay.position.offset = 0;
                 m_MeshDisplay.position.stride = 0;
-                m_MeshDisplay.position.compByteWidth = 0;
+
                 m_MeshDisplay.position.compCount = 0;
+                m_MeshDisplay.position.compByteWidth = 0;
                 m_MeshDisplay.position.compType = FormatComponentType.None;
                 m_MeshDisplay.position.specialFormat = SpecialFormat.Unknown;
+
                 m_MeshDisplay.position.showAlpha = false;
+
+                m_MeshDisplay.position.topo = PrimitiveTopology.Unknown;
+                m_MeshDisplay.position.numVerts = 0;
+
+                m_MeshDisplay.position.unproject = false;
+                // near and far plane handled elsewhere
             }
             else
             {
                 FormatElement pos = ui.m_Input.BufferFormats[CurPosElement];
 
-                m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
-                m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer];
-                m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
-                m_MeshDisplay.position.compByteWidth = pos.format.compByteWidth;
+                m_MeshDisplay.position.idxbuf = ResourceId.Null;
+                m_MeshDisplay.position.idxoffs = 0;
+                m_MeshDisplay.position.idxByteWidth = 0;
+
+                m_MeshDisplay.position.buf = ResourceId.Null;
+                m_MeshDisplay.position.offset = 0;
+                m_MeshDisplay.position.stride = 0;
+
                 m_MeshDisplay.position.compCount = pos.format.compCount;
+                m_MeshDisplay.position.compByteWidth = pos.format.compByteWidth;
                 m_MeshDisplay.position.compType = pos.format.compType;
                 m_MeshDisplay.position.specialFormat = pos.format.special ? pos.format.specialFormat : SpecialFormat.Unknown;
+
                 m_MeshDisplay.position.showAlpha = false;
 
+                m_MeshDisplay.position.topo = PrimitiveTopology.Unknown;
+                m_MeshDisplay.position.numVerts = 0;
+
+                if (ui.m_Stage == MeshDataStage.VSIn && ui.m_Input.Drawcall != null)
+                {
+                    m_MeshDisplay.position.idxbuf = m_VSIn.m_Input.IndexBuffer;
+                    m_MeshDisplay.position.idxoffs = m_VSIn.m_Input.IndexOffset +
+                        ui.m_Input.Drawcall.indexOffset * ui.m_Input.Drawcall.indexByteWidth;
+                    m_MeshDisplay.position.idxByteWidth = ui.m_Input.Drawcall.indexByteWidth;
+
+                    m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
+                    m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer] +
+                        ui.m_Input.Drawcall.vertexOffset * m_MeshDisplay.position.stride;
+                    m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
+
+                    m_MeshDisplay.position.topo = ui.m_Input.Drawcall.topology;
+                    m_MeshDisplay.position.numVerts = ui.m_Input.Drawcall.numIndices;
+                }
+                else if (ui.m_Stage != MeshDataStage.VSIn && ui.m_Data != null && ui.m_Data.PostVS.buf != ResourceId.Null)
+                {
+                    m_MeshDisplay.position.idxbuf = ui.m_Data.PostVS.idxbuf;
+                    m_MeshDisplay.position.idxoffs = ui.m_Input.Drawcall.indexOffset * ui.m_Data.PostVS.idxByteWidth;
+                    m_MeshDisplay.position.idxByteWidth = ui.m_Data.PostVS.idxByteWidth;
+
+                    m_MeshDisplay.position.buf = ui.m_Data.PostVS.buf;
+                    m_MeshDisplay.position.offset = pos.offset;
+                    m_MeshDisplay.position.stride = ui.m_Data.PostVS.stride;
+
+                    m_MeshDisplay.position.topo = ui.m_Data.PostVS.topo;
+                    m_MeshDisplay.position.numVerts = ui.m_Data.PostVS.numVerts;
+                }
+
                 m_MeshDisplay.position.unproject = false;
+                // near and far plane handled elsewhere
 
                 if ((ui.m_Stage == MeshDataStage.VSOut && !m_Core.CurPipelineState.IsTessellationEnabled) || ui.m_Stage == MeshDataStage.GSOut)
                 {
@@ -2233,27 +2294,50 @@ namespace renderdocui.Windows
             if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
                 CurSecondElement == -1 || CurSecondElement >= ui.m_Input.BufferFormats.Length)
             {
+                m_MeshDisplay.secondary.idxbuf = ResourceId.Null;
+                m_MeshDisplay.secondary.idxoffs = 0;
+                m_MeshDisplay.secondary.idxByteWidth = 0;
+
                 m_MeshDisplay.secondary.buf = ResourceId.Null;
                 m_MeshDisplay.secondary.offset = 0;
                 m_MeshDisplay.secondary.stride = 0;
-                m_MeshDisplay.secondary.compByteWidth = 0;
+
                 m_MeshDisplay.secondary.compCount = 0;
+                m_MeshDisplay.secondary.compByteWidth = 0;
                 m_MeshDisplay.secondary.compType = FormatComponentType.None;
                 m_MeshDisplay.secondary.specialFormat = SpecialFormat.Unknown;
+
                 m_MeshDisplay.secondary.showAlpha = false;
+
+                m_MeshDisplay.secondary.topo = PrimitiveTopology.Unknown;
+                m_MeshDisplay.secondary.numVerts = 0;
+
+                m_MeshDisplay.secondary.unproject = false;
             }
             else
             {
                 FormatElement tex = ui.m_Input.BufferFormats[CurSecondElement];
 
-                m_MeshDisplay.secondary.buf = m_VSIn.m_Input.Buffers[tex.buffer];
-                m_MeshDisplay.secondary.offset = tex.offset + ui.m_Input.Offsets[tex.buffer];
-                m_MeshDisplay.secondary.stride = ui.m_Input.Strides[tex.buffer];
-                m_MeshDisplay.secondary.compByteWidth = tex.format.compByteWidth;
                 m_MeshDisplay.secondary.compCount = tex.format.compCount;
+                m_MeshDisplay.secondary.compByteWidth = tex.format.compByteWidth;
                 m_MeshDisplay.secondary.compType = tex.format.compType;
                 m_MeshDisplay.secondary.specialFormat = tex.format.special ? tex.format.specialFormat : SpecialFormat.Unknown;
+
                 m_MeshDisplay.secondary.showAlpha = CurSecondShowAlpha;
+
+                if (ui.m_Stage == MeshDataStage.VSIn && ui.m_Input.Drawcall != null)
+                {
+                    m_MeshDisplay.secondary.buf = m_VSIn.m_Input.Buffers[tex.buffer];
+                    m_MeshDisplay.secondary.offset = tex.offset + ui.m_Input.Offsets[tex.buffer] +
+                        ui.m_Input.Drawcall.vertexOffset * m_MeshDisplay.position.stride;
+                    m_MeshDisplay.secondary.stride = ui.m_Input.Strides[tex.buffer];
+                }
+                else if (ui.m_Stage != MeshDataStage.VSIn && ui.m_Data != null && ui.m_Data.PostVS.buf != ResourceId.Null)
+                {
+                    m_MeshDisplay.secondary.buf = ui.m_Data.PostVS.buf;
+                    m_MeshDisplay.secondary.offset = tex.offset;
+                    m_MeshDisplay.secondary.stride = ui.m_Data.PostVS.stride;
+                }
             }
 
             UI_UpdateAllColumns();
@@ -2263,50 +2347,61 @@ namespace renderdocui.Windows
         {
             m_MeshDisplay.ortho = matrixType.SelectedIndex == 1;
 
-            float fov;
-            if (float.TryParse(fovGuess.Text, out fov))
-            {
-                m_MeshDisplay.fov = fov;
-            }
+            float fov = 90.0f;
+            float.TryParse(fovGuess.Text, out fov);
 
+            m_MeshDisplay.fov = fov;
             fovGuess.Text = m_MeshDisplay.fov.ToString("G");
 
+            m_MeshDisplay.aspect = 1.0f;
 
+            // take a guess for the aspect ratio, for if the user hasn't overridden it
+            ResourceId depth = m_Core.CurPipelineState.GetDepthTarget();
+            ResourceId[] targets = m_Core.CurPipelineState.GetOutputTargets();
 
-
-            float aspect = 0.0f;
-            if (aspectGuess.Text.Length > 0)
+            if (depth != ResourceId.Null || (targets != null && targets.Length > 0))
             {
-                float.TryParse(aspectGuess.Text, out aspect);
+                foreach (var t in m_Core.CurTextures)
+                {
+                    if (depth != ResourceId.Null && t.ID == depth)
+                    {
+                        m_MeshDisplay.aspect = (float)t.width / (float)t.height;
+                        break;
+                    }
+                    if (depth == ResourceId.Null && targets != null && targets.Length > 0 && t.ID == targets[0])
+                    {
+                        m_MeshDisplay.aspect = (float)t.width / (float)t.height;
+                        break;
+                    }
+                }
             }
 
-            m_MeshDisplay.aspect = aspect;
+            if (aspectGuess.Text.Length > 0 && float.TryParse(aspectGuess.Text, out m_MeshDisplay.aspect))
+                aspectGuess.Text = m_MeshDisplay.aspect.ToString("G");
+            else
+                aspectGuess.Text = "";
 
-            aspectGuess.Text = aspect > 0.0f ? aspect.ToString("G") : "";
+            // use estimates from post vs data (calculated from vertex position data) if the user
+            // hasn't overridden the values
+            m_MeshDisplay.position.nearPlane = 1.0f;
 
+            if (m_VSOut.m_Data != null && m_VSOut.m_Data.PostVS.buf != ResourceId.Null)
+                m_MeshDisplay.position.nearPlane = m_VSOut.m_Data.PostVS.nearPlane;
 
+            if (nearGuess.Text.Length > 0 && float.TryParse(nearGuess.Text, out m_MeshDisplay.position.nearPlane))
+                nearGuess.Text = m_MeshDisplay.position.nearPlane.ToString("G");
+            else
+                nearGuess.Text = "";
 
-            float near = -float.MaxValue;
-            if (nearGuess.Text.Length > 0)
-            {
-                float.TryParse(nearGuess.Text, out near);
-            }
+            m_MeshDisplay.position.farPlane = 10.0f;
 
-            m_MeshDisplay.position.nearPlane = near;
+            if (m_VSOut.m_Data != null && m_VSOut.m_Data.PostVS.buf != ResourceId.Null)
+                m_MeshDisplay.position.farPlane = m_VSOut.m_Data.PostVS.farPlane;
 
-            nearGuess.Text = near > -float.MaxValue ? near.ToString("G") : "";
-
-
-
-            float far = -float.MaxValue;
-            if (farGuess.Text.Length > 0)
-            {
-                float.TryParse(farGuess.Text, out far);
-            }
-
-            m_MeshDisplay.position.farPlane = far;
-
-            farGuess.Text = far > -float.MaxValue ? far.ToString("G") : "";
+            if (farGuess.Text.Length > 0 && float.TryParse(farGuess.Text, out m_MeshDisplay.position.farPlane))
+                farGuess.Text = m_MeshDisplay.position.farPlane.ToString("G");
+            else
+                farGuess.Text = "";
 
             render.Invalidate();
         }

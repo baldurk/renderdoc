@@ -130,7 +130,7 @@ class IReplayDriver : public IRemoteDriver
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
 
-		virtual void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) = 0;
+		virtual void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;
 
 		virtual void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors) = 0;

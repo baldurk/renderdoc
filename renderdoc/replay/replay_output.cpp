@@ -541,15 +541,6 @@ void ReplayOutput::DisplayMesh()
 	if(m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) return;
 	if((draw->flags & eDraw_Drawcall) == 0) return;
 
-	vector<uint32_t> events = passEvents;
-	
-	if(m_RenderData.meshDisplay.type == eMeshDataStage_VSIn ||
-		 m_RenderData.meshDisplay.thisDrawOnly)
-	{
-		events.clear();
-		events.push_back(draw->eventID);
-	}
-
 	if(draw && m_OverlayDirty)
 	{
 		m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
@@ -561,16 +552,33 @@ void ReplayOutput::DisplayMesh()
 	m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
 	m_pDevice->RenderCheckerboard(Vec3f(0.666f, 0.666f, 0.666f), Vec3f(0.333f, 0.333f, 0.333f));
-
-	RDCASSERT(!events.empty());
 	
 	m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
 
 	MeshDisplay mesh = m_RenderData.meshDisplay;
 	mesh.position.buf = m_pDevice->GetLiveID(mesh.position.buf);
+	mesh.position.idxbuf = m_pDevice->GetLiveID(mesh.position.idxbuf);
 	mesh.second.buf = m_pDevice->GetLiveID(mesh.second.buf);
+	mesh.second.idxbuf = m_pDevice->GetLiveID(mesh.second.idxbuf);
+	
+	vector<MeshFormat> secondaryDraws;
+	
+	if(m_RenderData.meshDisplay.type != eMeshDataStage_VSIn &&
+		 !m_RenderData.meshDisplay.thisDrawOnly)
+	{
+		mesh.position.unproject = true;
+		mesh.second.unproject = true;
 
-	m_pDevice->RenderMesh(m_FrameID, events, mesh);
+		for(size_t i=0; i < passEvents.size(); i++)
+		{
+			// get the 'most final' stage
+			MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], eMeshDataStage_GSOut);
+			if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], eMeshDataStage_VSOut);
+			secondaryDraws.push_back(fmt);
+		}
+	}
+
+	m_pDevice->RenderMesh(m_FrameID, m_EventID, secondaryDraws, mesh);
 }
 
 

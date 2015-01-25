@@ -103,7 +103,7 @@ class ImageViewer : public IReplayDriver
 		
 		// other operations are dropped/ignored, to avoid confusion
 		void ReadLogInitialisation() {}
-		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg) {}
+		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) {}
 		vector<ResourceId> GetBuffers() { return vector<ResourceId>(); }
 		vector<DebugMessage> GetDebugMessages() { return vector<DebugMessage>(); }
 		FetchBuffer GetBuffer(ResourceId id) { FetchBuffer ret; RDCEraseEl(ret); return ret; }

@@ -32,9 +32,10 @@ struct OutputConfig
 struct MeshFormat
 {
 	ResourceId idxbuf;
+	uint32_t idxoffs;
 	uint32_t idxByteWidth;
-	ResourceId buf;
 
+	ResourceId buf;
 	uint32_t offset;
 	uint32_t stride;
 
@@ -46,6 +47,7 @@ struct MeshFormat
 	bool showAlpha;
 
 	PrimitiveTopology topo;
+	uint32_t numVerts;
 
 	bool32 unproject;
 	float nearPlane;

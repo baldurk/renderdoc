@@ -63,6 +63,73 @@ HMODULE GetD3DCompiler()
 	return ret;
 }
 
+D3D11_PRIMITIVE_TOPOLOGY MakeD3D11PrimitiveTopology(PrimitiveTopology Topo)
+{
+	switch(Topo)
+	{
+		case eTopology_LineLoop:
+		case eTopology_TriangleFan:
+			RDCWARN("Unsupported primitive topology on D3D11: %x", Topo);
+			break;
+		default:
+		case eTopology_Unknown:
+			return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		case eTopology_PointList:
+			return D3D11_PRIMITIVE_TOPOLOGY_POINTLIST;
+		case eTopology_LineList:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+		case eTopology_LineStrip:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		case eTopology_TriangleList:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		case eTopology_TriangleStrip:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		case eTopology_LineList_Adj:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+		case eTopology_LineStrip_Adj:
+			return D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+		case eTopology_TriangleList_Adj:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		case eTopology_TriangleStrip_Adj:
+			return D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+		case eTopology_PatchList_1CPs:
+		case eTopology_PatchList_2CPs:
+		case eTopology_PatchList_3CPs:
+		case eTopology_PatchList_4CPs:
+		case eTopology_PatchList_5CPs:
+		case eTopology_PatchList_6CPs:
+		case eTopology_PatchList_7CPs:
+		case eTopology_PatchList_8CPs:
+		case eTopology_PatchList_9CPs:
+		case eTopology_PatchList_10CPs:
+		case eTopology_PatchList_11CPs:
+		case eTopology_PatchList_12CPs:
+		case eTopology_PatchList_13CPs:
+		case eTopology_PatchList_14CPs:
+		case eTopology_PatchList_15CPs:
+		case eTopology_PatchList_16CPs:
+		case eTopology_PatchList_17CPs:
+		case eTopology_PatchList_18CPs:
+		case eTopology_PatchList_19CPs:
+		case eTopology_PatchList_20CPs:
+		case eTopology_PatchList_21CPs:
+		case eTopology_PatchList_22CPs:
+		case eTopology_PatchList_23CPs:
+		case eTopology_PatchList_24CPs:
+		case eTopology_PatchList_25CPs:
+		case eTopology_PatchList_26CPs:
+		case eTopology_PatchList_27CPs:
+		case eTopology_PatchList_28CPs:
+		case eTopology_PatchList_29CPs:
+		case eTopology_PatchList_30CPs:
+		case eTopology_PatchList_31CPs:
+		case eTopology_PatchList_32CPs:
+			return D3D11_PRIMITIVE_TOPOLOGY(D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST + (Topo - eTopology_PatchList_1CPs));
+	}
+
+	return D3D11_PRIMITIVE_TOPOLOGY_UNDEFINED;
+}
+
 PrimitiveTopology MakePrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topo)
 {
 	switch(Topo)

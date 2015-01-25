@@ -3729,6 +3729,7 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventI
 		ret.idxbuf = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
 	else
 		ret.idxbuf = ResourceId();
+	ret.idxoffs = 0;
 	ret.idxByteWidth = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
 
 	if(s.buf)
@@ -3747,6 +3748,7 @@ MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventI
 	ret.showAlpha = false;
 
 	ret.topo = MakePrimitiveTopology(s.topo);
+	ret.numVerts = s.numVerts;
 
 	ret.unproject = true;
 	ret.nearPlane = s.nearPlane;
@@ -4521,37 +4523,13 @@ FloatVector D3D11DebugManager::InterpretVertex(byte *data, uint32_t vert, MeshDi
 	return ret;
 }
 
-void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg)
+void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	DebugVertexCBuffer vertexData;
+	
+	D3D11RenderStateTracker tracker(m_WrappedContext);
 
 	vertexData.LineStrip = 0;
-
-	D3D11PipelineState pipeState = m_WrappedDevice->GetReplay()->GetD3D11PipelineState();
-	D3D11RenderState *curRS = m_WrappedDevice->GetImmediateContext()->GetCurrentPipelineState();
-
-	float aspect = 1.0f;
-
-	// guess the output aspect ratio, for mesh calculation
-	if(pipeState.m_OM.DepthTarget.Resource != ResourceId())
-	{
-		FetchTexture desc = m_WrappedDevice->GetReplay()->GetTexture(m_ResourceManager->GetLiveID(pipeState.m_OM.DepthTarget.Resource));
-
-		aspect = float(desc.width)/float(desc.height);
-	}
-	else
-	{
-		for(int32_t i=0; i < pipeState.m_OM.RenderTargets.count; i++)
-		{
-			if(pipeState.m_OM.RenderTargets[i].Resource != ResourceId())
-			{
-				FetchTexture desc = m_WrappedDevice->GetReplay()->GetTexture(m_ResourceManager->GetLiveID(pipeState.m_OM.RenderTargets[i].Resource));
-
-				aspect = float(desc.width)/float(desc.height);
-				break;
-			}
-		}
-	}
 
 	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth())/float(GetHeight()));
 
@@ -4584,14 +4562,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	m_pImmediateContext->OMSetBlendState(m_WireframeHelpersBS, NULL, 0xffffffff);
 	
 	// don't cull in wireframe mesh display
-	/*
-	if(pipeState.m_RS.m_State.CullMode != eCull_None && pipeState.m_RS.m_State.FrontCCW)
-		m_pImmediateContext->RSSetState(m_WireframeHelpersCullCWRS);
-	else if(pipeState.m_RS.m_State.CullMode != eCull_None && !pipeState.m_RS.m_State.FrontCCW)
-		m_pImmediateContext->RSSetState(m_WireframeHelpersCullCCWRS);
-	else
-		*/
-		m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
+	m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 	
 	ResourceFormat resFmt;
 	resFmt.compByteWidth = cfg.position.compByteWidth;
@@ -4665,194 +4636,97 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 	
 	m_PrevMeshFmt = resFmt;
 	m_PrevMeshFmt2 = resFmt2;
+	
+	ID3D11Buffer *ibuf = NULL;
+	DXGI_FORMAT ifmt = DXGI_FORMAT_R16_UINT;
+	UINT ioffs = cfg.position.idxoffs;
+	
+	D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3D11PrimitiveTopology(cfg.position.topo);
 
-	if(cfg.position.unproject || events.size() > 1)
+	// render the mesh itself (solid, then wireframe)
 	{
-		float nearp = 0.1f;
-		float farp = 1000.0f;
-
-		for(size_t i=0; i < events.size(); i++)
+		if(cfg.position.unproject)
 		{
-			PostVSData data = GetPostVSBuffers(frameID, events[i]);
-			const PostVSData::StageData &stage = data.GetStage(cfg.type);
+			// the derivation of the projection matrix might not be right (hell, it could be an
+			// orthographic projection). But it'll be close enough likely.
+			Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
 
-			if(stage.buf && stage.nearPlane != stage.farPlane)
+			if(cfg.ortho)
 			{
-				nearp = stage.nearPlane;
-				farp = stage.farPlane;
-				break;
-			}
-		}
-
-		if(cfg.position.nearPlane > -FLT_MAX) nearp = cfg.position.nearPlane;
-		if(cfg.position.farPlane > -FLT_MAX) farp = cfg.position.farPlane;
-		if(cfg.aspect > 0.0f) aspect = cfg.aspect;
-
-		// the derivation of the projection matrix might not be right (hell, it could be an
-		// orthographic projection). But it'll be close enough likely.
-		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, nearp, farp, aspect);
-
-		if(cfg.ortho)
-		{
-			guessProj = Matrix4f::Orthographic(nearp, farp);
-		}
-		
-		guessProjInv = guessProj.Inverse();
-
-		vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-
-		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
-		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-		m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
-
-		m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
-		m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
-
-		{
-			if(events.size() > 1)
-			{
-				pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-				pixelData.WireframeColour = Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
-				FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
-			}
-				
-			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
-
-			for(size_t i=0; i < events.size()-1; i++)
-			{
-				PostVSData data = GetPostVSBuffers(frameID, events[i]);
-				PostVSData::StageData stage = data.GetStage(cfg.type);
-
-				if(stage.buf == NULL && cfg.type == eMeshDataStage_GSOut)
-					stage = data.GetStage(eMeshDataStage_VSOut);
-
-				if(stage.buf)
-				{
-					if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
-						m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-					else
-						m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
-
-					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
-					if(stage.useIndices)
-					{
-						buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
-						m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
-
-						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
-					}
-					else
-					{
-						m_pImmediateContext->Draw(stage.numVerts, 0);
-					}
-				}
-			}
-
-			m_pImmediateContext->IASetInputLayout(m_PostMeshDisplayLayout);
-
-			if(m_PostMeshDisplayLayout == NULL)
-			{
-				RDCWARN("Couldn't get a mesh display layout");
-				return;
-			}
-
-			PostVSData data = GetPostVSBuffers(frameID, events.back());
-			const PostVSData::StageData &stage = data.GetStage(cfg.type);
-			if(stage.buf)
-			{
-				if(stage.topo > D3D11_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
-					m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-				else
-					m_pImmediateContext->IASetPrimitiveTopology(stage.topo);
-
-				ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, stage.buf);
-				m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&stage.vertStride, (UINT *)&stage.posOffset);
-
-				UINT offset = cfg.second.offset;
-				m_pImmediateContext->IASetVertexBuffers(1, 1, &buf, (UINT *)&stage.vertStride, &offset);
-				
-				if(stage.useIndices)
-				{
-					buf = UNWRAP(WrappedID3D11Buffer, stage.idxBuf);
-					m_pImmediateContext->IASetIndexBuffer(buf, stage.idxFmt, 0);
-				}
-
-				// draw solid shaded mode
-				if(cfg.solidShadeMode != eShade_None)
-				{
-					m_pImmediateContext->RSSetState(m_DebugRender.RastState);
-
-					pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
-					if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
-						pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-					pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
-					FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
-
-					if(cfg.solidShadeMode == eShade_Lit)
-					{
-						DebugGeometryCBuffer geomData;
-
-						geomData.InvProj = projMat.Inverse();
-
-						FillCBuffer(m_DebugRender.GenericGSCBuffer, (float *)&geomData, sizeof(DebugGeometryCBuffer));
-						m_pImmediateContext->GSSetConstantBuffers(0, 1, &m_DebugRender.GenericGSCBuffer);
-
-						m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
-					}
-
-					if(stage.useIndices)
-						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
-					else
-						m_pImmediateContext->Draw(stage.numVerts, 0);
-
-					if(cfg.solidShadeMode == eShade_Lit)
-						m_pImmediateContext->GSSetShader(NULL, NULL, 0);
-				}
-
-				// draw wireframe mode
-				if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw)
-				{
-					m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
-
-					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
-
-					pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-					if(cfg.solidShadeMode == eShade_None)
-						pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
-					else
-						pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
-					FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
-
-					if(stage.useIndices)
-						m_pImmediateContext->DrawIndexed(stage.numVerts, 0, 0);
-					else
-						m_pImmediateContext->Draw(stage.numVerts, 0);
-				}
+				guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 			}
 			
-			if(cfg.solidShadeMode == eShade_Lit)
-				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
+			guessProjInv = guessProj.Inverse();
+
+			vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 		}
-	}
-	else
-	{
+
 		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+	
 		m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-		m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
+		m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
+			
+		if(cfg.position.unproject)
+			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
+		else
+			m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
+
 		m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
+
+		// secondary draws - this is the "draw since last clear" feature. We don't have
+		// full flexibility, it only draws wireframe, and only the final rasterized position.
+		if(secondaryDraws.size() > 0)
+		{
+			m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
+
+			pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+			pixelData.WireframeColour = Vec3f(cfg.prevMeshColour.x, cfg.prevMeshColour.y, cfg.prevMeshColour.z);
+			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+			
+			for(size_t i=0; i < secondaryDraws.size(); i++)
+			{
+				const MeshFormat &fmt = secondaryDraws[i];
+
+				if(fmt.buf != ResourceId())
+				{
+					D3D11_PRIMITIVE_TOPOLOGY d3d11topo = MakeD3D11PrimitiveTopology(fmt.topo);
+
+					m_pImmediateContext->IASetPrimitiveTopology(MakeD3D11PrimitiveTopology(fmt.topo));
+					
+					auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
+
+					ID3D11Buffer *buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+					m_pImmediateContext->IASetVertexBuffers(0, 1, &buf, (UINT *)&fmt.stride, (UINT *)&fmt.offset);
+					if(fmt.idxbuf != ResourceId())
+					{
+						it = WrappedID3D11Buffer::m_BufferList.find(fmt.idxbuf);
+						buf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+						m_pImmediateContext->IASetIndexBuffer(buf, fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT, fmt.idxoffs);
+
+						m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, 0);
+					}
+					else
+					{
+						m_pImmediateContext->Draw(fmt.numVerts, 0);
+					}
+				}
+			}
+		}
+
+		ID3D11InputLayout *layout = cfg.position.unproject ? m_PostMeshDisplayLayout : m_MeshDisplayLayout;
 		
-		if(m_MeshDisplayLayout == NULL)
+		if(layout == NULL)
 		{
 			RDCWARN("Couldn't get a mesh display layout");
 			return;
 		}
+
+		m_pImmediateContext->IASetInputLayout(layout);
 		
 		ID3D11Buffer *vbs[2] = { NULL, NULL };
 		UINT str[] = { cfg.position.stride, cfg.second.stride };
 		UINT offs[] = { cfg.position.offset, cfg.second.offset };
 
-		if(cfg.type == eMeshDataStage_VSIn)
 		{
 			auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
 
@@ -4863,26 +4737,26 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 			if(it != WrappedID3D11Buffer::m_BufferList.end())
 				vbs[1] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
-		}
-		else
-		{
-			PostVSData data = GetPostVSBuffers(frameID, events[0]);
 
-			if(cfg.type == eMeshDataStage_VSOut)
-				vbs[0] = vbs[1] = UNWRAP(WrappedID3D11Buffer, data.vsout.buf);
-			if(cfg.type == eMeshDataStage_GSOut)
-				vbs[0] = vbs[1] = UNWRAP(WrappedID3D11Buffer, data.gsout.buf);
+			it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.idxbuf);
+
+			if(it != WrappedID3D11Buffer::m_BufferList.end())
+				ibuf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+			if(cfg.position.idxByteWidth == 4)
+				ifmt = DXGI_FORMAT_R32_UINT;
 		}
 		
 		m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
-		m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
-
-		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, events.back());
+		if(ibuf)
+			m_pImmediateContext->IASetIndexBuffer(ibuf, ifmt, ioffs);
 
 		// draw solid shaded mode
-		if(cfg.solidShadeMode != eShade_None && drawcall->topology < eTopology_PatchList_1CPs)
+		if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_DebugRender.RastState);
+
+			m_pImmediateContext->IASetPrimitiveTopology(topo);
 
 			pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
 			if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
@@ -4904,29 +4778,40 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 				m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
 			}
 
-			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
+			if(ibuf)
+				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
+			else
+				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
 			
 			if(cfg.solidShadeMode == eShade_Lit)
 				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 		}
 		
 		// draw wireframe mode
-		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || drawcall->topology >= eTopology_PatchList_1CPs)
+		if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList_1CPs)
 		{
 			m_pImmediateContext->RSSetState(m_WireframeHelpersRS);
 
 			m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
 
 			pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-			pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
+			if(secondaryDraws.size() > 0 && cfg.solidShadeMode == eShade_None)
+				pixelData.WireframeColour = Vec3f(cfg.currentMeshColour.x, cfg.currentMeshColour.y, cfg.currentMeshColour.z);
+			else
+				pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
 			FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
-			if(drawcall->topology >= eTopology_PatchList_1CPs)
+			if(cfg.position.topo >= eTopology_PatchList_1CPs)
 				m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
-
-			m_WrappedDevice->ReplayLog(frameID, 0, events[0], eReplay_OnlyDraw);
+			else
+				m_pImmediateContext->IASetPrimitiveTopology(topo);
+			
+			if(ibuf)
+				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
+			else
+				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
 		}
 	}
 	
@@ -4974,44 +4859,20 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 
 	if(cfg.highlightVert != ~0U)
 	{
-		const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(frameID, events.back());
-
 		MeshDataStage stage = cfg.type;
 		
-		if(m_HighlightCache.EID != events.back() || m_HighlightCache.buf != cfg.position.buf || stage != m_HighlightCache.stage)
+		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage)
 		{
-			m_HighlightCache.EID = events.back();
-			m_HighlightCache.buf = cfg.position.buf;
+			m_HighlightCache.EID = eventID;
 			m_HighlightCache.stage = stage;
 			
-			ID3D11Buffer *idxBuf = curRS->IA.IndexBuffer;
-			DXGI_FORMAT idxFmt = curRS->IA.IndexFormat;
-			UINT idxOffs = curRS->IA.IndexOffset;
-			bool index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
+			bool index16 = (ifmt == DXGI_FORMAT_R16_UINT); 
 			UINT bytesize = index16 ? 2 : 4; 
 
-			if(stage == eMeshDataStage_VSIn)
-			{
-				m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
-				m_HighlightCache.topo = curRS->IA.Topo;
-				idxOffs += drawcall->indexOffset*bytesize;
-			}
-			else
-			{
-				MeshFormat postvs = GetPostVSBuffers(frameID, events.back(), stage);
-				m_HighlightCache.data = GetBufferData(postvs.buf, 0, 0);
+			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+			m_HighlightCache.topo = topo;
 
-				const PostVSData::StageData &stagedata = GetPostVSBuffers(frameID, events.back()).GetStage(stage);
-
-				m_HighlightCache.topo = stagedata.topo;
-				idxBuf = stagedata.idxBuf;
-				idxFmt = stagedata.idxFmt;
-				idxOffs = 0;
-				index16 = (idxFmt == DXGI_FORMAT_R16_UINT); 
-				bytesize = index16 ? 2 : 4; 
-			}
-
-			if((drawcall->flags & eDraw_UseIBuffer) == 0 || stage == eMeshDataStage_GSOut)
+			if(ibuf == NULL || stage == eMeshDataStage_GSOut)
 			{
 				m_HighlightCache.indices.clear();
 				m_HighlightCache.useidx = false;
@@ -5020,12 +4881,12 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			{
 				m_HighlightCache.useidx = true;
 
-				vector<byte> idxdata = GetBufferData(idxBuf, idxOffs, drawcall->numIndices*bytesize);
+				vector<byte> idxdata = GetBufferData(cfg.position.idxbuf, ioffs, cfg.position.numVerts*bytesize);
 
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
 				uint32_t *idx32 = (uint32_t *)&idxdata[0];
 
-				uint32_t numIndices = RDCMIN(drawcall->numIndices, uint32_t(idxdata.size()/bytesize));
+				uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size()/bytesize));
 
 				m_HighlightCache.indices.resize(numIndices);
 
@@ -5042,8 +4903,6 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 		byte *dataEnd = data + m_HighlightCache.data.size();
 
 		data += cfg.position.offset; // to start of position data
-		if(stage == eMeshDataStage_VSIn)
-			data += drawcall->vertexOffset*cfg.position.stride; // to first vertex
 		
 		///////////////////////////////////////////////////////////////
 		// vectors to be set from buffers, depending on topology
@@ -5197,7 +5056,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, const vector<uint32_t> &eve
 			// Triangle strip with adjacency is the most complex topology, as
 			// we need to handle the ends separately where the pattern breaks.
 
-			uint32_t numidx = drawcall->numIndices;
+			uint32_t numidx = cfg.position.numVerts;
 
 			if(numidx < 6)
 			{

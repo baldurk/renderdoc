@@ -97,7 +97,7 @@ class GLReplay : public IReplayDriver
 
 		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
 
-		void RenderMesh(uint32_t frameID, const vector<uint32_t> &events, MeshDisplay cfg);
+		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
 		
 		void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);
 		void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);
