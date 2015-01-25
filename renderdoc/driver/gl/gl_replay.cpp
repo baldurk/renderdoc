@@ -790,10 +790,6 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	return &shaderDetails.reflection;
 }
 
-#pragma endregion
-
-#pragma region Mostly Implemented
-
 void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
 {
 	// in case of bugs, we readback into this array instead of
