@@ -205,6 +205,9 @@ class GLReplay : public IReplayDriver
 			GLuint meshProg;
 			GLuint meshgsProg;
 			GLuint meshVAO;
+			GLuint axisVAO;
+			GLuint frustumVAO;
+			GLuint axisFrustumBuffer;
 
 			GLuint outlineStripVB;
 			GLuint outlineStripVAO;

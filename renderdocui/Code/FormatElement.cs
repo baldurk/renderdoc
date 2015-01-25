@@ -44,6 +44,7 @@ namespace renderdocui.Code
             matrixdim = 0;
             format = new ResourceFormat();
             hex = false;
+            systemValue = SystemAttribute.None;
         }
 
         public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat f, bool h)
@@ -56,6 +57,7 @@ namespace renderdocui.Code
             rowmajor = rowMat;
             matrixdim = matDim;
             hex = h;
+            systemValue = SystemAttribute.None;
         }
 
         public override bool Equals(Object obj)
@@ -580,5 +582,6 @@ namespace renderdocui.Code
         public uint matrixdim;
         public ResourceFormat format;
         public bool hex;
+        public SystemAttribute systemValue;
     }
 }

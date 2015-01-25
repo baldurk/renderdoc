@@ -5341,7 +5341,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
 		m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
-		pixelData.WireframeColour = Vec3f(0.5f, 0.5f, 0.5f);
+		pixelData.WireframeColour = Vec3f(1.0f, 1.0f, 1.0f);
 		FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
 
 		m_pImmediateContext->Draw(24, 0);

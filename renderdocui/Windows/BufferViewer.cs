@@ -758,6 +758,7 @@ namespace renderdocui.Windows
                     f[i].perinstance = false;
                     f[i].rowmajor = false;
                     f[i].matrixdim = 1;
+                    f[i].systemValue = sig.systemValue;
 
                     offset += details.OutputSig[i].compCount * sizeof(float);
                 }
@@ -1385,7 +1386,7 @@ namespace renderdocui.Windows
                             if (bytes.Length != bytesToRead)
                                 continue;
 
-                            if (elname == "POSITION" || elname == "SV_POSITION")
+                            if (elname == "POSITION" || bufferFormats[el].systemValue == SystemAttribute.Position)
                             {
                                 for (int i = 0; i < fmt.compCount; i++)
                                 {
@@ -2130,12 +2131,12 @@ namespace renderdocui.Windows
 
                 if (ui.m_Input != null && ui.m_Input.BufferFormats != null)
                 {
-                    // prioritise SV_Position over general POSITION
+                    // prioritise system value over general "POSITION" string matching
                     for (int i = 0; i < ui.m_Input.BufferFormats.Length; i++)
                     {
                         FormatElement el = ui.m_Input.BufferFormats[i];
 
-                        if (el.name.ToUpperInvariant() == "SV_POSITION")
+                        if (el.systemValue == SystemAttribute.Position)
                         {
                             posEl = i;
                             break;
@@ -2287,7 +2288,7 @@ namespace renderdocui.Windows
 
                 if ((ui.m_Stage == MeshDataStage.VSOut && !m_Core.CurPipelineState.IsTessellationEnabled) || ui.m_Stage == MeshDataStage.GSOut)
                 {
-                    m_MeshDisplay.position.unproject = pos.name.ToUpperInvariant() == "SV_POSITION";
+                    m_MeshDisplay.position.unproject = pos.systemValue == SystemAttribute.Position;
                 }
             }
 

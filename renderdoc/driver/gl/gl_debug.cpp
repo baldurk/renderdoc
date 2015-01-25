@@ -341,11 +341,64 @@ void GLReplay::InitDebugData()
 		gl.glNamedBufferStorageEXT(DebugData.histogramBuf, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, NULL, GL_MAP_READ_BIT);
 	}
 
-	MakeCurrentReplayContext(&m_ReplayCtx);
-
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
 	gl.glBindVertexArray(DebugData.meshVAO);
+
+	gl.glGenVertexArrays(1, &DebugData.axisVAO);
+	gl.glBindVertexArray(DebugData.axisVAO);
+
+	gl.glGenVertexArrays(1, &DebugData.frustumVAO);
+	gl.glBindVertexArray(DebugData.frustumVAO);
 	
+	gl.glGenBuffers(1, &DebugData.axisFrustumBuffer);
+	gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.axisFrustumBuffer);
+	
+	Vec3f TLN = Vec3f(-1.0f,  1.0f, 0.0f); // TopLeftNear, etc...
+	Vec3f TRN = Vec3f( 1.0f,  1.0f, 0.0f);
+	Vec3f BLN = Vec3f(-1.0f, -1.0f, 0.0f);
+	Vec3f BRN = Vec3f( 1.0f, -1.0f, 0.0f);
+
+	Vec3f TLF = Vec3f(-1.0f,  1.0f, 1.0f);
+	Vec3f TRF = Vec3f( 1.0f,  1.0f, 1.0f);
+	Vec3f BLF = Vec3f(-1.0f, -1.0f, 1.0f);
+	Vec3f BRF = Vec3f( 1.0f, -1.0f, 1.0f);
+
+	Vec3f axisFrustum[] = {
+		// axis marker vertices
+		Vec3f(0.0f, 0.0f, 0.0f),
+		Vec3f(1.0f, 0.0f, 0.0f),
+		Vec3f(0.0f, 0.0f, 0.0f),
+		Vec3f(0.0f, 1.0f, 0.0f),
+		Vec3f(0.0f, 0.0f, 0.0f),
+		Vec3f(0.0f, 0.0f, 1.0f),
+
+		// frustum vertices
+		TLN, TRN,
+		TRN, BRN,
+		BRN, BLN,
+		BLN, TLN,
+
+		TLN, TLF,
+		TRN, TRF,
+		BLN, BLF,
+		BRN, BRF,
+
+		TLF, TRF,
+		TRF, BRF,
+		BRF, BLF,
+		BLF, TLF,
+	};
+
+	gl.glNamedBufferStorageEXT(DebugData.axisFrustumBuffer, sizeof(axisFrustum), axisFrustum, 0);
+	
+	gl.glBindVertexArray(DebugData.axisVAO);
+	gl.glVertexAttribPointer(0, 3, eGL_FLOAT, GL_FALSE, sizeof(Vec3f), NULL);
+	gl.glEnableVertexAttribArray(0);
+	
+	gl.glBindVertexArray(DebugData.frustumVAO);
+	gl.glVertexAttribPointer(0, 3, eGL_FLOAT, GL_FALSE, sizeof(Vec3f), (const void *)( sizeof(Vec3f) * 6 ));
+	gl.glEnableVertexAttribArray(0);
+
 	DebugData.replayQuadProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.genericfsSource.c_str());
 }
 
@@ -398,10 +451,11 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteBuffers(1, &DebugData.minmaxResult);
 	gl.glDeleteBuffers(1, &DebugData.histogramBuf);
 
-	MakeCurrentReplayContext(&m_ReplayCtx);
-
 	gl.glDeleteVertexArrays(1, &DebugData.meshVAO);
-
+	gl.glDeleteVertexArrays(1, &DebugData.axisVAO);
+	gl.glDeleteVertexArrays(1, &DebugData.frustumVAO);
+	gl.glDeleteBuffers(1, &DebugData.axisFrustumBuffer);
+	
 	gl.glDeleteProgram(DebugData.replayQuadProg);
 }
 
@@ -1503,6 +1557,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	Matrix4f camMat = cam.GetMatrix();
 
 	Matrix4f ModelViewProj = projMat.Mul(camMat);
+	Matrix4f guessProjInv;
 	
 	gl.glBindVertexArray(DebugData.meshVAO);
 
@@ -1606,9 +1661,22 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	
 	gl.glUseProgram(prog);
 
+	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+
 	if(cfg.position.unproject)
 	{
-		// calc reproject matrix
+		// the derivation of the projection matrix might not be right (hell, it could be an
+		// orthographic projection). But it'll be close enough likely.
+		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+		if(cfg.ortho)
+		{
+			guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+		}
+		
+		guessProjInv = guessProj.Inverse();
+
+		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 	}
 	
 	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
@@ -1660,6 +1728,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		
 		if(cfg.solidShadeMode == eShade_Lit)
 		{
+			prog = DebugData.meshProg;
+
 			colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
 			mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
 			fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
@@ -1701,19 +1771,41 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		}
 	}
 	
+	// draw axis helpers
 	if(!cfg.position.unproject)
 	{
-		// draw axis markers
+		gl.glBindVertexArray(DebugData.axisVAO);
+
+		Vec4f wireCol(1.0f, 0.0f, 0.0f, 1.0f);
+		gl.glUniform4fv(colLoc, 1, &wireCol.x);
+		gl.glDrawArrays(eGL_LINES, 0, 2);
+
+		wireCol = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+		gl.glUniform4fv(colLoc, 1, &wireCol.x);
+		gl.glDrawArrays(eGL_LINES, 2, 2);
+
+		wireCol = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+		gl.glUniform4fv(colLoc, 1, &wireCol.x);
+		gl.glDrawArrays(eGL_LINES, 4, 2);
 	}
 	
 	if(cfg.highlightVert != ~0U)
 	{
 		// show highlighted vertex
 	}
-
+	
+	// 'fake' helper frustum
 	if(cfg.position.unproject)
 	{
-		// 'fake' helper frustum
+		gl.glBindVertexArray(DebugData.frustumVAO);
+		
+		float wireCol[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, wireCol);
+
+		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+		gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+		
+		gl.glDrawArrays(eGL_LINES, 0, 24);
 	}
 
 	// set this back as most other things want fill, and we don't want to have to a) track it
