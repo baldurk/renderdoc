@@ -3701,6 +3701,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 		float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
 		m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
+		m_pImmediateContext->OMSetDepthStencilState(NULL, 0);
 
 		m_pImmediateContext->Draw(4, 0);
 	}
