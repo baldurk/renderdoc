@@ -2262,7 +2262,7 @@ namespace renderdocui.Windows
 
                     m_MeshDisplay.position.buf = m_VSIn.m_Input.Buffers[pos.buffer];
                     m_MeshDisplay.position.offset = pos.offset + ui.m_Input.Offsets[pos.buffer] +
-                        ui.m_Input.Drawcall.vertexOffset * m_MeshDisplay.position.stride;
+                        ui.m_Input.Drawcall.vertexOffset * ui.m_Input.Strides[pos.buffer];
                     m_MeshDisplay.position.stride = ui.m_Input.Strides[pos.buffer];
 
                     m_MeshDisplay.position.topo = ui.m_Input.Drawcall.topology;
