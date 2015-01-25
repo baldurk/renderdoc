@@ -76,7 +76,7 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 	return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
+GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc, const char *gsSrc)
 {
 	if(m_pDriver == NULL) return 0;
 	
@@ -86,14 +86,23 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 
 	GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
 	GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+	GLuint gs = 0;
 
 	const char *src = vsSrc;
 	gl.glShaderSource(vs, 1, &src, NULL);
 	src = psSrc;
 	gl.glShaderSource(fs, 1, &src, NULL);
 
+	if(gsSrc)
+	{
+		gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
+		src = gsSrc;
+		gl.glShaderSource(gs, 1, &src, NULL);
+	}
+
 	gl.glCompileShader(vs);
 	gl.glCompileShader(fs);
+	if(gs) gl.glCompileShader(gs);
 
 	char buffer[1024];
 	GLint status = 0;
@@ -112,18 +121,31 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc)
 		RDCERR("Shader error: %s", buffer);
 	}
 
+	if(gs)
+	{
+		gl.glGetShaderiv(gs, eGL_COMPILE_STATUS, &status);
+		if(status == 0)
+		{
+			gl.glGetShaderInfoLog(gs, 1024, NULL, buffer);
+			RDCERR("Shader error: %s", buffer);
+		}
+	}
+
 	GLuint ret = gl.glCreateProgram();
 
 	gl.glAttachShader(ret, vs);
 	gl.glAttachShader(ret, fs);
+	if(gs) gl.glAttachShader(ret, gs);
 
 	gl.glLinkProgram(ret);
 
 	gl.glDetachShader(ret, vs);
 	gl.glDetachShader(ret, fs);
+	if(gs) gl.glDetachShader(ret, gs);
 
 	gl.glDeleteShader(vs);
 	gl.glDeleteShader(fs);
+	if(gs) gl.glDeleteShader(gs);
 
 	return ret;
 }
@@ -173,10 +195,12 @@ void GLReplay::InitDebugData()
 	DebugData.genericProg = CreateShaderProgram(DebugData.genericvsSource.c_str(), DebugData.genericfsSource.c_str());
 	
 	string meshvs = GetEmbeddedResource(mesh_vert);
+	string meshgs = GetEmbeddedResource(mesh_geom);
 	string meshfs = GetEmbeddedResource(mesh_frag);
 	meshfs = glslheader + meshfs;
 	
 	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
+	DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
 	
 	WrappedOpenGL &gl = *m_pDriver;
 
@@ -339,6 +363,7 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteProgram(DebugData.checkerProg);
 	gl.glDeleteProgram(DebugData.genericProg);
 	gl.glDeleteProgram(DebugData.meshProg);
+	gl.glDeleteProgram(DebugData.meshgsProg);
 
 	gl.glDeleteBuffers(1, &DebugData.outlineStripVB);
 	gl.glDeleteVertexArrays(1, &DebugData.outlineStripVAO);
@@ -1036,6 +1061,8 @@ void GLReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	
 	gl.glUseProgram(DebugData.checkerProg);
 
+	gl.glDisable(eGL_DEPTH_TEST);
+
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 	
 	Vec4f *ubo = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f)*2, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -1074,6 +1101,8 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glUniform4fv(offsetLoc, 1, &offsetVal.x);
 	gl.glUniform4fv(scaleLoc, 1, &scaleVal.x);
 	gl.glUniform4fv(colLoc, 1, &colVal.x);
+
+	gl.glDisable(eGL_DEPTH_TEST);
 	
 	gl.glBindVertexArray(DebugData.outlineStripVAO);
 	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
@@ -1563,13 +1592,12 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	
 	GLenum topo = MakeGLPrimitiveTopology(cfg.position.topo);
 
-	gl.glDisable(eGL_DEPTH_TEST);
-
 	GLuint prog = DebugData.meshProg;
 	
 	if(cfg.solidShadeMode == eShade_Lit)
 	{
 		// pick program with GS for per-face lighting
+		prog = DebugData.meshgsProg;
 	}
 	
 	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
@@ -1584,13 +1612,20 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	}
 	
 	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-	
+
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && topo != eGL_PATCHES)
 	{
+		gl.glEnable(eGL_DEPTH_TEST);
+		gl.glDepthFunc(eGL_LESS);
+
 		if(cfg.solidShadeMode == eShade_Lit)
 		{
-			// set GS-specific uniform
+			GLint invProjLoc = gl.glGetUniformLocation(prog, "InvProj");
+
+			Matrix4f InvProj = projMat.Inverse();
+
+			gl.glUniformMatrix4fv(invProjLoc, 1, GL_FALSE, InvProj.Data());
 		}
 
 		gl.glEnableVertexAttribArray(1);
@@ -1622,16 +1657,21 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		}
 
 		gl.glEnableVertexAttribArray(0);
-	}
+		
+		if(cfg.solidShadeMode == eShade_Lit)
+		{
+			colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
+			mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
+			fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
 
-	colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
-	mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
-	fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
+			gl.glUseProgram(prog);
+
+			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+		}
+	}
 	
-	gl.glUseProgram(prog);
-	
-	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-	
+	gl.glDisable(eGL_DEPTH_TEST);
+
 	// wireframe render
 	if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
 	{

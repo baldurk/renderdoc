@@ -48,12 +48,9 @@ void main(void)
 	}
 	else if(type == MESHDISPLAY_FACELIT)
 	{
-		color_out = vec4(0, 1, 0, 1);
-		/*
-		float3 lightDir = normalize(float3(0, -0.3f, -1));
+		vec3 lightDir = normalize(vec3(0, -0.3f, -1));
 
-		return float4(WireframeColour.xyz*saturate(dot(lightDir, IN.norm)), 1);
-		*/
+		color_out = vec4(RENDERDOC_GenericFS_Color.xyz*clamp(dot(lightDir, IN.norm.xyz), 0.0f, 1.0f), 1);
 	}
 	else //if(type == MESHDISPLAY_SOLID)
 	{

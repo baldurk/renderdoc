@@ -183,7 +183,7 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	win.height = rect.bottom-rect.top;
 
 	InitOutputWindow(win);
-	CreateOutputWindowBackbuffer(win);
+	CreateOutputWindowBackbuffer(win, depth);
 
 	uint64_t ret = m_OutputWindowID++;
 	

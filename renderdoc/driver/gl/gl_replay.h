@@ -146,8 +146,9 @@ class GLReplay : public IReplayDriver
 				// used to blit from defined FBO (VAOs not shared)
 				GLuint emptyVAO;
 
-				// texture for the below FBO. Resizes with the window
+				// textures for the below FBO. Resize with the window
 				GLuint backbuffer;
+				GLuint depthstencil;
 
 				// this FBO is on the debug GL context, not the window's GL context
 				// when rendering a texture or mesh etc, we render onto this FBO on
@@ -202,6 +203,7 @@ class GLReplay : public IReplayDriver
 			GLuint genericProg;
 
 			GLuint meshProg;
+			GLuint meshgsProg;
 			GLuint meshVAO;
 
 			GLuint outlineStripVB;
@@ -222,11 +224,11 @@ class GLReplay : public IReplayDriver
 		void InitDebugData();
 		void DeleteDebugData();
 		
-		GLuint CreateShaderProgram(const char *vs, const char *ps);
+		GLuint CreateShaderProgram(const char *vs, const char *ps, const char *gs = NULL);
 		GLuint CreateCShaderProgram(const char *cs);
 
 		void InitOutputWindow(OutputWindow &outwin);
-		void CreateOutputWindowBackbuffer(OutputWindow &outwin);
+		void CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth);
 
 		GLWindowingData m_ReplayCtx;
 		int64_t m_DebugID;

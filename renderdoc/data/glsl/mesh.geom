@@ -23,3 +23,43 @@
  ******************************************************************************/
  
 #version 420 core
+
+layout(triangles, invocations = 1) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+in v2f
+{
+	vec4 secondary;
+	vec4 norm;
+} IN[];
+
+out v2f
+{
+	vec4 secondary;
+	vec4 norm;
+} OUT;
+
+uniform mat4 InvProj;
+
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
+void main()
+{
+    vec4 faceEdgeA = (InvProj * gl_in[1].gl_Position) - (InvProj * gl_in[0].gl_Position);
+    vec4 faceEdgeB = (InvProj * gl_in[2].gl_Position) - (InvProj * gl_in[0].gl_Position);
+    vec3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
+
+    for(int i=0; i < 3; i++)
+    {
+		gl_Position = gl_in[i].gl_Position;
+		OUT.secondary = IN[i].secondary;
+		OUT.norm = vec4(faceNormal.xyz, 1);
+        EmitVertex();
+    }
+    EndPrimitive();
+}

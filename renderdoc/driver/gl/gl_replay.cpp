@@ -139,7 +139,7 @@ Callstack::StackResolver *GLReplay::GetCallstackResolver()
 	return m_pDriver->GetSerialiser()->GetCallstackResolver();
 }
 
-void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin)
+void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 {
 	if(m_pDriver == NULL) return;
 	
@@ -163,6 +163,22 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin)
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 	gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outwin.BlitData.backbuffer, 0);
+
+	if(depth)
+	{
+		gl.glGenTextures(1, &outwin.BlitData.depthstencil);
+		gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
+
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_DEPTH_COMPONENT24, outwin.width, outwin.height); 
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+	}
+	else
+	{
+		outwin.BlitData.depthstencil = 0;
+	}
 
 	outwin.BlitData.replayFBO = 0;
 }
@@ -200,11 +216,18 @@ bool GLReplay::CheckResizeOutputWindow(uint64_t id)
 		MakeCurrentReplayContext(m_DebugCtx);
 		
 		WrappedOpenGL &gl = *m_pDriver;
+
+		bool haddepth = false;
 	
 		gl.glDeleteTextures(1, &outw.BlitData.backbuffer);
+		if(outw.BlitData.depthstencil)
+		{
+			haddepth = true;
+			gl.glDeleteTextures(1, &outw.BlitData.depthstencil);
+		}
 		gl.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
 
-		CreateOutputWindowBackbuffer(outw);
+		CreateOutputWindowBackbuffer(outw, haddepth);
 
 		return true;
 	}
@@ -224,6 +247,8 @@ void GLReplay::BindOutputWindow(uint64_t id, bool depth)
 	m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, outw.BlitData.windowFBO);
 	m_pDriver->glViewport(0, 0, outw.width, outw.height);
 
+	m_pDriver->glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depth && outw.BlitData.depthstencil ? outw.BlitData.depthstencil : 0, 0);
+
 	DebugData.outWidth = float(outw.width); DebugData.outHeight = float(outw.height);
 }
 
@@ -231,8 +256,6 @@ void GLReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 {
 	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
 		return;
-	
-	OutputWindow &outw = m_OutputWindows[id];
 	
 	MakeCurrentReplayContext(m_DebugCtx);
 
@@ -244,11 +267,9 @@ void GLReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
 		return;
 	
-	OutputWindow &outw = m_OutputWindows[id];
-	
-	MakeCurrentReplayContext(&outw);
+	MakeCurrentReplayContext(m_DebugCtx);
 
-	m_pDriver->glClearBufferfv(eGL_DEPTH, 0, &depth);
+	m_pDriver->glClearBufferfi(eGL_DEPTH_STENCIL, 0, depth, (GLint)stencil);
 }
 
 void GLReplay::FlipOutputWindow(uint64_t id)
