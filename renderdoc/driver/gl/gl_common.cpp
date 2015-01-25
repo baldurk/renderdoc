@@ -731,7 +731,7 @@ PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo)
 		{
 			GLint patchCount = 3;
 			gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
-			return PrimitiveTopology(eTopology_PatchList_1CPs+patchCount);
+			return PrimitiveTopology(eTopology_PatchList_1CPs+patchCount-1);
 		}
 	}
 }

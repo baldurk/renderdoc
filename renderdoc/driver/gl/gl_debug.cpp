@@ -27,6 +27,7 @@
 #include "gl_resources.h"
 #include "maths/matrix.h"
 #include "maths/camera.h"
+#include "maths/formatpacking.h"
 
 #include "data/glsl/debuguniforms.h"
 
@@ -343,12 +344,6 @@ void GLReplay::InitDebugData()
 
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
 	gl.glBindVertexArray(DebugData.meshVAO);
-
-	gl.glGenVertexArrays(1, &DebugData.axisVAO);
-	gl.glBindVertexArray(DebugData.axisVAO);
-
-	gl.glGenVertexArrays(1, &DebugData.frustumVAO);
-	gl.glBindVertexArray(DebugData.frustumVAO);
 	
 	gl.glGenBuffers(1, &DebugData.axisFrustumBuffer);
 	gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.axisFrustumBuffer);
@@ -391,14 +386,27 @@ void GLReplay::InitDebugData()
 
 	gl.glNamedBufferStorageEXT(DebugData.axisFrustumBuffer, sizeof(axisFrustum), axisFrustum, 0);
 	
+	gl.glGenVertexArrays(1, &DebugData.axisVAO);
 	gl.glBindVertexArray(DebugData.axisVAO);
 	gl.glVertexAttribPointer(0, 3, eGL_FLOAT, GL_FALSE, sizeof(Vec3f), NULL);
 	gl.glEnableVertexAttribArray(0);
 	
+	gl.glGenVertexArrays(1, &DebugData.frustumVAO);
 	gl.glBindVertexArray(DebugData.frustumVAO);
 	gl.glVertexAttribPointer(0, 3, eGL_FLOAT, GL_FALSE, sizeof(Vec3f), (const void *)( sizeof(Vec3f) * 6 ));
 	gl.glEnableVertexAttribArray(0);
-
+	
+	gl.glGenVertexArrays(1, &DebugData.triHighlightVAO);
+	gl.glBindVertexArray(DebugData.triHighlightVAO);
+	
+	gl.glGenBuffers(1, &DebugData.triHighlightBuffer);
+	gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+	
+	gl.glNamedBufferStorageEXT(DebugData.triHighlightBuffer, sizeof(Vec4f)*16, NULL, GL_DYNAMIC_STORAGE_BIT);
+	
+	gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
+	gl.glEnableVertexAttribArray(0);
+	
 	DebugData.replayQuadProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.genericfsSource.c_str());
 }
 
@@ -454,8 +462,11 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteVertexArrays(1, &DebugData.meshVAO);
 	gl.glDeleteVertexArrays(1, &DebugData.axisVAO);
 	gl.glDeleteVertexArrays(1, &DebugData.frustumVAO);
+	gl.glDeleteVertexArrays(1, &DebugData.triHighlightVAO);
+
 	gl.glDeleteBuffers(1, &DebugData.axisFrustumBuffer);
-	
+	gl.glDeleteBuffers(1, &DebugData.triHighlightBuffer);
+
 	gl.glDeleteProgram(DebugData.replayQuadProg);
 }
 
@@ -1537,6 +1548,99 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
+FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid)
+{
+	FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+	if(m_HighlightCache.useidx)
+	{
+		if(vert >= (uint32_t)m_HighlightCache.indices.size())
+		{
+			valid = false;
+			return ret;
+		}
+
+		vert = m_HighlightCache.indices[vert];
+	}
+
+	data += vert*cfg.position.stride;
+
+	float *out = &ret.x;
+
+	ResourceFormat fmt;
+	fmt.compByteWidth = cfg.position.compByteWidth;
+	fmt.compCount = cfg.position.compCount;
+	fmt.compType = cfg.position.compType;
+
+	if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		ret.w = v.w;
+		return ret;
+	}
+	else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+		ret.x = v.x;
+		ret.y = v.y;
+		ret.z = v.z;
+		return ret;
+	}
+	else if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
+	{
+		if(data+4 >= end)
+		{
+			valid = false;
+			return ret;
+		}
+
+		fmt.compByteWidth = 1;
+		fmt.compCount = 4;
+		fmt.compType = eCompType_UNorm;
+	}
+	
+	if(data + cfg.position.compCount*cfg.position.compByteWidth > end)
+	{
+		valid = false;
+		return ret;
+	}
+
+	for(uint32_t i=0; i < cfg.position.compCount; i++)
+	{
+		*out = ConvertComponent(fmt, data);
+
+		data += cfg.position.compByteWidth;
+		out++;
+	}
+
+	if(cfg.position.specialFormat == eSpecial_B8G8R8A8)
+	{
+		FloatVector reversed;
+		reversed.x = ret.x;
+		reversed.y = ret.y;
+		reversed.z = ret.z;
+		reversed.w = ret.w;
+		return reversed;
+	}
+
+	return ret;
+}
+
 void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
 	WrappedOpenGL &gl = *m_pDriver;
@@ -1658,8 +1762,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
 	GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
 	GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
+	GLint sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
+	GLint homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
 	
 	gl.glUseProgram(prog);
+	
 
 	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
@@ -1680,6 +1787,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	}
 	
 	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+	gl.glUniform1i(homogLoc, 0);
+	gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
 
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && topo != eGL_PATCHES)
@@ -1737,6 +1846,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			gl.glUseProgram(prog);
 
 			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+			gl.glUniform1i(homogLoc, 0);
+			gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
 		}
 	}
 	
@@ -1752,8 +1863,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		if(topo == eGL_PATCHES) topo = eGL_POINTS;
-
 		if(cfg.position.idxbuf != ResourceId())
 		{
 			GLenum idxtype = eGL_UNSIGNED_BYTE;
@@ -1763,11 +1872,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				idxtype = eGL_UNSIGNED_INT;
 
 			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name);
-			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
+			gl.glDrawElements(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
 		}
 		else
 		{
-			gl.glDrawArrays(topo, 0, cfg.position.numVerts);
+			gl.glDrawArrays(topo != eGL_PATCHES ? topo : eGL_POINTS, 0, cfg.position.numVerts);
 		}
 	}
 	
@@ -1789,11 +1898,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		gl.glDrawArrays(eGL_LINES, 4, 2);
 	}
 	
-	if(cfg.highlightVert != ~0U)
-	{
-		// show highlighted vertex
-	}
-	
 	// 'fake' helper frustum
 	if(cfg.position.unproject)
 	{
@@ -1808,7 +1912,451 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		gl.glDrawArrays(eGL_LINES, 0, 24);
 	}
 
-	// set this back as most other things want fill, and we don't want to have to a) track it
-	// b) set fill explicitly everywhere else
 	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+	
+	// show highlighted vertex
+	if(cfg.highlightVert != ~0U)
+	{
+		MeshDataStage stage = cfg.type;
+		
+		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage)
+		{
+			m_HighlightCache.EID = eventID;
+			m_HighlightCache.stage = stage;
+			
+			UINT bytesize = cfg.position.idxByteWidth; 
+
+			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
+
+			if(cfg.position.idxbuf == ResourceId() || stage == eMeshDataStage_GSOut)
+			{
+				m_HighlightCache.indices.clear();
+				m_HighlightCache.useidx = false;
+			}
+			else
+			{
+				m_HighlightCache.useidx = true;
+
+				vector<byte> idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
+
+				uint8_t *idx8 = (uint8_t *)&idxdata[0];
+				uint16_t *idx16 = (uint16_t *)&idxdata[0];
+				uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+				uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size()/bytesize));
+
+				m_HighlightCache.indices.resize(numIndices);
+
+				if(bytesize == 1)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = uint32_t(idx8[i]);
+				}
+				else if(bytesize == 2)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = uint32_t(idx16[i]);
+				}
+				else if(bytesize == 4)
+				{
+					for(uint32_t i=0; i < numIndices; i++)
+						m_HighlightCache.indices[i] = idx32[i];
+				}
+			}
+		}
+
+		GLenum meshtopo = topo;
+
+		uint32_t idx = cfg.highlightVert;
+
+		byte *data = &m_HighlightCache.data[0]; // buffer start
+		byte *dataEnd = data + m_HighlightCache.data.size();
+
+		data += cfg.position.offset; // to start of position data
+		
+		///////////////////////////////////////////////////////////////
+		// vectors to be set from buffers, depending on topology
+
+		bool valid = true;
+
+		// this vert (blue dot, required)
+		FloatVector activeVertex;
+		 
+		// primitive this vert is a part of (red prim, optional)
+		vector<FloatVector> activePrim;
+
+		// for patch lists, to show other verts in patch (green dots, optional)
+		// for non-patch lists, we use the activePrim and adjacentPrimVertices
+		// to show what other verts are related
+		vector<FloatVector> inactiveVertices;
+
+		// adjacency (line or tri, strips or lists) (green prims, optional)
+		// will be N*M long, N adjacent prims of M verts each. M = primSize below
+		vector<FloatVector> adjacentPrimVertices; 
+
+		GLenum primTopo = eGL_TRIANGLES;
+		uint32_t primSize = 3; // number of verts per primitive
+		
+		if(meshtopo == eGL_LINES ||
+		   meshtopo == eGL_LINES_ADJACENCY ||
+		   meshtopo == eGL_LINE_STRIP ||
+		   meshtopo == eGL_LINE_STRIP_ADJACENCY)
+		{
+			primSize = 2;
+			primTopo = eGL_LINES;
+		}
+		
+		activeVertex = InterpretVertex(data, idx, cfg, dataEnd, valid);
+
+		// see Section 10.1 of the OpenGL 4.5 spec for
+		// how primitive topologies are laid out
+		if(meshtopo == eGL_LINES)
+		{
+			uint32_t v = uint32_t(idx/2) * 2; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == eGL_TRIANGLES)
+		{
+			uint32_t v = uint32_t(idx/3) * 3; // find first vert in primitive
+
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == eGL_LINES_ADJACENCY)
+		{
+			uint32_t v = uint32_t(idx/4) * 4; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == eGL_TRIANGLES_ADJACENCY)
+		{
+			uint32_t v = uint32_t(idx/6) * 6; // find first vert in primitive
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+				InterpretVertex(data, v+4, cfg, dataEnd, valid),
+				InterpretVertex(data, v+5, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+			adjacentPrimVertices.push_back(vs[2]);
+			
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+			adjacentPrimVertices.push_back(vs[4]);
+			
+			adjacentPrimVertices.push_back(vs[4]);
+			adjacentPrimVertices.push_back(vs[5]);
+			adjacentPrimVertices.push_back(vs[0]);
+
+			activePrim.push_back(vs[0]);
+			activePrim.push_back(vs[2]);
+			activePrim.push_back(vs[4]);
+		}
+		else if(meshtopo == eGL_LINE_STRIP)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 1U) - 1;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == eGL_TRIANGLE_STRIP)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 2U) - 2;
+			
+			activePrim.push_back(InterpretVertex(data, v+0, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+1, cfg, dataEnd, valid));
+			activePrim.push_back(InterpretVertex(data, v+2, cfg, dataEnd, valid));
+		}
+		else if(meshtopo == eGL_LINE_STRIP_ADJACENCY)
+		{
+			// find first vert in primitive. In strips a vert isn't
+			// in only one primitive, so we pick the first primitive
+			// it's in. This means the first N points are in the first
+			// primitive, and thereafter each point is in the next primitive
+			uint32_t v = RDCMAX(idx, 3U) - 3;
+			
+			FloatVector vs[] = {
+				InterpretVertex(data, v+0, cfg, dataEnd, valid),
+				InterpretVertex(data, v+1, cfg, dataEnd, valid),
+				InterpretVertex(data, v+2, cfg, dataEnd, valid),
+				InterpretVertex(data, v+3, cfg, dataEnd, valid),
+			};
+
+			adjacentPrimVertices.push_back(vs[0]);
+			adjacentPrimVertices.push_back(vs[1]);
+
+			adjacentPrimVertices.push_back(vs[2]);
+			adjacentPrimVertices.push_back(vs[3]);
+
+			activePrim.push_back(vs[1]);
+			activePrim.push_back(vs[2]);
+		}
+		else if(meshtopo == eGL_TRIANGLE_STRIP_ADJACENCY)
+		{
+			// Triangle strip with adjacency is the most complex topology, as
+			// we need to handle the ends separately where the pattern breaks.
+
+			uint32_t numidx = cfg.position.numVerts;
+
+			if(numidx < 6)
+			{
+				// not enough indices provided, bail to make sure logic below doesn't
+				// need to have tons of edge case detection
+				valid = false;
+			}
+			else if(idx <= 4 || numidx <= 7)
+			{
+				FloatVector vs[] = {
+					InterpretVertex(data, 0, cfg, dataEnd, valid),
+					InterpretVertex(data, 1, cfg, dataEnd, valid),
+					InterpretVertex(data, 2, cfg, dataEnd, valid),
+					InterpretVertex(data, 3, cfg, dataEnd, valid),
+					InterpretVertex(data, 4, cfg, dataEnd, valid),
+
+					// note this one isn't used as it's adjacency for the next triangle
+					InterpretVertex(data, 5, cfg, dataEnd, valid),
+
+					// min() with number of indices in case this is a tiny strip
+					// that is basically just a list
+					InterpretVertex(data, RDCMIN(6U, numidx-1), cfg, dataEnd, valid),
+				};
+
+				// these are the triangles on the far left of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[1]);
+				adjacentPrimVertices.push_back(vs[2]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[3]);
+				adjacentPrimVertices.push_back(vs[0]);
+
+				adjacentPrimVertices.push_back(vs[4]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				activePrim.push_back(vs[0]);
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+			}
+			else if(idx > numidx-4)
+			{
+				// in diagram, numidx == 14
+
+				FloatVector vs[] = {
+					/*[0]=*/ InterpretVertex(data, numidx-8, cfg, dataEnd, valid), // 6 in diagram
+
+					// as above, unused since this is adjacency for 2-previous triangle
+					/*[1]=*/ InterpretVertex(data, numidx-7, cfg, dataEnd, valid), // 7 in diagram
+					/*[2]=*/ InterpretVertex(data, numidx-6, cfg, dataEnd, valid), // 8 in diagram
+					
+					// as above, unused since this is adjacency for previous triangle
+					/*[3]=*/ InterpretVertex(data, numidx-5, cfg, dataEnd, valid), // 9 in diagram
+					/*[4]=*/ InterpretVertex(data, numidx-4, cfg, dataEnd, valid), // 10 in diagram
+					/*[5]=*/ InterpretVertex(data, numidx-3, cfg, dataEnd, valid), // 11 in diagram
+					/*[6]=*/ InterpretVertex(data, numidx-2, cfg, dataEnd, valid), // 12 in diagram
+					/*[7]=*/ InterpretVertex(data, numidx-1, cfg, dataEnd, valid), // 13 in diagram
+				};
+
+				// these are the triangles on the far right of the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+				adjacentPrimVertices.push_back(vs[0]); // 6 in diagram
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+
+				adjacentPrimVertices.push_back(vs[4]); // 10 in diagram
+				adjacentPrimVertices.push_back(vs[7]); // 13 in diagram
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+
+				adjacentPrimVertices.push_back(vs[6]); // 12 in diagram
+				adjacentPrimVertices.push_back(vs[5]); // 11 in diagram
+				adjacentPrimVertices.push_back(vs[2]); // 8 in diagram
+
+				activePrim.push_back(vs[2]); // 8 in diagram
+				activePrim.push_back(vs[4]); // 10 in diagram
+				activePrim.push_back(vs[6]); // 12 in diagram
+			}
+			else
+			{
+				// we're in the middle somewhere. Each primitive has two vertices for it
+				// so our step rate is 2. The first 'middle' primitive starts at indices 5&6
+				// and uses indices all the way back to 0
+				uint32_t v = RDCMAX( ( (idx+1) / 2) * 2, 6U) - 6;
+
+				// these correspond to the indices in the MSDN diagram, with {2,4,6} as the
+				// main triangle
+				FloatVector vs[] = {
+					InterpretVertex(data, v+0, cfg, dataEnd, valid),
+
+					// this one is adjacency for 2-previous triangle
+					InterpretVertex(data, v+1, cfg, dataEnd, valid),
+					InterpretVertex(data, v+2, cfg, dataEnd, valid),
+
+					// this one is adjacency for previous triangle
+					InterpretVertex(data, v+3, cfg, dataEnd, valid),
+					InterpretVertex(data, v+4, cfg, dataEnd, valid),
+					InterpretVertex(data, v+5, cfg, dataEnd, valid),
+					InterpretVertex(data, v+6, cfg, dataEnd, valid),
+					InterpretVertex(data, v+7, cfg, dataEnd, valid),
+					InterpretVertex(data, v+8, cfg, dataEnd, valid),
+				};
+
+				// these are the triangles around {2,4,6} in the MSDN diagram above
+				adjacentPrimVertices.push_back(vs[0]);
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				adjacentPrimVertices.push_back(vs[2]);
+				adjacentPrimVertices.push_back(vs[5]);
+				adjacentPrimVertices.push_back(vs[6]);
+
+				adjacentPrimVertices.push_back(vs[6]);
+				adjacentPrimVertices.push_back(vs[8]);
+				adjacentPrimVertices.push_back(vs[4]);
+
+				activePrim.push_back(vs[2]);
+				activePrim.push_back(vs[4]);
+				activePrim.push_back(vs[6]);
+			}
+		}
+		else if(meshtopo == eGL_PATCHES)
+		{
+			uint32_t dim = (cfg.position.topo - eTopology_PatchList_1CPs + 1);
+
+			uint32_t v0 = uint32_t(idx/dim) * dim;
+
+			for(uint32_t v = v0; v < v0+dim; v++)
+			{
+				if(v != idx && valid)
+					inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, valid));
+			}
+		}
+		else // if(meshtopo == eGL_POINTS) point list, or unknown/unhandled type
+		{
+			// no adjacency, inactive verts or active primitive
+		}
+
+		if(valid)
+		{
+			////////////////////////////////////////////////////////////////
+			// prepare rendering (for both vertices & primitives)
+
+			prog = DebugData.meshProg;
+
+			gl.glUseProgram(prog);
+			
+			colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
+			mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
+			sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
+			homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
+			
+			// if data is from post transform, it will be in clipspace
+			if(cfg.position.unproject)
+			{
+				ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+				gl.glUniform1i(homogLoc, 1);
+			}
+			else
+			{
+				ModelViewProj = projMat.Mul(camMat);
+				gl.glUniform1i(homogLoc, 0);
+			}
+			
+			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+			
+			gl.glBindVertexArray(DebugData.triHighlightVAO);
+
+			////////////////////////////////////////////////////////////////
+			// render primitives
+			
+			// Draw active primitive (red)
+			Vec4f WireframeColour(1.0f, 0.0f, 0.0f, 1.0f);
+			gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+
+			if(activePrim.size() >= primSize)
+			{
+				gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+				gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f)*primSize, &activePrim[0]);
+
+				gl.glDrawArrays(primTopo, 0, primSize);
+			}
+
+			// Draw adjacent primitives (green)
+			WireframeColour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+			gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+
+			if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
+			{
+				gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+				gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f)*adjacentPrimVertices.size(), &adjacentPrimVertices[0]);
+				
+				gl.glDrawArrays(primTopo, 0, adjacentPrimVertices.size());
+			}
+
+			////////////////////////////////////////////////////////////////
+			// prepare to render dots
+			float scale = 800.0f/float(DebugData.outHeight);
+			float asp = float(DebugData.outWidth)/float(DebugData.outHeight);
+
+			Vec2f SpriteSize = Vec2f(scale/asp, scale);
+			gl.glUniform2fv(sizeLoc, 1, &SpriteSize.x);
+
+			// Draw active vertex (blue)
+			WireframeColour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+			gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+
+			FloatVector vertSprite[4] = {
+				activeVertex,
+				activeVertex,
+				activeVertex,
+				activeVertex,
+			};
+			
+			gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+			gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
+
+			gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+
+			// Draw inactive vertices (green)
+			WireframeColour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+			gl.glUniform4fv(colLoc, 1, &WireframeColour.x);
+
+			for(size_t i=0; i < inactiveVertices.size(); i++)
+			{
+				vertSprite[0] = vertSprite[1] = vertSprite[2] = vertSprite[3] = inactiveVertices[i];
+				
+				gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(vertSprite), &vertSprite[0]);
+				
+				gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+			}
+		}
+	}
 }

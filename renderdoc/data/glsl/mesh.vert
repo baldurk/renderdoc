@@ -28,6 +28,8 @@ layout (location = 0) in vec4 position;
 layout (location = 1) in vec4 secondary;
 
 uniform mat4 ModelViewProj;
+uniform vec2 PointSpriteSize;
+uniform uint HomogenousInput;
 
 out v2f
 {
@@ -37,7 +39,20 @@ out v2f
 
 void main(void)
 {
-	gl_Position = ModelViewProj * position;
+	vec2 psprite[4] =
+	{
+		vec2(-1.0f, -1.0f),
+		vec2(-1.0f,  1.0f),
+		vec2( 1.0f, -1.0f),
+		vec2( 1.0f,  1.0f)
+	};
+
+	vec4 pos = position;
+	if(HomogenousInput == 0)
+		pos = vec4(position.xyz, 1);
+
+	gl_Position = ModelViewProj * pos;
+	gl_Position.xy += PointSpriteSize.xy*0.01f*psprite[gl_VertexID%4]*gl_Position.w;
 	OUT.secondary = secondary;
-	OUT.norm = vec4(0, 0, 0, 0);
+	OUT.norm = vec4(0, 0, 1, 1);
 }

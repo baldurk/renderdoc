@@ -204,10 +204,14 @@ class GLReplay : public IReplayDriver
 
 			GLuint meshProg;
 			GLuint meshgsProg;
+
 			GLuint meshVAO;
 			GLuint axisVAO;
 			GLuint frustumVAO;
+			GLuint triHighlightVAO;
+
 			GLuint axisFrustumBuffer;
+			GLuint triHighlightBuffer;
 
 			GLuint outlineStripVB;
 			GLuint outlineStripVAO;
@@ -223,6 +227,22 @@ class GLReplay : public IReplayDriver
 
 			GLuint emptyVAO;
 		} DebugData;
+		
+		FloatVector InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid);
+		
+		// simple cache for when we need buffer data for highlighting
+		// vertices, typical use will be lots of vertices in the same
+		// mesh, not jumping back and forth much between meshes.
+		struct HighlightCache
+		{
+			HighlightCache() : EID(0), stage(eMeshDataStage_Unknown), useidx(false) {}
+			uint32_t EID;
+			MeshDataStage stage;
+			bool useidx;
+
+			vector<byte> data;
+			vector<uint32_t> indices;
+		} m_HighlightCache;
 
 		void InitDebugData();
 		void DeleteDebugData();
