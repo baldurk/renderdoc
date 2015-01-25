@@ -152,6 +152,9 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 
 		auto &shadDetails = m_Shaders[liveId];
 
+		bool pointSizeUsed = false, clipDistanceUsed = false;
+		if(shadDetails.type == eGL_VERTEX_SHADER) CheckVertexOutputUses(shadDetails.sources, pointSizeUsed, clipDistanceUsed);
+
 		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, NULL);
 
 		if(sepProg == 0)
@@ -161,7 +164,7 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 		else
 		{
 			shadDetails.prog = sepProg;
-			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection);
+			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 			
 			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 			for(size_t i=0; i < shadDetails.sources.size(); i++)
@@ -341,10 +344,13 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 
 		auto &shadDetails = m_Shaders[liveId];
 
+		bool pointSizeUsed = false, clipDistanceUsed = false;
+		if(Type == eGL_VERTEX_SHADER) CheckVertexOutputUses(src, pointSizeUsed, clipDistanceUsed);
+
 		shadDetails.type = Type;
 		shadDetails.sources.swap(src);
 		shadDetails.prog = real;
-		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection);
+		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 
 		create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 		for(size_t i=0; i < shadDetails.sources.size(); i++)
@@ -1063,6 +1069,9 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
 		for(int32_t i=0; i < Count; i++)
 			shadDetails.includepaths.push_back(pathstrings[i]);
 
+		bool pointSizeUsed = false, clipDistanceUsed = false;
+		if(shadDetails.type == eGL_VERTEX_SHADER) CheckVertexOutputUses(shadDetails.sources, pointSizeUsed, clipDistanceUsed);
+
 		GLuint sepProg = MakeSeparableShaderProgram(m_Real, shadDetails.type, shadDetails.sources, &paths);
 
 		if(sepProg == 0)
@@ -1072,7 +1081,7 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
 		else
 		{
 			shadDetails.prog = sepProg;
-			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection);
+			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 			
 			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 			for(size_t i=0; i < shadDetails.sources.size(); i++)

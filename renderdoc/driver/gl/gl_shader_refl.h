@@ -26,5 +26,6 @@
 
 #include "replay/replay_driver.h"
 
-void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl);
+void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed);
 GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, std::vector<std::string> sources, vector<string> *includepaths);
+void CheckVertexOutputUses(std::vector<std::string> sources, bool &pointSizeUsed, bool &clipDistanceUsed);

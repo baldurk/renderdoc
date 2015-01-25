@@ -96,6 +96,69 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
 	}
 }
 
+void CheckVertexOutputUses(vector<string> sources, bool &pointSizeUsed, bool &clipDistanceUsed)
+{
+	pointSizeUsed = false;
+	clipDistanceUsed = false;
+
+	for(size_t i=0; i < sources.size(); i++)
+	{
+		string &s = sources[i];
+
+		size_t offs = 0;
+
+		while(true)
+		{
+			offs = s.find("gl_PointSize", offs);
+
+			if(offs == string::npos)
+				break;
+
+			// consider gl_PointSize used if we encounter a '=' before a ';' or the end of the string
+
+			while(offs < s.length())
+			{
+				if(s[offs] == '=')
+				{
+					pointSizeUsed = true;
+					break;
+				}
+
+				if(s[offs] == ';')
+					break;
+
+				offs++;
+			}
+		}
+
+		offs = 0;
+
+		while(true)
+		{
+			offs = s.find("gl_ClipDistance", offs);
+
+			if(offs == string::npos)
+				break;
+
+			// consider gl_ClipDistance used if we encounter a '=' before a ';' or the end of the string
+
+			while(offs < s.length())
+			{
+				if(s[offs] == '=')
+				{
+					clipDistanceUsed = true;
+					break;
+				}
+
+				if(s[offs] == ';')
+					break;
+
+				offs++;
+			}
+		}
+	}
+}
+
 // little utility function that if necessary emulates glCreateShaderProgramv functionality but using glCompileShaderIncludeARB
 static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSources, const char **sources, GLsizei numPaths, const char **paths)
 {
@@ -578,7 +641,7 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
 	}
 }
 
-void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl)
+void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, ShaderReflection &refl, bool pointSizeUsed, bool clipDistanceUsed)
 {
 	refl.DebugInfo.entryFunc = "main";
 	refl.DebugInfo.compileFlags = 0;
@@ -1423,6 +1486,13 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				sig.systemValue = eAttr_None;
 
 #define IS_BUILTIN(builtin) !strncmp(nm, builtin, sizeof(builtin)-1)
+
+				// if these weren't used, they were probably added just to make a separable program
+				// (either by us or the program originally). Skip them from the output signature
+				if(IS_BUILTIN("gl_PointSize") && !pointSizeUsed)
+					continue;
+				if(IS_BUILTIN("gl_ClipDistance") && !clipDistanceUsed)
+					continue;
 
 				// VS built-in inputs
 				if(IS_BUILTIN("gl_VertexID"))             sig.systemValue = eAttr_VertexIndex;
