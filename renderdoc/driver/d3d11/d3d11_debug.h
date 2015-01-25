@@ -303,7 +303,6 @@ class D3D11DebugManager
 			uint32_t EID;
 			MeshDataStage stage;
 			bool useidx;
-			D3D11_PRIMITIVE_TOPOLOGY topo;
 
 			vector<byte> data;
 			vector<uint32_t> indices;

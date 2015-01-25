@@ -4871,7 +4871,6 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			UINT bytesize = index16 ? 2 : 4; 
 
 			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
-			m_HighlightCache.topo = topo;
 
 			if(ibuf == NULL || stage == eMeshDataStage_GSOut)
 			{
@@ -4896,7 +4895,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			}
 		}
 
-		D3D11_PRIMITIVE_TOPOLOGY meshtopo = m_HighlightCache.topo;
+		D3D11_PRIMITIVE_TOPOLOGY meshtopo = topo;
 
 		uint32_t idx = cfg.highlightVert;
 
@@ -4928,10 +4927,10 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		D3D11_PRIMITIVE_TOPOLOGY primTopo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST; // tri or line list
 		uint32_t primSize = 3; // number of verts per primitive
 		
-		if(meshtopo == eTopology_LineList ||
-		   meshtopo == eTopology_LineList_Adj ||
-		   meshtopo == eTopology_LineStrip ||
-		   meshtopo == eTopology_LineStrip_Adj)
+		if(meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST ||
+		   meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ ||
+		   meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP ||
+		   meshtopo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
 		{
 			primSize = 2;
 			primTopo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
