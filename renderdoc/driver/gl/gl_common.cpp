@@ -1153,7 +1153,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
 
 			char n[1024] = {0};
-			gl.glGetProgramResourceName(progSrc, eGL_UNIFORM_BLOCK, i, 1023, NULL, n);
+			gl.glGetProgramResourceName(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1023, NULL, n);
 
 			name = n;
 		}
