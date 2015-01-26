@@ -1726,19 +1726,117 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		stride += sizeof(float)*vsRefl->OutputSig[i].compCount;
 	}
-
-	gl.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);
-
-	// relink separable program with varyings
-	gl.glLinkProgram(vsProg);
-
+	
+	// this is REALLY ugly, but I've seen problems with varying specification, so we try and
+	// do some fixup by removing prefixes from the results we got from PROGRAM_OUTPUT.
+	//
+	// the problem I've seen is:
+	//
+	// struct vertex
+	// {
+	//   vec4 Color;
+	// };
+	//
+	// layout(location = 0) out vertex Out;
+	//
+	// (from g_truc gl-410-primitive-tessellation-2). On AMD the varyings are what you might expect (from
+	// the PROGRAM_OUTPUT interface names reflected out): "Out.Color", "gl_Position"
+	// however nvidia complains unless you use "Color", "gl_Position". This holds even if you add other
+	// variables to the vertex struct.
+	//
+	// strangely another sample that in-lines the output block like so:
+	//
+	// out block
+	// {
+	//   vec2 Texcoord;
+	// } Out;
+	//
+	// uses "block.Texcoord" (reflected name from PROGRAM_OUTPUT and accepted by varyings string on both
+	// vendors). This is inconsistent as it's type.member not structname.member as move.
+	//
+	// The spec is very vague on exactly what these names should be, so I can't say which is correct
+	// out of these three possibilities.
+	//
+	// So our 'fix' is to loop while we have problems linking with the varyings (since we know otherwise
+	// linking should succeed, as we only get here with a successfully linked separable program - if it fails
+	// to link, it's assigned 0 earlier) and remove any prefixes from variables seen in the link error string.
+	// The error string is something like:
+	// "error: Varying (named Out.Color) specified but not present in the program object."
+	//
+	// Yeh. Ugly. Not guaranteed to work at all, but hopefully the common case will just be a single block
+	// without any nesting so this might work.
+	// At least we don't have to reallocate strings all over, since the memory is
+	// already owned elsewhere, we just need to modify pointers to trim prefixes. Bright side?
+	
 	GLint status = 0;
-	gl.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
+	bool finished = false;
+	while(true)
+	{
+		// specify current varyings & relink
+		gl.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);
+		gl.glLinkProgram(vsProg);
+
+		gl.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
+		
+		// all good! Hopefully we'll mostly hit this
+		if(status == 1)
+			break;
+
+		// if finished is true, this was our last attempt - there are no
+		// more fixups possible
+		if(finished)
+			break;
+		
+		char buffer[1025] = {0};
+		gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+
+		// assume we're finished and can't retry any more after this.
+		// if we find a potential 'fixup' we'll set this back to false
+		finished = true;
+
+		// see if any of our current varyings are present in the buffer string
+		for(size_t i=0; i < varyings.size(); i++)
+		{
+			if(strstr(buffer, varyings[i]))
+			{
+				const char *prefix_removed = strchr(varyings[i], '.');
+
+				// does it contain a prefix?
+				if(prefix_removed)
+				{
+					prefix_removed++; // now this is our string without the prefix
+
+					// first check this won't cause a duplicate - if it does, we have to try something else
+					bool duplicate = false;
+					for(size_t j=0; j < varyings.size(); j++)
+					{
+						if(!strcmp(varyings[j], prefix_removed))
+						{
+							duplicate = true;
+							break;
+						}
+					}
+
+					if(!duplicate)
+					{
+						// we'll attempt this fixup
+						RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i], prefix_removed);
+						varyings[i] = prefix_removed;
+						finished = false;
+
+						// don't try more than one at once (just in case)
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	if(status == 0)
 	{
 		char buffer[1025] = {0};
 		gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
-		RDCERR("Link error making xfb vs program: %s", buffer);
+		RDCERR("Failed to fix-up. Link error making xfb vs program: %s", buffer);
 		m_PostVSData[idx] = GLPostVSData();
 		return;
 	}
