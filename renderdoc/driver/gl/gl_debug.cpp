@@ -2143,12 +2143,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 	GLuint prog = DebugData.meshProg;
 	
-	if(cfg.solidShadeMode == eShade_Lit)
-	{
-		// pick program with GS for per-face lighting
-		prog = DebugData.meshgsProg;
-	}
-	
 	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
 	GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
 	GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
@@ -2156,7 +2150,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	GLint homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
 	
 	gl.glUseProgram(prog);
-	
 
 	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
 
@@ -2315,25 +2308,42 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		gl.glEnable(eGL_DEPTH_TEST);
 		gl.glDepthFunc(eGL_LESS);
 
+		GLuint solidProg = prog;
+		
 		if(cfg.solidShadeMode == eShade_Lit)
 		{
-			GLint invProjLoc = gl.glGetUniformLocation(prog, "InvProj");
+			// pick program with GS for per-face lighting
+			solidProg = DebugData.meshgsProg;
+
+			gl.glUseProgram(solidProg);
+
+			GLint invProjLoc = gl.glGetUniformLocation(solidProg, "InvProj");
 
 			Matrix4f InvProj = projMat.Inverse();
 
 			gl.glUniformMatrix4fv(invProjLoc, 1, GL_FALSE, InvProj.Data());
 		}
 
+		GLint solidcolLoc = gl.glGetUniformLocation(solidProg, "RENDERDOC_GenericFS_Color");
+		GLint solidmvpLoc = gl.glGetUniformLocation(solidProg, "ModelViewProj");
+		GLint solidfmtLoc = gl.glGetUniformLocation(solidProg, "Mesh_DisplayFormat");
+		GLint solidsizeLoc = gl.glGetUniformLocation(solidProg, "PointSpriteSize");
+		GLint solidhomogLoc = gl.glGetUniformLocation(solidProg, "HomogenousInput");
+		
+		gl.glUniformMatrix4fv(solidmvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+		gl.glUniform2f(solidsizeLoc, 0.0f, 0.0f);
+		gl.glUniform1ui(solidhomogLoc, cfg.position.unproject);
+	
 		if(cfg.second.buf != ResourceId())
 			gl.glEnableVertexAttribArray(1);
 
 		float wireCol[] = { 0.8f, 0.8f, 0.0f, 1.0f };
-		gl.glUniform4fv(colLoc, 1, wireCol);
+		gl.glUniform4fv(solidcolLoc, 1, wireCol);
 		
 		GLint OutputDisplayFormat = (int)cfg.solidShadeMode;
 		if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
 			OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-		gl.glUniform1ui(fmtLoc, OutputDisplayFormat);
+		gl.glUniform1ui(solidfmtLoc, OutputDisplayFormat);
 		
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
@@ -2356,20 +2366,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 		gl.glDisableVertexAttribArray(1);
 		
-		if(cfg.solidShadeMode == eShade_Lit)
-		{
-			prog = DebugData.meshProg;
-
-			colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
-			mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
-			fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
-
-			gl.glUseProgram(prog);
-
-			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-			gl.glUniform1ui(homogLoc, cfg.position.unproject);
-			gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
-		}
+		gl.glUseProgram(prog);
 	}
 	
 	gl.glDisable(eGL_DEPTH_TEST);
@@ -2795,15 +2792,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		{
 			////////////////////////////////////////////////////////////////
 			// prepare rendering (for both vertices & primitives)
-
-			prog = DebugData.meshProg;
-
-			gl.glUseProgram(prog);
-			
-			colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
-			mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
-			sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
-			homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
 			
 			// if data is from post transform, it will be in clipspace
 			if(cfg.position.unproject)
