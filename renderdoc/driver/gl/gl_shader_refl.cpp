@@ -200,7 +200,16 @@ static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSour
 
 GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources, vector<string> *includepaths)
 {
-	const string block = "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
+	string block = "";
+	
+	if(type == eGL_VERTEX_SHADER)
+		block = "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
+	else if(type == eGL_TESS_CONTROL_SHADER)
+		block = "\nin gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];" \
+		        "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_out[];";
+	else
+		block = "\nin gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];" \
+		        "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
 
 	const char **strings = new const char*[sources.size()];
 	for(size_t i=0; i < sources.size(); i++)
@@ -222,7 +231,8 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 	GLint status;
 	gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
 
-	if(status == 0 && type == eGL_VERTEX_SHADER)
+	// allow any vertex processing shader to redeclare gl_PerVertex
+	if(status == 0 && type != eGL_FRAGMENT_SHADER && type != eGL_COMPUTE_SHADER)
 	{
 		gl.glDeleteProgram(sepProg);
 		sepProg = 0;
@@ -272,13 +282,18 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 		}
 
 		sepProg = CreateSepProgram(gl, type, (GLsizei)sources.size(), strings, numPaths, paths);
+	}
 
-		gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
-		if(status == 0)
-		{
-			gl.glDeleteProgram(sepProg);
-			sepProg = 0;
-		}
+	gl.glGetProgramiv(sepProg, eGL_LINK_STATUS, &status);
+	if(status == 0)
+	{
+		char buffer[1025] = {0};
+		gl.glGetProgramInfoLog(sepProg, 1024, NULL, buffer);
+
+		RDCERR("Couldn't make separable shader program for shader. Errors:\n%s", buffer);
+
+		gl.glDeleteProgram(sepProg);
+		sepProg = 0;
 	}
 
 	delete[] strings;
