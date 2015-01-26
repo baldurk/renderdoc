@@ -1680,7 +1680,7 @@ void GLReplay::SavePipelineState()
 			pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
 			polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
 			break;
-		case eGL_LINES:
+		case eGL_LINE:
 			pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
 			polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
 			break;
