@@ -336,12 +336,15 @@ vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t 
 	ret.resize(len);
 	
 	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(m_DebugCtx);
+
+	GLuint oldbuf = 0;
+	gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
 
 	gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf.resource.name);
 
 	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, &ret[0]);
+
+	gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 
 	return ret;
 }
@@ -2159,11 +2162,6 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 
 #pragma endregion
 
-void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
-{
-	GLNOTIMP("GLReplay::InitPostVSBuffers");
-}
-
 vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 {
 	GLNOTIMP("GetUsage");
@@ -2183,16 +2181,6 @@ void GLReplay::FreeTargetResource(ResourceId id)
 void GLReplay::FreeCustomShader(ResourceId id)
 {
 	RDCUNIMPLEMENTED("FreeCustomShader");
-}
-
-MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
-{
-	MeshFormat ret;
-	RDCEraseEl(ret);
-
-	GLNOTIMP("GLReplay::GetPostVSBuffers");
-
-	return ret;
 }
 
 byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)

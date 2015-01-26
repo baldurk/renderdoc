@@ -1880,10 +1880,10 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
 {
 	if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
 	{
-		if(m_DebugMsgContext != "")
-			RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
 		RDCLOG("Got a Debug message from %s, type %s, ID %d, severity %s:\n'%s'",
 					ToStr::Get(source).c_str(), ToStr::Get(type).c_str(), id, ToStr::Get(severity).c_str(), message);
+		if(m_DebugMsgContext != "")
+			RDCLOG("Debug Message context: \"%s\"", m_DebugMsgContext.c_str());
 	}
 
 	if(m_State == WRITING_CAPFRAME &&
@@ -3121,6 +3121,52 @@ FetchAPIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
 	}
 
 	return m_Events[0];
+}
+
+const FetchDrawcall *WrappedOpenGL::GetDrawcall(const FetchDrawcall *draw, uint32_t eventID)
+{
+	if(draw == NULL) return NULL;
+	if(draw->eventID == eventID) return draw;
+
+	int32_t count = draw->children.count;
+	for(int32_t i=0; i < count; i++)
+	{
+		const FetchDrawcall *cur = &draw->children.elems[i];
+		const FetchDrawcall *next = i+1 < count ? &draw->children.elems[i+1] : NULL;
+
+		if(next && next->eventID <= eventID)
+			continue;
+
+		cur = GetDrawcall(cur, eventID);
+
+		if(cur)
+			return cur;
+	}
+
+	return NULL;
+}
+
+const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t frameID, uint32_t eventID)
+{
+	if(frameID >= m_FrameRecord.size())
+		return NULL;
+
+	int32_t count = m_FrameRecord[frameID].drawcallList.count;
+	for(int32_t i=0; i < count; i++)
+	{
+		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList.elems[i];
+		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList.elems[i+1] : NULL;
+
+		if(next && next->eventID <= eventID)
+			continue;
+
+		cur = GetDrawcall(cur, eventID);
+
+		if(cur)
+			return cur;
+	}
+	
+	return NULL;
 }
 
 void WrappedOpenGL::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)

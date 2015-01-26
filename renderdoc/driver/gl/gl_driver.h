@@ -150,6 +150,8 @@ class WrappedOpenGL
 
 		vector<FetchFrameRecord> m_FrameRecord;
 		
+		const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
+		
 		static const char *GetChunkName(uint32_t idx);
 		
 		// replay
@@ -370,6 +372,8 @@ class WrappedOpenGL
 
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
+
+		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core);
 		void DeleteContext(void *contextHandle);

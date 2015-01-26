@@ -32,6 +32,45 @@
 
 class WrappedOpenGL;
 
+struct GLPostVSData
+{
+	struct StageData
+	{
+		GLuint buf;
+		PrimitiveTopology topo;
+
+		uint32_t numVerts;
+		uint32_t posOffset;
+		uint32_t vertStride;
+
+		bool useIndices;
+		GLuint idxBuf;
+		uint32_t idxByteWidth;
+
+		float nearPlane;
+		float farPlane;
+	} vsin, vsout, gsout;
+
+	GLPostVSData()
+	{
+		RDCEraseEl(vsin);
+		RDCEraseEl(vsout);
+		RDCEraseEl(gsout);
+	}
+
+	const StageData &GetStage(MeshDataStage type)
+	{
+		if(type == eMeshDataStage_VSOut)
+			return vsout;
+		else if(type == eMeshDataStage_GSOut)
+			return gsout;
+		else
+			RDCERR("Unexpected mesh data stage!");
+
+		return vsin;
+	}
+};
+
 class GLReplay : public IReplayDriver
 {
 	public:
@@ -216,6 +255,10 @@ class GLReplay : public IReplayDriver
 			GLuint outlineStripVB;
 			GLuint outlineStripVAO;
 
+			GLuint feedbackObj;
+			GLuint feedbackQuery;
+			GLuint feedbackBuffer;
+
 			GLuint pickPixelTex;
 			GLuint pickPixelFBO;
 
@@ -243,6 +286,9 @@ class GLReplay : public IReplayDriver
 			vector<byte> data;
 			vector<uint32_t> indices;
 		} m_HighlightCache;
+		
+		// <frame,event> -> data
+		std::map<std::pair<uint32_t,uint32_t>, GLPostVSData> m_PostVSData;
 
 		void InitDebugData();
 		void DeleteDebugData();

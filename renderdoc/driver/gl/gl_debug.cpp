@@ -33,6 +33,8 @@
 
 #include "serialise/string_utils.h"
 
+#include <algorithm>
+
 GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 {
 	if(m_pDriver == NULL) return 0;
@@ -215,7 +217,7 @@ void GLReplay::InitDebugData()
 
 		gl.glGenBuffers(1, &DebugData.outlineStripVB);
 		gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.outlineStripVB);
-		gl.glBufferData(eGL_ARRAY_BUFFER, sizeof(data), data, eGL_STATIC_DRAW);
+		gl.glNamedBufferDataEXT(DebugData.outlineStripVB, sizeof(data), data, eGL_STATIC_DRAW);
 		
     gl.glGenVertexArrays(1, &DebugData.outlineStripVAO);
     gl.glBindVertexArray(DebugData.outlineStripVAO);
@@ -246,7 +248,7 @@ void GLReplay::InitDebugData()
 	for(size_t i=0; i < ARRAY_COUNT(DebugData.UBOs); i++)
 	{
 		gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-		gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);
+		gl.glNamedBufferDataEXT(DebugData.UBOs[i], 512, NULL, eGL_DYNAMIC_DRAW);
 		RDCCOMPILE_ASSERT(sizeof(texdisplay) < 512, "texdisplay UBO too large");
 		RDCCOMPILE_ASSERT(sizeof(FontUniforms) < 512, "texdisplay UBO too large");
 		RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) < 512, "texdisplay UBO too large");
@@ -408,6 +410,18 @@ void GLReplay::InitDebugData()
 	gl.glEnableVertexAttribArray(0);
 	
 	DebugData.replayQuadProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.genericfsSource.c_str());
+
+	MakeCurrentReplayContext(&m_ReplayCtx);
+
+	gl.glGenTransformFeedbacks(1, &DebugData.feedbackObj);
+	gl.glGenBuffers(1, &DebugData.feedbackBuffer);
+	gl.glGenQueries(1, &DebugData.feedbackQuery);
+
+	gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+	gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
+	gl.glNamedBufferStorageEXT(DebugData.feedbackBuffer, 32*1024*1024, NULL, GL_MAP_READ_BIT);
+	gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+	gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 }
 
 void GLReplay::DeleteDebugData()
@@ -415,6 +429,16 @@ void GLReplay::DeleteDebugData()
 	MakeCurrentReplayContext(m_DebugCtx);
 
 	WrappedOpenGL &gl = *m_pDriver;
+
+	for(auto it=m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+	{
+		gl.glDeleteBuffers(1, &it->second.vsout.buf);
+		gl.glDeleteBuffers(1, &it->second.vsout.idxBuf);
+		gl.glDeleteBuffers(1, &it->second.gsout.buf);
+		gl.glDeleteBuffers(1, &it->second.gsout.idxBuf);
+	}
+
+	m_PostVSData.clear();
 
 	gl.glDeleteProgram(DebugData.blitProg);
 
@@ -458,6 +482,10 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteBuffers(1, &DebugData.minmaxTileResult);
 	gl.glDeleteBuffers(1, &DebugData.minmaxResult);
 	gl.glDeleteBuffers(1, &DebugData.histogramBuf);
+
+	gl.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
+	gl.glDeleteBuffers(1, &DebugData.feedbackBuffer);
+	gl.glDeleteQueries(1, &DebugData.feedbackQuery);
 
 	gl.glDeleteVertexArrays(1, &DebugData.meshVAO);
 	gl.glDeleteVertexArrays(1, &DebugData.axisVAO);
@@ -1548,6 +1576,450 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	return m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, DebugData.overlayTex));
 }
 
+void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+{
+	auto idx = std::make_pair(frameID, eventID);
+	if(m_PostVSData.find(idx) != m_PostVSData.end())
+		return;
+	
+	MakeCurrentReplayContext(&m_ReplayCtx);
+	
+	void *ctx = m_ReplayCtx.ctx;
+	
+	WrappedOpenGL &gl = *m_pDriver;
+	GLResourceManager *rm = m_pDriver->GetResourceManager();
+	
+	GLRenderState rs(&gl.GetHookset(), NULL, READING);
+	rs.FetchState(ctx, &gl);
+	GLuint elArrayBuffer = 0;
+	if(rs.VAO)
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
+
+	// reflection structures
+	ShaderReflection *vsRefl = NULL;
+	ShaderReflection *tesRefl = NULL;
+	ShaderReflection *gsRefl = NULL;
+
+	// non-program used separable programs of each shader.
+	// we'll add our feedback varings to these programs, relink,
+	// and combine into a pipeline for use.
+	GLuint vsProg = 0;
+	GLuint tcsProg = 0;
+	GLuint tesProg = 0;
+	GLuint gsProg = 0;
+
+	// these are the 'real' programs with uniform values that we need
+	// to copy over to our separable programs.
+	GLuint vsProgSrc = 0;
+	GLuint tcsProgSrc = 0;
+	GLuint tesProgSrc = 0;
+	GLuint gsProgSrc = 0;
+
+	if(rs.Program == 0)
+	{
+		if(rs.Pipeline == 0)
+		{
+			return;
+		}
+		else
+		{
+			ResourceId id = rm->GetID(ProgramPipeRes(ctx, rs.Pipeline));
+			auto &pipeDetails = m_pDriver->m_Pipelines[id];
+
+			if(pipeDetails.stageShaders[0] != ResourceId())
+			{
+				vsRefl = GetShader(pipeDetails.stageShaders[0]);
+				vsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[0]].prog;
+				vsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[0]).name;
+			}
+			if(pipeDetails.stageShaders[1] != ResourceId())
+			{
+				tcsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[1]].prog;
+				tcsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[1]).name;
+			}
+			if(pipeDetails.stageShaders[2] != ResourceId())
+			{
+				tesRefl = GetShader(pipeDetails.stageShaders[2]);
+				tesProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[2]].prog;
+				tesProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[2]).name;
+			}
+			if(pipeDetails.stageShaders[3] != ResourceId())
+			{
+				gsRefl = GetShader(pipeDetails.stageShaders[3]);
+				gsProg = m_pDriver->m_Shaders[pipeDetails.stageShaders[3]].prog;
+				gsProgSrc = rm->GetCurrentResource(pipeDetails.stagePrograms[3]).name;
+			}
+		}
+	}
+	else
+	{
+		auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, rs.Program))];
+
+		if(progDetails.stageShaders[0] != ResourceId())
+		{
+			vsRefl = GetShader(progDetails.stageShaders[0]);
+			vsProg = m_pDriver->m_Shaders[progDetails.stageShaders[0]].prog;
+		}
+		if(progDetails.stageShaders[1] != ResourceId())
+		{
+			tcsProg = m_pDriver->m_Shaders[progDetails.stageShaders[1]].prog;
+		}
+		if(progDetails.stageShaders[2] != ResourceId())
+		{
+			tesRefl = GetShader(progDetails.stageShaders[2]);
+			tesProg = m_pDriver->m_Shaders[progDetails.stageShaders[2]].prog;
+		}
+		if(progDetails.stageShaders[3] != ResourceId())
+		{
+			gsRefl = GetShader(progDetails.stageShaders[3]);
+			gsProg = m_pDriver->m_Shaders[progDetails.stageShaders[3]].prog;
+		}
+
+		vsProgSrc = tcsProgSrc = tesProgSrc = gsProgSrc = rs.Program;
+	}
+
+	if(vsRefl == NULL)
+	{
+		// no vertex shader bound (no vertex processing - compute only program
+		// or no program bound, for a clear etc)
+		m_PostVSData[idx] = GLPostVSData();
+		return;
+	}
+
+	const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(frameID, eventID);
+
+	if(drawcall->numIndices == 0)
+	{
+		// draw is 0 length, nothing to do
+		m_PostVSData[idx] = GLPostVSData();
+		return;
+	}
+	
+	GLenum gsOutputType = eGL_NONE;
+
+	if(gsProg)
+		gl.glGetProgramiv(gsProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&gsOutputType);
+	
+	vector<const char *> varyings;
+
+	// we don't want to do any work, so just discard before rasterizing
+	gl.glEnable(eGL_RASTERIZER_DISCARD);
+
+	varyings.clear();
+
+	uint32_t stride = 0;
+	uint32_t posoffset = ~0U;
+
+	for(int32_t i=0; i < vsRefl->OutputSig.count; i++)
+	{
+		varyings.push_back(vsRefl->OutputSig[i].varName.elems);
+
+		if(!strcmp(vsRefl->OutputSig[i].varName.elems, "gl_Position"))
+			posoffset = stride;
+
+		stride += sizeof(float)*vsRefl->OutputSig[i].compCount;
+	}
+
+	gl.glTransformFeedbackVaryings(vsProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);
+
+	// relink separable program with varyings
+	gl.glLinkProgram(vsProg);
+
+	GLint status = 0;
+	gl.glGetProgramiv(vsProg, eGL_LINK_STATUS, &status);
+	if(status == 0)
+	{
+		char buffer[1025] = {0};
+		gl.glGetProgramInfoLog(vsProg, 1024, NULL, buffer);
+		RDCERR("Link error making xfb vs program: %s", buffer);
+		m_PostVSData[idx] = GLPostVSData();
+		return;
+	}
+
+	// make a pipeline to contain just the vertex shader
+	GLuint vsFeedbackPipe = 0;
+	gl.glGenProgramPipelines(1, &vsFeedbackPipe);
+
+	// bind the separable vertex program to it
+	gl.glUseProgramStages(vsFeedbackPipe, eGL_VERTEX_SHADER_BIT, vsProg);
+
+	// copy across any uniform values, bindings etc from the real program containing
+	// the vertex stage
+	CopyProgramUniforms(gl.GetHookset(), vsProgSrc, vsProg);
+
+	// bind our program and do the feedback draw
+	gl.glUseProgram(0);
+	gl.glBindProgramPipeline(vsFeedbackPipe);
+
+	gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+
+	// need to rebind this here because of an AMD bug that seems to ignore the buffer
+	// bindings in the feedback object - or at least it errors if the default feedback
+	// object has no buffers bound. Fortunately the state is still object-local so
+	// we don't have to restore the buffer binding on the default feedback object.
+	gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+
+	GLuint idxBuf = 0;
+	
+	gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQuery);
+	gl.glBeginTransformFeedback(eGL_POINTS);
+
+	if((drawcall->flags & eDraw_UseIBuffer) == 0)
+	{
+		gl.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
+	}
+	else // drawcall is indexed
+	{
+		ResourceId idxId = rm->GetID(BufferRes(NULL, elArrayBuffer));
+
+		vector<byte> idxdata = GetBufferData(idxId, drawcall->indexOffset*drawcall->indexByteWidth, drawcall->numIndices*drawcall->indexByteWidth);
+		
+		vector<uint32_t> indices;
+		
+		uint8_t  *idx8 =  (uint8_t *) &idxdata[0];
+		uint16_t *idx16 = (uint16_t *)&idxdata[0];
+		uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+		// only read as many indices as were available in the buffer
+		uint32_t numIndices = RDCMIN(uint32_t(idxdata.size()/drawcall->indexByteWidth), drawcall->numIndices);
+
+		// grab all unique vertex indices referenced
+		for(uint32_t i=0; i < numIndices; i++)
+		{
+			uint32_t i32 = 0;
+			     if(drawcall->indexByteWidth == 1) i32 = uint32_t(idx8 [i]);
+			else if(drawcall->indexByteWidth == 2) i32 = uint32_t(idx16[i]);
+			else if(drawcall->indexByteWidth == 4) i32 =          idx32[i];
+
+			auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+			if(it != indices.end() && *it == i32)
+				continue;
+
+			indices.insert(it, i32);
+		}
+
+		// An index buffer could be something like: 500, 501, 502, 501, 503, 502
+		// in which case we can't use the existing index buffer without filling 499 slots of vertex
+		// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+		// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+		//
+		// Since we want the indices to be preserved in order to easily match up inputs to outputs,
+		// but shifted, fill in gaps in our streamout vertex buffer with the lowest index value.
+		// (use the lowest index value so that even the gaps are a 'valid' vertex, rather than
+		// potentially garbage data).
+		uint32_t minindex = indices.empty() ? 0 : indices[0];
+
+		// indices[] contains ascending unique vertex indices referenced. Fill gaps with minindex
+		for(size_t i=1; i < indices.size(); i++)
+		{
+			if(indices[i]-1 > indices[i-1])
+			{
+				size_t gapsize = size_t( (indices[i]-1) - indices[i-1] );
+
+				indices.insert(indices.begin()+i, gapsize, minindex);
+
+				i += gapsize;
+			}
+		}
+		
+		// generate a temporary index buffer with our 'unique index set' indices,
+		// so we can transform feedback each referenced vertex once
+		GLuint indexSetBuffer = 0;
+		gl.glGenBuffers(1, &indexSetBuffer);
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
+		gl.glNamedBufferStorageEXT(indexSetBuffer, sizeof(uint32_t)*indices.size(), &indices[0], 0);
+		
+		gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->vertexOffset);
+		
+		// delete the buffer, we don't need it anymore
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+		gl.glDeleteBuffers(1, &indexSetBuffer);
+		
+		// rebase existing index buffer to point from 0 onwards (which will index into our
+		// stream-out'd vertex buffer)
+		if(drawcall->indexByteWidth == 1)
+		{
+			for(uint32_t i=0; i < numIndices; i++)
+				idx8[i] -= uint8_t(minindex&0xff);
+		}
+		else if(drawcall->indexByteWidth == 2)
+		{
+			for(uint32_t i=0; i < numIndices; i++)
+				idx16[i] -= uint16_t(minindex&0xffff);
+		}
+		else
+		{
+			for(uint32_t i=0; i < numIndices; i++)
+				idx32[i] -= minindex;
+		}
+		
+		// make the index buffer that can be used to render this postvs data - the original
+		// indices, rebased with minindex being 0 (since we transform feedback to the start
+		// of our feedback buffer).
+		gl.glGenBuffers(1, &idxBuf);
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
+		gl.glNamedBufferStorageEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], 0);
+		
+		// restore previous element array buffer binding
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+	}
+	
+	gl.glEndTransformFeedback();
+	gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+	// this should be the same as the draw size
+	GLuint primsWritten = 0;
+	gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
+
+	// get buffer data from buffer attached to feedback object
+	float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+
+	// create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
+	// can render from it to display previews).
+	GLuint vsoutBuffer = 0;
+	gl.glGenBuffers(1, &vsoutBuffer);
+	gl.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
+	gl.glNamedBufferStorageEXT(vsoutBuffer, stride*primsWritten, data, 0);
+
+	byte *byteData = (byte *)data;
+
+	float nearp = 0.0f;
+	float farp = 0.0f;
+
+	Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
+
+	for(GLuint i=1; posoffset != ~0U && i < primsWritten; i++)
+	{
+		//////////////////////////////////////////////////////////////////////////////////
+		// derive near/far, assuming a standard perspective matrix
+		//
+		// the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+		// is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+		// and we know Wpost = Zpre from the perspective matrix.
+		// we can then see from the perspective matrix that
+		// m = F/(F-N)
+		// c = -(F*N)/(F-N)
+		//
+		// with re-arranging and substitution, we then get:
+		// N = -c/m
+		// F = c/(1-m)
+		//
+		// so if we can derive m and c then we can determine N and F. We can do this with
+		// two points, and we pick them reasonably distinct on z to reduce floating-point
+		// error
+
+		Vec4f *pos = (Vec4f *)(byteData + posoffset + i*stride);
+
+		if(fabs(pos->w - pos0->w) > 0.01f)
+		{
+			Vec2f A(pos0->w, pos0->z);
+			Vec2f B(pos->w, pos->z);
+
+			float m = (B.y-A.y)/(B.x-A.x);
+			float c = B.y - B.x*m;
+
+			if(m == 1.0f) continue;
+
+			nearp = -c/m;
+			farp = c/(1-m);
+
+			break;
+		}
+	}
+
+	gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+
+	// store everything out to the PostVS data cache
+	m_PostVSData[idx].vsin.topo = drawcall->topology;
+	m_PostVSData[idx].vsout.buf = vsoutBuffer;
+	m_PostVSData[idx].vsout.posOffset = posoffset;
+	m_PostVSData[idx].vsout.vertStride = stride;
+	m_PostVSData[idx].vsout.nearPlane = nearp;
+	m_PostVSData[idx].vsout.farPlane = farp;
+
+	m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+	m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+
+	m_PostVSData[idx].vsout.idxBuf = 0;
+	m_PostVSData[idx].vsout.idxByteWidth = drawcall->indexByteWidth;
+	if(m_PostVSData[idx].vsout.useIndices && idxBuf)
+	{
+		m_PostVSData[idx].vsout.idxBuf = idxBuf;
+	}
+
+	m_PostVSData[idx].vsout.topo = drawcall->topology;
+
+	// set vsProg back to no varyings, for future use
+	gl.glTransformFeedbackVaryings(vsProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+	gl.glLinkProgram(vsProg);
+
+	GLuint lastFeedbackPipe = 0;
+	
+	// delete temporary pipelines we made
+	gl.glDeleteProgramPipelines(1, &vsFeedbackPipe);
+	if(lastFeedbackPipe) gl.glDeleteProgramPipelines(1, &lastFeedbackPipe);
+
+	// restore replay state we trashed
+	gl.glUseProgram(rs.Program);
+	gl.glBindProgramPipeline(rs.Pipeline);
+	
+	gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+	gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+
+	gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+	
+	if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
+		gl.glDisable(eGL_RASTERIZER_DISCARD);
+	else
+		gl.glEnable(eGL_RASTERIZER_DISCARD);
+}
+
+MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+{
+	GLPostVSData postvs;
+	RDCEraseEl(postvs);
+
+	auto idx = std::make_pair(frameID, eventID);
+	if(m_PostVSData.find(idx) != m_PostVSData.end())
+		postvs = m_PostVSData[idx];
+
+	GLPostVSData::StageData s = postvs.GetStage(stage);
+	
+	MeshFormat ret;
+	
+	if(s.useIndices && s.idxBuf)
+		ret.idxbuf = m_pDriver->GetResourceManager()->GetID(BufferRes(NULL, s.idxBuf));
+	else
+		ret.idxbuf = ResourceId();
+	ret.idxoffs = 0;
+	ret.idxByteWidth = s.idxByteWidth;
+
+	if(s.buf)
+		ret.buf = m_pDriver->GetResourceManager()->GetID(BufferRes(NULL, s.buf));
+	else
+		ret.buf = ResourceId();
+
+	ret.offset = s.posOffset;
+	ret.stride = s.vertStride;
+
+	ret.compCount = 4;
+	ret.compByteWidth = 4;
+	ret.compType = eCompType_Float;
+	ret.specialFormat = eSpecial_Unknown;
+
+	ret.showAlpha = false;
+
+	ret.topo = s.topo;
+	ret.numVerts = s.numVerts;
+
+	ret.unproject = true;
+	ret.nearPlane = s.nearPlane;
+	ret.farPlane = s.farPlane;
+
+	return ret;
+}
+
 FloatVector GLReplay::InterpretVertex(byte *data, uint32_t vert, MeshDisplay cfg, byte *end, bool &valid)
 {
 	FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
@@ -1666,6 +2138,92 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	gl.glBindVertexArray(DebugData.meshVAO);
 
 	const MeshFormat *fmts[2] = { &cfg.position, &cfg.second };
+	
+	GLenum topo = MakeGLPrimitiveTopology(cfg.position.topo);
+
+	GLuint prog = DebugData.meshProg;
+	
+	if(cfg.solidShadeMode == eShade_Lit)
+	{
+		// pick program with GS for per-face lighting
+		prog = DebugData.meshgsProg;
+	}
+	
+	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
+	GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
+	GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
+	GLint sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
+	GLint homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
+	
+	gl.glUseProgram(prog);
+	
+
+	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+
+	if(cfg.position.unproject)
+	{
+		// the derivation of the projection matrix might not be right (hell, it could be an
+		// orthographic projection). But it'll be close enough likely.
+		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+		if(cfg.ortho)
+		{
+			guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+		}
+		
+		guessProjInv = guessProj.Inverse();
+
+		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+	}
+	
+	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
+	gl.glUniform1ui(homogLoc, cfg.position.unproject);
+	gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
+	
+	if(!secondaryDraws.empty())
+	{
+		gl.glUniform4fv(colLoc, 1, &cfg.prevMeshColour.x);
+
+		gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
+		
+		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
+
+		// secondary draws have to come from gl_Position which is float4
+		gl.glVertexAttribFormat(0, 4, eGL_FLOAT, GL_FALSE, 0);
+		gl.glEnableVertexAttribArray(0);
+		gl.glDisableVertexAttribArray(1);
+
+		for(size_t i=0; i < secondaryDraws.size(); i++)
+		{
+			const MeshFormat &fmt = secondaryDraws[i];
+
+			if(fmt.buf != ResourceId())
+			{
+				GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
+				gl.glBindVertexBuffer(0, vb, fmt.offset, fmt.stride);
+
+				GLenum topo = MakeGLPrimitiveTopology(fmt.topo);
+				
+				if(fmt.idxbuf != ResourceId())
+				{
+					GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.idxbuf).name;
+					gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+
+					GLenum idxtype = eGL_UNSIGNED_BYTE;
+					if(fmt.idxByteWidth == 2)
+						idxtype = eGL_UNSIGNED_SHORT;
+					else if(fmt.idxByteWidth == 4)
+						idxtype = eGL_UNSIGNED_INT;
+
+					gl.glDrawElements(topo, fmt.numVerts, idxtype, (const void *)(fmt.idxoffs));
+				}
+				else
+				{
+					gl.glDrawArrays(topo, 0, fmt.numVerts);
+				}
+			}
+		}
+	}
 
 	for(uint32_t i=0; i < 2; i++)
 	{
@@ -1743,52 +2301,13 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			gl.glVertexAttribLFormat(i, fmts[i]->compCount, eGL_DOUBLE, 0);
 		}
 
-		gl.glBindVertexBuffer(i, m_pDriver->GetResourceManager()->GetCurrentResource(fmts[i]->buf).name, fmts[i]->offset, fmts[i]->stride);
+		GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmts[i]->buf).name;
+		gl.glBindVertexBuffer(i, vb, fmts[i]->offset, fmts[i]->stride);
 	}
 
 	// enable position attribute
 	gl.glEnableVertexAttribArray(0);
-	
-	GLenum topo = MakeGLPrimitiveTopology(cfg.position.topo);
-
-	GLuint prog = DebugData.meshProg;
-	
-	if(cfg.solidShadeMode == eShade_Lit)
-	{
-		// pick program with GS for per-face lighting
-		prog = DebugData.meshgsProg;
-	}
-	
-	GLint colLoc = gl.glGetUniformLocation(prog, "RENDERDOC_GenericFS_Color");
-	GLint mvpLoc = gl.glGetUniformLocation(prog, "ModelViewProj");
-	GLint fmtLoc = gl.glGetUniformLocation(prog, "Mesh_DisplayFormat");
-	GLint sizeLoc = gl.glGetUniformLocation(prog, "PointSpriteSize");
-	GLint homogLoc = gl.glGetUniformLocation(prog, "HomogenousInput");
-	
-	gl.glUseProgram(prog);
-	
-
-	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
-
-	if(cfg.position.unproject)
-	{
-		// the derivation of the projection matrix might not be right (hell, it could be an
-		// orthographic projection). But it'll be close enough likely.
-		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
-
-		if(cfg.ortho)
-		{
-			guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
-		}
-		
-		guessProjInv = guessProj.Inverse();
-
-		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-	}
-	
-	gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-	gl.glUniform1i(homogLoc, 0);
-	gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
+	gl.glDisableVertexAttribArray(1);
 
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && topo != eGL_PATCHES)
@@ -1805,7 +2324,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			gl.glUniformMatrix4fv(invProjLoc, 1, GL_FALSE, InvProj.Data());
 		}
 
-		gl.glEnableVertexAttribArray(1);
+		if(cfg.second.buf != ResourceId())
+			gl.glEnableVertexAttribArray(1);
 
 		float wireCol[] = { 0.8f, 0.8f, 0.0f, 1.0f };
 		gl.glUniform4fv(colLoc, 1, wireCol);
@@ -1825,7 +2345,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			else if(cfg.position.idxByteWidth == 4)
 				idxtype = eGL_UNSIGNED_INT;
 
-			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name);
+			GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
 		}
 		else
@@ -1833,7 +2354,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			gl.glDrawArrays(topo, 0, cfg.position.numVerts);
 		}
 
-		gl.glEnableVertexAttribArray(0);
+		gl.glDisableVertexAttribArray(1);
 		
 		if(cfg.solidShadeMode == eShade_Lit)
 		{
@@ -1846,7 +2367,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			gl.glUseProgram(prog);
 
 			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
-			gl.glUniform1i(homogLoc, 0);
+			gl.glUniform1ui(homogLoc, cfg.position.unproject);
 			gl.glUniform2f(sizeLoc, 0.0f, 0.0f);
 		}
 	}
@@ -1857,6 +2378,12 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
 	{
 		float wireCol[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+		if(!secondaryDraws.empty())
+		{
+			wireCol[0] = cfg.currentMeshColour.x;
+			wireCol[1] = cfg.currentMeshColour.y;
+			wireCol[2] = cfg.currentMeshColour.z;
+		}
 		gl.glUniform4fv(colLoc, 1, wireCol);
 
 		gl.glUniform1ui(fmtLoc, MESHDISPLAY_SOLID);
@@ -1871,7 +2398,8 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			else if(cfg.position.idxByteWidth == 4)
 				idxtype = eGL_UNSIGNED_INT;
 
-			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name);
+			GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
 			gl.glDrawElements(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
 		}
 		else
@@ -1906,7 +2434,6 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		float wireCol[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 		gl.glUniform4fv(colLoc, 1, wireCol);
 
-		ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
 		gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
 		
 		gl.glDrawArrays(eGL_LINES, 0, 24);
@@ -2280,15 +2807,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			
 			// if data is from post transform, it will be in clipspace
 			if(cfg.position.unproject)
-			{
 				ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-				gl.glUniform1i(homogLoc, 1);
-			}
 			else
-			{
 				ModelViewProj = projMat.Mul(camMat);
-				gl.glUniform1i(homogLoc, 0);
-			}
+			
+			gl.glUniform1ui(homogLoc, cfg.position.unproject);
 			
 			gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, ModelViewProj.Data());
 			
@@ -2318,7 +2841,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
 				gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(Vec4f)*adjacentPrimVertices.size(), &adjacentPrimVertices[0]);
 				
-				gl.glDrawArrays(primTopo, 0, adjacentPrimVertices.size());
+				gl.glDrawArrays(primTopo, 0, (GLsizei)adjacentPrimVertices.size());
 			}
 
 			////////////////////////////////////////////////////////////////

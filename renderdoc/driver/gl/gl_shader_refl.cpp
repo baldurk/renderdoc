@@ -162,15 +162,16 @@ void CheckVertexOutputUses(vector<string> sources, bool &pointSizeUsed, bool &cl
 // little utility function that if necessary emulates glCreateShaderProgramv functionality but using glCompileShaderIncludeARB
 static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSources, const char **sources, GLsizei numPaths, const char **paths)
 {
-	if(paths == NULL)
-		return gl.glCreateShaderProgramv(type, numSources, sources);
-
 	// definition of glCreateShaderProgramv from the spec
 	GLuint shader = gl.glCreateShader(type);
 	if(shader)
 	{
 		gl.glShaderSource(shader, numSources, sources, NULL);
-		gl.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+
+		if(paths == NULL)
+			gl.glCompileShader(shader);
+		else
+			gl.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
 
 		GLuint program = gl.glCreateProgram();
 		if(program)
@@ -184,7 +185,10 @@ static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSour
 			{
 				gl.glAttachShader(program, shader);
 				gl.glLinkProgram(program);
-				gl.glDetachShader(program, shader);
+
+				// we deliberately leave the shaders attached so this program can be re-linked.
+				// they will be cleaned up when the program is deleted
+				// gl.glDetachShader(program, shader);
 			}
 		}
 		gl.glDeleteShader(shader);

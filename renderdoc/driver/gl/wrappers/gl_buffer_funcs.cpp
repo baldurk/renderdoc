@@ -77,6 +77,8 @@ void WrappedOpenGL::glGenBuffers(GLsizei n, GLuint *buffers)
 		else
 		{
 			GetResourceManager()->AddLiveResource(id, res);
+			m_Buffers[id].resource = res;
+			m_Buffers[id].curType = eGL_NONE;
 		}
 	}
 }
@@ -241,6 +243,10 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 			GetResourceManager()->MarkDirtyResource(r->GetResourceID());
 		}
 	}
+	else
+	{
+		m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].curType = target;
+	}
 }
 
 bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags)
@@ -310,6 +316,10 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 			record->Length = (int32_t)size;
 		}
 	}
+	else
+	{
+		m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].size = size;
+	}
 }
 
 void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
@@ -342,6 +352,10 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
 		}
+	}
+	else
+	{
+		RDCERR("Internal buffers should be allocated via dsa interfaces");
 	}
 }
 
@@ -478,6 +492,10 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 			record->usage = usage;
 		}
 	}
+	else
+	{
+		m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].size = size;
+	}
 }
 
 void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
@@ -577,6 +595,10 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			record->Length = (int32_t)size;
 			record->usage = usage;
 		}
+	}
+	else
+	{
+		RDCERR("Internal buffers should be allocated via dsa interfaces");
 	}
 }
 

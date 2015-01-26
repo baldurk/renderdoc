@@ -113,7 +113,6 @@ class D3D11DebugManager
 		int GetHeight() { return m_height; }
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		PostVSData GetPostVSBuffers(uint32_t frameID, uint32_t eventID);
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
 
 		uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);

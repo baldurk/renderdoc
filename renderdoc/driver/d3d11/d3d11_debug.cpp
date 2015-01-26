@@ -3707,25 +3707,19 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 	}
 }
 
-PostVSData D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID)
-{
-	auto idx = std::make_pair(frameID, eventID);
-	if(m_PostVSData.find(idx) != m_PostVSData.end())
-		return m_PostVSData[idx];
-
-	RDCWARN("Post VS Buffers not initialised!");
-	PostVSData empty;
-	RDCEraseEl(empty);
-	return empty;
-}
-
 MeshFormat D3D11DebugManager::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
 {
-	MeshFormat ret;
+	PostVSData postvs;
+	RDCEraseEl(postvs);
 
-	PostVSData postvs = GetPostVSBuffers(frameID, eventID);
+	auto idx = std::make_pair(frameID, eventID);
+	if(m_PostVSData.find(idx) != m_PostVSData.end())
+		postvs = m_PostVSData[idx];
+
 	PostVSData::StageData s = postvs.GetStage(stage);
-
+	
+	MeshFormat ret;
+	
 	if(s.useIndices && s.idxBuf)
 		ret.idxbuf = ((WrappedID3D11Buffer *)s.idxBuf)->GetResourceID();
 	else
