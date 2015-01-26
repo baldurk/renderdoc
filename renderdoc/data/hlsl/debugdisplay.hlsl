@@ -253,7 +253,7 @@ float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
 	{
 		float3 lightDir = normalize(float3(0, -0.3f, -1));
 
-		return float4(WireframeColour.xyz*saturate(dot(lightDir, IN.norm)), 1);
+		return float4(WireframeColour.xyz*abs(dot(lightDir, IN.norm)), 1);
 	}
 	else //if(type == MESHDISPLAY_SOLID)
 		return float4(WireframeColour.xyz, 1);

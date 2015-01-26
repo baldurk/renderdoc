@@ -50,7 +50,7 @@ void main(void)
 	{
 		vec3 lightDir = normalize(vec3(0, -0.3f, -1));
 
-		color_out = vec4(RENDERDOC_GenericFS_Color.xyz*clamp(dot(lightDir, IN.norm.xyz), 0.0f, 1.0f), 1);
+		color_out = vec4(RENDERDOC_GenericFS_Color.xyz*abs(dot(lightDir, IN.norm.xyz)), 1);
 	}
 	else //if(type == MESHDISPLAY_SOLID)
 	{
