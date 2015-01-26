@@ -390,7 +390,7 @@ namespace renderdocui.Code
                     for (int i = 0; i < attrs.Length; i++)
                     {
                         int attrib = -1;
-                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.BindpointMapping != null)
+                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.ShaderDetails != null)
                             attrib = m_GL.m_VS.BindpointMapping.InputAttributes[i];
                         else
                             attrib = i;
@@ -406,8 +406,8 @@ namespace renderdocui.Code
                         if (!attrs[i].Enabled) continue;
 
                         ret[a].Name = String.Format("attr{0}", i);
-                        
-                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.BindpointMapping != null)
+
+                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.ShaderDetails != null)
                         {
                             int attrib = m_GL.m_VS.BindpointMapping.InputAttributes[i];
 
