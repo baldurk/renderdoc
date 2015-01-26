@@ -565,6 +565,11 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 				CBuffer cb;
 
+				// I have no real justification for this, it seems some cbuffers are included that are
+				// empty and have nameOffset = 0, fxc seems to skip them so I'll do the same.
+				// See github issue #122
+				if(cbuf->nameOffset == 0) continue;
+
 				cb.name = chunkContents + cbuf->nameOffset;
 
 				cb.descriptor.name = chunkContents + cbuf->nameOffset;
@@ -578,7 +583,24 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 				size_t varStride = sizeof(RDEFCBufferVariable);
 
 				if(h->targetVersion < 0x500)
-					varStride -= sizeof(((RDEFCBufferVariable *)0)->unknown);
+				{
+					size_t extraData = sizeof(((RDEFCBufferVariable *)0)->unknown);
+
+					varStride -= extraData;
+
+					// it seems in rare circumstances, this data is present even for targetVersion < 0x500.
+					// use a heuristic to check if the lower stride would cause invalid-looking data
+					// for variables. See github issue #122
+					if(cbuf->variables.count > 1)
+					{
+						RDEFCBufferVariable *var = (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + varStride);
+
+						if(var->nameOffset > ByteCodeLength)
+						{
+							varStride += extraData;
+						}
+					}
+				}
 
 				for(int32_t vi = 0; vi < cbuf->variables.count; vi++)
 				{
@@ -592,12 +614,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 					v.descriptor.defaultValue.resize(var->size);
 
-					if(var->defaultValueOffset)
+					if(var->defaultValueOffset && var->defaultValueOffset != ~0U)
 					{
 						memcpy(&v.descriptor.defaultValue[0], chunkContents + var->defaultValueOffset, var->size);
 					}
 
-					v.descriptor.name = chunkContents + var->nameOffset;
+					v.descriptor.name = v.name;
 					//v.descriptor.bytesize = var->size; // size with cbuffer padding
 					v.descriptor.offset = var->startOffset;
 					v.descriptor.flags = var->flags;
