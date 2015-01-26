@@ -1109,14 +1109,30 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 	{
 		GLenum prop = eGL_BUFFER_BINDING;
 		uint32_t bind = 0;
+		string name;
+
 		if(ReadSourceProgram)
+		{
 			gl.glGetProgramResourceiv(progSrc, eGL_UNIFORM_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
 
+			char n[1024] = {0};
+			gl.glGetProgramResourceName(progSrc, eGL_UNIFORM_BLOCK, i, 1023, NULL, n);
+
+			name = n;
+		}
+
 		if(SerialiseUniforms)
+		{
 			ser->Serialise("bind", bind);
+			ser->Serialise("name", name);
+		}
 
 		if(WriteDestProgram)
-			gl.glUniformBlockBinding(progDst, i, bind);
+		{
+			GLuint idx = gl.glGetUniformBlockIndex(progDst, name.c_str());
+			if(idx != GL_INVALID_INDEX)
+				gl.glUniformBlockBinding(progDst, idx, bind);
+		}
 	}
 
 	GLint numSSBOs = 0;
@@ -1130,14 +1146,30 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 	{
 		GLenum prop = eGL_BUFFER_BINDING;
 		uint32_t bind = 0;
+		string name;
+
 		if(ReadSourceProgram)
+		{
 			gl.glGetProgramResourceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, i, 1, &prop, 1, NULL, (GLint *)&bind);
 
+			char n[1024] = {0};
+			gl.glGetProgramResourceName(progSrc, eGL_UNIFORM_BLOCK, i, 1023, NULL, n);
+
+			name = n;
+		}
+
 		if(SerialiseUniforms)
+		{
 			ser->Serialise("bind", bind);
+			ser->Serialise("name", name);
+		}
 
 		if(WriteDestProgram)
-			gl.glShaderStorageBlockBinding(progDst, i, bind);
+		{
+			GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
+			if(idx != GL_INVALID_INDEX)
+				gl.glShaderStorageBlockBinding(progDst, i, bind);
+		}
 	}
 }
 
