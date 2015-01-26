@@ -1705,6 +1705,13 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// we don't want to do any work, so just discard before rasterizing
 	gl.glEnable(eGL_RASTERIZER_DISCARD);
 
+	// copy attrib locations from real program
+	for(int32_t i=0; i < vsRefl->InputSig.count; i++)
+	{
+		GLint idx = gl.glGetAttribLocation(vsProgSrc, vsRefl->InputSig[i].varName.elems);
+		gl.glBindAttribLocation(vsProg, (GLuint)idx, vsRefl->InputSig[i].varName.elems);
+	}
+
 	varyings.clear();
 
 	uint32_t stride = 0;
