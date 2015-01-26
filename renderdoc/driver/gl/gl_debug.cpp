@@ -1156,6 +1156,8 @@ void GLReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	gl.glDisable(eGL_DEPTH_TEST);
 
+	gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
 	
 	Vec4f *ubo = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f)*2, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -1695,11 +1697,6 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		return;
 	}
 	
-	GLenum gsOutputType = eGL_NONE;
-
-	if(gsProg)
-		gl.glGetProgramiv(gsProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&gsOutputType);
-	
 	vector<const char *> varyings;
 
 	// we don't want to do any work, so just discard before rasterizing
@@ -1989,8 +1986,8 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	byte *byteData = (byte *)data;
 
-	float nearp = 0.0f;
-	float farp = 0.0f;
+	float nearp = 0.1f;
+	float farp = 100.0f;
 
 	Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
 
@@ -2060,6 +2057,291 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	gl.glLinkProgram(vsProg);
 
 	GLuint lastFeedbackPipe = 0;
+
+	if(tesProg || gsProg)
+	{
+		GLuint lastProg = gsProg;
+		ShaderReflection *lastRefl = gsRefl;
+
+		if(lastProg == 0)
+		{
+			lastProg = tesProg;
+			lastRefl = tesRefl;
+		}
+
+		RDCASSERT(lastProg && lastRefl);
+
+		varyings.clear();
+
+		stride = 0;
+		posoffset = ~0U;
+
+		for(int32_t i=0; i < lastRefl->OutputSig.count; i++)
+		{
+			varyings.push_back(lastRefl->OutputSig[i].varName.elems);
+
+			if(!strcmp(lastRefl->OutputSig[i].varName.elems, "gl_Position"))
+				posoffset = stride;
+
+			stride += sizeof(float)*lastRefl->OutputSig[i].compCount;
+		}
+
+		// see above for the justification/explanation of this monstrosity.
+
+		GLint status = 0;
+		bool finished = false;
+		while(true)
+		{
+			// specify current varyings & relink
+			gl.glTransformFeedbackVaryings(lastProg, (GLsizei)varyings.size(), &varyings[0], eGL_INTERLEAVED_ATTRIBS);
+			gl.glLinkProgram(lastProg);
+
+			gl.glGetProgramiv(lastProg, eGL_LINK_STATUS, &status);
+
+			// all good! Hopefully we'll mostly hit this
+			if(status == 1)
+				break;
+
+			// if finished is true, this was our last attempt - there are no
+			// more fixups possible
+			if(finished)
+				break;
+
+			char buffer[1025] = {0};
+			gl.glGetProgramInfoLog(lastProg, 1024, NULL, buffer);
+
+			// assume we're finished and can't retry any more after this.
+			// if we find a potential 'fixup' we'll set this back to false
+			finished = true;
+
+			// see if any of our current varyings are present in the buffer string
+			for(size_t i=0; i < varyings.size(); i++)
+			{
+				if(strstr(buffer, varyings[i]))
+				{
+					const char *prefix_removed = strchr(varyings[i], '.');
+
+					// does it contain a prefix?
+					if(prefix_removed)
+					{
+						prefix_removed++; // now this is our string without the prefix
+
+						// first check this won't cause a duplicate - if it does, we have to try something else
+						bool duplicate = false;
+						for(size_t j=0; j < varyings.size(); j++)
+						{
+							if(!strcmp(varyings[j], prefix_removed))
+							{
+								duplicate = true;
+								break;
+							}
+						}
+
+						if(!duplicate)
+						{
+							// we'll attempt this fixup
+							RDCWARN("Attempting XFB varying fixup, subst '%s' for '%s'", varyings[i], prefix_removed);
+							varyings[i] = prefix_removed;
+							finished = false;
+
+							// don't try more than one at once (just in case)
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if(status == 0)
+		{
+			char buffer[1025] = {0};
+			gl.glGetProgramInfoLog(lastProg, 1024, NULL, buffer);
+			RDCERR("Failed to fix-up. Link error making xfb last program: %s", buffer);
+		}
+		else
+		{
+			// make a pipeline to contain all the vertex processing shaders
+			gl.glGenProgramPipelines(1, &lastFeedbackPipe);
+
+			// bind the separable vertex program to it
+			gl.glUseProgramStages(lastFeedbackPipe, eGL_VERTEX_SHADER_BIT, vsProg);
+
+			// copy across any uniform values, bindings etc from the real program containing
+			// the vertex stage
+			CopyProgramUniforms(gl.GetHookset(), vsProgSrc, vsProg);
+
+			// if tessellation is enabled, bind & copy uniforms. Note, control shader is optional
+			// independent of eval shader (default values are used for the tessellation levels).
+			if(tcsProg)
+			{
+				gl.glUseProgramStages(lastFeedbackPipe, eGL_TESS_CONTROL_SHADER_BIT, tcsProg);
+				CopyProgramUniforms(gl.GetHookset(), tcsProgSrc, tcsProg);
+			}
+			if(tesProg)
+			{
+				gl.glUseProgramStages(lastFeedbackPipe, eGL_TESS_EVALUATION_SHADER_BIT, tesProg);
+				CopyProgramUniforms(gl.GetHookset(), tesProgSrc, tesProg);
+			}
+
+			// if we have a geometry shader, bind & copy uniforms
+			if(gsProg)
+			{
+				gl.glUseProgramStages(lastFeedbackPipe, eGL_GEOMETRY_SHADER_BIT, gsProg);
+				CopyProgramUniforms(gl.GetHookset(), gsProgSrc, gsProg);
+			}
+
+			// bind our program and do the feedback draw
+			gl.glUseProgram(0);
+			gl.glBindProgramPipeline(lastFeedbackPipe);
+
+			gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
+
+			// need to rebind this here because of an AMD bug that seems to ignore the buffer
+			// bindings in the feedback object - or at least it errors if the default feedback
+			// object has no buffers bound. Fortunately the state is still object-local so
+			// we don't have to restore the buffer binding on the default feedback object.
+			gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+
+			GLuint idxBuf = 0;
+
+			GLenum shaderOutMode = eGL_TRIANGLES;
+			GLenum lastOutTopo = eGL_TRIANGLES;
+
+			if(lastProg == gsProg)
+			{
+				gl.glGetProgramiv(gsProg, eGL_GEOMETRY_OUTPUT_TYPE, (GLint *)&shaderOutMode);
+				     if(shaderOutMode == eGL_TRIANGLE_STRIP) lastOutTopo = eGL_TRIANGLES;
+				else if(shaderOutMode == eGL_LINE_STRIP)     lastOutTopo = eGL_LINES;
+				else if(shaderOutMode == eGL_POINTS)         lastOutTopo = eGL_POINTS;
+			}
+			else if(lastProg == tesProg)
+			{
+				gl.glGetProgramiv(tesProg, eGL_TESS_GEN_MODE, (GLint *)&shaderOutMode);
+				     if(shaderOutMode == eGL_QUADS)     lastOutTopo = eGL_TRIANGLES;
+				else if(shaderOutMode == eGL_ISOLINES)  lastOutTopo = eGL_LINES;
+				else if(shaderOutMode == eGL_TRIANGLES) lastOutTopo = eGL_TRIANGLES;
+			}
+
+			gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQuery);
+			gl.glBeginTransformFeedback(lastOutTopo);
+
+			GLenum drawtopo = MakeGLPrimitiveTopology(drawcall->topology);
+
+			if((drawcall->flags & eDraw_UseIBuffer) == 0)
+			{
+				gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
+			}
+			else // drawcall is indexed
+			{
+				GLenum idxType = eGL_UNSIGNED_BYTE;
+				if(drawcall->indexByteWidth == 2) idxType = eGL_UNSIGNED_SHORT;
+				else if(drawcall->indexByteWidth == 4) idxType = eGL_UNSIGNED_INT;
+				gl.glDrawElementsBaseVertex(drawtopo, drawcall->numIndices, idxType,
+					(const void *)(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->vertexOffset);
+			}
+			gl.glEndTransformFeedback();
+			gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+
+			// this should be the same as the draw size
+			GLuint primsWritten = 0;
+			gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
+
+			// get buffer data from buffer attached to feedback object
+			float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+
+			if(lastProg == tesProg)
+			{
+				// primitive counter is the number of primitives, not vertices
+				if(shaderOutMode == eGL_TRIANGLES || shaderOutMode == eGL_QUADS) // query for quads returns # triangles
+					m_PostVSData[idx].gsout.numVerts = primsWritten*3;
+				else if(shaderOutMode == eGL_ISOLINES)
+					m_PostVSData[idx].gsout.numVerts = primsWritten*2;
+			}
+			else if(lastProg == gsProg)
+			{
+				// primitive counter is the number of primitives, not vertices
+				if(shaderOutMode == eGL_POINTS)
+					m_PostVSData[idx].gsout.numVerts = primsWritten;
+				else if(shaderOutMode == eGL_LINE_STRIP)
+					m_PostVSData[idx].gsout.numVerts = primsWritten*2;
+				else if(shaderOutMode == eGL_TRIANGLE_STRIP)
+					m_PostVSData[idx].gsout.numVerts = primsWritten*3;
+			}
+
+			// create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
+			// can render from it to display previews).
+			GLuint lastoutBuffer = 0;
+			gl.glGenBuffers(1, &lastoutBuffer);
+			gl.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
+			gl.glNamedBufferStorageEXT(lastoutBuffer, stride*m_PostVSData[idx].gsout.numVerts, data, 0);
+
+			byte *byteData = (byte *)data;
+
+			float nearp = 0.1f;
+			float farp = 100.0f;
+
+			Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
+
+			for(uint32_t i=1; posoffset != ~0U && i < m_PostVSData[idx].gsout.numVerts; i++)
+			{
+				//////////////////////////////////////////////////////////////////////////////////
+				// derive near/far, assuming a standard perspective matrix
+				//
+				// the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+				// is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+				// and we know Wpost = Zpre from the perspective matrix.
+				// we can then see from the perspective matrix that
+				// m = F/(F-N)
+				// c = -(F*N)/(F-N)
+				//
+				// with re-arranging and substitution, we then get:
+				// N = -c/m
+				// F = c/(1-m)
+				//
+				// so if we can derive m and c then we can determine N and F. We can do this with
+				// two points, and we pick them reasonably distinct on z to reduce floating-point
+				// error
+
+				Vec4f *pos = (Vec4f *)(byteData + posoffset + i*stride);
+
+				if(fabs(pos->w - pos0->w) > 0.01f)
+				{
+					Vec2f A(pos0->w, pos0->z);
+					Vec2f B(pos->w, pos->z);
+
+					float m = (B.y-A.y)/(B.x-A.x);
+					float c = B.y - B.x*m;
+
+					if(m == 1.0f) continue;
+
+					nearp = -c/m;
+					farp = c/(1-m);
+
+					break;
+				}
+			}
+
+			gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+
+			// store everything out to the PostVS data cache
+			m_PostVSData[idx].gsout.buf = lastoutBuffer;
+			m_PostVSData[idx].gsout.posOffset = posoffset;
+			m_PostVSData[idx].gsout.vertStride = stride;
+			m_PostVSData[idx].gsout.nearPlane = nearp;
+			m_PostVSData[idx].gsout.farPlane = farp;
+
+			m_PostVSData[idx].gsout.useIndices = false;
+
+			m_PostVSData[idx].gsout.idxBuf = 0;
+			m_PostVSData[idx].gsout.idxByteWidth = 0;
+
+			m_PostVSData[idx].gsout.topo = MakePrimitiveTopology(gl.GetHookset(), lastOutTopo);
+		}
+
+		// set lastProg back to no varyings, for future use
+		gl.glTransformFeedbackVaryings(lastProg, 0, NULL, eGL_INTERLEAVED_ATTRIBS);
+		gl.glLinkProgram(lastProg);
+	}
 	
 	// delete temporary pipelines we made
 	gl.glDeleteProgramPipelines(1, &vsFeedbackPipe);

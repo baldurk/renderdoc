@@ -4086,8 +4086,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		byte *byteData = (byte *)mapped.pData;
 
-		float nearp = 0.0f;
-		float farp = 0.0f;
+		float nearp = 0.1f;
+		float farp = 100.0f;
 
 		Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
 
@@ -4316,8 +4316,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		byte *byteData = (byte *)mapped.pData;
 
-		float nearp = 0.0f;
-		float farp = 0.0f;
+		float nearp = 0.1f;
+		float farp = 100.0f;
 
 		Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
 

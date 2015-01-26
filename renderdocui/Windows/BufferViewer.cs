@@ -2385,7 +2385,7 @@ namespace renderdocui.Windows
 
             // use estimates from post vs data (calculated from vertex position data) if the user
             // hasn't overridden the values
-            m_MeshDisplay.position.nearPlane = 1.0f;
+            m_MeshDisplay.position.nearPlane = 0.1f;
 
             if (m_VSOut.m_Data != null && m_VSOut.m_Data.PostVS.buf != ResourceId.Null)
                 m_MeshDisplay.position.nearPlane = m_VSOut.m_Data.PostVS.nearPlane;
@@ -2395,7 +2395,7 @@ namespace renderdocui.Windows
             else
                 nearGuess.Text = "";
 
-            m_MeshDisplay.position.farPlane = 10.0f;
+            m_MeshDisplay.position.farPlane = 100.0f;
 
             if (m_VSOut.m_Data != null && m_VSOut.m_Data.PostVS.buf != ResourceId.Null)
                 m_MeshDisplay.position.farPlane = m_VSOut.m_Data.PostVS.farPlane;
