@@ -389,21 +389,13 @@ namespace renderdocui.Code
                     int num = 0;
                     for (int i = 0; i < attrs.Length; i++)
                     {
-                        if (m_GL.m_VS.ShaderDetails != null)
-                        {
-                            bool found = false;
-                            foreach (var isig in m_GL.m_VS.ShaderDetails.InputSig)
-                            {
-                                if (isig.regIndex == attrs[i].BufferSlot)
-                                {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) continue;
-                        }
+                        int attrib = -1;
+                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.BindpointMapping != null)
+                            attrib = m_GL.m_VS.BindpointMapping.InputAttributes[i];
+                        else
+                            attrib = i;
 
-                        if (attrs[i].Enabled)
+                        if (attrs[i].Enabled && attrib >= 0)
                             num++;
                     }
 
@@ -414,20 +406,15 @@ namespace renderdocui.Code
                         if (!attrs[i].Enabled) continue;
 
                         ret[a].Name = String.Format("attr{0}", i);
-
-                        if (m_GL.m_VS.ShaderDetails != null)
+                        
+                        if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.BindpointMapping != null)
                         {
-                            bool found = false;
-                            foreach (var isig in m_GL.m_VS.ShaderDetails.InputSig)
-                            {
-                                if (isig.regIndex == attrs[i].BufferSlot)
-                                {
-                                    ret[a].Name = isig.varName;
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) continue;
+                            int attrib = m_GL.m_VS.BindpointMapping.InputAttributes[i];
+
+                            if (attrib >= 0 && attrib < m_GL.m_VS.ShaderDetails.InputSig.Length)
+                                ret[a].Name = m_GL.m_VS.ShaderDetails.InputSig[attrib].varName;
+
+                            if (attrib == -1) continue;
                         }
 
                         ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
