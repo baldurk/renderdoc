@@ -1705,6 +1705,10 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// copy attrib locations from real program
 	for(int32_t i=0; i < vsRefl->InputSig.count; i++)
 	{
+		// skip built-ins
+		if(vsRefl->InputSig[i].systemValue != eAttr_None)
+			continue;
+
 		GLint idx = gl.glGetAttribLocation(vsProgSrc, vsRefl->InputSig[i].varName.elems);
 		gl.glBindAttribLocation(vsProg, (GLuint)idx, vsRefl->InputSig[i].varName.elems);
 	}
