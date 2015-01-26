@@ -445,6 +445,7 @@ namespace renderdocui.Windows
                     m_Output = r.CreateOutput(RenderHandle);
                     m_Output.SetOutputConfig(m_OutConfig);
                     RT_UpdateRenderOutput(r);
+                    m_Output.Display(); // pump the display once, this will fetch postvs data
 
                     m_VSIn.m_Input = GetCurrentMeshInput(draw, MeshDataStage.VSIn);
                     m_VSOut.m_Input = GetCurrentMeshInput(draw, MeshDataStage.VSOut);
