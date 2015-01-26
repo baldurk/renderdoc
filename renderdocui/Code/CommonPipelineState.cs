@@ -419,7 +419,7 @@ namespace renderdocui.Code
 
                         ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
                         ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
-                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].PerInstance;
+                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor > 0;
                         ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
                         ret[a].Format = attrs[i].Format;
 

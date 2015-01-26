@@ -52,7 +52,6 @@ namespace renderdoc
                 public ResourceId Buffer;
                 public UInt32 Stride;
                 public UInt32 Offset;
-                public bool PerInstance;
                 public UInt32 Divisor;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
