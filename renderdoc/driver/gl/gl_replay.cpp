@@ -2255,6 +2255,17 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
 	RDCUNIMPLEMENTED("SetProxyTextureData");
 }
 
+ResourceId GLReplay::CreateProxyBuffer(FetchBuffer templateBuf)
+{
+	RDCUNIMPLEMENTED("CreateProxyBuffer");
+	return ResourceId();
+}
+
+void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
+{
+	RDCUNIMPLEMENTED("SetProxyBufferData");
+}
+
 const GLHookSet &GetRealFunctions();
 
 // defined in gl_replay_<platform>.cpp

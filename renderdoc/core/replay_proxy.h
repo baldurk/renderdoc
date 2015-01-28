@@ -175,7 +175,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		{
 			if(m_Proxy)
 			{
-				EnsureCached(texid, sliceFace, mip);
+				EnsureTexCached(texid, sliceFace, mip);
 				return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval);
 			}
 
@@ -186,7 +186,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		{
 			if(m_Proxy)
 			{
-				EnsureCached(texid, sliceFace, mip);
+				EnsureTexCached(texid, sliceFace, mip);
 				return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, minval, maxval, channels, histogram);
 			}
 
@@ -197,7 +197,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		{
 			if(m_Proxy)
 			{
-				EnsureCached(cfg.texid, cfg.sliceFace, cfg.mip);
+				EnsureTexCached(cfg.texid, cfg.sliceFace, cfg.mip);
 				cfg.texid = m_ProxyTextureIds[cfg.texid];
 				return m_Proxy->RenderTexture(cfg);
 			}
@@ -209,15 +209,48 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		{
 			if(m_Proxy)
 			{
-				EnsureCached(texture, sliceFace, mip);
+				EnsureTexCached(texture, sliceFace, mip);
 				m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, pixel);
 			}
 		}
 			
 		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 		{
-			if(m_Proxy)
-				m_Proxy->RenderCheckerboard(Vec3f(0.7f, 0.3f, 0.3f), Vec3f(0.3f, 0.3f, 0.7f));
+			if(m_Proxy && cfg.position.buf != ResourceId())
+			{
+				EnsureBufCached(cfg.position.buf);
+				cfg.position.buf = m_ProxyBufferIds[cfg.position.buf];
+				
+				if(cfg.second.buf != ResourceId())
+				{
+					EnsureBufCached(cfg.second.buf);
+					cfg.second.buf = m_ProxyBufferIds[cfg.second.buf];
+				}
+				
+				if(cfg.position.idxbuf != ResourceId())
+				{
+					EnsureBufCached(cfg.position.idxbuf);
+					cfg.position.idxbuf = m_ProxyBufferIds[cfg.position.idxbuf];
+				}
+
+				vector<MeshFormat> secDraws = secondaryDraws;
+
+				for(size_t i=0; i < secDraws.size(); i++)
+				{
+					if(secDraws[i].buf != ResourceId())
+					{
+						EnsureBufCached(secDraws[i].buf);
+						secDraws[i].buf = m_ProxyBufferIds[secDraws[i].buf];
+					}
+					if(secDraws[i].idxbuf != ResourceId())
+					{
+						EnsureBufCached(secDraws[i].idxbuf);
+						secDraws[i].idxbuf = m_ProxyBufferIds[secDraws[i].idxbuf];
+					}
+				}
+
+				m_Proxy->RenderMesh(frameID, eventID, secDraws, cfg);
+			}
 		}
 		
 		void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
@@ -243,7 +276,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		{
 			if(m_Proxy)
 			{
-				EnsureCached(texid, 0, mip);
+				EnsureTexCached(texid, 0, mip);
 				texid = m_ProxyTextureIds[texid];
 				ResourceId customResourceId = m_Proxy->ApplyCustomShader(shader, texid, mip);
 				m_LocalTextures.insert(customResourceId);
@@ -323,11 +356,23 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 			RDCERR("Calling proxy-render functions on a proxy serialiser");
 		}
 
+		ResourceId CreateProxyBuffer(FetchBuffer templateBuf)
+		{
+			RDCERR("Calling proxy-render functions on a proxy serialiser");
+			return ResourceId();
+		}
+
+		void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
+		{
+			RDCERR("Calling proxy-render functions on a proxy serialiser");
+		}
+
 	private:
 		bool SendReplayCommand(CommandPacketType type);
 		void CopyDrawcallTimes(rdctype::array<FetchDrawcall> &src, rdctype::array<FetchDrawcall> &dst);
 
-		void EnsureCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
+		void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
+		void EnsureBufCached(ResourceId bufid);
 
 		struct TextureCacheEntry
 		{
@@ -347,6 +392,9 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		set<TextureCacheEntry> m_TextureProxyCache;
 		set<ResourceId> m_LocalTextures;
 		map<ResourceId, ResourceId> m_ProxyTextureIds;
+		
+		set<ResourceId> m_BufferProxyCache;
+		map<ResourceId, ResourceId> m_ProxyBufferIds;
 		
 		map<ResourceId, ResourceId> m_LiveIDs;
 

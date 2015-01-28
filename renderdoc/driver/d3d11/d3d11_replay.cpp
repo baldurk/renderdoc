@@ -381,7 +381,9 @@ FetchBuffer D3D11Replay::GetBuffer(ResourceId id)
 
 	ret.name = str;
 	ret.length = it->second.length;
-	ret.structureSize = desc.StructureByteStride;
+	ret.structureSize = 0;
+	if(desc.MiscFlags & D3D11_RESOURCE_MISC_BUFFER_STRUCTURED)
+		ret.structureSize = desc.StructureByteStride;
 	ret.byteSize = desc.ByteWidth;
 
 	ret.creationFlags = 0;
@@ -1615,6 +1617,89 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 	else
 	{
 		RDCERR("Invalid texture id passed to SetProxyTextureData");
+	}
+}
+
+ResourceId D3D11Replay::CreateProxyBuffer(FetchBuffer templateBuf)
+{
+	ResourceId ret;
+
+	ID3D11Resource *resource = NULL;
+
+	{
+		ID3D11Buffer *throwaway = NULL;
+		D3D11_BUFFER_DESC desc;
+
+		desc.ByteWidth = (UINT)templateBuf.byteSize;
+		desc.CPUAccessFlags = 0;
+		desc.MiscFlags = 0;
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+
+		if(templateBuf.structureSize > 0)
+		{
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_BUFFER_STRUCTURED;
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc.StructureByteStride = templateBuf.structureSize;
+		}
+
+		if(templateBuf.creationFlags & eBufferCreate_Indirect)
+		{
+			desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+			desc.MiscFlags |= D3D11_RESOURCE_MISC_DRAWINDIRECT_ARGS;
+		}
+		if(templateBuf.creationFlags & eBufferCreate_IB)
+			desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		if(templateBuf.creationFlags & eBufferCreate_CB)
+			desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+		if(templateBuf.creationFlags & eBufferCreate_UAV)
+			desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS|D3D11_BIND_SHADER_RESOURCE;
+
+		HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &throwaway);
+		if(FAILED(hr))
+		{
+			RDCERR("Failed to create proxy buffer");
+			return ResourceId();
+		}
+
+		resource = throwaway;
+
+		ret = ((WrappedID3D11Buffer *)throwaway)->GetResourceID();
+	}
+
+	if(resource != NULL && templateBuf.customName)
+	{
+		string name = templateBuf.name.elems;
+		SetDebugName(resource, templateBuf.name.elems);
+	}
+
+	return ret;
+}
+
+void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
+{
+	if(bufid == ResourceId()) return;
+
+	ID3D11DeviceContext *ctx = m_pDevice->GetImmediateContext()->GetReal();
+
+	if(WrappedID3D11Buffer::m_BufferList.find(bufid) != WrappedID3D11Buffer::m_BufferList.end())
+	{
+		WrappedID3D11Buffer *buf = (WrappedID3D11Buffer *)WrappedID3D11Buffer::m_BufferList[bufid].m_Buffer;
+
+		D3D11_BUFFER_DESC desc;
+		buf->GetDesc(&desc);
+
+		if(dataSize < desc.ByteWidth)
+		{
+			RDCERR("Insufficient data provided to SetProxyBufferData");
+			return;
+		}
+
+		ctx->UpdateSubresource(buf->GetReal(), 0, NULL, data, dataSize, dataSize);
+	}
+	else
+	{
+		RDCERR("Invalid buffer id passed to SetProxyBufferData");
 	}
 }
 

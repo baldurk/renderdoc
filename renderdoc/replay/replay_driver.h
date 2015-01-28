@@ -129,6 +129,9 @@ class IReplayDriver : public IRemoteDriver
 
 		virtual ResourceId CreateProxyTexture(FetchTexture templateTex) = 0;
 		virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize) = 0;
+		
+		virtual ResourceId CreateProxyBuffer(FetchBuffer templateBuf) = 0;
+		virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
 		virtual void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg) = 0;
 		virtual bool RenderTexture(TextureDisplay cfg) = 0;

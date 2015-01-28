@@ -100,6 +100,9 @@ class D3D11Replay : public IReplayDriver
 
 		ResourceId CreateProxyTexture(FetchTexture templateTex);
 		void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize);
+		
+		ResourceId CreateProxyBuffer(FetchBuffer templateBuf);
+		void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
 		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
 		

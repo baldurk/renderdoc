@@ -947,7 +947,7 @@ bool ProxySerialiser::SendReplayCommand(CommandPacketType type)
 	return true;
 }
 
-void ProxySerialiser::EnsureCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
+void ProxySerialiser::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
 {
 	TextureCacheEntry entry = { texid, arrayIdx, mip };
 
@@ -973,6 +973,27 @@ void ProxySerialiser::EnsureCached(ResourceId texid, uint32_t arrayIdx, uint32_t
 		delete[] data;
 
 		m_TextureProxyCache.insert(entry);
+	}
+}
+
+void ProxySerialiser::EnsureBufCached(ResourceId bufid)
+{
+	if(m_BufferProxyCache.find(bufid) == m_BufferProxyCache.end())
+	{
+		if(m_ProxyBufferIds.find(bufid) == m_ProxyBufferIds.end())
+		{
+			FetchBuffer buf = GetBuffer(bufid);
+			m_ProxyBufferIds[bufid] = m_Proxy->CreateProxyBuffer(buf);
+		}
+
+		ResourceId proxyid = m_ProxyBufferIds[bufid];
+
+		vector<byte> data = GetBufferData(bufid, 0, 0);
+
+		if(!data.empty())
+			m_Proxy->SetProxyBufferData(proxyid, &data[0], data.size());
+
+		m_BufferProxyCache.insert(bufid);
 	}
 }
 
@@ -1010,7 +1031,7 @@ bool ProxySerialiser::Tick()
 			GetBuffers();
 			break;
 		case eCommand_GetBuffer:
-			GetTexture(ResourceId());
+			GetBuffer(ResourceId());
 			break;
 		case eCommand_GetShader:
 			GetShader(ResourceId());
@@ -1310,6 +1331,7 @@ void ProxySerialiser::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_
 			return;
 
 		m_TextureProxyCache.clear();
+		m_BufferProxyCache.clear();
 	}
 }
 

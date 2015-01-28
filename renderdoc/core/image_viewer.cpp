@@ -140,13 +140,24 @@ class ImageViewer : public IReplayDriver
 		// these are proxy functions, and will never be used
 		ResourceId CreateProxyTexture(FetchTexture templateTex)
 		{
-			RDCERR("Calling proxy-render functions on a proxy serialiser");
+			RDCERR("Calling proxy-render functions on an image viewer");
 			return ResourceId();
 		}
 
 		void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
 		{
-			RDCERR("Calling proxy-render functions on a proxy serialiser");
+			RDCERR("Calling proxy-render functions on an image viewer");
+		}
+
+		ResourceId CreateProxyBuffer(FetchBuffer templateBuf)
+		{
+			RDCERR("Calling proxy-render functions on an image viewer");
+			return ResourceId();
+		}
+
+		void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
+		{
+			RDCERR("Calling proxy-render functions on an image viewer");
 		}
 
 	private:

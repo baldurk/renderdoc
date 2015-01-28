@@ -166,6 +166,9 @@ class GLReplay : public IReplayDriver
 			
 		ResourceId CreateProxyTexture(FetchTexture templateTex);
 		void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize);
+		
+		ResourceId CreateProxyBuffer(FetchBuffer templateBuf);
+		void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
 		bool IsRenderOutput(ResourceId id);
 		
