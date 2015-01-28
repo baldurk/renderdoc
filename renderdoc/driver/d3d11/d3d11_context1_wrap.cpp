@@ -410,8 +410,6 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 
 		draw.flags |= eDraw_Clear;
 
-		draw.duration = 0.1f;
-
 		AddDrawcall(draw, true);
 	}
 

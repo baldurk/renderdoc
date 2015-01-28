@@ -2199,9 +2199,26 @@ void GLReplay::RemoveReplacement(ResourceId id)
 	RDCUNIMPLEMENTED("RemoveReplacement");
 }
 
-void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
+vector<uint32_t> GLReplay::EnumerateCounters()
 {
-	RDCUNIMPLEMENTED("TimeDrawcalls");
+	GLNOTIMP("EnumerateCounters");
+	return vector<uint32_t>();
+}
+
+void GLReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+{
+	desc.counterID = counterID;
+	desc.name = "Unsupported";
+	desc.description = "Counters are not implemented on OpenGL yet";
+	desc.resultByteWidth = 0;
+	desc.resultCompType = eCompType_None;
+	desc.units = eUnits_Absolute;
+}
+
+vector<CounterResult> GLReplay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+{
+	RDCUNIMPLEMENTED("FetchCounters");
+	return vector<CounterResult>();
 }
 
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)

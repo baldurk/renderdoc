@@ -138,8 +138,10 @@ class GLReplay : public IReplayDriver
 		
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
-
-		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
+		
+		vector<uint32_t> EnumerateCounters();
+		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
+		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters);
 
 		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
 		

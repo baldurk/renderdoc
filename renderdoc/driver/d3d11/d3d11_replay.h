@@ -95,8 +95,10 @@ class D3D11Replay : public IReplayDriver
 		void BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors);
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
-
-		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
+		
+		vector<uint32_t> EnumerateCounters();
+		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
+		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters);
 
 		ResourceId CreateProxyTexture(FetchTexture templateTex);
 		void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize);

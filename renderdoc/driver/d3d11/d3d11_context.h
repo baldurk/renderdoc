@@ -114,16 +114,16 @@ struct DrawcallTreeNode
 	FetchDrawcall draw;
 	vector<DrawcallTreeNode> children;
 
-	rdctype::array<FetchDrawcall> Bake()
+	vector<FetchDrawcall> Bake()
 	{
-		rdctype::array<FetchDrawcall> ret;
+		vector<FetchDrawcall> ret;
 		if(children.empty()) return ret;
 
-		create_array_uninit(ret, children.size());
+		ret.resize(children.size());
 		for(size_t i=0; i < children.size(); i++)
 		{
-			ret.elems[i] = children[i].draw;
-			ret.elems[i].children = children[i].Bake();
+			ret[i] = children[i].draw;
+			ret[i].children = children[i].Bake();
 		}
 
 		return ret;
@@ -287,6 +287,8 @@ public:
 
 	uint32_t GetEventID() { return m_CurEventID; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
+
+	const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
 	
 	void ThreadSafe_SetMarker(uint32_t col, const wchar_t *name);
 	int ThreadSafe_BeginEvent(uint32_t col, const wchar_t *name);

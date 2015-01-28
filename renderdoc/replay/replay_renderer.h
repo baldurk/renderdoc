@@ -154,7 +154,10 @@ struct ReplayRenderer
 		bool FreeTargetResource(ResourceId id);
 		
 		bool GetFrameInfo(rdctype::array<FetchFrameInfo> *frame);
-		bool GetDrawcalls(uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws);
+		bool GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
+		bool FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+		bool EnumerateCounters(rdctype::array<uint32_t> *counters);
+		bool DescribeCounter(uint32_t counterID, CounterDescription *desc);
 		bool GetTextures(rdctype::array<FetchTexture> *texs);
 		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
 		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);

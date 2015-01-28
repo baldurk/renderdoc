@@ -630,22 +630,6 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	return m_RefCounter.QueryInterface(riid, ppvObject);
 }
 
-#if defined(ENABLE_NVIDIA_PERFKIT)
-#define NVPM_INITGUID
-#include STRINGIZE(CONCAT(NVIDIA_PERFKIT_DIR, inc\\NvPmApi.h))
-
-NvPmApi *nvAPI = NULL;
-#endif
-
-#if defined(ENABLE_NVIDIA_PERFKIT)
-int enumFunc(NVPMCounterID id, const char *name)
-{
-	RDCLOG("(% 4d): %s", id, name);
-
-	return NVPM_OK;
-}
-#endif
-
 const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 {
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_D3D11_CHUNKS)
@@ -656,57 +640,7 @@ const char *WrappedID3D11Device::GetChunkName(uint32_t idx)
 void WrappedID3D11Device::LazyInit()
 {
 	if(m_DebugManager == NULL)
-	{
 		m_DebugManager = new D3D11DebugManager(this);
-		
-#if defined(ENABLE_NVIDIA_PERFKIT)
-		
-		HMODULE nvapi = LoadLibraryA(STRINGIZE(CONCAT(NVIDIA_PERFKIT_DIR, bin\\win7_x86\\NvPmApi.Core.dll)));
-		if(nvapi == NULL)
-		{
-			RDCERR("Couldn't load perfkit");
-			return;
-		}
-		
-        NVPMGetExportTable_Pfn NVPMGetExportTable = (NVPMGetExportTable_Pfn)GetProcAddress(nvapi, "NVPMGetExportTable");
-        if(NVPMGetExportTable == NULL)
-		{
-			RDCERR("Couldn't Get Symbol 'NVPMGetExportTable'");
-			return;
-		}
-        
-		NVPMRESULT nvResult = NVPMGetExportTable(&ETID_NvPmApi, (void **)&nvAPI);
-        if(nvResult != NVPM_OK)
-		{
-			RDCERR("Couldn't NVPMGetExportTable");
-			return;
-		}
-
-		nvResult = nvAPI->Init();
-
-		if(nvResult != NVPM_OK)
-		{
-			RDCERR("Couldn't nvAPI->Init");
-			return;
-		}
-
-		NVPMContext context(0);
-		nvResult = nvAPI->CreateContextFromD3D11Device(m_pDevice, &context);
-
-		if(nvResult != NVPM_OK)
-		{
-			RDCERR("Couldn't nvAPI->CreateContextFromD3D11Device");
-			return;
-		}
-
-		nvAPI->EnumCountersByContext(context, &enumFunc);
-
-		nvAPI->DestroyContext(context);
-		nvAPI->Shutdown();
-		nvAPI = NULL;
-		FreeLibrary(nvapi);
-#endif
-	}
 }
 
 void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d)
@@ -3482,11 +3416,11 @@ const FetchDrawcall *WrappedID3D11Device::GetDrawcall(uint32_t frameID, uint32_t
 	if(frameID >= m_FrameRecord.size())
 		return NULL;
 
-	int32_t count = m_FrameRecord[frameID].drawcallList.count;
-	for(int32_t i=0; i < count; i++)
+	size_t count = m_FrameRecord[frameID].drawcallList.size();
+	for(size_t i=0; i < count; i++)
 	{
-		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList.elems[i];
-		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList.elems[i+1] : NULL;
+		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList[i];
+		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList[i+1] : NULL;
 
 		if(next && next->eventID <= eventID)
 			continue;

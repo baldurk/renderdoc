@@ -209,7 +209,13 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetFrameInfo(IntPtr real, IntPtr outframe);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetDrawcalls(IntPtr real, UInt32 frameID, bool includeTimes, IntPtr outdraws);
+        private static extern bool ReplayRenderer_GetDrawcalls(IntPtr real, UInt32 frameID, IntPtr outdraws);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_FetchCounters(IntPtr real, UInt32 frameID, UInt32 minEventID, UInt32 maxEventID, IntPtr counters, UInt32 numCounters, IntPtr outresults);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_EnumerateCounters(IntPtr real, IntPtr outcounters);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_DescribeCounter(IntPtr real, UInt32 counter, IntPtr outdesc);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetTextures(IntPtr real, IntPtr outtexs);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -428,11 +434,84 @@ namespace renderdoc
             }
         }
 
-        public FetchDrawcall[] GetDrawcalls(UInt32 frameID, bool includeTimes)
+        public Dictionary<uint, List<CounterResult>> FetchCounters(UInt32 frameID, UInt32 minEventID, UInt32 maxEventID, UInt32[] counters)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            bool success = ReplayRenderer_GetDrawcalls(m_Real, frameID, includeTimes, mem);
+            IntPtr countersmem = CustomMarshal.Alloc(typeof(UInt32), counters.Length);
+
+            // there's no Marshal.Copy for uint[], which is stupid.
+            for (int i = 0; i < counters.Length; i++)
+                Marshal.WriteInt32(countersmem, sizeof(UInt32) * i, (int)counters[i]);
+
+            bool success = ReplayRenderer_FetchCounters(m_Real, frameID, minEventID, maxEventID, countersmem, (uint)counters.Length, mem);
+
+            CustomMarshal.Free(countersmem);
+
+            Dictionary<uint, List<CounterResult>> ret = null;
+
+            if (success)
+            {
+                CounterResult[] resultArray = (CounterResult[])CustomMarshal.GetTemplatedArray(mem, typeof(CounterResult), true);
+
+                // fixup previous/next/parent pointers
+                ret = new Dictionary<uint, List<CounterResult>>();
+
+                foreach (var result in resultArray)
+                {
+                    if (!ret.ContainsKey(result.eventID))
+                        ret.Add(result.eventID, new List<CounterResult>());
+
+                    ret[result.eventID].Add(result);
+                }
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public UInt32[] EnumerateCounters()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_EnumerateCounters(m_Real, mem);
+
+            UInt32[] ret = null;
+
+            if (success)
+            {
+                ret = (UInt32[])CustomMarshal.GetTemplatedArray(mem, typeof(UInt32), true);
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public CounterDescription DescribeCounter(UInt32 counterID)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(CounterDescription));
+            
+            bool success = ReplayRenderer_DescribeCounter(m_Real, counterID, mem);
+
+            CounterDescription ret = null;
+
+            if (success)
+            {
+                ret = (CounterDescription)CustomMarshal.PtrToStructure(mem, typeof(CounterDescription), false);
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public FetchDrawcall[] GetDrawcalls(UInt32 frameID)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_GetDrawcalls(m_Real, frameID, mem);
 
             FetchDrawcall[] ret = null;
 

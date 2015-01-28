@@ -107,6 +107,14 @@ namespace renderdoc
             return mem;
         }
 
+        public static IntPtr Alloc(Type T, int arraylen)
+        {
+            IntPtr mem = Marshal.AllocHGlobal(CustomMarshal.SizeOf(T)*arraylen);
+            FillMemory(mem, CustomMarshal.SizeOf(T) * arraylen, 0);
+
+            return mem;
+        }
+
         public static IntPtr MakeUTF8String(string s)
         {
             int len = System.Text.Encoding.UTF8.GetByteCount(s);

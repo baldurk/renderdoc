@@ -46,12 +46,13 @@ class ImageViewer : public IReplayDriver
 			record.frameInfo.frameNumber = 1;
 			record.frameInfo.immContextId = ResourceId();
 
-			create_array_uninit(record.drawcallList, 1);
-			RDCEraseEl(record.drawcallList[0]);
-			record.drawcallList[0].context = record.frameInfo.immContextId;
-			record.drawcallList[0].drawcallID = 1;
-			record.drawcallList[0].eventID = 1;
-			record.drawcallList[0].name = filename;
+			FetchDrawcall d;
+			d.context = record.frameInfo.immContextId;
+			d.drawcallID = 1;
+			d.eventID = 1;
+			d.name = filename;
+
+			record.drawcallList.push_back(d);
 			
 			create_array_uninit(m_PipelineState.m_OM.RenderTargets, 1);
 			m_PipelineState.m_OM.RenderTargets[0].Resource = texID;
@@ -114,7 +115,9 @@ class ImageViewer : public IReplayDriver
 		vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }
 		bool IsRenderOutput(ResourceId id) { return false; }
 		ResourceId GetLiveID(ResourceId id) { return id; }
-		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr) {}
+		vector<uint32_t> EnumerateCounters() { return vector<uint32_t>(); }
+		void DescribeCounter(uint32_t counterID, CounterDescription &desc) { RDCEraseEl(desc); desc.counterID = counterID; }
+		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters) { return vector<CounterResult>(); }
 		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) {}
 		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len) { return vector<byte>(); }
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) {}

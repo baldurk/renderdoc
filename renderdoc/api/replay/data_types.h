@@ -171,7 +171,6 @@ struct FetchDrawcall
 		indexByteWidth = 0;
 		flags = 0;
 		context = ResourceId();
-		duration = -1.0f;
 		parent = 0;
 		previous = 0;
 		next = 0;
@@ -196,8 +195,6 @@ struct FetchDrawcall
 
 	ResourceId context;
 
-	double duration;
-
 	int64_t parent;
 
 	int64_t previous;
@@ -213,6 +210,35 @@ struct FetchDrawcall
 struct APIProperties
 {
 	APIPipelineStateType pipelineType;
+};
+
+struct CounterDescription
+{
+	uint32_t counterID;
+	rdctype::str name;
+	rdctype::str description;
+	FormatComponentType resultCompType;
+	uint32_t resultByteWidth;
+	CounterUnits units;
+};
+
+struct CounterResult
+{
+	CounterResult()                            : eventID(0)  , u64(   0) {}
+	CounterResult(uint32_t EID, uint32_t c, float    data) : eventID(EID), counterID(c), f  (data) {}
+	CounterResult(uint32_t EID, uint32_t c, double   data) : eventID(EID), counterID(c), d  (data) {}
+	CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c), u32(data) {}
+	CounterResult(uint32_t EID, uint32_t c, uint64_t data) : eventID(EID), counterID(c), u64(data) {}
+
+	uint32_t eventID;
+	uint32_t counterID;
+	union
+	{
+		float f;
+		double d;
+		uint32_t u32;
+		uint64_t u64;
+	};
 };
 
 struct PixelValue

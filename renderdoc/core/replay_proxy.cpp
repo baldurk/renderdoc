@@ -769,8 +769,6 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 
 	Serialise("", el.context);
 	
-	Serialise("", el.duration);
-	
 	Serialise("", el.parent);
 	Serialise("", el.previous);
 	Serialise("", el.next);
@@ -781,7 +779,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.events);
 	Serialise("", el.children);
 
-	SIZE_CHECK(FetchDrawcall, 176);
+	SIZE_CHECK(FetchDrawcall, 168);
 }
 
 template<>
@@ -790,7 +788,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
 	Serialise("", el.frameInfo);
 	Serialise("", el.drawcallList);
 
-	SIZE_CHECK(FetchFrameRecord, 48);
+	SIZE_CHECK(FetchFrameRecord, 56);
 }
 
 template<>
@@ -814,6 +812,19 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.farPlane);
 
 	SIZE_CHECK(MeshFormat, 72);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, CounterDescription &el)
+{
+	Serialise("", el.counterID);
+	Serialise("", el.name);
+	Serialise("", el.description);
+	Serialise("", el.resultCompType);
+	Serialise("", el.resultByteWidth);
+	Serialise("", el.units);
+
+	SIZE_CHECK(CounterDescription, 32);
 }
 
 template<>
@@ -855,6 +866,8 @@ template<>
 string ToStrHelper<false, SpecialFormat>::Get(const SpecialFormat &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, FormatComponentType>::Get(const FormatComponentType &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, CounterUnits>::Get(const CounterUnits &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, PrimitiveTopology>::Get(const PrimitiveTopology &el) { return "<...>"; }
 template<>
@@ -913,6 +926,8 @@ template<>
 string ToStrHelper<false, GLPipelineState::Hints>::Get(const GLPipelineState::Hints &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, EventUsage>::Get(const EventUsage &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, CounterResult>::Get(const CounterResult &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, FetchFrameInfo>::Get(const FetchFrameInfo &el) { return "<...>"; }
 template<>
@@ -1066,10 +1081,19 @@ bool ProxySerialiser::Tick()
 		case eCommand_FreeResource:
 			FreeTargetResource(ResourceId());
 			break;
-		case eCommand_TimeDrawcalls:
+		case eCommand_FetchCounters:
 		{
-			rdctype::array<FetchDrawcall> l;
-			TimeDrawcalls(l);
+			vector<uint32_t> counters;
+			FetchCounters(0, 0, 0, counters);
+			break;
+		}
+		case eCommand_EnumerateCounters:
+			EnumerateCounters();
+			break;
+		case eCommand_DescribeCounter:
+		{
+			CounterDescription desc;
+			DescribeCounter(0, desc);
 			break;
 		}
 		case eCommand_FillCBufferVariables:
@@ -1432,44 +1456,64 @@ ResourceId ProxySerialiser::GetLiveID(ResourceId id)
 	return ret;
 }
 
-void ProxySerialiser::CopyDrawcallTimes(rdctype::array<FetchDrawcall> &src, rdctype::array<FetchDrawcall> &dst)
+vector<CounterResult> ProxySerialiser::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
 {
-	RDCASSERT(src.count == dst.count);
-
-	if(src.count == 0 || dst.count == 0)
-		return;
-
-	for(int32_t i=0; i < dst.count && i < src.count; i++)
-	{
-		CopyDrawcallTimes(src[i].children, dst[i].children);
-		dst[i].duration = src[i].duration;
-	}
-}
-
-void ProxySerialiser::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
-{
-	m_ToReplaySerialiser->Serialise("", arr);
+	vector<CounterResult> ret;
+	
+	m_ToReplaySerialiser->Serialise("", frameID);
+	m_ToReplaySerialiser->Serialise("", minEventID);
+	m_ToReplaySerialiser->Serialise("", maxEventID);
+	m_ToReplaySerialiser->Serialise("", (vector<uint32_t> &)counters);
 
 	if(m_ReplayHost)
 	{
-		m_Remote->TimeDrawcalls(arr);
-
-		m_FromReplaySerialiser->Serialise("", arr);
+		ret = m_Remote->FetchCounters(frameID, minEventID, maxEventID, counters);
 	}
 	else
 	{
-		if(!SendReplayCommand(eCommand_TimeDrawcalls))
-			return;
-
-		// need to serialise into a dummy list then copy the times as TimeDrawcalls
-		// expects to modify only the times of the drawcalls in place, whereas
-		// serialise would completely trash the list!
-		rdctype::array<FetchDrawcall> dummy;
-
-		m_FromReplaySerialiser->Serialise("", dummy);
-
-		CopyDrawcallTimes(dummy, arr);
+		if(!SendReplayCommand(eCommand_FetchCounters))
+			return ret;
 	}
+	
+	m_FromReplaySerialiser->Serialise("", ret);
+
+	return ret;
+}
+
+vector<uint32_t> ProxySerialiser::EnumerateCounters()
+{
+	vector<uint32_t> ret;
+	
+	if(m_ReplayHost)
+	{
+		ret = m_Remote->EnumerateCounters();
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_EnumerateCounters))
+			return ret;
+	}
+
+	m_FromReplaySerialiser->Serialise("", ret);
+
+	return ret;
+}
+
+void ProxySerialiser::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+{
+	m_ToReplaySerialiser->Serialise("", counterID);
+	
+	if(m_ReplayHost)
+	{
+		m_Remote->DescribeCounter(counterID, desc);
+	}
+	else
+	{
+		if(!SendReplayCommand(eCommand_DescribeCounter))
+			return;
+	}
+
+	m_FromReplaySerialiser->Serialise("", desc);
 
 	return;
 }

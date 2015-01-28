@@ -24,6 +24,7 @@
 
 
 #include "d3d11_device.h"
+#include "d3d11_debug.h"
 #include "d3d11_context.h"
 #include "d3d11_resources.h"
 #include "d3d11_renderstate.h"
@@ -44,6 +45,8 @@ D3D11Replay::D3D11Replay()
 void D3D11Replay::Shutdown()
 {
 	m_pDevice->Release();
+	
+	D3D11DebugManager::PostDeviceShutdownCounters();
 }
 
 FetchTexture D3D11Replay::GetTexture(ResourceId id)
@@ -1287,9 +1290,19 @@ void D3D11Replay::RemoveReplacement(ResourceId id)
 	m_pDevice->GetResourceManager()->RemoveReplacement(id);
 }
 
-void D3D11Replay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
+vector<uint32_t> D3D11Replay::EnumerateCounters()
 {
-	return m_pDevice->GetDebugManager()->TimeDrawcalls(arr);
+	return m_pDevice->GetDebugManager()->EnumerateCounters();
+}
+
+void D3D11Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
+{
+	m_pDevice->GetDebugManager()->DescribeCounter(counterID, desc);
+}
+
+vector<CounterResult> D3D11Replay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
+{
+	return m_pDevice->GetDebugManager()->FetchCounters(frameID, minEventID, maxEventID, counters);
 }
 
 void D3D11Replay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
@@ -1803,6 +1816,8 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 		return eReplayCreate_APIHardwareUnsupported;
 	}
 
+	D3D11DebugManager::PreDeviceInitCounters();
+
 	hr = E_FAIL;
 	while(1)
 	{
@@ -1852,6 +1867,8 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 			numFeatureLevels = numFeatureLevels11_0;
 		}
 	}
+
+	D3D11DebugManager::PostDeviceShutdownCounters();
 
 	RDCERR("Couldn't create any compatible d3d11 device :(.");
 

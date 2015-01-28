@@ -335,8 +335,6 @@ namespace renderdoc
 
         public ResourceId context;
 
-        public double duration;
-
         public Int64 parentDrawcall;
         public Int64 previousDrawcall;
         public Int64 nextDrawcall;
@@ -489,6 +487,38 @@ namespace renderdoc
     public class APIProperties
     {
         public APIPipelineStateType pipelineType;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class CounterDescription
+    {
+        public UInt32 counterID;
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+        public string name;
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+        public string description;
+        public FormatComponentType resultCompType;
+        public UInt32 resultByteWidth;
+        public CounterUnits units;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class CounterResult
+    {
+        public UInt32 eventID;
+        public UInt32 counterID;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct ValueUnion
+        {
+            public float f;
+            public double d;
+            public UInt32 u32;
+            public UInt64 u64;
+        };
+
+        [CustomMarshalAs(CustomUnmanagedType.Union)]
+        public ValueUnion value;
     };
 
     [StructLayout(LayoutKind.Sequential)]

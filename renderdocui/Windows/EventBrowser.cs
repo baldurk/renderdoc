@@ -222,7 +222,7 @@ namespace renderdocui.Windows
             return new TreelistView.Node(new object[] { EID, draw, text, duration });
         }
 
-        private TreelistView.Node AddDrawcall(TreelistView.Node existing, FetchDrawcall drawcall, TreelistView.Node root)
+        private TreelistView.Node AddDrawcall(TreelistView.Node existing, FetchDrawcall drawcall, TreelistView.Node root, Dictionary<uint, List<CounterResult>> times)
         {
             if (m_Core.Config.EventBrowser_HideEmpty)
             {
@@ -231,7 +231,9 @@ namespace renderdocui.Windows
             }
 
             UInt32 eventNum = drawcall.eventID;
-            double duration = drawcall.duration;
+            double duration = 0.0;
+            if (times != null && times.ContainsKey(eventNum))
+                duration = times[eventNum][0].value.d;
             TreelistView.Node drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, duration);
 
             if (existing != null)
@@ -272,7 +274,7 @@ namespace renderdocui.Windows
                 {
                     TreelistView.Node d = drawNode.Nodes.Count > i ? drawNode.Nodes[i] : null;
 
-                    AddDrawcall(d, drawcall.children[i], drawNode);
+                    AddDrawcall(d, drawcall.children[i], drawNode, times);
 
                     if (i > 0 && (drawcall.children[i-1].flags & DrawcallFlags.SetMarker) > 0)
                     {
@@ -302,7 +304,7 @@ namespace renderdocui.Windows
             return drawNode;
         }
 
-        private void AddFrameDrawcalls(TreelistView.Node frame, FetchDrawcall[] drawcalls)
+        private void AddFrameDrawcalls(TreelistView.Node frame, FetchDrawcall[] drawcalls, Dictionary<uint, List<CounterResult>> times)
         {
             eventView.BeginUpdate();
 
@@ -319,7 +321,7 @@ namespace renderdocui.Windows
             {
                 TreelistView.Node d = frame.Nodes.Count > (i + 1) ? frame.Nodes[i + 1] : null;
 
-                TreelistView.Node newD = AddDrawcall(d, drawcalls[i], frame);
+                TreelistView.Node newD = AddDrawcall(d, drawcalls[i], frame, times);
 
                 if (newD != null)
                 {
@@ -371,7 +373,7 @@ namespace renderdocui.Windows
             eventView.EndUpdate();
                 
             for (int curFrame = 0; curFrame < frameList.Length; curFrame++)
-                AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame));
+                AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame), null);
 
             if (frameList.Length > 0)
             {
@@ -680,7 +682,15 @@ namespace renderdocui.Windows
         {
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                m_Core.TimeDrawcalls(r);
+                uint[] counters = { (uint)GPUCounters.EventGPUDuration };
+
+                var avail = r.EnumerateCounters();
+
+                var desc = r.DescribeCounter(counters[0]);
+
+                Dictionary<uint, List<CounterResult>>[] times = new Dictionary<uint, List<CounterResult>>[m_Core.FrameInfo.Length];
+                for (int curFrame = 0; curFrame < m_Core.FrameInfo.Length; curFrame++)
+                    times[curFrame] = r.FetchCounters((UInt32)curFrame, 0, ~0U, counters);
 
                 BeginInvoke((MethodInvoker)delegate
                 {
@@ -691,7 +701,7 @@ namespace renderdocui.Windows
                     }
 
                     for (int curFrame = 0; curFrame < m_FrameNodes.Count; curFrame++)
-                        AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame));
+                        AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame), times[curFrame]);
                 });
             });
         }

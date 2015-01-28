@@ -34,7 +34,7 @@ struct FetchFrameRecord
 {
 	FetchFrameInfo frameInfo;
 
-	rdctype::array<FetchDrawcall> drawcallList;
+	vector<FetchDrawcall> drawcallList;
 };
 
 // these two interfaces define what an API driver implementation must provide
@@ -90,8 +90,10 @@ class IRemoteDriver
 		virtual void ReplaceResource(ResourceId from, ResourceId to) = 0;
 		virtual void RemoveReplacement(ResourceId id) = 0;
 		virtual void FreeTargetResource(ResourceId id) = 0;
-
-		virtual void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr) = 0;
+		
+		virtual vector<uint32_t> EnumerateCounters() = 0;
+		virtual void DescribeCounter(uint32_t counterID, CounterDescription &desc) = 0;
+		virtual vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counterID) = 0;
 		
 		virtual void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data) = 0;
 

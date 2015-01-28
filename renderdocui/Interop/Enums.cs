@@ -387,6 +387,30 @@ namespace renderdoc
         FrontAndBack,
     };
 
+    public enum GPUCounters
+    {
+        FirstGeneric = 1,
+        EventGPUDuration = FirstGeneric,
+        InputVerticesRead,
+        VSInvocations,
+        PSInvocations,
+        RasterizedPrimitives,
+        SamplesWritten,
+
+        FirstAMD = 1000000,
+
+        FirstIntel = 2000000,
+
+        FirstNvidia = 3000000,
+    };
+
+    public enum CounterUnits
+    {
+        Absolute,
+        Seconds,
+        Percentage,
+    };
+
     public enum ReplayCreateStatus
     {
         Success = 0,

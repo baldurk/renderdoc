@@ -253,19 +253,48 @@ FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID, uint32_t defEv
 	return m_Drawcalls[ev];
 }
 
-bool ReplayRenderer::GetDrawcalls(uint32_t frameID, bool includeTimes, rdctype::array<FetchDrawcall> *draws)
+bool ReplayRenderer::GetDrawcalls(uint32_t frameID, rdctype::array<FetchDrawcall> *draws)
 {
 	if(frameID >= (uint32_t)m_FrameRecord.size() || draws == NULL)
 		return false;
 
-	if(includeTimes)
-	{
-		RDCDEBUG("Timing drawcalls...");
-
-		m_pDevice->TimeDrawcalls(m_FrameRecord[frameID].m_DrawCallList);
-	}
-
 	*draws = m_FrameRecord[frameID].m_DrawCallList;
+	return true;
+}
+
+bool ReplayRenderer::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID,
+                                   uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
+{
+	if(frameID >= (uint32_t)m_FrameRecord.size() || results == NULL)
+		return false;
+
+	vector<uint32_t> counterArray;
+	counterArray.reserve(numCounters);
+	for(uint32_t i=0; i < numCounters; i++)
+		counterArray.push_back(counters[i]);
+
+	*results = m_pDevice->FetchCounters(frameID, minEventID, maxEventID, counterArray);
+	
+	return true;
+}
+		
+bool ReplayRenderer::EnumerateCounters(rdctype::array<uint32_t> *counters)
+{
+	if(counters == NULL)
+		return false;
+
+	*counters = m_pDevice->EnumerateCounters();
+
+	return true;
+}
+
+bool ReplayRenderer::DescribeCounter(uint32_t counterID, CounterDescription *desc)
+{
+	if(desc == NULL)
+		return false;
+	
+	m_pDevice->DescribeCounter(counterID, *desc);
+
 	return true;
 }
 
@@ -1492,8 +1521,14 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(R
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame)
 { return rend->GetFrameInfo(frame); }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, bool32 includeTimes, rdctype::array<FetchDrawcall> *draws)
-{ return rend->GetDrawcalls(frameID, includeTimes != 0, draws); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, rdctype::array<FetchDrawcall> *draws)
+{ return rend->GetDrawcalls(frameID, draws); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results)
+{ return rend->FetchCounters(frameID, minEventID, maxEventID, counters, numCounters, results); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_EnumerateCounters(ReplayRenderer *rend, rdctype::array<uint32_t> *counters)
+{ return rend->EnumerateCounters(counters); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(ReplayRenderer *rend, uint32_t counterID, CounterDescription *desc)
+{ return rend->DescribeCounter(counterID, desc); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextures(ReplayRenderer *rend, rdctype::array<FetchTexture> *texs)
 { return rend->GetTextures(texs); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRenderer *rend, rdctype::array<FetchBuffer> *bufs)

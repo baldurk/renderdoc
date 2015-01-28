@@ -27,6 +27,10 @@
 
 #include <d3d11.h>
 
+#include <utility>
+#include <list>
+#include <map>
+using std::map;
 using std::pair;
 
 #include "api/replay/renderdoc_replay.h"
@@ -39,16 +43,13 @@ class Vec3f;
 class WrappedID3D11Device;
 class WrappedID3D11DeviceContext;
 
+struct DrawcallTreeNode;
+
+struct CounterContext;
+
 class D3D11ResourceManager;
 
 namespace ShaderDebug { struct GlobalState; }
-
-struct GPUTimer
-{
-	ID3D11Query *before;
-	ID3D11Query *after;
-	FetchDrawcall *drawcall;
-};
 
 struct PostVSData
 {
@@ -131,8 +132,16 @@ class D3D11DebugManager
 
 		void CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Texture2D *srcArray);
 		void CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Texture2D *srcMS);
+		
+		// called before any device is created, to init any counters
+		static void PreDeviceInitCounters();
 
-		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
+		// called after any device is destroyed, to do corresponding shutdown of counters
+		static void PostDeviceShutdownCounters();
+
+		vector<uint32_t> EnumerateCounters();
+		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
+		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters);
 
 		void RenderText(float x, float y, const char *textfmt, ...);
 		void RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg);
@@ -527,7 +536,13 @@ class D3D11DebugManager
 								  const vector<byte> &data);
 		friend struct ShaderDebugState;
 
-		void FillTimers(uint32_t frameID, uint32_t &eventStart, rdctype::array<FetchDrawcall> &draws, vector<GPUTimer> &timers, int &reuseIdx);
+		// called after the device is created, to init any counters
+		void PostDeviceInitCounters();
+
+		// called before the device is shutdown, to shutdown any counters
+		void PreDeviceShutdownCounters();
+
+		void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
 		
 		void FillCBuffer(ID3D11Buffer *buf, float *data, size_t size);
 };

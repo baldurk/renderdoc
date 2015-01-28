@@ -2938,8 +2938,6 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
-
-		m_ParentDrawcall.children.clear();
 	}
 
 	GetResourceManager()->MarkInFrame(false);
@@ -3151,11 +3149,11 @@ const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t frameID, uint32_t event
 	if(frameID >= m_FrameRecord.size())
 		return NULL;
 
-	int32_t count = m_FrameRecord[frameID].drawcallList.count;
-	for(int32_t i=0; i < count; i++)
+	size_t count = m_FrameRecord[frameID].drawcallList.size();
+	for(size_t i=0; i < count; i++)
 	{
-		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList.elems[i];
-		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList.elems[i+1] : NULL;
+		const FetchDrawcall *cur = &m_FrameRecord[frameID].drawcallList[i];
+		const FetchDrawcall *next = i+1 < count ? &m_FrameRecord[frameID].drawcallList[i+1] : NULL;
 
 		if(next && next->eventID <= eventID)
 			continue;

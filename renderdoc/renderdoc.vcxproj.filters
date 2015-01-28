@@ -545,6 +545,9 @@
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
       <Filter>3rdparty\tinyexr</Filter>
     </ClCompile>
+    <ClCompile Include="driver\d3d11\d3d11_counters.cpp">
+      <Filter>Drivers\D3D11</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

@@ -389,6 +389,32 @@ enum TriangleCullMode
 	eCull_FrontAndBack,
 };
 
+enum GPUCounters
+{
+	eCounter_FirstGeneric = 1,
+	eCounter_EventGPUDuration = eCounter_FirstGeneric,
+	eCounter_InputVerticesRead,
+	eCounter_VSInvocations,
+	eCounter_PSInvocations,
+	eCounter_RasterizedPrimitives,
+	eCounter_SamplesWritten,
+
+	// IHV specific counters can be set above this point
+	// with ranges reserved for each IHV
+	eCounter_FirstAMD = 1000000,
+
+	eCounter_FirstIntel = 2000000,
+
+	eCounter_FirstNvidia = 3000000,
+};
+
+enum CounterUnits
+{
+	eUnits_Absolute,
+	eUnits_Seconds,
+	eUnits_Percentage,
+};
+
 enum ReplayCreateStatus
 {
 	eReplayCreate_Success = 0,

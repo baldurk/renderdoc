@@ -53,7 +53,9 @@ enum CommandPacketType
 	eCommand_FreeResource,
 	eCommand_HasResolver,
 
-	eCommand_TimeDrawcalls,
+	eCommand_FetchCounters,
+	eCommand_EnumerateCounters,
+	eCommand_DescribeCounter,
 	eCommand_FillCBufferVariables,
 
 	eCommand_InitPostVS,
@@ -313,7 +315,9 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		ResourceId GetLiveID(ResourceId id);
 		
-		void TimeDrawcalls(rdctype::array<FetchDrawcall> &arr);
+		vector<uint32_t> EnumerateCounters();
+		void DescribeCounter(uint32_t counterID, CounterDescription &desc);
+		vector<CounterResult> FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counterID);
 		
 		void FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data);
 		
@@ -369,7 +373,6 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 
 	private:
 		bool SendReplayCommand(CommandPacketType type);
-		void CopyDrawcallTimes(rdctype::array<FetchDrawcall> &src, rdctype::array<FetchDrawcall> &dst);
 
 		void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
 		void EnsureBufCached(ResourceId bufid);

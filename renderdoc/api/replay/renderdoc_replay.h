@@ -146,7 +146,10 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_RemoveReplacement(Re
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(ReplayRenderer *rend, ResourceId id);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(ReplayRenderer *rend, rdctype::array<FetchFrameInfo> *frame);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, bool32 includeTimes, rdctype::array<FetchDrawcall> *draws);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawcalls(ReplayRenderer *rend, uint32_t frameID, rdctype::array<FetchDrawcall> *draws);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FetchCounters(ReplayRenderer *rend, uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, uint32_t *counters, uint32_t numCounters, rdctype::array<CounterResult> *results);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_EnumerateCounters(ReplayRenderer *rend, rdctype::array<uint32_t> *counters);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(ReplayRenderer *rend, uint32_t counterID, CounterDescription *desc);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextures(ReplayRenderer *rend, rdctype::array<FetchTexture> *texs);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRenderer *rend, rdctype::array<FetchBuffer> *bufs);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);

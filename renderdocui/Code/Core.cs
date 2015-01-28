@@ -488,9 +488,7 @@ namespace renderdocui.Code
                 postloadProgress = 0.4f;
 
                 for (int i = 0; i < m_FrameInfo.Length; i++)
-                    m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i, false));
-
-                m_TimedDrawcalls = false;
+                    m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i));
 
                 postloadProgress = 0.7f;
 
@@ -607,16 +605,6 @@ namespace renderdocui.Code
         #endregion
 
         #region Log drawcalls
-
-        private bool m_TimedDrawcalls = false;
-        public void TimeDrawcalls(ReplayRenderer r)
-        {
-            if (m_TimedDrawcalls) return;
-            m_TimedDrawcalls = true;
-
-            for (int i = 0; i < m_FrameInfo.Length; i++)
-                m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i, true));
-        }
 
         public FetchDrawcall[] GetDrawcalls(UInt32 frameIdx)
         {

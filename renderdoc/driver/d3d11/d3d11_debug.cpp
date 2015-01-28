@@ -273,12 +273,16 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 	InitFontRendering();
 
 	m_CacheShaders = false;
+
+	PostDeviceInitCounters();
 	
 	RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
 }
 
 D3D11DebugManager::~D3D11DebugManager()
 {
+	PreDeviceShutdownCounters();
+
 	if(m_ShaderCacheDirty)
 	{
 		string shadercache = FileIO::GetAppFolderFilename("shaders.cache");

@@ -1242,8 +1242,6 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		m_pDevice->GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		m_pDevice->GetFrameRecord().back().frameInfo.debugMessages = m_pDevice->GetDebugMessages();
 
-		m_ParentDrawcall.children.clear();
-
 		int initialSkips = 0;
 
 		for(auto it=WrappedID3D11Buffer::m_BufferList.begin(); it != WrappedID3D11Buffer::m_BufferList.end(); ++it)

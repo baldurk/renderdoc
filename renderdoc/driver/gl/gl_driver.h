@@ -69,17 +69,17 @@ struct DrawcallTreeNode
 	vector<DrawcallTreeNode> children;
 
 	DrawcallTreeNode &operator =(FetchDrawcall d) { *this = DrawcallTreeNode(d); return *this; }
-
-	rdctype::array<FetchDrawcall> Bake()
+	
+	vector<FetchDrawcall> Bake()
 	{
-		rdctype::array<FetchDrawcall> ret;
+		vector<FetchDrawcall> ret;
 		if(children.empty()) return ret;
 
-		create_array_uninit(ret, children.size());
+		ret.resize(children.size());
 		for(size_t i=0; i < children.size(); i++)
 		{
-			ret.elems[i] = children[i].draw;
-			ret.elems[i].children = children[i].Bake();
+			ret[i] = children[i].draw;
+			ret[i].children = children[i].Bake();
 		}
 
 		return ret;
