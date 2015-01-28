@@ -40,6 +40,7 @@ namespace renderdocui.Code
             buffer = 0;
             offset = 0;
             perinstance = false;
+            instancerate = 1;
             rowmajor = false;
             matrixdim = 0;
             format = new ResourceFormat();
@@ -47,13 +48,14 @@ namespace renderdocui.Code
             systemValue = SystemAttribute.None;
         }
 
-        public FormatElement(string Name, int buf, uint offs, bool pi, bool rowMat, uint matDim, ResourceFormat f, bool h)
+        public FormatElement(string Name, int buf, uint offs, bool pi, int ir, bool rowMat, uint matDim, ResourceFormat f, bool h)
         {
             name = Name;
             buffer = buf;
             offset = offs;
             format = f;
             perinstance = pi;
+            instancerate = ir;
             rowmajor = rowMat;
             matrixdim = matDim;
             hex = h;
@@ -512,7 +514,7 @@ namespace renderdocui.Code
 
                 if (arrayCount == 1)
                 {
-                    FormatElement elem = new FormatElement(name, 0, offset, false, row_major, matrixCount, fmt, hex);
+                    FormatElement elem = new FormatElement(name, 0, offset, false, 1, row_major, matrixCount, fmt, hex);
 
                     uint advance = elem.ByteSize;
 
@@ -545,7 +547,7 @@ namespace renderdocui.Code
 
                     for (uint a = 0; a < arrayCount; a++)
                     {
-                        FormatElement elem = new FormatElement(String.Format("{0}[{1}]", name, a), 0, offset, false, row_major, matrixCount, fmt, hex);
+                        FormatElement elem = new FormatElement(String.Format("{0}[{1}]", name, a), 0, offset, false, 1, row_major, matrixCount, fmt, hex);
 
                         elems.Add(elem);
 
@@ -568,7 +570,7 @@ namespace renderdocui.Code
 
                 var fmt = new ResourceFormat(FormatComponentType.UInt, 4, 4);
 
-                elems.Add(new FormatElement("data", 0, 0, false, false, 1, fmt, true));
+                elems.Add(new FormatElement("data", 0, 0, false, 1, false, 1, fmt, true));
             }
 
             return elems.ToArray();
@@ -578,6 +580,7 @@ namespace renderdocui.Code
         public int buffer;
         public uint offset;
         public bool perinstance;
+        public int instancerate;
         public bool rowmajor;
         public uint matrixdim;
         public ResourceFormat format;

@@ -818,6 +818,7 @@ namespace renderdocui.Windows
                                              a.VertexBuffer,
                                              a.RelativeByteOffset,
                                              a.PerInstance,
+                                             a.InstanceRate,
                                              false, // row major matrix
                                              1, // matrix dimension
                                              a.Format,
@@ -1374,8 +1375,9 @@ namespace renderdocui.Windows
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
                             BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] * (bufferFormats[el].perinstance ? instance : index) +
-                                                bufferFormats[el].offset;
+                            uint offs = input.Strides[bufferFormats[el].buffer] *
+                                (bufferFormats[el].perinstance ? (instance/(uint)bufferFormats[el].instancerate) : index)
+                                                + bufferFormats[el].offset;
 
                             if (!MeshView)
                                 offs += ByteOffset;
@@ -1637,8 +1639,9 @@ namespace renderdocui.Windows
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
                             BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] * (bufferFormats[el].perinstance ? instance : index) +
-                                                bufferFormats[el].offset;
+                            uint offs = input.Strides[bufferFormats[el].buffer] *
+                                (bufferFormats[el].perinstance ? (instance / (uint)bufferFormats[el].instancerate) : index)
+                                                + bufferFormats[el].offset;
 
                             if (!MeshView)
                                 offs += ByteOffset;
