@@ -461,8 +461,12 @@ namespace renderdocui.Windows
                 {
                     EventTag tag = (EventTag)events.SelectedNode.Tag;
                     debugToolStripMenuItem.Enabled = true;
-                    debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) primitive {2} at Event {3}",
-                                                                    pixel.X, pixel.Y, tag.Primitive, tag.EID);
+                    if (tag.Primitive == uint.MaxValue)
+                        debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) at Event {3}",
+                                                                        pixel.X, pixel.Y, tag.Primitive, tag.EID);
+                    else
+                        debugToolStripMenuItem.Text = String.Format("Debug Pixel ({0}, {1}) primitive {2} at Event {3}",
+                                                                        pixel.X, pixel.Y, tag.Primitive, tag.EID);
                 }
 
                 rightclickMenu.Show(events.PointToScreen(e.Location));
