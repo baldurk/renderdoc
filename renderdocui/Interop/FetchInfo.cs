@@ -398,6 +398,7 @@ namespace renderdoc
         public float aspect = 0.0f;
 
         public bool thisDrawOnly = true;
+        public UInt32 curInstance = 0;
 
         public UInt32 highlightVert;
         public MeshFormat position;

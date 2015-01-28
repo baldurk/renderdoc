@@ -58,12 +58,14 @@ struct PostVSData
 		D3D11_PRIMITIVE_TOPOLOGY topo;
 
 		uint32_t numVerts;
-		uint32_t posOffset;
 		uint32_t vertStride;
+		uint32_t instStride;
 
 		bool useIndices;
 		ID3D11Buffer *idxBuf;
 		DXGI_FORMAT idxFmt;
+
+		bool hasPosOut;
 
 		float nearPlane;
 		float farPlane;
@@ -113,7 +115,7 @@ class D3D11DebugManager
 		int GetHeight() { return m_height; }
 		
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID);
-		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
+		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
 		uint32_t GetStructCount(ID3D11UnorderedAccessView *uav);
 		vector<byte> GetBufferData(ID3D11Buffer *buff, uint32_t offset, uint32_t len);
@@ -298,8 +300,10 @@ class D3D11DebugManager
 		// mesh, not jumping back and forth much between meshes.
 		struct HighlightCache
 		{
-			HighlightCache() : EID(0), stage(eMeshDataStage_Unknown), useidx(false) {}
+			HighlightCache() : EID(0), buf(), offs(0), stage(eMeshDataStage_Unknown), useidx(false) {}
 			uint32_t EID;
+			ResourceId buf;
+			uint32_t offs;
 			MeshDataStage stage;
 			bool useidx;
 

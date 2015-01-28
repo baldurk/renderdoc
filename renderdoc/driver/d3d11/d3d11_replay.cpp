@@ -1260,9 +1260,9 @@ bool D3D11Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 	return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, minval, maxval, channels, histogram);
 }
 
-MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat D3D11Replay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-	return m_pDevice->GetDebugManager()->GetPostVSBuffers(frameID, eventID, stage);
+	return m_pDevice->GetDebugManager()->GetPostVSBuffers(frameID, eventID, instID, stage);
 }
 
 vector<byte> D3D11Replay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)

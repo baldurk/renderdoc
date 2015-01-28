@@ -166,7 +166,7 @@ struct ReplayRenderer
 		bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace);
 		bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
 
-		bool GetPostVSData(MeshDataStage stage, MeshFormat *data);
+		bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data);
 		
 		bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval);
 		bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], rdctype::array<uint32_t> *histogram);

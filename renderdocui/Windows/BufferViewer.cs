@@ -194,8 +194,6 @@ namespace renderdocui.Windows
         private Core m_Core;
         private ReplayOutput m_Output = null;
 
-        private uint m_CurInst = 0;
-
         private byte[] m_Zeroes = null;
 
         private OutputConfig m_OutConfig = new OutputConfig();
@@ -249,30 +247,7 @@ namespace renderdocui.Windows
             render.MouseWheelHandler = render_MouseWheel;
             (render as Control).KeyDown += new KeyEventHandler(BufferViewer_KeyDown);
             (render as Control).KeyUp += new KeyEventHandler(BufferViewer_KeyUp);
-
-            m_OutConfig.m_Type = OutputType.MeshDisplay;
-
-            m_MeshDisplay.type = MeshDataStage.VSIn;
-            m_MeshDisplay.fov = 90.0f;
-
-            m_MeshDisplay.solidShadeMode = SolidShadeMode.None;
-            solidShading.SelectedIndex = 0;
-
-            m_MeshDisplay.thisDrawOnly = true;
-            drawRange.SelectedIndex = 0;
-
-            m_MeshDisplay.currentMeshColour = new FloatVector(1, 0, 0, 1);
-            m_MeshDisplay.prevMeshColour = new FloatVector(0, 0, 0, 1);
-
-            m_Arcball = new ArcballCamera(m_Camera);
-            m_Flycam = new FlyCamera(m_Camera);
-            m_CurrentCamera = m_Arcball;
-            m_Updater = new TimedUpdate(10, TimerUpdate);
-
-            m_Arcball.SpeedMultiplier = m_Flycam.SpeedMultiplier = (float)camSpeed.Value;
-        
-            fovGuess.Text = m_MeshDisplay.fov.ToString("G");
-            controlType.SelectedIndex = 0;
+            ResetConfig();
 
             MeshView = meshview;
 
@@ -297,6 +272,33 @@ namespace renderdocui.Windows
             m_Core.AddLogViewer(this);
         }
 
+        private void ResetConfig()
+        {
+            m_OutConfig.m_Type = OutputType.MeshDisplay;
+
+            m_MeshDisplay = new MeshDisplay();
+            m_MeshDisplay.type = MeshDataStage.VSIn;
+            m_MeshDisplay.fov = 90.0f;
+
+            m_MeshDisplay.solidShadeMode = SolidShadeMode.None;
+            solidShading.SelectedIndex = 0;
+
+            m_MeshDisplay.thisDrawOnly = true;
+            drawRange.SelectedIndex = 0;
+
+            m_MeshDisplay.currentMeshColour = new FloatVector(1, 0, 0, 1);
+            m_MeshDisplay.prevMeshColour = new FloatVector(0, 0, 0, 1);
+
+            m_Arcball = new ArcballCamera(m_Camera);
+            m_Flycam = new FlyCamera(m_Camera);
+            m_CurrentCamera = m_Arcball;
+            m_Updater = new TimedUpdate(10, TimerUpdate);
+
+            m_Arcball.SpeedMultiplier = m_Flycam.SpeedMultiplier = (float)camSpeed.Value;
+
+            fovGuess.Text = m_MeshDisplay.fov.ToString("G");
+            controlType.SelectedIndex = 0;
+        }
         private void UI_SetupDocks(bool meshview)
         {
             if (meshview)
@@ -411,6 +413,8 @@ namespace renderdocui.Windows
         public void OnLogfileClosed()
         {
             m_Output = null;
+
+            ResetConfig();
 
             ClearStoredData();
 
@@ -702,7 +706,6 @@ namespace renderdocui.Windows
             if (!MeshView)
                 return null;
 
-            FormatElement[] f = null;
             Input ret = new Input();
             ret.Drawcall = draw;
             ret.Topology = draw.topology;
@@ -739,14 +742,14 @@ namespace renderdocui.Windows
                 if (details == null)
                     return null;
 
-                f = new FormatElement[details.OutputSig.Length];
+                List<FormatElement> f = new List<FormatElement>();
 
-                uint offset = 0;
+                int posidx = -1;
                 for (int i = 0; i < details.OutputSig.Length; i++)
                 {
                     var sig = details.OutputSig[i];
 
-                    f[i] = new FormatElement();
+                    f.Add(new FormatElement());
 
                     f[i].buffer = 0;
                     f[i].name = details.OutputSig[i].varName.Length > 0 ? details.OutputSig[i].varName : details.OutputSig[i].semanticIdxName;
@@ -755,16 +758,33 @@ namespace renderdocui.Windows
                     f[i].format.compType = sig.compType;
                     f[i].format.special = false;
                     f[i].format.rawType = 0;
-                    f[i].offset = offset;
                     f[i].perinstance = false;
+                    f[i].instancerate = 1;
                     f[i].rowmajor = false;
                     f[i].matrixdim = 1;
                     f[i].systemValue = sig.systemValue;
 
-                    offset += details.OutputSig[i].compCount * sizeof(float);
+                    if(f[i].systemValue == SystemAttribute.Position)
+                        posidx = i;
                 }
 
-                ret.BufferFormats = f;
+                // shift position attribute up to first, keeping order otherwise
+                // the same
+                if (posidx > 0)
+                {
+                    FormatElement pos = f[posidx];
+                    f.RemoveAt(posidx);
+                    f.Insert(0, pos);
+                }
+                
+                uint offset = 0;
+                for (int i = 0; i < details.OutputSig.Length; i++)
+                {
+                    f[i].offset = offset;
+                    offset += f[i].format.compCount * sizeof(float);
+                }
+
+                ret.BufferFormats = f.ToArray();
                 ret.Strides = new uint[] { offset };
                 ret.Offsets = new uint[] { 0 };
                 ret.Buffers = null;
@@ -786,6 +806,8 @@ namespace renderdocui.Windows
             }
 
             {
+                FormatElement[] f = null;
+
                 var vinputs = m_Core.CurPipelineState.GetVertexInputs();
                 f = new FormatElement[vinputs.Length];
 
@@ -802,12 +824,12 @@ namespace renderdocui.Windows
                                              false);
                     i++;
                 }
-            }
 
-            ret.BufferFormats = f;
-            ret.Strides = s;
-            ret.Offsets = o;
-            ret.Buffers = bs;
+                ret.BufferFormats = f;
+                ret.Strides = s;
+                ret.Offsets = o;
+                ret.Buffers = bs;
+            }
 
             return ret;
         }
@@ -848,7 +870,7 @@ namespace renderdocui.Windows
 
             if (type != MeshDataStage.VSIn)
             {
-                ret.PostVS = r.GetPostVSData(type);
+                ret.PostVS = r.GetPostVSData(Math.Min(m_MeshDisplay.curInstance, Math.Max(1U, input.Drawcall.numInstances)), type);
 
                 ret.Buffers = new byte[1][];
 
@@ -859,11 +881,11 @@ namespace renderdocui.Windows
                 }
                 else
                 {
-                    ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, 0, 0);
+                    ret.Buffers[0] = r.GetBufferData(ret.PostVS.buf, ret.PostVS.offset, 0);
 
                     ret.Topology = ret.PostVS.topo;
 
-                    ret.IndexCount = (uint)ret.Buffers[0].Length / ret.PostVS.stride;
+                    ret.IndexCount = ret.PostVS.numVerts;
 
                     uint stride = 0;
                     foreach (var f in input.BufferFormats)
@@ -1298,7 +1320,7 @@ namespace renderdocui.Windows
             var data = state.m_Data;
 
             Input input = state.m_Input;
-            uint instance = m_CurInst;
+            uint instance = m_MeshDisplay.curInstance;
 
             Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
@@ -1527,7 +1549,7 @@ namespace renderdocui.Windows
 
             var data = state.m_Data;
             Input input = state.m_Input;
-            uint instance = m_CurInst;
+            uint instance = m_MeshDisplay.curInstance;
 
             if (data.Buffers == null)
                 return;
@@ -2277,7 +2299,7 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.idxByteWidth = ui.m_Data.PostVS.idxByteWidth;
 
                     m_MeshDisplay.position.buf = ui.m_Data.PostVS.buf;
-                    m_MeshDisplay.position.offset = pos.offset;
+                    m_MeshDisplay.position.offset = ui.m_Data.PostVS.offset + pos.offset;
                     m_MeshDisplay.position.stride = ui.m_Data.PostVS.stride;
 
                     m_MeshDisplay.position.topo = ui.m_Data.PostVS.topo;
@@ -2337,7 +2359,7 @@ namespace renderdocui.Windows
                 else if (ui.m_Stage != MeshDataStage.VSIn && ui.m_Data != null && ui.m_Data.PostVS.buf != ResourceId.Null)
                 {
                     m_MeshDisplay.secondary.buf = ui.m_Data.PostVS.buf;
-                    m_MeshDisplay.secondary.offset = tex.offset;
+                    m_MeshDisplay.secondary.offset = ui.m_Data.PostVS.offset + tex.offset;
                     m_MeshDisplay.secondary.stride = ui.m_Data.PostVS.stride;
                 }
             }
@@ -2473,9 +2495,10 @@ namespace renderdocui.Windows
                 uint inst = 0;
                 if (uint.TryParse(instanceIdxToolitem.Text, out inst))
                 {
-                    if (inst != m_CurInst && inst >= 0 && m_Core.CurDrawcall != null && inst < m_Core.CurDrawcall.numInstances)
+                    if (inst != m_MeshDisplay.curInstance && inst >= 0 && m_Core.CurDrawcall != null && inst < m_Core.CurDrawcall.numInstances)
                     {
-                        m_CurInst = inst;
+                        m_MeshDisplay.curInstance = inst;
+
 
                         OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
                     }
@@ -2581,9 +2604,9 @@ namespace renderdocui.Windows
             uint inst = 0;
             if (uint.TryParse(instanceIdx.Text, out inst))
             {
-                if (inst != m_CurInst && inst >= 0 && m_Core.CurDrawcall != null && inst < m_Core.CurDrawcall.numInstances)
+                if (inst != m_MeshDisplay.curInstance && inst >= 0 && m_Core.CurDrawcall != null && inst < m_Core.CurDrawcall.numInstances)
                 {
-                    m_CurInst = inst;
+                    m_MeshDisplay.curInstance = inst;
 
                     OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
                 }
@@ -2695,14 +2718,14 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.DebugVertex((UInt32)row, (UInt32)m_CurInst, idx, draw.instanceOffset, draw.vertexOffset);
+                trace = r.DebugVertex((UInt32)row, m_MeshDisplay.curInstance, idx, draw.instanceOffset, draw.vertexOffset);
             });
 
             this.BeginInvoke(new Action(() =>
             {
                 string debugContext = String.Format("Vertex {0}", row);
                 if (draw.numInstances > 1)
-                    debugContext += String.Format(", Instance {0}", m_CurInst);
+                    debugContext += String.Format(", Instance {0}", m_MeshDisplay.curInstance);
 
                 ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Vertex, trace, debugContext);
 
@@ -2816,7 +2839,7 @@ namespace renderdocui.Windows
 
         private void UpdateHighlightVerts(UIState ui)
         {
-            if (ui.m_RawData == null) return;
+            if (ui == null || ui.m_RawData == null) return;
             if (ui.m_GridView.SelectedRows.Count == 0) return;
             if (!MeshView) return;
 

@@ -1716,16 +1716,25 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	varyings.clear();
 
 	uint32_t stride = 0;
-	uint32_t posoffset = ~0U;
+	int32_t posidx = -1;
 
 	for(int32_t i=0; i < vsRefl->OutputSig.count; i++)
 	{
 		varyings.push_back(vsRefl->OutputSig[i].varName.elems);
 
-		if(!strcmp(vsRefl->OutputSig[i].varName.elems, "gl_Position"))
-			posoffset = stride;
+		if(vsRefl->OutputSig[i].systemValue == eAttr_Position)
+			posidx = i;
 
 		stride += sizeof(float)*vsRefl->OutputSig[i].compCount;
+	}
+	
+	// shift position attribute up to first, keeping order otherwise
+	// the same
+	if(posidx > 0)
+	{
+		const char *pos = varyings[posidx];
+		varyings.erase(varyings.begin()+posidx);
+		varyings.insert(varyings.begin(), pos);
 	}
 	
 	// this is REALLY ugly, but I've seen problems with varying specification, so we try and
@@ -1872,7 +1881,11 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	if((drawcall->flags & eDraw_UseIBuffer) == 0)
 	{
-		gl.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
+		if(drawcall->flags & eDraw_Instanced)
+			gl.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
+				    drawcall->numInstances, drawcall->instanceOffset);
+		else
+			gl.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
 	}
 	else // drawcall is indexed
 	{
@@ -1936,7 +1949,15 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
 		gl.glNamedBufferStorageEXT(indexSetBuffer, sizeof(uint32_t)*indices.size(), &indices[0], 0);
 		
-		gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->vertexOffset);
+		if(drawcall->flags & eDraw_Instanced)
+		{
+			gl.glDrawElementsInstancedBaseVertexBaseInstance(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL,
+					drawcall->numInstances, drawcall->vertexOffset, drawcall->instanceOffset);
+		}
+		else
+		{
+			gl.glDrawElementsBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->vertexOffset);
+		}
 		
 		// delete the buffer, we don't need it anymore
 		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
@@ -1993,9 +2014,9 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	float nearp = 0.1f;
 	float farp = 100.0f;
 
-	Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
+	Vec4f *pos0 = (Vec4f *)byteData;
 
-	for(GLuint i=1; posoffset != ~0U && i < primsWritten; i++)
+	for(GLuint i=1; posidx != -1 && i < primsWritten; i++)
 	{
 		//////////////////////////////////////////////////////////////////////////////////
 		// derive near/far, assuming a standard perspective matrix
@@ -2015,7 +2036,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// two points, and we pick them reasonably distinct on z to reduce floating-point
 		// error
 
-		Vec4f *pos = (Vec4f *)(byteData + posoffset + i*stride);
+		Vec4f *pos = (Vec4f *)(byteData + i*stride);
 
 		if(fabs(pos->w - pos0->w) > 0.01f)
 		{
@@ -2039,13 +2060,16 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	// store everything out to the PostVS data cache
 	m_PostVSData[idx].vsin.topo = drawcall->topology;
 	m_PostVSData[idx].vsout.buf = vsoutBuffer;
-	m_PostVSData[idx].vsout.posOffset = posoffset;
 	m_PostVSData[idx].vsout.vertStride = stride;
 	m_PostVSData[idx].vsout.nearPlane = nearp;
 	m_PostVSData[idx].vsout.farPlane = farp;
 
 	m_PostVSData[idx].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
 	m_PostVSData[idx].vsout.numVerts = drawcall->numIndices;
+	
+	m_PostVSData[idx].vsout.instStride = 0;
+	if(drawcall->flags & eDraw_Instanced)
+		m_PostVSData[idx].vsout.instStride = (stride*primsWritten) / RDCMAX(1U, drawcall->numInstances);
 
 	m_PostVSData[idx].vsout.idxBuf = 0;
 	m_PostVSData[idx].vsout.idxByteWidth = drawcall->indexByteWidth;
@@ -2053,6 +2077,8 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	{
 		m_PostVSData[idx].vsout.idxBuf = idxBuf;
 	}
+
+	m_PostVSData[idx].vsout.hasPosOut = posidx >= 0;
 
 	m_PostVSData[idx].vsout.topo = drawcall->topology;
 
@@ -2078,16 +2104,25 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		varyings.clear();
 
 		stride = 0;
-		posoffset = ~0U;
+		posidx = -1;
 
 		for(int32_t i=0; i < lastRefl->OutputSig.count; i++)
 		{
 			varyings.push_back(lastRefl->OutputSig[i].varName.elems);
 
-			if(!strcmp(lastRefl->OutputSig[i].varName.elems, "gl_Position"))
-				posoffset = stride;
+			if(lastRefl->OutputSig[i].systemValue == eAttr_Position)
+				posidx = i;
 
 			stride += sizeof(float)*lastRefl->OutputSig[i].compCount;
+		}
+		
+		// shift position attribute up to first, keeping order otherwise
+		// the same
+		if(posidx > 0)
+		{
+			const char *pos = varyings[posidx];
+			varyings.erase(varyings.begin()+posidx);
+			varyings.insert(varyings.begin(), pos);
 		}
 
 		// see above for the justification/explanation of this monstrosity.
@@ -2233,15 +2268,29 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			if((drawcall->flags & eDraw_UseIBuffer) == 0)
 			{
-				gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
+				if(drawcall->flags & eDraw_Instanced)
+					gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+					      drawcall->numInstances, drawcall->instanceOffset);
+				else
+					gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
 			}
 			else // drawcall is indexed
 			{
 				GLenum idxType = eGL_UNSIGNED_BYTE;
 				if(drawcall->indexByteWidth == 2) idxType = eGL_UNSIGNED_SHORT;
 				else if(drawcall->indexByteWidth == 4) idxType = eGL_UNSIGNED_INT;
-				gl.glDrawElementsBaseVertex(drawtopo, drawcall->numIndices, idxType,
-					(const void *)(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->vertexOffset);
+
+				if(drawcall->flags & eDraw_Instanced)
+				{
+					gl.glDrawElementsInstancedBaseVertexBaseInstance(drawtopo, drawcall->numIndices, idxType,
+						(const void *)(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->numInstances,
+						drawcall->vertexOffset, drawcall->instanceOffset);
+				}
+				else
+				{
+					gl.glDrawElementsBaseVertex(drawtopo, drawcall->numIndices, idxType,
+						(const void *)(drawcall->indexOffset*drawcall->indexByteWidth), drawcall->vertexOffset);
+				}
 			}
 			gl.glEndTransformFeedback();
 			gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
@@ -2284,9 +2333,9 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			float nearp = 0.1f;
 			float farp = 100.0f;
 
-			Vec4f *pos0 = (Vec4f *)(byteData + posoffset);
+			Vec4f *pos0 = (Vec4f *)byteData;
 
-			for(uint32_t i=1; posoffset != ~0U && i < m_PostVSData[idx].gsout.numVerts; i++)
+			for(uint32_t i=1; posidx != -1 && i < m_PostVSData[idx].gsout.numVerts; i++)
 			{
 				//////////////////////////////////////////////////////////////////////////////////
 				// derive near/far, assuming a standard perspective matrix
@@ -2306,7 +2355,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				// two points, and we pick them reasonably distinct on z to reduce floating-point
 				// error
 
-				Vec4f *pos = (Vec4f *)(byteData + posoffset + i*stride);
+				Vec4f *pos = (Vec4f *)(byteData + i*stride);
 
 				if(fabs(pos->w - pos0->w) > 0.01f)
 				{
@@ -2329,12 +2378,19 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 			// store everything out to the PostVS data cache
 			m_PostVSData[idx].gsout.buf = lastoutBuffer;
-			m_PostVSData[idx].gsout.posOffset = posoffset;
+			m_PostVSData[idx].gsout.instStride = 0;
+			if(drawcall->flags & eDraw_Instanced)
+			{
+				m_PostVSData[idx].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+				m_PostVSData[idx].gsout.instStride = stride*m_PostVSData[idx].gsout.numVerts;
+			}
 			m_PostVSData[idx].gsout.vertStride = stride;
 			m_PostVSData[idx].gsout.nearPlane = nearp;
 			m_PostVSData[idx].gsout.farPlane = farp;
 
 			m_PostVSData[idx].gsout.useIndices = false;
+
+			m_PostVSData[idx].gsout.hasPosOut = posidx >= 0;
 
 			m_PostVSData[idx].gsout.idxBuf = 0;
 			m_PostVSData[idx].gsout.idxByteWidth = 0;
@@ -2366,7 +2422,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		gl.glEnable(eGL_RASTERIZER_DISCARD);
 }
 
-MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	GLPostVSData postvs;
 	RDCEraseEl(postvs);
@@ -2391,7 +2447,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDa
 	else
 		ret.buf = ResourceId();
 
-	ret.offset = s.posOffset;
+	ret.offset = s.instStride*instID;
 	ret.stride = s.vertStride;
 
 	ret.compCount = 4;
@@ -2404,7 +2460,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDa
 	ret.topo = s.topo;
 	ret.numVerts = s.numVerts;
 
-	ret.unproject = true;
+	ret.unproject = s.hasPosOut;
 	ret.nearPlane = s.nearPlane;
 	ret.farPlane = s.farPlane;
 
@@ -2834,9 +2890,12 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	{
 		MeshDataStage stage = cfg.type;
 		
-		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage)
+		if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage ||
+		   cfg.position.buf != m_HighlightCache.buf || cfg.position.offset != m_HighlightCache.offs)
 		{
 			m_HighlightCache.EID = eventID;
+			m_HighlightCache.buf = cfg.position.buf;
+			m_HighlightCache.offs = cfg.position.offset;
 			m_HighlightCache.stage = stage;
 			
 			UINT bytesize = cfg.position.idxByteWidth; 

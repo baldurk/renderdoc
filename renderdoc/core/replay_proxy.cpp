@@ -808,7 +808,7 @@ bool ProxySerialiser::Tick()
 			InitPostVSBuffers(0, 0);
 			break;
 		case eCommand_GetPostVS:
-			GetPostVSBuffers(0, 0, eMeshDataStage_Unknown);
+			GetPostVSBuffers(0, 0, 0, eMeshDataStage_Unknown);
 			break;
 		case eCommand_BuildTargetShader:
 			BuildTargetShader("", "", 0, eShaderStage_Vertex, NULL, NULL);
@@ -1307,17 +1307,18 @@ void ProxySerialiser::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	}
 }
 
-MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+MeshFormat ProxySerialiser::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
 	MeshFormat ret;
 	
 	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
+	m_ToReplaySerialiser->Serialise("", instID);
 	m_ToReplaySerialiser->Serialise("", stage);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->GetPostVSBuffers(frameID, eventID, stage);
+		ret = m_Remote->GetPostVSBuffers(frameID, eventID, instID, stage);
 	}
 	else
 	{

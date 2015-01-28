@@ -240,7 +240,7 @@ namespace renderdoc
         private static extern bool ReplayRenderer_SaveTexture(IntPtr real, TextureSave saveData, IntPtr path);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, MeshDataStage stage, IntPtr outdata);
+        private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, UInt32 instID, MeshDataStage stage, IntPtr outdata);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outminval, IntPtr outmaxval);
@@ -636,14 +636,14 @@ namespace renderdoc
             return ret;
         }
 
-        public MeshFormat GetPostVSData(MeshDataStage stage)
+        public MeshFormat GetPostVSData(UInt32 instID, MeshDataStage stage)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(MeshFormat));
 
             MeshFormat ret = new MeshFormat();
             ret.buf = ResourceId.Null;
 
-            bool success = ReplayRenderer_GetPostVSData(m_Real, stage, mem);
+            bool success = ReplayRenderer_GetPostVSData(m_Real, instID, stage, mem);
 
             if (success)
                 ret = (MeshFormat)CustomMarshal.PtrToStructure(mem, typeof(MeshFormat), true);

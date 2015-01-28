@@ -30,6 +30,9 @@
 #include "replay/replay_driver.h"
 #include "core/core.h"
 
+using std::pair;
+using std::map;
+
 class WrappedOpenGL;
 
 struct GLPostVSData
@@ -40,12 +43,14 @@ struct GLPostVSData
 		PrimitiveTopology topo;
 
 		uint32_t numVerts;
-		uint32_t posOffset;
 		uint32_t vertStride;
+		uint32_t instStride;
 
 		bool useIndices;
 		GLuint idxBuf;
 		uint32_t idxByteWidth;
+
+		bool hasPosOut;
 
 		float nearPlane;
 		float farPlane;
@@ -126,7 +131,7 @@ class GLReplay : public IReplayDriver
 		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval);
 		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram);
 		
-		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage);
+		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage);
 		
 		vector<byte> GetBufferData(ResourceId buff, uint32_t offset, uint32_t len);
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize);
@@ -278,8 +283,10 @@ class GLReplay : public IReplayDriver
 		// mesh, not jumping back and forth much between meshes.
 		struct HighlightCache
 		{
-			HighlightCache() : EID(0), stage(eMeshDataStage_Unknown), useidx(false) {}
+			HighlightCache() : EID(0), buf(), offs(0), stage(eMeshDataStage_Unknown), useidx(false) {}
 			uint32_t EID;
+			ResourceId buf;
+			uint32_t offs;
 			MeshDataStage stage;
 			bool useidx;
 
@@ -287,8 +294,8 @@ class GLReplay : public IReplayDriver
 			vector<uint32_t> indices;
 		} m_HighlightCache;
 		
-		// <frame,event> -> data
-		std::map<std::pair<uint32_t,uint32_t>, GLPostVSData> m_PostVSData;
+		// <frame,instance> -> data
+		map< pair<uint32_t,uint32_t>, GLPostVSData > m_PostVSData;
 
 		void InitDebugData();
 		void DeleteDebugData();

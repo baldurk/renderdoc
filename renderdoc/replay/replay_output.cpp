@@ -142,13 +142,13 @@ void ReplayOutput::RefreshOverlay()
 
 		while(start)
 		{
+			if(start == draw)
+				break;
+
 			if(start->flags & eDraw_Drawcall)
 			{
 				passEvents.push_back(start->eventID);
 			}
-
-			if(start == draw)
-				break;
 
 			start = m_pRenderer->GetDrawcallByEID((uint32_t)start->next, 0);
 		}
@@ -170,12 +170,10 @@ void ReplayOutput::RefreshOverlay()
 
 		if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0)
 			return;
+		
+		m_pDevice->InitPostVSBuffers(m_FrameID, draw->eventID);
 
-		if(m_RenderData.meshDisplay.thisDrawOnly)
-		{
-			m_pDevice->InitPostVSBuffers(m_FrameID, draw->eventID);
-		}
-		else if(!passEvents.empty())
+		if(!m_RenderData.meshDisplay.thisDrawOnly && !passEvents.empty())
 		{
 			uint32_t prev = 0;
 
@@ -188,7 +186,12 @@ void ReplayOutput::RefreshOverlay()
 					prev = passEvents[i];
 				}
 
-				m_pDevice->InitPostVSBuffers(m_FrameID, passEvents[i]);
+				FetchDrawcall *d = m_pRenderer->GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
+
+				if(d)
+				{
+					m_pDevice->InitPostVSBuffers(m_FrameID, passEvents[i]);
+				}
 			}
 
 			m_pDevice->ReplayLog(m_FrameID, 0, m_EventID, eReplay_WithoutDraw);
@@ -571,10 +574,36 @@ void ReplayOutput::DisplayMesh()
 
 		for(size_t i=0; i < passEvents.size(); i++)
 		{
-			// get the 'most final' stage
-			MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], eMeshDataStage_GSOut);
-			if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], eMeshDataStage_VSOut);
-			secondaryDraws.push_back(fmt);
+			FetchDrawcall *d = m_pRenderer->GetDrawcallByEID(passEvents[i], m_LastDeferredEvent);
+
+			if(d)
+			{
+				for(uint32_t inst=0; inst < RDCMAX(1U, draw->numInstances); inst++)
+				{
+					// get the 'most final' stage
+					MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], inst, eMeshDataStage_GSOut);
+					if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, passEvents[i], inst, eMeshDataStage_VSOut);
+
+					// if unproject is marked, this output had a 'real' system position output
+					if(fmt.unproject)
+						secondaryDraws.push_back(fmt);
+				}
+			}
+		}
+
+		// draw previous instances in the current drawcall
+		if(draw->flags & eDraw_Instanced)
+		{
+			for(uint32_t inst=0; inst < RDCMAX(1U, draw->numInstances) && inst < m_RenderData.meshDisplay.curInstance; inst++)
+			{
+				// get the 'most final' stage
+				MeshFormat fmt = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, inst, eMeshDataStage_GSOut);
+				if(fmt.buf == ResourceId()) fmt = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, inst, eMeshDataStage_VSOut);
+
+				// if unproject is marked, this output had a 'real' system position output
+				if(fmt.unproject)
+					secondaryDraws.push_back(fmt);
+			}
 		}
 	}
 

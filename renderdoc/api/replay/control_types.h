@@ -66,6 +66,7 @@ struct MeshDisplay
 	float fov, aspect;
 
 	bool32 thisDrawOnly;
+	uint32_t curInstance;
 
 	uint32_t highlightVert;
 	MeshFormat position;

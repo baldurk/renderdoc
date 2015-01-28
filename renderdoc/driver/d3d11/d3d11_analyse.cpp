@@ -3030,10 +3030,9 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 		vector<uint32_t> events = passEvents;
 
 		if(overlay == eTexOverlay_QuadOverdrawDraw)
-		{
 			events.clear();
-			events.push_back(eventID);
-		}
+
+		events.push_back(eventID);
 
 		if(!events.empty())
 		{

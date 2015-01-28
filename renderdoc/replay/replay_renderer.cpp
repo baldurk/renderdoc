@@ -356,7 +356,7 @@ bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
 	return false;
 }
 
-bool ReplayRenderer::GetPostVSData(MeshDataStage stage, MeshFormat *data)
+bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data)
 {
 	if(data == NULL) return false;
 
@@ -367,7 +367,9 @@ bool ReplayRenderer::GetPostVSData(MeshDataStage stage, MeshFormat *data)
 
 	if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0) return false;
 
-	*data = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, stage);
+	if(instID >= RDCMAX(1U, draw->numInstances)) return false;
+
+	*data = m_pDevice->GetPostVSBuffers(m_FrameID, draw->eventID, instID, stage);
 
 	return true;
 }
@@ -1521,8 +1523,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableCo
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(ReplayRenderer *rend, const TextureSave &saveData, const char *path)
 { return rend->SaveTexture(saveData, path); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, MeshDataStage stage, MeshFormat *data)
-{ return rend->GetPostVSData(stage, data); }
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(ReplayRenderer *rend, uint32_t instID, MeshDataStage stage, MeshFormat *data)
+{ return rend->GetPostVSData(instID, stage, data); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *minval, PixelValue *maxval)
 { return rend->GetMinMax(tex, sliceFace, mip, sample, minval, maxval); }
