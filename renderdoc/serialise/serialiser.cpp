@@ -1039,6 +1039,16 @@ string ToStrHelper<false, void *>::Get(void* const &el)
 }
 
 template<>
+string ToStrHelper<false, int64_t>::Get(const int64_t &el)
+{
+	char tostrBuf[256] = {0};
+
+	StringFormat::snprintf(tostrBuf, 255, "%lld", el);
+
+	return tostrBuf;
+}
+
+template<>
 string ToStrHelper<false, uint64_t>::Get(const uint64_t &el)
 {
 	char tostrBuf[256] = {0};

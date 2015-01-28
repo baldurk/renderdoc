@@ -26,6 +26,26 @@
 #include "replay_proxy.h"
 #include "lz4/lz4.h"
 
+// these functions do compile time asserts on the size of the structure, to
+// help prevent the structure changing without these functions being updated.
+// This isn't perfect as a new variable could be added in padding space, or
+// one removed and leaves padding. Most variables are 4 bytes in size though
+// so it should be fairly reliable and it's better than nothing!
+// Since structures contain pointers and vary in size, we do this only on
+// Win32 to try and hide less padding with the larger alignment requirement
+// of 8-byte pointers.
+
+#if defined(__i386__) || defined(_M_IX86)
+template<size_t a, size_t e> class oversized { int check[int(a)-int(e)+1]; };
+template<size_t a, size_t e> class undersized { int check[int(e)-int(a)+1]; };
+
+#define SIZE_CHECK(T, expected) undersized<sizeof(T), expected>(); oversized<sizeof(T), expected>();
+#else
+#define SIZE_CHECK(T, expected)
+#endif
+
+#pragma region General Shader/State
+
 template<>
 string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
 {
@@ -33,6 +53,7 @@ string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
 	{
 		TOSTR_CASE_STRINGIZE(eAttr_None)
 		TOSTR_CASE_STRINGIZE(eAttr_Position)
+		TOSTR_CASE_STRINGIZE(eAttr_PointSize)
 		TOSTR_CASE_STRINGIZE(eAttr_ClipDistance)
 		TOSTR_CASE_STRINGIZE(eAttr_CullDistance)
 		TOSTR_CASE_STRINGIZE(eAttr_RTIndex)
@@ -40,6 +61,8 @@ string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
 		TOSTR_CASE_STRINGIZE(eAttr_VertexIndex)
 		TOSTR_CASE_STRINGIZE(eAttr_PrimitiveIndex)
 		TOSTR_CASE_STRINGIZE(eAttr_InstanceIndex)
+		TOSTR_CASE_STRINGIZE(eAttr_InvocationIndex)
+		TOSTR_CASE_STRINGIZE(eAttr_DispatchSize)
 		TOSTR_CASE_STRINGIZE(eAttr_DispatchThreadIndex)
 		TOSTR_CASE_STRINGIZE(eAttr_GroupIndex)
 		TOSTR_CASE_STRINGIZE(eAttr_GroupFlatIndex)
@@ -49,7 +72,9 @@ string ToStrHelper<false, SystemAttribute>::Get(const SystemAttribute &el)
 		TOSTR_CASE_STRINGIZE(eAttr_DomainLocation)
 		TOSTR_CASE_STRINGIZE(eAttr_IsFrontFace)
 		TOSTR_CASE_STRINGIZE(eAttr_MSAACoverage)
+		TOSTR_CASE_STRINGIZE(eAttr_MSAASamplePosition)
 		TOSTR_CASE_STRINGIZE(eAttr_MSAASampleIndex)
+		TOSTR_CASE_STRINGIZE(eAttr_PatchNumVertices)
 		TOSTR_CASE_STRINGIZE(eAttr_OuterTessFactor)
 		TOSTR_CASE_STRINGIZE(eAttr_InsideTessFactor)
 		TOSTR_CASE_STRINGIZE(eAttr_ColourOutput)
@@ -76,6 +101,8 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
 	Serialise("", el.compByteWidth);
 	Serialise("", el.compType);
 	Serialise("", el.srgbCorrected);
+
+	SIZE_CHECK(ResourceFormat, 36);
 }
 
 template<>
@@ -83,6 +110,8 @@ void Serialiser::Serialise(const char *name, BindpointMap &el)
 {
 	Serialise("", el.bind);
 	Serialise("", el.used);
+
+	SIZE_CHECK(BindpointMap, 8);
 }
 
 template<>
@@ -91,7 +120,159 @@ void Serialiser::Serialise(const char *name, ShaderBindpointMapping &el)
 	Serialise("", el.InputAttributes);
 	Serialise("", el.ConstantBlocks);
 	Serialise("", el.Resources);
+
+	SIZE_CHECK(ShaderBindpointMapping, 24);
 }
+
+template<>
+void Serialiser::Serialise(const char *name, SigParameter &el)
+{
+	Serialise("", el.varName);
+	Serialise("", el.semanticName);
+	Serialise("", el.semanticIndex);
+	Serialise("", el.semanticIdxName);
+	Serialise("", el.needSemanticIndex);
+	Serialise("", el.regIndex);
+	Serialise("", el.systemValue);
+	Serialise("", el.compType);
+	Serialise("", el.regChannelMask);
+	Serialise("", el.channelUsedMask);
+	Serialise("", el.compCount);
+	Serialise("", el.stream);
+
+	SIZE_CHECK(SigParameter, 56);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderVariableType &el)
+{
+	Serialise("", el.descriptor.name);
+	Serialise("", el.descriptor.type);
+	Serialise("", el.descriptor.rows);
+	Serialise("", el.descriptor.cols);
+	Serialise("", el.descriptor.elements);
+	Serialise("", el.descriptor.rowMajorStorage);
+	Serialise("", el.members);
+
+	SIZE_CHECK(ShaderVariableType, 36);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderConstant &el)
+{
+	Serialise("", el.name);
+	Serialise("", el.reg.vec);
+	Serialise("", el.reg.comp);
+	Serialise("", el.type);
+
+	SIZE_CHECK(ShaderConstant, 52);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ConstantBlock &el)
+{
+	Serialise("", el.name);
+	Serialise("", el.variables);
+	Serialise("", el.bufferBacked);
+	Serialise("", el.bindPoint);
+
+	SIZE_CHECK(ConstantBlock, 24);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderResource &el)
+{
+	Serialise("", el.IsSampler);
+	Serialise("", el.IsTexture);
+	Serialise("", el.IsSRV);
+	Serialise("", el.IsReadWrite);
+	Serialise("", el.resType);
+	Serialise("", el.name);
+	Serialise("", el.variableType);
+	Serialise("", el.bindPoint);
+
+	SIZE_CHECK(ShaderResource, 68);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderReflection &el)
+{
+	Serialise("", el.DebugInfo.compileFlags);
+	Serialise("", el.DebugInfo.entryFunc);
+	Serialise("", el.DebugInfo.files);
+
+	Serialise("", el.Disassembly);
+	
+	Serialise("", el.InputSig);
+	Serialise("", el.OutputSig);
+
+	Serialise("", el.ConstantBlocks);
+
+	Serialise("", el.Resources);
+
+	Serialise("", el.Interfaces);
+
+	SIZE_CHECK(ShaderReflection, 68);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderVariable &el)
+{
+	Serialise("", el.rows);
+	Serialise("", el.columns);
+	Serialise("", el.name);
+	Serialise("", el.type);
+
+	Serialise<16>("", el.value.dv);
+	
+	Serialise("", el.isStruct);
+	
+	Serialise("", el.members);
+
+	SIZE_CHECK(ShaderVariable, 168);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderDebugState &el)
+{
+	Serialise("", el.registers);
+	Serialise("", el.outputs);
+	Serialise("", el.nextInstruction);
+	
+	vector< vector<ShaderVariable> > indexableTemps;
+	
+	int32_t numidxtemps = el.indexableTemps.count;
+	Serialise("", numidxtemps);
+
+	if(m_Mode == READING) create_array_uninit(el.indexableTemps, numidxtemps);
+
+	for(int32_t i=0; i < numidxtemps; i++)
+		Serialise("", el.indexableTemps[i]);
+
+	SIZE_CHECK(ShaderDebugState, 28);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, ShaderDebugTrace &el)
+{
+	Serialise("", el.inputs);
+
+	int32_t numcbuffers = el.cbuffers.count;
+	Serialise("", numcbuffers);
+
+	if(m_Mode == READING) create_array_uninit(el.cbuffers, numcbuffers);
+
+	for(int32_t i=0; i < numcbuffers; i++)
+		Serialise("", el.cbuffers[i]);
+
+	Serialise("", el.states);
+
+	SIZE_CHECK(ShaderDebugTrace, 24);
+}
+
+#pragma endregion General Shader/State
+
+#pragma region D3D11 pipeline state
 
 template<>
 void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler::LayoutInput &el)
@@ -103,6 +284,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler:
 	Serialise("", el.ByteOffset);
 	Serialise("", el.PerInstance);
 	Serialise("", el.InstanceDataStepRate);
+
+	SIZE_CHECK(D3D11PipelineState::InputAssembler::LayoutInput, 64);
 }
 
 template<>
@@ -113,6 +296,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler 
 	
 	Serialise("", el.vbuffers);
 	Serialise("", el.layouts);
+
+	SIZE_CHECK(D3D11PipelineState::InputAssembler, 48);
 }
 
 template<>
@@ -135,6 +320,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Re
 	Serialise("", el.NumMipLevels);
 	Serialise("", el.ArraySize);
 	Serialise("", el.FirstArraySlice);
+
+	SIZE_CHECK(D3D11PipelineState::ShaderStage::ResourceView, 104);
 }
 
 template<>
@@ -147,10 +334,14 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sa
 	Serialise<4>("", el.BorderColor);
 	Serialise("", el.Comparison);
 	Serialise("", el.Filter);
+	Serialise("", el.UseBorder);
+	Serialise("", el.UseComparison);
 	Serialise("", el.MaxAniso);
 	Serialise("", el.MaxLOD);
 	Serialise("", el.MinLOD);
 	Serialise("", el.MipLODBias);
+
+	SIZE_CHECK(D3D11PipelineState::ShaderStage::Sampler, 88);
 }
 
 template<>
@@ -171,6 +362,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage &el
 	Serialise("", el.Samplers);
 	Serialise("", el.ConstantBuffers);
 	Serialise("", el.ClassInstances);
+
+	SIZE_CHECK(D3D11PipelineState::ShaderStage, 96);
 }
 
 template<>
@@ -179,6 +372,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::Rasterizer &el)
 	Serialise("", el.m_State);
 	Serialise("", el.Scissors);
 	Serialise("", el.Viewports);
+
+	SIZE_CHECK(D3D11PipelineState::Rasterizer, 72);
 }
 
 template<>
@@ -197,6 +392,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger::B
 	Serialise("", el.Enabled);
 	Serialise("", el.LogicEnabled);
 	Serialise("", el.WriteMask);
+
+	SIZE_CHECK(D3D11PipelineState::OutputMerger::BlendState::RTBlend, 68);
 }
 
 template<>
@@ -240,6 +437,8 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger &e
 	Serialise("", el.DepthTarget);
 	Serialise("", el.DepthReadOnly);
 	Serialise("", el.StencilReadOnly);
+
+	SIZE_CHECK(D3D11PipelineState::OutputMerger, 288);
 }
 
 template<>
@@ -258,6 +457,37 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 	
 	Serialise("", el.m_RS);
 	Serialise("", el.m_OM);
+
+	SIZE_CHECK(D3D11PipelineState, 992);
+}
+
+#pragma endregion D3D11 pipeline state
+
+#pragma region OpenGL pipeline state
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexAttribute &el)
+{
+	Serialise("", el.Enabled);
+	Serialise("", el.Format);
+	Serialise<4>("", &el.GenericValue.x);
+	Serialise("", el.BufferSlot);
+	Serialise("", el.RelativeOffset);
+
+	SIZE_CHECK(GLPipelineState::VertexInput::VertexAttribute, 64);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
+{
+	Serialise("", el.attributes);
+	Serialise("", el.vbuffers);
+	Serialise("", el.ibuffer);
+	Serialise("", el.primitiveRestart);
+	Serialise("", el.restartIndex);
+	Serialise("", el.provokingVertexLast);
+
+	SIZE_CHECK(GLPipelineState::VertexInput, 40);
 }
 
 template<>
@@ -265,162 +495,188 @@ void Serialiser::Serialise(const char *name, GLPipelineState::ShaderStage &el)
 {
 	Serialise("", el.Shader);
 	Serialise("", el.stage);
+	Serialise("", el.BindpointMapping);
+	Serialise("", el.Subroutines);
 
 	if(m_Mode == READING)
 		el.ShaderDetails = NULL;
+
+	SIZE_CHECK(GLPipelineState::ShaderStage, 48);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexAttribute &el)
+void Serialiser::Serialise(const char *name, GLPipelineState::Sampler &el)
 {
-	Serialise("", el.BufferSlot);
-	Serialise("", el.Enabled);
+	Serialise("", el.Samp);
+	Serialise("", el.AddressS);
+	Serialise("", el.AddressT);
+	Serialise("", el.AddressR);
+	Serialise<4>("", el.BorderColor);
+	Serialise("", el.Comparison);
+	Serialise("", el.MinFilter);
+	Serialise("", el.MagFilter);
+	Serialise("", el.UseBorder);
+	Serialise("", el.UseComparison);
+	Serialise("", el.SeamlessCube);
+	Serialise("", el.MaxAniso);
+	Serialise("", el.MaxLOD);
+	Serialise("", el.MinLOD);
+	Serialise("", el.MipLODBias);
+
+	SIZE_CHECK(GLPipelineState::Sampler, 104);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::ImageLoadStore &el)
+{
+	Serialise("", el.Resource);
+	Serialise("", el.Level);
+	Serialise("", el.Layered);
+	Serialise("", el.Layer);
+	Serialise("", el.ResType);
+	Serialise("", el.readAllowed);
+	Serialise("", el.writeAllowed);
 	Serialise("", el.Format);
-	Serialise("", el.RelativeOffset);
+
+	SIZE_CHECK(GLPipelineState::ImageLoadStore, 72);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexBuffer &el)
+void Serialiser::Serialise(const char *name, GLPipelineState::Rasterizer &el)
 {
-	Serialise("", el.Buffer);
-	Serialise("", el.Divisor);
-	Serialise("", el.Offset);
-	Serialise("", el.Stride);
+	Serialise("", el.Viewports);
+	Serialise("", el.Scissors);
+	Serialise("", el.m_State);
+
+	SIZE_CHECK(GLPipelineState::FrameBuffer, 128);
 }
 
 template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
+void Serialiser::Serialise(const char *name, GLPipelineState::DepthState &el)
 {
-	Serialise("", el.attributes);
-	Serialise("", el.ibuffer);
-	Serialise("", el.vbuffers);
+	Serialise("", el.DepthEnable);
+	Serialise("", el.DepthFunc);
+	Serialise("", el.DepthWrites);
+	Serialise("", el.DepthBounds);
+	Serialise("", el.NearBound);
+	Serialise("", el.FarBound);
+
+	SIZE_CHECK(GLPipelineState::DepthState, 40);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::StencilState &el)
+{
+	Serialise("", el.StencilEnable);
+
+	Serialise("", el.m_FrontFace.FailOp);
+	Serialise("", el.m_FrontFace.DepthFailOp);
+	Serialise("", el.m_FrontFace.PassOp);
+	Serialise("", el.m_FrontFace.Func);
+	Serialise("", el.m_FrontFace.Ref);
+	Serialise("", el.m_FrontFace.ValueMask);
+	Serialise("", el.m_FrontFace.WriteMask);
+
+	Serialise("", el.m_BackFace.FailOp);
+	Serialise("", el.m_BackFace.DepthFailOp);
+	Serialise("", el.m_BackFace.PassOp);
+	Serialise("", el.m_BackFace.Func);
+	Serialise("", el.m_BackFace.Ref);
+	Serialise("", el.m_BackFace.ValueMask);
+	Serialise("", el.m_BackFace.WriteMask);
+
+	SIZE_CHECK(GLPipelineState::StencilState, 92);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::BlendState::RTBlend &el)
+{
+	Serialise("", el.Enabled);
+	Serialise("", el.WriteMask);
+	Serialise("", el.LogicOp);
+
+	Serialise("", el.m_Blend.Source);
+	Serialise("", el.m_Blend.Destination);
+	Serialise("", el.m_Blend.Operation);
+
+	Serialise("", el.m_AlphaBlend.Source);
+	Serialise("", el.m_AlphaBlend.Destination);
+	Serialise("", el.m_AlphaBlend.Operation);
+
+	SIZE_CHECK(GLPipelineState::FrameBuffer::BlendState::RTBlend, 64);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::BlendState &el)
+{
+	Serialise<4>("", el.BlendFactor);
+	Serialise("", el.Blends);
+
+	SIZE_CHECK(GLPipelineState::FrameBuffer::BlendState, 24);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 {
 	Serialise("", el.FramebufferSRGB);
-}
+	Serialise("", el.Dither);
 
-template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::Texture &el)
-{
-	Serialise("", el.Resource);
-	Serialise("", el.FirstSlice);
-}
+	Serialise("", el.m_DrawFBO.Obj);
+	Serialise("", el.m_DrawFBO.Color);
+	Serialise("", el.m_DrawFBO.Depth);
+	Serialise("", el.m_DrawFBO.Stencil);
+	Serialise("", el.m_DrawFBO.DrawBuffers);
+	Serialise("", el.m_DrawFBO.ReadBuffer);
 
-template<>
-void Serialiser::Serialise(const char *name, GLPipelineState::Buffer &el)
-{
-	Serialise("", el.Resource);
-	Serialise("", el.Offset);
-	Serialise("", el.Size);
+	Serialise("", el.m_ReadFBO.Obj);
+	Serialise("", el.m_ReadFBO.Color);
+	Serialise("", el.m_ReadFBO.Depth);
+	Serialise("", el.m_ReadFBO.Stencil);
+	Serialise("", el.m_ReadFBO.DrawBuffers);
+	Serialise("", el.m_ReadFBO.ReadBuffer);
+
+	Serialise("", el.m_Blending);
+
+	SIZE_CHECK(GLPipelineState::FrameBuffer, 128);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, GLPipelineState &el)
 {
+	Serialise("", el.m_VtxIn);
+
 	Serialise("", el.m_VS);
-	Serialise("", el.m_TES);
 	Serialise("", el.m_TCS);
+	Serialise("", el.m_TES);
 	Serialise("", el.m_GS);
 	Serialise("", el.m_FS);
 	Serialise("", el.m_CS);
 
-	Serialise("", el.m_VtxIn);
+	Serialise("", el.m_VtxProcess);
+
 	Serialise("", el.Textures);
+	Serialise("", el.Samplers);
+	Serialise("", el.AtomicBuffers);
 	Serialise("", el.UniformBuffers);
+	Serialise("", el.ShaderStorageBuffers);
+	Serialise("", el.Images);
+
+	Serialise("", el.m_Feedback);
+
+	Serialise("", el.m_Rasterizer);
+	Serialise("", el.m_DepthState);
+	Serialise("", el.m_StencilState);
+
 	Serialise("", el.m_FB);
+
+	Serialise("", el.m_Hints);
+
+	SIZE_CHECK(GLPipelineState, 952);
 }
 
-template<>
-void Serialiser::Serialise(const char *name, SigParameter &el)
-{
-	Serialise("", el.varName);
-	Serialise("", el.semanticName);
-	Serialise("", el.semanticIndex);
-	Serialise("", el.semanticIdxName);
-	Serialise("", el.needSemanticIndex);
-	Serialise("", el.regIndex);
-	Serialise("", el.systemValue);
-	Serialise("", el.compType);
-	Serialise("", el.regChannelMask);
-	Serialise("", el.channelUsedMask);
-	Serialise("", el.compCount);
-	Serialise("", el.stream);
-}
+#pragma endregion OpenGL pipeline state
 
-template<>
-void Serialiser::Serialise(const char *name, ShaderVariableType &el)
-{
-	Serialise("", el.descriptor.name);
-	Serialise("", el.descriptor.type);
-	Serialise("", el.descriptor.rows);
-	Serialise("", el.descriptor.cols);
-	Serialise("", el.descriptor.elements);
-	Serialise("", el.descriptor.rowMajorStorage);
-	Serialise("", el.members);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, ShaderConstant &el)
-{
-	Serialise("", el.name);
-
-	uint32_t v = el.reg.vec;
-	uint32_t c = el.reg.comp;
-
-	Serialise("", v);
-	Serialise("", c);
-
-	if(m_Mode == READING)
-	{
-		el.reg.vec = v;
-		el.reg.comp = c;
-	}
-
-	Serialise("", el.type);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, ConstantBlock &el)
-{
-	Serialise("", el.name);
-	Serialise("", el.variables);
-	Serialise("", el.bufferBacked);
-	Serialise("", el.bindPoint);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, ShaderResource &el)
-{
-	Serialise("", el.IsSampler);
-	Serialise("", el.IsTexture);
-	Serialise("", el.IsSRV);
-	Serialise("", el.IsReadWrite);
-	Serialise("", el.name);
-	Serialise("", el.variableType);
-	Serialise("", el.bindPoint);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, ShaderReflection &el)
-{
-	Serialise("", el.DebugInfo.compileFlags);
-	Serialise("", el.DebugInfo.entryFunc);
-	Serialise("", el.DebugInfo.files);
-
-	Serialise("", el.Disassembly);
-	
-	Serialise("", el.InputSig);
-	Serialise("", el.OutputSig);
-
-	Serialise("", el.ConstantBlocks);
-
-	Serialise("", el.Resources);
-
-	Serialise("", el.Interfaces);
-}
+#pragma region Data descriptors
 
 template<>
 void Serialiser::Serialise(const char *name, FetchTexture &el)
@@ -429,6 +685,7 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
 	Serialise("", el.customName);
 	Serialise("", el.format);
 	Serialise("", el.dimension);
+	Serialise("", el.resType);
 	Serialise("", el.width);
 	Serialise("", el.height);
 	Serialise("", el.depth);
@@ -440,31 +697,43 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
 	Serialise("", el.creationFlags);
 	Serialise("", el.msQual);
 	Serialise("", el.msSamp);
+
+	SIZE_CHECK(FetchTexture, 120);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, FetchBuffer &el)
 {
+	Serialise("", el.ID);
 	Serialise("", el.name);
 	Serialise("", el.customName);
-	Serialise("", el.ID);
 	Serialise("", el.length);
 	Serialise("", el.structureSize);
+	Serialise("", el.creationFlags);
+	Serialise("", el.byteSize);
+
+	SIZE_CHECK(FetchBuffer, 40);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, APIProperties &el)
 {
 	Serialise("", el.pipelineType);
+
+	SIZE_CHECK(APIProperties, 4);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, DebugMessage &el)
 {
+	Serialise("", el.eventID);
 	Serialise("", el.category);
 	Serialise("", el.severity);
+	Serialise("", el.source);
 	Serialise("", el.messageID);
 	Serialise("", el.description);
+
+	SIZE_CHECK(DebugMessage, 28);
 }
 
 template<>
@@ -475,6 +744,8 @@ void Serialiser::Serialise(const char *name, FetchAPIEvent &el)
 	Serialise("", el.callstack);
 	Serialise("", el.eventDesc);
 	Serialise("", el.fileOffset);
+
+	SIZE_CHECK(FetchAPIEvent, 40);
 }
 
 template<>
@@ -499,17 +770,18 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.context);
 	
 	Serialise("", el.duration);
-
-	if(m_Mode == READING)
-	{
-		el.parent = el.previous = el.next = 0;
-	}
+	
+	Serialise("", el.parent);
+	Serialise("", el.previous);
+	Serialise("", el.next);
 	
 	Serialise<8>("", el.outputs);
 	Serialise("", el.depthOut);
 	
 	Serialise("", el.events);
 	Serialise("", el.children);
+
+	SIZE_CHECK(FetchDrawcall, 176);
 }
 
 template<>
@@ -517,26 +789,16 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
 {
 	Serialise("", el.frameInfo);
 	Serialise("", el.drawcallList);
-}
 
-template<>
-void Serialiser::Serialise(const char *name, ShaderVariable &el)
-{
-	Serialise("", el.rows);
-	Serialise("", el.columns);
-	Serialise("", el.name);
-	Serialise("", el.type);
-
-	Serialise<16>("", el.value.uv);
-	
-	Serialise("", el.isStruct);
-	
-	Serialise("", el.members);
+	SIZE_CHECK(FetchFrameRecord, 48);
 }
 
 template<>
 void Serialiser::Serialise(const char *name, MeshFormat &el)
 {
+	Serialise("", el.idxbuf);
+	Serialise("", el.idxoffs);
+	Serialise("", el.idxByteWidth);
 	Serialise("", el.buf);
 	Serialise("", el.offset);
 	Serialise("", el.stride);
@@ -546,9 +808,12 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
 	Serialise("", el.specialFormat);
 	Serialise("", el.showAlpha);
 	Serialise("", el.topo);
+	Serialise("", el.numVerts);
 	Serialise("", el.unproject);
 	Serialise("", el.nearPlane);
 	Serialise("", el.farPlane);
+
+	SIZE_CHECK(MeshFormat, 72);
 }
 
 template<>
@@ -577,43 +842,13 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 	Serialise("", el.shaderDiscarded);
 	Serialise("", el.depthTestFailed);
 	Serialise("", el.stencilTestFailed);
+
+	SIZE_CHECK(PixelModification, 116);
 }
 
-template<>
-void Serialiser::Serialise(const char *name, ShaderDebugState &el)
-{
-	Serialise("", el.registers);
-	Serialise("", el.outputs);
-	Serialise("", el.nextInstruction);
-	
-	vector< vector<ShaderVariable> > indexableTemps;
-	
-	int32_t numidxtemps = el.indexableTemps.count;
-	Serialise("", numidxtemps);
+#pragma endregion Data descriptors
 
-	if(m_Mode == READING) create_array_uninit(el.indexableTemps, numidxtemps);
-
-	for(int32_t i=0; i < numidxtemps; i++)
-		Serialise("", el.indexableTemps[i]);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, ShaderDebugTrace &el)
-{
-	vector< vector<ShaderVariable> > cbuffers;
-
-	Serialise("", el.inputs);
-
-	int32_t numcbuffers = el.cbuffers.count;
-	Serialise("", numcbuffers);
-
-	if(m_Mode == READING) create_array_uninit(el.cbuffers, numcbuffers);
-
-	for(int32_t i=0; i < numcbuffers; i++)
-		Serialise("", el.cbuffers[i]);
-
-	Serialise("", el.states);
-}
+#pragma region Ignored Enums
 
 // don't need string representation of these enums
 template<>
@@ -625,9 +860,13 @@ string ToStrHelper<false, PrimitiveTopology>::Get(const PrimitiveTopology &el) {
 template<>
 string ToStrHelper<false, ShaderStageType>::Get(const ShaderStageType &el) { return "<...>"; }
 template<>
+string ToStrHelper<false, ShaderResourceType>::Get(const ShaderResourceType &el) { return "<...>"; }
+template<>
 string ToStrHelper<false, DebugMessageCategory>::Get(const DebugMessageCategory &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, DebugMessageSeverity>::Get(const DebugMessageSeverity &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, DebugMessageSource>::Get(const DebugMessageSource &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, VarType>::Get(const VarType &el) { return "<...>"; }
 template<>
@@ -636,6 +875,10 @@ template<>
 string ToStrHelper<false, TextureDisplayOverlay>::Get(const TextureDisplayOverlay &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, APIPipelineStateType>::Get(const APIPipelineStateType &el) { return "<...>"; }
+
+#pragma endregion Ignored Enums
+
+#pragma region Plain-old data structures
 
 // these structures we can just serialise as a blob, since they're POD.
 template<>
@@ -651,11 +894,31 @@ string ToStrHelper<false, D3D11PipelineState::Rasterizer::Viewport>::Get(const D
 template<>
 string ToStrHelper<false, D3D11PipelineState::Streamout::Output>::Get(const D3D11PipelineState::Streamout::Output &el) { return "<...>"; }
 template<>
+string ToStrHelper<false, GLPipelineState::VertexInput::VertexBuffer>::Get(const GLPipelineState::VertexInput::VertexBuffer &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::FixedVertexProcessing>::Get(const GLPipelineState::FixedVertexProcessing &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Texture>::Get(const GLPipelineState::Texture &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Buffer>::Get(const GLPipelineState::Buffer &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Feedback>::Get(const GLPipelineState::Feedback &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Rasterizer::Viewport>::Get(const GLPipelineState::Rasterizer::Viewport &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Rasterizer::Scissor>::Get(const GLPipelineState::Rasterizer::Scissor &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Rasterizer::RasterizerState>::Get(const GLPipelineState::Rasterizer::RasterizerState &el) { return "<...>"; }
+template<>
+string ToStrHelper<false, GLPipelineState::Hints>::Get(const GLPipelineState::Hints &el) { return "<...>"; }
+template<>
 string ToStrHelper<false, EventUsage>::Get(const EventUsage &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, FetchFrameInfo>::Get(const FetchFrameInfo &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, ReplayLogType>::Get(const ReplayLogType &el) { return "<...>"; }
+
+#pragma endregion Plain-old data structures
 
 ProxySerialiser::~ProxySerialiser()
 {

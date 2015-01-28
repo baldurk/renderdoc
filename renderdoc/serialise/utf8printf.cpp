@@ -128,7 +128,7 @@ void PrintInteger(bool typeUnsigned, uint64_t argu, int base, uint64_t numbits,
 			argi = (int64_t)*(signed short*)&argu;
 			break;
 		case LongLong:
-			argi = (int64_t)*(signed long long*)&argu;
+			argi = (int64_t)*(int64_t*)&argu;
 			break;
 	}
 
@@ -1002,8 +1002,8 @@ void formatargument(char type, void *rawarg, FormatterParams formatter, char *&o
 					argu = (uint64_t)*(unsigned int *)rawarg;
 					break;
 				case LongLong:
-					numbits = 8*sizeof(unsigned long long);
-					argu = (uint64_t)*(unsigned long long *)rawarg;
+					numbits = 8*sizeof(uint64_t);
+					argu = (uint64_t)*(uint64_t *)rawarg;
 					break;
 				case SizeT:
 					numbits = 8*sizeof(size_t);
@@ -1252,8 +1252,8 @@ int utf8printf(char *buf, size_t bufsize, const char *fmt, va_list args)
 		{
 			if(formatter.Length == LongLong)
 			{
-				unsigned long long *ull = (unsigned long long *)arg;
-				*ull = va_arg(args, unsigned long long);
+				uint64_t *ull = (uint64_t *)arg;
+				*ull = va_arg(args, uint64_t);
 			}
 			else if(formatter.Length == SizeT)
 			{

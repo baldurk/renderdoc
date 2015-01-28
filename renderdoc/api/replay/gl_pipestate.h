@@ -30,7 +30,9 @@ struct GLPipelineState
 
 	struct VertexInput
 	{
-		VertexInput() {}
+		VertexInput() :
+		  ibuffer(), primitiveRestart(false),
+		  restartIndex(0), provokingVertexLast(false) {}
 		
 		struct VertexAttribute
 		{
