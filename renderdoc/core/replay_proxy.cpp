@@ -35,7 +35,7 @@
 // Win32 to try and hide less padding with the larger alignment requirement
 // of 8-byte pointers.
 
-#if defined(__i386__) || defined(_M_IX86)
+#if defined(WIN32) && defined(_M_IX86)
 template<size_t a, size_t e> class oversized { int check[int(a)-int(e)+1]; };
 template<size_t a, size_t e> class undersized { int check[int(e)-int(a)+1]; };
 
