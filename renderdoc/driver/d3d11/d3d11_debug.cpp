@@ -3952,6 +3952,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 				indices.insert(it, i32);
 			}
 
+			// if we read out of bounds, we'll also have a 0 index being referenced
+			// (as 0 is read)
+			if(numIndices < drawcall->numIndices)
+				indices.insert(indices.begin(), 0);
+
 			// An index buffer could be something like: 500, 501, 502, 501, 503, 502
 			// in which case we can't use the existing index buffer without filling 499 slots of vertex
 			// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
@@ -3979,7 +3984,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			D3D11_BUFFER_DESC desc = { UINT(sizeof(uint32_t)*indices.size()), D3D11_USAGE_IMMUTABLE, D3D11_BIND_INDEX_BUFFER, 0, 0, 0 };
 			D3D11_SUBRESOURCE_DATA initData = { &indices[0], desc.ByteWidth, desc.ByteWidth };
 
-			m_pDevice->CreateBuffer(&desc, &initData, &idxBuf);
+			if(!indices.empty())
+				m_pDevice->CreateBuffer(&desc, &initData, &idxBuf);
+			else
+				idxBuf = NULL;
 
 			m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
 			m_pImmediateContext->IASetIndexBuffer(idxBuf, DXGI_FORMAT_R32_UINT, 0);
@@ -4010,7 +4018,10 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			initData.pSysMem = &idxdata[0];
 			initData.SysMemPitch = initData.SysMemSlicePitch = desc.ByteWidth;
 
-			m_WrappedDevice->CreateBuffer(&desc, &initData, &idxBuf);
+			if(desc.ByteWidth > 0)
+				m_WrappedDevice->CreateBuffer(&desc, &initData, &idxBuf);
+			else
+				idxBuf = NULL;
 		}
 
 		m_pImmediateContext->End(m_SOStatsQuery);
@@ -4783,6 +4794,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 		m_pImmediateContext->IASetVertexBuffers(0, 2, vbs, str, offs);
 		if(ibuf)
 			m_pImmediateContext->IASetIndexBuffer(ibuf, ifmt, ioffs);
+		else
+			m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);
 
 		// draw solid shaded mode
 		if(cfg.solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList_1CPs)
@@ -4811,7 +4824,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 				m_pImmediateContext->GSSetShader(m_DebugRender.MeshGS, NULL, 0);
 			}
 
-			if(ibuf)
+			if(cfg.position.idxByteWidth)
 				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
 			else
 				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
@@ -4841,7 +4854,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			else
 				m_pImmediateContext->IASetPrimitiveTopology(topo);
 			
-			if(ibuf)
+			if(cfg.position.idxByteWidth)
 				m_pImmediateContext->DrawIndexed(cfg.position.numVerts, 0, 0);
 			else
 				m_pImmediateContext->Draw(cfg.position.numVerts, 0);
@@ -4907,7 +4920,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
 
-			if(ibuf == NULL || stage == eMeshDataStage_GSOut)
+			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
 				m_HighlightCache.indices.clear();
 				m_HighlightCache.useidx = false;
@@ -4916,7 +4929,9 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 			{
 				m_HighlightCache.useidx = true;
 
-				vector<byte> idxdata = GetBufferData(cfg.position.idxbuf, ioffs, cfg.position.numVerts*bytesize);
+				vector<byte> idxdata;
+				if(cfg.position.idxbuf != ResourceId())
+					idxdata = GetBufferData(cfg.position.idxbuf, ioffs, cfg.position.numVerts*bytesize);
 
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
 				uint32_t *idx32 = (uint32_t *)&idxdata[0];

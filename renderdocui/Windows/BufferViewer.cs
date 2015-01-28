@@ -891,7 +891,7 @@ namespace renderdocui.Windows
                     foreach (var f in input.BufferFormats)
                         stride += f.ByteSize;
 
-                    if (stride != 0)
+                    if (stride != 0 && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
                         ret.IndexCount = Math.Min(ret.IndexCount, (uint)ret.Buffers[0].Length / stride);
                 }
 
@@ -1585,7 +1585,8 @@ namespace renderdocui.Windows
                             index = data.Indices[rowIdx];
                         }
                     }
-                    else if (input.Drawcall != null && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 && state == m_VSIn)
+                    else if (input.Drawcall != null && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 &&
+                        (state == m_VSIn || state == m_VSOut))
                     {
                         // no index buffer, but indexed drawcall
                         index = 0;
@@ -2296,7 +2297,7 @@ namespace renderdocui.Windows
                 {
                     m_MeshDisplay.position.idxbuf = ui.m_Data.PostVS.idxbuf;
                     m_MeshDisplay.position.idxoffs = 0;
-                    m_MeshDisplay.position.idxByteWidth = ui.m_Data.PostVS.idxByteWidth;
+                    m_MeshDisplay.position.idxByteWidth = ui.m_Input.Drawcall.indexByteWidth;
 
                     m_MeshDisplay.position.buf = ui.m_Data.PostVS.buf;
                     m_MeshDisplay.position.offset = ui.m_Data.PostVS.offset + pos.offset;
@@ -2304,6 +2305,17 @@ namespace renderdocui.Windows
 
                     m_MeshDisplay.position.topo = ui.m_Data.PostVS.topo;
                     m_MeshDisplay.position.numVerts = ui.m_Data.PostVS.numVerts;
+                }
+
+                if ((ui.m_Input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
+                {
+                    m_MeshDisplay.position.idxbuf = ResourceId.Null;
+                    m_MeshDisplay.position.idxoffs = 0;
+                    m_MeshDisplay.position.idxByteWidth = 0;
+                }
+                else
+                {
+                    m_MeshDisplay.position.idxByteWidth = Math.Max(1, m_MeshDisplay.position.idxByteWidth);
                 }
 
                 m_MeshDisplay.position.unproject = false;

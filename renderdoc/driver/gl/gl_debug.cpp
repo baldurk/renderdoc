@@ -1918,6 +1918,11 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			indices.insert(it, i32);
 		}
 
+		// if we read out of bounds, we'll also have a 0 index being referenced
+		// (as 0 is read)
+		if(numIndices < drawcall->numIndices)
+			indices.insert(indices.begin(), 0);
+
 		// An index buffer could be something like: 500, 501, 502, 501, 503, 502
 		// in which case we can't use the existing index buffer without filling 499 slots of vertex
 		// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
@@ -1984,9 +1989,12 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		// make the index buffer that can be used to render this postvs data - the original
 		// indices, rebased with minindex being 0 (since we transform feedback to the start
 		// of our feedback buffer).
-		gl.glGenBuffers(1, &idxBuf);
-		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
-		gl.glNamedBufferStorageEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], 0);
+		if(!idxdata.empty())
+		{
+			gl.glGenBuffers(1, &idxBuf);
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
+			gl.glNamedBufferStorageEXT(idxBuf, (GLsizeiptr)idxdata.size(), &idxdata[0], 0);
+		}
 		
 		// restore previous element array buffer binding
 		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
@@ -2794,7 +2802,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
-		if(cfg.position.idxbuf != ResourceId())
+		if(cfg.position.idxByteWidth)
 		{
 			GLenum idxtype = eGL_UNSIGNED_BYTE;
 			if(cfg.position.idxByteWidth == 2)
@@ -2802,8 +2810,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			else if(cfg.position.idxByteWidth == 4)
 				idxtype = eGL_UNSIGNED_INT;
 
-			GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
-			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+			if(cfg.position.idxbuf != ResourceId())
+			{
+				GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
+				gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+			}
 			gl.glDrawElements(topo, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
 		}
 		else
@@ -2834,7 +2845,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_LINE);
 
-		if(cfg.position.idxbuf != ResourceId())
+		if(cfg.position.idxByteWidth)
 		{
 			GLenum idxtype = eGL_UNSIGNED_BYTE;
 			if(cfg.position.idxByteWidth == 2)
@@ -2842,8 +2853,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			else if(cfg.position.idxByteWidth == 4)
 				idxtype = eGL_UNSIGNED_INT;
 
-			GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
-			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+			if(cfg.position.idxbuf != ResourceId())
+			{
+				GLuint ib = m_pDriver->GetResourceManager()->GetCurrentResource(cfg.position.idxbuf).name;
+				gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, ib);
+			}
 			gl.glDrawElements(topo != eGL_PATCHES ? topo : eGL_POINTS, cfg.position.numVerts, idxtype, (const void *)(cfg.position.idxoffs));
 		}
 		else
@@ -2902,7 +2916,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 			m_HighlightCache.data = GetBufferData(cfg.position.buf, 0, 0);
 
-			if(cfg.position.idxbuf == ResourceId() || stage == eMeshDataStage_GSOut)
+			if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
 			{
 				m_HighlightCache.indices.clear();
 				m_HighlightCache.useidx = false;
@@ -2911,7 +2925,9 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 			{
 				m_HighlightCache.useidx = true;
 
-				vector<byte> idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
+				vector<byte> idxdata;
+				if(cfg.position.idxbuf != ResourceId())
+					idxdata = GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts*bytesize);
 
 				uint8_t *idx8 = (uint8_t *)&idxdata[0];
 				uint16_t *idx16 = (uint16_t *)&idxdata[0];
