@@ -1708,7 +1708,7 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
 			return;
 		}
 
-		ctx->UpdateSubresource(buf->GetReal(), 0, NULL, data, dataSize, dataSize);
+		ctx->UpdateSubresource(buf->GetReal(), 0, NULL, data, (UINT)dataSize, (UINT)dataSize);
 	}
 	else
 	{
