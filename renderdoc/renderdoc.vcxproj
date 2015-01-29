@@ -316,6 +316,7 @@
     <ClCompile Include="driver\d3d11\shaders\dxbc_inspect.cpp" />
     <ClCompile Include="driver\dxgi\dxgi_wrapped.cpp" />
     <ClCompile Include="driver\gl\gl_common.cpp" />
+    <ClCompile Include="driver\gl\gl_counters.cpp" />
     <ClCompile Include="driver\gl\gl_debug.cpp" />
     <ClCompile Include="driver\gl\gl_driver.cpp" />
     <ClCompile Include="driver\gl\gl_manager.cpp" />

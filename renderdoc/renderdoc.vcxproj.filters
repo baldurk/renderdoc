@@ -548,6 +548,9 @@
     <ClCompile Include="driver\d3d11\d3d11_counters.cpp">
       <Filter>Drivers\D3D11</Filter>
     </ClCompile>
+    <ClCompile Include="driver\gl\gl_counters.cpp">
+      <Filter>Drivers\OpenGL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

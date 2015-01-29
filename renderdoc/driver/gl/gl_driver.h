@@ -373,6 +373,8 @@ class WrappedOpenGL
 		vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 		FetchAPIEvent GetEvent(uint32_t eventID);
 
+		const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
+
 		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
 		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core);

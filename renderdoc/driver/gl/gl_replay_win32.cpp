@@ -343,6 +343,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	wglDeleteRC(rc);
 	ReleaseDC(w, dc);
 	DestroyWindow(w);
+	
+	GLReplay::PreContextInitCounters();
 
 	// we don't use the default framebuffer (backbuffer) for anything, so we make it
 	// tiny and with no depth/stencil bits
@@ -361,6 +363,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(pf == 0)
 	{
 		RDCERR("Couldn't choose pixel format");
+		ReleaseDC(w, dc);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIInitFailed;
 	}
 
@@ -368,6 +372,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(res == FALSE)
 	{
 		RDCERR("Couldn't set pixel format");
+		ReleaseDC(w, dc);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIInitFailed;
 	}
 
@@ -387,6 +393,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(rc == NULL)
 	{
 		RDCERR("Couldn't create 4.3 RC - RenderDoc requires OpenGL 4.3 availability");
+		ReleaseDC(w, dc);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIHardwareUnsupported;
 	}
 
@@ -394,6 +402,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(res == FALSE)
 	{
 		RDCERR("Couldn't make 4.3 RC current");
+		wglMakeCurrentProc(NULL, NULL);
+		wglDeleteRC(rc);
+		ReleaseDC(w, dc);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIInitFailed;
 	}
 
@@ -403,6 +415,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(getInt == NULL || getStr == NULL)
 	{
 		RDCERR("Couldn't get glGetIntegerv (%p) or glGetStringi (%p) entry points", getInt, getStr);
+		wglMakeCurrentProc(NULL, NULL);
+		wglDeleteRC(rc);
+		ReleaseDC(w, dc);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIInitFailed;
 	}
 	else
@@ -427,6 +443,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		if(!found)
 		{
 			RDCERR("RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try updating your drivers.");
+			wglMakeCurrentProc(NULL, NULL);
+			wglDeleteRC(rc);
+			ReleaseDC(w, dc);
+			GLReplay::PostContextShutdownCounters();
 			return eReplayCreate_APIHardwareUnsupported;
 		}
 	}

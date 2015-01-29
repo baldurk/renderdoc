@@ -44,6 +44,8 @@ GLReplay::GLReplay()
 
 void GLReplay::Shutdown()
 {
+	PreContextShutdownCounters();
+
 	DeleteDebugData();
 
 	DestroyOutputWindow(m_DebugID);
@@ -51,6 +53,8 @@ void GLReplay::Shutdown()
 	CloseReplayContext();
 
 	delete m_pDriver;
+
+	GLReplay::PostContextShutdownCounters();
 }
 
 #pragma region Implemented
@@ -122,6 +126,8 @@ void GLReplay::SetReplayData(GLWindowingData data)
 	m_ReplayCtx = data;
 	
 	InitDebugData();
+
+	PostContextInitCounters();
 }
 
 void GLReplay::InitCallstackResolver()
@@ -2197,28 +2203,6 @@ void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 void GLReplay::RemoveReplacement(ResourceId id)
 {
 	RDCUNIMPLEMENTED("RemoveReplacement");
-}
-
-vector<uint32_t> GLReplay::EnumerateCounters()
-{
-	GLNOTIMP("EnumerateCounters");
-	return vector<uint32_t>();
-}
-
-void GLReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
-{
-	desc.counterID = counterID;
-	desc.name = "Unsupported";
-	desc.description = "Counters are not implemented on OpenGL yet";
-	desc.resultByteWidth = 0;
-	desc.resultCompType = eCompType_None;
-	desc.units = eUnits_Absolute;
-}
-
-vector<CounterResult> GLReplay::FetchCounters(uint32_t frameID, uint32_t minEventID, uint32_t maxEventID, const vector<uint32_t> &counters)
-{
-	RDCUNIMPLEMENTED("FetchCounters");
-	return vector<CounterResult>();
 }
 
 void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)

@@ -34,6 +34,8 @@ using std::pair;
 using std::map;
 
 class WrappedOpenGL;
+struct CounterContext;
+struct DrawcallTreeNode;
 
 struct GLPostVSData
 {
@@ -177,7 +179,12 @@ class GLReplay : public IReplayDriver
 		void InitCallstackResolver();
 		bool HasCallstacks();
 		Callstack::StackResolver *GetCallstackResolver();
-
+		
+		// called before any context is created, to init any counters
+		static void PreContextInitCounters();
+		// called after any context is destroyed, to do corresponding shutdown of counters
+		static void PostContextShutdownCounters();
+		
 		void SetReplayData(GLWindowingData data);
 	private:
 		void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor, uint32_t offs, uint32_t matStride,
@@ -305,6 +312,13 @@ class GLReplay : public IReplayDriver
 		void InitDebugData();
 		void DeleteDebugData();
 		
+		// called after the context is created, to init any counters
+		void PostContextInitCounters();
+		// called before the context is destroyed, to shutdown any counters
+		void PreContextShutdownCounters();
+		
+		void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
+
 		GLuint CreateShaderProgram(const char *vs, const char *ps, const char *gs = NULL);
 		GLuint CreateCShaderProgram(const char *cs);
 

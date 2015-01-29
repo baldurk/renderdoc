@@ -248,6 +248,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	int attribs[64] = {0};
 	int i=0;
 
+	GLReplay::PreContextInitCounters();
+
 	attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
 	attribs[i++] = 4;
 	attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
@@ -273,6 +275,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(fbcfg == NULL)
 	{
 		XCloseDisplay(dpy);
+		GLReplay::PostContextShutdownCounters();
 		RDCERR("Couldn't choose default framebuffer config");
 		return eReplayCreate_APIInitFailed;
 	}
@@ -281,7 +284,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 
 	if(ctx == NULL)
 	{
+		XFree(fbcfg);
 		XCloseDisplay(dpy);
+		GLReplay::PostContextShutdownCounters();
 		RDCERR("Couldn't create 4.3 context - RenderDoc requires OpenGL 4.3 availability");
 		return eReplayCreate_APIHardwareUnsupported;
 	}
@@ -299,7 +304,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	{
 		glXDestroyPbufferProc(dpy, pbuffer);
 		glXDestroyCtxProc(dpy, ctx);
+		XFree(fbcfg);
 		XCloseDisplay(dpy);
+		GLReplay::PostContextShutdownCounters();
 		RDCERR("Couldn't make pbuffer & context current");
 		return eReplayCreate_APIInitFailed;
 	}
@@ -310,6 +317,11 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	if(getInt == NULL || getStr == NULL)
 	{
 		RDCERR("Couldn't get glGetIntegerv (%p) or glGetStringi (%p) entry points", getInt, getStr);
+		glXDestroyPbufferProc(dpy, pbuffer);
+		glXDestroyCtxProc(dpy, ctx);
+		XFree(fbcfg);
+		XCloseDisplay(dpy);
+		GLReplay::PostContextShutdownCounters();
 		return eReplayCreate_APIInitFailed;
 	}
 	else
@@ -334,6 +346,11 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		if(!found)
 		{
 			RDCERR("RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try updating your drivers.");
+			glXDestroyPbufferProc(dpy, pbuffer);
+			glXDestroyCtxProc(dpy, ctx);
+			XFree(fbcfg);
+			XCloseDisplay(dpy);
+			GLReplay::PostContextShutdownCounters();
 			return eReplayCreate_APIHardwareUnsupported;
 		}
 	}

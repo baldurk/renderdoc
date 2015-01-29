@@ -38,6 +38,7 @@ driver/gl/gl_common.o \
 driver/gl/gl_driver.o \
 driver/gl/gl_manager.o \
 driver/gl/gl_debug.o \
+driver/gl/gl_counters.o \
 driver/gl/gl_replay.o \
 driver/gl/gl_replay_linux.o \
 driver/gl/gl_shader_refl.o \
