@@ -594,6 +594,8 @@ namespace renderdocui.Windows
             if (m_Core != null && m_Core.LogLoaded)
             {
                 prefix = Path.GetFileName(m_Core.LogFileName);
+                if (m_Core.APIProps.degraded)
+                    prefix += " !DEGRADED PERFORMANCE!";
                 if (m_RemoteReplay.Length > 0)
                     prefix += String.Format(" (Remote replay on {0})", m_RemoteReplay);
                 prefix += " - ";

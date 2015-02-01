@@ -719,8 +719,9 @@ template<>
 void Serialiser::Serialise(const char *name, APIProperties &el)
 {
 	Serialise("", el.pipelineType);
+	Serialise("", el.degraded);
 
-	SIZE_CHECK(APIProperties, 4);
+	SIZE_CHECK(APIProperties, 8);
 }
 
 template<>

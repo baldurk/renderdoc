@@ -512,6 +512,20 @@ namespace renderdocui.Code
 
             Thread.Sleep(20);
 
+            DateTime today = DateTime.Now;
+            DateTime compare = today.AddDays(-21);
+
+            if (compare.CompareTo(Config.DegradedLog_LastUpdate) >= 0 && m_APIProperties.degraded)
+            {
+                Config.DegradedLog_LastUpdate = today;
+
+                MessageBox.Show(String.Format("{0}\nThis log opened with degraded support - " +
+                                                "this could mean missing hardware support caused a fallback to software rendering.\n\n" +
+                                                "This warning will not appear every time this happens, " +
+                                                "check debug errors/warnings window for more details.", logFile),
+                                "Degraded support of log", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+
             m_LogLoaded = true;
             progressThread = false;
 

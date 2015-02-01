@@ -95,6 +95,8 @@ namespace renderdocui.Code
         public bool CheckUpdate_UpdateAvailable = false;
         public DateTime CheckUpdate_LastUpdate = new DateTime(2012, 06, 27);
 
+        public DateTime DegradedLog_LastUpdate = new DateTime(2015, 01, 01);
+
         public bool AllowGlobalHook = false;
 
         public void SetupFormatter()

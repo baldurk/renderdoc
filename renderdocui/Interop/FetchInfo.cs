@@ -487,6 +487,7 @@ namespace renderdoc
     public class APIProperties
     {
         public APIPipelineStateType pipelineType;
+        public bool degraded;
     };
 
     [StructLayout(LayoutKind.Sequential)]

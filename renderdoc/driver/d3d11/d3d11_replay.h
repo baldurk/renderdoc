@@ -36,7 +36,7 @@ class D3D11Replay : public IReplayDriver
 	public:
 		D3D11Replay();
 
-		void SetProxy(bool p) { m_Proxy = p; }
+		void SetProxy(bool p, bool warp) { m_Proxy = p; m_WARP = warp; }
 		bool IsRemoteProxy() { return m_Proxy; }
 
 		void Shutdown();
@@ -135,6 +135,7 @@ class D3D11Replay : public IReplayDriver
 	private:
 		D3D11PipelineState MakePipelineState();
 
+		bool m_WARP;
 		bool m_Proxy;
 
 		WrappedID3D11Device *m_pDevice;

@@ -86,6 +86,7 @@ APIProperties GLReplay::GetAPIProperties()
 	APIProperties ret;
 
 	ret.pipelineType = ePipelineState_OpenGL;
+	ret.degraded = false;
 
 	return ret;
 }

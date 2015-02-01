@@ -210,6 +210,7 @@ struct FetchDrawcall
 struct APIProperties
 {
 	APIPipelineStateType pipelineType;
+	bool32 degraded;
 };
 
 struct CounterDescription

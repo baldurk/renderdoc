@@ -40,6 +40,7 @@ D3D11Replay::D3D11Replay()
 {
 	m_pDevice = NULL;
 	m_Proxy = false;
+	m_WARP = false;
 }
 
 void D3D11Replay::Shutdown()
@@ -340,6 +341,7 @@ APIProperties D3D11Replay::GetAPIProperties()
 	APIProperties ret;
 
 	ret.pipelineType = ePipelineState_D3D11;
+	ret.degraded = m_WARP;
 
 	return ret;
 }
@@ -1810,10 +1812,13 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 	// check for feature level 11 support - passing NULL feature level array implicitly checks for 11_0 before others
 	hr = createDevice(NULL, D3D_DRIVER_TYPE_HARDWARE, NULL, 0, NULL, 0, D3D11_SDK_VERSION, NULL, NULL, NULL, &maxFeatureLevel, NULL);
 
+	bool warpFallback = false;
+
 	if(SUCCEEDED(hr) && maxFeatureLevel < D3D_FEATURE_LEVEL_11_0)
 	{
-		RDCERR("Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 availability");
-		return eReplayCreate_APIHardwareUnsupported;
+		RDCWARN("Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 availability - falling back to WARP rasterizer");
+		driverTypes[0] = driverType = D3D_DRIVER_TYPE_WARP;
+		warpFallback = true;
 	}
 
 	D3D11DebugManager::PreDeviceInitCounters();
@@ -1835,7 +1840,13 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
 			RDCLOG("Created device.");
 			D3D11Replay *replay = wrappedDev->GetReplay();
 
-			replay->SetProxy(logfile == NULL);
+			replay->SetProxy(logfile == NULL, warpFallback);
+			if(warpFallback)
+			{
+				wrappedDev->AddDebugMessage(eDbgCategory_Initialization, eDbgSeverity_High, eDbgSource_RuntimeWarning,
+					"Couldn't create FEATURE_LEVEL_11_0 device - RenderDoc requires FEATURE_LEVEL_11_0 availability - falling back to WARP rasterizer.\n" \
+					"Performance and usability will be significantly degraded.");
+			}
 
 			*driver = (IReplayDriver *)replay;
 			return eReplayCreate_Success;

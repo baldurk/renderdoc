@@ -39,6 +39,7 @@ class ImageViewer : public IReplayDriver
 			if(m_Proxy == NULL) RDCERR("Unexpectedly NULL proxy at creation of ImageViewer");
 
 			m_Props.pipelineType = ePipelineState_D3D11;
+			m_Props.degraded = false;
 			
 			FetchFrameRecord record;
 			record.frameInfo.fileOffset = 0;
