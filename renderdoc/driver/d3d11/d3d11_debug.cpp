@@ -757,91 +757,91 @@ bool D3D11DebugManager::InitDebugRendering()
 		m_DebugRender.PublicCBuffers[i] = MakeCBuffer(sizeof(float)*4 * 100);
 
 	m_DebugRender.publicCBufIdx = 0;
-
-	string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-	displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-	displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
-
-	D3D11_INPUT_ELEMENT_DESC inputDesc;
-
-	inputDesc.SemanticName = "POSITION";
-	inputDesc.SemanticIndex = 0;
-	inputDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-	inputDesc.InputSlot = 0;
-	inputDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	inputDesc.AlignedByteOffset = 0;
-	inputDesc.InstanceDataStepRate = 0;
-
-	vector<byte> bytecode;
-
-	m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
-	m_DebugRender.TexDisplayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
-	m_DebugRender.WireframeVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeVS", "vs_4_0", 1, &inputDesc, &m_DebugRender.GenericLayout);
-	m_DebugRender.MeshVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 0, NULL, NULL, &bytecode);
-	m_DebugRender.MeshGS = MakeGShader(displayhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
-	m_DebugRender.MeshPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
-
-	m_DebugRender.MeshVSBytecode = new byte[bytecode.size()];
-	m_DebugRender.MeshVSBytelen = (uint32_t)bytecode.size();
-	memcpy(m_DebugRender.MeshVSBytecode, &bytecode[0], bytecode.size());
 	
-	D3D11_INPUT_ELEMENT_DESC inputDescHomog[2];
-
-	inputDescHomog[0].SemanticName = "pos";
-	inputDescHomog[0].SemanticIndex = 0;
-	inputDescHomog[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	inputDescHomog[0].InputSlot = 0;
-	inputDescHomog[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	inputDescHomog[0].AlignedByteOffset = 0;
-	inputDescHomog[0].InstanceDataStepRate = 0;
-
-	inputDescHomog[1].SemanticName = "sec";
-	inputDescHomog[1].SemanticIndex = 0;
-	inputDescHomog[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-	inputDescHomog[1].InputSlot = 0;
-	inputDescHomog[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-	inputDescHomog[1].AlignedByteOffset = 0;
-	inputDescHomog[1].InstanceDataStepRate = 0;
-
-	m_DebugRender.WireframeHomogVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeHomogVS", "vs_4_0", 2, inputDescHomog, &m_DebugRender.GenericHomogLayout, &bytecode);
-	
-	m_DebugRender.MeshHomogVSBytecode = new byte[bytecode.size()];
-	m_DebugRender.MeshHomogVSBytelen = (uint32_t)bytecode.size();
-	memcpy(m_DebugRender.MeshHomogVSBytecode, &bytecode[0], bytecode.size());
-	
-	m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
-	m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
-	m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
-	m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
-
-	m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
-	m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
-
-	m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
-	m_DebugRender.PixelHistoryCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
-	m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
-	
-	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
-
-	m_DebugRender.CopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
-	m_DebugRender.CopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
-	m_DebugRender.FloatCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
-	m_DebugRender.FloatCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
-	m_DebugRender.DepthCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
-	m_DebugRender.DepthCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
-
-	string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
-	histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
-	histogramhlsl += GetEmbeddedResource(histogram_hlsl);
-
-	RenderDoc::Inst().SetProgress(DebugManagerInit, 0.1f);
-
 	if(RenderDoc::Inst().IsReplayApp())
 	{
-		for(int t=eTexType_1D; t < eTexType_Max; t++)
+		string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
+		displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
+		displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+
+		D3D11_INPUT_ELEMENT_DESC inputDesc;
+
+		inputDesc.SemanticName = "POSITION";
+		inputDesc.SemanticIndex = 0;
+		inputDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
+		inputDesc.InputSlot = 0;
+		inputDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		inputDesc.AlignedByteOffset = 0;
+		inputDesc.InstanceDataStepRate = 0;
+
+		vector<byte> bytecode;
+
+		m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
+		m_DebugRender.TexDisplayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
+		m_DebugRender.WireframeVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeVS", "vs_4_0", 1, &inputDesc, &m_DebugRender.GenericLayout);
+		m_DebugRender.MeshVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 0, NULL, NULL, &bytecode);
+		m_DebugRender.MeshGS = MakeGShader(displayhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
+		m_DebugRender.MeshPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
+
+		m_DebugRender.MeshVSBytecode = new byte[bytecode.size()];
+		m_DebugRender.MeshVSBytelen = (uint32_t)bytecode.size();
+		memcpy(m_DebugRender.MeshVSBytecode, &bytecode[0], bytecode.size());
+
+		D3D11_INPUT_ELEMENT_DESC inputDescHomog[2];
+
+		inputDescHomog[0].SemanticName = "pos";
+		inputDescHomog[0].SemanticIndex = 0;
+		inputDescHomog[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		inputDescHomog[0].InputSlot = 0;
+		inputDescHomog[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		inputDescHomog[0].AlignedByteOffset = 0;
+		inputDescHomog[0].InstanceDataStepRate = 0;
+
+		inputDescHomog[1].SemanticName = "sec";
+		inputDescHomog[1].SemanticIndex = 0;
+		inputDescHomog[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+		inputDescHomog[1].InputSlot = 0;
+		inputDescHomog[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+		inputDescHomog[1].AlignedByteOffset = 0;
+		inputDescHomog[1].InstanceDataStepRate = 0;
+
+		m_DebugRender.WireframeHomogVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_WireframeHomogVS", "vs_4_0", 2, inputDescHomog, &m_DebugRender.GenericHomogLayout, &bytecode);
+
+		m_DebugRender.MeshHomogVSBytecode = new byte[bytecode.size()];
+		m_DebugRender.MeshHomogVSBytelen = (uint32_t)bytecode.size();
+		memcpy(m_DebugRender.MeshHomogVSBytecode, &bytecode[0], bytecode.size());
+
+		m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
+		m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
+		m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
+		m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
+
+		m_DebugRender.QuadOverdrawPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", "ps_5_0");
+		m_DebugRender.QOResolvePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", "ps_5_0");
+
+		m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
+		m_DebugRender.PixelHistoryCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
+		m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
+
+		string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+
+		m_DebugRender.CopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
+		m_DebugRender.CopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
+		m_DebugRender.FloatCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
+		m_DebugRender.FloatCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
+		m_DebugRender.DepthCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
+		m_DebugRender.DepthCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+
+		string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
+		histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
+		histogramhlsl += GetEmbeddedResource(histogram_hlsl);
+
+		RenderDoc::Inst().SetProgress(DebugManagerInit, 0.1f);
+
+		for (int t = eTexType_1D; t < eTexType_Max; t++)
 		{
 			// float, uint, sint
-			for(int i=0; i < 3; i++)
+			for (int i = 0; i < 3; i++)
 			{
 				string hlsl = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
 				hlsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
@@ -851,10 +851,10 @@ bool D3D11DebugManager::InitDebugRendering()
 				m_DebugRender.TileMinMaxCS[t][i] = MakeCShader(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", "cs_5_0");
 				m_DebugRender.HistogramCS[t][i] = MakeCShader(hlsl.c_str(), "RENDERDOC_HistogramCS", "cs_5_0");
 
-				if(t == 1)
+				if (t == 1)
 					m_DebugRender.ResultMinMaxCS[i] = MakeCShader(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", "cs_5_0");
 
-				RenderDoc::Inst().SetProgress(DebugManagerInit, (float(i + 3.0f*t)/float(2.0f + 3.0f*(eTexType_Max-1)))*0.7f+0.1f);
+				RenderDoc::Inst().SetProgress(DebugManagerInit, (float(i + 3.0f*t) / float(2.0f + 3.0f*(eTexType_Max - 1)))*0.7f + 0.1f);
 			}
 		}
 	}
@@ -1023,6 +1023,7 @@ bool D3D11DebugManager::InitDebugRendering()
 
 	RenderDoc::Inst().SetProgress(DebugManagerInit, 0.9f);
 
+	if(RenderDoc::Inst().IsReplayApp())
 	{
 		float data[] = {
 			0.0f, -1.0f, 0.0f,
@@ -1052,7 +1053,8 @@ bool D3D11DebugManager::InitDebugRendering()
 			RDCERR("Failed to create outline strip buffer %08x", hr);
 		}
 	}
-
+	
+	if(RenderDoc::Inst().IsReplayApp())
 	{
 		D3D11_TEXTURE2D_DESC desc;
 		ID3D11Texture2D *pickTex = NULL;
@@ -1087,7 +1089,8 @@ bool D3D11DebugManager::InitDebugRendering()
 			SAFE_RELEASE(pickTex);
 		}
 	}
-
+	
+	if(RenderDoc::Inst().IsReplayApp())
 	{
 		D3D11_TEXTURE2D_DESC desc;
 		RDCEraseEl(desc);
@@ -1108,7 +1111,8 @@ bool D3D11DebugManager::InitDebugRendering()
 			RDCERR("Failed to create pick stage tex %08x", hr);
 		}
 	}
-
+	
+	if(RenderDoc::Inst().IsReplayApp())
 	{
 		D3D11_BUFFER_DESC bDesc;
 
@@ -1242,7 +1246,8 @@ bool D3D11DebugManager::InitDebugRendering()
 		if(FAILED(hr))
 			RDCERR("Failed to create result stage buff %08x", hr);
 	}
-
+	
+	if(RenderDoc::Inst().IsReplayApp())
 	{
 		D3D11_BUFFER_DESC desc;
 
