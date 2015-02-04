@@ -232,7 +232,7 @@ public:
 
 	ID3D11Device *GetReal() { return m_pDevice; }
 	static const char *GetChunkName(uint32_t idx);
-	D3D11DebugManager *GetDebugManager() { LazyInit(); return m_DebugManager; }
+	D3D11DebugManager *GetDebugManager() { return m_DebugManager; }
 	D3D11ResourceManager *GetResourceManager() { return m_ResourceManager; }
 
 	D3D11Replay *GetReplay() { return &m_Replay; }
