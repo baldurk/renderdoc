@@ -173,7 +173,8 @@ void GLReplay::InitDebugData()
 
 	DebugData.blitProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), DebugData.blitfsSource.c_str());
 	
-	string glslheader = GetEmbeddedResource(debuguniforms_h);
+	string glslheader = "#version 420 core\n\n";
+	glslheader += GetEmbeddedResource(debuguniforms_h);
 
 	string texfs = GetEmbeddedResource(texsample_h);
 	texfs += GetEmbeddedResource(texdisplay_frag);

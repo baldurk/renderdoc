@@ -36,7 +36,9 @@
 
 #else
 
-#version 420 core
+// this has to happen above even any pre-processor definitions,
+// so it's added in code
+//#version 420 core
 
 #define BINDING(b) layout (binding = b, std140) 
 

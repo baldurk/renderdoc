@@ -1117,7 +1117,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				gl.glGenBuffers(1, &ctxdata.StringUBO);
 				gl.glNamedBufferStorageEXT(ctxdata.StringUBO, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, GL_MAP_WRITE_BIT);
 
-				string textvs = GetEmbeddedResource(debuguniforms_h);
+				string textvs = "#version 420 core\n\n";
+				textvs += GetEmbeddedResource(debuguniforms_h);
 				textvs += GetEmbeddedResource(text_vert);
 				string textfs = GetEmbeddedResource(text_frag);
 
