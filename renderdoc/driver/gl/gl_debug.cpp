@@ -2003,13 +2003,52 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	
 	gl.glEndTransformFeedback();
 	gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+	
+	bool error = false;
 
 	// this should be the same as the draw size
 	GLuint primsWritten = 0;
 	gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
 
+	if(primsWritten == 0)
+	{
+		// we bailed out much earlier if this was a draw of 0 verts
+		RDCERR("No primitives written - but we must have had some number of vertices in the draw");
+		error = true;
+	}
+
 	// get buffer data from buffer attached to feedback object
 	float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+
+	if(data == NULL)
+	{
+		gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+		RDCERR("Couldn't map feedback buffer!");
+		error = true;
+	}
+
+	if(error)
+	{
+		// delete temporary pipelines we made
+		gl.glDeleteProgramPipelines(1, &vsFeedbackPipe);
+
+		// restore replay state we trashed
+		gl.glUseProgram(rs.Program);
+		gl.glBindProgramPipeline(rs.Pipeline);
+
+		gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+
+		if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
+			gl.glDisable(eGL_RASTERIZER_DISCARD);
+		else
+			gl.glEnable(eGL_RASTERIZER_DISCARD);
+		
+		m_PostVSData[idx] = GLPostVSData();
+		return;
+	}
 
 	// create a buffer with this data, for future use (typed to ARRAY_BUFFER so we
 	// can render from it to display previews).
@@ -2308,8 +2347,46 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			GLuint primsWritten = 0;
 			gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
 
+			error = false;
+			
+			if(primsWritten == 0)
+			{
+				RDCWARN("No primitives written by last vertex processing stage");
+				error = true;
+			}
+
 			// get buffer data from buffer attached to feedback object
 			float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+			
+			if(data == NULL)
+			{
+				gl.glUnmapNamedBufferEXT(DebugData.feedbackBuffer);
+				RDCERR("Couldn't map feedback buffer!");
+				error = true;
+			}
+
+			if(error)
+			{
+				// delete temporary pipelines we made
+				gl.glDeleteProgramPipelines(1, &vsFeedbackPipe);
+				if(lastFeedbackPipe) gl.glDeleteProgramPipelines(1, &lastFeedbackPipe);
+
+				// restore replay state we trashed
+				gl.glUseProgram(rs.Program);
+				gl.glBindProgramPipeline(rs.Pipeline);
+
+				gl.glBindBuffer(eGL_ARRAY_BUFFER, rs.BufferBindings[GLRenderState::eBufIdx_Array]);
+				gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, elArrayBuffer);
+
+				gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, rs.FeedbackObj);
+
+				if(!rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard])
+					gl.glDisable(eGL_RASTERIZER_DISCARD);
+				else
+					gl.glEnable(eGL_RASTERIZER_DISCARD);
+
+				return;
+			}
 
 			if(lastProg == tesProg)
 			{
