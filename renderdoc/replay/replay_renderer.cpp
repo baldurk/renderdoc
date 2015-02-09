@@ -601,6 +601,11 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 	// force downcast to be able to do grid mappings
 	if(sd.slice.cubeCruciform || sd.slice.slicesAsGrid)
 		downcast = true;
+	
+	// we don't support any file formats that handle these block compression formats
+	if(td.format.specialFormat == eSpecial_ETC2 ||
+		 td.format.specialFormat == eSpecial_EAC)
+		 downcast = true;
 
 	// for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
 	// for HDR&EXR we can convert from most regular types as well as 10.10.10.2 and 11.11.10

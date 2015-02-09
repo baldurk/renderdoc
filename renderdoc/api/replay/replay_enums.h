@@ -166,6 +166,8 @@ enum SpecialFormat
 	eSpecial_BC5,
 	eSpecial_BC6,
 	eSpecial_BC7,
+	eSpecial_ETC2,
+	eSpecial_EAC,
 	eSpecial_R10G10B10A2,
 	eSpecial_R11G11B10,
 	eSpecial_B5G6R5,

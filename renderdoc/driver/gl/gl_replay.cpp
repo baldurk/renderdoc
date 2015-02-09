@@ -2168,6 +2168,313 @@ void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector
 	FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables, outvars, data);
 }
 
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
+{
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	auto &texDetails = m_pDriver->m_Textures[tex];
+
+	byte *ret = NULL;
+
+	GLuint tempTex = 0;
+
+	GLenum texType = texDetails.curType;
+	GLuint texname = texDetails.resource.name;
+	GLenum intFormat = texDetails.internalFormat;
+	GLsizei width = RDCMAX(1, texDetails.width>>mip);
+	GLsizei height = RDCMAX(1, texDetails.height>>mip);
+	GLsizei depth = RDCMAX(1, texDetails.depth>>mip);
+	GLsizei arraysize = 1;
+	GLint samples = texDetails.samples;
+
+	if(texType == eGL_TEXTURE_2D_ARRAY ||
+		texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
+		texType == eGL_TEXTURE_1D_ARRAY ||
+		texType == eGL_TEXTURE_CUBE_MAP ||
+		texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+	{
+		// array size doesn't get mip'd down
+		depth = texDetails.depth;
+		arraysize = texDetails.depth;
+	}
+
+	if(forceRGBA8unorm && intFormat != eGL_RGBA8 && intFormat != eGL_SRGB8_ALPHA8)
+	{
+		MakeCurrentReplayContext(m_DebugCtx);
+
+		GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
+		GLenum newtarget = (texType == eGL_TEXTURE_3D ? eGL_TEXTURE_3D : eGL_TEXTURE_2D);
+
+		// create temporary texture of width/height in RGBA8 format to render to
+		gl.glGenTextures(1, &tempTex);
+		gl.glBindTexture(newtarget, tempTex);
+		if(newtarget == eGL_TEXTURE_3D)
+			gl.glTexStorage3D(newtarget, 1, finalFormat, width, height, depth);
+		else
+			gl.glTexStorage2D(newtarget, 1, finalFormat, width, height);
+
+		// create temp framebuffer
+		GLuint fbo = 0;
+		gl.glGenFramebuffers(1, &fbo);
+		gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+		
+		gl.glTexParameteri(newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+		gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+		gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
+		if(newtarget == eGL_TEXTURE_3D)
+			gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex, 0, 0);
+		else
+			gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+
+		float col[] = { 0.3f, 0.6f, 0.9f, 1.0f };
+		gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+		// render to the temp texture to do the downcast
+		float w = DebugData.outWidth;
+		float h = DebugData.outHeight;
+
+		DebugData.outWidth = float(width); DebugData.outHeight = float(height);
+		
+		for(GLsizei d=0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
+		{
+			TextureDisplay texDisplay;
+			
+			texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+			texDisplay.HDRMul = -1.0f;
+			texDisplay.linearDisplayAsGamma = false;
+			texDisplay.overlay = eTexOverlay_None;
+			texDisplay.FlipY = false;
+			texDisplay.mip = mip;
+			texDisplay.sampleIdx = ~0U;
+			texDisplay.CustomShader = ResourceId();
+			texDisplay.sliceFace = arrayIdx;
+			texDisplay.rangemin = blackPoint;
+			texDisplay.rangemax = whitePoint;
+			texDisplay.scale = 1.0f;
+			texDisplay.texid = tex;
+			texDisplay.rawoutput = false;
+			texDisplay.offx = 0;
+			texDisplay.offy = 0;
+			
+			if(newtarget == eGL_TEXTURE_3D)
+			{
+				gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex, 0, (GLint)d);
+				texDisplay.sliceFace = (uint32_t)d;
+			}
+
+			gl.glViewport(0, 0, width, height);
+
+			RenderTextureInternal(texDisplay, false);
+		}
+		
+		// rewrite the variables to temporary texture
+		texType = newtarget;
+		texname = tempTex;
+		intFormat = finalFormat;
+		if(newtarget == eGL_TEXTURE_2D) depth = 1;
+		arraysize = 1;
+		samples = 1;
+
+		gl.glDeleteFramebuffers(1, &fbo);
+	}
+	else if(resolve && samples > 1)
+	{
+		MakeCurrentReplayContext(m_DebugCtx);
+		
+		GLuint curDrawFBO = 0;
+		GLuint curReadFBO = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curDrawFBO);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint*)&curReadFBO);
+		
+		// create temporary texture of width/height in same format to render to
+		gl.glGenTextures(1, &tempTex);
+		gl.glBindTexture(eGL_TEXTURE_2D, tempTex);
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, intFormat, width, height);
+
+		// create temp framebuffers
+		GLuint fbos[2] = { 0 };
+		gl.glGenFramebuffers(2, fbos);
+
+		gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[0]);
+		gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+
+		gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[1]);
+		if(texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+			gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0, arrayIdx);
+		else
+			gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0);
+		
+		// do default resolve (framebuffer blit)
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbos[0]);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, fbos[1]);
+
+		float col[] = { 0.3f, 0.4f, 0.5f, 1.0f };
+		gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+		gl.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, eGL_NEAREST);
+		
+		// rewrite the variables to temporary texture
+		texType = eGL_TEXTURE_2D;
+		texname = tempTex;
+		depth = 1;
+		arraysize = 1;
+		samples = 1;
+
+		gl.glDeleteFramebuffers(2, fbos);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+	}
+	else if(samples > 1)
+	{
+		MakeCurrentReplayContext(m_DebugCtx);
+
+		// create temporary texture array of width/height in same format to render to,
+		// with the same number of array slices as multi samples.
+		gl.glGenTextures(1, &tempTex);
+		gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tempTex);
+		gl.glTexStorage3D(eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height, arraysize*samples);
+
+		// copy multisampled texture to an array
+		CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
+		
+		// rewrite the variables to temporary texture
+		texType = eGL_TEXTURE_2D_ARRAY;
+		texname = tempTex;
+		depth = 1;
+		depth = samples;
+		arraysize = samples;
+		samples = 1;
+	}
+
+	// fetch and return data now
+	{
+		PixelUnpackState unpack;
+
+		unpack.Fetch(&gl.GetHookset(), true);
+
+		PixelUnpackState identity = {0};
+		identity.alignment = 1;
+
+		identity.Apply(&gl.GetHookset(), true);
+
+		GLenum binding = TextureBinding(texType);
+		
+		GLuint prevtex = 0;
+		gl.glGetIntegerv(binding, (GLint *)&prevtex);
+		
+		gl.glBindTexture(texType, texname);
+		
+		GLenum target = texType;
+		if(texType == eGL_TEXTURE_CUBE_MAP)
+		{
+			GLenum targets[] = {
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			};
+			
+			RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+			target = targets[arrayIdx];
+		}
+
+		if(IsCompressedFormat(intFormat))
+		{
+			GLuint compSize;
+			gl.glGetTexLevelParameteriv(target, mip, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&compSize);
+
+			dataSize = compSize;
+
+			ret = new byte[dataSize];
+
+			gl.glGetCompressedTexImage(target, mip, ret);
+		}
+		else
+		{
+			GLenum fmt = GetBaseFormat(intFormat);
+			GLenum type = GetDataType(intFormat);
+
+			dataSize = GetByteSize(width, height, depth, fmt, type);
+			ret = new byte[dataSize];
+
+			m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
+
+			// need to vertically flip the image now to get conventional row ordering
+			// we either do this when copying out the slice of interest, or just
+			// on its own
+			size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
+			byte *src, *dst;
+
+			// for arrays just extract the slice we're interested in.
+			if(texType == eGL_TEXTURE_2D_ARRAY ||
+				texType == eGL_TEXTURE_1D_ARRAY ||
+				texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+			{
+				dataSize = GetByteSize(width, height, 1, fmt, type);
+				byte *slice = new byte[dataSize];
+
+				// src points to the last row in the array slice image
+				src = (ret + dataSize*arrayIdx) + (height-1)*rowSize;
+				dst = slice;
+
+				// we do memcpy + vertical flip
+				//memcpy(slice, ret + dataSize*arrayIdx, dataSize);
+
+				for(GLsizei i=0; i < height; i++)
+				{
+					memcpy(dst, src, rowSize);
+
+					dst += rowSize;
+					src -= rowSize;
+				}
+
+				delete[] ret;
+
+				ret = slice;
+			}
+			else
+			{
+				byte *row = new byte[rowSize];
+				
+				size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+				// invert all slices in a 3D texture
+				for(GLsizei d=0; d < depth; d++)
+				{
+					dst = ret + d*sliceSize;
+					src = dst + (height-1)*rowSize;
+
+					for(GLsizei i=0; i < height>>1; i++)
+					{
+						memcpy(row, src, rowSize);
+						memcpy(src, dst, rowSize);
+						memcpy(dst, row, rowSize);
+
+						dst += rowSize;
+						src -= rowSize;
+					}
+				}
+
+				delete[] row;
+			}
+		}
+		
+		unpack.Apply(&gl.GetHookset(), true);
+
+		gl.glBindTexture(texType, prevtex);
+	}
+
+	if(tempTex)
+		gl.glDeleteTextures(1, &tempTex);
+
+	return ret;
+}
+
 #pragma endregion
 
 vector<EventUsage> GLReplay::GetUsage(ResourceId id)
@@ -2189,12 +2496,6 @@ void GLReplay::FreeTargetResource(ResourceId id)
 void GLReplay::FreeCustomShader(ResourceId id)
 {
 	RDCUNIMPLEMENTED("FreeCustomShader");
-}
-
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
-{
-	RDCUNIMPLEMENTED("GetTextureData");
-	return NULL;
 }
 
 void GLReplay::ReplaceResource(ResourceId from, ResourceId to)

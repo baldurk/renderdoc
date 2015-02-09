@@ -344,6 +344,18 @@ void GLReplay::InitDebugData()
 		gl.glNamedBufferStorageEXT(DebugData.minmaxResult, sizeof(Vec4f)*2, NULL, GL_MAP_READ_BIT);
 		gl.glNamedBufferStorageEXT(DebugData.histogramBuf, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, NULL, GL_MAP_READ_BIT);
 	}
+	
+	{
+		string glsl = "#version 420 core\n\n#define MS2Array main\n\n";
+		glsl += GetEmbeddedResource(arraymscopy_comp);
+
+		DebugData.MS2Array = CreateCShaderProgram(glsl.c_str());
+		
+		glsl = "#version 420 core\n\n#define Array2MS main\n\n";
+		glsl += GetEmbeddedResource(arraymscopy_comp);
+
+		DebugData.Array2MS = CreateCShaderProgram(glsl.c_str());
+	}
 
 	gl.glGenVertexArrays(1, &DebugData.meshVAO);
 	gl.glBindVertexArray(DebugData.meshVAO);
@@ -479,6 +491,9 @@ void GLReplay::DeleteDebugData()
 				gl.glDeleteProgram(DebugData.minmaxResultProgram[i]);
 		}
 	}
+	
+	gl.glDeleteProgram(DebugData.Array2MS);
+	gl.glDeleteProgram(DebugData.MS2Array);
 
 	gl.glDeleteBuffers(1, &DebugData.minmaxTileResult);
 	gl.glDeleteBuffers(1, &DebugData.minmaxResult);
@@ -853,13 +868,67 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 		texDisplay.offx = -float(x);
 		texDisplay.offy = -float(y);
 
-		RenderTexture(texDisplay);
+		RenderTextureInternal(texDisplay, false);
 	}
 
 	gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
 }
 
+void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat)
+{
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	GLRenderState rs(&gl.GetHookset(), NULL, READING);
+	rs.FetchState(m_pDriver->GetCtx(), m_pDriver);
+	
+	GLenum viewClass;
+	gl.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS, sizeof(GLenum), (GLint *)&viewClass);
+
+	GLenum fmt = eGL_R32UI;
+	     if(viewClass == eGL_VIEW_CLASS_8_BITS)   fmt = eGL_R8UI;
+	else if(viewClass == eGL_VIEW_CLASS_16_BITS)  fmt = eGL_R16UI;
+	else if(viewClass == eGL_VIEW_CLASS_24_BITS)  fmt = eGL_RGB8UI;
+	else if(viewClass == eGL_VIEW_CLASS_32_BITS)  fmt = eGL_RGBA8UI;
+	else if(viewClass == eGL_VIEW_CLASS_48_BITS)  fmt = eGL_RGB16UI;
+	else if(viewClass == eGL_VIEW_CLASS_64_BITS)  fmt = eGL_RG32UI;
+	else if(viewClass == eGL_VIEW_CLASS_96_BITS)  fmt = eGL_RGB32UI;
+	else if(viewClass == eGL_VIEW_CLASS_128_BITS) fmt = eGL_RGBA32UI;
+
+	GLuint texs[2];
+	gl.glGenTextures(2, texs);
+	gl.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize*samples);
+	gl.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
+
+	gl.glBindImageTexture(0, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
+	gl.glActiveTexture(eGL_TEXTURE0);
+	gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
+	gl.glBindSampler(0, DebugData.pointNoMipSampler);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
+	gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
+
+	gl.glUseProgram(DebugData.MS2Array);
+	
+	GLint loc = gl.glGetUniformLocation(DebugData.MS2Array, "numMultiSamples");
+	gl.glUniform1i(loc, samples);
+
+	gl.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize*samples));
+	gl.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	gl.glDeleteTextures(2, texs);
+
+	rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+}
+
 bool GLReplay::RenderTexture(TextureDisplay cfg)
+{
+	return RenderTextureInternal(cfg, true);
+}
+
+bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 {
 	WrappedOpenGL &gl = *m_pDriver;
 	
@@ -1119,7 +1188,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
-	if(cfg.rawoutput)
+	if(cfg.rawoutput || !blendAlpha)
 	{
 		gl.glDisable(eGL_BLEND);
 	}

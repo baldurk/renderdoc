@@ -42,6 +42,7 @@ struct PixelUnpackState
 	int32_t compressedBlockSize;
 
 	void Fetch(const GLHookSet *funcs, bool compressed);
+	void Apply(const GLHookSet *funcs, bool compressed);
 
 	bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat=eGL_NONE, GLenum basetype=eGL_NONE);
 	byte *Unpack(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);

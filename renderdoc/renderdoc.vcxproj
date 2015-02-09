@@ -366,6 +366,7 @@
     <ResourceCompile Include="data\renderdoc.rc" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="data\glsl\arraymscopy.comp" />
     <None Include="data\glsl\blit.frag" />
     <None Include="data\glsl\blit.vert" />
     <None Include="data\glsl\checkerboard.frag" />

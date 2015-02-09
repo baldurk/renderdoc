@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,28 +21,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
+ 
+#extension GL_ARB_compute_shader : require
 
-#pragma once
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-#define DECLARE_EMBED(filename) \
-	extern char CONCAT( CONCAT(_binary_, filename) , _start) ; \
-	extern char CONCAT( CONCAT(_binary_, filename) , _end) ;
 
-DECLARE_EMBED(debuguniforms_h);
-DECLARE_EMBED(texsample_h);
-DECLARE_EMBED(blit_vert);
-DECLARE_EMBED(blit_frag);
-DECLARE_EMBED(texdisplay_frag);
-DECLARE_EMBED(checkerboard_frag);
-DECLARE_EMBED(histogram_comp);
-DECLARE_EMBED(arraymscopy_comp);
-DECLARE_EMBED(mesh_vert);
-DECLARE_EMBED(mesh_frag);
-DECLARE_EMBED(mesh_geom);
-DECLARE_EMBED(generic_vert);
-DECLARE_EMBED(generic_frag);
-DECLARE_EMBED(text_frag);
-DECLARE_EMBED(text_vert);
-DECLARE_EMBED(sourcecodepro_ttf);
+uniform int numMultiSamples;
 
-#undef DECLARE_EMBED
+
+
+layout(binding = 0) uniform usampler2DMSArray srcMS;
+layout(binding = 0) writeonly uniform uimage2DArray dstArray;
+
+void MS2Array()
+{
+	uvec3 id = gl_GlobalInvocationID;
+
+	int slice = int(id.z / numMultiSamples);
+	int sampleIdx = int(id.z % numMultiSamples);
+
+	uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
+
+	imageStore(dstArray, ivec3(int(id.x), int(id.y), int(id.z)), data);
+}
+
+
+
+
+layout(binding = 0) uniform usampler2DArray srcArray;
+layout(binding = 0) writeonly uniform uimage2DMSArray dstMS;
+
+void Array2MS()
+{
+	uvec3 id = gl_GlobalInvocationID;
+
+	int slice = int(id.z / numMultiSamples);
+	int sampleIdx = int(id.z % numMultiSamples);
+
+	uvec4 data = texelFetch(srcArray, ivec3(int(id.x), int(id.y), int(id.z)), 0);
+
+	imageStore(dstMS, ivec3(int(id.x), int(id.y), slice), sampleIdx, data);
+}

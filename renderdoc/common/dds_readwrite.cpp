@@ -509,6 +509,8 @@ DXGI_FORMAT ResourceFormat2DXGIFormat(ResourceFormat format)
 			case eSpecial_D32S8:
 				return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;
 			default:
+			case eSpecial_ETC2:
+			case eSpecial_EAC:
 			case eSpecial_YUV:
 				RDCERR("Unsupported writing format %u", format.specialFormat);
 				return DXGI_FORMAT_UNKNOWN;
@@ -680,6 +682,11 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 			case eSpecial_BC6:
 			case eSpecial_BC7:
 				blockFormat = true;
+				break;
+			case eSpecial_ETC2:
+			case eSpecial_EAC:
+				RDCERR("Unsupported file format, ETC2/EAC");
+				return false;
 			default:
 				break;
 		}
@@ -745,7 +752,7 @@ bool write_dds_to_file(FILE *f, const dds_data &data)
 				bytesPerPixel = 5;
 				break;
 			case eSpecial_YUV:
-				RDCERR("Unsupported file save format");
+				RDCERR("Unsupported file format");
 				return false;
 			default:
 				bytesPerPixel = data.format.compCount*data.format.compByteWidth;
@@ -1014,7 +1021,7 @@ dds_data load_dds_from_file(FILE *f)
 			bytesPerPixel = 5;
 			break;
 		case eSpecial_YUV:
-			RDCERR("Unsupported file save format");
+			RDCERR("Unsupported file format, YUV");
 			return error;
 		default:
 			bytesPerPixel = ret.format.compCount*ret.format.compByteWidth;
@@ -1034,6 +1041,11 @@ dds_data load_dds_from_file(FILE *f)
 			case eSpecial_BC6:
 			case eSpecial_BC7:
 				blockFormat = true;
+				break;
+			case eSpecial_ETC2:
+			case eSpecial_EAC:
+				RDCERR("Unsupported file format, ETC2/EAC");
+				return error;
 			default:
 				break;
 		}

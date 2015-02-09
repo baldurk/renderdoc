@@ -152,6 +152,7 @@ class GLReplay : public IReplayDriver
 		void FreeCustomShader(ResourceId id);
 
 		bool RenderTexture(TextureDisplay cfg);
+		bool RenderTextureInternal(TextureDisplay cfg, bool blendAlpha);
 
 		void RenderCheckerboard(Vec3f light, Vec3f dark);
 
@@ -194,6 +195,9 @@ class GLReplay : public IReplayDriver
 								  const vector<byte> &data);
 
 		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
+		
+		void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat);
+		void CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat);
 
 		struct OutputWindow : public GLWindowingData
 		{
@@ -249,6 +253,8 @@ class GLReplay : public IReplayDriver
 			GLuint blitProg;
 
 			GLuint texDisplayProg[3];      // float/uint/sint
+
+			GLuint MS2Array, Array2MS;
 
 			GLuint pointSampler;
 			GLuint pointNoMipSampler;

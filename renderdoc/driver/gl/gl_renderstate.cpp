@@ -44,6 +44,25 @@ void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
 	}
 }
 
+void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
+{
+	funcs->glPixelStorei(eGL_UNPACK_SWAP_BYTES, swapBytes);
+	funcs->glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
+	funcs->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
+	funcs->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, skipPixels);
+	funcs->glPixelStorei(eGL_UNPACK_SKIP_ROWS, skipRows);
+	funcs->glPixelStorei(eGL_UNPACK_SKIP_IMAGES, skipImages);
+	funcs->glPixelStorei(eGL_UNPACK_ALIGNMENT, alignment);
+
+	if(compressed)
+	{
+		funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
+		funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
+		funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
+		funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
+	}
+}
+
 bool PixelUnpackState::FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype)
 {
 	if(swapBytes)
@@ -845,18 +864,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 
 	m_Real->glFrontFace(FrontFace);
 	m_Real->glCullFace(CullFace);
-
-	m_Real->glPixelStorei(eGL_UNPACK_SWAP_BYTES, Unpack.swapBytes);
-	m_Real->glPixelStorei(eGL_UNPACK_ROW_LENGTH, Unpack.rowlength);
-	m_Real->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, Unpack.imageheight);
-	m_Real->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, Unpack.skipPixels);
-	m_Real->glPixelStorei(eGL_UNPACK_SKIP_ROWS, Unpack.skipRows);
-	m_Real->glPixelStorei(eGL_UNPACK_SKIP_IMAGES, Unpack.skipImages);
-	m_Real->glPixelStorei(eGL_UNPACK_ALIGNMENT, Unpack.alignment);
-	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, Unpack.compressedBlockWidth);
-	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, Unpack.compressedBlockHeight);
-	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, Unpack.compressedBlockDepth);
-	m_Real->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, Unpack.compressedBlockSize);
+	
+	Unpack.Apply(m_Real, true);
 }
 
 void GLRenderState::Clear()

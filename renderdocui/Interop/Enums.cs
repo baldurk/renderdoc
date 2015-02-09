@@ -168,6 +168,8 @@ namespace renderdoc
         BC5,
         BC6,
         BC7,
+        ETC2,
+        EAC,
         R10G10B10A2,
         R11G11B10,
         B5G6R5,
