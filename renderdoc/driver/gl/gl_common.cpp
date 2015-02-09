@@ -533,6 +533,103 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 		return ret;
 	}
 
+	if(IsCompressedFormat(fmt))
+	{
+		ret.special = true;
+		
+		switch(fmt)
+		{
+			case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
+			case eGL_COMPRESSED_SRGB8_ETC2:
+			case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+			case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+				ret.srgbCorrected = true;
+				break;
+			default:
+				break;
+		}
+		
+		ret.compType = eCompType_UNorm;
+		
+		switch(fmt)
+		{
+			case eGL_COMPRESSED_SIGNED_RED_RGTC1:
+			case eGL_COMPRESSED_SIGNED_RG_RGTC2:
+			case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
+			case eGL_COMPRESSED_SIGNED_R11_EAC:
+			case eGL_COMPRESSED_SIGNED_RG11_EAC:
+				ret.compType = eCompType_SNorm;
+				break;
+			default:
+				break;
+		}
+
+		switch(fmt)
+		{
+			// BC1
+			case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+				ret.specialFormat = eSpecial_BC1;
+				break;
+			// BC2
+			case eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT:
+				ret.specialFormat = eSpecial_BC2;
+				break;
+			// BC3
+			case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
+				ret.specialFormat = eSpecial_BC3;
+				break;
+			// BC4
+			case eGL_COMPRESSED_RED_RGTC1:
+			case eGL_COMPRESSED_SIGNED_RED_RGTC1:
+				ret.specialFormat = eSpecial_BC4;
+				break;
+			// BC5
+			case eGL_COMPRESSED_RG_RGTC2:
+			case eGL_COMPRESSED_SIGNED_RG_RGTC2:
+				ret.specialFormat = eSpecial_BC5;
+				break;
+			// BC6
+			case eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB:
+			case eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB:
+				ret.specialFormat = eSpecial_BC6;
+				break;
+			// BC7
+			case eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB:
+			case eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB:
+				ret.specialFormat = eSpecial_BC7;
+				break;
+			// ETC2
+			case eGL_COMPRESSED_RGB8_ETC2:
+			case eGL_COMPRESSED_SRGB8_ETC2:
+			case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+			case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+				ret.specialFormat = eSpecial_ETC2;
+				break;
+			// EAC
+			case eGL_COMPRESSED_RGBA8_ETC2_EAC:
+			case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+			case eGL_COMPRESSED_R11_EAC:
+			case eGL_COMPRESSED_SIGNED_R11_EAC:
+			case eGL_COMPRESSED_RG11_EAC:
+			case eGL_COMPRESSED_SIGNED_RG11_EAC:
+				ret.specialFormat = eSpecial_EAC;
+				break;
+			default:
+				RDCERR("Unexpected compressed format %#x", fmt);
+				break;
+		}
+		return ret;
+	}
+
 	ret.compByteWidth = 1;
 	ret.compCount = 4;
 	ret.compType = eCompType_Float;
