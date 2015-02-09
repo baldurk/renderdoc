@@ -24,11 +24,12 @@
 
 vec3 CalcCubeCoord(vec2 uv, int face)
 {
+	// From table 8.19 in GL4.5 spec
 	// Map UVs to [-0.5, 0.5] and rotate
 	uv -= vec2(0.5);
 	vec3 coord;
 	if (face == CUBEMAP_FACE_POS_X)
-		coord = vec3(0.5, uv.y, -uv.x);
+		coord = vec3(0.5, -uv.y, -uv.x);
 	else if (face == CUBEMAP_FACE_NEG_X)
 		coord = vec3(-0.5, -uv.y, uv.x);
 	else if (face == CUBEMAP_FACE_POS_Y)
