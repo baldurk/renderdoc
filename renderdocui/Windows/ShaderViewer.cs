@@ -178,6 +178,9 @@ namespace renderdocui.Windows
             m_SaveCallback = saveCallback;
             m_CloseCallback = closeCallback;
 
+            if (m_Core.LogLoaded)
+                pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11);
+
             DockContent sel = null;
 
             foreach (var f in files)
@@ -1096,11 +1099,13 @@ namespace renderdocui.Windows
 
         public void OnLogfileClosed()
         {
+            pointLinearSamplersToolStripMenuItem.Visible = true;
             Close();
         }
 
         public void OnLogfileLoaded()
         {
+            pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11);
         }
 
         public void OnEventSelected(UInt32 frameID, UInt32 eventID)
@@ -1386,7 +1391,10 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            CurrentScintilla.InsertText(0, "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                CurrentScintilla.InsertText(0, "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                CurrentScintilla.InsertText(0, "uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -1404,7 +1412,10 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
+            if(m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                CurrentScintilla.InsertText(0, "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -1413,10 +1424,13 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            CurrentScintilla.InsertText(0, "// Samplers" + Environment.NewLine +
-                                            "SamplerState pointSampler : register(s0);" + Environment.NewLine +
-                                            "SamplerState linearSampler : register(s1);" + Environment.NewLine +
-                                            "// End Samplers" + Environment.NewLine + Environment.NewLine);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            {
+                CurrentScintilla.InsertText(0, "// Samplers" + Environment.NewLine +
+                                                "SamplerState pointSampler : register(s0);" + Environment.NewLine +
+                                                "SamplerState linearSampler : register(s1);" + Environment.NewLine +
+                                                "// End Samplers" + Environment.NewLine + Environment.NewLine);
+            }
             CurrentScintilla.CurrentPos = 0;
         }
 
@@ -1425,27 +1439,69 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
-                                            "Texture1DArray<float4> texDisplayTex1DArray : register(t1);" + Environment.NewLine +
-                                            "Texture2DArray<float4> texDisplayTex2DArray : register(t2);" + Environment.NewLine +
-                                            "Texture3D<float4> texDisplayTex3D : register(t3);" + Environment.NewLine +
-                                            "Texture2DArray<float2> texDisplayTexDepthArray : register(t4);" + Environment.NewLine +
-                                            "Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);" + Environment.NewLine +
-                                            "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);" + Environment.NewLine +
-                                            "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);" + Environment.NewLine +
-                                            "Texture2DArray<float4> texDisplayTexCubeArray : register(t8);" + Environment.NewLine +
-                                            "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);" + Environment.NewLine +
-                                            "" + Environment.NewLine +
-                                            "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);" + Environment.NewLine +
-                                            "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);" + Environment.NewLine +
-                                            "Texture3D<uint4> texDisplayUIntTex3D : register(t13);" + Environment.NewLine +
-                                            "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);" + Environment.NewLine +
-                                            "" + Environment.NewLine +
-                                            "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);" + Environment.NewLine +
-                                            "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);" + Environment.NewLine +
-                                            "Texture3D<int4> texDisplayIntTex3D : register(t23);" + Environment.NewLine +
-                                            "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);" + Environment.NewLine +
-                                            "// End Textures" + Environment.NewLine + Environment.NewLine);
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            {
+                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                                                "Texture1DArray<float4> texDisplayTex1DArray : register(t1);" + Environment.NewLine +
+                                                "Texture2DArray<float4> texDisplayTex2DArray : register(t2);" + Environment.NewLine +
+                                                "Texture3D<float4> texDisplayTex3D : register(t3);" + Environment.NewLine +
+                                                "Texture2DArray<float2> texDisplayTexDepthArray : register(t4);" + Environment.NewLine +
+                                                "Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);" + Environment.NewLine +
+                                                "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);" + Environment.NewLine +
+                                                "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);" + Environment.NewLine +
+                                                "Texture2DArray<float4> texDisplayTexCubeArray : register(t8);" + Environment.NewLine +
+                                                "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);" + Environment.NewLine +
+                                                "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);" + Environment.NewLine +
+                                                "Texture3D<uint4> texDisplayUIntTex3D : register(t13);" + Environment.NewLine +
+                                                "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);" + Environment.NewLine +
+                                                "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);" + Environment.NewLine +
+                                                "Texture3D<int4> texDisplayIntTex3D : register(t23);" + Environment.NewLine +
+                                                "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);" + Environment.NewLine +
+                                                "// End Textures" + Environment.NewLine + Environment.NewLine);
+            }
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            {
+                CurrentScintilla.InsertText(0, "// Textures" + Environment.NewLine +
+                                                "// Unsigned int samplers" + Environment.NewLine +
+                                                "layout (binding = 1) uniform usampler1D texUInt1D;" + Environment.NewLine +
+                                                "layout (binding = 2) uniform usampler2D texUInt2D;" + Environment.NewLine +
+                                                "layout (binding = 3) uniform usampler3D texUInt3D;" + Environment.NewLine +
+                                                "// cube = 4" + Environment.NewLine +
+                                                "layout (binding = 5) uniform usampler1DArray texUInt1DArray;" + Environment.NewLine +
+                                                "layout (binding = 6) uniform usampler2DArray texUInt2DArray;" + Environment.NewLine +
+                                                "// cube array = 7" + Environment.NewLine +
+                                                "layout (binding = 8) uniform usampler2DRect texUInt2DRect;" + Environment.NewLine +
+                                                "layout (binding = 9) uniform usamplerBuffer texUIntBuffer;" + Environment.NewLine +
+                                                "layout (binding = 10) uniform usampler2DMS texUInt2DMS;" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "// Int samplers" + Environment.NewLine +
+                                                "layout (binding = 1) uniform isampler1D texSInt1D;" + Environment.NewLine +
+                                                "layout (binding = 2) uniform isampler2D texSInt2D;" + Environment.NewLine +
+                                                "layout (binding = 3) uniform isampler3D texSInt3D;" + Environment.NewLine +
+                                                "// cube = 4" + Environment.NewLine +
+                                                "layout (binding = 5) uniform isampler1DArray texSInt1DArray;" + Environment.NewLine +
+                                                "layout (binding = 6) uniform isampler2DArray texSInt2DArray;" + Environment.NewLine +
+                                                "// cube array = 7" + Environment.NewLine +
+                                                "layout (binding = 8) uniform isampler2DRect texSInt2DRect;" + Environment.NewLine +
+                                                "layout (binding = 9) uniform isamplerBuffer texSIntBuffer;" + Environment.NewLine +
+                                                "layout (binding = 10) uniform isampler2DMS texSInt2DMS;" + Environment.NewLine +
+                                                "" + Environment.NewLine +
+                                                "// Floating point samplers" + Environment.NewLine +
+                                                "layout (binding = 1) uniform sampler1D tex1D;" + Environment.NewLine +
+                                                "layout (binding = 2) uniform sampler2D tex2D;" + Environment.NewLine +
+                                                "layout (binding = 3) uniform sampler3D tex3D;" + Environment.NewLine +
+                                                "layout (binding = 4) uniform samplerCube texCube;" + Environment.NewLine +
+                                                "layout (binding = 5) uniform sampler1DArray tex1DArray;" + Environment.NewLine +
+                                                "layout (binding = 6) uniform sampler2DArray tex2DArray;" + Environment.NewLine +
+                                                "layout (binding = 7) uniform samplerCubeArray texCubeArray;" + Environment.NewLine +
+                                                "layout (binding = 8) uniform sampler2DRect tex2DRect;" + Environment.NewLine +
+                                                "layout (binding = 9) uniform samplerBuffer texBuffer;" + Environment.NewLine +
+                                                "layout (binding = 10) uniform sampler2DMS tex2DMS;" + Environment.NewLine + Environment.NewLine);
+            }
             CurrentScintilla.CurrentPos = 0;
         }
 

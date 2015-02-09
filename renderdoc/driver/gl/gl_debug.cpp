@@ -1091,6 +1091,20 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 	{
 		GLuint customProg = gl.GetResourceManager()->GetCurrentResource(cfg.CustomShader).name;
 		gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT, customProg);
+
+		GLint loc = -1;
+
+		loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TexDim");
+		if(loc >= 0)
+			gl.glProgramUniform4ui(customProg, loc, texDetails.width, texDetails.height, texDetails.depth, m_CachedTextures[cfg.texid].mips);
+
+		loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedMip");
+		if(loc >= 0)
+			gl.glProgramUniform1ui(customProg, loc, cfg.mip);
+
+		loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TextureType");
+		if(loc >= 0)
+			gl.glProgramUniform1ui(customProg, loc, resType);
 	}
 	gl.glBindProgramPipeline(DebugData.texDisplayPipe);
 

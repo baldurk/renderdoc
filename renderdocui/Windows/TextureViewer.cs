@@ -602,7 +602,32 @@ namespace renderdocui.Windows
             }
 
             var path = Path.Combine(Core.ConfigDirectory, customShader.Text + m_Core.APIProps.ShaderExtension);
-            File.WriteAllText(path, "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n{\n\treturn float4(0,0,0,1);\n}\n");
+
+            string src = "";
+
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            {
+                src = String.Format(
+                    "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0{0}" +
+                    "{{{0}" +
+                    "    return float4(0,0,0,1);{0}" +
+                    "}}{0}"
+                    , Environment.NewLine);
+            }
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            {
+                src = String.Format(
+                    "#version 420 core{0}" +
+                    "layout (location = 0) out vec4 color_out;{0}" + 
+                    "void main(){0}" +
+                    "{{{0}" +
+                    "    color_out = vec4(0,0,0,1);{0}" +
+                    "}}{0}"
+                    , Environment.NewLine);
+            }
+
+            File.WriteAllText(path, src);
+
 
             // auto-open edit window
             customEdit_Click(sender, e);
