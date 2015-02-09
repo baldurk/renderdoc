@@ -79,7 +79,7 @@ GLuint GLReplay::CreateCShaderProgram(const char *csSrc)
 	return ret;
 }
 
-GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc, const char *gsSrc)
+GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *fsSrc, const char *gsSrc)
 {
 	if(m_pDriver == NULL) return 0;
 	
@@ -87,45 +87,50 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc, const
 	
 	WrappedOpenGL &gl = *m_pDriver;
 
-	GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-	GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+	GLuint vs = 0;
+	GLuint fs = 0;
 	GLuint gs = 0;
-
-	const char *src = vsSrc;
-	gl.glShaderSource(vs, 1, &src, NULL);
-	src = psSrc;
-	gl.glShaderSource(fs, 1, &src, NULL);
-
-	if(gsSrc)
-	{
-		gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
-		src = gsSrc;
-		gl.glShaderSource(gs, 1, &src, NULL);
-	}
-
-	gl.glCompileShader(vs);
-	gl.glCompileShader(fs);
-	if(gs) gl.glCompileShader(gs);
 
 	char buffer[1024];
 	GLint status = 0;
 
-	gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
-	if(status == 0)
+	if(vsSrc)
 	{
-		gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-		RDCERR("Shader error: %s", buffer);
+		vs = gl.glCreateShader(eGL_VERTEX_SHADER);
+		gl.glShaderSource(vs, 1, &vsSrc, NULL);
+
+		gl.glCompileShader(vs);
+
+		gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
+		if(status == 0)
+		{
+			gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
+			RDCERR("Shader error: %s", buffer);
+		}
 	}
 
-	gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
-	if(status == 0)
+	if(fsSrc)
 	{
-		gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-		RDCERR("Shader error: %s", buffer);
+		fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+		gl.glShaderSource(fs, 1, &fsSrc, NULL);
+
+		gl.glCompileShader(fs);
+
+		gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
+		if(status == 0)
+		{
+			gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
+			RDCERR("Shader error: %s", buffer);
+		}
 	}
 
-	if(gs)
+	if(gsSrc)
 	{
+		gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
+		gl.glShaderSource(gs, 1, &gsSrc, NULL);
+
+		gl.glCompileShader(gs);
+
 		gl.glGetShaderiv(gs, eGL_COMPILE_STATUS, &status);
 		if(status == 0)
 		{
@@ -136,18 +141,27 @@ GLuint GLReplay::CreateShaderProgram(const char *vsSrc, const char *psSrc, const
 
 	GLuint ret = gl.glCreateProgram();
 
-	gl.glAttachShader(ret, vs);
-	gl.glAttachShader(ret, fs);
+	if(vs) gl.glAttachShader(ret, vs);
+	if(fs) gl.glAttachShader(ret, fs);
 	if(gs) gl.glAttachShader(ret, gs);
+	
+	gl.glProgramParameteri(ret, eGL_PROGRAM_SEPARABLE, GL_TRUE);
 
 	gl.glLinkProgram(ret);
 
-	gl.glDetachShader(ret, vs);
-	gl.glDetachShader(ret, fs);
+	gl.glGetShaderiv(ret, eGL_LINK_STATUS, &status);
+	if(status == 0)
+	{
+		gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
+		RDCERR("Shader error: %s", buffer);
+	}
+
+	if(vs) gl.glDetachShader(ret, vs);
+	if(fs) gl.glDetachShader(ret, fs);
 	if(gs) gl.glDetachShader(ret, gs);
 
-	gl.glDeleteShader(vs);
-	gl.glDeleteShader(fs);
+	if(vs) gl.glDeleteShader(vs);
+	if(fs) gl.glDeleteShader(fs);
 	if(gs) gl.glDeleteShader(gs);
 
 	return ret;
@@ -179,6 +193,8 @@ void GLReplay::InitDebugData()
 	string texfs = GetEmbeddedResource(texsample_h);
 	texfs += GetEmbeddedResource(texdisplay_frag);
 
+	DebugData.texDisplayVSProg = CreateShaderProgram(DebugData.blitvsSource.c_str(), NULL);
+
 	for(int i=0; i < 3; i++)
 	{
 		string glsl = glslheader;
@@ -186,7 +202,7 @@ void GLReplay::InitDebugData()
 		glsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 		glsl += texfs;
 
-		DebugData.texDisplayProg[i] = CreateShaderProgram(DebugData.blitvsSource.c_str(), glsl.c_str());
+		DebugData.texDisplayProg[i] = CreateShaderProgram(NULL, glsl.c_str());
 	}
 
 	string checkerfs = GetEmbeddedResource(checkerboard_frag);
@@ -207,6 +223,9 @@ void GLReplay::InitDebugData()
 	DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
 	
 	WrappedOpenGL &gl = *m_pDriver;
+	
+	void *ctx = gl.GetCtx();
+	gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
 
 	{
 		float data[] = {
@@ -258,6 +277,10 @@ void GLReplay::InitDebugData()
 	DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
 	DebugData.overlayTex = DebugData.overlayFBO = 0;
 	
+	gl.glGenFramebuffers(1, &DebugData.customFBO);
+	gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
+	DebugData.customTex = 0;
+
 	gl.glGenFramebuffers(1, &DebugData.pickPixelFBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.pickPixelFBO);
 
@@ -455,8 +478,11 @@ void GLReplay::DeleteDebugData()
 
 	gl.glDeleteProgram(DebugData.blitProg);
 
+	gl.glDeleteProgram(DebugData.texDisplayVSProg);
 	for(int i=0; i < 3; i++)
 		gl.glDeleteProgram(DebugData.texDisplayProg[i]);
+
+	gl.glDeleteProgramPipelines(1, &DebugData.texDisplayPipe);
 
 	gl.glDeleteProgram(DebugData.checkerProg);
 	gl.glDeleteProgram(DebugData.genericProg);
@@ -472,6 +498,10 @@ void GLReplay::DeleteDebugData()
 	gl.glDeleteBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
 	gl.glDeleteFramebuffers(1, &DebugData.pickPixelFBO);
 	gl.glDeleteTextures(1, &DebugData.pickPixelTex);
+	
+	gl.glDeleteFramebuffers(1, &DebugData.customFBO);
+	if(DebugData.customTex != 0)
+		gl.glDeleteTextures(1, &DebugData.customTex);
 
 	gl.glDeleteVertexArrays(1, &DebugData.emptyVAO);
 
@@ -1053,7 +1083,16 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 				intIdx = 2;
 	}
 	
-	gl.glUseProgram(DebugData.texDisplayProg[intIdx]);
+	gl.glUseProgram(0);
+	gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_VERTEX_SHADER_BIT, DebugData.texDisplayVSProg);
+	gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT, DebugData.texDisplayProg[intIdx]);
+
+	if(cfg.CustomShader != ResourceId() && gl.GetResourceManager()->HasCurrentResource(cfg.CustomShader))
+	{
+		GLuint customProg = gl.GetResourceManager()->GetCurrentResource(cfg.CustomShader).name;
+		gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT, customProg);
+	}
+	gl.glBindProgramPipeline(DebugData.texDisplayPipe);
 
 	gl.glActiveTexture((RDCGLenum)(eGL_TEXTURE0 + resType));
 	gl.glBindTexture(target, texname);
@@ -1067,7 +1106,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
 	int maxlevel = -1;
 
-	int clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
+	int clampmaxlevel = 0;
+	if(cfg.texid != DebugData.CustomShaderTexID)
+		clampmaxlevel = m_CachedTextures[cfg.texid].mips - 1;
 	
 	gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 	

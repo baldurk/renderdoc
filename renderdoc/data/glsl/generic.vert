@@ -29,6 +29,13 @@ layout (location = 0) in vec4 position;
 uniform vec4 RENDERDOC_GenericVS_Offset;
 uniform vec4 RENDERDOC_GenericVS_Scale;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
 void main(void)
 {
     gl_Position = position*RENDERDOC_GenericVS_Scale + RENDERDOC_GenericVS_Offset;

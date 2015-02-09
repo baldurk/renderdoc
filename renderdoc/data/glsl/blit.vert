@@ -24,6 +24,13 @@
 
 #version 420 core
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
 void main(void)
 {
     const vec4 verts[4] = vec4[4](vec4(-1.0, -1.0, 0.5, 1.0),

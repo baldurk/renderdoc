@@ -31,6 +31,13 @@ uniform mat4 ModelViewProj;
 uniform vec2 PointSpriteSize;
 uniform uint HomogenousInput;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
 out v2f
 {
 	vec4 secondary;

@@ -611,6 +611,7 @@ namespace renderdocui.Windows
         private void customEdit_Click(object sender, EventArgs e)
         {
             var filename = customShader.Text;
+            var key = filename.ToUpperInvariant();
 
             var files = new Dictionary<string, string>();
             files.Add(filename, File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + m_Core.APIProps.ShaderExtension)));
@@ -629,10 +630,10 @@ namespace renderdocui.Windows
             // Close Callback
             () =>
             {
-                m_CustomShaderEditor.Remove(filename);
+                m_CustomShaderEditor.Remove(key);
             });
 
-            m_CustomShaderEditor[customShader.Text] = s;
+            m_CustomShaderEditor[key] = s;
 
             s.Show(this.DockPanel);
         }

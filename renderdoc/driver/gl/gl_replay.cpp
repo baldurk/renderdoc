@@ -2475,78 +2475,135 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
 	return ret;
 }
 
-#pragma endregion
-
-vector<EventUsage> GLReplay::GetUsage(ResourceId id)
-{
-	GLNOTIMP("GetUsage");
-	return vector<EventUsage>();
-}
-
-void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-	RDCUNIMPLEMENTED("SetContextFilter");
-}
-
-void GLReplay::FreeTargetResource(ResourceId id)
-{
-	RDCUNIMPLEMENTED("FreeTargetResource");
-}
-
-void GLReplay::FreeCustomShader(ResourceId id)
-{
-	RDCUNIMPLEMENTED("FreeCustomShader");
-}
-
-void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
-{
-	RDCUNIMPLEMENTED("ReplaceResource");
-}
-
-void GLReplay::RemoveReplacement(ResourceId id)
-{
-	RDCUNIMPLEMENTED("RemoveReplacement");
-}
-
-void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
-{
-	RDCUNIMPLEMENTED("BuildTargetShader");
-}
-
 void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED("BuildCustomShader");
-}
+	if(id == NULL || errors == NULL)
+	{
+		if(id) *id = ResourceId();
+		return;
+	}
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
-{
-	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
-	return vector<PixelModification>();
-}
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	MakeCurrentReplayContext(m_DebugCtx);
 
-ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
-{
-	RDCUNIMPLEMENTED("DebugVertex");
-	return ShaderDebugTrace();
-}
+	GLenum shtype = eGL_VERTEX_SHADER;
+	switch(type)
+	{
+		default: RDCWARN("Unknown shader type %u", type);
+		case eShaderStage_Vertex:       shtype = eGL_VERTEX_SHADER; break;
+		case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
+		case eShaderStage_Tess_Eval:    shtype = eGL_TESS_EVALUATION_SHADER; break;
+		case eShaderStage_Geometry:     shtype = eGL_GEOMETRY_SHADER; break;
+		case eShaderStage_Fragment:     shtype = eGL_FRAGMENT_SHADER; break;
+		case eShaderStage_Compute:      shtype = eGL_COMPUTE_SHADER; break;
+	}
+	
+	const char *src = source.c_str();
+	GLuint shaderprog = gl.glCreateShaderProgramv(shtype, 1, &src);
+	
+	GLint status = 0;
+	gl.glGetProgramiv(shaderprog, eGL_LINK_STATUS, &status);
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
-{
-	RDCUNIMPLEMENTED("DebugPixel");
-	return ShaderDebugTrace();
-}
+	if(errors)
+	{
+		GLint len = 1024;
+		gl.glGetProgramiv(shaderprog, eGL_INFO_LOG_LENGTH, &len);
+		char *buffer = new char[len+1];
+		gl.glGetProgramInfoLog(shaderprog, len, NULL, buffer); buffer[len] = 0;
+		*errors = buffer;
+		delete[] buffer;
+	}
 
-ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
-{
-	RDCUNIMPLEMENTED("DebugThread");
-	return ShaderDebugTrace();
+	if(status == 0)
+		*id = ResourceId();
+	else
+		*id = m_pDriver->GetResourceManager()->GetID(ProgramRes(m_pDriver->GetCtx(), shaderprog));
 }
 
 ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
 {
-	RDCUNIMPLEMENTED("ApplyCustomShader");
-	return ResourceId();
+	if(shader == ResourceId() || texid == ResourceId()) return ResourceId();
+
+	auto &texDetails = m_pDriver->m_Textures[texid];
+
+	MakeCurrentReplayContext(m_DebugCtx);
+	
+	CreateCustomShaderTex(texDetails.width, texDetails.height);
+
+	m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
+	m_pDriver->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D, DebugData.customTex, 0);
+
+	m_pDriver->glViewport(0, 0, texDetails.width, texDetails.height);
+
+	DebugData.outWidth = float(texDetails.width); DebugData.outHeight = float(texDetails.height);
+	
+	float clr[] = { 0.0f, 0.8f, 0.0f, 0.0f };
+	m_pDriver->glClearBufferfv(eGL_COLOR, 0, clr);
+
+	TextureDisplay disp;
+	disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
+	disp.FlipY = false;
+	disp.offx = 0.0f;
+	disp.offy = 0.0f;
+	disp.CustomShader = shader;
+	disp.texid = texid;
+	disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0,0,0,0);
+	disp.HDRMul = -1.0f;
+	disp.linearDisplayAsGamma = true;
+	disp.mip = mip;
+	disp.sampleIdx = 0;
+	disp.overlay = eTexOverlay_None;
+	disp.rangemin = 0.0f;
+	disp.rangemax = 1.0f;
+	disp.rawoutput = false;
+	disp.scale = 1.0f;
+	disp.sliceFace = 0;
+
+	RenderTextureInternal(disp, false);
+
+	return DebugData.CustomShaderTexID;
 }
+
+void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
+{
+	if(DebugData.customTex)
+	{
+		uint32_t oldw = 0, oldh = 0;
+		m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0, eGL_TEXTURE_WIDTH, (GLint *)&oldw);
+		m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0, eGL_TEXTURE_HEIGHT, (GLint *)&oldh);
+
+		if(oldw == w && oldh == h)
+			return;
+
+		m_pDriver->glDeleteTextures(1, &DebugData.customTex);
+		DebugData.customTex = 0;
+	}
+	
+	m_pDriver->glGenTextures(1, &DebugData.customTex);
+	m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
+	m_pDriver->glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA16F, (GLsizei)w, (GLsizei)h);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+	m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+
+	DebugData.CustomShaderTexID = m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), DebugData.customTex));
+}
+
+void GLReplay::FreeCustomShader(ResourceId id)
+{
+	if(id == ResourceId()) return;
+
+	m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
+}
+
+#pragma endregion
+
+
+
 
 ResourceId GLReplay::CreateProxyTexture( FetchTexture templateTex )
 {
@@ -2568,6 +2625,72 @@ ResourceId GLReplay::CreateProxyBuffer(FetchBuffer templateBuf)
 void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
 	RDCUNIMPLEMENTED("SetProxyBufferData");
+}
+
+
+
+
+vector<EventUsage> GLReplay::GetUsage(ResourceId id)
+{
+	GLNOTIMP("GetUsage");
+	return vector<EventUsage>();
+}
+
+void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
+{
+	RDCUNIMPLEMENTED("SetContextFilter");
+}
+
+
+
+void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
+{
+	RDCUNIMPLEMENTED("BuildTargetShader");
+}
+
+void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
+{
+	RDCUNIMPLEMENTED("ReplaceResource");
+}
+
+void GLReplay::RemoveReplacement(ResourceId id)
+{
+	RDCUNIMPLEMENTED("RemoveReplacement");
+}
+
+void GLReplay::FreeTargetResource(ResourceId id)
+{
+	RDCUNIMPLEMENTED("FreeTargetResource");
+}
+
+
+
+
+vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
+{
+	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
+	return vector<PixelModification>();
+}
+
+
+
+
+ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+{
+	RDCUNIMPLEMENTED("DebugVertex");
+	return ShaderDebugTrace();
+}
+
+ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
+{
+	RDCUNIMPLEMENTED("DebugPixel");
+	return ShaderDebugTrace();
+}
+
+ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+{
+	RDCUNIMPLEMENTED("DebugThread");
+	return ShaderDebugTrace();
 }
 
 const GLHookSet &GetRealFunctions();

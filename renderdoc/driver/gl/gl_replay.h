@@ -194,6 +194,8 @@ class GLReplay : public IReplayDriver
 								  const rdctype::array<ShaderConstant> &variables, vector<ShaderVariable> &outvars,
 								  const vector<byte> &data);
 
+		void CreateCustomShaderTex(uint32_t w, uint32_t h);
+
 		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 		
 		void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat);
@@ -252,7 +254,13 @@ class GLReplay : public IReplayDriver
 			// no transformation or scaling
 			GLuint blitProg;
 
+			GLuint texDisplayPipe;
+			GLuint texDisplayVSProg;
 			GLuint texDisplayProg[3];      // float/uint/sint
+
+			GLuint customFBO;
+			GLuint customTex;
+			ResourceId CustomShaderTexID;
 
 			GLuint MS2Array, Array2MS;
 
@@ -325,7 +333,7 @@ class GLReplay : public IReplayDriver
 		
 		void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
 
-		GLuint CreateShaderProgram(const char *vs, const char *ps, const char *gs = NULL);
+		GLuint CreateShaderProgram(const char *vs, const char *fs, const char *gs = NULL);
 		GLuint CreateCShaderProgram(const char *cs);
 
 		void InitOutputWindow(OutputWindow &outwin);

@@ -44,6 +44,13 @@ out v2f
 	vec2 glyphuv;
 } OUT;
 
+out gl_PerVertex
+{
+	vec4 gl_Position;
+	float gl_PointSize;
+	float gl_ClipDistance[];
+};
+
 void main(void)
 {
 	const vec3 verts[4] = vec3[4](vec3( 0.0,  0.0, 0.5),
