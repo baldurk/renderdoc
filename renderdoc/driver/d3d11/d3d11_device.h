@@ -223,7 +223,7 @@ public:
 
 	WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitParams *params);
 	void SetLogFile(const char *logfile);
-	void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
+	void SetLogVersion(uint32_t fileversion) { LazyInit(); m_InitParams.SerialiseVersion = fileversion; }
 	uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
 	virtual ~WrappedID3D11Device();
 
