@@ -91,7 +91,6 @@ struct GLRenderState
 		eEnabled_SampleMask,
 		eEnabled_SampleShading,
 		eEnabled_RasterMultisample,
-		eEnabled_RasterMultisampleFixed,
 		//eEnabled_ScissorTest, handled below with scissor values
 		eEnabled_StencilTest,
 		eEnabled_TexCubeSeamless,

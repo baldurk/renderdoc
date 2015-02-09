@@ -274,7 +274,6 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_MASK,
 			eGL_SAMPLE_SHADING,
 			eGL_RASTER_MULTISAMPLE_EXT,
-			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
@@ -291,8 +290,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 				continue;
 			}
 			
-			if((pnames[i] == eGL_RASTER_MULTISAMPLE_EXT || pnames[i] == eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT)
-				 && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+			if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
 			{
 				Enabled[i] = false;
 				continue;
@@ -598,7 +596,6 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 			eGL_SAMPLE_MASK,
 			eGL_SAMPLE_SHADING,
 			eGL_RASTER_MULTISAMPLE_EXT,
-			eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT,
 			eGL_STENCIL_TEST,
 			eGL_TEXTURE_CUBE_MAP_SEAMLESS,
 			eGL_BLEND_ADVANCED_COHERENT_KHR,
@@ -612,8 +609,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 			if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR && !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
 				continue;
 			
-			if((pnames[i] == eGL_RASTER_MULTISAMPLE_EXT || pnames[i] == eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT)
-				 && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+			if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT && !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
 				continue;
 
 			if(Enabled[i]) m_Real->glEnable(pnames[i]); else m_Real->glDisable(pnames[i]);
