@@ -1408,8 +1408,10 @@ namespace renderdocui.Windows
             }
 
             int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
+            if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                y = (int)(tex.height-1) - y;
             if (m_TexDisplay.FlipY)
-                y = (int)tex.height - y;
+                y = (int)(tex.height-1) - y;
 
             int x = m_CurHoverPixel.X >> (int)m_TexDisplay.mip;
             float invWidth = tex.width > 0 ? 1.0f / tex.width : 0.0f;
