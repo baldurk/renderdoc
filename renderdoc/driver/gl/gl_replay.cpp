@@ -552,7 +552,8 @@ void GLReplay::CacheTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
-			tex.depth = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
+			tex.depth = 1;
+			tex.arraysize = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
 			tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP);
 			tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
 			break;
@@ -562,7 +563,7 @@ void GLReplay::CacheTexture(ResourceId id)
 			tex.dimension = 2;
 			tex.width = (uint32_t)width;
 			tex.height = (uint32_t)height;
-			tex.depth = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
+			tex.depth = 1;
 			tex.arraysize = depth;
 			tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP_ARRAY);
 			tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
