@@ -546,7 +546,7 @@ namespace renderdocui.Windows
                 }
             }
 
-            foreach (var f in Directory.EnumerateFiles(Core.ConfigDirectory, "*.hlsl"))
+            foreach (var f in Directory.EnumerateFiles(Core.ConfigDirectory, "*" + m_Core.APIProps.ShaderExtension))
             {
                 var fn = Path.GetFileNameWithoutExtension(f);
                 var key = fn.ToUpperInvariant();
@@ -601,7 +601,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            var path = Path.Combine(Core.ConfigDirectory, customShader.Text + ".hlsl");
+            var path = Path.Combine(Core.ConfigDirectory, customShader.Text + m_Core.APIProps.ShaderExtension);
             File.WriteAllText(path, "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n{\n\treturn float4(0,0,0,1);\n}\n");
 
             // auto-open edit window
@@ -613,7 +613,7 @@ namespace renderdocui.Windows
             var filename = customShader.Text;
 
             var files = new Dictionary<string, string>();
-            files.Add(filename, File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + ".hlsl")));
+            files.Add(filename, File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + m_Core.APIProps.ShaderExtension)));
             ShaderViewer s = new ShaderViewer(m_Core, true, "Custom Shader", files,
 
             // Save Callback
@@ -621,7 +621,7 @@ namespace renderdocui.Windows
             {
                 foreach (var f in updatedfiles)
                 {
-                    var path = Path.Combine(Core.ConfigDirectory, f.Key + ".hlsl");
+                    var path = Path.Combine(Core.ConfigDirectory, f.Key + m_Core.APIProps.ShaderExtension);
                     File.WriteAllText(path, f.Value);
                 }
             },
@@ -655,7 +655,7 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.Yes)
             {
-                var path = Path.Combine(Core.ConfigDirectory, customShader.Text + ".hlsl");
+                var path = Path.Combine(Core.ConfigDirectory, customShader.Text + m_Core.APIProps.ShaderExtension);
                 if(!File.Exists(path))
                 {
                     MessageBox.Show(String.Format("Shader file {0} can't be found.\nSelect a custom shader from the drop-down", customShader.Text),
@@ -703,7 +703,7 @@ namespace renderdocui.Windows
                 this.BeginInvoke(new Action(UI_CreateThumbnails));
             });
 
-            m_FSWatcher = new FileSystemWatcher(Core.ConfigDirectory, "*.hlsl");
+            m_FSWatcher = new FileSystemWatcher(Core.ConfigDirectory, "*" + m_Core.APIProps.ShaderExtension);
             m_FSWatcher.EnableRaisingEvents = true;
             m_FSWatcher.Changed += new FileSystemEventHandler(CustomShaderModified);
             m_FSWatcher.Renamed += new RenamedEventHandler(CustomShaderModified);

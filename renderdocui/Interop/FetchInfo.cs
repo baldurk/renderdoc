@@ -488,6 +488,14 @@ namespace renderdoc
     {
         public APIPipelineStateType pipelineType;
         public bool degraded;
+
+        public string ShaderExtension
+        {
+            get
+            {
+                return pipelineType == APIPipelineStateType.D3D11 ? ".hlsl" : ".glsl";
+            }
+        }
     };
 
     [StructLayout(LayoutKind.Sequential)]

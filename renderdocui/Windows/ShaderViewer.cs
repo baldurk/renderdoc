@@ -517,7 +517,7 @@ namespace renderdocui.Windows
             this.ResumeLayout(false);
         }
 
-        private ScintillaNET.Scintilla MakeEditor(string name, string text, bool hlsl)
+        private ScintillaNET.Scintilla MakeEditor(string name, string text, bool src)
         {
             ScintillaNET.Scintilla scintilla1 = new ScintillaNET.Scintilla();
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).BeginInit();
@@ -547,25 +547,26 @@ namespace renderdocui.Windows
 
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).EndInit();
 
-            var hlslpath = Path.Combine(Core.ConfigDirectory, "hlsl.xml");
+            string syntaxtype = m_Core.APIProps.ShaderExtension.Substring(1);
+            var syntaxpath = Path.Combine(Core.ConfigDirectory, syntaxtype + ".xml");
 
-            if (!File.Exists(hlslpath) ||
-                File.GetLastWriteTimeUtc(hlslpath).CompareTo(File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location)) < 0)
+            if (!File.Exists(syntaxpath) ||
+                File.GetLastWriteTimeUtc(syntaxpath).CompareTo(File.GetLastWriteTimeUtc(Assembly.GetExecutingAssembly().Location)) < 0)
             {
-                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("renderdocui.Resources.hlsl.xml"))
+                using (Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("renderdocui.Resources." + syntaxtype + ".xml"))
                 {
                     using (StreamReader reader = new StreamReader(stream))
                     {
-                        File.WriteAllText(hlslpath, reader.ReadToEnd());
+                        File.WriteAllText(syntaxpath, reader.ReadToEnd());
                     }
                 }
             }
 
-            if (hlsl)
+            if (src)
             {
-                scintilla1.Lexing.LexerLanguageMap["hlsl"] = "cpp";
+                scintilla1.Lexing.LexerLanguageMap[syntaxtype] = "cpp";
                 scintilla1.ConfigurationManager.CustomLocation = Core.ConfigDirectory;
-                scintilla1.ConfigurationManager.Language = "hlsl";
+                scintilla1.ConfigurationManager.Language = syntaxtype;
                 scintilla1.Lexing.SetProperty("lexer.cpp.track.preprocessor", "0");
             }
             else

@@ -1152,7 +1152,7 @@
             this.vsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.vsShaderEdit.TabIndex = 26;
             this.vsShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.vsShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.vsShaderEdit, "GLSL edit and replace this shader");
             this.vsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // groupBox7
@@ -1521,7 +1521,7 @@
             this.tcsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.tcsShaderEdit.TabIndex = 28;
             this.tcsShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.tcsShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.tcsShaderEdit, "GLSL edit and replace this shader");
             this.tcsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // tcsTexturesGroup
@@ -1847,7 +1847,7 @@
             this.tesShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.tesShaderEdit.TabIndex = 27;
             this.tesShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.tesShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.tesShaderEdit, "GLSL edit and replace this shader");
             this.tesShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // tesTexturesGroup
@@ -2265,7 +2265,7 @@
             this.gsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.gsShaderEdit.TabIndex = 28;
             this.gsShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.gsShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.gsShaderEdit, "GLSL edit and replace this shader");
             this.gsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // groupBox24
@@ -3443,7 +3443,7 @@
             this.psShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.psShaderEdit.TabIndex = 29;
             this.psShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.psShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.psShaderEdit, "GLSL edit and replace this shader");
             this.psShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // groupBox28
@@ -4291,7 +4291,7 @@
             this.csShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
             this.csShaderEdit.TabIndex = 36;
             this.csShaderEdit.TabStop = false;
-            this.toolTip.SetToolTip(this.csShaderEdit, "HLSL edit and replace this shader");
+            this.toolTip.SetToolTip(this.csShaderEdit, "GLSL edit and replace this shader");
             this.csShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
             // computeDebugControls

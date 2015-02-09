@@ -1713,7 +1713,7 @@ namespace renderdocui.Windows.PipelineState
             s.Show(m_DockContent.DockPanel);
         }
 
-        private void MakeShaderVariablesHLSL(bool cbufferContents, ShaderConstant[] vars, ref string struct_contents, ref string struct_defs)
+        private void MakeShaderVariablesGLSL(bool cbufferContents, ShaderConstant[] vars, ref string struct_contents, ref string struct_defs)
         {
             var nl = Environment.NewLine;
             var nl2 = Environment.NewLine + Environment.NewLine;
@@ -1727,7 +1727,7 @@ namespace renderdocui.Windows.PipelineState
                     if(!struct_defs.Contains(def))
                     {
                         string contents = "";
-                        MakeShaderVariablesHLSL(false, v.type.members, ref contents, ref struct_defs);
+                        MakeShaderVariablesGLSL(false, v.type.members, ref contents, ref struct_defs);
 
                         struct_defs += def + contents + "};" + nl2;
                     }

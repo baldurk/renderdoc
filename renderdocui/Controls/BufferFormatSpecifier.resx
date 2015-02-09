@@ -119,7 +119,7 @@
   </resheader>
   <data name="helpText.Text" xml:space="preserve">
     <value>Type in a buffer format declaration. Comments and {} braces are skipped, : semantics are ignored.
-Declare each element as an hlsl variable, e.g: "float4 first; float2 second; uint2 third;"
+Declare each element as an hlsl/glsl variable, e.g: "float4 first; float2 second; uint2 third;" or vec4/vec2.
 
 Basic types accepted: bool, byte, short, int, half, float, double.
 Unsigned integer types: ubyte, ushort, uint

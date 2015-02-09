@@ -322,7 +322,7 @@ namespace renderdocui.Code
                           @"uintten|unormten" +
                           @"|unormh|unormb" +
                           @"|snormh|snormb" +
-                          @"|bool" + // bool is stored as 4-byte int in hlsl
+                          @"|bool" + // bool is stored as 4-byte int
                           @"|byte|short|int" + // signed ints
                           @"|ubyte|ushort|uint" + // unsigned ints
                           @"|xbyte|xshort|xint" + // hex ints
