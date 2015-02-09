@@ -232,6 +232,8 @@ GLenum GetDataType(GLenum internalFormat)
 		case eGL_R8:
 		case eGL_RGB8:
 		case eGL_RGB8UI:
+		case eGL_SRGB8_ALPHA8:
+		case eGL_SRGB8:
 			return eGL_UNSIGNED_BYTE;
 		case eGL_RGBA8I:
 		case eGL_RG8I:
@@ -240,9 +242,7 @@ GLenum GetDataType(GLenum internalFormat)
 		case eGL_RG8_SNORM:
 		case eGL_R8_SNORM:
 		case eGL_RGB8_SNORM:
-		case eGL_SRGB8:
 		case eGL_RGB8I:
-		case eGL_SRGB8_ALPHA8:
 			return eGL_BYTE;
 		case eGL_RGBA16UI:
 		case eGL_RG16UI:
