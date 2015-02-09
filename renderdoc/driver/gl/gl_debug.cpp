@@ -1082,7 +1082,7 @@ bool GLReplay::RenderTexture(TextureDisplay cfg)
 	ubo->InverseRangeSize = 1.0f/(cfg.rangemax-cfg.rangemin);
 	
 	ubo->MipLevel = (float)cfg.mip;
-	ubo->Slice = (float)cfg.sliceFace;
+	ubo->Slice = (float)(cfg.sliceFace>>cfg.mip);
 
 	ubo->OutputDisplayFormat = resType;
 	
