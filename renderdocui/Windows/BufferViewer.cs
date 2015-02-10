@@ -67,6 +67,7 @@ namespace renderdocui.Windows
         {
             public FormatElement[] BufferFormats = null;
             public ResourceId[] Buffers = null;
+            public object[][] GenericValues = null;
             public uint[] Strides = null;
             public uint[] Offsets = null;
 
@@ -811,6 +812,8 @@ namespace renderdocui.Windows
                 var vinputs = m_Core.CurPipelineState.GetVertexInputs();
                 f = new FormatElement[vinputs.Length];
 
+                ret.GenericValues = new object[vinputs.Length][];
+
                 int i = 0;
                 foreach (var a in vinputs)
                 {
@@ -823,6 +826,7 @@ namespace renderdocui.Windows
                                              1, // matrix dimension
                                              a.Format,
                                              false);
+                    ret.GenericValues[i] = a.GenericValue;
                     i++;
                 }
 
@@ -1334,6 +1338,7 @@ namespace renderdocui.Windows
                 bool finished = false;
 
                 var bufferFormats = input.BufferFormats;
+                var generics = input.GenericValues;
 
                 Vec3f minBounds = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
                 Vec3f maxBounds = new Vec3f(-float.MaxValue, -float.MaxValue, -float.MaxValue);
@@ -1369,6 +1374,21 @@ namespace renderdocui.Windows
 
                     for (int el = 0; el < bufferFormats.Length; el++)
                     {
+                        if (generics != null && generics[el] != null)
+                        {
+                            for(int g=0; g < generics[el].Length; g++)
+                            {
+                                if (generics[el][g] is uint)
+                                    rawWriter.Write((uint)generics[el][g]);
+                                else if (generics[el][g] is int)
+                                    rawWriter.Write((int)generics[el][g]);
+                                else if (generics[el][g] is float)
+                                    rawWriter.Write((float)generics[el][g]);
+                            }
+
+                            continue;
+                        }
+
                         try
                         {
                             byte[] bytedata = d[bufferFormats[el].buffer];
@@ -1560,6 +1580,7 @@ namespace renderdocui.Windows
                 byte[][] d = data.Buffers;
 
                 var bufferFormats = input.BufferFormats;
+                var generics = input.GenericValues;
                 uint rowlen = 0;
 
                 foreach(var el in bufferFormats)
@@ -1632,6 +1653,14 @@ namespace renderdocui.Windows
                     for (int el = 0; el < bufferFormats.Length; el++)
                     {
                         int xstart = x;
+
+                        if (generics != null && generics[el] != null)
+                        {
+                            for (int g = 0; g < generics[el].Length; g++)
+                                rowdata[x++] = generics[el][g];
+
+                            continue;
+                        }
 
                         try
                         {

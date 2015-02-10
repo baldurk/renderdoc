@@ -337,6 +337,7 @@ namespace renderdocui.Code
             public bool PerInstance;
             public int InstanceRate;
             public ResourceFormat Format;
+            public object[] GenericValue;
         };
 
         public VertexInputAttribute[] GetVertexInputs()
@@ -378,6 +379,7 @@ namespace renderdocui.Code
                         ret[i].PerInstance = layouts[i].PerInstance;
                         ret[i].InstanceRate = (int)layouts[i].InstanceDataStepRate;
                         ret[i].Format = layouts[i].Format;
+                        ret[i].GenericValue = null;
                     }
 
                     return ret;
@@ -395,7 +397,7 @@ namespace renderdocui.Code
                         else
                             attrib = i;
 
-                        if (attrs[i].Enabled && attrib >= 0)
+                        if (attrib >= 0)
                             num++;
                     }
 
@@ -403,9 +405,13 @@ namespace renderdocui.Code
                     VertexInputAttribute[] ret = new VertexInputAttribute[num];
                     for (int i = 0; i < attrs.Length && a < num; i++)
                     {
-                        if (!attrs[i].Enabled) continue;
-
                         ret[a].Name = String.Format("attr{0}", i);
+                        ret[a].GenericValue = null;
+                        ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
+                        ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
+                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor > 0;
+                        ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
+                        ret[a].Format = attrs[i].Format;
 
                         if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.ShaderDetails != null)
                         {
@@ -415,13 +421,33 @@ namespace renderdocui.Code
                                 ret[a].Name = m_GL.m_VS.ShaderDetails.InputSig[attrib].varName;
 
                             if (attrib == -1) continue;
-                        }
 
-                        ret[a].VertexBuffer = (int)attrs[i].BufferSlot;
-                        ret[a].RelativeByteOffset = attrs[i].RelativeOffset;
-                        ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor > 0;
-                        ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
-                        ret[a].Format = attrs[i].Format;
+                            if (!attrs[i].Enabled)
+                            {
+                                uint compCount = m_GL.m_VS.ShaderDetails.InputSig[attrib].compCount;
+                                FormatComponentType compType = m_GL.m_VS.ShaderDetails.InputSig[attrib].compType;
+
+                                ret[a].GenericValue = new object[compCount];
+
+                                for (uint c = 0; c < compCount; c++)
+                                {
+                                    if (compType == FormatComponentType.Float)
+                                        ret[a].GenericValue[c] = attrs[i].GenericValue.f[c];
+                                    else if (compType == FormatComponentType.UInt)
+                                        ret[a].GenericValue[c] = attrs[i].GenericValue.u[c];
+                                    else if (compType == FormatComponentType.SInt)
+                                        ret[a].GenericValue[c] = attrs[i].GenericValue.i[c];
+                                }
+
+                                ret[a].PerInstance = false;
+                                ret[a].InstanceRate = 0;
+                                ret[a].Format.compByteWidth = 4;
+                                ret[a].Format.compCount = compCount;
+                                ret[a].Format.compType = compType;
+                                ret[a].Format.special = false;
+                                ret[a].Format.srgbCorrected = false;
+                            }
+                        }
 
                         a++;
                     }
