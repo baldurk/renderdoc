@@ -470,7 +470,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 {
 	Serialise("", el.Enabled);
 	Serialise("", el.Format);
-	Serialise<4>("", &el.GenericValue.x);
+	Serialise<4>("", el.GenericValue.f);
 	Serialise("", el.BufferSlot);
 	Serialise("", el.RelativeOffset);
 

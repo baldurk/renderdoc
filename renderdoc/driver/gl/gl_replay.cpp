@@ -1052,7 +1052,7 @@ void GLReplay::SavePipelineState()
 		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
 		
 		RDCEraseEl(pipe.m_VtxIn.attributes[i].GenericValue);
-		gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &pipe.m_VtxIn.attributes[i].GenericValue.x);
+		gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, pipe.m_VtxIn.attributes[i].GenericValue.f);
 
 		ResourceFormat fmt;
 

@@ -39,7 +39,14 @@ struct GLPipelineState
 			VertexAttribute() : BufferSlot(0), RelativeOffset(0) {}
 			bool32 Enabled;
 			ResourceFormat Format;
-			FloatVector GenericValue;
+
+			union
+			{
+				float f[4];
+				uint32_t u[4];
+				int32_t i[4];
+			} GenericValue;
+
 			uint32_t BufferSlot;
 			uint32_t RelativeOffset;
 		};

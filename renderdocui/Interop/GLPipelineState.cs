@@ -39,7 +39,23 @@ namespace renderdoc
                 public bool Enabled;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public ResourceFormat Format;
-                public FloatVector GenericValue;
+
+                [StructLayout(LayoutKind.Sequential)]
+                public struct GenericValueUnion
+                {
+                    [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.Float)]
+                    public float[] f;
+
+                    [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.UInt32)]
+                    public UInt32[] u;
+
+                    [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4, FixedType = CustomFixedType.Int32)]
+                    public Int32[] i;
+                };
+
+                [CustomMarshalAs(CustomUnmanagedType.Union)]
+                public GenericValueUnion GenericValue;
+
                 public UInt32 BufferSlot;
                 public UInt32 RelativeOffset;
             };

@@ -777,6 +777,9 @@ namespace renderdocui.Windows.PipelineState
 
                     string name = String.Format("Attribute {0}", i);
 
+                    uint compCount = 4;
+                    FormatComponentType compType = FormatComponentType.Float;
+
                     if (state.m_VS.Shader != ResourceId.Null)
                     {
                         int attrib = state.m_VS.BindpointMapping.InputAttributes[i];
@@ -784,6 +787,8 @@ namespace renderdocui.Windows.PipelineState
                         if (attrib >= 0 && attrib < state.m_VS.ShaderDetails.InputSig.Length)
                         {
                             name = state.m_VS.ShaderDetails.InputSig[attrib].varName;
+                            compCount = state.m_VS.ShaderDetails.InputSig[attrib].compCount;
+                            compType = state.m_VS.ShaderDetails.InputSig[attrib].compType;
                             usedSlot = true;
                         }
                     }
@@ -796,8 +801,20 @@ namespace renderdocui.Windows.PipelineState
                     {
                         string byteOffs = l.RelativeOffset.ToString();
 
-                        string genericVal = String.Format("Generic=<{0}, {1}, {2}, {3}>",
-                            l.GenericValue.x, l.GenericValue.y, l.GenericValue.z, l.GenericValue.w);
+                        string genericVal = "Generic";
+
+                        string fmtstr = "";
+                             if (compCount == 1) fmtstr = "=<{0}>";
+                        else if (compCount == 2) fmtstr = "=<{0}, {1}>";
+                        else if (compCount == 3) fmtstr = "=<{0}, {1}, {2}>";
+                        else if (compCount == 4) fmtstr = "=<{0}, {1}, {2}, {3}>";
+
+                        if (compType == FormatComponentType.Float)
+                            genericVal += String.Format(fmtstr, l.GenericValue.f[0], l.GenericValue.f[1], l.GenericValue.f[2], l.GenericValue.f[3]);
+                        else if (compType == FormatComponentType.UInt)
+                            genericVal += String.Format(fmtstr, l.GenericValue.u[0], l.GenericValue.u[1], l.GenericValue.u[2], l.GenericValue.u[3]);
+                        else if (compType == FormatComponentType.SInt)
+                            genericVal += String.Format(fmtstr, l.GenericValue.i[0], l.GenericValue.i[1], l.GenericValue.i[2], l.GenericValue.i[3]);
 
                         var node = inputLayouts.Nodes.Add(new object[] {
                             i,
