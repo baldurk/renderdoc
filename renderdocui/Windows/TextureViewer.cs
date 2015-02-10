@@ -1435,16 +1435,18 @@ namespace renderdocui.Windows
 
             int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
-                y = (int)(tex.height-1) - y;
+                y = (int)(tex.height - 1) - y;
             if (m_TexDisplay.FlipY)
-                y = (int)(tex.height-1) - y;
+                y = (int)(tex.height - 1) - y;
+
+            y = Math.Max(0, y);
 
             int x = m_CurHoverPixel.X >> (int)m_TexDisplay.mip;
             float invWidth = tex.width > 0 ? 1.0f / tex.width : 0.0f;
             float invHeight = tex.height > 0 ? 1.0f /tex.height : 0.0f;
 
-            string hoverCoords = String.Format("{0}, {1}, ({2}, {3})", 
-                x, y, Formatter.Format(x * invWidth), Formatter.Format(y * invHeight));
+            string hoverCoords = String.Format("{0,4}, {1,4} ({2:0.0000}, {3:0.0000})", 
+                x, y, (x * invWidth), (y * invHeight));
 
             string statusText = "Hover - " + hoverCoords;
 
@@ -1453,12 +1455,16 @@ namespace renderdocui.Windows
 
             if (m_CurPixelValue != null)
             {
+                x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
                 y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+                if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                    y = (int)(tex.height - 1) - y;
                 if (m_TexDisplay.FlipY)
-                    y = (int)tex.height - y;
+                    y = (int)(tex.height - 1) - y;
 
-                statusText += " - Right click - " +
-                                (m_PickedPoint.X >> (int)m_TexDisplay.mip) + "," + y + ": ";
+                y = Math.Max(0, y);
+
+                statusText += " - Right click - " + String.Format("{0,4}, {1,4}: ", x, y);
 
                 PixelValue val = m_CurPixelValue;
 

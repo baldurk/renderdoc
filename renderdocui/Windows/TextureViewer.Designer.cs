@@ -329,6 +329,7 @@
             // 
             // statusLabel
             // 
+            this.statusLabel.Font = new System.Drawing.Font("Consolas", 9.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.statusLabel.Name = "statusLabel";
             this.statusLabel.Size = new System.Drawing.Size(63, 13);
             this.statusLabel.Text = "Status Text";
@@ -914,6 +915,7 @@
             // 
             // texStatusDim
             // 
+            this.texStatusDim.Font = new System.Drawing.Font("Consolas", 9.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.texStatusDim.Name = "texStatusDim";
             this.texStatusDim.Size = new System.Drawing.Size(71, 13);
             this.texStatusDim.Text = "texStatusDim";
