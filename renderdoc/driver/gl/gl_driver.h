@@ -86,6 +86,13 @@ struct DrawcallTreeNode
 	}
 };
 
+struct Replacement
+{
+	Replacement(ResourceId i, GLResource r) : id(i), res(r) {}
+	ResourceId id;
+	GLResource res;
+};
+
 class WrappedOpenGL
 {
 	private:
@@ -252,6 +259,7 @@ class WrappedOpenGL
 		map<ResourceId, ShaderData> m_Shaders;
 		map<ResourceId, ProgramData> m_Programs;
 		map<ResourceId, PipelineData> m_Pipelines;
+		vector< pair<ResourceId, Replacement> > m_DependentReplacements;
 
 		GLuint m_FakeBB_FBO;
 		GLuint m_FakeBB_Color;
@@ -333,6 +341,10 @@ class WrappedOpenGL
 		
 		ContextData &GetCtxData();
 		GLuint GetUniformProgram();
+		
+		void ReplaceResource(ResourceId from, ResourceId to);
+		void RemoveReplacement(ResourceId id);
+		void FreeTargetResource(ResourceId id);
 
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;

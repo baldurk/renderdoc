@@ -1749,6 +1749,61 @@ namespace renderdocui.Windows.PipelineState
 
         private void shaderedit_Click(object sender, EventArgs e)
         {
+            GLPipelineState.ShaderStage stage = GetStageForSender(sender);
+
+            if (stage == null) return;
+
+            ShaderReflection shaderDetails = stage.ShaderDetails;
+
+            if (stage.Shader == ResourceId.Null || shaderDetails == null) return;
+
+            var files = new Dictionary<string, string>();
+            foreach (var s in shaderDetails.DebugInfo.files)
+                files.Add(Path.GetFileName(s.filename), s.filetext);
+
+            if (files.Count == 0)
+                return;
+
+            ShaderViewer sv = new ShaderViewer(m_Core, false, "main", files,
+
+            // Save Callback
+            (ShaderViewer viewer, Dictionary<string, string> updatedfiles) =>
+            {
+                string compileSource = updatedfiles.First().Value;
+
+                // invoke off to the ReplayRenderer to replace the log's shader
+                // with our edited one
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    string errs = "";
+
+                    ResourceId from = stage.Shader;
+                    ResourceId to = r.BuildTargetShader("main", compileSource, shaderDetails.DebugInfo.compileFlags, stage.stage, out errs);
+
+                    viewer.BeginInvoke((MethodInvoker)delegate { viewer.ShowErrors(errs); });
+                    if (to == ResourceId.Null)
+                    {
+                        r.RemoveReplacement(from);
+                    }
+                    else
+                    {
+                        r.ReplaceResource(from, to);
+                    }
+                });
+            },
+
+            // Close Callback
+            () =>
+            {
+                // remove the replacement on close (we could make this more sophisticated if there
+                // was a place to control replaced resources/shaders).
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    r.RemoveReplacement(stage.Shader);
+                });
+            });
+
+            sv.Show(m_DockContent.DockPanel);
         }
 
         private void ShowCBuffer(GLPipelineState.ShaderStage stage, UInt32 slot)

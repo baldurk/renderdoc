@@ -1381,6 +1381,179 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);
 }
 
+struct ReplacementSearch
+{
+	bool operator()(const pair<ResourceId, Replacement> &a, ResourceId b)
+	{
+		return a.first < b;
+	}
+};
+
+void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
+{
+	RemoveReplacement(from);
+
+	if(GetResourceManager()->HasLiveResource(from))
+	{
+		GLResource resource = GetResourceManager()->GetLiveResource(to);
+		ResourceId livefrom = GetResourceManager()->GetLiveID(from);
+
+		if(resource.Namespace == eResShader)
+		{
+			// need to replace all programs that use this shader
+			for(auto it=m_Programs.begin(); it != m_Programs.end(); ++it)
+			{
+				ResourceId progsrcid = it->first;
+				ProgramData &progdata = it->second;
+
+				// see if the shader is used
+				for(int i=0; i < 6; i++)
+				{
+					if(progdata.stageShaders[i] == livefrom)
+					{
+						GLuint progsrc = GetResourceManager()->GetCurrentResource(progsrcid).name;
+
+						// make a new program
+						GLuint progdst = glCreateProgram();
+
+						ResourceId progdstid = GetResourceManager()->GetID(ProgramRes(GetCtx(), progdst));
+
+						// attach all but the i'th shader
+						for(int j=0; j < 6; j++)
+							if(i != j && progdata.stageShaders[j] != ResourceId())
+								glAttachShader(progdst, GetResourceManager()->GetCurrentResource(progdata.stageShaders[j]).name);
+
+						// attach the new shader
+						glAttachShader(progdst, resource.name);
+
+						// mark separable if previous program was separable
+						GLint sep = 0;
+						glGetProgramiv(progsrc, eGL_PROGRAM_SEPARABLE, &sep);
+
+						if(sep)
+							glProgramParameteri(progdst, eGL_PROGRAM_SEPARABLE, GL_TRUE);
+
+						ResourceId vs = progdata.stageShaders[0];
+						ResourceId fs = progdata.stageShaders[4];
+
+						if(vs != ResourceId())
+						{
+							ShaderReflection *refl = &m_Shaders[vs].reflection;
+
+							// copy over attrib bindings
+							for(int32_t i=0; i < refl->InputSig.count; i++)
+							{
+								// skip built-ins
+								if(refl->InputSig[i].systemValue != eAttr_None)
+									continue;
+
+								GLint idx = glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
+								glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
+							}
+						}
+
+						if(fs != ResourceId())
+						{
+							ShaderReflection *refl = &m_Shaders[fs].reflection;
+
+							// copy over fragdata bindings
+							for(int32_t i=0; i < refl->OutputSig.count; i++)
+							{
+								// only look at colour outputs (should be the only outputs from fs)
+								if(refl->OutputSig[i].systemValue != eAttr_ColourOutput)
+									continue;
+
+								GLint idx = glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
+								glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+							}
+						}
+
+						// link new program
+						glLinkProgram(progdst);
+						
+						GLint status = 0;
+						glGetProgramiv(progdst, eGL_LINK_STATUS, &status);
+
+						if(status == 0)
+						{
+							GLint len = 1024;
+							glGetProgramiv(progdst, eGL_INFO_LOG_LENGTH, &len);
+							char *buffer = new char[len+1];
+							glGetProgramInfoLog(progdst, len, NULL, buffer); buffer[len] = 0;
+
+							RDCWARN("When making program replacement for shader, program failed to link. Skipping replacement:\n%s", buffer);
+
+							delete[] buffer;
+
+							glDeleteProgram(progdst);
+						}
+						else
+						{
+							// copy uniforms
+							CopyProgramUniforms(m_Real, progsrc, progdst);
+
+							// replaceresource
+							GetResourceManager()->ReplaceResource(GetResourceManager()->GetOriginalID(progsrcid), progdstid);
+
+							// insert into m_DependentReplacements
+							auto insertPos = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), from, ReplacementSearch());
+							m_DependentReplacements.insert(insertPos, std::make_pair(from, Replacement(progsrcid, ProgramRes(GetCtx(), progdst))));
+						}
+
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	GetResourceManager()->ReplaceResource(from, to);
+}
+
+void WrappedOpenGL::RemoveReplacement(ResourceId id)
+{
+	GetResourceManager()->RemoveReplacement(id);
+
+	// check if there are any dependent replacements, remove if so
+	auto it = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), id, ReplacementSearch());
+	for(; it != m_DependentReplacements.end(); )
+	{
+		GetResourceManager()->RemoveReplacement(it->second.id);
+
+		switch(it->second.res.Namespace)
+		{
+			case eResProgram:
+				glDeleteProgram(it->second.res.name);
+				break;
+			default:
+				RDCERR("Unexpected resource type to be freed");
+				break;
+		}
+
+		it = m_DependentReplacements.erase(it);
+	}
+}
+
+void WrappedOpenGL::FreeTargetResource(ResourceId id)
+{
+	if(GetResourceManager()->HasLiveResource(id))
+	{
+		GLResource resource = GetResourceManager()->GetLiveResource(id);
+
+		RDCASSERT(resource.Namespace != eResUnknown);
+
+		switch(resource.Namespace)
+		{
+			case eResShader:
+				glDeleteShader(resource.name);
+				break;
+			default:
+				RDCERR("Unexpected resource type to be freed");
+				break;
+		}
+	}
+}
+
 void WrappedOpenGL::Present(void *windowHandle)
 {
 	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);

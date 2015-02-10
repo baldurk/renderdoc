@@ -2600,6 +2600,69 @@ void GLReplay::FreeCustomShader(ResourceId id)
 	m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
+void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
+{
+	if(id == NULL || errors == NULL)
+	{
+		if(id) *id = ResourceId();
+		return;
+	}
+
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+
+	GLenum shtype = eGL_VERTEX_SHADER;
+	switch(type)
+	{
+		default: RDCWARN("Unknown shader type %u", type);
+		case eShaderStage_Vertex:       shtype = eGL_VERTEX_SHADER; break;
+		case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
+		case eShaderStage_Tess_Eval:    shtype = eGL_TESS_EVALUATION_SHADER; break;
+		case eShaderStage_Geometry:     shtype = eGL_GEOMETRY_SHADER; break;
+		case eShaderStage_Fragment:     shtype = eGL_FRAGMENT_SHADER; break;
+		case eShaderStage_Compute:      shtype = eGL_COMPUTE_SHADER; break;
+	}
+	
+	const char *src = source.c_str();
+	GLuint shader = gl.glCreateShader(shtype);
+	gl.glShaderSource(shader, 1, &src, NULL);
+	gl.glCompileShader(shader);
+	
+	GLint status = 0;
+	gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
+
+	if(errors)
+	{
+		GLint len = 1024;
+		gl.glGetShaderiv(shader, eGL_INFO_LOG_LENGTH, &len);
+		char *buffer = new char[len+1];
+		gl.glGetShaderInfoLog(shader, len, NULL, buffer); buffer[len] = 0;
+		*errors = buffer;
+		delete[] buffer;
+	}
+
+	if(status == 0)
+		*id = ResourceId();
+	else
+		*id = m_pDriver->GetResourceManager()->GetID(ShaderRes(m_pDriver->GetCtx(), shader));
+}
+
+void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
+{
+	m_pDriver->ReplaceResource(from, to);
+}
+
+void GLReplay::RemoveReplacement(ResourceId id)
+{
+	m_pDriver->RemoveReplacement(id);
+}
+
+void GLReplay::FreeTargetResource(ResourceId id)
+{
+	m_pDriver->FreeTargetResource(id);
+}
+
 #pragma endregion
 
 
@@ -2640,29 +2703,6 @@ void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t las
 {
 	RDCUNIMPLEMENTED("SetContextFilter");
 }
-
-
-
-void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
-{
-	RDCUNIMPLEMENTED("BuildTargetShader");
-}
-
-void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
-{
-	RDCUNIMPLEMENTED("ReplaceResource");
-}
-
-void GLReplay::RemoveReplacement(ResourceId id)
-{
-	RDCUNIMPLEMENTED("RemoveReplacement");
-}
-
-void GLReplay::FreeTargetResource(ResourceId id)
-{
-	RDCUNIMPLEMENTED("FreeTargetResource");
-}
-
 
 
 
