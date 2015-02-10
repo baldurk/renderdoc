@@ -1407,6 +1407,53 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				{
 					case eGL_FLOAT:
 					case eGL_DOUBLE:
+					case eGL_FLOAT_VEC2:
+					case eGL_DOUBLE_VEC2:
+					case eGL_FLOAT_MAT4:
+					case eGL_DOUBLE_MAT4:
+					case eGL_FLOAT_MAT4x3:
+					case eGL_DOUBLE_MAT4x3:
+					case eGL_FLOAT_MAT4x2:
+					case eGL_DOUBLE_MAT4x2:
+					case eGL_FLOAT_MAT3:
+					case eGL_DOUBLE_MAT3:
+					case eGL_FLOAT_MAT3x4:
+					case eGL_DOUBLE_MAT3x4:
+					case eGL_FLOAT_MAT3x2:
+					case eGL_DOUBLE_MAT3x2:
+					case eGL_FLOAT_MAT2:
+					case eGL_DOUBLE_MAT2:
+					case eGL_FLOAT_MAT2x3:
+					case eGL_DOUBLE_MAT2x3:
+					case eGL_FLOAT_MAT2x4:
+					case eGL_DOUBLE_MAT2x4:
+						sig.compType = eCompType_Float;
+						break;
+					case eGL_INT:
+					case eGL_INT_VEC2:
+					case eGL_INT_VEC3:
+					case eGL_INT_VEC4:
+						sig.compType = eCompType_SInt;
+						break;
+					case eGL_UNSIGNED_INT:
+					case eGL_BOOL:
+					case eGL_UNSIGNED_INT_VEC2:
+					case eGL_BOOL_VEC2:
+					case eGL_UNSIGNED_INT_VEC3:
+					case eGL_BOOL_VEC3:
+					case eGL_UNSIGNED_INT_VEC4:
+					case eGL_BOOL_VEC4:
+						sig.compType = eCompType_UInt;
+						break;
+					default:
+						sig.compType = eCompType_Float;
+						RDCWARN("Unhandled signature element type %s", ToStr::Get((GLenum)values[1]).c_str());
+				}
+
+				switch(values[1])
+				{
+					case eGL_FLOAT:
+					case eGL_DOUBLE:
 					case eGL_INT:
 					case eGL_UNSIGNED_INT:
 					case eGL_BOOL:
