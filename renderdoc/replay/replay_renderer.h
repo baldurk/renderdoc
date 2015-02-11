@@ -177,6 +177,7 @@ struct ReplayRenderer
 		bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 		
 		bool GetBufferData(ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data);
+		bool GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
 		
 		bool SaveTexture(const TextureSave &saveData, const char *path);
 

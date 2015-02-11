@@ -439,6 +439,21 @@ bool ReplayRenderer::GetBufferData(ResourceId buff, uint32_t offset, uint32_t le
 	return true;
 }
 
+bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data)
+{
+	if(data == NULL) return false;
+
+	size_t sz;
+	byte *bytes = m_pDevice->GetTextureData(m_pDevice->GetLiveID(tex), arrayIdx, mip, false, false, 0.0f, 0.0f, sz);
+
+	create_array_uninit(*data, sz);
+	memcpy(data->elems, bytes, sz);
+
+	delete[] bytes;
+
+	return true;
+}
+
 bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 {
 	TextureSave sd = saveData; // mutable copy
@@ -1576,3 +1591,6 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetHistogram(ReplayR
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(ReplayRenderer *rend, ResourceId buff, uint32_t offset, uint32_t len, rdctype::array<byte> *data)
 { return rend->GetBufferData(buff, offset, len, data); }
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetTextureData(ReplayRenderer *rend, ResourceId tex, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data)
+{ return rend->GetTextureData(tex, arrayIdx, mip, data); }

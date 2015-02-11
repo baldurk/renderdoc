@@ -255,6 +255,8 @@ namespace renderdoc
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt32 offset, UInt32 len, IntPtr outdata);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetTextureData(IntPtr real, ResourceId tex, UInt32 arrayIdx, UInt32 mip, IntPtr outdata);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -781,6 +783,22 @@ namespace renderdoc
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
             bool success = ReplayRenderer_GetBufferData(m_Real, buff, offset, len, mem);
+
+            byte[] ret = null;
+
+            if (success)
+                ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public byte[] GetTextureData(ResourceId tex, UInt32 arrayIdx, UInt32 mip)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_GetTextureData(m_Real, tex, arrayIdx, mip, mem);
 
             byte[] ret = null;
 
