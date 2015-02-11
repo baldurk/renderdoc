@@ -784,6 +784,19 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
+{
+	Serialise("", el.frameNumber);
+	Serialise("", el.firstEvent);
+	Serialise("", el.fileOffset);
+	Serialise("", el.captureTime);
+	Serialise("", el.immContextId);
+	Serialise("", el.debugMessages);
+
+	SIZE_CHECK(FetchFrameInfo, 40);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
 {
 	Serialise("", el.frameInfo);
@@ -929,8 +942,6 @@ template<>
 string ToStrHelper<false, EventUsage>::Get(const EventUsage &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, CounterResult>::Get(const CounterResult &el) { return "<...>"; }
-template<>
-string ToStrHelper<false, FetchFrameInfo>::Get(const FetchFrameInfo &el) { return "<...>"; }
 template<>
 string ToStrHelper<false, ReplayLogType>::Get(const ReplayLogType &el) { return "<...>"; }
 
