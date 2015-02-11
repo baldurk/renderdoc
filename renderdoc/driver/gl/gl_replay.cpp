@@ -2663,32 +2663,241 @@ void GLReplay::FreeTargetResource(ResourceId id)
 	m_pDriver->FreeTargetResource(id);
 }
 
-#pragma endregion
-
-
-
-
-ResourceId GLReplay::CreateProxyTexture( FetchTexture templateTex )
+ResourceId GLReplay::CreateProxyTexture(FetchTexture templateTex)
 {
-	RDCUNIMPLEMENTED("CreateProxyTexture");
-	return ResourceId();
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+	
+	GLuint tex = 0;
+	gl.glGenTextures(1, &tex);
+
+	GLenum intFormat = MakeGLFormat(gl, templateTex.format);
+	
+	switch(templateTex.resType)
+	{
+		case eResType_Buffer:
+		case eResType_Texture1D:
+		{
+			gl.glBindTexture(eGL_TEXTURE_1D, tex);
+			gl.glTexStorage1D(eGL_TEXTURE_1D, templateTex.mips, intFormat, templateTex.width);
+			break;
+		}
+		case eResType_Texture1DArray:
+		{
+			gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
+			gl.glTexStorage2D(eGL_TEXTURE_1D_ARRAY, templateTex.mips, intFormat, templateTex.width, templateTex.arraysize);
+			break;
+		}
+		case eResType_TextureRect:
+		case eResType_Texture2D:
+		{
+			gl.glBindTexture(eGL_TEXTURE_2D, tex);
+			gl.glTexStorage2D(eGL_TEXTURE_2D, templateTex.mips, intFormat, templateTex.width, templateTex.height);
+			break;
+		}
+		case eResType_Texture2DArray:
+		{
+			gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
+			gl.glTexStorage3D(eGL_TEXTURE_2D_ARRAY, templateTex.mips, intFormat, templateTex.width, templateTex.height, templateTex.arraysize);
+			break;
+		}
+		case eResType_Texture2DMS:
+		{
+			gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
+			gl.glTexStorage2DMultisample(eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp, intFormat, templateTex.width, templateTex.height, GL_TRUE);
+			break;
+		}
+		case eResType_Texture2DMSArray:
+		{
+			gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
+			gl.glTexStorage3DMultisample(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp, intFormat, templateTex.width, templateTex.height, templateTex.arraysize, GL_TRUE);
+			break;
+		}
+		case eResType_Texture3D:
+		{
+			gl.glBindTexture(eGL_TEXTURE_3D, tex);
+			gl.glTexStorage3D(eGL_TEXTURE_3D, templateTex.mips, intFormat, templateTex.width, templateTex.height, templateTex.depth);
+			break;
+		}
+		case eResType_TextureCube:
+		{
+			gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
+			gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, templateTex.mips, intFormat, templateTex.width, templateTex.height);
+			break;
+		}
+		case eResType_TextureCubeArray:
+		{
+			gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
+			gl.glTexStorage3D(eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat, templateTex.width, templateTex.height, templateTex.arraysize);
+			break;
+		}
+	}
+
+	if(templateTex.customName)
+		gl.glObjectLabel(eGL_TEXTURE, tex, -1, templateTex.name.elems);
+
+	return m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
 }
 
 void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED("SetProxyTextureData");
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	GLuint tex = m_pDriver->GetResourceManager()->GetCurrentResource(texid).name;
+
+	auto &texdetails = m_pDriver->m_Textures[texid];
+	
+	GLenum fmt = texdetails.internalFormat;
+	GLenum target = texdetails.curType;
+	GLint dim = texdetails.dimension;
+
+	if(IsCompressedFormat(target))
+	{
+		if(target == eGL_TEXTURE_1D)
+		{
+			gl.glCompressedTextureSubImage1DEXT(tex, target, (GLint)mip, 0, texdetails.width, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_1D_ARRAY)
+		{
+			gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx, texdetails.width, 1, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_2D)
+		{
+			gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+		{
+			gl.glCompressedTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx, texdetails.width, texdetails.height, 1, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_3D)
+		{
+			gl.glCompressedTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, texdetails.width, texdetails.height, texdetails.depth, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_CUBE_MAP)
+		{
+			GLenum targets[] = {
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			};
+			
+			RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+			target = targets[arrayIdx];
+
+			gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height, fmt, dataSize, data);
+		}
+		else if(target == eGL_TEXTURE_2D_MULTISAMPLE)
+		{
+			RDCUNIMPLEMENTED("multisampled proxy textures");
+		}
+		else if(target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+		{
+			RDCUNIMPLEMENTED("multisampled proxy textures");
+		}
+	}
+	else
+	{
+		GLenum baseformat = GetBaseFormat(fmt);
+		GLenum datatype = GetDataType(fmt);
+
+		GLint depth = 1;
+		if(target == eGL_TEXTURE_3D) depth = texdetails.depth;
+
+		if(dataSize < GetByteSize(texdetails.width, texdetails.height, depth, baseformat, datatype))
+		{
+			RDCERR("Insufficient data provided to SetProxyTextureData");
+			return;
+		}
+
+		if(target == eGL_TEXTURE_1D)
+		{
+			gl.glTextureSubImage1DEXT(tex, target, (GLint)mip, 0, texdetails.width, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_1D_ARRAY)
+		{
+			gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx, texdetails.width, 1, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_2D)
+		{
+			gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+		{
+			gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx, texdetails.width, texdetails.height, 1, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_3D)
+		{
+			gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, texdetails.width, texdetails.height, texdetails.depth, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_CUBE_MAP)
+		{
+			GLenum targets[] = {
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+				eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+				eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+			};
+			
+			RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+			target = targets[arrayIdx];
+
+			gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height, baseformat, datatype, data);
+		}
+		else if(target == eGL_TEXTURE_2D_MULTISAMPLE)
+		{
+			RDCUNIMPLEMENTED("multisampled proxy textures");
+		}
+		else if(target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+		{
+			RDCUNIMPLEMENTED("multisampled proxy textures");
+		}
+	}
+
 }
 
 ResourceId GLReplay::CreateProxyBuffer(FetchBuffer templateBuf)
 {
-	RDCUNIMPLEMENTED("CreateProxyBuffer");
-	return ResourceId();
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	MakeCurrentReplayContext(m_DebugCtx);
+
+	GLenum target = eGL_ARRAY_BUFFER;
+	
+	if(templateBuf.creationFlags & eBufferCreate_Indirect)
+		target = eGL_DRAW_INDIRECT_BUFFER;
+	if(templateBuf.creationFlags & eBufferCreate_IB)
+		target = eGL_ELEMENT_ARRAY_BUFFER;
+	if(templateBuf.creationFlags & eBufferCreate_CB)
+		target = eGL_UNIFORM_BUFFER;
+	if(templateBuf.creationFlags & eBufferCreate_UAV)
+		target = eGL_SHADER_STORAGE_BUFFER;
+
+	GLuint buf = 0;
+	gl.glGenBuffers(1, &buf);
+	gl.glBindBuffer(target, buf);
+	gl.glNamedBufferStorageEXT(buf, (GLsizeiptr)templateBuf.byteSize, NULL, GL_DYNAMIC_STORAGE_BIT|GL_MAP_READ_BIT);
+
+	if(templateBuf.customName)
+		gl.glObjectLabel(eGL_BUFFER, buf, -1, templateBuf.name.elems);
+
+	return m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));
 }
 
 void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED("SetProxyBufferData");
+	GLuint buf = m_pDriver->GetResourceManager()->GetCurrentResource(bufid).name;
+
+	m_pDriver->glNamedBufferSubDataEXT(buf, 0, dataSize, data);
 }
+
+#pragma endregion
+
 
 
 
