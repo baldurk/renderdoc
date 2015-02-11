@@ -536,6 +536,43 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 	if(IsCompressedFormat(fmt))
 	{
 		ret.special = true;
+
+		switch(fmt)
+		{
+			case eGL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
+				ret.compCount = 3;
+				break;
+			case eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+			case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT:
+				ret.compCount = 4;
+				break;
+
+			case eGL_COMPRESSED_RGBA8_ETC2_EAC:
+			case eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC:
+				ret.compCount = 4;
+				break;
+			case eGL_COMPRESSED_R11_EAC:
+			case eGL_COMPRESSED_SIGNED_R11_EAC:
+				ret.compCount = 1;
+				break;
+			case eGL_COMPRESSED_RG11_EAC:
+			case eGL_COMPRESSED_SIGNED_RG11_EAC:
+				ret.compCount = 2;
+				break;
+				
+			case eGL_COMPRESSED_RGB8_ETC2:
+			case eGL_COMPRESSED_SRGB8_ETC2:
+				ret.compCount = 3;
+				break;
+			case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+			case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2:
+				ret.compCount = 4;
+				break;
+
+			default:
+				break;
+		}
 		
 		switch(fmt)
 		{
@@ -752,6 +789,242 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
 		// not colour or depth!
 		RDCERR("Unexpected texture type, not colour or depth");
 	}
+
+	return ret;
+}
+
+GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
+{
+	GLenum ret = eGL_NONE;
+
+	if(fmt.special)
+	{
+		switch(fmt.specialFormat)
+		{
+			case eSpecial_BC1:
+			{
+				if(fmt.compCount == 3)
+					ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT : eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+				else
+					ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT : eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+				break;
+			}
+			case eSpecial_BC2:
+				ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT : eGL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+				break;
+			case eSpecial_BC3:
+				ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT : eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+				break;
+			case eSpecial_BC4:
+				ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RED_RGTC1 : eGL_COMPRESSED_RED_RGTC1;
+				break;
+			case eSpecial_BC5:
+				ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RG_RGTC2 : eGL_COMPRESSED_RG_RGTC2;
+				break;
+			case eSpecial_BC6:
+				ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB : eGL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+				break;
+			case eSpecial_BC7:
+				ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB : eGL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
+				break;
+			case eSpecial_ETC2:
+			{
+				if(fmt.compCount == 3)
+					ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ETC2 : eGL_COMPRESSED_RGB8_ETC2;
+				else
+					ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 : eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2;
+				break;
+			}
+			case eSpecial_EAC:
+			{
+				if(fmt.compCount == 1)
+					ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_R11_EAC : eGL_COMPRESSED_R11_EAC;
+				else if(fmt.compCount == 2)
+					ret = fmt.compType == eCompType_SNorm ? eGL_COMPRESSED_SIGNED_RG11_EAC : eGL_COMPRESSED_RG11_EAC;
+				else
+					ret = fmt.srgbCorrected ? eGL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC : eGL_COMPRESSED_RGBA8_ETC2_EAC;
+				break;
+			}
+			case eSpecial_R10G10B10A2:
+				if(fmt.compType == eCompType_UNorm)
+					ret = eGL_RGB10_A2;
+				else
+					ret = eGL_RGB10_A2UI;
+				break;
+			case eSpecial_R11G11B10:
+				ret = eGL_R11F_G11F_B10F;
+				break;
+			case eSpecial_B5G6R5:
+				ret = eGL_RGB565;
+				break;
+			case eSpecial_B5G5R5A1:
+				ret = eGL_RGB5_A1;
+				break;
+			case eSpecial_R9G9B9E5:
+				ret = eGL_RGB9_E5;
+				break;
+			case eSpecial_B8G8R8A8:
+				ret = eGL_RGBA;
+				break;
+			case eSpecial_B4G4R4A4:
+				ret = eGL_RGBA4;
+				break;
+			case eSpecial_D24S8:
+				ret = eGL_DEPTH24_STENCIL8;
+				break;
+			case eSpecial_D32S8:
+				ret = eGL_DEPTH32F_STENCIL8;
+				break;
+			default:
+				RDCERR("Unsupported special format %u", fmt.specialFormat);
+				break;
+		}
+	}
+	else if(fmt.compCount == 4)
+	{
+		if(fmt.srgbCorrected)
+		{
+			ret = eGL_SRGB8_ALPHA8;
+		}
+		else if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RGBA32F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RGBA32I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGBA32UI;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RGBA16F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RGBA16I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGBA16UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RGBA16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RGBA16;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = eGL_RGBA8I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGBA8UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RGBA8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RGBA8;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 4-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 3)
+	{
+		if(fmt.srgbCorrected)
+		{
+			ret = eGL_SRGB8;
+		}
+		else if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RGB32F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RGB32I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGB32UI;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RGB16F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RGB16I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGB16UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RGB16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RGB16;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = eGL_RGB8I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RGB8UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RGB8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RGB8;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 2)
+	{
+		if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RG32F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RG32I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RG32UI;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_RG16F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_RG16I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RG16UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RG16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RG16;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = eGL_RG8I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_RG8UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_RG8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_RG8;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else if(fmt.compCount == 1)
+	{
+		if(fmt.compByteWidth == 4)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_R32F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_R32I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_R32UI;
+			else if(fmt.compType == eCompType_Depth) ret = eGL_DEPTH_COMPONENT32F;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 3)
+		{
+			ret = eGL_DEPTH_COMPONENT24;
+		}
+		else if(fmt.compByteWidth == 2)
+		{
+			     if(fmt.compType == eCompType_Float) ret = eGL_R16F;
+			else if(fmt.compType == eCompType_SInt)  ret = eGL_R16I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_R16UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_R16_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_R16;
+			else if(fmt.compType == eCompType_Depth) ret = eGL_DEPTH_COMPONENT16;
+			else RDCERR("Unrecognised component type");
+		}
+		else if(fmt.compByteWidth == 1)
+		{
+			     if(fmt.compType == eCompType_SInt)  ret = eGL_R8I;
+			else if(fmt.compType == eCompType_UInt)  ret = eGL_R8UI;
+			else if(fmt.compType == eCompType_SNorm) ret = eGL_R8_SNORM;
+			else if(fmt.compType == eCompType_UNorm) ret = eGL_R8;
+			else RDCERR("Unrecognised component type");
+		}
+		else
+		{
+			RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
+		}
+	}
+	else
+	{
+		RDCERR("Unrecognised component count: %d", fmt.compCount);
+	}
+
+	if(ret == eGL_NONE)
+		RDCERR("No known GL format corresponding to resource format!");
 
 	return ret;
 }
