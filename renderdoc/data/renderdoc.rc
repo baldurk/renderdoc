@@ -124,6 +124,7 @@ RESOURCE_histogram_comp    TYPE_EMBED   "glsl/histogram.comp"
 RESOURCE_mesh_frag         TYPE_EMBED   "glsl/mesh.frag"
 RESOURCE_mesh_geom         TYPE_EMBED   "glsl/mesh.geom"
 RESOURCE_arraymscopy_comp  TYPE_EMBED   "glsl/arraymscopy.comp"
+RESOURCE_quadoverdraw_frag TYPE_EMBED   "glsl/quadoverdraw.frag"
 
 RESOURCE_sourcecodepro_ttf TYPE_EMBED   "sourcecodepro.ttf"
 

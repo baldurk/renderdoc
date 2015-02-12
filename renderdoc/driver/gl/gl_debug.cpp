@@ -180,6 +180,8 @@ void GLReplay::InitDebugData()
 		MakeCurrentReplayContext(m_DebugCtx);
 	}
 
+	WrappedOpenGL &gl = *m_pDriver;
+
 	DebugData.outWidth = 0.0f; DebugData.outHeight = 0.0f;
 	
 	string blitvsSource = GetEmbeddedResource(blit_vert);
@@ -205,6 +207,54 @@ void GLReplay::InitDebugData()
 		DebugData.texDisplayProg[i] = CreateShaderProgram(NULL, glsl.c_str());
 	}
 
+	GLint numsl = 0;
+	gl.glGetIntegerv(eGL_NUM_SHADING_LANGUAGE_VERSIONS, &numsl);
+
+	bool support450 = false;
+	for(GLint i=0; i < numsl; i++)
+	{
+		const char *sl = (const char *)gl.glGetStringi(eGL_SHADING_LANGUAGE_VERSION, (GLuint)i);
+
+		if(sl[0] == '4' && sl[1] == '5' && sl[2] == '0')
+			support450 = true;
+		if(sl[0] == '4' && sl[1] == '.' && sl[2] == '5')
+			support450 = true;
+
+		if(support450)
+			break;
+	}
+	
+	if(support450)
+	{
+		DebugData.quadoverdraw420 = false;
+
+		string glsl = "#version 450 core\n\n";
+		glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
+		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
+
+		glsl = "#version 420 core\n\n";
+		glsl += "#define RENDERDOC_QOResolvePS\n\n";
+		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
+	}
+	else
+	{
+		DebugData.quadoverdraw420 = true;
+
+		string glsl = "#version 420 core\n\n";
+		glsl += "#define RENDERDOC_QuadOverdrawPS\n\n";
+		glsl += "#define dFdxFine dFdx\n\n"; // dFdx fine functions not available before GLSL 450
+		glsl += "#define dFdyFine dFdy\n\n"; // use normal dFdx, which might be coarse, so won't show quad overdraw properly
+		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		DebugData.quadoverdrawFSProg = CreateShaderProgram(NULL, glsl.c_str());
+
+		glsl = "#version 420 core\n\n";
+		glsl += "#define RENDERDOC_QOResolvePS\n\n";
+		glsl += GetEmbeddedResource(quadoverdraw_frag);
+		DebugData.quadoverdrawResolveProg = CreateShaderProgram(blitvsSource.c_str(), glsl.c_str());
+	}
+	
 	string checkerfs = GetEmbeddedResource(checkerboard_frag);
 	
 	DebugData.checkerProg = CreateShaderProgram(blitvsSource.c_str(), checkerfs.c_str());
@@ -222,8 +272,6 @@ void GLReplay::InitDebugData()
 	
 	DebugData.meshProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str());
 	DebugData.meshgsProg = CreateShaderProgram(meshvs.c_str(), meshfs.c_str(), meshgs.c_str());
-	
-	WrappedOpenGL &gl = *m_pDriver;
 	
 	void *ctx = gl.GetCtx();
 	gl.glGenProgramPipelines(1, &DebugData.texDisplayPipe);
@@ -496,6 +544,12 @@ void GLReplay::DeleteDebugData()
 	}
 
 	gl.glDeleteProgram(DebugData.blitProg);
+	
+	if(DebugData.quadoverdrawFSProg)
+	{
+		gl.glDeleteProgram(DebugData.quadoverdrawFSProg);
+		gl.glDeleteProgram(DebugData.quadoverdrawResolveProg);
+	}
 
 	gl.glDeleteProgram(DebugData.texDisplayVSProg);
 	for(int i=0; i < 3; i++)
@@ -1355,34 +1409,21 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
 }
 
-ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)
 {
 	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
 
 	void *ctx = m_ReplayCtx.ctx;
 	
-	GLRenderState rs(&gl.GetHookset(), NULL, READING);
-	rs.FetchState(ctx, &gl);
-
-	// use our overlay pipeline that we'll fill up with all the right
-	// shaders, then replace the fragment shader with our own.
-	gl.glUseProgram(0);
-	gl.glBindProgramPipeline(DebugData.overlayPipe);
-
-	// we bind the separable program created for each shader, and copy
-	// uniforms and attrib bindings from the 'real' programs, wherever
-	// they are.
-	if(rs.Program == 0)
+	if(Program == 0)
 	{
-		if(rs.Pipeline == 0)
+		if(Pipeline == 0)
 		{
-			return ResourceId();
+			return;
 		}
 		else
 		{
-			ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(ctx, rs.Pipeline));
+			ResourceId id = m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(ctx, Pipeline));
 			auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
 			for(size_t i=0; i < 4; i++)
@@ -1404,8 +1445,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	}
 	else
 	{
-		auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, rs.Program))];
-		
+		auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(ctx, Program))];
+
 		for(size_t i=0; i < 4; i++)
 		{
 			if(progDetails.stageShaders[i] != ResourceId())
@@ -1414,16 +1455,38 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 				gl.glUseProgramStages(DebugData.overlayPipe, ShaderBit(i), progdst);
 
-				CopyProgramUniforms(gl.GetHookset(), rs.Program, progdst);
+				CopyProgramUniforms(gl.GetHookset(), Program, progdst);
 
 				if(i == 0)
-					CopyProgramAttribBindings(gl.GetHookset(), rs.Program, progdst, GetShader(progDetails.stageShaders[i]));
+					CopyProgramAttribBindings(gl.GetHookset(), Program, progdst, GetShader(progDetails.stageShaders[i]));
 			}
 		}
 	}
 
 	// use the generic FS program by default, can be overridden for specific overlays if needed
-	gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, DebugData.genericFSProg);
+	gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, fragProgram);
+}
+
+ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
+{
+	WrappedOpenGL &gl = *m_pDriver;
+	
+	MakeCurrentReplayContext(&m_ReplayCtx);
+
+	void *ctx = m_ReplayCtx.ctx;
+	
+	GLRenderState rs(&gl.GetHookset(), NULL, READING);
+	rs.FetchState(ctx, &gl);
+
+	// use our overlay pipeline that we'll fill up with all the right
+	// shaders, then replace the fragment shader with our own.
+	gl.glUseProgram(0);
+	gl.glBindProgramPipeline(DebugData.overlayPipe);
+
+	// we bind the separable program created for each shader, and copy
+	// uniforms and attrib bindings from the 'real' programs, wherever
+	// they are.
+	SetupOverlayPipeline(rs.Program, rs.Pipeline, DebugData.genericFSProg);
 
 	auto &texDetails = m_pDriver->m_Textures[texid];
 	
@@ -1448,7 +1511,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		DebugData.overlayTexWidth = texDetails.width;
 		DebugData.overlayTexHeight = texDetails.height;
 
-		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_SRGB8_ALPHA8, texDetails.width, texDetails.height); 
+		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA16, texDetails.width, texDetails.height); 
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1669,8 +1732,205 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	}
 	else if(overlay == eTexOverlay_QuadOverdrawDraw || overlay == eTexOverlay_QuadOverdrawPass)
 	{
-		float unknown[] = { 0.2f, 0.1f, 0.1f, 0.5f };
-		gl.glClearBufferfv(eGL_COLOR, 0, unknown);
+		if(DebugData.quadoverdraw420)
+		{
+			RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
+			m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
+				"Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
+		}
+
+		{
+			SCOPED_TIMER("Quad Overdraw");
+
+			float black[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			gl.glClearBufferfv(eGL_COLOR, 0, black);
+
+			vector<uint32_t> events = passEvents;
+
+			if(overlay == eTexOverlay_QuadOverdrawDraw)
+				events.clear();
+
+			events.push_back(eventID);
+
+			if(!events.empty())
+			{
+				GLuint replacefbo = 0;
+				GLuint quadtexs[3] = { 0 };
+				gl.glGenFramebuffers(1, &replacefbo);
+				gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
+
+				gl.glGenTextures(3, quadtexs);
+				
+				// image for quad usage
+				gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
+				gl.glTexStorage3D(eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI, texDetails.width>>1, texDetails.height>>1, 4);
+
+				// temporarily attach to FBO to clear it
+				GLint zero = 0;
+				gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 0);
+				gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+				gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 1);
+				gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+				gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 2);
+				gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+				gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 3);
+				gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+				
+				gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
+				gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width, texDetails.height);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+				gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
+
+				gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
+				gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8, texDetails.width, texDetails.height);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+				gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
+
+				if(overlay == eTexOverlay_QuadOverdrawPass)
+					ReplayLog(frameID, 0, events[0], eReplay_WithoutDraw);
+				else
+					rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+				
+				GLuint lastProg = 0, lastPipe = 0;
+				for(size_t i=0; i < events.size(); i++)
+				{
+					GLint depthwritemask = 1;
+					GLint stencilfmask = 0xff, stencilbmask = 0xff;
+					GLuint curdrawfbo = 0, curreadfbo = 0;
+					struct
+					{
+						GLuint name;
+						GLuint level;
+						GLboolean layered;
+						GLuint layer;
+						GLenum access;
+						GLenum format;
+					} curimage0 = {0};
+
+					// save the state we're going to mess with
+					{
+						gl.glGetIntegerv(eGL_DEPTH_WRITEMASK, &depthwritemask);
+						gl.glGetIntegerv(eGL_STENCIL_WRITEMASK, &stencilfmask);
+						gl.glGetIntegerv(eGL_STENCIL_BACK_WRITEMASK, &stencilbmask);
+
+						gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curdrawfbo);
+						gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curreadfbo);
+
+						gl.glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, 0, (GLint *)&curimage0.name);
+						gl.glGetIntegeri_v(eGL_IMAGE_BINDING_LEVEL, 0, (GLint*)&curimage0.level);
+						gl.glGetIntegeri_v(eGL_IMAGE_BINDING_ACCESS, 0, (GLint*)&curimage0.access);
+						gl.glGetIntegeri_v(eGL_IMAGE_BINDING_FORMAT, 0, (GLint*)&curimage0.format);
+						gl.glGetBooleani_v(eGL_IMAGE_BINDING_LAYERED, 0, &curimage0.layered);
+						if(curimage0.layered)
+							gl.glGetIntegeri_v(eGL_IMAGE_BINDING_LAYER, 0, (GLint*)&curimage0.layer);
+					}
+
+					// disable depth and stencil writes
+					gl.glDepthMask(GL_FALSE);
+					gl.glStencilMask(GL_FALSE);
+
+					// bind our FBO
+					gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, replacefbo);
+					// bind image
+					gl.glBindImageTexture(0, quadtexs[2], 0, GL_TRUE, 0, eGL_READ_WRITE, eGL_R32UI);
+
+					GLuint prog = 0, pipe = 0;
+					gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+					gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+
+					// replace fragment shader. This is exactly what we did
+					// at the start of this function for the single-event case, but now we have
+					// to do it for every event
+					SetupOverlayPipeline(prog, pipe, DebugData.quadoverdrawFSProg);
+					gl.glUseProgram(0);
+					gl.glBindProgramPipeline(DebugData.overlayPipe);
+
+					lastProg = prog;
+					lastPipe = pipe;
+					
+					gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
+					gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height,
+															 0, 0, texDetails.width, texDetails.height,
+															 GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT, eGL_NEAREST);
+					
+					ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+					// pop the state that we messed with
+					{
+						gl.glBindProgramPipeline(pipe);
+						gl.glUseProgram(prog);
+
+						if(curimage0.name)
+							gl.glBindImageTexture(0, curimage0.name, curimage0.level, curimage0.layered ? GL_TRUE : GL_FALSE, curimage0.layer, curimage0.access, curimage0.format);
+						else
+							gl.glBindImageTexture(0, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R32UI);
+
+						gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curdrawfbo);
+						gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curreadfbo);
+
+						gl.glDepthMask(depthwritemask ? GL_TRUE : GL_FALSE);
+						gl.glStencilMaskSeparate(eGL_FRONT, (GLuint)stencilfmask);
+						gl.glStencilMaskSeparate(eGL_BACK, (GLuint)stencilbmask);
+					}
+
+					if(overlay == eTexOverlay_QuadOverdrawPass)
+					{
+						ReplayLog(frameID, events[i], events[i], eReplay_OnlyDraw);
+
+						if(i+1 < events.size())
+							ReplayLog(frameID, events[i], events[i+1], eReplay_WithoutDraw);
+					}
+				}
+
+				// resolve pass
+				{
+					gl.glUseProgram(DebugData.quadoverdrawResolveProg);
+					gl.glBindProgramPipeline(0);
+
+					GLint rampLoc = gl.glGetUniformLocation(DebugData.quadoverdrawResolveProg, "overdrawRampColours");
+					gl.glProgramUniform4fv(DebugData.quadoverdrawResolveProg, rampLoc, ARRAY_COUNT(overdrawRamp), (float *)&overdrawRamp[0].x);
+					
+					// modify our fbo to attach the overlay texture instead
+					gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
+					gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
+					gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+					
+					gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+					gl.glDisable(eGL_BLEND);
+					gl.glDisable(eGL_SCISSOR_TEST);
+					gl.glDepthMask(GL_FALSE);
+					gl.glDisable(eGL_CULL_FACE);
+					gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+					gl.glDisable(eGL_DEPTH_TEST);
+					gl.glDisable(eGL_STENCIL_TEST);
+					gl.glStencilMask(0);
+					gl.glViewport(0, 0, texDetails.width, texDetails.height);
+
+					gl.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
+					
+					GLuint emptyVAO = 0;
+					gl.glGenVertexArrays(1, &emptyVAO);
+					gl.glBindVertexArray(emptyVAO);
+					gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+					gl.glBindVertexArray(0);
+					gl.glDeleteVertexArrays(1, &emptyVAO);
+					
+					gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
+				}
+				
+				gl.glDeleteFramebuffers(1, &replacefbo);
+				gl.glDeleteTextures(3, quadtexs);
+
+				if(overlay == eTexOverlay_QuadOverdrawPass)
+					ReplayLog(frameID, 0, eventID, eReplay_WithoutDraw);
+			}
+		}
 	}
 	else
 	{

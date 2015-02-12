@@ -1928,6 +1928,21 @@ void WrappedOpenGL::FinishCapture()
 	//m_SuccessfulCapture = false;
 }
 
+void WrappedOpenGL::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d)
+{
+	if(m_State == READING || src == eDbgSource_RuntimeWarning)
+	{
+		DebugMessage msg;
+		msg.eventID = m_CurEventID;
+		msg.messageID = 0;
+		msg.source = src;
+		msg.category = c;
+		msg.severity = sv;
+		msg.description = d;
+		m_DebugMessages.push_back(msg);
+	}
+}
+
 vector<DebugMessage> WrappedOpenGL::GetDebugMessages()
 {
 	vector<DebugMessage> ret;

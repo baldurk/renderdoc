@@ -74,6 +74,7 @@ data/glsl/mesh.frago \
 data/glsl/mesh.geomo \
 data/glsl/text.verto \
 data/glsl/text.frago \
+data/glsl/quadoverdraw.frago \
 data/glsl/histogram.compo \
 data/glsl/arraymscopy.compo \
 data/sourcecodepro.ttfo

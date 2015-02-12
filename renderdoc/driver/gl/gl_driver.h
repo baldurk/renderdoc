@@ -373,6 +373,9 @@ class WrappedOpenGL
 
 		void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
 		
+		void AddDebugMessage(DebugMessage msg) { if(m_State < WRITING) m_DebugMessages.push_back(msg); }
+		void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d);
+
 		// replay interface
 		void Initialise(GLInitParams &params);
 		void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);

@@ -195,6 +195,7 @@ class GLReplay : public IReplayDriver
 								  const vector<byte> &data);
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
+		void SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram);
 
 		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 		
@@ -288,6 +289,10 @@ class GLReplay : public IReplayDriver
 
 			GLuint pickPixelTex;
 			GLuint pickPixelFBO;
+
+			GLuint quadoverdrawFSProg;
+			GLuint quadoverdrawResolveProg;
+			bool quadoverdraw420;
 
 			GLuint overlayTex;
 			GLuint overlayFBO;

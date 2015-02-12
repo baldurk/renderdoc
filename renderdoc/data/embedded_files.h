@@ -35,6 +35,7 @@ DECLARE_EMBED(blit_frag);
 DECLARE_EMBED(texdisplay_frag);
 DECLARE_EMBED(checkerboard_frag);
 DECLARE_EMBED(histogram_comp);
+DECLARE_EMBED(quadoverdraw_frag);
 DECLARE_EMBED(arraymscopy_comp);
 DECLARE_EMBED(mesh_vert);
 DECLARE_EMBED(mesh_frag);
