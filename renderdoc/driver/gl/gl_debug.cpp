@@ -1425,10 +1425,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 	// use the generic FS program by default, can be overridden for specific overlays if needed
 	gl.glUseProgramStages(DebugData.overlayPipe, eGL_FRAGMENT_SHADER_BIT, DebugData.genericFSProg);
 
-	char buf[1024] = { 0 };
-	gl.glValidateProgramPipeline(DebugData.overlayPipe);
-	gl.glGetProgramPipelineInfoLog(DebugData.overlayPipe, 1024, NULL, buf);
-
 	auto &texDetails = m_pDriver->m_Textures[texid];
 	
 	// resize (or create) the overlay texture and FBO if necessary
