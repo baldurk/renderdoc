@@ -481,7 +481,7 @@ namespace renderdocui.Windows
                 if (m_Core.CurBuffers[i].ID == ID)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(ID);
+                    viewer.ViewRawBuffer(true, ID);
                     viewer.Show(DockPanel);
                     return;
                 }

@@ -1595,10 +1595,19 @@ namespace renderdocui.Windows.PipelineState
             {
                 FetchTexture tex = (FetchTexture)tag;
 
-                var viewer = m_Core.GetTextureViewer();
-                viewer.Show(m_DockContent.DockPanel);
-                if (!viewer.IsDisposed)
-                    viewer.ViewTexture(tex.ID, true);
+                if (tex.resType == ShaderResourceType.Buffer)
+                {
+                    var viewer = new BufferViewer(m_Core, false);
+                    viewer.ViewRawBuffer(false, tex.ID);
+                    viewer.Show(m_DockContent.DockPanel);
+                }
+                else
+                {
+                    var viewer = m_Core.GetTextureViewer();
+                    viewer.Show(m_DockContent.DockPanel);
+                    if (!viewer.IsDisposed)
+                        viewer.ViewTexture(tex.ID, true);
+                }
             }
             else if(tag is ReadWriteTag)
             {
@@ -1628,9 +1637,9 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var viewer = new BufferViewer(m_Core, false);
                     if (format.Length == 0)
-                        viewer.ViewRawBuffer(buf.ID);
+                        viewer.ViewRawBuffer(true, buf.ID);
                     else
-                        viewer.ViewRawBuffer(buf.ID, format);
+                        viewer.ViewRawBuffer(true, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }
@@ -1662,7 +1671,7 @@ namespace renderdocui.Windows.PipelineState
                 if (id != ResourceId.Null)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(id);
+                    viewer.ViewRawBuffer(true, id);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }

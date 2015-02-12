@@ -646,12 +646,12 @@ namespace renderdocui.Windows
 
         #region Get Data Formats/Organisation
 
-        public void ViewRawBuffer(ResourceId buff)
+        public void ViewRawBuffer(bool isBuffer, ResourceId id)
         {
-            ViewRawBuffer(buff, "");
+            ViewRawBuffer(isBuffer, id, "");
         }
 
-        public void ViewRawBuffer(ResourceId buff, string formatString)
+        public void ViewRawBuffer(bool isBuffer, ResourceId id, string formatString)
         {
             if (m_Core.CurBuffers == null) return;
 
@@ -660,7 +660,7 @@ namespace renderdocui.Windows
             Text = "Buffer Contents";
             foreach (var b in m_Core.CurBuffers)
             {
-                if (b.ID == buff)
+                if (b.ID == id)
                 {
                     Text = b.name + " - Contents";
                     break;
@@ -674,7 +674,7 @@ namespace renderdocui.Windows
             FormatElement[] elems = FormatElement.ParseFormatString(formatString, true, out errors);
 
             input.Strides = new uint[] { elems.Last().offset + elems.Last().ByteSize };
-            input.Buffers = new ResourceId[] { buff };
+            input.Buffers = new ResourceId[] { isBuffer ? id : ResourceId.Null, isBuffer ? ResourceId.Null : id };
             input.Offsets = new uint[] { 0 };
             input.IndexBuffer = ResourceId.Null;
             input.BufferFormats = elems;
@@ -855,11 +855,14 @@ namespace renderdocui.Windows
 
             if (!MeshView)
             {
-                if (input != null && input.Buffers[0] != ResourceId.Null)
+                if (input != null && (input.Buffers[0] != ResourceId.Null || input.Buffers[1] != ResourceId.Null))
                 {
                     ret.Buffers = new byte[1][];
 
-                    ret.Buffers[0] = r.GetBufferData(input.Buffers[0], 0, 0);
+                    if(input.Buffers[0] != ResourceId.Null)
+                        ret.Buffers[0] = r.GetBufferData(input.Buffers[0], 0, 0);
+                    else if (input.Buffers[1] != ResourceId.Null)
+                        ret.Buffers[0] = r.GetTextureData(input.Buffers[1], 0, 0);
 
                     ret.Indices = null;
                     ret.IndexCount = (uint)ret.Buffers[0].Length / input.Strides[0];
@@ -2717,7 +2720,16 @@ namespace renderdocui.Windows
 
         public void ProcessBufferFormat(string formatText)
         {
-            ViewRawBuffer(GetUIState(MeshDataStage.VSIn).m_Input.Buffers[0], formatText);
+            ResourceId id = GetUIState(MeshDataStage.VSIn).m_Input.Buffers[0];
+            bool isBuffer = true;
+
+            if (id == ResourceId.Null)
+            {
+                isBuffer = false;
+                id = GetUIState(MeshDataStage.VSIn).m_Input.Buffers[1];
+            }
+
+            ViewRawBuffer(isBuffer, id, formatText);
         }
 
         private void ShowFormatSpecifier()
