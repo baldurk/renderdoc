@@ -281,7 +281,7 @@ namespace renderdocui.Windows
                         drawNode.Nodes[drawNode.Nodes.Count - 2].Tag = drawNode.Nodes.LastNode.Tag;
                     }
 
-                    if ((double)drawNode.Nodes[i]["Duration"] > 0.0)
+                    if (i < drawNode.Nodes.Count && (double)drawNode.Nodes[i]["Duration"] > 0.0)
                         drawNode["Duration"] = Math.Max(0.0, (double)drawNode["Duration"]) + (double)drawNode.Nodes[i]["Duration"];
                 }
 
