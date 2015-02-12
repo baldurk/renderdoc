@@ -360,11 +360,13 @@ float4 RENDERDOC_CheckerboardPS(float4 IN : SV_Position) : SV_Target0
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
+#define NUM_RAMP_COLOURS 128
+
 RWTexture2DArray<uint> overdrawUAV  : register(u0);
 Texture2DArray<uint> overdrawSRV : register(t0);
 cbuffer overdrawRampCBuf : register(b0)
 {
-	const float4 overdrawRampColours[21];
+	const float4 overdrawRampColours[NUM_RAMP_COLOURS];
 };
 
 [earlydepthstencil]
@@ -388,7 +390,7 @@ void RENDERDOC_QuadOverdrawPS(float4 vpos : SV_Position, uint c0 : SV_Coverage)
 
 float4 ToColour(uint v)
 {
-	return overdrawRampColours[min(v, 20)];
+	return overdrawRampColours[min(v, NUM_RAMP_COLOURS-1)];
 }
 
 float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0

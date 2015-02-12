@@ -291,9 +291,9 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 	{
 		for(size_t c=0; c < ARRAY_COUNT(overdrawRamp); c++)
 		{
-			if(fabs(ret->value_f[0] - overdrawRamp[c].x) < 0.001f &&
-				 fabs(ret->value_f[1] - overdrawRamp[c].y) < 0.001f &&
-				 fabs(ret->value_f[2] - overdrawRamp[c].z) < 0.001f)
+			if(fabs(ret->value_f[0] - overdrawRamp[c].x) < 0.00004f &&
+				 fabs(ret->value_f[1] - overdrawRamp[c].y) < 0.00004f &&
+				 fabs(ret->value_f[2] - overdrawRamp[c].z) < 0.00004f)
 			{
 				ret->value_i[0] = (int32_t)c;
 				ret->value_i[1] = 0;

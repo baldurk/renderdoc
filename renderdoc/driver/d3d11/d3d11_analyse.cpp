@@ -2412,7 +2412,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 	D3D11_TEXTURE2D_DESC realTexDesc;
 	realTexDesc.BindFlags = D3D11_BIND_RENDER_TARGET|D3D11_BIND_SHADER_RESOURCE;
 	realTexDesc.Usage = D3D11_USAGE_DEFAULT;
-	realTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	realTexDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
 	realTexDesc.ArraySize = 1;
 	realTexDesc.MipLevels = 1;
 	realTexDesc.CPUAccessFlags = 0;
@@ -2507,7 +2507,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 
 	D3D11_RENDER_TARGET_VIEW_DESC rtDesc;
 	rtDesc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
-	rtDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
 	rtDesc.Texture2D.MipSlice = 0;
 
 	if(realTexDesc.SampleDesc.Count > 1 ||
@@ -3045,7 +3045,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 				m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 				m_pImmediateContext->PSSetShader(m_DebugRender.QOResolvePS, NULL, 0);
 				
-				ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(Vec4f)*21);
+				ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(overdrawRamp));
 
 				m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
