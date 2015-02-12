@@ -2187,6 +2187,25 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, 
 	GLsizei arraysize = 1;
 	GLint samples = texDetails.samples;
 
+	if(texType == eGL_TEXTURE_BUFFER)
+	{
+		GLuint bufName = 0;
+		gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING, (GLint *)&bufName);
+		ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), bufName));
+
+		GLuint offs = 0, size = 0;
+		gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_OFFSET, (GLint *)&offs);
+		gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
+
+		vector<byte> data = GetBufferData(id, offs, size);
+
+		dataSize = data.size();
+		ret = new byte[dataSize];
+		memcpy(ret, &data[0], dataSize);
+
+		return ret;
+	}
+
 	if(texType == eGL_TEXTURE_2D_ARRAY ||
 		texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
 		texType == eGL_TEXTURE_1D_ARRAY ||
