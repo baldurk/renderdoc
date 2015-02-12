@@ -222,7 +222,7 @@ class WrappedOpenGL
 
 		struct ProgramData
 		{
-			ProgramData() : colOutProg(0), linked(false)
+			ProgramData() : linked(false)
 			{
 				RDCEraseEl(stageShaders);
 			}
@@ -230,7 +230,6 @@ class WrappedOpenGL
 
 			map<GLint, GLint> locationTranslate;
 
-			GLuint colOutProg;
 			bool linked;
 			ResourceId stageShaders[6];
 		};

@@ -1557,6 +1557,34 @@ void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, locTranslate, writing);
 }
 
+void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+{
+	// copy over attrib bindings
+	for(int32_t i=0; i < refl->InputSig.count; i++)
+	{
+		// skip built-ins
+		if(refl->InputSig[i].systemValue != eAttr_None)
+			continue;
+
+		GLint idx = gl.glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
+		gl.glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
+	}
+}
+
+void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+{
+	// copy over fragdata bindings
+	for(int32_t i=0; i < refl->OutputSig.count; i++)
+	{
+		// only look at colour outputs (should be the only outputs from fs)
+		if(refl->OutputSig[i].systemValue != eAttr_ColourOutput)
+			continue;
+
+		GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
+		gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+	}
+}
+
 template<>
 string ToStrHelper<false, WrappedOpenGL::UniformType>::Get(const WrappedOpenGL::UniformType &el)
 {

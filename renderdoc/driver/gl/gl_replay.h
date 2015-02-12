@@ -234,11 +234,6 @@ class GLReplay : public IReplayDriver
 		struct
 		{
 			float outWidth, outHeight;
-			
-			string blitvsSource;
-			string blitfsSource;
-			string genericvsSource;
-			string genericfsSource;
 
 			// min/max data
 			GLuint minmaxTileResult;       // tile result buffer
@@ -271,6 +266,7 @@ class GLReplay : public IReplayDriver
 			GLuint checkerProg;
 
 			GLuint genericProg;
+			GLuint genericFSProg;
 
 			GLuint meshProg;
 			GLuint meshgsProg;
@@ -295,6 +291,7 @@ class GLReplay : public IReplayDriver
 
 			GLuint overlayTex;
 			GLuint overlayFBO;
+			GLuint overlayPipe;
 			GLint overlayTexWidth, overlayTexHeight;
 
 			GLuint UBOs[2];

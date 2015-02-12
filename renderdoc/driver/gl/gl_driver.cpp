@@ -1438,34 +1438,14 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
 						if(vs != ResourceId())
 						{
-							ShaderReflection *refl = &m_Shaders[vs].reflection;
-
-							// copy over attrib bindings
-							for(int32_t i=0; i < refl->InputSig.count; i++)
-							{
-								// skip built-ins
-								if(refl->InputSig[i].systemValue != eAttr_None)
-									continue;
-
-								GLint idx = glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
-								glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
-							}
+							CopyProgramAttribBindings(m_Real, progsrc, progdst, &m_Shaders[vs].reflection);
 						}
 
 						if(fs != ResourceId())
 						{
 							ShaderReflection *refl = &m_Shaders[fs].reflection;
-
-							// copy over fragdata bindings
-							for(int32_t i=0; i < refl->OutputSig.count; i++)
-							{
-								// only look at colour outputs (should be the only outputs from fs)
-								if(refl->OutputSig[i].systemValue != eAttr_ColourOutput)
-									continue;
-
-								GLint idx = glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
-								glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
-							}
+							
+							CopyProgramFragDataBindings(m_Real, progsrc, progdst, &m_Shaders[fs].reflection);
 						}
 
 						// link new program

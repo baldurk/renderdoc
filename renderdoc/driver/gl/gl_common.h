@@ -131,8 +131,12 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
 #include "serialise/serialiser.h"
 #include "core/core.h"
 
+struct ShaderReflection;
+
 void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
 void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, map<GLint, GLint> *locTranslate, bool writing);
+void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl);
+void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 
 struct DrawElementsIndirectCommand
 {
