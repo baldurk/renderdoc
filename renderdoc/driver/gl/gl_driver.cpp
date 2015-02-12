@@ -1472,12 +1472,14 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 							// copy uniforms
 							CopyProgramUniforms(m_Real, progsrc, progdst);
 
+							ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
+
 							// replaceresource
-							GetResourceManager()->ReplaceResource(GetResourceManager()->GetOriginalID(progsrcid), progdstid);
+							GetResourceManager()->ReplaceResource(origsrcid, progdstid);
 
 							// insert into m_DependentReplacements
 							auto insertPos = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), from, ReplacementSearch());
-							m_DependentReplacements.insert(insertPos, std::make_pair(from, Replacement(progsrcid, ProgramRes(GetCtx(), progdst))));
+							m_DependentReplacements.insert(insertPos, std::make_pair(from, Replacement(origsrcid, ProgramRes(GetCtx(), progdst))));
 						}
 
 						break;
