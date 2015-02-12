@@ -1409,6 +1409,10 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 					case eGL_DOUBLE:
 					case eGL_FLOAT_VEC2:
 					case eGL_DOUBLE_VEC2:
+					case eGL_FLOAT_VEC3:
+					case eGL_DOUBLE_VEC3:
+					case eGL_FLOAT_VEC4:
+					case eGL_DOUBLE_VEC4:
 					case eGL_FLOAT_MAT4:
 					case eGL_DOUBLE_MAT4:
 					case eGL_FLOAT_MAT4x3:
