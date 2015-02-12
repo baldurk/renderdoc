@@ -758,6 +758,15 @@ bool D3D11DebugManager::InitDebugRendering()
 
 	m_DebugRender.publicCBufIdx = 0;
 	
+	string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
+
+	m_DebugRender.CopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
+	m_DebugRender.CopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
+	m_DebugRender.FloatCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
+	m_DebugRender.FloatCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
+	m_DebugRender.DepthCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
+	m_DebugRender.DepthCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+
 	if(RenderDoc::Inst().IsReplayApp())
 	{
 		string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
@@ -822,15 +831,6 @@ bool D3D11DebugManager::InitDebugRendering()
 		m_DebugRender.PixelHistoryUnusedCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryUnused", "cs_5_0");
 		m_DebugRender.PixelHistoryCopyCS = MakeCShader(displayhlsl.c_str(), "RENDERDOC_PixelHistoryCopyPixel", "cs_5_0");
 		m_DebugRender.PrimitiveIDPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_PrimitiveIDPS", "ps_5_0");
-
-		string multisamplehlsl = GetEmbeddedResource(multisample_hlsl);
-
-		m_DebugRender.CopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyMSToArray", "ps_5_0");
-		m_DebugRender.CopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_CopyArrayToMS", "ps_5_0");
-		m_DebugRender.FloatCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyMSToArray", "ps_5_0");
-		m_DebugRender.FloatCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
-		m_DebugRender.DepthCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
-		m_DebugRender.DepthCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
 
 		string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
 		histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
