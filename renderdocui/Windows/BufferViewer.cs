@@ -914,22 +914,29 @@ namespace renderdocui.Windows
                                                      input.IndexOffset + input.Drawcall.indexOffset * input.Drawcall.indexByteWidth,
                                                      ret.IndexCount * input.Drawcall.indexByteWidth);
 
-                    ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
-
-                    if (input.Drawcall.indexByteWidth == 2)
+                    if (input.Drawcall.indexByteWidth == 0 || rawidxs == null || rawidxs.Length == 0)
                     {
-                        ushort[] tmp = new ushort[rawidxs.Length / 2];
-
-                        Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
-
-                        for (int i = 0; i < tmp.Length; i++)
-                        {
-                            ret.Indices[i] = tmp[i];
-                        }
+                        ret.Indices = new uint[0] { };
                     }
-                    else if (input.Drawcall.indexByteWidth == 4)
+                    else
                     {
-                        Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                        ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
+
+                        if (input.Drawcall.indexByteWidth == 2)
+                        {
+                            ushort[] tmp = new ushort[rawidxs.Length / 2];
+
+                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
+
+                            for (int i = 0; i < tmp.Length; i++)
+                            {
+                                ret.Indices[i] = tmp[i];
+                            }
+                        }
+                        else if (input.Drawcall.indexByteWidth == 4)
+                        {
+                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                        }
                     }
 
                     uint minIndex = ret.Indices.Length > 0 ? ret.Indices[0] : 0;
@@ -963,7 +970,7 @@ namespace renderdocui.Windows
                                                      input.IndexOffset + input.Drawcall.indexOffset * input.Drawcall.indexByteWidth,
                                                      ret.IndexCount * input.Drawcall.indexByteWidth);
 
-                    if (input.Drawcall.indexByteWidth == 0)
+                    if (input.Drawcall.indexByteWidth == 0 || rawidxs == null || rawidxs.Length == 0)
                     {
                         ret.Indices = new uint[0];
                     }
