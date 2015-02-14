@@ -145,6 +145,17 @@ namespace renderdocui.Windows
         }
         private Following m_Following = new Following(FollowType.RT_UAV, 0);
 
+        public class TexSettings
+        {
+            public TexSettings() { r = g = b = true; a = false; mip = 0; slice = 0; }
+
+            public bool r, g, b, a;
+            public bool depth, stencil;
+            public int mip, slice;
+        }
+
+        private Dictionary<ResourceId, TexSettings> m_TextureSettings = new Dictionary<ResourceId, TexSettings>();
+
         #endregion
 
         public TextureViewer(Core core)
@@ -763,6 +774,8 @@ namespace renderdocui.Windows
 
             m_Output = null;
 
+            m_TextureSettings.Clear();
+
             saveTex.Enabled = false;
 
             rtPanel.ClearThumbnails();
@@ -1116,13 +1129,24 @@ namespace renderdocui.Windows
 
             if (tex == null) return;
 
-            if (m_TexDisplay.texid != tex.ID &&
-                m_Core.Config.TextureViewer_ResetRange)
+            bool newtex = (m_TexDisplay.texid != tex.ID);
+
+            // save settings for this current texture
+            if (m_Core.Config.TextureViewer_PerTexSettings)
             {
-                rangeHistogram.RangeMin = 0.0f;
-                rangeHistogram.RangeMax = 1.0f;
-                rangeHistogram.BlackPoint = 0.0f;
-                rangeHistogram.WhitePoint = 1.0f;
+                if (!m_TextureSettings.ContainsKey(m_TexDisplay.texid))
+                    m_TextureSettings.Add(m_TexDisplay.texid, new TexSettings());
+
+                m_TextureSettings[m_TexDisplay.texid].r = customRed.Checked;
+                m_TextureSettings[m_TexDisplay.texid].g = customGreen.Checked;
+                m_TextureSettings[m_TexDisplay.texid].b = customBlue.Checked;
+                m_TextureSettings[m_TexDisplay.texid].a = customAlpha.Checked;
+
+                m_TextureSettings[m_TexDisplay.texid].depth = depthDisplay.Checked;
+                m_TextureSettings[m_TexDisplay.texid].stencil = stencilDisplay.Checked;
+
+                m_TextureSettings[m_TexDisplay.texid].mip = mipLevel.SelectedIndex;
+                m_TextureSettings[m_TexDisplay.texid].slice = sliceFace.SelectedIndex;
             }
 
             m_TexDisplay.texid = tex.ID;
@@ -1203,6 +1227,50 @@ namespace renderdocui.Windows
                 }
 
                 sliceFace.SelectedIndex = (int)m_Following.GetFirstArraySlice(m_Core);
+            }
+
+            // mip and slice were reset to 0 above, we must restore any per-tex settings to apply
+            // even if we don't switch to a new texture
+            if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
+            {
+                mipLevel.SelectedIndex = m_TextureSettings[tex.ID].mip;
+                sliceFace.SelectedIndex = m_TextureSettings[tex.ID].slice;
+            }
+
+            // handling for if we've switched to a new texture
+            if (newtex)
+            {
+                // if we save certain settings per-texture, restore them (if we have any)
+                if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
+                {
+                    customRed.Checked = m_TextureSettings[tex.ID].r;
+                    customGreen.Checked = m_TextureSettings[tex.ID].g;
+                    customBlue.Checked = m_TextureSettings[tex.ID].b;
+                    customAlpha.Checked = m_TextureSettings[tex.ID].a;
+
+                    depthDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].depth;
+                    stencilDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].stencil;
+                }
+                else if (m_Core.Config.TextureViewer_PerTexSettings)
+                {
+                    // if we are using per-tex settings, reset back to RGB
+                    customRed.Checked = true;
+                    customGreen.Checked = true;
+                    customBlue.Checked = true;
+                    customAlpha.Checked = false;
+
+                    stencilDisplay.Checked = false;
+                    depthDisplay.Checked = true;
+                }
+
+                // reset the range if desired
+                if (m_Core.Config.TextureViewer_ResetRange)
+                {
+                    rangeHistogram.RangeMin = 0.0f;
+                    rangeHistogram.RangeMax = 1.0f;
+                    rangeHistogram.BlackPoint = 0.0f;
+                    rangeHistogram.WhitePoint = 1.0f;
+                }
             }
 
             UI_UpdateFittedScale();

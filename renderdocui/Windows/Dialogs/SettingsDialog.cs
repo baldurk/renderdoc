@@ -58,6 +58,7 @@ namespace renderdocui.Windows.Dialogs
             pagesTree.FocusedNode = pagesTree.Nodes[0];
 
             TextureViewer_ResetRange.Checked = m_Core.Config.TextureViewer_ResetRange;
+            TextureViewer_PerTexSettings.Checked = m_Core.Config.TextureViewer_PerTexSettings;
             ShaderViewer_FriendlyNaming.Checked = m_Core.Config.ShaderViewer_FriendlyNaming;
             CheckUpdate_AllowChecks.Checked = m_Core.Config.CheckUpdate_AllowChecks;
 
@@ -105,6 +106,13 @@ namespace renderdocui.Windows.Dialogs
         private void TextureViewer_ResetRange_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.TextureViewer_ResetRange = TextureViewer_ResetRange.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void TextureViewer_PerTexSettings_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.TextureViewer_PerTexSettings = TextureViewer_PerTexSettings.Checked;
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }

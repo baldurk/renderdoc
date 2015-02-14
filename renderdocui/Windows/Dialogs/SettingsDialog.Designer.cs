@@ -43,6 +43,7 @@
             System.Windows.Forms.Label label11;
             System.Windows.Forms.GroupBox groupBox2;
             System.Windows.Forms.Label label10;
+            System.Windows.Forms.Label label14;
             System.Windows.Forms.GroupBox groupBox3;
             System.Windows.Forms.Label label12;
             System.Windows.Forms.GroupBox groupBox4;
@@ -66,6 +67,7 @@
             this.texViewTab = new System.Windows.Forms.TabPage();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.TextureViewer_ResetRange = new System.Windows.Forms.CheckBox();
+            this.TextureViewer_PerTexSettings = new System.Windows.Forms.CheckBox();
             this.shadViewTab = new System.Windows.Forms.TabPage();
             this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
             this.ShaderViewer_FriendlyNaming = new System.Windows.Forms.CheckBox();
@@ -88,6 +90,7 @@
             label11 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
             label10 = new System.Windows.Forms.Label();
+            label14 = new System.Windows.Forms.Label();
             groupBox3 = new System.Windows.Forms.GroupBox();
             label12 = new System.Windows.Forms.Label();
             groupBox4 = new System.Windows.Forms.GroupBox();
@@ -536,14 +539,16 @@
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 80F));
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel3.Controls.Add(this.TextureViewer_ResetRange, 1, 0);
+            this.tableLayoutPanel3.Controls.Add(this.TextureViewer_PerTexSettings, 1, 1);
             this.tableLayoutPanel3.Controls.Add(label10, 0, 0);
+            this.tableLayoutPanel3.Controls.Add(label14, 0, 1);
             this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-            this.tableLayoutPanel3.RowCount = 2;
+            this.tableLayoutPanel3.RowCount = 3;
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
             this.tableLayoutPanel3.Size = new System.Drawing.Size(361, 285);
             this.tableLayoutPanel3.TabIndex = 0;
             // 
@@ -559,6 +564,18 @@
             this.TextureViewer_ResetRange.UseVisualStyleBackColor = true;
             this.TextureViewer_ResetRange.CheckedChanged += new System.EventHandler(this.TextureViewer_ResetRange_CheckedChanged);
             // 
+            // TextureViewer_PerTexSettings
+            // 
+            this.TextureViewer_PerTexSettings.AutoSize = true;
+            this.TextureViewer_PerTexSettings.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.TextureViewer_PerTexSettings.Location = new System.Drawing.Point(291, 3);
+            this.TextureViewer_PerTexSettings.Name = "TextureViewer_PerTexSettings";
+            this.TextureViewer_PerTexSettings.Size = new System.Drawing.Size(67, 14);
+            this.TextureViewer_PerTexSettings.TabIndex = 20;
+            this.toolTip.SetToolTip(this.TextureViewer_PerTexSettings, "The visible channels (RGBA) and selected mip/slice are remembered and restored per-texture.");
+            this.TextureViewer_PerTexSettings.UseVisualStyleBackColor = true;
+            this.TextureViewer_PerTexSettings.CheckedChanged += new System.EventHandler(this.TextureViewer_PerTexSettings_CheckedChanged);
+            // 
             // label10
             // 
             label10.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
@@ -572,6 +589,20 @@
             label10.TabIndex = 4;
             label10.Text = "Reset Range on changing selection";
             label10.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // label14
+            // 
+            label14.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label14.AutoSize = true;
+            label14.Location = new System.Drawing.Point(3, 3);
+            label14.Margin = new System.Windows.Forms.Padding(3);
+            label14.Name = "label14";
+            label14.Size = new System.Drawing.Size(282, 14);
+            label14.TabIndex = 4;
+            label14.Text = "Visible channels & mip/slice saved per-texture";
+            label14.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // shadViewTab
             // 
@@ -799,6 +830,7 @@
         private System.Windows.Forms.Button capAssoc;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel3;
         private System.Windows.Forms.CheckBox TextureViewer_ResetRange;
+        private System.Windows.Forms.CheckBox TextureViewer_PerTexSettings;
         private System.Windows.Forms.TabPage shadViewTab;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel4;
         private System.Windows.Forms.CheckBox ShaderViewer_FriendlyNaming;
