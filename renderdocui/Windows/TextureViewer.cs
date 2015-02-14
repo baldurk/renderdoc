@@ -1613,12 +1613,25 @@ namespace renderdocui.Windows
 
             channelStrip.SuspendLayout();
 
-            if (tex != null && !tex.format.srgbCorrected)
-                gammaDisplay.Enabled = true;
-            else
+            if (tex != null && (tex.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+            {
+                // swapbuffer is always srgb for 8-bit types, linear for 16-bit types
                 gammaDisplay.Enabled = false;
 
-            m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
+                if (tex.format.compByteWidth == 2 && !tex.format.special)
+                    m_TexDisplay.linearDisplayAsGamma = false;
+                else
+                    m_TexDisplay.linearDisplayAsGamma = true;
+            }
+            else
+            {
+                if (tex != null && !tex.format.srgbCorrected)
+                    gammaDisplay.Enabled = true;
+                else
+                    gammaDisplay.Enabled = false;
+
+                m_TexDisplay.linearDisplayAsGamma = gammaDisplay.Checked;
+            }
 
             if (tex != null && (tex.creationFlags & TextureCreationFlags.DSV) > 0 &&
                 (string)channels.SelectedItem != "Custom")

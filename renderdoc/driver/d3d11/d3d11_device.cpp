@@ -2679,6 +2679,23 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 									dst[1] = src[1];
 									dst[2] = src[0];
 								}
+								else if(fmt.compByteWidth == 2) // R16G16B16A16 backbuffer
+								{
+									uint16_t *src16 = (uint16_t *)src;
+
+									float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
+									float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
+									float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
+
+									if(linearR < 0.0031308f) dst[0] = byte(255.0f*(12.92f * linearR));
+									else                     dst[0] = byte(255.0f*(1.055f * powf(linearR, 1.0f/2.4f) - 0.055f));
+
+									if(linearG < 0.0031308f) dst[1] = byte(255.0f*(12.92f * linearG));
+									else                     dst[1] = byte(255.0f*(1.055f * powf(linearG, 1.0f/2.4f) - 0.055f));
+
+									if(linearB < 0.0031308f) dst[2] = byte(255.0f*(12.92f * linearB));
+									else                     dst[2] = byte(255.0f*(1.055f * powf(linearB, 1.0f/2.4f) - 0.055f));
+								}
 								else
 								{
 									dst[0] = src[0];
