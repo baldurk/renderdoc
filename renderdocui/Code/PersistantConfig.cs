@@ -48,7 +48,6 @@ namespace renderdocui.Code
         public string CaptureSavePath = "";
 
         public bool TextureViewer_ResetRange = false;
-        public bool TextureViewer_DisableThumbnails = false;
         public bool ShaderViewer_FriendlyNaming = true;
 
         public List<string> RecentHosts = new List<string>();

@@ -412,9 +412,6 @@ namespace renderdocui.Windows
             return writer.ToString();
         }
 
-        private bool DisableThumbnails { get { return m_Core != null && m_Core.Config != null && 
-                                                      m_Core.Config.TextureViewer_DisableThumbnails; } }
-
         #region Public Functions
 
         private Dictionary<ResourceId, DockContent> lockedTabs = new Dictionary<ResourceId, DockContent>();
@@ -879,7 +876,7 @@ namespace renderdocui.Windows
                         IntPtr handle = prev.ThumbnailHandle;
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                         {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : Depth);
+                            m_Output.AddThumbnail(handle, Depth);
                         });
                     }
                     else if (buf != null)
@@ -931,7 +928,7 @@ namespace renderdocui.Windows
                         ResourceId id = RTs[i];
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                         {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : id);
+                            m_Output.AddThumbnail(handle, id);
                         });
                     }
                     else if (buf != null)
@@ -1017,7 +1014,7 @@ namespace renderdocui.Windows
                         ResourceId id = Texs[i];
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                         {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : id);
+                            m_Output.AddThumbnail(handle, id);
                         });
                     }
                     else
