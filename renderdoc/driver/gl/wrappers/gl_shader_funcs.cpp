@@ -330,6 +330,9 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 			sources[i] = &src[i][0];
 
 		GLuint real = m_Real.glCreateShaderProgramv(Type, Count, sources);
+		// we want a separate program that we can mess about with for making overlays
+		// and relink without having to worry about restoring the 'real' program state.
+		GLuint sepprog = MakeSeparableShaderProgram(m_Real, Type, src, NULL);
 
 		delete[] sources;
 		
@@ -349,7 +352,7 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 
 		shadDetails.type = Type;
 		shadDetails.sources.swap(src);
-		shadDetails.prog = real;
+		shadDetails.prog = sepprog;
 		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 
 		create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
