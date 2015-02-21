@@ -2669,16 +2669,19 @@ void GLReplay::BuildTargetShader(string source, string entry, const uint32_t com
 
 void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
+	MakeCurrentReplayContext(&m_ReplayCtx);
 	m_pDriver->ReplaceResource(from, to);
 }
 
 void GLReplay::RemoveReplacement(ResourceId id)
 {
+	MakeCurrentReplayContext(&m_ReplayCtx);
 	m_pDriver->RemoveReplacement(id);
 }
 
 void GLReplay::FreeTargetResource(ResourceId id)
 {
+	MakeCurrentReplayContext(&m_ReplayCtx);
 	m_pDriver->FreeTargetResource(id);
 }
 

@@ -1474,8 +1474,8 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 
 							ResourceId origsrcid = GetResourceManager()->GetOriginalID(progsrcid);
 
-							// replaceresource
-							GetResourceManager()->ReplaceResource(origsrcid, progdstid);
+							// recursively call to replaceresource (different type - these are programs)
+							ReplaceResource(origsrcid, progdstid);
 
 							// insert into m_DependentReplacements
 							auto insertPos = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), from, ReplacementSearch());
@@ -1487,25 +1487,98 @@ void WrappedOpenGL::ReplaceResource(ResourceId from, ResourceId to)
 				}
 			}
 		}
-	}
 
-	GetResourceManager()->ReplaceResource(from, to);
+		if(resource.Namespace == eResProgram)
+		{
+			// need to replace all pipelines that use this program
+			for(auto it=m_Pipelines.begin(); it != m_Pipelines.end(); ++it)
+			{
+				ResourceId pipesrcid = it->first;
+				PipelineData &pipedata = it->second;
+
+				// see if the program is used
+				for(int i=0; i < 6; i++)
+				{
+					if(pipedata.stagePrograms[i] == livefrom)
+					{
+						// make a new pipeline
+						GLuint pipedst = 0;
+						glGenProgramPipelines(1, &pipedst);
+
+						ResourceId pipedstid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipedst));
+
+						// attach all but the i'th program
+						for(int j=0; j < 6; j++)
+						{
+							if(i != j && pipedata.stagePrograms[j] != ResourceId())
+							{
+								// if this stage was provided by the program we're replacing, use that instead
+								if(pipedata.stagePrograms[i] == pipedata.stagePrograms[j])
+									glUseProgramStages(pipedst, ShaderBit(j), resource.name);
+								else
+									glUseProgramStages(pipedst, ShaderBit(j), GetResourceManager()->GetCurrentResource(pipedata.stagePrograms[j]).name);
+							}
+						}
+
+						// attach the new program in our stage
+						glUseProgramStages(pipedst, ShaderBit(i), resource.name);
+
+						ResourceId origsrcid = GetResourceManager()->GetOriginalID(pipesrcid);
+
+						// recursively call to replaceresource (different type - these are programs)
+						ReplaceResource(origsrcid, pipedstid);
+
+						// insert into m_DependentReplacements
+						auto insertPos = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), from, ReplacementSearch());
+						m_DependentReplacements.insert(insertPos, std::make_pair(from, Replacement(origsrcid, ProgramPipeRes(GetCtx(), pipedst))));
+					}
+				}
+			}
+		}
+
+		// do actual replacement
+		GLResource fromresource = GetResourceManager()->GetLiveResource(from);
+
+		// if they're the same type it's easy, but it could be we want to replace a shader
+		// inside a program which never had a shader (ie. glCreateShaderProgramv)
+		if(fromresource.Namespace == resource.Namespace)
+		{
+			GetResourceManager()->ReplaceResource(from, to);
+		}
+		else if(fromresource.Namespace == eResProgram && resource.Namespace == eResShader)
+		{
+			// if we want to replace a program with a shader, assume it's just a program with only one
+			// shader attached. This will have been handled above in the "programs dependent on this
+			// shader", so we can just skip doing anything here
+		}
+		else
+		{
+			RDCERR("Unsupported replacement type from type %d to type %d", fromresource.Namespace, resource.Namespace);
+		}
+	}
 }
 
 void WrappedOpenGL::RemoveReplacement(ResourceId id)
 {
+	// do actual removal
 	GetResourceManager()->RemoveReplacement(id);
+
+	std::set<ResourceId> recurse;
 
 	// check if there are any dependent replacements, remove if so
 	auto it = std::lower_bound(m_DependentReplacements.begin(), m_DependentReplacements.end(), id, ReplacementSearch());
 	for(; it != m_DependentReplacements.end(); )
 	{
 		GetResourceManager()->RemoveReplacement(it->second.id);
+		recurse.insert(it->second.id);
 
 		switch(it->second.res.Namespace)
 		{
 			case eResProgram:
 				glDeleteProgram(it->second.res.name);
+				break;
+			case eResProgramPipe:
+				glDeleteProgramPipelines(1, &it->second.res.name);
 				break;
 			default:
 				RDCERR("Unexpected resource type to be freed");
@@ -1513,6 +1586,12 @@ void WrappedOpenGL::RemoveReplacement(ResourceId id)
 		}
 
 		it = m_DependentReplacements.erase(it);
+	}
+
+	for(auto recurseit = recurse.begin(); recurseit != recurse.end(); ++recurseit)
+	{
+		// recursive call in case there are any dependents on this resource
+		RemoveReplacement(*recurseit);
 	}
 }
 
