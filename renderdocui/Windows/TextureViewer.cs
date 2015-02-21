@@ -57,7 +57,7 @@ namespace renderdocui.Windows
 
         private FileSystemWatcher m_FSWatcher = null;
 
-        public enum FollowType { RT_UAV, Depth, PSResource }
+        public enum FollowType { OutputColour, OutputDepth, ReadWriteRes, PSResource }
         struct Following
         {
             public FollowType Type;
@@ -90,16 +90,18 @@ namespace renderdocui.Windows
                 {
                     D3D11PipelineState.ShaderStage.ResourceView view = null;
 
-                    if (Type == FollowType.RT_UAV)
+                    if (Type == FollowType.OutputColour)
                     {
                         view = core.CurD3D11PipelineState.m_OM.RenderTargets[index];
-
-                        if (view.Resource == ResourceId.Null && index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
-                            view = core.CurD3D11PipelineState.m_OM.UAVs[index - core.CurD3D11PipelineState.m_OM.UAVStartSlot];
                     }
-                    else if (Type == FollowType.Depth)
+                    else if (Type == FollowType.OutputDepth)
                     {
                         view = core.CurD3D11PipelineState.m_OM.DepthTarget;
+                    }
+                    else if (Type == FollowType.ReadWriteRes)
+                    {
+                        if (index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
+                            view = core.CurD3D11PipelineState.m_OM.UAVs[index - core.CurD3D11PipelineState.m_OM.UAVStartSlot];
                     }
                     else if (Type == FollowType.PSResource)
                     {
@@ -110,6 +112,11 @@ namespace renderdocui.Windows
                 }
                 else
                 {
+                    if (Type == FollowType.ReadWriteRes)
+                    {
+                        if(!core.CurGLPipelineState.Images[index].Layered)
+                            return core.CurGLPipelineState.Images[index].Layer;
+                    }
                     if (Type == FollowType.PSResource)
                     {
                         return core.CurGLPipelineState.Textures[index].FirstSlice;
@@ -123,15 +130,23 @@ namespace renderdocui.Windows
             {
                 ResourceId id = ResourceId.Null;
 
-                if (Type == FollowType.RT_UAV)
+                if (Type == FollowType.OutputColour)
                 {
                     var outputs = core.CurPipelineState.GetOutputTargets();
-                    if(outputs.Length > index)
+
+                    if(index < outputs.Length)
                         id = outputs[index];
                 }
-                else if (Type == FollowType.Depth)
+                else if (Type == FollowType.OutputDepth)
                 {
                     id = core.CurPipelineState.OutputDepth;
+                }
+                else if (Type == FollowType.ReadWriteRes)
+                {
+                    var rw = core.CurPipelineState.GetReadWriteResources();
+
+                    if (index < rw.Length)
+                        id = rw[index];
                 }
                 else if (Type == FollowType.PSResource)
                 {
@@ -143,7 +158,7 @@ namespace renderdocui.Windows
                 return id;
             }
         }
-        private Following m_Following = new Following(FollowType.RT_UAV, 0);
+        private Following m_Following = new Following(FollowType.OutputColour, 0);
 
         public class TexSettings
         {
@@ -205,7 +220,7 @@ namespace renderdocui.Windows
 
             FitToWindow = true;
             overlay.SelectedIndex = 0;
-            m_Following = new Following(FollowType.RT_UAV, 0);
+            m_Following = new Following(FollowType.OutputColour, 0);
 
             texturefilter.SelectedIndex = 0;
 
@@ -724,7 +739,7 @@ namespace renderdocui.Windows
 
             saveTex.Enabled = true;
 
-            m_Following = new Following(FollowType.RT_UAV, 0);
+            m_Following = new Following(FollowType.OutputColour, 0);
 
             IntPtr contextHandle = pixelContext.Handle;
             IntPtr renderHandle = render.Handle;
@@ -835,6 +850,7 @@ namespace renderdocui.Windows
             UI_OnTextureSelectionChanged();
 
             ResourceId[] RTs = m_Core.CurPipelineState.GetOutputTargets();
+            ResourceId[] RWs = m_Core.CurPipelineState.GetReadWriteResources();
             ResourceId Depth = m_Core.CurPipelineState.OutputDepth;
             ResourceId[] Texs = null;
 
@@ -858,20 +874,154 @@ namespace renderdocui.Windows
                 mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
             }
 
-            uint firstuav = uint.MaxValue;
-
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 &&
-                m_Core.CurD3D11PipelineState != null &&
-                m_Core.CurD3D11PipelineState.m_OM.UAVs.Length > 0 &&
-                m_Core.CurD3D11PipelineState.m_OM.UAVs[0].Resource != ResourceId.Null)
-                firstuav = m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
-
             if (m_Output == null) return;
 
             int i = 0;
-            foreach (var prev in rtPanel.Thumbnails)
+            for(int rt=0; rt < RTs.Length; rt++)
             {
-                if (prev.SlotName == "D" && Depth != ResourceId.Null)
+                var prev = rtPanel.Thumbnails[i];
+
+                if (RTs[rt] != ResourceId.Null)
+                {
+                    FetchTexture tex = null;
+                    foreach (var t in m_Core.CurTextures)
+                        if (t.ID == RTs[rt])
+                            tex = t;
+
+                    FetchBuffer buf = null;
+                    foreach (var b in m_Core.CurBuffers)
+                        if (b.ID == RTs[rt])
+                            buf = b;
+
+                    string bindName = "";
+
+                    if (tex != null)
+                    {
+                        prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
+                        IntPtr handle = prev.ThumbnailHandle;
+                        ResourceId id = RTs[rt];
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                        {
+                            m_Output.AddThumbnail(handle, id);
+                        });
+                    }
+                    else if (buf != null)
+                    {
+                        prev.Init(!buf.customName && bindName.Length > 0 ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
+                        IntPtr handle = prev.ThumbnailHandle;
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                        {
+                            m_Output.AddThumbnail(handle, ResourceId.Null);
+                        });
+                    }
+                    else
+                    {
+                        prev.Init();
+                    }
+
+                    prev.Tag = new Following(FollowType.OutputColour, rt);
+                    prev.SlotName = rt.ToString();
+                    prev.Visible = true;
+                }
+                else if (prev.Selected)
+                {
+                    prev.Init();
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, ResourceId.Null);
+                    });
+                }
+                else
+                {
+                    prev.Init();
+                    prev.Visible = false;
+                }
+
+                i++;
+            }
+
+            for(int rw=0; rw < RTs.Length; rw++)
+            {
+                var prev = rtPanel.Thumbnails[i];
+
+                if (RWs[rw] != ResourceId.Null)
+                {
+                    FetchTexture tex = null;
+                    foreach (var t in m_Core.CurTextures)
+                        if (t.ID == RWs[rw])
+                            tex = t;
+
+                    FetchBuffer buf = null;
+                    foreach (var b in m_Core.CurBuffers)
+                        if (b.ID == RWs[rw])
+                            buf = b;
+
+                    string bindName = "";
+
+                    if (details != null)
+                    {
+                        foreach (var bind in details.Resources)
+                        {
+                            if (mapping.Resources[bind.bindPoint].bind == rw && bind.IsReadWrite)
+                            {
+                                bindName = "<" + bind.name + ">";
+                            }
+                        }
+                    }
+
+                    if (tex != null)
+                    {
+                        prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
+                        IntPtr handle = prev.ThumbnailHandle;
+                        ResourceId id = RWs[rw];
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                        {
+                            m_Output.AddThumbnail(handle, id);
+                        });
+                    }
+                    else if (buf != null)
+                    {
+                        prev.Init(!buf.customName && bindName.Length > 0 ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
+                        IntPtr handle = prev.ThumbnailHandle;
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                        {
+                            m_Output.AddThumbnail(handle, ResourceId.Null);
+                        });
+                    }
+                    else
+                    {
+                        prev.Init();
+                    }
+
+                    prev.Tag = new Following(FollowType.ReadWriteRes, rw);
+                    prev.SlotName = "RW" + rw;
+                    prev.Visible = true;
+                }
+                else if (prev.Selected)
+                {
+                    prev.Init();
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, ResourceId.Null);
+                    });
+                }
+                else
+                {
+                    prev.Init();
+                    prev.Visible = false;
+                }
+
+                i++;
+            }
+
+            for (; i < rtPanel.Thumbnails.Length; i++)
+            {
+                var prev = rtPanel.Thumbnails[i];
+
+                // depth thumbnail is always the last one
+                if (i == rtPanel.Thumbnails.Length - 1 && Depth != ResourceId.Null)
                 {
                     FetchTexture tex = null;
                     foreach (var t in m_Core.CurTextures)
@@ -906,65 +1056,7 @@ namespace renderdocui.Windows
                         prev.Init();
                     }
 
-                    prev.Tag = new Following(FollowType.Depth, 0);
-                    prev.Visible = true;
-                }
-                else if (i < RTs.Length && RTs[i] != ResourceId.Null)
-                {
-                    FetchTexture tex = null;
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == RTs[i])
-                            tex = t;
-
-                    FetchBuffer buf = null;
-                    foreach (var b in m_Core.CurBuffers)
-                        if (b.ID == RTs[i])
-                            buf = b;
-
-                    string bindName = "";
-
-                    if (details != null && i >= firstuav)
-                    {
-                        foreach (var bind in details.Resources)
-                        {
-                            if (mapping.Resources[bind.bindPoint].bind == i && bind.IsReadWrite)
-                            {
-                                bindName = "<" + bind.name + ">";
-                            }
-                        }
-                    }
-
-                    if (tex != null)
-                    {
-                        prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
-                        IntPtr handle = prev.ThumbnailHandle;
-                        ResourceId id = RTs[i];
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, id);
-                        });
-                    }
-                    else if (buf != null)
-                    {
-                        prev.Init(!buf.customName && bindName.Length > 0 ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
-                        IntPtr handle = prev.ThumbnailHandle;
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, ResourceId.Null);
-                        });
-                    }
-                    else
-                    {
-                        prev.Init();
-                    }
-
-                    prev.Tag = new Following(FollowType.RT_UAV, i);
-
-                    if (i >= firstuav)
-                        prev.SlotName = "U" + i;
-                    else
-                        prev.SlotName = i.ToString();
-
+                    prev.Tag = new Following(FollowType.OutputDepth, 0);
                     prev.Visible = true;
                 }
                 else if (prev.Selected)
@@ -981,8 +1073,6 @@ namespace renderdocui.Windows
                     prev.Init();
                     prev.Visible = false;
                 }
-
-                i++;
             }
 
             rtPanel.RefreshLayout();
@@ -1081,7 +1171,7 @@ namespace renderdocui.Windows
             rtPanel.SuspendLayout();
             texPanel.SuspendLayout();
 
-            for (int i = 0; i < 8; i++)
+            for (int i = 0; i < 64; i++)
             {
                 var prev = new ResourcePreview(m_Core, m_Output);
                 prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
@@ -1376,14 +1466,14 @@ namespace renderdocui.Windows
                 {
                     switch (m_Following.Type)
                     {
-                        case FollowType.RT_UAV:
-                            m_PreviewPanel.Text = string.Format("Cur OM Target {0} - {1}", m_Following.index, tex.name);
+                        case FollowType.OutputColour:
+                            m_PreviewPanel.Text = string.Format("Cur Colour Output {0} - {1}", m_Following.index, tex.name);
                             break;
-                        case FollowType.Depth:
-                            m_PreviewPanel.Text = string.Format("Cur DSV - {0}", tex.name);
+                        case FollowType.OutputDepth:
+                            m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", tex.name);
                             break;
                         case FollowType.PSResource:
-                            m_PreviewPanel.Text = string.Format("Cur PS SRV {0} - {1}", m_Following.index, tex.name);
+                            m_PreviewPanel.Text = string.Format("Cur PS Resource {0} - {1}", m_Following.index, tex.name);
                             break;
                     }
                 }

@@ -588,6 +588,35 @@ namespace renderdocui.Code
             return ResourceId.Null;
         }
 
+        public ResourceId[] GetReadWriteResources()
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    ResourceId[] ret = new ResourceId[m_D3D11.m_OM.RenderTargets.Length];
+                    for (int i = (int)m_D3D11.m_OM.UAVStartSlot; i < m_D3D11.m_OM.RenderTargets.Length; i++)
+                    {
+                        ret[i] = m_D3D11.m_OM.UAVs[i - m_D3D11.m_OM.UAVStartSlot].Resource;
+                    }
+
+                    return ret;
+                }
+                else if (IsLogGL)
+                {
+                    ResourceId[] ret = new ResourceId[m_GL.Images.Length];
+                    for (int i = 0; i < m_GL.Images.Length; i++)
+                    {
+                        ret[i] = m_GL.Images[i].Resource;
+                    }
+
+                    return ret;
+                }
+            }
+
+            return null;
+        }
+
         public ResourceId[] GetOutputTargets()
         {
             if (LogLoaded)
@@ -596,11 +625,7 @@ namespace renderdocui.Code
                 {
                     ResourceId[] ret = new ResourceId[m_D3D11.m_OM.RenderTargets.Length];
                     for (int i = 0; i < m_D3D11.m_OM.RenderTargets.Length; i++)
-                    {
                         ret[i] = m_D3D11.m_OM.RenderTargets[i].Resource;
-                        if (ret[i] == ResourceId.Null && i > m_D3D11.m_OM.UAVStartSlot)
-                            ret[i] = m_D3D11.m_OM.UAVs[i - m_D3D11.m_OM.UAVStartSlot].Resource;
-                    }
 
                     return ret;
                 }
