@@ -203,6 +203,57 @@ void WrappedOpenGL::glGenQueries(GLsizei count, GLuint *ids)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateQueries(GLenum target, GLsizei n, GLuint* ids)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
+	SERIALISE_ELEMENT(GLenum, Target, target);
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateQueries(Target, 1, &real);
+		
+		GLResource res = QueryRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
+{
+	m_Real.glCreateQueries(target, count, ids);
+
+	for(GLsizei i=0; i < count; i++)
+	{
+		GLResource res = QueryRes(GetCtx(), ids[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_QUERIES);
+				Serialise_glCreateQueries(target, 1, ids+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);

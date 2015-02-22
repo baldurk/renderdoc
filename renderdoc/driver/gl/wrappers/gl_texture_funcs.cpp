@@ -104,6 +104,68 @@ void WrappedOpenGL::glGenTextures(GLsizei n, GLuint* textures)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateTextures(GLenum target, GLsizei n, GLuint* textures)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
+	SERIALISE_ELEMENT(GLenum, Target, target);
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateTextures(Target, 1, &real);
+		
+		GLResource res = TextureRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+
+		m_Textures[live].resource = res;
+		m_Textures[live].curType = TextureTarget(Target);
+		m_Textures[live].creationFlags |= eTextureCreate_SRV;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateTextures(GLenum target, GLsizei n, GLuint* textures)
+{
+	m_Real.glCreateTextures(target, n, textures);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = TextureRes(GetCtx(), textures[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_TEXTURE);
+				Serialise_glCreateTextures(target, 1, textures+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->datatype = TextureBinding(target);
+			m_Textures[id].resource = res;
+			m_Textures[id].curType = TextureTarget(target);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+			m_Textures[id].resource = res;
+			m_Textures[id].curType = TextureTarget(target);
+			m_Textures[id].creationFlags |= eTextureCreate_SRV;
+		}
+	}
+}
+
 void WrappedOpenGL::glDeleteTextures(GLsizei n, const GLuint *textures)
 {
 	for(GLsizei i=0; i < n; i++)

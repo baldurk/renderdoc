@@ -44,6 +44,7 @@ const char *GLChunkNames[] =
 	"WrappedOpenGL::Initialisation",
 
 	"glGenTextures",
+	"glCreateTextures",
 	"glBindTexture",
 	"glBindTextures",
 	"glBindMultiTexture",
@@ -111,6 +112,7 @@ const char *GLChunkNames[] =
 	"glCompileShaderIncludeARB",
 
 	"glGenTransformFeedbacks",
+	"glCreateTransformFeedbacks",
 	"glBindTransformFeedback",
 	"glBeginTransformFeedback",
 	"glEndTransformFeedback",
@@ -118,6 +120,7 @@ const char *GLChunkNames[] =
 	"glResumeTransformFeedback",
 	
 	"glGenProgramPipelines",
+	"glCreateProgramPipelines",
 	"glUseProgramStages",
 	"glBindProgramPipeline",
 
@@ -126,6 +129,7 @@ const char *GLChunkNames[] =
 	"glWaitSync",
 
 	"glGenQueries",
+	"glCreateQueries",
 	"glBeginQuery",
 	"glBeginQueryIndexed",
 	"glEndQuery",
@@ -236,6 +240,7 @@ const char *GLChunkNames[] =
 	"glMultiDrawElementsIndirectCountARB",
 
 	"glGenFramebuffers",
+	"glCreateFramebuffers",
 	"glFramebufferTexture",
 	"glFramebufferTexture1D",
 	"glFramebufferTexture2D",
@@ -250,10 +255,12 @@ const char *GLChunkNames[] =
 	"glBlitFramebuffer",
 
 	"glGenRenderbuffers",
+	"glCreateRenderbuffers",
 	"glRenderbufferStorage",
 	"glRenderbufferStorageMultisample",
 
 	"glGenSamplers",
+	"glCreateSamplers",
 	"glSamplerParameteri",
 	"glSamplerParameterf",
 	"glSamplerParameteriv",
@@ -264,6 +271,7 @@ const char *GLChunkNames[] =
 	"glBindSamplers",
 
 	"glGenBuffers",
+	"glCreateBuffers",
 	"glBindBuffer",
 	"glBindBufferBase",
 	"glBindBufferRange",
@@ -276,6 +284,7 @@ const char *GLChunkNames[] =
 	"glUnmapBuffer",
 	"glFlushMappedBufferRange",
 	"glGenVertexArrays",
+	"glCreateVertexArrays",
 	"glBindVertexArray",
 	"glVertexAttrib*",
 	"glVertexAttribPointer",
@@ -2312,6 +2321,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case GEN_TEXTURE:
 		Serialise_glGenTextures(0, NULL);
 		break;
+	case CREATE_TEXTURE:
+		Serialise_glCreateTextures(eGL_NONE, 0, NULL);
+		break;
 	case ACTIVE_TEXTURE:
 		Serialise_glActiveTexture(eGL_NONE);
 		break;
@@ -2507,6 +2519,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case GEN_FEEDBACK:
 		Serialise_glGenTransformFeedbacks(0, NULL);
 		break;
+	case CREATE_FEEDBACK:
+		Serialise_glCreateTransformFeedbacks(0, NULL);
+		break;
 	case BIND_FEEDBACK:
 		Serialise_glBindTransformFeedback(eGL_NONE, 0);
 		break;
@@ -2525,6 +2540,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
 	case GEN_PROGRAMPIPE:
 		Serialise_glGenProgramPipelines(0, NULL);
+		break;
+	case CREATE_PROGRAMPIPE:
+		Serialise_glCreateProgramPipelines(0, NULL);
 		break;
 	case USE_PROGRAMSTAGES:
 		Serialise_glUseProgramStages(0, 0, 0);
@@ -2545,6 +2563,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		
 	case GEN_QUERIES:
 		Serialise_glGenQueries(0, NULL);
+		break;
+	case CREATE_QUERIES:
+		Serialise_glCreateQueries(eGL_NONE, 0, NULL);
 		break;
 	case BEGIN_QUERY:
 		Serialise_glBeginQuery(eGL_NONE, 0);
@@ -2875,6 +2896,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case GEN_FRAMEBUFFERS:
 		Serialise_glGenFramebuffers(0, NULL);
 		break;
+	case CREATE_FRAMEBUFFERS:
+		Serialise_glCreateFramebuffers(0, NULL);
+		break;
 	case FRAMEBUFFER_TEX:
 		Serialise_glNamedFramebufferTextureEXT(0, eGL_NONE, 0, 0);
 		break;
@@ -2915,6 +2939,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 	case GEN_RENDERBUFFERS:
 		Serialise_glGenRenderbuffers(0, NULL);
 		break;
+	case CREATE_RENDERBUFFERS:
+		Serialise_glCreateRenderbuffers(0, NULL);
+		break;
 	case RENDERBUFFER_STORAGE:
 		Serialise_glNamedRenderbufferStorageEXT(0, eGL_NONE, 0, 0);
 		break;
@@ -2924,6 +2951,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
 	case GEN_SAMPLERS:
 		Serialise_glGenSamplers(0, NULL);
+		break;
+	case CREATE_SAMPLERS:
+		Serialise_glCreateSamplers(0, NULL);
 		break;
 	case SAMPLER_PARAMETERI:
 		Serialise_glSamplerParameteri(0, eGL_NONE, 0);
@@ -2952,6 +2982,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		
 	case GEN_BUFFER:
 		Serialise_glGenBuffers(0, NULL);
+		break;
+	case CREATE_BUFFER:
+		Serialise_glCreateBuffers(0, NULL);
 		break;
 	case BIND_BUFFER:
 		Serialise_glBindBuffer(eGL_NONE, 0);
@@ -2988,6 +3021,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case GEN_VERTEXARRAY:
 		Serialise_glGenVertexArrays(0, NULL);
+		break;
+	case CREATE_VERTEXARRAY:
+		Serialise_glCreateVertexArrays(0, NULL);
 		break;
 	case BIND_VERTEXARRAY:
 		Serialise_glBindVertexArray(0);

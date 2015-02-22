@@ -951,6 +951,56 @@ void WrappedOpenGL::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateProgramPipelines(GLsizei n, GLuint* pipelines)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateProgramPipelines(1, &real);
+		
+		GLResource res = ProgramPipeRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+	m_Real.glCreateProgramPipelines(n, pipelines);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_PROGRAMPIPE);
+				Serialise_glCreateProgramPipelines(1, pipelines+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindProgramPipeline(GLuint pipeline)
 {
 	SERIALISE_ELEMENT(ResourceId, id, (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)) : ResourceId()));

@@ -76,6 +76,56 @@ void WrappedOpenGL::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateFramebuffers(GLsizei n, GLuint* framebuffers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateFramebuffers(1, &real);
+		
+		GLResource res = FramebufferRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
+{
+	m_Real.glCreateFramebuffers(n, framebuffers);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_FRAMEBUFFERS);
+				Serialise_glCreateFramebuffers(1, framebuffers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level)
 {
 	SERIALISE_ELEMENT(GLenum, Attach, attachment);
@@ -1303,6 +1353,60 @@ void WrappedOpenGL::glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
 			{
 				SCOPED_SERIALISE_CONTEXT(GEN_RENDERBUFFERS);
 				Serialise_glGenRenderbuffers(1, renderbuffers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCreateRenderbuffers(GLsizei n, GLuint* renderbuffers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(RenderbufferRes(GetCtx(), *renderbuffers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateRenderbuffers(1, &real);
+		m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
+		
+		GLResource res = RenderbufferRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+
+		m_Textures[live].resource = res;
+		m_Textures[live].curType = eGL_RENDERBUFFER;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers)
+{
+	m_Real.glCreateRenderbuffers(n, renderbuffers);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = RenderbufferRes(GetCtx(), renderbuffers[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_RENDERBUFFERS);
+				Serialise_glCreateRenderbuffers(1, renderbuffers+i);
 
 				chunk = scope.Get();
 			}

@@ -83,6 +83,61 @@ void WrappedOpenGL::glGenBuffers(GLsizei n, GLuint *buffers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateBuffers(GLsizei n, GLuint* buffers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateBuffers(1, &real);
+		
+		GLResource res = BufferRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+
+		m_Buffers[live].resource = res;
+		m_Buffers[live].curType = eGL_NONE;
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateBuffers(GLsizei n, GLuint *buffers)
+{
+	m_Real.glCreateBuffers(n, buffers);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = BufferRes(GetCtx(), buffers[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER);
+				Serialise_glCreateBuffers(1, buffers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+			m_Buffers[id].resource = res;
+			m_Buffers[id].curType = eGL_NONE;
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 {
 	SERIALISE_ELEMENT(GLenum, Target, target);
@@ -1924,6 +1979,56 @@ void WrappedOpenGL::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateTransformFeedbacks(GLsizei n, GLuint* ids)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateTransformFeedbacks(1, &real);
+		
+		GLResource res = FeedbackRes(GetCtx(), real);
+
+		m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateTransformFeedbacks(GLsizei n, GLuint *ids)
+{
+	m_Real.glCreateTransformFeedbacks(n, ids);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = FeedbackRes(GetCtx(), ids[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_FEEDBACK);
+				Serialise_glCreateTransformFeedbacks(1, ids+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
 void WrappedOpenGL::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
 {
 	for(GLsizei i=0; i < n; i++)
@@ -3027,6 +3132,56 @@ void WrappedOpenGL::glGenVertexArrays(GLsizei n, GLuint *arrays)
 			{
 				SCOPED_SERIALISE_CONTEXT(GEN_VERTEXARRAY);
 				Serialise_glGenVertexArrays(1, arrays+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
+bool WrappedOpenGL::Serialise_glCreateVertexArrays(GLsizei n, GLuint* arrays)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateVertexArrays(1, &real);
+		
+		GLResource res = VertexArrayRes(GetCtx(), real);
+
+		m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateVertexArrays(GLsizei n, GLuint *arrays)
+{
+	m_Real.glCreateVertexArrays(n, arrays);
+
+	for(GLsizei i=0; i < n; i++)
+	{
+		GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_VERTEXARRAY);
+				Serialise_glCreateVertexArrays(1, arrays+i);
 
 				chunk = scope.Get();
 			}

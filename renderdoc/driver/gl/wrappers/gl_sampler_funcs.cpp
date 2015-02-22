@@ -76,6 +76,56 @@ void WrappedOpenGL::glGenSamplers(GLsizei count, GLuint *samplers)
 	}
 }
 
+bool WrappedOpenGL::Serialise_glCreateSamplers(GLsizei n, GLuint* samplers)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
+
+	if(m_State == READING)
+	{
+		GLuint real = 0;
+		m_Real.glCreateSamplers(1, &real);
+		
+		GLResource res = SamplerRes(GetCtx(), real);
+
+		ResourceId live = m_ResourceManager->RegisterResource(res);
+		GetResourceManager()->AddLiveResource(id, res);
+	}
+
+	return true;
+}
+
+void WrappedOpenGL::glCreateSamplers(GLsizei count, GLuint *samplers)
+{
+	m_Real.glCreateSamplers(count, samplers);
+
+	for(GLsizei i=0; i < count; i++)
+	{
+		GLResource res = SamplerRes(GetCtx(), samplers[i]);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_SAMPLERS);
+				Serialise_glCreateSamplers(1, samplers+i);
+
+				chunk = scope.Get();
+			}
+
+			GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+}
+
 bool WrappedOpenGL::Serialise_glBindSampler(GLuint unit, GLuint sampler)
 {
 	SERIALISE_ELEMENT(uint32_t, Unit, unit);
