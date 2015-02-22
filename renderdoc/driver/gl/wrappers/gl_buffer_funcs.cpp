@@ -3106,6 +3106,8 @@ bool WrappedOpenGL::Serialise_glGenVertexArrays(GLsizei n, GLuint* arrays)
 	{
 		GLuint real = 0;
 		m_Real.glGenVertexArrays(1, &real);
+		m_Real.glBindVertexArray(real);
+		m_Real.glBindVertexArray(0);
 		
 		GLResource res = VertexArrayRes(GetCtx(), real);
 

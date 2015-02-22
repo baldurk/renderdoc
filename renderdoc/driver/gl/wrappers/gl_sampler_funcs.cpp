@@ -34,6 +34,8 @@ bool WrappedOpenGL::Serialise_glGenSamplers(GLsizei n, GLuint* samplers)
 	{
 		GLuint real = 0;
 		m_Real.glGenSamplers(1, &real);
+		m_Real.glBindSampler(0, real);
+		m_Real.glBindSampler(0, 0);
 		
 		GLResource res = SamplerRes(GetCtx(), real);
 

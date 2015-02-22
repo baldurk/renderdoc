@@ -909,6 +909,8 @@ bool WrappedOpenGL::Serialise_glGenProgramPipelines(GLsizei n, GLuint* pipelines
 	{
 		GLuint real = 0;
 		m_Real.glGenProgramPipelines(1, &real);
+		m_Real.glBindProgramPipeline(real);
+		m_Real.glBindProgramPipeline(0);
 		
 		GLResource res = ProgramPipeRes(GetCtx(), real);
 

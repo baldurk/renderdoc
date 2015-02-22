@@ -34,6 +34,8 @@ bool WrappedOpenGL::Serialise_glGenFramebuffers(GLsizei n, GLuint* framebuffers)
 	{
 		GLuint real = 0;
 		m_Real.glGenFramebuffers(1, &real);
+		m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, real);
+		m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 		
 		GLResource res = FramebufferRes(GetCtx(), real);
 
