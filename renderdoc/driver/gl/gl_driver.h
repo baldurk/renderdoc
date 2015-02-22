@@ -1094,6 +1094,52 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDeleteVertexArrays(GLsizei n, const GLuint *arrays));
 
 		// EXT_direct_state_access
+
+		// there's a lot of duplicated code in some of these variants, between
+		// EXT_dsa, ARB_dsa, non-dsa and for textures the MultiTex variants etc.
+		// So we make a Common_ function similar to the Serialise_ function based
+		// on the EXT_dsa interface, which takes the function parameters and a
+		// GLResourceRecord* which does all the common tasks between all of these
+		// functions.
+		
+		void Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, GLenum target);
+
+		void Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLint border);
+		void Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLenum internalformat, GLint x, GLint y, GLsizei width, GLsizei height, GLint border);
+		void Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width);
+		void Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
+		void Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height);
+
+		void Common_glTextureBufferEXT(ResourceId id, GLenum target, GLenum internalformat, GLuint buffer);
+		void Common_glTextureBufferRangeEXT(ResourceId id, GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size);
+
+		void Common_glTextureImage1DEXT(ResourceId id, GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const void *pixels);
+		void Common_glTextureImage2DEXT(ResourceId id, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void *pixels);
+		void Common_glTextureImage3DEXT(ResourceId id, GLenum target, GLint level, GLint internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLenum format, GLenum type, const void *pixels);
+		void Common_glCompressedTextureImage1DEXT(ResourceId id, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const void *bits);
+		void Common_glCompressedTextureImage2DEXT(ResourceId id, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *bits);
+		void Common_glCompressedTextureImage3DEXT(ResourceId id, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLint border, GLsizei imageSize, const void *bits);
+
+		void Common_glTextureStorage1DEXT(ResourceId id, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width);
+		void Common_glTextureStorage2DEXT(ResourceId id, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+		void Common_glTextureStorage3DEXT(ResourceId id, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
+		void Common_glTextureStorage2DMultisampleEXT(ResourceId id, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations);
+		void Common_glTextureStorage3DMultisampleEXT(ResourceId id, GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations);
+
+		void Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels);
+		void Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels);
+		void Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels);
+		void Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *bits);
+		void Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *bits);
+		void Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *record, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *bits);
+
+		void Common_glTextureParameterfEXT(GLResourceRecord *record, GLenum target, GLenum pname, GLfloat param);
+		void Common_glTextureParameterfvEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLfloat *params);
+		void Common_glTextureParameteriEXT(GLResourceRecord *record, GLenum target, GLenum pname, GLint param);
+		void Common_glTextureParameterivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params);
+		void Common_glTextureParameterIivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params);
+		void Common_glTextureParameterIuivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLuint *params);
+
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glCheckNamedFramebufferStatusEXT(GLuint framebuffer, GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const void *bits));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureImage2DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void *bits));

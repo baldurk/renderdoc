@@ -336,7 +336,7 @@ void GLReplay::InitDebugData()
 	gl.glGenTextures(1, &DebugData.pickPixelTex);
 	gl.glBindTexture(eGL_TEXTURE_2D, DebugData.pickPixelTex);
 	
-	gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA32F, 1, 1); 
+	gl.glTextureStorage2DEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, 1, eGL_RGBA32F, 1, 1); 
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1511,7 +1511,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 		DebugData.overlayTexWidth = texDetails.width;
 		DebugData.overlayTexHeight = texDetails.height;
 
-		gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA16, texDetails.width, texDetails.height); 
+		gl.glTextureStorage2DEXT(DebugData.overlayTex, eGL_TEXTURE_2D, 1, eGL_RGBA16, texDetails.width, texDetails.height); 
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1622,7 +1622,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 			gl.glGenTextures(1, &depthCopy);
 			gl.glBindTexture(eGL_TEXTURE_2D, depthCopy);
-			gl.glTexStorage2D(eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
+			gl.glTextureStorage2DEXT(depthCopy, eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1642,7 +1642,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 
 			gl.glGenTextures(1, &stencilCopy);
 			gl.glBindTexture(eGL_TEXTURE_2D, stencilCopy);
-			gl.glTexStorage2D(eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
+			gl.glTextureStorage2DEXT(stencilCopy, eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth, DebugData.overlayTexHeight);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 			gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1763,7 +1763,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				
 				// image for quad usage
 				gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
-				gl.glTexStorage3D(eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI, texDetails.width>>1, texDetails.height>>1, 4);
+				gl.glTextureStorage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI, texDetails.width>>1, texDetails.height>>1, 4);
 
 				// temporarily attach to FBO to clear it
 				GLint zero = 0;
@@ -1777,7 +1777,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glClearBufferiv(eGL_COLOR, 0, &zero);
 				
 				gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
-				gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width, texDetails.height);
+				gl.glTextureStorage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width, texDetails.height);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1785,7 +1785,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overl
 				gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
 
 				gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
-				gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8, texDetails.width, texDetails.height);
+				gl.glTextureStorage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8, texDetails.width, texDetails.height);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 				gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);

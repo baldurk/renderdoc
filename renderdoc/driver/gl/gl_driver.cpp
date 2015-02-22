@@ -47,6 +47,7 @@ const char *GLChunkNames[] =
 	"glBindTexture",
 	"glBindTextures",
 	"glBindMultiTexture",
+	"glBindTextureUnit",
 	"glBindImageTexture",
 	"glBindImageTextures",
 	"glActiveTexture",
@@ -794,11 +795,11 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 
 	if(params.multiSamples > 1)
 	{
-		gl.glTexStorage2DMultisample(target, params.multiSamples, colfmt, params.width, params.height, true); 
+		gl.glTextureStorage2DMultisampleEXT(m_FakeBB_Color, target, params.multiSamples, colfmt, params.width, params.height, true); 
 	}
 	else
 	{
-		gl.glTexStorage2D(target, 1, colfmt, params.width, params.height); 
+		gl.glTextureStorage2DEXT(m_FakeBB_Color, target, 1, colfmt, params.width, params.height); 
 		gl.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
 		gl.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -847,9 +848,9 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 			gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth");
 
 		if(params.multiSamples > 1)
-			gl.glTexStorage2DMultisample(target, params.multiSamples, depthfmt, params.width, params.height, true); 
+			gl.glTextureStorage2DMultisampleEXT(m_FakeBB_DepthStencil, target, params.multiSamples, depthfmt, params.width, params.height, true); 
 		else
-			gl.glTexStorage2D(target, 1, depthfmt, params.width, params.height); 
+			gl.glTextureStorage2DEXT(m_FakeBB_DepthStencil, target, 1, depthfmt, params.width, params.height); 
 
 		if(stencil)
 			gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, m_FakeBB_DepthStencil, 0);
@@ -2322,6 +2323,9 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		break;
 	case BIND_MULTI_TEX:
 		Serialise_glBindMultiTextureEXT(eGL_NONE, eGL_NONE, 0);
+		break;
+	case BIND_TEXTURE_UNIT:
+		Serialise_glBindTextureUnit(0, 0);
 		break;
 	case BIND_IMAGE_TEXTURE:
 		Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE);

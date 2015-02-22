@@ -136,6 +136,7 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks)
 	EMULATE_UNSUPPORTED(glClearNamedFramebufferfv)
 	EMULATE_UNSUPPORTED(glClearNamedFramebufferfi)
 	EMULATE_UNSUPPORTED(glBlitNamedFramebuffer)
+	EMULATE_UNSUPPORTED(glVertexArrayElementBuffer);
 	EMULATE_UNSUPPORTED(glVertexArrayVertexBuffers)
 }
 
