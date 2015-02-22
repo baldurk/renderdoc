@@ -1120,6 +1120,19 @@ void WrappedOpenGL::glInvalidateFramebuffer(GLenum target, GLsizei numAttachment
 	}
 }
 
+void WrappedOpenGL::glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numAttachments, const GLenum *attachments)
+{
+	m_Real.glInvalidateNamedFramebufferData(framebuffer, numAttachments, attachments);
+
+	if(m_State == WRITING_IDLE)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+
+		if(record)
+			record->MarkParentsDirty(GetResourceManager());
+	}
+}
+
 void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
 {
 	m_Real.glInvalidateSubFramebuffer(target, numAttachments, attachments, x, y, width, height);
@@ -1144,8 +1157,26 @@ void WrappedOpenGL::glInvalidateSubFramebuffer(GLenum target, GLsizei numAttachm
 	}
 }
 
-bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
+void WrappedOpenGL::glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height)
 {
+	m_Real.glInvalidateNamedFramebufferSubData(framebuffer, numAttachments, attachments, x, y, width, height);
+
+	if(m_State == WRITING_IDLE)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+
+		if(record)
+			record->MarkParentsDirty(GetResourceManager());
+	}
+}
+
+bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
+                                                     GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                                     GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                                     GLbitfield mask, GLenum filter)
+{
+	SERIALISE_ELEMENT(ResourceId, readId, (readFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), readFramebuffer)) : ResourceId()));
+	SERIALISE_ELEMENT(ResourceId, drawId, (drawFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), drawFramebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(int32_t, sX0, srcX0);
 	SERIALISE_ELEMENT(int32_t, sY0, srcY0);
 	SERIALISE_ELEMENT(int32_t, sX1, srcX1);
@@ -1159,18 +1190,57 @@ bool WrappedOpenGL::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint 
 	
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
+		if(readId == ResourceId())
+			readFramebuffer = m_FakeBB_FBO;
+		else
+			readFramebuffer = GetResourceManager()->GetLiveResource(readId).name;
+		
+		if(drawId == ResourceId())
+			drawFramebuffer = m_FakeBB_FBO;
+		else
+			drawFramebuffer = GetResourceManager()->GetLiveResource(drawId).name;
+
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
+		m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
+                                           GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                           GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                           GLbitfield mask, GLenum filter)
+{
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
+		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+	
+	// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+	// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+	// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+	// we need to support this case.
+	m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 }
 
 void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLuint readFramebuffer = 0, drawFramebuffer = 0;
+
+		if(GetCtxData().m_ReadFramebufferRecord) readFramebuffer = GetCtxData().m_ReadFramebufferRecord->Resource.name;
+		if(GetCtxData().m_DrawFramebufferRecord) drawFramebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+
 		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-		Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}

@@ -36,6 +36,8 @@
 #include "common/threading.h"
 #include "common/string_utils.h"
 
+namespace glEmulate { void EmulateUnsupportedFunctions(GLHookSet *hooks); }
+
 // bit of a hack
 namespace Keyboard { extern Display *CurrentXDisplay; }
 
@@ -848,6 +850,9 @@ bool OpenGLHook::PopulateHooks()
 
 	DLLExportHooks();
 	HookCheckGLExtensions();
+
+	// see gl_emulated.cpp
+	if(RenderDoc::Inst().IsReplayApp()) glEmulate::EmulateUnsupportedFunctions(&GL);
 
 	return true;
 }

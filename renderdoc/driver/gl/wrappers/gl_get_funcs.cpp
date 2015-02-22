@@ -399,6 +399,26 @@ void WrappedOpenGL::glGetQueryiv(GLenum target, GLenum pname, GLint *params)
 	m_Real.glGetQueryiv(target, pname, params);
 }
 
+void WrappedOpenGL::glGetQueryBufferObjectui64v(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
+{
+	m_Real.glGetQueryBufferObjectui64v(id, buffer, pname, offset);
+}
+
+void WrappedOpenGL::glGetQueryBufferObjectuiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
+{
+	m_Real.glGetQueryBufferObjectuiv(id, buffer, pname, offset);
+}
+
+void WrappedOpenGL::glGetQueryBufferObjecti64v(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
+{
+	m_Real.glGetQueryBufferObjecti64v(id, buffer, pname, offset);
+}
+
+void WrappedOpenGL::glGetQueryBufferObjectiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset)
+{
+	m_Real.glGetQueryBufferObjectiv(id, buffer, pname, offset);
+}
+
 void WrappedOpenGL::glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values)
 {
 	m_Real.glGetSynciv(sync, pname, bufSize, length, values);
@@ -778,11 +798,6 @@ void WrappedOpenGL::glGetRenderbufferParameteriv(GLenum target, GLenum pname, GL
 void WrappedOpenGL::glGetNamedBufferParameteri64v(GLuint buffer, GLenum pname, GLint64 *params)
 {
 	m_Real.glGetNamedBufferParameteri64v(buffer, pname, params);
-}
-
-void WrappedOpenGL::glGetNamedBufferPointerv(GLuint buffer, GLenum pname, void **params)
-{
-	m_Real.glGetNamedBufferPointerv(buffer, pname, params);
 }
 
 void WrappedOpenGL::glGetNamedFramebufferParameterivEXT(GLuint framebuffer, GLenum pname, GLint *param)

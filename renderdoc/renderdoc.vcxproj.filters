@@ -551,6 +551,9 @@
     <ClCompile Include="driver\gl\gl_counters.cpp">
       <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
+    <ClCompile Include="driver\gl\wrappers\gl_emulated.cpp">
+      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="os\win32\comexport.def">

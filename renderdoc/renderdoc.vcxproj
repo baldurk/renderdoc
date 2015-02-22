@@ -328,6 +328,7 @@
     <ClCompile Include="driver\gl\wrappers\gl_buffer_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_debug_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_draw_funcs.cpp" />
+    <ClCompile Include="driver\gl\wrappers\gl_emulated.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_framebuffer_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_get_funcs.cpp" />
     <ClCompile Include="driver\gl\wrappers\gl_query_funcs.cpp" />

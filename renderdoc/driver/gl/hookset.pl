@@ -53,7 +53,7 @@ while(<HOOKSET>)
                $current = \@dllexport if $1 eq "dllexport";
                $current = \@glext if $1 eq "glext";
 	}
-	elsif($line =~ /^\s*\/\/ .*/)
+	elsif($line =~ /^\s*\/\/.*/)
 	{
 		# skip comments
 	}
@@ -182,7 +182,7 @@ print <<ENDOFHEADER;
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

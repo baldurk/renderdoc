@@ -47,6 +47,7 @@ driver/gl/gl_renderstate.o \
 driver/gl/wrappers/gl_buffer_funcs.o \
 driver/gl/wrappers/gl_debug_funcs.o \
 driver/gl/wrappers/gl_draw_funcs.o \
+driver/gl/wrappers/gl_emulated.o \
 driver/gl/wrappers/gl_framebuffer_funcs.o \
 driver/gl/wrappers/gl_get_funcs.o \
 driver/gl/wrappers/gl_query_funcs.o \

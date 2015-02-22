@@ -2577,16 +2577,16 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glClear(0);
 		break;
 	case CLEARBUFFERF:
-		Serialise_glClearBufferfv(eGL_NONE, 0, NULL);
+		Serialise_glClearNamedFramebufferfv(0, eGL_NONE, 0, NULL);
 		break;
 	case CLEARBUFFERI:
-		Serialise_glClearBufferiv(eGL_NONE, 0, NULL);
+		Serialise_glClearNamedFramebufferiv(0, eGL_NONE, 0, NULL);
 		break;
 	case CLEARBUFFERUI:
-		Serialise_glClearBufferuiv(eGL_NONE, 0, NULL);
+		Serialise_glClearNamedFramebufferuiv(0, eGL_NONE, 0, NULL);
 		break;
 	case CLEARBUFFERFI:
-		Serialise_glClearBufferfi(eGL_NONE, 0, 0, 0);
+		Serialise_glClearNamedFramebufferfi(0, eGL_NONE, 0, 0);
 		break;
 	case CLEARBUFFERDATA:
 		Serialise_glClearNamedBufferDataEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
@@ -2772,7 +2772,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glVertexArrayBindVertexBufferEXT(0, 0, 0, 0, 0);
 		break;
 	case BIND_VERTEXBUFFERS:
-		Serialise_glBindVertexBuffers(0, 0, NULL, NULL, NULL);
+		Serialise_glVertexArrayVertexBuffers(0, 0, 0, NULL, NULL, NULL);
 		break;
 	case VERTEXBINDINGDIVISOR:
 		Serialise_glVertexArrayVertexBindingDivisorEXT(0, 0, 0);
@@ -2905,7 +2905,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 		Serialise_glFramebufferDrawBuffersEXT(0, 0, NULL);
 		break;
 	case BLIT_FRAMEBUFFER:
-		Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
+		Serialise_glBlitNamedFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
 		break;
 		
 	case GEN_RENDERBUFFERS:

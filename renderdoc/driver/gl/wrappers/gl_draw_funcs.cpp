@@ -2316,11 +2316,22 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
+bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
 	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
+
+	if(m_State <= EXECUTING)
+	{
+		if(Id == ResourceId())
+			framebuffer = m_FakeBB_FBO;
+		else
+			framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+	}
 	
+	string name;
+
 	if(buf != eGL_DEPTH)
 	{
 		Vec4f v;
@@ -2328,15 +2339,34 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 
 		m_pSerialiser->Serialise<4>("value", (float *)&v.x);
 		
+		if(m_State == READING)
+			name = "glClearBufferfv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ", " +
+						ToStr::Get(v.x) + ", " +
+						ToStr::Get(v.y) + ", " +
+						ToStr::Get(v.z) + ", " +
+						ToStr::Get(v.w) + ")";
+
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearBufferfv(buf, draw, &v.x);
+			m_Real.glClearNamedFramebufferfv(framebuffer, buf, draw, &v.x);
 	}
 	else
 	{
 		SERIALISE_ELEMENT(float, val, *value);
+		
+		if(m_State == READING)
+			name = "glClearBufferfv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ", " +
+						ToStr::Get(val) + ")";
 
 		if(m_State <= EXECUTING)
-			m_Real.glClearBufferfv(buf, draw, &val);
+			m_Real.glClearNamedFramebufferfv(framebuffer, buf, draw, &val);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -2346,9 +2376,6 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 	if(m_State == READING)
 	{
 		AddEvent(CLEARBUFFERF, desc);
-		string name = "glClearBufferfv(" +
-						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2361,24 +2388,52 @@ bool WrappedOpenGL::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, c
 	return true;
 }
 
+void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value)
+{
+	m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERF);
+		Serialise_glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
 	m_Real.glClearBufferfv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLuint framebuffer = 0;
+		if(GetCtxData().m_DrawFramebufferRecord)
+			framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERF);
-		Serialise_glClearBufferfv(buffer, drawbuffer, value);
+		Serialise_glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
+bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value)
 {
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
 	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	
+	if(m_State <= EXECUTING)
+	{
+		if(Id == ResourceId())
+			framebuffer = m_FakeBB_FBO;
+		else
+			framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+	}
+
+	string name;
+
 	if(buf != eGL_STENCIL)
 	{
 		int32_t v[4];
@@ -2386,15 +2441,34 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 
 		m_pSerialiser->Serialise<4>("value", v);
 		
+		if(m_State == READING)
+			name = "glClearBufferiv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ", " +
+						ToStr::Get(v[0]) + ", " +
+						ToStr::Get(v[1]) + ", " +
+						ToStr::Get(v[2]) + ", " +
+						ToStr::Get(v[3]) + ")";
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearBufferiv(buf, draw, v);
+			m_Real.glClearNamedFramebufferiv(framebuffer, buf, draw, v);
 	}
 	else
 	{
 		SERIALISE_ELEMENT(int32_t, val, *value);
+		
+		if(m_State == READING)
+			name = "glClearBufferiv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ", " +
+						ToStr::Get(val) + ")";
 
 		if(m_State <= EXECUTING)
-			m_Real.glClearBufferiv(buf, draw, &val);
+			m_Real.glClearNamedFramebufferiv(framebuffer, buf, draw, &val);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -2404,9 +2478,6 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 	if(m_State == READING)
 	{
 		AddEvent(CLEARBUFFERI, desc);
-		string name = "glClearBufferiv(" +
-						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2419,32 +2490,73 @@ bool WrappedOpenGL::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, c
 	return true;
 }
 
+void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value)
+{
+	m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERI);
+		Serialise_glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
 	m_Real.glClearBufferiv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLuint framebuffer = 0;
+		if(GetCtxData().m_DrawFramebufferRecord)
+			framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERI);
-		Serialise_glClearBufferiv(buffer, drawbuffer, value);
+		Serialise_glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 
-bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
 	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	
+	if(m_State <= EXECUTING)
+	{
+		if(Id == ResourceId())
+			framebuffer = m_FakeBB_FBO;
+		else
+			framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+	}
+
+	string name;
+
 	{
 		uint32_t v[4];
 		if(value) memcpy(v, value, sizeof(v));
 
 		m_pSerialiser->Serialise<4>("value", v);
 		
+		if(m_State == READING)
+			name = "glClearBufferuiv(" +
+						ToStr::Get(buf) + ", " +
+						ToStr::Get(draw) + ", " +
+						ToStr::Get(v[0]) + ", " +
+						ToStr::Get(v[1]) + ", " +
+						ToStr::Get(v[2]) + ", " +
+						ToStr::Get(v[3]) + ")";
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearBufferuiv(buf, draw, v);
+			m_Real.glClearNamedFramebufferuiv(framebuffer, buf, draw, v);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -2454,9 +2566,6 @@ bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, 
 	if(m_State == READING)
 	{
 		AddEvent(CLEARBUFFERUI, desc);
-		string name = "glClearBufferuiv(" +
-						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2468,28 +2577,57 @@ bool WrappedOpenGL::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, 
 	return true;
 }
 
+void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value)
+{
+	m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
+		Serialise_glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
 	m_Real.glClearBufferuiv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLuint framebuffer = 0;
+		if(GetCtxData().m_DrawFramebufferRecord)
+			framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
-		Serialise_glClearBufferuiv(buffer, drawbuffer, value);
+		Serialise_glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 }
 		
-bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
+bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLfloat depth, GLint stencil)
 {
+	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
 	SERIALISE_ELEMENT(float, d, depth);
 	SERIALISE_ELEMENT(int32_t, s, stencil);
 	
 	if(m_State <= EXECUTING)
-		m_Real.glClearBufferfi(buf, draw, d, s);
+	{
+		if(Id == ResourceId())
+			framebuffer = m_FakeBB_FBO;
+		else
+			framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+	}
+	
+	// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+	// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+	// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+	// we need to support this case.
+	if(m_State <= EXECUTING)
+		m_Real.glClearNamedFramebufferfi(framebuffer, buf, d, s);
 	
 	const string desc = m_pSerialiser->GetDebugStr();
 	
@@ -2499,8 +2637,8 @@ bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, G
 	{
 		AddEvent(CLEARBUFFERFI, desc);
 		string name = "glClearBufferfi(" +
-						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ")";
+						ToStr::Get(d) +
+						ToStr::Get(s) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2512,14 +2650,32 @@ bool WrappedOpenGL::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, G
 	return true;
 }
 
+void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLfloat depth, GLint stencil)
+{
+	m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERFI);
+		Serialise_glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
+		
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+}
+
 void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
 	m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
+		GLuint framebuffer = 0;
+		if(GetCtxData().m_DrawFramebufferRecord)
+			framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+		
+		// drawbuffer is ignored, as it must be 0 anyway
 		SCOPED_SERIALISE_CONTEXT(CLEARBUFFERFI);
-		Serialise_glClearBufferfi(buffer, drawbuffer, depth, stencil);
+		Serialise_glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
 		
 		m_ContextRecord->AddChunk(scope.Get());
 	}
@@ -2713,6 +2869,12 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
 	}
 }
 
+void WrappedOpenGL::glClearNamedBufferSubData(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizei size, GLenum format, GLenum type, const void *data)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	glClearNamedBufferSubDataEXT(buffer, internalformat, offset, (GLsizeiptr)size, format, type, data);
+}
+
 void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
 {
 	m_Real.glClearBufferSubData(target, internalformat, offset, size, format, type, data);
@@ -2742,7 +2904,7 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 
 	if(m_State == READING)
 	{
-		AddEvent(CLEARBUFFERF, desc);
+		AddEvent(CLEAR, desc);
 		string name = "glClear(";
 		if(Mask & GL_COLOR_BUFFER_BIT)
 		{

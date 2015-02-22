@@ -55,7 +55,7 @@ struct GLInitParams : public RDCInitParams
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x0000007;
+	static const uint32_t GL_SERIALISE_VERSION = 0x0000008;
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;
@@ -682,11 +682,6 @@ class WrappedOpenGL
 
 		bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized, const void *value, int attribtype);
 
-		// hack for now until ARB_dsa is serialised
-		bool Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
-		bool Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer);
-		bool Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size);
-
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1d(GLuint index, GLdouble x));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1dv(GLuint index, const GLdouble *v));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexAttrib1f(GLuint index, GLfloat x));
@@ -850,6 +845,10 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryObjecti64v(GLuint id, GLenum pname, GLint64 *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryObjectiv(GLuint id, GLenum pname, GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryBufferObjectui64v(GLuint id, GLuint buffer, GLenum pname, GLintptr offset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryBufferObjectuiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryBufferObjecti64v(GLuint id, GLuint buffer, GLenum pname, GLintptr offset));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryBufferObjectiv(GLuint id, GLuint buffer, GLenum pname, GLintptr offset));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetQueryiv(GLenum target, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data));
@@ -912,8 +911,6 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribdv(GLuint index, GLenum pname, GLdouble *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedBufferParameteri64v(GLuint buffer, GLenum pname, GLint64 *params));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedBufferParameteriv(GLuint buffer, GLenum pname, GLint *params));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedBufferPointerv(GLuint buffer, GLenum pname, void **params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data));
 
 		enum UniformType
@@ -1104,7 +1101,6 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *bits));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *bits));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *bits));
-		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, const GLenum *bufs));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGenerateTextureMipmapEXT(GLuint texture, GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetPointeri_vEXT(GLenum pname, GLuint index, void **params));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetDoubleIndexedvEXT(GLenum target, GLuint index, GLdouble *data));
@@ -1157,6 +1153,7 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum attachment, GLuint texture, GLint level, GLint layer));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname, GLint param));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum mode));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, const GLenum *bufs));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glFramebufferReadBufferEXT(GLuint framebuffer, GLenum mode));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height));
@@ -1224,6 +1221,67 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bindingindex, GLuint divisor));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index, GLint size, GLenum type, GLsizei stride, GLintptr offset));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint index, GLuint divisor));
+
+		// ARB_direct_state_access
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateTransformFeedbacks(GLsizei n, GLuint *ids));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateBuffers(GLsizei n, GLuint *buffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateFramebuffers(GLsizei n, GLuint *framebuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateRenderbuffers(GLsizei n, GLuint *renderbuffers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateTextures(GLenum target, GLsizei n, GLuint *textures));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateVertexArrays(GLsizei n, GLuint *arrays));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateSamplers(GLsizei n, GLuint *samplers));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateProgramPipelines(GLsizei n, GLuint *pipelines));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCreateQueries(GLenum target, GLsizei n, GLuint *ids));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedBufferData(GLuint buffer, GLsizei size, const void *data, GLenum usage));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedBufferStorage(GLuint buffer, GLsizei size, const void *data, GLbitfield flags));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizei size));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedBufferSubData(GLuint buffer, GLenum internalformat, GLsizeiptr offset, GLsizei size, GLenum format, GLenum type, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void *, glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length, GLbitfield access));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferData(GLuint framebuffer, GLsizei numAttachments, const GLenum *attachments));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glInvalidateNamedFramebufferSubData(GLuint framebuffer, GLsizei numAttachments, const GLenum *attachments, GLint x, GLint y, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, const GLfloat depth, GLint stencil));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer, GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureBuffer(GLuint texture, GLenum internalformat, GLuint buffer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureBufferRange(GLuint texture, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizei size));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage1D(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage3D(GLuint texture, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage2DMultisample(GLuint texture, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureStorage3DMultisample(GLuint texture, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth, GLboolean fixedsamplelocations));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLsizei width, GLenum format, GLsizei imageSize, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLsizei imageSize, const void *data));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureSubImage3D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLsizei imageSize, const void *data));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLsizei width, GLenum format, GLenum type, const void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height, GLenum format, GLenum type, const void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureSubImage3D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *pixels));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCopyTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLint x, GLint y, GLsizei width));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCopyTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glCopyTextureSubImage3D(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLint x, GLint y, GLsizei width, GLsizei height));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterf(GLuint texture, GLenum pname, GLfloat param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterfv(GLuint texture, GLenum pname, const GLfloat *param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameteri(GLuint texture, GLenum pname, GLint param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterIiv(GLuint texture, GLenum pname, const GLint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameterIuiv(GLuint texture, GLenum pname, const GLuint *params));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glTextureParameteriv(GLuint texture, GLenum pname, const GLint *param));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGenerateTextureMipmap(GLuint texture));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTextureUnit(GLuint unit, GLuint texture));
+
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides));
+
 };
 
 class ScopedDebugContext

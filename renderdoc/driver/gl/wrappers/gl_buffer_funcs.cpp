@@ -322,6 +322,12 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 	}
 }
 
+void WrappedOpenGL::glNamedBufferStorage(GLuint buffer, GLsizei size, const void *data, GLbitfield flags)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	glNamedBufferStorageEXT(buffer, (GLsizeiptr)size, data, flags);
+}
+
 void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
 {
 	m_Real.glBufferStorage(target, size, data, flags);
@@ -498,6 +504,12 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 	}
 }
 
+void WrappedOpenGL::glNamedBufferData(GLuint buffer, GLsizei size, const void *data, GLenum usage)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	glNamedBufferDataEXT(buffer, (GLsizeiptr)size, data, usage);
+}
+
 void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
 {
 	m_Real.glBufferData(target, size, data, usage);
@@ -655,6 +667,12 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 	}
 }
 
+void WrappedOpenGL::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, const void *data)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	glNamedBufferSubDataEXT(buffer, offset, (GLsizeiptr)size, data);
+}
+
 void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
 {
 	m_Real.glBufferSubData(target, offset, size, data);
@@ -733,6 +751,11 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 			writerecord->AddParent(readrecord);
 		}
 	}
+}
+
+void WrappedOpenGL::glCopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizei size)
+{
+	glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, (GLsizeiptr)size);
 }
 
 void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
@@ -1537,6 +1560,12 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 	return m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
 }
 
+void *WrappedOpenGL::glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length, GLbitfield access)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	return glMapNamedBufferRangeEXT(buffer, offset, (GLsizeiptr)length, access);
+}
+
 void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)
 {
 	if(m_State >= WRITING)
@@ -1817,6 +1846,12 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 	}
 }
 
+void WrappedOpenGL::glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length)
+{
+	// only difference to EXT function is size parameter, so just upcast
+	glFlushMappedNamedBufferRangeEXT(buffer, offset, (GLsizeiptr)length);
+}
+
 void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
 {
 	if(m_State >= WRITING)
@@ -1914,15 +1949,44 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint i
 	
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, GetResourceManager()->GetLiveResource(xid).name);
-
+		xfb = GetResourceManager()->GetLiveResource(xid).name;
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the trivial way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
 		if(bid == ResourceId())
-			m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, 0);
+			m_Real.glTransformFeedbackBufferBase(xfb, idx, 0);
 		else
-			m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, GetResourceManager()->GetLiveResource(bid).name);
+			m_Real.glTransformFeedbackBufferBase(xfb, idx, GetResourceManager()->GetLiveResource(bid).name);
 	}
 	
 	return true;
+}
+
+void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
+{
+	m_Real.glTransformFeedbackBufferBase(xfb, index, buffer);
+
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+		Serialise_glTransformFeedbackBufferBase(xfb, index, buffer);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else if(xfb != 0)
+		{
+			GLResourceRecord *fbrecord = GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), xfb));
+
+			fbrecord->AddChunk(scope.Get());
+
+			if(buffer != 0)
+				fbrecord->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
+	}
 }
 
 bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size)
@@ -1935,15 +1999,44 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint 
 	
 	if(m_State <= EXECUTING)
 	{
-		m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, GetResourceManager()->GetLiveResource(xid).name);
-
+		xfb = GetResourceManager()->GetLiveResource(xid).name;
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
 		if(bid == ResourceId())
-			m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, 0); // if we're unbinding, offset/size don't matter
+			m_Real.glTransformFeedbackBufferBase(xfb, idx, 0); // if we're unbinding, offset/size don't matter
 		else
-			m_Real.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, GetResourceManager()->GetLiveResource(bid).name, (GLintptr)offs, (GLsizei)sz);
+			m_Real.glTransformFeedbackBufferRange(xfb, idx, GetResourceManager()->GetLiveResource(bid).name, (GLintptr)offs, (GLsizei)sz);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size)
+{
+	m_Real.glTransformFeedbackBufferRange(xfb, index, buffer, offset, size);
+
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
+		Serialise_glTransformFeedbackBufferRange(xfb, index, buffer, offset, size);
+
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(scope.Get());
+		}
+		else if(xfb != 0)
+		{
+			GLResourceRecord *fbrecord = GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), xfb));
+
+			fbrecord->AddChunk(scope.Get());
+
+			if(buffer != 0)
+				fbrecord->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
+	}
 }
 
 bool WrappedOpenGL::Serialise_glBindTransformFeedback(GLenum target, GLuint id)
@@ -3007,14 +3100,45 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint bu
 
 		buffer = 0;
 		if(bid != ResourceId()) buffer = GetResourceManager()->GetLiveResource(bid).name;
-
-		// hack for now, since we don't properly serialise ARB_dsa, this is just used from
-		// glBindBuffer as a utility serialise function
-		m_Real.glBindVertexArray(vaobj);
-		m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
+		m_Real.glVertexArrayElementBuffer(vaobj, buffer);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
+{
+	m_Real.glVertexArrayElementBuffer(vaobj, buffer);
+
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
+
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+				return;
+			if(m_State == WRITING_CAPFRAME && varecord)
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
+				Serialise_glVertexArrayElementBuffer(vaobj, buffer);
+
+				r->AddChunk(scope.Get());
+			}
+
+			if(buffer != 0)
+				r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+		}
+	}
 }
 
 bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindingindex, GLuint buffer, GLintptr offset, GLsizei stride)
@@ -3099,11 +3223,11 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 	}
 }
 
-bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
+bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
 {
 	SERIALISE_ELEMENT(uint32_t, First, first);
 	SERIALISE_ELEMENT(int32_t, Count, count);
-	SERIALISE_ELEMENT(ResourceId, vid, GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+	SERIALISE_ELEMENT(ResourceId, vid, vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId());
 
 	GLuint *bufs = NULL;
 	GLintptr *offs = NULL;
@@ -3135,20 +3259,16 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, c
 
 	if(m_State <= EXECUTING)
 	{
-		if(m_State == READING && m_CurEventID == 0)
-		{
-			if(vid != ResourceId())
-			{
-				GLResource res = GetResourceManager()->GetLiveResource(vid);
-				m_Real.glBindVertexArray(res.name);
-			}
-			else
-			{
-				m_Real.glBindVertexArray(m_FakeVAO);
-			}
-		}
-
-		m_Real.glBindVertexBuffers(First, Count, bufs, offs, str);
+		if(vid != ResourceId())
+			vaobj = GetResourceManager()->GetLiveResource(vid).name;
+		else
+			vaobj = m_FakeVAO;
+		
+		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
+		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
+		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
+		// we need to support this case.
+		m_Real.glVertexArrayVertexBuffers(vaobj, First, Count, bufs, offs, str);
 
 		delete[] bufs;
 		delete[] offs;
@@ -3156,6 +3276,39 @@ bool WrappedOpenGL::Serialise_glBindVertexBuffers(GLuint first, GLsizei count, c
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
+{
+	m_Real.glVertexArrayVertexBuffers(vaobj, first, count, buffers, offsets, strides);
+
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
+
+		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+		if(r)
+		{
+			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+				return;
+			if(m_State == WRITING_CAPFRAME && varecord)
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+
+			{
+				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
+				Serialise_glVertexArrayVertexBuffers(vaobj, first, count, buffers, offsets, strides);
+
+				r->AddChunk(scope.Get());
+			}
+
+			for(GLsizei i=0; i < count; i++)
+			{
+				if(buffers[i] != 0)
+					r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i])));
+			}
+		}
+	}
 }
 
 void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuint *buffers, const GLintptr *offsets, const GLsizei *strides)
@@ -3177,7 +3330,7 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
-				Serialise_glBindVertexBuffers(first, count, buffers, offsets, strides);
+				Serialise_glVertexArrayVertexBuffers(varecord ? varecord->Resource.name : 0, first, count, buffers, offsets, strides);
 
 				r->AddChunk(scope.Get());
 			}
