@@ -6587,23 +6587,23 @@ HRESULT WrappedID3D11DeviceContext::Map(ID3D11Resource *pResource, UINT Subresou
 	
 	ResourceId id = GetIDForResource(pResource);
 
-	bool straightUp = false;
+	bool directMap = false;
 	if(m_HighTrafficResources.find(id) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-		straightUp = true;
+		directMap = true;
 
 	if(m_pDevice->GetResourceManager()->IsResourceDirty(GetIDForResource(pResource)) && m_State != WRITING_CAPFRAME)
-		straightUp = true;
+		directMap = true;
 
-	if((!straightUp && MapType == D3D11_MAP_WRITE_NO_OVERWRITE && m_State != WRITING_CAPFRAME) ||
+	if((!directMap && MapType == D3D11_MAP_WRITE_NO_OVERWRITE && m_State != WRITING_CAPFRAME) ||
 		m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
 	{
-		straightUp = true;
+		directMap = true;
 		m_HighTrafficResources.insert(id);
 		if(m_State != WRITING_CAPFRAME)
 			m_pDevice->GetResourceManager()->MarkDirtyResource(id);
 	}
 
-	if(straightUp && m_State == WRITING_IDLE)
+	if(directMap && m_State == WRITING_IDLE)
 	{
 		return m_pRealContext->Map(m_pDevice->GetResourceManager()->UnwrapResource(pResource), Subresource,
 										MapType, MapFlags, pMappedResource);
