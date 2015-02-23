@@ -149,9 +149,7 @@ struct GLResourceRecord : public ResourceRecord
 	{
 		Unmapped,
 		Mapped_Read,
-		Mapped_Read_Real,
 		Mapped_Write,
-		Mapped_Write_Real,
 		Mapped_Ignore_Real,
 	};
 

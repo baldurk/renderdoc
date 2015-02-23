@@ -360,11 +360,6 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 
 		Chunk *chunk = scope.Get();
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(chunk);
-		}
-		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
@@ -403,11 +398,6 @@ void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *
 
 		Chunk *chunk = scope.Get();
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(chunk);
-		}
-		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
@@ -541,11 +531,6 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 
 		Chunk *chunk = scope.Get();
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(chunk);
-		}
-		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
@@ -651,11 +636,6 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
 		Chunk *chunk = scope.Get();
 
-		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddChunk(chunk);
-		}
-		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
@@ -1341,118 +1321,6 @@ void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GL
 
 #pragma region Mapping
 
-void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
-{
-	if(m_State >= WRITING)
-	{
-		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-
-		GLint length;
-		m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &length);
-		
-		bool straightUp = false;
-		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
-			straightUp = true;
-		
-		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
-			straightUp = true;
-
-		if(!straightUp && (access == eGL_WRITE_ONLY || access == eGL_READ_WRITE) && m_State != WRITING_CAPFRAME)
-		{
-			straightUp = true;
-			m_HighTrafficResources.insert(record->GetResourceID());
-			if(m_State != WRITING_CAPFRAME)
-				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-		}
-		
-		record->Map.offset = 0;
-		record->Map.length = length;
-		record->Map.invalidate = false;
-		     if(access == eGL_READ_ONLY)  record->Map.access = GL_MAP_READ_BIT;
-		else if(access == eGL_WRITE_ONLY) record->Map.access = GL_MAP_WRITE_BIT;
-		else if(access == eGL_READ_WRITE) record->Map.access = GL_MAP_READ_BIT|GL_MAP_WRITE_BIT;
-
-		if(straightUp && m_State == WRITING_IDLE)
-		{
-			record->Map.ptr = (byte *)m_Real.glMapNamedBufferEXT(buffer, access);
-			record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
-
-			return record->Map.ptr;
-		}
-
-		if(access == eGL_READ_ONLY)
-		{
-			record->Map.status = GLResourceRecord::Mapped_Read_Real;
-			return m_Real.glMapNamedBufferEXT(buffer, access);
-		}
-
-		byte *ptr = record->GetDataPtr();
-
-		RDCASSERT(ptr);
-		{
-			if(m_State == WRITING_CAPFRAME)
-			{
-				byte *shadow = (byte *)record->GetShadowPtr(0);
-
-				if(shadow == NULL)
-				{
-					record->AllocShadowStorage(length, 64);
-					shadow = (byte *)record->GetShadowPtr(0);
-
-					if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
-					{
-						// TODO get contents from frame initial state
-
-						m_Real.glGetNamedBufferSubDataEXT(buffer, 0, length, ptr);
-						memcpy(shadow, ptr, length);
-					}
-					else
-					{
-						memcpy(shadow, ptr, length);
-					}
-
-					memcpy(record->GetShadowPtr(1), shadow, length);
-				}
-
-				record->Map.ptr = ptr = shadow;
-				record->Map.status = GLResourceRecord::Mapped_Write;
-			}
-			else
-			{
-				record->Map.ptr = ptr;
-				record->Map.status = GLResourceRecord::Mapped_Write;
-
-				record->UpdateCount++;
-				
-				if(record->UpdateCount > 60)
-					m_HighTrafficResources.insert(record->GetResourceID());
-			}
-		}
-
-		m_Real.glGetNamedBufferSubDataEXT(buffer, 0, length, ptr);
-
-		return ptr;
-	}
-
-	return m_Real.glMapNamedBufferEXT(buffer, access);
-}
-
-void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
-{
-	if(m_State >= WRITING)
-	{
-		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-		RDCASSERT(record);
-
-		if(record)
-			return glMapNamedBufferEXT(record->Resource.name, access);
-
-		RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
-	}
-
-	return m_Real.glMapBuffer(target, access);
-}
-
 void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access)
 {
 	if(m_State >= WRITING)
@@ -1601,6 +1469,53 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
 	return m_Real.glMapBufferRange(target, offset, length, access);
 }
 
+// the glMapBuffer functions are equivalent to glMapBufferRange - so we just pass through
+void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
+{
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+		RDCASSERT(record);
+
+		if(record)
+		{
+			GLbitfield accessBits = 0;
+
+			     if(access == eGL_READ_ONLY)  accessBits = eGL_MAP_READ_BIT;
+			else if(access == eGL_WRITE_ONLY) accessBits = eGL_MAP_WRITE_BIT;
+			else if(access == eGL_READ_WRITE) accessBits = eGL_MAP_READ_BIT|eGL_MAP_WRITE_BIT;
+			return glMapNamedBufferRangeEXT(record->Resource.name, 0, record->Length, accessBits);
+		}
+
+		RDCERR("glMapNamedBufferEXT: Couldn't get resource record for buffer %x!", buffer);
+	}
+
+	return m_Real.glMapNamedBufferEXT(buffer, access);
+}
+
+void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
+{
+	if(m_State >= WRITING)
+	{
+		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+
+		if(record)
+		{
+			GLbitfield accessBits = 0;
+
+			     if(access == eGL_READ_ONLY)  accessBits = eGL_MAP_READ_BIT;
+			else if(access == eGL_WRITE_ONLY) accessBits = eGL_MAP_WRITE_BIT;
+			else if(access == eGL_READ_WRITE) accessBits = eGL_MAP_READ_BIT|eGL_MAP_WRITE_BIT;
+			return glMapNamedBufferRangeEXT(record->Resource.name, 0, record->Length, accessBits);
+		}
+
+		RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
+	}
+
+	return m_Real.glMapBuffer(target, access);
+}
+
 bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 {
 	GLResourceRecord *record = NULL;
@@ -1695,9 +1610,7 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 			case GLResourceRecord::Mapped_Ignore_Real:
 				if(m_State == WRITING_CAPFRAME)
 					RDCERR("Failed to cap frame - uncapped Map/Unmap");
-				// deliberate fallthrough
-			case GLResourceRecord::Mapped_Read_Real:
-				// need to do real unmap
+				// need to do the real unmap
 				ret = m_Real.glUnmapNamedBufferEXT(buffer);
 				break;
 			case GLResourceRecord::Mapped_Write:
@@ -1725,18 +1638,6 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 					m_Real.glUnmapNamedBufferEXT(buffer);
 				}
 				
-				break;
-			}
-			case GLResourceRecord::Mapped_Write_Real:
-			{
-				if(m_State == WRITING_CAPFRAME)
-					RDCERR("Failed to cap frame - uncapped Map/Unmap");
-
-				// Throwing away map contents as we don't have datastore allocated
-				// Could init chunk here using known data (although maybe it's only partial).
-				ret = m_Real.glUnmapNamedBufferEXT(buffer);
-
-				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 				break;
 			}
 		}
@@ -1816,10 +1717,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 
 	// note that we only want to flush the range with GL if we've actually
 	// mapped it. Otherwise the map is 'virtual' and just pointing to our backing store data
-	if(record &&
-		  (record->Map.status == GLResourceRecord::Mapped_Write_Real ||
-			 record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
-		)
+	if(record && record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
 		m_Real.glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1830,8 +1728,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 			{
 				RDCWARN("Unmapped buffer being flushed, ignoring");
 			}
-			else if(record->Map.status == GLResourceRecord::Mapped_Ignore_Real ||
-			        record->Map.status == GLResourceRecord::Mapped_Write_Real)
+			else if(record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
 			{
 				RDCERR("Failed to cap frame - uncapped Map/Unmap being flushed");
 			}
