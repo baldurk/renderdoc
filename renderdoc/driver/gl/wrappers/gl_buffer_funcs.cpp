@@ -1388,22 +1388,7 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 
 		byte *ptr = record->GetDataPtr();
 
-		// we can only 'ignore' a buffer map if we're idle, if we're capframing
-		// we must create shadow stores and intercept it. If we choose to ignore
-		// this buffer map because we don't have backing store, it will probably
-		// get the buffer marked as dirty (although in theory we could create a
-		// backing store from the unmap chunk, provided we have mapped the whole
-		// buffer.
-		if(ptr == NULL && m_State == WRITING_IDLE)
-		{
-			RDCWARN("Mapping buffer that hasn't been allocated");
-			
-			ptr = (byte *)m_Real.glMapNamedBufferEXT(buffer, access);
-
-			record->Map.ptr = ptr;
-			record->Map.status = GLResourceRecord::Mapped_Write_Real;
-		}
-		else
+		RDCASSERT(ptr);
 		{
 			if(m_State == WRITING_CAPFRAME)
 			{
@@ -1475,10 +1460,10 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
 		bool straightUp = false;
-		if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+		if(m_State != WRITING_CAPFRAME && m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
 			straightUp = true;
 		
-		if(GetResourceManager()->IsResourceDirty(record->GetResourceID()) && m_State != WRITING_CAPFRAME)
+		if(!straightUp && m_State != WRITING_CAPFRAME && GetResourceManager()->IsResourceDirty(record->GetResourceID()))
 			straightUp = true;
 
 		bool invalidateMap = (access & (GL_MAP_INVALIDATE_BUFFER_BIT|GL_MAP_INVALIDATE_RANGE_BIT)) != 0;
@@ -1512,13 +1497,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 		{
 			byte *ptr = record->GetDataPtr();
 
-			if(ptr == NULL)
-			{
-				RDCWARN("Mapping buffer that hasn't been allocated");
-
-				record->Map.status = GLResourceRecord::Mapped_Read_Real;
-				return m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
-			}
+			RDCASSERT(ptr);
 
 			ptr += offset;
 
@@ -1531,22 +1510,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 
 		byte *ptr = record->GetDataPtr();
 		
-		// we can only 'ignore' a buffer map if we're idle, if we're capframing
-		// we must create shadow stores and intercept it. If we choose to ignore
-		// this buffer map because we don't have backing store, it will probably
-		// get the buffer marked as dirty (although in theory we could create a
-		// backing store from the unmap chunk, provided we have mapped the whole
-		// buffer.
-		if(ptr == NULL && m_State == WRITING_IDLE)
-		{
-			RDCWARN("Mapping buffer that hasn't been allocated");
-			
-			ptr = (byte *)m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
-
-			record->Map.ptr = ptr;
-			record->Map.status = GLResourceRecord::Mapped_Write_Real;
-		}
-		else
+		RDCASSERT(ptr);
 		{
 			// flush explicit maps are handled particularly:
 			// if we're idle, we just return the backing pointer and treat it no differently to a normal write map,
