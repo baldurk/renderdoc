@@ -259,6 +259,12 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	GLint boolread = 0;
 	// TODO check GL_MAX_*
 	// TODO check the extensions/core version for these is around
+
+	if(ctx == NULL)
+	{
+		ContextPresent = false;
+		return;
+	}
 	
 	{
 		GLenum pnames[] =
@@ -582,6 +588,9 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 
 void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 {
+	if(!ContextPresent || ctx == NULL)
+		return;
+
 	{
 		GLenum pnames[] =
 		{
@@ -870,6 +879,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 
 void GLRenderState::Clear()
 {
+	ContextPresent = true;
+
 	RDCEraseEl(Enabled);
 	
 	RDCEraseEl(Tex1D);
@@ -956,6 +967,11 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 {
 	GLResourceManager *rm = gl->GetResourceManager();
 	// TODO check GL_MAX_*
+
+	m_pSerialiser->Serialise("Context Present", ContextPresent);
+
+	if(!ContextPresent)
+		return;
 
 	m_pSerialiser->Serialise<eEnabled_Count>("GL_ENABLED", Enabled);
 

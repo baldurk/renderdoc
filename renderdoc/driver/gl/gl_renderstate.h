@@ -100,6 +100,8 @@ struct GLRenderState
 		eEnabled_Count,
 	};
 
+	bool ContextPresent;
+
 	bool Enabled[eEnabled_Count];
 
 	uint32_t Tex1D[128];
