@@ -628,6 +628,18 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 		
 		GLint status = 0;
 		gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+
+		// if it failed to link, try again as a separable program.
+		// we can't do this by default because of the silly rules meaning
+		// shaders need fixup to be separable-compatible.
+		if(status == 0)
+		{
+			gl.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+			gl.glLinkProgram(initProg);
+
+			gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+		}
+
 		if(status == 0)
 		{
 			if(details.shaders.size() == 0)
