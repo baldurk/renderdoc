@@ -138,6 +138,7 @@ struct GLResourceRecord : public ResourceRecord
 		usage(eGL_NONE)
 	{
 		RDCEraseEl(ShadowPtr);
+		RDCEraseEl(Map);
 	}
 
 	~GLResourceRecord()
@@ -161,6 +162,9 @@ struct GLResourceRecord : public ResourceRecord
 		MapStatus status;
 		bool invalidate;
 		byte *ptr;
+
+		byte *persistentPtr;
+		int64_t persistentMaps; // counter indicating how many coherent maps are 'live'
 	} Map;
 
 	void VerifyDataType(GLenum target)

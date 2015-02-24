@@ -185,6 +185,20 @@ bool WrappedOpenGL::Serialise_glMemoryBarrier(GLbitfield barriers)
 
 void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 {
+	if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+	{
+		barriers &= ~GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+
+		// perform a forced flush of all persistent mapped buffers,
+		// coherent or not.
+		PersistentMapMemoryBarrier(m_PersistentMaps);
+	}
+
+	// if it was only GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT and that's been specially
+	// handled then just return. Otherwise, handle the rest
+	if(barriers == 0)
+		return;
+
 	m_Real.glMemoryBarrier(barriers);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -210,6 +224,20 @@ bool WrappedOpenGL::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
 
 void WrappedOpenGL::glMemoryBarrierByRegion(GLbitfield barriers)
 {
+	if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
+	{
+		barriers &= ~GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT;
+
+		// perform a forced flush of all persistent mapped buffers,
+		// coherent or not.
+		PersistentMapMemoryBarrier(m_PersistentMaps);
+	}
+
+	// if it was only GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT and that's been specially
+	// handled then just return. Otherwise, handle the rest
+	if(barriers == 0)
+		return;
+
 	m_Real.glMemoryBarrierByRegion(barriers);
 
 	if(m_State == WRITING_CAPFRAME)

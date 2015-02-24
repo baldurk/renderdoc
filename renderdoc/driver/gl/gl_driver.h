@@ -155,6 +155,24 @@ class WrappedOpenGL
 		
 		set<ResourceId> m_HighTrafficResources;
 
+		// we store two separate sets of maps, since for an explicit glMemoryBarrier
+		// we need to flush both types of maps, but for implicit sync points we only
+		// want to consider coherent maps, and since that happens often we want it to
+		// be as efficient as possible.
+		set<GLResourceRecord*> m_CoherentMaps;
+		set<GLResourceRecord*> m_PersistentMaps;
+
+		// this function iterates over all the maps, checking for any changes between
+		// the shadow pointers, and propogates that to 'real' GL
+		void PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps);
+
+		// this function is called at any point that could possibly pick up a change
+		// in a coherent persistent mapped buffer, to propogate changes across. In most
+		// cases hopefully m_CoherentMaps will be empty so this will amount to an inlined
+		// check and jump
+		inline void CoherentMapImplicitBarrier()
+		{ if(!m_CoherentMaps.empty()) PersistentMapMemoryBarrier(m_CoherentMaps); }
+
 		vector<FetchFrameRecord> m_FrameRecord;
 		
 		const FetchDrawcall *GetDrawcall(const FetchDrawcall *draw, uint32_t eventID);
@@ -1139,6 +1157,8 @@ class WrappedOpenGL
 		void Common_glTextureParameterivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params);
 		void Common_glTextureParameterIivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLint *params);
 		void Common_glTextureParameterIuivEXT(GLResourceRecord *record, GLenum target, GLenum pname, const GLuint *params);
+
+		void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data, GLbitfield flags);
 
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glCheckNamedFramebufferStatusEXT(GLuint framebuffer, GLenum target));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glCompressedTextureImage1DEXT(GLuint texture, GLenum target, GLint level, GLenum internalformat, GLsizei width, GLint border, GLsizei imageSize, const void *bits));
