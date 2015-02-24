@@ -203,13 +203,13 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 	string block = "";
 	
 	if(type == eGL_VERTEX_SHADER)
-		block = "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
+		block = "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
 	else if(type == eGL_TESS_CONTROL_SHADER)
-		block = "\nin gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];" \
-		        "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_out[];";
+		block = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n" \
+		        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_out[];\n";
 	else
-		block = "\nin gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];" \
-		        "\nout gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };";
+		block = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n" \
+		        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
 
 	const char **strings = new const char*[sources.size()];
 	for(size_t i=0; i < sources.size(); i++)
@@ -268,11 +268,58 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 			while(it < len && (src[it] == ' ' || src[it] == '\t'))
 				++it;
 
-			substituted = src;
+			if(!strncmp(&src[it], "core"         ,  4)) it += sizeof("core")-1;
+			if(!strncmp(&src[it], "compatibility", 13)) it += sizeof("compatibility")-1;
+			if(!strncmp(&src[it], "es"           ,  2)) it += sizeof("es")-1;
 
-			if(!strncmp(&substituted[it], "core"         ,  4)) it += sizeof("core")-1;
-			if(!strncmp(&substituted[it], "compatibility", 13)) it += sizeof("compatibility")-1;
-			if(!strncmp(&substituted[it], "es"           ,  2)) it += sizeof("es")-1;
+			// now skip past comments, and any #extension directives
+			while(it < len)
+			{
+				// skip whitespace
+				while(it < len && (src[it] == ' ' || src[it] == '\t' || src[it] == '\r' || src[it] == '\n'))
+					++it;
+
+				// skip C++ style comments
+				if(it+1 < len && src[it] == '/' && src[it+1] == '/')
+				{
+					// keep going until the next newline
+					while(it < len && src[it] != '\r' && src[it] != '\n')
+						++it;
+
+					// skip more things
+					continue;
+				}
+
+				// skip extension directives
+				const char extDirective[] = "#extension";
+				if(!strncmp(src.c_str()+it, extDirective, sizeof(extDirective)-1) &&
+					it+sizeof(extDirective)-1 < len &&
+					(src[it+sizeof(extDirective)-1] == ' ' || src[it+sizeof(extDirective)-1] == '\t'))
+				{
+					// keep going until the next newline
+					while(it < len && src[it] != '\r' && src[it] != '\n')
+						++it;
+
+					// skip more things
+					continue;
+				}
+
+				// skip C style comments
+				if(it+1 < len && src[it] == '/' && src[it+1] == '*')
+				{
+					// keep going until the we reach a */
+					while(it+1 < len && (src[it] != '*' || src[it+1] != '/'))
+						++it;
+
+					// skip more things
+					continue;
+				}
+
+				// nothing more to skip
+				break;
+			}
+
+			substituted = src;
 
 			substituted.insert(it, block);
 
