@@ -61,6 +61,8 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_
 
 void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -113,6 +115,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x,
 
 void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z, GLuint group_size_x, GLuint group_size_y, GLuint group_size_z)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -160,6 +164,8 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
 
 void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDispatchComputeIndirect(indirect);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -261,6 +267,8 @@ bool WrappedOpenGL::Serialise_glTextureBarrier()
 
 void WrappedOpenGL::glTextureBarrier()
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glTextureBarrier();
 
 	if(m_State == WRITING_CAPFRAME)
@@ -314,6 +322,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 
 void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawTransformFeedback(mode, id);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -368,6 +378,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 
 void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLsizei instancecount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawTransformFeedbackInstanced(mode, id, instancecount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -422,6 +434,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 
 void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint stream)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawTransformFeedbackStream(mode, id, stream);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -477,6 +491,8 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 
 void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint id, GLuint stream, GLsizei instancecount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -532,6 +548,8 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 
 void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawArrays(mode, first, count);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -589,6 +607,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 
 void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawArraysIndirect(mode, indirect);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -645,6 +665,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 
 void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -703,6 +725,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 
 void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -765,6 +789,8 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 
 void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElements(mode, count, type, indices);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -831,6 +857,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 
 void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsIndirect(mode, type, indirect);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -895,6 +923,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 
 void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawRangeElements(mode, start, end, count, type, indices);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -961,6 +991,8 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 
 void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1025,6 +1057,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 
 void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1089,6 +1123,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 
 void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1155,6 +1191,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 
 void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1221,6 +1259,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 
 void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1289,6 +1329,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 
 void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, instancecount, basevertex, baseinstance);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1409,6 +1451,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
 void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLsizei *count, GLsizei drawcount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawArrays(mode, first, count, drawcount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1553,6 +1597,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
 void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawElements(mode, count, type, indices, drawcount);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1708,6 +1754,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
 void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei drawcount, const GLint *basevertex)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -1851,6 +1899,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 
 void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect, GLsizei drawcount, GLsizei stride)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2009,6 +2059,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 
 void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const void *indirect, GLsizei drawcount, GLsizei stride)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2164,6 +2216,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 
 void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2333,6 +2387,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 
 void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type, GLintptr indirect, GLintptr drawcount, GLsizei maxdrawcount, GLsizei stride)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount, maxdrawcount, stride);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2418,6 +2474,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 
 void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2431,6 +2489,8 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 
 void WrappedOpenGL::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferfv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2520,6 +2580,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 
 void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLint *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2533,6 +2595,8 @@ void WrappedOpenGL::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
 
 void WrappedOpenGL::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferiv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2607,6 +2671,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 
 void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2620,6 +2686,8 @@ void WrappedOpenGL::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer
 
 void WrappedOpenGL::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferuiv(buffer, drawbuffer, value);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2680,6 +2748,8 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
 
 void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLfloat depth, GLint stencil)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2693,6 +2763,8 @@ void WrappedOpenGL::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
 
 void WrappedOpenGL::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferfi(buffer, drawbuffer, depth, stencil);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2783,6 +2855,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum in
 
 void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2796,6 +2870,8 @@ void WrappedOpenGL::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalform
 
 void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferData(target, internalformat, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2886,6 +2962,8 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum
 
 void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2905,6 +2983,8 @@ void WrappedOpenGL::glClearNamedBufferSubData(GLuint buffer, GLenum internalform
 
 void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearBufferSubData(target, internalformat, offset, size, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -2973,6 +3053,8 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 
 void WrappedOpenGL::glClear(GLbitfield mask)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClear(mask);
 	
 	if(m_State == WRITING_CAPFRAME)
@@ -3058,6 +3140,8 @@ bool WrappedOpenGL::Serialise_glClearTexImage(GLuint texture, GLint level, GLenu
 
 void WrappedOpenGL::glClearTexImage(GLuint texture, GLint level, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearTexImage(texture, level, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)
@@ -3153,6 +3237,8 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(GLuint texture, GLint level, GL
 
 void WrappedOpenGL::glClearTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, const void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glClearTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, data);
 
 	if(m_State == WRITING_CAPFRAME)

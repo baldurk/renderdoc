@@ -279,6 +279,8 @@ bool WrappedOpenGL::Serialise_glBlendBarrierKHR()
 
 void WrappedOpenGL::glBlendBarrierKHR()
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glBlendBarrierKHR();
 	
 	if(m_State == WRITING_CAPFRAME)

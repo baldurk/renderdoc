@@ -45,11 +45,15 @@ GLuint WrappedOpenGL::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum
 
 void WrappedOpenGL::glFlush()
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glFlush();
 }
 
 void WrappedOpenGL::glFinish()
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glFinish();
 }
 
@@ -281,41 +285,57 @@ void WrappedOpenGL::glGetTexParameterIuiv(GLenum target, GLenum pname, GLuint *p
 
 void WrappedOpenGL::glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetTexImage(target, level, format, type, pixels);
 }
 
 void WrappedOpenGL::glGetCompressedTexImage(GLenum target, GLint level, void *img)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetCompressedTexImage(target, level, img);
 }
 
 void WrappedOpenGL::glGetnCompressedTexImage(GLenum target, GLint lod, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetnCompressedTexImage(target, lod, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetCompressedTextureImage(GLuint texture, GLint level, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetCompressedTextureImage(texture, level, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetCompressedTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetCompressedTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetnTexImage(GLenum target, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetnTexImage(target, level, format, type, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetTextureImage(GLuint texture, GLint level, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetTextureImage(texture, level, format, type, bufSize, pixels);
 }
 
 void WrappedOpenGL::glGetTextureSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetTextureSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth, format, type, bufSize, pixels);
 }
 
@@ -361,11 +381,15 @@ void WrappedOpenGL::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *p
 
 void WrappedOpenGL::glGetBufferPointerv(GLenum target, GLenum pname, void **params)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetBufferPointerv(target, pname, params);
 }
 
 void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetBufferSubData(target, offset, size, data);
 }
 
@@ -421,6 +445,8 @@ void WrappedOpenGL::glGetQueryBufferObjectiv(GLuint id, GLuint buffer, GLenum pn
 
 void WrappedOpenGL::glGetSynciv(GLsync sync, GLenum pname, GLsizei bufSize, GLsizei *length, GLint *values)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glGetSynciv(sync, pname, bufSize, length, values);
 }
 
@@ -757,11 +783,15 @@ void WrappedOpenGL::glClampColor(GLenum target, GLenum clamp)
 
 void WrappedOpenGL::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glReadPixels(x, y, width, height, format, type, pixels);
 }
 
 void WrappedOpenGL::glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format, GLenum type, GLsizei bufSize, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glReadnPixels(x, y, width, height, format, type, bufSize, pixels);
 }
 
@@ -817,11 +847,15 @@ void WrappedOpenGL::glGetNamedRenderbufferParameterivEXT(GLuint renderbuffer, GL
 
 void WrappedOpenGL::glGetTextureImageEXT(GLuint texture, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetTextureImageEXT(texture, target, level, format, type, pixels);
 }
 
 void WrappedOpenGL::glGetCompressedTextureImageEXT(GLuint texture, GLenum target, GLint level, void *img)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetCompressedTextureImageEXT(texture, target, level, img);
 }
 
@@ -837,11 +871,15 @@ void WrappedOpenGL::glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, 
 
 void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
 void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetNamedBufferSubData(buffer, offset, size, data);
 }
 
@@ -912,6 +950,8 @@ void WrappedOpenGL::glGetFloatIndexedvEXT(GLenum target, GLuint index, GLfloat *
 
 void WrappedOpenGL::glGetMultiTexImageEXT(GLenum texunit, GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetMultiTexImageEXT(texunit, target, level, format, type, pixels);
 }
 
@@ -947,11 +987,15 @@ void WrappedOpenGL::glGetMultiTexLevelParameterivEXT(GLenum texunit, GLenum targ
 
 void WrappedOpenGL::glGetCompressedMultiTexImageEXT(GLenum texunit, GLenum target, GLint lod, void *img)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetCompressedMultiTexImageEXT(texunit, target, lod, img);
 }
 
 void WrappedOpenGL::glGetNamedBufferPointervEXT(GLuint buffer, GLenum pname, void **params)
 {
+	CoherentMapImplicitBarrier();
+	
 	m_Real.glGetNamedBufferPointervEXT(buffer, pname, params);
 }
 

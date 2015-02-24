@@ -761,6 +761,8 @@ bool WrappedOpenGL::Serialise_glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLu
 
 void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size);
 	
 	if(m_State >= WRITING)
@@ -793,6 +795,8 @@ void WrappedOpenGL::glCopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuff
 
 void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glCopyBufferSubData(readTarget, writeTarget, readOffset, writeOffset, size);
 	
 	if(m_State >= WRITING)

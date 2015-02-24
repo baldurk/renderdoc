@@ -648,6 +648,8 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 {
 	if(!record) return;
 
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
@@ -747,6 +749,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 												               GLuint dstName, GLenum dstTarget, GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
 												               GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
 {
+	CoherentMapImplicitBarrier();
+
 	m_Real.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ,
 												    dstName, dstTarget, dstLevel, dstX, dstY, dstZ,
 												    srcWidth, srcHeight, srcDepth);
@@ -795,6 +799,8 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_IDLE)
 	{
 		GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -867,6 +873,8 @@ void WrappedOpenGL::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, 
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_IDLE)
 	{
 		GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -940,6 +948,8 @@ void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, 
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_IDLE)
 	{
 		GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -1599,6 +1609,8 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
 {
 	if(texId == ResourceId()) return;
 
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -1769,6 +1781,8 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
 {
 	if(texId == ResourceId()) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -1922,6 +1936,8 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
 {
 	if(texId == ResourceId()) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -2081,6 +2097,8 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
 {
 	if(texId == ResourceId()) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -2261,6 +2279,8 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
 {
 	if(texId == ResourceId()) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -2421,6 +2441,8 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
 {
 	if(texId == ResourceId()) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -2543,6 +2565,8 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// not sure if proxy formats are valid, but ignore these anyway
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -2649,6 +2673,8 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// not sure if proxy formats are valid, but ignore these anyway
 	if(IsProxyTarget(target) || internalformat == 0) return;
 	
@@ -3278,6 +3304,8 @@ void WrappedOpenGL::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLen
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -3422,6 +3450,8 @@ void WrappedOpenGL::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLen
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -3568,6 +3598,8 @@ void WrappedOpenGL::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLen
 {
 	if(!record) return;
 	
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -3692,6 +3724,8 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *re
 {
 	if(!record) return;
 			
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -3818,6 +3852,8 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *re
 {
 	if(!record) return;
 			
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -3946,6 +3982,8 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *re
 {
 	if(!record) return;
 
+	CoherentMapImplicitBarrier();
+
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(format)) return;
 	
@@ -4058,6 +4096,8 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 {
 	if(texId == ResourceId()) return;
 
+	CoherentMapImplicitBarrier();
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
@@ -4159,6 +4199,8 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target, G
 {
 	if(texId == ResourceId()) return;
 		
+	CoherentMapImplicitBarrier();
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);

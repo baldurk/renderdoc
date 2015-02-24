@@ -1267,6 +1267,8 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
                                            GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
                                            GLbitfield mask, GLenum filter)
 {
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
@@ -1284,6 +1286,8 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
 
 void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1, GLbitfield mask, GLenum filter)
 {
+	CoherentMapImplicitBarrier();
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		GLuint readFramebuffer = 0, drawFramebuffer = 0;
