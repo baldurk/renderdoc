@@ -1411,40 +1411,68 @@ void GLReplay::SavePipelineState()
 			GLuint tex;
 			gl.glGetIntegerv(binding, (GLint *)&tex);
 
-			// very bespoke/specific
-			GLint firstSlice = 0;
-
-			if(target != eGL_TEXTURE_BUFFER)
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
-
-			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
-			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
-			pipe.Textures[unit].ResType = resType;
-
-			pipe.Textures[unit].DepthReadChannel = -1;
-
-			GLenum levelQueryType = target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
-			GLenum fmt = eGL_NONE;
-			gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
-			if(IsDepthStencilFormat(fmt))
+			if(tex == 0)
 			{
-				GLint depthMode;
-				gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+				pipe.Textures[unit].Resource = ResourceId();
+				pipe.Textures[unit].FirstSlice = 0;
+				pipe.Textures[unit].ResType = eResType_None;
+				pipe.Textures[unit].DepthReadChannel = -1;
+				pipe.Textures[unit].Swizzle[0] = eSwizzle_Red;
+				pipe.Textures[unit].Swizzle[1] = eSwizzle_Green;
+				pipe.Textures[unit].Swizzle[2] = eSwizzle_Blue;
+				pipe.Textures[unit].Swizzle[3] = eSwizzle_Alpha;
 
-				if(depthMode == eGL_DEPTH_COMPONENT)
-					pipe.Textures[unit].DepthReadChannel = 0;
-				else if(depthMode == eGL_STENCIL_INDEX)
-					pipe.Textures[unit].DepthReadChannel = 1;
+				RDCEraseEl(pipe.Samplers[unit].BorderColor);
+				pipe.Samplers[unit].AddressS = "";
+				pipe.Samplers[unit].AddressT = "";
+				pipe.Samplers[unit].AddressR = "";
+				pipe.Samplers[unit].Comparison = "";
+				pipe.Samplers[unit].MinFilter = "";
+				pipe.Samplers[unit].MagFilter = "";
+				pipe.Samplers[unit].UseBorder = false;
+				pipe.Samplers[unit].UseComparison = false;
+				pipe.Samplers[unit].SeamlessCube = false;
+				pipe.Samplers[unit].MaxAniso = 0.0f;
+				pipe.Samplers[unit].MaxLOD = 0.0f;
+				pipe.Samplers[unit].MinLOD = 0.0f;
+				pipe.Samplers[unit].MipLODBias = 0.0f;
 			}
-
-			GLint swizzles[4] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
-			if(target != eGL_TEXTURE_BUFFER)
-				gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
-
-			for(int i=0; i < 4; i++)
+			else
 			{
-				switch(swizzles[i])
+				// very bespoke/specific
+				GLint firstSlice = 0;
+
+				if(target != eGL_TEXTURE_BUFFER)
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+
+				pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
+				pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+				pipe.Textures[unit].ResType = resType;
+
+				pipe.Textures[unit].DepthReadChannel = -1;
+
+				GLenum levelQueryType = target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
+				GLenum fmt = eGL_NONE;
+				gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+				if(IsDepthStencilFormat(fmt))
 				{
+					GLint depthMode;
+					gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+
+					if(depthMode == eGL_DEPTH_COMPONENT)
+						pipe.Textures[unit].DepthReadChannel = 0;
+					else if(depthMode == eGL_STENCIL_INDEX)
+						pipe.Textures[unit].DepthReadChannel = 1;
+				}
+
+				GLint swizzles[4] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
+				if(target != eGL_TEXTURE_BUFFER)
+					gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+
+				for(int i=0; i < 4; i++)
+				{
+					switch(swizzles[i])
+					{
 					default:
 					case GL_ZERO:
 						pipe.Textures[unit].Swizzle[i] = eSwizzle_Zero;
@@ -1464,103 +1492,104 @@ void GLReplay::SavePipelineState()
 					case eGL_ALPHA:
 						pipe.Textures[unit].Swizzle[i] = eSwizzle_Alpha;
 						break;
+					}
 				}
-			}
 
-			GLuint samp;
-			gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+				GLuint samp;
+				gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
 
-			pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
+				pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
 
-			if(target != eGL_TEXTURE_BUFFER)
-			{
-				if(samp != 0)
-					gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+				if(target != eGL_TEXTURE_BUFFER)
+				{
+					if(samp != 0)
+						gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+					else
+						gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
+
+					pipe.Samplers[unit].UseBorder = false;
+					pipe.Samplers[unit].UseComparison = shadow;
+
+					GLint v;
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
+					pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
+					pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
+					pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
+					pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
+					pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
+					pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+					pipe.Samplers[unit].SeamlessCube = (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
+					pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
+					pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
+
+					v=0;
+					if(samp != 0)
+						gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
+					else
+						gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
+					pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+
+					if(samp != 0)
+						gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+					else
+						gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
+
+					gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
+					gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
+					gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
+				}
 				else
-					gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR, &pipe.Samplers[unit].BorderColor[0]);
-
-				pipe.Samplers[unit].UseBorder = false;
-				pipe.Samplers[unit].UseComparison = shadow;
-
-				GLint v;
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
-				pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
-				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
-				pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
-				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
-				pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
-				pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-				pipe.Samplers[unit].SeamlessCube = (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
-				pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
-				pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
-
-				v=0;
-				if(samp != 0)
-					gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
-				else
-					gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
-				pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
-
-				if(samp != 0)
-					gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
-				else
-					gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT, &pipe.Samplers[unit].MaxAniso);
-
-				gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
-				gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
-				gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
-			}
-			else
-			{
-				// texture buffers don't support sampling
-				RDCEraseEl(pipe.Samplers[unit].BorderColor);
-				pipe.Samplers[unit].AddressS = "";
-				pipe.Samplers[unit].AddressT = "";
-				pipe.Samplers[unit].AddressR = "";
-				pipe.Samplers[unit].Comparison = "";
-				pipe.Samplers[unit].MinFilter = "";
-				pipe.Samplers[unit].MagFilter = "";
-				pipe.Samplers[unit].UseBorder = false;
-				pipe.Samplers[unit].UseComparison = false;
-				pipe.Samplers[unit].SeamlessCube = false;
-				pipe.Samplers[unit].MaxAniso = 0.0f;
-				pipe.Samplers[unit].MaxLOD = 0.0f;
-				pipe.Samplers[unit].MinLOD = 0.0f;
-				pipe.Samplers[unit].MipLODBias = 0.0f;
+				{
+					// texture buffers don't support sampling
+					RDCEraseEl(pipe.Samplers[unit].BorderColor);
+					pipe.Samplers[unit].AddressS = "";
+					pipe.Samplers[unit].AddressT = "";
+					pipe.Samplers[unit].AddressR = "";
+					pipe.Samplers[unit].Comparison = "";
+					pipe.Samplers[unit].MinFilter = "";
+					pipe.Samplers[unit].MagFilter = "";
+					pipe.Samplers[unit].UseBorder = false;
+					pipe.Samplers[unit].UseComparison = false;
+					pipe.Samplers[unit].SeamlessCube = false;
+					pipe.Samplers[unit].MaxAniso = 0.0f;
+					pipe.Samplers[unit].MaxLOD = 0.0f;
+					pipe.Samplers[unit].MinLOD = 0.0f;
+					pipe.Samplers[unit].MipLODBias = 0.0f;
+				}
 			}
 		}
 		else
