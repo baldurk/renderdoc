@@ -383,7 +383,28 @@ void WrappedOpenGL::glGetBufferPointerv(GLenum target, GLenum pname, void **para
 {
 	CoherentMapImplicitBarrier();
 
+	// intercept GL_BUFFER_MAP_POINTER queries
+	if(pname == eGL_BUFFER_MAP_POINTER)
+	{
+		GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+		RDCASSERT(record);
+
+		if(record)
+		{
+			if(record->Map.status == GLResourceRecord::Unmapped)
+				*params = NULL;
+			else
+				*params = (void *)record->Map.ptr;
+		}
+		else
+		{
+			*params = NULL;
+		}
+	}
+	else
+	{
 	m_Real.glGetBufferPointerv(target, pname, params);
+	}
 }
 
 void WrappedOpenGL::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
@@ -996,7 +1017,28 @@ void WrappedOpenGL::glGetNamedBufferPointervEXT(GLuint buffer, GLenum pname, voi
 {
 	CoherentMapImplicitBarrier();
 	
+	// intercept GL_BUFFER_MAP_POINTER queries
+	if(pname == eGL_BUFFER_MAP_POINTER)
+	{
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+		RDCASSERT(record);
+
+		if(record)
+		{
+			if(record->Map.status == GLResourceRecord::Unmapped)
+				*params = NULL;
+			else
+				*params = (void *)record->Map.ptr;
+		}
+		else
+		{
+			*params = NULL;
+		}
+	}
+	else
+	{
 	m_Real.glGetNamedBufferPointervEXT(buffer, pname, params);
+	}
 }
 
 void WrappedOpenGL::glGetNamedProgramivEXT(GLuint program, GLenum target, GLenum pname, GLint *params)
