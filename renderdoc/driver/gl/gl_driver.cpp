@@ -968,6 +968,9 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, G
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 {
 	m_ActiveContexts[Threading::GetCurrentID()] = winData;
+	if(winData.ctx)
+		m_DefaultContexts[Threading::GetCurrentID()] = winData;
+
 	// TODO: support multiple GL contexts more explicitly
 	Keyboard::AddInputWindow((void *)winData.wnd);
 
@@ -1895,6 +1898,15 @@ void WrappedOpenGL::Present(void *windowHandle)
 	{
 		m_State = WRITING_CAPFRAME;
 
+		GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+
+		bool switchedContext = false;
+		if(prevctx.ctx == NULL)
+		{
+			MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
+			switchedContext = true;
+		}
+
 		FetchFrameRecord record;
 		record.frameInfo.frameNumber = m_FrameCounter+1;
 		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
@@ -1907,6 +1919,9 @@ void WrappedOpenGL::Present(void *windowHandle)
 		
 		AttemptCapture();
 		BeginCaptureFrame();
+
+		if(switchedContext)
+			MakeContextCurrent(prevctx);
 
 		RDCLOG("Starting capture, frame %u", m_FrameCounter);
 	}

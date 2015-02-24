@@ -131,6 +131,10 @@ class WrappedOpenGL
 
 		map<uint64_t, GLWindowingData> m_ActiveContexts;
 
+		// we use this context if we need one e.g. for fetching initial states
+		// if no context is current
+		map<uint64_t, GLWindowingData> m_DefaultContexts;
+
 		bool m_ActiveQueries[8][8]; // first index type, second index (for some, always 0)
 		bool m_ActiveConditional;
 		bool m_ActiveFeedback;
