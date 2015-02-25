@@ -529,6 +529,16 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 
 		Chunk *chunk = scope.Get();
 
+		// if we've already created this is a renaming/data updating call. It should go in
+		// the frame record so we can 'update' the buffer as it goes in the frame.
+		// if we haven't created the buffer at all, it could be a mid-frame create and we
+		// should place it in the resource record, to happen before the frame.
+		if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
+		{
+			// we could perhaps substitute this for a 'fake' glBufferSubData chunk?
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
@@ -634,6 +644,16 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
 		Chunk *chunk = scope.Get();
 
+		// if we've already created this is a renaming/data updating call. It should go in
+		// the frame record so we can 'update' the buffer as it goes in the frame.
+		// if we haven't created the buffer at all, it could be a mid-frame create and we
+		// should place it in the resource record, to happen before the frame.
+		if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
+		{
+			// we could perhaps substitute this for a 'fake' glBufferSubData chunk?
+			m_ContextRecord->AddChunk(chunk);
+		}
+		else
 		{
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
