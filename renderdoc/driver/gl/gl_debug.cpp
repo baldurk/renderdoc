@@ -1035,6 +1035,9 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 	
 	auto &texDetails = m_pDriver->m_Textures[cfg.texid];
 
+	if(texDetails.internalFormat == eGL_NONE)
+		return false;
+
 	bool renderbuffer = false;
 
 	int intIdx = 0;
