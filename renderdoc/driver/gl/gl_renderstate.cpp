@@ -1041,7 +1041,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		"GL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY",
 	};
 
-	for(int t=0; t < ARRAY_COUNT(texArrays); t++)
+	for(size_t t=0; t < ARRAY_COUNT(texArrays); t++)
 	{
 		RDCEraseEl(ids);
 		if(state >= WRITING)

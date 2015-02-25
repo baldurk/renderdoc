@@ -5,8 +5,8 @@ MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
 			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
-CFLAGS=-c -Wall -Werror -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
-CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
+CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
+CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
 OBJDIR=.obj
 OBJECTS=replay/replay_output.o \

@@ -2727,6 +2727,8 @@ ResourceId GLReplay::CreateProxyTexture(FetchTexture templateTex)
 	
 	switch(templateTex.resType)
 	{
+		case eResType_None:
+			break;
 		case eResType_Buffer:
 		case eResType_Texture1D:
 		{

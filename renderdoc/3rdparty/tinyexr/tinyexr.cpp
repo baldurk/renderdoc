@@ -43,7 +43,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #pragma warning(disable : 4101) // unreferenced local variable
 #pragma warning(disable : 4201) // nonstandard extension used: nameless
                                 // struct/union
-#pragma warning(disable : 4018) // signed/unsigned mismatch
 
 #pragma warning(disable : 4267) // argument conversion, possible loss of data
 #endif
@@ -6774,7 +6773,7 @@ void WriteAttribute(FILE *fp, const char *name, const char *type,
   assert(n == sizeof(int));
 
   n = fwrite(data, 1, len, fp);
-  assert(n == len);
+  assert(n == (size_t)len);
 }
 
 typedef struct {
@@ -6827,7 +6826,7 @@ void WriteChannelInfo(std::vector<unsigned char> &data,
   size_t sz = 0;
 
   // Calculate total size.
-  for (int c = 0; c < channels.size(); c++) {
+  for (size_t c = 0; c < channels.size(); c++) {
     sz += strlen(channels[c].name.c_str()) + 1; // +1 for \0
     sz += 16;                                   // 4 * int
   }
@@ -6837,7 +6836,7 @@ void WriteChannelInfo(std::vector<unsigned char> &data,
 
   unsigned char *p = &data.at(0);
 
-  for (int c = 0; c < channels.size(); c++) {
+  for (size_t c = 0; c < channels.size(); c++) {
     memcpy(p, channels[c].name.c_str(), strlen(channels[c].name.c_str()));
     p += strlen(channels[c].name.c_str());
     (*p) = '\0';
@@ -7164,7 +7163,7 @@ int LoadEXRFP(float **out_rgba, int *width, int *height, FILE *fp,
 
   std::vector<float> image(dataWidth * dataHeight * 4); // 4 = RGBA
   // Set default alpha value to 1.0
-  for (size_t i = 0; i < dataWidth * dataHeight; i++) {
+  for (int i = 0; i < dataWidth * dataHeight; i++) {
     image[4 * i + 3] = 1.0f;
   }
 
@@ -7449,7 +7448,7 @@ int LoadMultiChannelEXR(EXRImage *exrImage, const char *filename,
 
   std::vector<float> image(dataWidth * dataHeight * 4); // 4 = RGBA
   // Set default alpha value to 1.0
-  for (size_t i = 0; i < dataWidth * dataHeight; i++) {
+  for (int i = 0; i < dataWidth * dataHeight; i++) {
     image[4 * i + 3] = 1.0f;
   }
 
@@ -8183,7 +8182,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
       DecompressZip(reinterpret_cast<unsigned char *>(&sampleData.at(0)),
                     dstLen, dataPtr + 28 + packedOffsetTableSize,
                     packedSampleDataSize);
-      assert(dstLen == unpackedSampleDataSize);
+      assert(dstLen == (unsigned long)unpackedSampleDataSize);
     }
 
     // decode sample
@@ -8208,7 +8207,7 @@ int LoadDeepEXR(DeepImage *deepImage, const char *filename, const char **err) {
     }
     assert(sampleSize >= 2);
 
-    assert(pixelOffsetTable[dataWidth - 1] * sampleSize == sampleData.size());
+    assert(pixelOffsetTable[dataWidth - 1] * sampleSize == (int)sampleData.size());
     int samplesPerLine = sampleData.size() / sampleSize;
 
     //
