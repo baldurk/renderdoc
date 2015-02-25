@@ -1022,37 +1022,6 @@ bool D3D11DebugManager::InitDebugRendering()
 	}
 
 	RenderDoc::Inst().SetProgress(DebugManagerInit, 0.9f);
-
-	if(RenderDoc::Inst().IsReplayApp())
-	{
-		float data[] = {
-			0.0f, -1.0f, 0.0f,
-			1.0f, -1.0f, 0.0f,
-			1.0f,  0.0f, 0.0f,
-			0.0f,  0.0f, 0.0f,
-			0.0f, -1.0f, 0.0f,
-		};
-
-		D3D11_SUBRESOURCE_DATA initialPos;
-
-		initialPos.pSysMem = data;
-		initialPos.SysMemPitch = initialPos.SysMemSlicePitch = 0;
-		
-		D3D11_BUFFER_DESC bufDesc;
-		
-		bufDesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
-		bufDesc.Usage = D3D11_USAGE_IMMUTABLE;
-		bufDesc.ByteWidth = sizeof(data);
-		bufDesc.CPUAccessFlags = 0;
-		bufDesc.MiscFlags = 0;
-		
-		hr = m_pDevice->CreateBuffer(&bufDesc, &initialPos, &m_DebugRender.OutlineStripVB);
-
-		if(FAILED(hr))
-		{
-			RDCERR("Failed to create outline strip buffer %08x", hr);
-		}
-	}
 	
 	if(RenderDoc::Inst().IsReplayApp())
 	{
@@ -3636,7 +3605,6 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
 
 	m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP);
 	m_pImmediateContext->IASetInputLayout(NULL);
-	m_pImmediateContext->IASetVertexBuffers(0, 1, &m_DebugRender.OutlineStripVB, &stride, &offs);
 
 	m_pImmediateContext->VSSetShader(m_DebugRender.GenericVS, NULL, 0);
 	m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);

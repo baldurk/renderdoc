@@ -282,6 +282,7 @@ void GLReplay::InitDebugData()
 			1.0f, -1.0f, 0.0f, 1.0f,
 			1.0f,  0.0f, 0.0f, 1.0f,
 			0.0f,  0.0f, 0.0f, 1.0f,
+			0.0f, -1.1f, 0.0f, 1.0f,
 		};
 
 		gl.glGenBuffers(1, &DebugData.outlineStripVB);
@@ -1395,7 +1396,7 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glDisable(eGL_DEPTH_TEST);
 	
 	gl.glBindVertexArray(DebugData.outlineStripVAO);
-	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
+	gl.glDrawArrays(eGL_LINE_STRIP, 0, 5);
 
 	offsetVal = Vec4f(-xpixdim, ypixdim, 0.0f, 0.0f);
 	scaleVal = Vec4f(xdim+xpixdim*2, ydim+ypixdim*2, 1.0f, 1.0f);
@@ -1406,7 +1407,7 @@ void GLReplay::RenderHighlightBox(float w, float h, float scale)
 	gl.glUniform4fv(colLoc, 1, &colVal.x);
 
 	gl.glBindVertexArray(DebugData.outlineStripVAO);
-	gl.glDrawArrays(eGL_LINE_LOOP, 0, 4);
+	gl.glDrawArrays(eGL_LINE_STRIP, 0, 5);
 }
 
 void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)

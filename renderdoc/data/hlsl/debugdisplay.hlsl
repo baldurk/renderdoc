@@ -33,6 +33,7 @@ v2f RENDERDOC_DebugVS(uint vertID : SV_VertexID)
 		float2(0.0f, -1.0f),
 		float2(1.0f,  0.0f),
 		float2(1.0f, -1.0f),
+		float2(0.0f,  0.0f),
 	};
 
 	float2 pos = positions[vertID];
@@ -40,10 +41,11 @@ v2f RENDERDOC_DebugVS(uint vertID : SV_VertexID)
 	if(LineStrip)
 	{
 		float2 strippositions[] = {
-			float2(0.0f,  0.0f),
-			float2(1.0f,  0.0f),
-			float2(1.0f, -1.0f),
 			float2(0.0f, -1.0f),
+			float2(1.0f, -1.0f),
+			float2(1.0f,  0.0f),
+			float2(0.0f,  0.0f),
+			float2(0.0f, -1.1f),
 		};
 
 		pos = strippositions[vertID];

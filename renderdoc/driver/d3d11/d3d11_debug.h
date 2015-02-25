@@ -398,7 +398,6 @@ class D3D11DebugManager
 			{
 				SAFE_RELEASE(StageBuffer);
 
-				SAFE_RELEASE(OutlineStripVB);
 				SAFE_RELEASE(RastState);
 				SAFE_RELEASE(BlendState);
 				SAFE_RELEASE(NopBlendState);
@@ -483,7 +482,6 @@ class D3D11DebugManager
 
 			ID3D11Buffer *StageBuffer;
 
-			ID3D11Buffer *OutlineStripVB;
 			ID3D11RasterizerState *RastState;
 			ID3D11SamplerState *PointSampState, *LinearSampState;
 			ID3D11BlendState *BlendState, *NopBlendState;
