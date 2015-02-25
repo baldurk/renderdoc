@@ -44,7 +44,9 @@ struct PixelUnpackState
 	void Fetch(const GLHookSet *funcs, bool compressed);
 	void Apply(const GLHookSet *funcs, bool compressed);
 
-	bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat=eGL_NONE, GLenum basetype=eGL_NONE);
+	bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);
+	bool FastPathCompressed(GLsizei width, GLsizei height, GLsizei depth);
+
 	byte *Unpack(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);
 	byte *UnpackCompressed(byte *pixels, GLsizei width, GLsizei height, GLsizei depth, GLsizei &imageSize);
 };

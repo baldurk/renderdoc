@@ -83,7 +83,43 @@ bool PixelUnpackState::FastPath(GLsizei width, GLsizei height, GLsizei depth, GL
 	if(height > 0 && imageheight > 0 && height < imageheight)
 		return false;
 
-	if(dataformat != eGL_NONE && alignment > (int32_t)GetByteSize(1, 1, 1, dataformat, basetype))
+	if(alignment > (int32_t)GetByteSize(1, 1, 1, dataformat, basetype))
+		return false;
+
+	return true;
+}
+
+bool PixelUnpackState::FastPathCompressed(GLsizei width, GLsizei height, GLsizei depth)
+{
+	// compressedBlockSize and compressedBlockWidth must be set for any of the unpack params to be used
+	// if they are 0, all of the unpack params are ignored, so we go through the fast path (no unpacking)
+	if(compressedBlockSize == 0 || compressedBlockWidth == 0)
+		return true;
+
+	if(skipPixels)
+		return false;
+
+	if(width > 0 && rowlength > 0 && width < rowlength)
+		return false;
+
+	// the below two unpack params require compressedBlockHeight to be set so if we haven't "failed" to
+	// hit the fast path, none of the other params make a difference as they're ignored and we go through
+	// the fast path (no unpacking)
+	if(compressedBlockHeight == 0)
+		return true;
+
+	if(height > 0 && skipRows)
+		return false;
+
+	if(height > 0 && imageheight > 0 && height < imageheight)
+		return false;
+
+	// the final unpack param requires compressedBlockDepth to be set, as above if it's 0 then we can
+	// just go straight through the fast path (no unpacking)
+	if(compressedBlockDepth == 0)
+		return true;
+
+	if(depth > 0 && skipImages)
 		return false;
 
 	return true;

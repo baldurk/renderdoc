@@ -2039,7 +2039,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLen
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, 0, 0))
+		if(unpack.FastPathCompressed(Width, 0, 0))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, 0, 0, imageSize);
@@ -2199,7 +2199,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, Height, 0))
+		if(unpack.FastPathCompressed(Width, Height, 0))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
@@ -2383,7 +2383,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, Height, Depth))
+		if(unpack.FastPathCompressed(Width, Height, Depth))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
@@ -3689,7 +3689,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, 0, 0))
+		if(unpack.FastPathCompressed(Width, 0, 0))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, 0, 0, imageSize);
@@ -3817,7 +3817,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, Height, 0))
+		if(unpack.FastPathCompressed(Width, Height, 0))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
@@ -3947,7 +3947,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 	{
 		PixelUnpackState unpack; unpack.Fetch(&m_Real, true);
 
-		if(unpack.FastPath(Width, Height, Depth))
+		if(unpack.FastPathCompressed(Width, Height, Depth))
 			srcPixels = (byte *)pixels;
 		else
 			srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
