@@ -51,6 +51,13 @@ namespace Keyboard
 	
 	Display *CurrentXDisplay = NULL;
 
+	void CloneDisplay(Display *dpy)
+	{
+		if(CurrentXDisplay || dpy == NULL) return;
+
+		CurrentXDisplay = XOpenDisplay(XDisplayString(dpy));
+	}
+
 	void AddInputWindow(void *wnd)
 	{
 		// TODO check against this drawable & parent window being focused in GetKeyState

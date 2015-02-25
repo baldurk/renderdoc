@@ -39,7 +39,7 @@
 namespace glEmulate { void EmulateUnsupportedFunctions(GLHookSet *hooks); }
 
 // bit of a hack
-namespace Keyboard { extern Display *CurrentXDisplay; }
+namespace Keyboard { void CloneDisplay(Display *dpy); }
 
 typedef GLXContext (*PFNGLXCREATECONTEXTPROC)(Display *dpy, XVisualInfo *vis, GLXContext shareList, Bool direct);
 typedef void (*PFNGLXDESTROYCONTEXTPROC)(Display *dpy, GLXContext ctx);
@@ -578,7 +578,7 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	
 	int value = 0;
 	
-	if(Keyboard::CurrentXDisplay == NULL) Keyboard::CurrentXDisplay = dpy;	
+	Keyboard::CloneDisplay(dpy);
 
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
@@ -674,7 +674,7 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	
 	int value = 0;
 	
-	if(Keyboard::CurrentXDisplay == NULL) Keyboard::CurrentXDisplay = dpy;
+	Keyboard::CloneDisplay(dpy);
 	
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value); init.colorBits = value;
 	OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value); init.depthBits = value;
