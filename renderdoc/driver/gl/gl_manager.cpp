@@ -45,8 +45,13 @@ struct VertexBufferInitialData
 	uint32_t Divisor;
 };
 
+// note these data structures below contain a 'valid' bool, since due to complexities of
+// fetching the state on the right context, we might never be able to fetch the data at
+// all. So the valid is set to false to indicate that we shouldn't try to restore it on
+// replay.
 struct VAOInitialData
 {
+	bool valid;
 	VertexAttribInitialData VertexAttribs[16];
 	VertexBufferInitialData VertexBuffers[16];
 	ResourceId ElementArrayBuffer;
@@ -54,6 +59,7 @@ struct VAOInitialData
 
 struct FeedbackInitialData
 {
+	bool valid;
 	ResourceId Buffer[4];
 	uint64_t Offset[4];
 	uint64_t Size[4];
@@ -61,6 +67,7 @@ struct FeedbackInitialData
 
 struct FramebufferInitialData
 {
+	bool valid;
 	GLenum DrawBuffers[8];
 	GLenum ReadBuffer;
 };
@@ -92,6 +99,7 @@ template<>
 void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 {
 	ScopedContext scope(this, this, name, "FeedbackInitialData", 0, true);
+	Serialise("valid", el.valid);
 	Serialise<4>("Buffer", el.Buffer);
 	Serialise<4>("Offset", el.Offset);
 	Serialise<4>("Size", el.Size);
@@ -101,6 +109,7 @@ template<>
 void Serialiser::Serialise(const char *name, FramebufferInitialData &el)
 {
 	ScopedContext scope(this, this, name, "FramebufferInitialData", 0, true);
+	Serialise("valid", el.valid);
 	Serialise<8>("DrawBuffers", el.DrawBuffers);
 	Serialise("ReadBuffer", el.ReadBuffer);
 }
@@ -159,8 +168,100 @@ bool GLResourceManager::Need_InitialStateChunk(GLResource res)
 	return res.Namespace != eResBuffer;
 }
 
+bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
+{
+	const GLHookSet &gl = m_GL->m_Real;
+
+	if(res.Namespace == eResFramebuffer)
+	{
+		FramebufferInitialData *data = (FramebufferInitialData *)blob;
+
+		data->valid = true;
+
+		GLuint prevread = 0, prevdraw = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
+		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, res.name);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
+
+		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
+			gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data->DrawBuffers[i]);
+
+		gl.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&data->ReadBuffer);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
+		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
+	}
+	else if(res.Namespace == eResFeedback)
+	{
+		FeedbackInitialData *data = (FeedbackInitialData *)blob;
+
+		data->valid = true;
+
+		GLuint prevfeedback = 0;
+		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, res.name);
+
+		GLint maxCount = 0;
+		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+		for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		{
+			GLuint buffer = 0;
+			gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);data->Buffer[i] = GetID(BufferRes(res.Context, buffer));
+			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64*)&data->Offset[i]);
+			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE,  i, (GLint64*)&data->Size[i]);
+		}
+
+		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
+	}
+	else if(res.Namespace == eResVertexArray)
+	{
+		VAOInitialData *data = (VAOInitialData *)blob;
+
+		data->valid = true;
+
+		GLuint prevVAO = 0;
+		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+
+		gl.glBindVertexArray(res.name);
+
+		for(GLuint i=0; i < 16; i++)
+		{
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, (GLint *)&data->VertexAttribs[i].enabled);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data->VertexAttribs[i].vbslot);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET, (GLint*)&data->VertexAttribs[i].offset);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data->VertexAttribs[i].type);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, (GLint *)&data->VertexAttribs[i].normalized);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, (GLint *)&data->VertexAttribs[i].integer);
+			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data->VertexAttribs[i].size);
+
+			GLuint buffer = GetBoundVertexBuffer(gl, i);
+
+			data->VertexBuffers[i].Buffer = GetID(BufferRes(res.Context, buffer));
+
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data->VertexBuffers[i].Stride);
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data->VertexBuffers[i].Offset);
+			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data->VertexBuffers[i].Divisor);
+		}
+
+		GLuint buffer = 0;
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&buffer);
+		data->ElementArrayBuffer = GetID(BufferRes(res.Context, buffer));
+
+		gl.glBindVertexArray(prevVAO);
+	}
+
+	return true;
+}
+
 bool GLResourceManager::Prepare_InitialState(GLResource res)
 {
+	// this function needs to be refactored to better deal with multiple
+	// contexts and resources that are specific to a particular context
+
 	ResourceId Id = GetID(res);
 	
 	const GLHookSet &gl = m_GL->m_Real;
@@ -449,110 +550,70 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 		// need to be on the right context, as feedback objects are never shared
 		void *oldctx = NULL;
 		
-		if(!VendorCheck[VendorCheck_EXT_fbo_shared])
-			oldctx = m_GL->SwitchToContext(res.Context);
-		
-		GLuint prevread = 0, prevdraw = 0;
-		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
-		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
-		
-		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, res.name);
-		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
-
-		FramebufferInitialData *data = (FramebufferInitialData *)Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
+		byte *data = Serialiser::AllocAlignedBuffer(sizeof(FramebufferInitialData));
 		RDCEraseMem(data, sizeof(FramebufferInitialData));
-
-		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
-			gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data->DrawBuffers[i]);
-
-		gl.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&data->ReadBuffer);
 		
-		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
+		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
 
-		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
-		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
-
-		// restore the previous context
-		if(!VendorCheck[VendorCheck_EXT_fbo_shared])
-			m_GL->SwitchToContext(oldctx);
+		// if FBOs aren't shared we need to fetch the data for this FBO on the right context. It's
+		// not safe for us to go changing contexts ourselves (the context could be active on another
+		// thread), so instead we'll queue this up to fetch when we are on the correct context.
+		//
+		// Because we've already allocated and set the blob above, it can be filled in any time
+		// before serialising (end of the frame, and if the context is never used before the end of
+		// the frame the resource can't be used, so not fetching the initial state doesn't matter).
+		//
+		// Note we also need to detect the case where the context is already current on another thread
+		// and we just start getting commands there, but that case already isn't supported as we don't
+		// detect it and insert state-change chunks, we assume all commands will come from a single
+		// thread.
+		if(!VendorCheck[VendorCheck_EXT_fbo_shared] && res.Context && m_GL->GetCtx() != res.Context)
+		{
+			m_GL->QueuePrepareInitialState(res, data);
+		}
+		else
+		{
+			// call immediately, we are on the right context or for one reason or another the context
+			// doesn't matter for fetching this resource (res.Context is NULL or vendorcheck means they're
+			// shared).
+			Prepare_InitialState(res, (byte *)data);
+		}
 	}
 	else if(res.Namespace == eResFeedback)
 	{
-		// need to be on the right context, as feedback objects are never shared
-		void *oldctx = m_GL->SwitchToContext(res.Context);
-
-		GLuint prevfeedback = 0;
-		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
-
-		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, res.name);
-		
-		FeedbackInitialData *data = (FeedbackInitialData *)Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
+		byte *data = Serialiser::AllocAlignedBuffer(sizeof(FeedbackInitialData));
 		RDCEraseMem(data, sizeof(FeedbackInitialData));
-
-		GLint maxCount = 0;
-		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
-
-		for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
-		{
-			GLuint buffer = 0;
-			gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);data->Buffer[i] = GetID(BufferRes(res.Context, buffer));
-			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i, (GLint64*)&data->Offset[i]);
-			gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE,  i, (GLint64*)&data->Size[i]);
-		}
 		
-		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
+		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
 
-		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
-
-		// restore the previous context
-		m_GL->SwitchToContext(oldctx);
+		// queue initial state fetching if we're not on the right context, see above in FBOs for more
+		// explanation of this.
+		if(res.Context && m_GL->GetCtx() != res.Context)
+		{
+			m_GL->QueuePrepareInitialState(res, data);
+		}
+		else
+		{
+			Prepare_InitialState(res, (byte *)data);
+		}
 	}
 	else if(res.Namespace == eResVertexArray)
 	{
-		// need to be on the right context, as VAOs are never shared
-		void *oldctx = NULL;
-		
-		if(!VendorCheck[VendorCheck_EXT_vao_shared] && res.Context)
-			oldctx = m_GL->SwitchToContext(res.Context);
-
-		GLuint prevVAO = 0;
-		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
-
-		gl.glBindVertexArray(res.name);
-
-		VAOInitialData *data = (VAOInitialData *)Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
+		byte *data = Serialiser::AllocAlignedBuffer(sizeof(VAOInitialData));
 		RDCEraseMem(data, sizeof(VAOInitialData));
 
-		for(GLuint i=0; i < 16; i++)
+		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, data));
+
+		// queue initial state fetching if we're not on the right context, see above in FBOs for more
+		// explanation of this.
+		if(res.Context && m_GL->GetCtx() != res.Context)
 		{
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, (GLint *)&data->VertexAttribs[i].enabled);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&data->VertexAttribs[i].vbslot);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET, (GLint*)&data->VertexAttribs[i].offset);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&data->VertexAttribs[i].type);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, (GLint *)&data->VertexAttribs[i].normalized);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, (GLint *)&data->VertexAttribs[i].integer);
-			gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&data->VertexAttribs[i].size);
-
-			GLuint buffer = GetBoundVertexBuffer(gl, i);
-			
-			data->VertexBuffers[i].Buffer = GetID(BufferRes(res.Context, buffer));
-
-			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&data->VertexBuffers[i].Stride);
-			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&data->VertexBuffers[i].Offset);
-			gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&data->VertexBuffers[i].Divisor);
+			m_GL->QueuePrepareInitialState(res, data);
 		}
-
-		GLuint buffer = 0;
-		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&buffer);
-		data->ElementArrayBuffer = GetID(BufferRes(res.Context, buffer));
-
-		SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, (byte *)data));
-
-		gl.glBindVertexArray(prevVAO);
-
-		// restore the previous context
-		if(!VendorCheck[VendorCheck_EXT_vao_shared] && res.Context)
-			m_GL->SwitchToContext(oldctx);
+		else
+		{
+			Prepare_InitialState(res, (byte *)data);
+		}
 	}
 	else
 	{
@@ -1091,6 +1152,7 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			memcpy(&data, initialdata, sizeof(data));
 		}
 		
+		m_pSerialiser->Serialise("valid", data.valid);
 		for(GLuint i=0; i < 16; i++)
 		{
 			m_pSerialiser->Serialise("VertexAttrib[]", data.VertexAttribs[i]);
@@ -1339,91 +1401,100 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 	}
 	else if(live.Namespace == eResFramebuffer)
 	{
-		GLuint prevread = 0, prevdraw = 0;
-		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
-		gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
-
-		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, live.name);
-		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, live.name);
-
 		FramebufferInitialData *data = (FramebufferInitialData *)initial.blob;
 
-		// set invalid caps to GL_COLOR_ATTACHMENT0
-		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
-			if(data->DrawBuffers[i] == eGL_BACK || data->DrawBuffers[i] == eGL_FRONT)
-				data->DrawBuffers[i] = eGL_COLOR_ATTACHMENT0;
-		if(data->ReadBuffer == eGL_BACK || data->ReadBuffer == eGL_FRONT) data->ReadBuffer = eGL_COLOR_ATTACHMENT0;
+		if(data->valid)
+		{
+			GLuint prevread = 0, prevdraw = 0;
+			gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&prevdraw);
+			gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&prevread);
 
-		gl.glDrawBuffers(ARRAY_COUNT(data->DrawBuffers), data->DrawBuffers);
-		
-		gl.glReadBuffer(data->ReadBuffer);
+			gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, live.name);
+			gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, live.name);
 
-		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
-		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
+			// set invalid caps to GL_COLOR_ATTACHMENT0
+			for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
+				if(data->DrawBuffers[i] == eGL_BACK || data->DrawBuffers[i] == eGL_FRONT)
+					data->DrawBuffers[i] = eGL_COLOR_ATTACHMENT0;
+			if(data->ReadBuffer == eGL_BACK || data->ReadBuffer == eGL_FRONT) data->ReadBuffer = eGL_COLOR_ATTACHMENT0;
+
+			gl.glDrawBuffers(ARRAY_COUNT(data->DrawBuffers), data->DrawBuffers);
+
+			gl.glReadBuffer(data->ReadBuffer);
+
+			gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, prevdraw);
+			gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevread);
+		}
 	}
 	else if(live.Namespace == eResFeedback)
 	{
-		GLuint prevfeedback = 0;
-		gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
-
-		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, live.name);
-		
 		FeedbackInitialData *data = (FeedbackInitialData *)initial.blob;
 
-		GLint maxCount = 0;
-		gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
-
-		for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+		if(data->valid)
 		{
-			GLuint buffer = data->Buffer[i] == ResourceId() ? 0 : GetLiveResource(data->Buffer[i]).name;
-			gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i], (GLsizei)data->Size[i]);
-		}
+			GLuint prevfeedback = 0;
+			gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
 
-		gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
+			gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, live.name);
+
+			GLint maxCount = 0;
+			gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+			for(int i=0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
+			{
+				GLuint buffer = data->Buffer[i] == ResourceId() ? 0 : GetLiveResource(data->Buffer[i]).name;
+				gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i], (GLsizei)data->Size[i]);
+			}
+
+			gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);
+		}
 	}
 	else if(live.Namespace == eResVertexArray)
 	{
-		GLuint VAO = 0;
-		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
-		
 		VAOInitialData *initialdata = (VAOInitialData *)initial.blob;	
 
-		if(live.name == 0)
-			gl.glBindVertexArray(m_GL->GetFakeVAO());
-		else
-			gl.glBindVertexArray(live.name);
-	
-		for(GLuint i=0; i < 16; i++)
+		if(initialdata->valid)
 		{
-			VertexAttribInitialData &attrib = initialdata->VertexAttribs[i];
+			GLuint VAO = 0;
+			gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
 
-			if(attrib.enabled)
-				gl.glEnableVertexAttribArray(i);
+			if(live.name == 0)
+				gl.glBindVertexArray(m_GL->GetFakeVAO());
 			else
-				gl.glDisableVertexAttribArray(i);
+				gl.glBindVertexArray(live.name);
 
-			gl.glVertexAttribBinding(i, attrib.vbslot);
-
-			if(attrib.size != 0)
+			for(GLuint i=0; i < 16; i++)
 			{
-				if(initialdata->VertexAttribs[i].integer == 0)
-					gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized, attrib.offset);
+				VertexAttribInitialData &attrib = initialdata->VertexAttribs[i];
+
+				if(attrib.enabled)
+					gl.glEnableVertexAttribArray(i);
 				else
-					gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+					gl.glDisableVertexAttribArray(i);
+
+				gl.glVertexAttribBinding(i, attrib.vbslot);
+
+				if(attrib.size != 0)
+				{
+					if(initialdata->VertexAttribs[i].integer == 0)
+						gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized, attrib.offset);
+					else
+						gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+				}
+
+				VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
+
+				GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
+
+				gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
+				gl.glVertexBindingDivisor(i, buf.Divisor);
 			}
 
-			VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
+			GLuint buffer = initialdata->ElementArrayBuffer == ResourceId() ? 0 : GetLiveResource(initialdata->ElementArrayBuffer).name;
+			gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
 
-			GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
-			
-			gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
-			gl.glVertexBindingDivisor(i, buf.Divisor);
+			gl.glBindVertexArray(VAO);
 		}
-		
-		GLuint buffer = initialdata->ElementArrayBuffer == ResourceId() ? 0 : GetLiveResource(initialdata->ElementArrayBuffer).name;
-		gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
-
-		gl.glBindVertexArray(VAO);
 	}
 	else
 	{

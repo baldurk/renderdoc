@@ -204,6 +204,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return m_SyncIDs[sync];
 		}
 
+		bool Prepare_InitialState(GLResource res, byte *blob);
 		bool Serialise_InitialState(GLResource res);
 
 	private:

@@ -915,22 +915,6 @@ WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
 // defined in gl_<platform>_hooks.cpp
 void MakeContextCurrent(GLWindowingData data);
 
-void *WrappedOpenGL::SwitchToContext(void *ctx)
-{
-	GLWindowingData &data = m_ActiveContexts[Threading::GetCurrentID()];
-
-	void *oldctx = data.ctx;
-
-	// we won't get a callback for this (on purpose, since this can happen mid-capture and
-	// we don't want to mix this up with a MakeCurrent call from the program). So we update
-	// the current thread context here.
-	data.SetCtx(ctx);
-
-	MakeContextCurrent(data);
-
-	return oldctx;
-}
-
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -979,6 +963,18 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 		// if we're capturing, we need to serialise out the changed state vector
 		if(m_State == WRITING_CAPFRAME)
 		{
+			// fetch any initial states needed. Note this is insufficient, and doesn't handle the case where
+			// we might just suddenly start getting commands on a thread that already has a context active.
+			// For now we assume we'll only get GL commands from a single thread
+			QueuedInitialStateFetch fetch;
+			fetch.res.Context = winData.ctx;
+			auto it = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
+			for(; it != m_QueuedInitialFetches.end(); )
+			{
+				GetResourceManager()->Prepare_InitialState(it->res, it->blob);
+				it = m_QueuedInitialFetches.erase(it);
+			}
+
 			SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_HEADER);
 			Serialise_BeginCaptureFrame(false);
 			m_ContextRecord->AddChunk(scope.Get());
@@ -1970,6 +1966,16 @@ void WrappedOpenGL::EndCaptureFrame()
 	}
 
 	m_ContextRecord->AddChunk(scope.Get());
+}
+
+void WrappedOpenGL::QueuePrepareInitialState(GLResource res, byte *blob)
+{
+	QueuedInitialStateFetch fetch;
+	fetch.res = res;
+	fetch.blob = blob;
+
+	auto insertPos = std::lower_bound(m_QueuedInitialFetches.begin(), m_QueuedInitialFetches.end(), fetch);
+	m_QueuedInitialFetches.insert(insertPos, fetch);
 }
 
 void WrappedOpenGL::AttemptCapture()

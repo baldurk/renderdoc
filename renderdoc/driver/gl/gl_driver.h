@@ -367,6 +367,21 @@ class WrappedOpenGL
 		void RemoveReplacement(ResourceId id);
 		void FreeTargetResource(ResourceId id);
 
+		struct QueuedInitialStateFetch
+		{
+			GLResource res;
+			byte *blob;
+
+			bool operator <(const QueuedInitialStateFetch &o) const
+			{
+				return res.Context < o.res.Context;
+			}
+		};
+
+		vector<QueuedInitialStateFetch> m_QueuedInitialFetches;
+
+		void QueuePrepareInitialState(GLResource res, byte *blob);
+
 		static const int FONT_TEX_WIDTH = 256;
 		static const int FONT_TEX_HEIGHT = 128;
 		static const int FONT_MAX_CHARS = 256;
@@ -391,7 +406,6 @@ class WrappedOpenGL
 
 		GLReplay *GetReplay() { return &m_Replay; }
 		void *GetCtx();
-		void *SwitchToContext(void *ctx);
 
 		void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
 		
