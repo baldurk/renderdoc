@@ -1576,7 +1576,8 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
 			continue;
 
 		GLint idx = gl.glGetAttribLocation(progsrc, refl->InputSig[i].varName.elems);
-		gl.glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
+		if(idx >= 0)
+			gl.glBindAttribLocation(progdst, (GLuint)idx, refl->InputSig[i].varName.elems);
 	}
 }
 
@@ -1590,7 +1591,8 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
 			continue;
 
 		GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);
-		gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
+		if(idx >= 0)
+			gl.glBindFragDataLocation(progdst, (GLuint)idx, refl->OutputSig[i].varName.elems);
 	}
 }
 
