@@ -138,6 +138,13 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks)
 	EMULATE_UNSUPPORTED(glBlitNamedFramebuffer)
 	EMULATE_UNSUPPORTED(glVertexArrayElementBuffer);
 	EMULATE_UNSUPPORTED(glVertexArrayVertexBuffers)
+
+	// workaround for nvidia bug, which complains that GL_DEPTH_STENCIL is an invalid draw buffer.
+	// also some issues with 32-bit implementation of this entry point.
+	//
+	// NOTE: Vendor Checks aren't initialised by this point, so we have to do this unconditionally
+	// We include it just for searching: VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs]
+	hooks->glClearNamedFramebufferfi = &_glClearNamedFramebufferfi;
 }
 
 }; // namespace glEmulate

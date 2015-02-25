@@ -297,6 +297,15 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
 	// don't have a test for this, just have to enable it all the time, for now.
 	VendorCheck[VendorCheck_NV_avoid_D32S8_copy] = true;
+
+	// On 32-bit calling this function could actually lead to crashes (issues with
+	// esp being saved across the call), so since the work-around is low-cost of just
+	// emulating that function we just always enable it.
+	//
+	// NOTE: Vendor Checks are initialised after the function pointers will be set up
+	// so we have to do this unconditionally, this value isn't checked anywhere.
+	// Search for where this is applied in gl_emulated.cpp
+	VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs] = true;
 }
 
 size_t BufferIdx(GLenum buf)
