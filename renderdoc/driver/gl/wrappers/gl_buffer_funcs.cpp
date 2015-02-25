@@ -691,7 +691,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 			record->AddChunk(chunk);
 			record->UpdateCount++;
 				
-			if(record->UpdateCount > 60)
+			if(record->UpdateCount > 10)
 			{
 				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -732,7 +732,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 			record->AddChunk(chunk);
 			record->UpdateCount++;
 				
-			if(record->UpdateCount > 60)
+			if(record->UpdateCount > 10)
 			{
 				m_HighTrafficResources.insert(record->GetResourceID());
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
