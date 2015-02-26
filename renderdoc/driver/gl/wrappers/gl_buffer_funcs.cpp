@@ -1841,9 +1841,17 @@ bool WrappedOpenGL::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 	size_t diffStart = 0;
 	size_t diffEnd = (size_t)len;
 
-	if(m_State == WRITING_CAPFRAME && len > 512 && !record->Map.invalidate)
+	if(m_State == WRITING_CAPFRAME &&
+		// don't bother checking diff range for tiny buffers
+		len > 512 &&
+		// if the map has a sub-range specified, trust the user to have specified
+		// a minimal range, similar to glFlushMappedBufferRange, so don't find diff
+		// range.
+		record->Map.offset == 0 && record->Map.length == record->Length &&
+		// similarly for invalidate maps, we want to update the whole buffer
+		!record->Map.invalidate) 
 	{
-		bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1), (size_t)len, diffStart, diffEnd);
+		bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1)+offs, (size_t)len, diffStart, diffEnd);
 		if(found)
 		{
 			static size_t saved = 0;
