@@ -2964,14 +2964,14 @@ vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 
 void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {
-	RDCUNIMPLEMENTED("SetContextFilter");
+	GLNOTIMP("SetContextFilter");
 }
 
 
 
 vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
 {
-	RDCUNIMPLEMENTED("GLReplay::PixelHistory");
+	GLNOTIMP("GLReplay::PixelHistory");
 	return vector<PixelModification>();
 }
 
@@ -2980,19 +2980,19 @@ vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventU
 
 ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	RDCUNIMPLEMENTED("DebugVertex");
+	GLNOTIMP("DebugVertex");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive)
 {
-	RDCUNIMPLEMENTED("DebugPixel");
+	GLNOTIMP("DebugPixel");
 	return ShaderDebugTrace();
 }
 
 ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
-	RDCUNIMPLEMENTED("DebugThread");
+	GLNOTIMP("DebugThread");
 	return ShaderDebugTrace();
 }
 
