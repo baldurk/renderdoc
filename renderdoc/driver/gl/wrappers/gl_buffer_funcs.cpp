@@ -309,14 +309,6 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr 
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
 
-	byte *dummy = NULL;
-
-	if(m_State >= WRITING && data == NULL)
-	{
-		dummy = new byte[size];
-		data = dummy;
-	}
-
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
 
 	uint64_t offs = m_pSerialiser->GetOffset();
@@ -336,9 +328,6 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr 
 	{
 		GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
 	}
-
-	if(dummy)
-		delete[] dummy;
 
 	return true;
 }
@@ -387,9 +376,20 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
 
 void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags)
 {
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		memset(dummy, 0xdd, size);
+		data = dummy;
+	}
+
 	m_Real.glNamedBufferStorageEXT(buffer, size, data, flags);
 
 	Common_glNamedBufferStorageEXT(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)), size, data, flags);
+
+	SAFE_DELETE_ARRAY(dummy);
 }
 
 void WrappedOpenGL::glNamedBufferStorage(GLuint buffer, GLsizei size, const void *data, GLbitfield flags)
@@ -400,12 +400,23 @@ void WrappedOpenGL::glNamedBufferStorage(GLuint buffer, GLsizei size, const void
 
 void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
 {
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		memset(dummy, 0xdd, size);
+		data = dummy;
+	}
+
 	m_Real.glBufferStorage(target, size, data, flags);
 	
 	if(m_State >= WRITING)
 		Common_glNamedBufferStorageEXT(GetCtxData().m_BufferRecord[BufferIdx(target)]->GetResourceID(), size, data, flags);
 	else
 		RDCERR("Internal buffers should be allocated via dsa interfaces");
+	
+	SAFE_DELETE_ARRAY(dummy);
 }
 
 bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage)
@@ -413,15 +424,15 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr siz
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
 
-	byte *dummy = NULL;
-
-	if(m_State >= WRITING && data == NULL)
-	{
-		dummy = new byte[size];
-		data = dummy;
-	}
-
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+	
+	if(m_State == WRITING_CAPFRAME && id.id == 22)
+	{
+		uint32_t *debug = (uint32_t *)data;
+		RDCLOG("Serialised glBufferData for 22: %08x %08x %08x %08x %08x %08x %08x %08x",
+			debug[0], debug[1], debug[2], debug[3],
+			debug[4], debug[5], debug[6], debug[7]);
+	}
 
 	uint64_t offs = m_pSerialiser->GetOffset();
 
@@ -441,14 +452,20 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr siz
 		GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
 	}
 
-	if(dummy)
-		delete[] dummy;
-
 	return true;
 }
 
 void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage)
 {
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		memset(dummy, 0xdd, size);
+		data = dummy;
+	}
+
 	m_Real.glNamedBufferDataEXT(buffer, size, data, usage);
 	
 	if(m_State >= WRITING)
@@ -550,6 +567,8 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 	{
 		m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].size = size;
 	}
+
+	SAFE_DELETE_ARRAY(dummy);
 }
 
 void WrappedOpenGL::glNamedBufferData(GLuint buffer, GLsizei size, const void *data, GLenum usage)
@@ -560,6 +579,15 @@ void WrappedOpenGL::glNamedBufferData(GLuint buffer, GLsizei size, const void *d
 
 void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
 {
+	byte *dummy = NULL;
+
+	if(m_State >= WRITING && data == NULL)
+	{
+		dummy = new byte[size];
+		memset(dummy, 0xdd, size);
+		data = dummy;
+	}
+
 	m_Real.glBufferData(target, size, data, usage);
 	
 	size_t idx = BufferIdx(target);
@@ -665,6 +693,8 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 	{
 		RDCERR("Internal buffers should be allocated via dsa interfaces");
 	}
+
+	SAFE_DELETE_ARRAY(dummy);
 }
 
 bool WrappedOpenGL::Serialise_glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data)
@@ -1667,16 +1697,18 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 					// if we're not invalidating, we need the existing contents
 					if(!invalidateMap)
 					{
+						// need to fetch the whole buffer's contents, not just the mapped range,
+						// as next time we won't re-fetch and might need the rest of the contents
 						if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
 						{
 							// Perhaps we could get these contents from the frame initial state buffer?
 							
-							m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, ptr);
+							m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
 						}
-
-						// need to fetch the whole buffer's contents, not just the mapped range,
-						// as next time we won't re-fetch and might need the rest of the contents
-						memcpy(shadow, ptr, buflength);
+						else
+						{
+							memcpy(shadow, record->GetDataPtr(), buflength);
+						}
 					}
 
 					// copy into second shadow buffer ready for comparison later
