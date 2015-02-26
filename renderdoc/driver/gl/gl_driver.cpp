@@ -1197,6 +1197,7 @@ void WrappedOpenGL::WindowSize(void *windowHandle, uint32_t w, uint32_t h)
 struct RenderTextState
 {
 	bool enableBits[8];
+	GLenum ClipOrigin, ClipDepth;
 	GLenum EquationRGB, EquationAlpha;
 	GLenum SourceRGB, SourceAlpha;
 	GLenum DestinationRGB, DestinationAlpha;
@@ -1217,6 +1218,17 @@ struct RenderTextState
 		enableBits[4] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
 		enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
 		
+		if(GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])
+		{
+			gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
+			gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
+		}
+		else
+		{
+			ClipOrigin = eGL_LOWER_LEFT;
+			ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
+		}
+
 		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint*)&EquationRGB);
 		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint*)&EquationAlpha);
 
@@ -1262,6 +1274,9 @@ struct RenderTextState
 		if(enableBits[3]) gl.glEnable(eGL_STENCIL_TEST); else gl.glDisable(eGL_STENCIL_TEST);
 		if(enableBits[4]) gl.glEnable(eGL_CULL_FACE); else gl.glDisable(eGL_CULL_FACE);
 		if(enableBits[5]) gl.glEnablei(eGL_SCISSOR_TEST, 0); else gl.glDisablei(eGL_SCISSOR_TEST, 0);
+
+		if(gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
+			gl.glClipControl(ClipOrigin, ClipDepth);
 		
 		gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
 		gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
@@ -1371,6 +1386,9 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 	gl.glDisablei(eGL_SCISSOR_TEST, 0);
 	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 	
+	if(gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
+		gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
+
 	// bind UBOs
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
