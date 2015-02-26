@@ -3930,8 +3930,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			}
 
 			// if we read out of bounds, we'll also have a 0 index being referenced
-			// (as 0 is read)
-			if(numIndices < drawcall->numIndices)
+			// (as 0 is read). Don't insert 0 if we already have 0 though
+			if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
 				indices.insert(indices.begin(), 0);
 
 			// An index buffer could be something like: 500, 501, 502, 501, 503, 502
