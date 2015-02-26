@@ -950,29 +950,46 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 	DebugData.outWidth = DebugData.outHeight = 1.0f;
 	gl.glViewport(0, 0, 1, 1);
 
-	{
-		TextureDisplay texDisplay;
+	TextureDisplay texDisplay;
 
-		texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
-		texDisplay.FlipY = false;
-		texDisplay.HDRMul = -1.0f;
-		texDisplay.linearDisplayAsGamma = true;
-		texDisplay.mip = mip;
-		texDisplay.sampleIdx = sample;
-		texDisplay.CustomShader = ResourceId();
-		texDisplay.sliceFace = sliceFace;
-		texDisplay.rangemin = 0.0f;
-		texDisplay.rangemax = 1.0f;
-		texDisplay.scale = 1.0f;
-		texDisplay.texid = texture;
-		texDisplay.rawoutput = true;
-		texDisplay.offx = -float(x);
-		texDisplay.offy = -float(y);
+	texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+	texDisplay.FlipY = false;
+	texDisplay.HDRMul = -1.0f;
+	texDisplay.linearDisplayAsGamma = true;
+	texDisplay.mip = mip;
+	texDisplay.sampleIdx = sample;
+	texDisplay.CustomShader = ResourceId();
+	texDisplay.sliceFace = sliceFace;
+	texDisplay.rangemin = 0.0f;
+	texDisplay.rangemax = 1.0f;
+	texDisplay.scale = 1.0f;
+	texDisplay.texid = texture;
+	texDisplay.rawoutput = true;
+	texDisplay.offx = -float(x);
+	texDisplay.offy = -float(y);
 
-		RenderTextureInternal(texDisplay, false);
-	}
+	RenderTextureInternal(texDisplay, false);
 
 	gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
+
+	{
+		auto &texDetails = m_pDriver->m_Textures[texture];
+
+		// need to read stencil separately as GL can't read both depth and stencil
+		// at the same time.
+		if(texDetails.internalFormat == eGL_DEPTH24_STENCIL8 ||
+			texDetails.internalFormat == eGL_DEPTH32F_STENCIL8)
+		{
+			texDisplay.Red = texDisplay.Blue = texDisplay.Alpha = false;
+
+			RenderTextureInternal(texDisplay, false);
+			
+			uint32_t stencilpixel[4];
+			gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
+
+			pixel[1] = float(stencilpixel[1])/255.0f;
+		}
+	}
 }
 
 void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat)
