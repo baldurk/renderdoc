@@ -200,6 +200,9 @@
         <RegistryValue Root="HKLM" Id="RDCOpenWithPNG" Action="write"
           Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
           Name='.png'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithEXR" Action="write"
+          Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
+          Name='.exr'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithTGA" Action="write"
           Key="Software\Classes\Applications\renderdocui.exe\SupportedTypes" 
           Name='.tga'  Value='' Type="string" />
@@ -222,6 +225,8 @@
           Key="Software\Classes\.jpeg\OpenWithProgids" Name='RenderDoc.RDCCapture.1' Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithProgidPNG" Action="write"
           Key="Software\Classes\.png\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
+        <RegistryValue Root="HKLM" Id="RDCOpenWithProgidEXR" Action="write"
+          Key="Software\Classes\.exr\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithProgidTGA" Action="write"
           Key="Software\Classes\.tga\OpenWithProgids" Name='RenderDoc.RDCCapture.1'  Value='' Type="string" />
         <RegistryValue Root="HKLM" Id="RDCOpenWithProgidBMP" Action="write"

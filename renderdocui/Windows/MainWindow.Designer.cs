@@ -620,7 +620,7 @@
             // openDialog
             // 
             this.openDialog.DefaultExt = "rdc";
-            this.openDialog.Filter = "Log Files (*.rdc)|*.rdc|All Files (*.*)|*.*";
+            this.openDialog.Filter = "Log Files (*.rdc)|*.rdc|Image Files|*.dds;*.hdr;*.exr;*.bmp;*.jpg;*.jpeg;*.png;*.tga;*.gif;*.psd|All Files (*.*)|*.*";
             this.openDialog.Title = "Select Logfile to open";
             // 
             // toolStripContainer1
