@@ -454,7 +454,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 		m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS, &Subroutines[s].numSubroutines);
 
 		for(GLint i=0; i < Subroutines[s].numSubroutines; i++)
-			m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[s]);
+			m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[0]);
 	}
 
 	m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING,              (GLint*)&BufferBindings[eBufIdx_Array]);
