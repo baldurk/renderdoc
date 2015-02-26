@@ -398,11 +398,15 @@ namespace renderdocui.Windows
 
         private void UpdateEventList()
         {
-            if (modifications == null) return;
-
             events.BeginUpdate();
 
             events.Nodes.Clear();
+
+            if (modifications == null)
+            {
+                events.EndUpdate();
+                return;
+            }
 
             var frags = new List<TreelistView.Node>();
             var mods = new List<PixelModification>();
