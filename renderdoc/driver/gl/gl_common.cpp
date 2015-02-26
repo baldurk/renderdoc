@@ -195,7 +195,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
 	// AMD throws an error if we try to copy the mips that are smaller than 4x4,
 	if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
-	   gl.glTexStorage2D && gl.glTexParameteri && gl.glDeleteTextures)
+	   gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures)
 	{
 		GLuint texs[2];
 		gl.glGenTextures(2, texs);
@@ -226,6 +226,75 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
 		gl.glBindTexture(eGL_TEXTURE_2D, 0);
 		gl.glDeleteTextures(2, texs);
+
+		while(gl.glGetError());
+
+		//////////////////////////////////////////////////////////////////////////
+		// Check copying cubemaps
+
+		gl.glGenTextures(2, texs);
+
+		const size_t dim = 32;
+
+		char buf[dim*dim/2];
+
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
+		gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
+		gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 1);
+		
+		for(int i=0; i < 6; i++)
+		{
+			memset(buf, 0xba + i, sizeof(buf));
+			gl.glCompressedTexSubImage2D(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X+i), 0, 0, 0, dim, dim, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim*dim/2, buf);
+		}
+
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
+		gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
+		gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 1);
+
+		gl.glCopyImageSubData(texs[0], eGL_TEXTURE_CUBE_MAP, 0,  0, 0, 0, texs[1], eGL_TEXTURE_CUBE_MAP, 0,  0, 0, 0,  dim, dim, 6);
+
+		char cmp[dim*dim/2];
+
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
+
+		for(int i=0; i < 6; i++)
+		{
+			memset(buf, 0xba + i, sizeof(buf));
+			RDCEraseEl(cmp);
+			gl.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X+i), 0, cmp);
+
+			RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
+
+			if(memcmp(buf, cmp, sizeof(buf)))
+			{
+				RDCERR("glGetTexImage from the source texture returns incorrect data!");
+				VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] = true; // to be safe, enable the hack
+			}
+		}
+
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
+
+		for(int i=0; i < 6; i++)
+		{
+			memset(buf, 0xba + i, sizeof(buf));
+			RDCEraseEl(cmp);
+			gl.glGetCompressedTexImage(GLenum(eGL_TEXTURE_CUBE_MAP_POSITIVE_X+i), 0, cmp);
+
+			RDCCOMPILE_ASSERT(sizeof(buf) == sizeof(buf), "Buffers are not matching sizes");
+
+			if(memcmp(buf, cmp, sizeof(buf)))
+			{
+				RDCWARN("Using hack to avoid glCopyImageSubData on cubemap textures");
+				VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] = true;
+				break;
+			}
+		}
+
+		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, 0);
+		gl.glDeleteTextures(2, texs);
+
+		while(gl.glGetError());
 	}
 
 	if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines && gl.glGetProgramPipelineiv)

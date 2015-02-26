@@ -387,9 +387,17 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
 			bool iscomp = IsCompressedFormat(details.internalFormat);
 
+			bool avoidCopySubImage = false;
+			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+				avoidCopySubImage = true;
+			if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
+				avoidCopySubImage = true;
+
 			GLint packParams[8];
 			GLint unpackParams[8];
-			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+			GLuint pixelPackBuffer;
+			GLuint pixelUnpackBuffer;
+			if(avoidCopySubImage)
 			{
 				gl.glGetIntegerv(eGL_PACK_SWAP_BYTES, &packParams[0]);
 				gl.glGetIntegerv(eGL_PACK_LSB_FIRST, &packParams[1]);
@@ -426,6 +434,11 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 				gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, 0);
 				gl.glPixelStorei(eGL_UNPACK_SKIP_IMAGES, 0);
 				gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+				gl.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&pixelPackBuffer);
+				gl.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pixelUnpackBuffer);
+				gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+				gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 			}
 
 			// copy over mips
@@ -445,7 +458,12 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 				// AMD throws an error copying mips that are smaller than the block size in one dimension, so do copy via
 				// CPU instead (will be slow, potentially we could optimise this if there's a different GPU-side image copy
 				// routine that works on these dimensions. Hopefully there'll only be a couple of such mips).
-				if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4))
+				//
+				// AMD also has issues copying cubemaps
+				if(
+					 (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
+					 (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] && details.curType == eGL_TEXTURE_CUBE_MAP)
+					 )
 				{
 					GLenum targets[] = {
 						eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
@@ -506,7 +524,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 				}
 			}
 
-			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+			if(avoidCopySubImage)
 			{
 				gl.glPixelStorei(eGL_PACK_SWAP_BYTES, packParams[0]);
 				gl.glPixelStorei(eGL_PACK_LSB_FIRST, packParams[1]);
@@ -525,6 +543,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 				gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, unpackParams[5]);
 				gl.glPixelStorei(eGL_UNPACK_SKIP_IMAGES, unpackParams[6]);
 				gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, unpackParams[7]);
+
+				gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, pixelPackBuffer);
+				gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
 			}
 
 			gl.glTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
@@ -1220,9 +1241,15 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			bool iscomp = IsCompressedFormat(details.internalFormat);
 
+			bool avoidCopySubImage = false;
+			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+				avoidCopySubImage = true;
+			if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
+				avoidCopySubImage = true;
+
 			GLint packParams[8];
 			GLint unpackParams[8];
-			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+			if(avoidCopySubImage)
 			{
 				gl.glGetIntegerv(eGL_PACK_SWAP_BYTES, &packParams[0]);
 				gl.glGetIntegerv(eGL_PACK_LSB_FIRST, &packParams[1]);
@@ -1278,7 +1305,12 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 				// AMD throws an error copying mips that are smaller than the block size in one dimension, so do copy via
 				// CPU instead (will be slow, potentially we could optimise this if there's a different GPU-side image copy
 				// routine that works on these dimensions. Hopefully there'll only be a couple of such mips).
-				if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4))
+				//
+				// AMD also has issues copying cubemaps
+				if(
+					 (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
+					 (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] && details.curType == eGL_TEXTURE_CUBE_MAP)
+					 )
 				{
 					GLenum targets[] = {
 						eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
@@ -1339,7 +1371,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 				}
 			}
 
-			if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
+			if(avoidCopySubImage)
 			{
 				gl.glPixelStorei(eGL_PACK_SWAP_BYTES, packParams[0]);
 				gl.glPixelStorei(eGL_PACK_LSB_FIRST, packParams[1]);
