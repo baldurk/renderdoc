@@ -200,16 +200,24 @@ static GLuint CreateSepProgram(const GLHookSet &gl, GLenum type, GLsizei numSour
 
 GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<string> sources, vector<string> *includepaths)
 {
-	string block = "";
+	// in and out blocks are added separately, in case one is there already
+	const char *blockIdentifiers[2] = { "in gl_PerVertex", "out gl_PerVertex" };
+	string blocks[2] = { "", "" };
 	
 	if(type == eGL_VERTEX_SHADER)
-		block = "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+	{
+		blocks[1] = "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+	}
 	else if(type == eGL_TESS_CONTROL_SHADER)
-		block = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n" \
-		        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_out[];\n";
+	{
+		blocks[0] = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n";
+		blocks[1] = "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_out[];\n";
+	}
 	else
-		block = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n" \
-		        "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+	{
+		blocks[0] = "in gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; } gl_in[];\n";
+		blocks[1] = "out gl_PerVertex { vec4 gl_Position; float gl_PointSize; float gl_ClipDistance[]; };\n";
+	}
 
 	const char **strings = new const char*[sources.size()];
 	for(size_t i=0; i < sources.size(); i++)
@@ -242,90 +250,119 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 		// this will fail if e.g. a member of gl_PerVertex is declared at global scope
 		// (this is probably most likely for clipdistance if it's redeclared with a size)
 
-		string substituted;
+		// these strings contain whichever source string we replaced, here to scope until
+		// the program has been created
+		string subStrings[2];
 
-		for(size_t i=0; i < sources.size(); i++)
+		for(int blocktype = 0; blocktype < 2; blocktype++)
 		{
-			string &src = sources[i];
+			// vertex shaders don't have an in block
+			if(type == eGL_VERTEX_SHADER && blocktype == 0) continue;
 
-			size_t len = src.length();
-			size_t it = src.find("#version");
-			if(it == string::npos)
-				continue;
+			string &substituted = subStrings[blocktype];
 
-			// skip #version
-			it += sizeof("#version")-1;
+			string block = blocks[blocktype];
+			const char *identifier = blockIdentifiers[blocktype];
 
-			// skip whitespace
-			while(it < len && (src[it] == ' ' || src[it] == '\t'))
-				++it;
+			bool already = false;
 
-			// skip number
-			while(it < len && src[it] >= '0' && src[it] <= '9')
-				++it;
-
-			// skip whitespace
-			while(it < len && (src[it] == ' ' || src[it] == '\t'))
-				++it;
-
-			if(!strncmp(&src[it], "core"         ,  4)) it += sizeof("core")-1;
-			if(!strncmp(&src[it], "compatibility", 13)) it += sizeof("compatibility")-1;
-			if(!strncmp(&src[it], "es"           ,  2)) it += sizeof("es")-1;
-
-			// now skip past comments, and any #extension directives
-			while(it < len)
+			for(size_t i=0; i < sources.size(); i++)
 			{
-				// skip whitespace
-				while(it < len && (src[it] == ' ' || src[it] == '\t' || src[it] == '\r' || src[it] == '\n'))
-					++it;
-
-				// skip C++ style comments
-				if(it+1 < len && src[it] == '/' && src[it+1] == '/')
+				// if we find the 'identifier' (ie. the block name),
+				// assume this block is already present and stop
+				if(sources[i].find(identifier) != string::npos)
 				{
-					// keep going until the next newline
-					while(it < len && src[it] != '\r' && src[it] != '\n')
-						++it;
-
-					// skip more things
-					continue;
+					already = true;
+					break;
 				}
-
-				// skip extension directives
-				const char extDirective[] = "#extension";
-				if(!strncmp(src.c_str()+it, extDirective, sizeof(extDirective)-1) &&
-					it+sizeof(extDirective)-1 < len &&
-					(src[it+sizeof(extDirective)-1] == ' ' || src[it+sizeof(extDirective)-1] == '\t'))
-				{
-					// keep going until the next newline
-					while(it < len && src[it] != '\r' && src[it] != '\n')
-						++it;
-
-					// skip more things
-					continue;
-				}
-
-				// skip C style comments
-				if(it+1 < len && src[it] == '/' && src[it+1] == '*')
-				{
-					// keep going until the we reach a */
-					while(it+1 < len && (src[it] != '*' || src[it+1] != '/'))
-						++it;
-
-					// skip more things
-					continue;
-				}
-
-				// nothing more to skip
-				break;
 			}
 
-			substituted = src;
+			// only try and insert this block if the shader doesn't already have it
+			if(already) continue;
 
-			substituted.insert(it, block);
+			for(size_t i=0; i < sources.size(); i++)
+			{
+				string &src = sources[i];
 
-			strings[i] = substituted.c_str();
+				size_t len = src.length();
+				size_t it = src.find("#version");
+				if(it == string::npos)
+					continue;
 
-			break;
+				// skip #version
+				it += sizeof("#version")-1;
+
+				// skip whitespace
+				while(it < len && (src[it] == ' ' || src[it] == '\t'))
+					++it;
+
+				// skip number
+				while(it < len && src[it] >= '0' && src[it] <= '9')
+					++it;
+
+				// skip whitespace
+				while(it < len && (src[it] == ' ' || src[it] == '\t'))
+					++it;
+
+				if(!strncmp(&src[it], "core"         ,  4)) it += sizeof("core")-1;
+				if(!strncmp(&src[it], "compatibility", 13)) it += sizeof("compatibility")-1;
+				if(!strncmp(&src[it], "es"           ,  2)) it += sizeof("es")-1;
+
+				// now skip past comments, and any #extension directives
+				while(it < len)
+				{
+					// skip whitespace
+					while(it < len && (src[it] == ' ' || src[it] == '\t' || src[it] == '\r' || src[it] == '\n'))
+						++it;
+
+					// skip C++ style comments
+					if(it+1 < len && src[it] == '/' && src[it+1] == '/')
+					{
+						// keep going until the next newline
+						while(it < len && src[it] != '\r' && src[it] != '\n')
+							++it;
+
+						// skip more things
+						continue;
+					}
+
+					// skip extension directives
+					const char extDirective[] = "#extension";
+					if(!strncmp(src.c_str()+it, extDirective, sizeof(extDirective)-1) &&
+						it+sizeof(extDirective)-1 < len &&
+						(src[it+sizeof(extDirective)-1] == ' ' || src[it+sizeof(extDirective)-1] == '\t'))
+					{
+						// keep going until the next newline
+						while(it < len && src[it] != '\r' && src[it] != '\n')
+							++it;
+
+						// skip more things
+						continue;
+					}
+
+					// skip C style comments
+					if(it+1 < len && src[it] == '/' && src[it+1] == '*')
+					{
+						// keep going until the we reach a */
+						while(it+1 < len && (src[it] != '*' || src[it+1] != '/'))
+							++it;
+
+						// skip more things
+						continue;
+					}
+
+					// nothing more to skip
+					break;
+				}
+
+				substituted = src;
+
+				substituted.insert(it, block);
+
+				strings[i] = substituted.c_str();
+
+				break;
+			}
 		}
 
 		sepProg = CreateSepProgram(gl, type, (GLsizei)sources.size(), strings, numPaths, paths);
