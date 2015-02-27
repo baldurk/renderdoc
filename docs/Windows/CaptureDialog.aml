@@ -127,7 +127,7 @@
     <entry><para>Create Debug Device causes RenderDoc to enable the API's built-in debugging, and where
     possible serialise this out and include it in the logfile for later inspection. e.g. on D3D11 this will
     activate the D3D debug layer and save out any messages, which can later be viewed in the
-    <link xlink:href="1f098896-0e60-485a-b879-900a4a320b80" /> window.
+    <link xlink:href="1f098896-0e60-485a-b879-900a4a320b80" /> window. For OpenGL this means ARB_debug_output.
     The overhead from enabling this option is largely the same as the overhead of enabling the
     debug device without RenderDoc involved.</para></entry>
     <entry><para>Disabled</para></entry>
@@ -137,7 +137,8 @@
     <entry><para>This option causes RenderDoc to hook into CreateProcess and intercept any calls to it from
     the target application. When this option is enabled those child processes will be injected with RenderDoc
     in the same way as the parent - which can be useful if you must launch your program through a launcher
-    or level of indirection and still wish to use RenderDoc with one of the child processes.</para></entry>
+    or level of indirection and still wish to use RenderDoc with one of the child processes.</para>
+    <para>See below for more information on handling of child processes.</para></entry>
     <entry><para>Disabled</para></entry>
   </row>
   <row>
@@ -184,6 +185,14 @@
     <entry><para>Disabled</para></entry>
   </row>
   <row>
+    <entry><para>Verify Map() Writes</para></entry>
+    <entry><para>This option adds checking to any Map() calls that adds a boundary marker after any Map() pointer
+    returned during a captured frame. These markers are checked on Unmap() and if they have been modified a
+    message box will pop up alerting you to this, and you can click Yes to break in the debugger in the target
+    application and investigate the problem.</para></entry>
+    <entry><para>Disabled</para></entry>
+  </row>
+  <row>
     <entry><para>Auto start</para></entry>
     <entry><para>This option is slightly different from the others in that it doesn't change anything for an
     immediate capture. When a .cap settings file is saved with the details of a particular capture, if this
@@ -199,6 +208,24 @@
   </row>
 </table>
 
+      </content>
+    </section>
+    <section address="childprocs">
+      <title>Child Processes</title>
+      <content>
+        <para>RenderDoc is able to automatically inject into any child processes started by the initial
+        process launched from the UI. To do this simply check "Hook into Children" in the options above.</para>
+        <para>RenderDoc has a particular handling of child processes to help you navigate to the process
+        of interest. Whenever a child process is launched, the UI is notified and a list of processes is
+        displayed in a box on the <link xlink:href="6f4dad92-3db3-448f-9f1a-79af65f74492" /> window.
+        You can double click on any of these entries to open up a new connection to that process,
+        in a new window.</para>
+        <para>If a process exits, instead of just closing the connection window if there have been no
+        captures, instead RenderDoc looks at the child processes - if there is only one child process,
+        it assume that process must be of interest and immediately switches to tracking that process.
+        If there are <legacyItalic>more</legacyItalic> than one child process open, the capture
+        connection window will stay open to give you a chance to double click on those child processes
+        to open a new connection window.</para>
       </content>
     </section>
     <section address="globalhook">

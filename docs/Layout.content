@@ -34,6 +34,8 @@
         <HelpKeyword index="K" term="Tips &amp; Tricks" />
         <HelpKeyword index="K" term="Code Integration, Manually triggered log capture" />
         <HelpKeyword index="K" term="How To, Manually trigger a capture" />
+        <HelpKeyword index="K" term="How To, View Image File" />
+        <HelpKeyword index="K" term="Image Viewer" />
       </HelpKeywords>
     </Topic>
   </Topic>
@@ -46,6 +48,13 @@
     <Topic id="f351fea6-d0ac-426b-9631-feec2408a7e2" visible="True" title="How RenderDoc works">
       <HelpKeywords>
         <HelpKeyword index="K" term="RenderDoc Internals" />
+      </HelpKeywords>
+    </Topic>
+    <Topic id="11ea4311-b9ea-450a-8c80-b510ffc8b1a6" visible="True" title="OpenGL Support">
+      <HelpKeywords>
+        <HelpKeyword index="K" term="OpenGL" />
+        <HelpKeyword index="K" term="OpenGL Support" />
+        <HelpKeyword index="K" term="GL Support" />
       </HelpKeywords>
     </Topic>
   </Topic>
@@ -62,7 +71,7 @@
         <HelpKeyword index="K" term="Capture Options" />
       </HelpKeywords>
     </Topic>
-    <Topic id="F1C1E449-55ED-46FE-BBFD-11D1A0511501" visible="True" isSelected="true" title="How do I inspect a pixel value?">
+    <Topic id="F1C1E449-55ED-46FE-BBFD-11D1A0511501" visible="True" title="How do I inspect a pixel value?">
       <HelpKeywords>
         <HelpKeyword index="K" term="How To, Inspect pixel value" />
         <HelpKeyword index="K" term="Pixel Picking" />
@@ -174,6 +183,14 @@
         <HelpKeyword index="K" term="How To, View API errors and messages" />
         <HelpKeyword index="K" term="API Errors" />
         <HelpKeyword index="K" term="API Messages" />
+      </HelpKeywords>
+    </Topic>
+    <Topic id="6e2e26be-982c-4a2c-9d45-629009f0a479" visible="True" isSelected="true" title="Python Shell">
+      <HelpKeywords>
+        <HelpKeyword index="K" term="Python Scripting" />
+        <HelpKeyword index="K" term="Python Shell" />
+        <HelpKeyword index="K" term="Python" />
+        <HelpKeyword index="K" term="Scripting" />
       </HelpKeywords>
     </Topic>
   </Topic>

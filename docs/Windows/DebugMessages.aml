@@ -4,6 +4,10 @@
     <introduction>
       <para>The Debug Messages window shows messages from the API including warnings about performance
       issues or concerns about potential hazards, as well as errors on invalid use of the API.</para>
+      <para>RenderDoc will alert you if there are any debug messages to show from the log, by flashing
+      in the status bar. Sometimes RenderDoc will also add new alerts there that aren't part of the
+      original log if there are warnings or problems that it encounters while processing and analysing
+      the log.</para>
     </introduction>
     <section address="capture">
       <title>Capturing with debug messages included</title>

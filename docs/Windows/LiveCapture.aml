@@ -104,5 +104,24 @@
 
       </content>
     </section>
+    <section address="childprocs">
+      <title>Child Processes</title>
+      <content>
+        <para>RenderDoc is able to automatically inject into any child processes started by the initial
+        process launched from the UI. To do this simply check "Hook into Children" in the
+        <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">Capture options</link>.</para>
+        <para>RenderDoc has a particular handling of child processes to help you navigate to the process
+        of interest. Whenever a child process is launched, the UI is notified and a list of processes is
+        displayed in a box on the capture connection window.
+        You can double click on any of these entries to open up a new connection to that process,
+        in a new window.</para>
+        <para>If a process exits, instead of just closing the connection window if there have been no
+        captures, instead RenderDoc looks at the child processes - if there is only one child process,
+        it assume that process must be of interest and immediately switches to tracking that process.
+        If there are <legacyItalic>more</legacyItalic> than one child process open, the capture
+        connection window will stay open to give you a chance to double click on those child processes
+        to open a new connection window.</para>
+      </content>
+    </section>
   </developerConceptualDocument>
 </topic>

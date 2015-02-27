@@ -86,6 +86,10 @@ D3DPERF_EndEvent();
         pressing left will jump to the parent node of the current level. Pressing left again
         will collapse that node, and so on. Pressing right will (if on a node with children)
         expand that node.</para>
+<alert class="note">
+  <para>This window supports copy and paste, so simply select the entries and ctrl-c to
+		copy to the clipboard</para>
+</alert>
       </content>
     </section>
     <section address="searching">

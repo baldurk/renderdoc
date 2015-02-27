@@ -114,15 +114,14 @@
       <title>What APIs does RenderDoc support?</title>
       <content>
         <para>
-          Currently RenderDoc only supports D3D11 (including the D3D11.1 extensions where available).
+          Currently RenderDoc supports D3D11 (including the D3D11.1/11.2 extensions where available),
+          and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of
+          what is supported in <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">its own page</link>.
         </para>
         <para>
-          In future API support is planned for at least OpenGL and D3D9 as soon as time and scheduling
-          allows - OpenGL support is under development. Support for Mantle is currently under development
-          also.
-        </para>
-        <para>Other APIs could be supported as I've tried to structure
-          things such that different back-ends can be slotted in without significant code changes.
+          In future API support is planned for at D3D9 when time and scheduling allows. glNext will
+          be developed once there is something to write against.
+          Support for Mantle and D3D12 are currently under development also.
         </para>
       </content>
     </section>
@@ -175,8 +174,14 @@
       <title>What are the requirements for RenderDoc?</title>
       <content>
         <para>
-          Currently RenderDoc only supports Feature Level 11.0 and above for D3D11. Lower levels
-          may capture successfully but if uou can't create a FL11.0 device they will not replay.
+          Currently RenderDoc expects Feature Level 11.0 hardware and above for D3D11. Lower levels
+          will capture successfully, but on replay RenderDoc will fall back to WARP software emulation
+          which will run quite slowly.
+        </para>
+        <para>
+          For OpenGL RenderDoc will only capture core profile applications, in general, and expects
+          to be able to create a core 4.3 context which includes EXT_direct_state_access. For more
+          details see the <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">OpenGL</link> page.
         </para>
       </content>
     </section>
@@ -302,6 +307,37 @@
 	      details how to use it, however you should take care to read the warnings! This option
 	      isn't without its risks, so you need to be sure you know what you're doing before
 	      using it. It should always be used as a last resort when there is no other option.
+        </para>
+      </content>
+    </section>
+    <section address="FAQ14">
+      <title>I'd like to use RenderDoc's texture viewer for dds files, or other images. Can I?</title>
+      <content>
+        <para>
+          Yes you can!
+        </para>
+        <para>
+          Simply drag in an image file, or open it via file &#8594; open. RenderDoc will open the image
+          if it is supported, and display it as if there were a log open with only one texture.
+        </para>
+        <para>
+          RenderDoc supports these formats: .dds, .hdr, .exr, .bmp, .jpg, .png, .tga, .gif, .psd. For
+          dds files RenderDoc supports all DXGI formats, compressed formats, arrays and mips -
+	      all of which will display as expected.
+        </para>
+      </content>
+    </section>
+    <section address="FAQ15">
+      <title>I think I might be overwriting Map() boundaries, can I check this?</title>
+      <content>
+        <para>
+          Yes RenderDoc can be configured to insert a boundary marker at the end of the memory returned
+          from a Map() call. If this marker gets overwritten during a captured frame then a message box
+          will pop up alerting you, and clicking Yes will break into the program in the debugger so that
+          you can investigate the callstack.
+        </para>
+        <para>
+          To enable this behaviour, select the 'Verify Map() Writes' option when <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">capturing</link>.
         </para>
       </content>
     </section>

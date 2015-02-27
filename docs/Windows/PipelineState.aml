@@ -25,7 +25,8 @@
 
 <alert class="note">
   <para>In D3D11, the Stream-Out stage is available under the Geometry Shader block, with the buffers
-  being used for stream-out shown.</para>
+  being used for stream-out shown. Similarly for GL, the transform feedback is listed in the geometry
+  shader block.</para>
 </alert>
 
       </content>
@@ -44,8 +45,15 @@
       Items <mediaLinkInline><image xlink:href="page_white_delete"/></mediaLinkInline> button.</para>
       <para>Likewise it will omit any slots which are completely empty (and also unused), and this behaviour
       can be overridden with the Show Empty Items <mediaLinkInline><image xlink:href="page_white_database"/></mediaLinkInline> button.</para>
+      <para>In some cases whole sections will be omitted unless there is anything set there - this is primarily
+      for unused or rarely used features like shader subroutines/class linkage, and Read/Write bindings
+      (Image load store or UAVs).</para>
       <para>When showing disabled or empty entries, they will either be in <legacyItalic>italics</legacyItalic>
       or on a dark red background respectively.</para>
+      <para>You can also export the pipeline state by clicking on the
+      <mediaLinkInline><image xlink:href="save"/></mediaLinkInline> export button, this will export the
+      entire pipeline state in detail to an HTML file, so you can more easily compare between different
+      logs and different events.</para>
       </content>
     </section>
     <relatedTopics>

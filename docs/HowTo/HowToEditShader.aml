@@ -13,13 +13,13 @@
         <para><link xlink:href="a00964a1-733f-4288-a79e-c28238bc6018">Custom visualisation shaders</link> allow you to define
         your own transformation on any texture you're viewing before it is displayed. Mostly this is useful for decoding
         packed or custom-format data, or displaying some data in a more visually intuitive fashion.</para>
-        <para>These shaders live as .hlsl files in <codeInline>%APPDATA%\RenderDoc\</codeInline>, and can be edited in your
+        <para>These shaders live as .hlsl/.glsl files in <codeInline>%APPDATA%\RenderDoc\</codeInline>, and can be edited in your
         editor of choice, any changes saved will be reloaded. Note however that there is currently no way to see the 
         compile warnings or errors produced. This is probably best for when you have an existing shader to drop-in.</para>
         <para>To edit a shader inside RenderDoc simply click the edit button
         <mediaLinkInline><image xlink:href="page_white_edit"/></mediaLinkInline> when you have selected your custom shader
         for use. This will launch a new window with the custom shader and any changes you make to this shader will be
-        saved to the .hlsl file and compiled and reflected in the texture viewer as long as you have that custom shader
+        saved to the .hlsl/.glsl file and compiled and reflected in the texture viewer as long as you have that custom shader
         selected.</para>
       </content>
     </section>

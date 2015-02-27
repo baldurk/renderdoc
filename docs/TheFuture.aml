@@ -26,9 +26,8 @@
 			  <listItem><para>Perfkit/PerfHUD integration for vendor-specific detailed
 			  performance timers.</para></listItem>
 			  <listItem><para>Multiple frames in a single capture/logfile.</para></listItem>
-			  <listItem><para>D3D9 support.</para></listItem>
-			  <listItem><para>OpenGL support.</para></listItem>
-			  <listItem><para>Linux/OS X support.</para></listItem>
+			  <listItem><para>D3D9, D3D12, Mantle and glNext support.</para></listItem>
+			  <listItem><para>Linux/OS X UI.</para></listItem>
 			  <listItem><para>Diffing events in a given frame.</para></listItem>
 			  <listItem><para>Modifying the pipeline on the fly to change state.</para></listItem>
 			  <listItem><para>Highlighting redundant state-setting.</para></listItem>

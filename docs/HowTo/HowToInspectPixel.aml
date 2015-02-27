@@ -72,8 +72,7 @@
         <para>You can expand each event to see if there were multiple fragments, and see the shader output
         value from each fragment.</para>
         <para>Right clicking will allow you to launch the shader debugger at the given event for the selected
-        pixel. Currently this does not debug the specific fragment you selected, only the default behaviour
-        for debugging that event.</para>
+        pixel. If you select a particular fragment or primitive, this will be the fragment that is debugged.</para>
       </content>
     </section>
     <relatedTopics>

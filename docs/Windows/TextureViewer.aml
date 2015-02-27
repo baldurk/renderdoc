@@ -174,6 +174,13 @@
         should be applied.</para>
         
 <alert class="note">
+  <para>The channel selection, and mip/slice selection, are stored by default as a per-texture state.
+  In other words if you display a render target with only the alpha channel
+    visible, then switching to view another texture will default back to RGB - and switching back
+    to that render target will view alpha again.</para>
+</alert>
+        
+<alert class="note">
   <para>The visible range/range adaption control is detailed in the section above and will not be covered here.</para>
 </alert>
 
@@ -211,9 +218,13 @@
 			  RGB and alpha, or for looking at individual channels in a packed texture or render target.</para>
 </alert>
 
+	<para>Note that these channel selections are by default saved as per-texture state, so switching to a
+	different texture will revert back to the default RGB, but going back to the first texture will remember
+	which channels you were viewing. See the option in the <link xlink:href="B1826EEE-2ED1-44E4-8202-37CD8B3FEEB5" />.</para>
+
     <para>When <ui>RGBM</ui> is selected, the RGB value will be multiplied by the specified multiplier and then by
     the alpha value. This is a common encoding used to pack a larger range into an 8-bit RGB image.</para>
-    <para>With <ui>Custom</ui> selected a dropdown will be populated with any .hlsl files in the
+    <para>With <ui>Custom</ui> selected a dropdown will be populated with any .hlsl or .glsl files as appropriate in the
     <codeInline>%APPDATA%\renderdoc</codeInline> folder. When choosing a custom shader the raw image will be
     passed through this shader before being displayed with the usual controls on the main display.</para>
 	<para>You can create a new custom shader with the <mediaLinkInline><image xlink:href="add"/></mediaLinkInline> button,
@@ -258,6 +269,12 @@
     cubemap, then the second, etc.</para>
     <para>For Multisampled textures, this will allow you to select either a single sample to view across the image,
     or to see a default-resolved image.</para>
+
+	<para>Note that these selections are by default saved as per-texture state, so switching to a
+	different texture will revert back to the default first slice or face, and top mip.
+	Going back to the first texture though will remember
+	which subresource you were viewing. See the option in the <link xlink:href="B1826EEE-2ED1-44E4-8202-37CD8B3FEEB5" />.</para>
+
 	</entry>
   </row>
   <row>

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<topic id="6e2e26be-982c-4a2c-9d45-629009f0a479" revisionNumber="1">
+  <developerConceptualDocument xmlns="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <introduction>
+      <para>The python shell allows a limited form of scripting for RenderDoc, including
+      the ability to run simple scripts over the whole dataset in ways not easy to do
+      in the UI.</para>
+    </introduction>
+    <section address="python">
+      <title>Python Shell</title>
+      <content>
+        <para>You can open the python shell from the window menu. It offers both an interactive
+        shell and a window that can open and run scripts and display the output.</para>
+        <para>Currently the support is fairly bare bones, and typically you will need some
+        understanding of the code to use the scripting support well. The 'renderdoc' object
+        corresponds to the Core object type used throughout the UI, and it provides a
+        jumping off point for most operations from there.</para>
+        <para>Examples are:</para>
+<list class="bullet">
+  <listItem><para>renderdoc.CurTextures is an array of FetchTexture with all textures in the current log.</para></listItem>
+  <listItem><para>renderdoc.GetTextureViewer() gives a handle to the texture viewer, allowing you to
+  view a particular texture.</para></listItem>
+  <listItem><para>renderdoc.AppWindow.LoadLogfile("filename", False) opens a given log.</para></listItem>
+  <listItem><para>renderdoc.GetDrawcall(0, 151) will return the drawcall of EID 151.
+  Drawcalls have next/previous/parent/children properties to allow you to step through the frame.</para></listItem>
+  <listItem><para>renderdoc.SetEventID(None, 0, 151) browses to EID 151.</para></listItem>
+</list>
+		<para>So while not particularly friendly to discovery, you can use this to perform
+		an automated iteration over e.g. all events or all textures for something of interest.</para>
+		
+        <mediaLink>
+<caption placement="after" lead="Python Shell">A simple script that looks at textures and their use in a log.</caption>
+<image xlink:href="pythonshell" />
+</mediaLink>
+      </content>
+    </section>
+  </developerConceptualDocument>
+</topic>

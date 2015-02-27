@@ -75,6 +75,10 @@
 <caption placement="after" lead="Custom Buffer Layout">Customising the layout of the buffer by defining a structure.</caption>
 <image xlink:href="RawBuffer"/>
 </mediaLink>
+<alert class="note">
+  <para>This window supports copy and paste, so simply select the entries and ctrl-c to
+		copy to the clipboard</para>
+</alert>
       </content>
     </section>
 	<section address="constants">
@@ -89,6 +93,12 @@
 <caption placement="after" lead="Constant Buffer">An updating preview of the contents of this constant buffer.</caption>
 <image xlink:href="CBuffer"/>
 </mediaLink>
+
+<alert class="note">
+  <para>This window supports copy and paste, so simply select the entries and ctrl-c to
+		copy to the clipboard</para>
+</alert>
+
 	  </content>
 	</section>
   </developerConceptualDocument>
