@@ -594,11 +594,9 @@ namespace renderdocui.Code
             {
                 if (IsLogD3D11)
                 {
-                    ResourceId[] ret = new ResourceId[m_D3D11.m_OM.RenderTargets.Length];
-                    for (int i = (int)m_D3D11.m_OM.UAVStartSlot; i < m_D3D11.m_OM.RenderTargets.Length; i++)
-                    {
-                        ret[i] = m_D3D11.m_OM.UAVs[i - m_D3D11.m_OM.UAVStartSlot].Resource;
-                    }
+                    ResourceId[] ret = new ResourceId[m_D3D11.m_OM.UAVs.Length];
+                    for (int i = 0; i < m_D3D11.m_OM.UAVs.Length; i++)
+                        ret[i] = m_D3D11.m_OM.UAVs[i].Resource;
 
                     return ret;
                 }
@@ -606,9 +604,7 @@ namespace renderdocui.Code
                 {
                     ResourceId[] ret = new ResourceId[m_GL.Images.Length];
                     for (int i = 0; i < m_GL.Images.Length; i++)
-                    {
                         ret[i] = m_GL.Images[i].Resource;
-                    }
 
                     return ret;
                 }

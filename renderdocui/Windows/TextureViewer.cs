@@ -101,7 +101,7 @@ namespace renderdocui.Windows
                     else if (Type == FollowType.ReadWriteRes)
                     {
                         if (index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
-                            view = core.CurD3D11PipelineState.m_OM.UAVs[index - core.CurD3D11PipelineState.m_OM.UAVStartSlot];
+                            view = core.CurD3D11PipelineState.m_OM.UAVs[index];
                     }
                     else if (Type == FollowType.PSResource)
                     {

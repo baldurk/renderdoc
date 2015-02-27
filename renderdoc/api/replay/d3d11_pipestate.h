@@ -203,6 +203,9 @@ struct D3D11PipelineState
 
 	struct OutputMerger
 	{
+		OutputMerger()
+			: UAVStartSlot(0), DepthReadOnly(false), StencilReadOnly(false) {}
+
 		struct DepthStencilState
 		{
 			DepthStencilState()
