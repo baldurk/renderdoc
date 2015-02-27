@@ -601,7 +601,7 @@
             label14.Name = "label14";
             label14.Size = new System.Drawing.Size(282, 14);
             label14.TabIndex = 4;
-            label14.Text = "Visible channels & mip/slice saved per-texture";
+            label14.Text = "Visible channels && mip/slice saved per-texture";
             label14.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // shadViewTab
