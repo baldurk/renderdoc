@@ -393,10 +393,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
 				avoidCopySubImage = true;
 
-			GLint packParams[8];
-			GLint unpackParams[8];
-			GLuint pixelPackBuffer;
-			GLuint pixelUnpackBuffer;
+			GLint packParams[8] = {0};
+			GLint unpackParams[8] = {0};
+			GLuint pixelPackBuffer = 0;
+			GLuint pixelUnpackBuffer = 0;
 			if(avoidCopySubImage)
 			{
 				gl.glGetIntegerv(eGL_PACK_SWAP_BYTES, &packParams[0]);
