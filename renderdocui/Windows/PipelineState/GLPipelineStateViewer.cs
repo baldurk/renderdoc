@@ -214,11 +214,14 @@ namespace renderdocui.Windows.PipelineState
             if (stage.Shader == ResourceId.Null)
                 shader.Text = "Unbound";
             else
-                shader.Text = "Shader " + stage.Shader.ToString();
+                shader.Text = stage.stage.Str(APIPipelineStateType.OpenGL) + " Shader " + stage.Shader.ToString();
 
+            // disabled since entry function is always main, and filenames have no names, so this is useless.
+            /*
             if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc != "" && shaderDetails.DebugInfo.files.Length > 0)
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " +
                                 Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+             */
 
             int vs = 0;
             int vs2 = 0;
