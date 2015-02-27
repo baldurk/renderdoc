@@ -941,7 +941,7 @@ namespace renderdocui.Windows
                 i++;
             }
 
-            for(int rw=0; rw < RTs.Length; rw++)
+            for (int rw = 0; rw < RWs.Length; rw++)
             {
                 var prev = rtPanel.Thumbnails[i];
 
