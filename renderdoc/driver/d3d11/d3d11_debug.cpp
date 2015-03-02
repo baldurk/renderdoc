@@ -766,13 +766,15 @@ bool D3D11DebugManager::InitDebugRendering()
 	m_DebugRender.FloatCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_FloatCopyArrayToMS", "ps_5_0");
 	m_DebugRender.DepthCopyMSToArrayPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyMSToArray", "ps_5_0");
 	m_DebugRender.DepthCopyArrayToMSPS = MakePShader(multisamplehlsl.c_str(), "RENDERDOC_DepthCopyArrayToMS", "ps_5_0");
+	
+	string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
+	displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
+	displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
+
+	m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 
 	if(RenderDoc::Inst().IsReplayApp())
 	{
-		string displayhlsl = GetEmbeddedResource(debugcbuffers_h);
-		displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
-		displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
-
 		D3D11_INPUT_ELEMENT_DESC inputDesc;
 
 		inputDesc.SemanticName = "POSITION";
@@ -821,7 +823,6 @@ bool D3D11DebugManager::InitDebugRendering()
 		memcpy(m_DebugRender.MeshHomogVSBytecode, &bytecode[0], bytecode.size());
 
 		m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
-		m_DebugRender.FullscreenVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", "vs_4_0");
 		m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
 		m_DebugRender.CheckerboardPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", "ps_4_0");
 
