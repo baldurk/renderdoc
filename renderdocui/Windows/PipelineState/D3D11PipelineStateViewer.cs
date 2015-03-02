@@ -1533,7 +1533,7 @@ namespace renderdocui.Windows.PipelineState
                                             if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
                                             if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
                                         }
-                                        else
+                                        else if (!view.Format.special)
                                         {
                                             switch (view.Format.compByteWidth)
                                             {
@@ -1567,12 +1567,12 @@ namespace renderdocui.Windows.PipelineState
 
                                             format += view.Format.compCount;
                                         }
-
-                                        format += " " + r.name + ";";
                                     }
 
                                     if (format == "" && r.variableType.Name.Length > 0)
-                                        format = r.variableType.Name + " " + r.name + ";";
+                                        format = r.variableType.Name;
+
+                                    format += " " + r.name + ";";
                                 }
                                 else
                                 {
