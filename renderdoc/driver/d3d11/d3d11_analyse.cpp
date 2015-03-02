@@ -2712,7 +2712,12 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 	else if(overlay == eTexOverlay_ViewportScissor)
 	{
 		m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+		m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+		m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+		m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 		m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
+		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		m_pImmediateContext->IASetInputLayout(NULL);
 		
 		D3D11_RASTERIZER_DESC origdesc;
 
@@ -3043,7 +3048,12 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, TextureDisplayOver
 			// resolve pass
 			{
 				m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
+				m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+				m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+				m_pImmediateContext->GSSetShader(NULL, NULL, 0);
 				m_pImmediateContext->PSSetShader(m_DebugRender.QOResolvePS, NULL, 0);
+				m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+				m_pImmediateContext->IASetInputLayout(NULL);
 				
 				ID3D11Buffer *buf = MakeCBuffer((float *)&overdrawRamp[0].x, sizeof(overdrawRamp));
 
