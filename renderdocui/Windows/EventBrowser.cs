@@ -46,6 +46,8 @@ namespace renderdocui.Windows
             public UInt32 frameID = 0;
             public UInt32 eventID = 0;
 
+            public bool marker = false;
+
             public ResourceId defCtx = ResourceId.Null;
             public UInt32 firstDefEv = 0;
             public UInt32 lastDefEv = 0;
@@ -249,6 +251,7 @@ namespace renderdocui.Windows
             DeferredEvent def = new DeferredEvent();
             def.frameID = m_Core.CurFrame;
             def.eventID = eventNum;
+            def.marker = (drawcall.flags & DrawcallFlags.SetMarker) != 0;
 
             if (drawcall.context != m_Core.FrameInfo[m_Core.CurFrame].immContextId)
             {
@@ -287,9 +290,10 @@ namespace renderdocui.Windows
 
                 bool found = false;
 
-                for (int i = drawcall.children.Length - 1; i >= 0; i--)
+                for (int i = drawNode.Nodes.Count - 1; i >= 0; i--)
                 {
-                    if ((drawcall.children[i].flags & DrawcallFlags.SetMarker) == 0)
+                    DeferredEvent t = drawNode.Nodes[i].Tag as DeferredEvent;
+                    if (!t.marker)
                     {
                         drawNode.Tag = drawNode.Nodes[i].Tag;
                         found = true;
