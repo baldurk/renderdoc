@@ -2385,7 +2385,7 @@
             this.gsCBuffers.Size = new System.Drawing.Size(566, 113);
             this.gsCBuffers.TabIndex = 11;
             this.gsCBuffers.Text = "Samplers";
-            this.gsCBuffers.TreeColumn = 5;
+            this.gsCBuffers.TreeColumn = 4;
             this.gsCBuffers.ViewOptions.Indent = 0;
             this.gsCBuffers.ViewOptions.ShowLine = false;
             this.gsCBuffers.ViewOptions.ShowPlusMinus = false;

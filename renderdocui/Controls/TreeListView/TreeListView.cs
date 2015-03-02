@@ -128,7 +128,13 @@ namespace TreelistView
         public int TreeColumn
         {
             get { return m_treeColumn; }
-            set { m_treeColumn = value; }
+            set
+            {
+                m_treeColumn = value;
+
+                if(value >= m_columns.Count)
+                    throw new ArgumentOutOfRangeException("Tree column index invalid");
+            }
         }
 
         [Category("Behavior")]
