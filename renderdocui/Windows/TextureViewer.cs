@@ -741,6 +741,9 @@ namespace renderdocui.Windows
 
             m_Following = new Following(FollowType.OutputColour, 0);
 
+            rtPanel.ClearThumbnails();
+            texPanel.ClearThumbnails();
+
             IntPtr contextHandle = pixelContext.Handle;
             IntPtr renderHandle = render.Handle;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
@@ -875,6 +878,8 @@ namespace renderdocui.Windows
             }
 
             if (m_Output == null) return;
+
+            UI_CreateThumbnails();
 
             int i = 0;
             for(int rt=0; rt < RTs.Length; rt++)
@@ -1168,6 +1173,8 @@ namespace renderdocui.Windows
 
         private void UI_CreateThumbnails()
         {
+            if (rtPanel.Thumbnails.Length > 0 || texPanel.Thumbnails.Length > 0) return;
+
             rtPanel.SuspendLayout();
             texPanel.SuspendLayout();
 
