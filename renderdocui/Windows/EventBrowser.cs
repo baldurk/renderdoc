@@ -293,7 +293,7 @@ namespace renderdocui.Windows
                 for (int i = drawNode.Nodes.Count - 1; i >= 0; i--)
                 {
                     DeferredEvent t = drawNode.Nodes[i].Tag as DeferredEvent;
-                    if (!t.marker)
+                    if (t != null && !t.marker)
                     {
                         drawNode.Tag = drawNode.Nodes[i].Tag;
                         found = true;
