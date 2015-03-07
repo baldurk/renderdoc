@@ -1297,7 +1297,10 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 	ubo->InverseRangeSize = 1.0f/(cfg.rangemax-cfg.rangemin);
 	
 	ubo->MipLevel = (float)cfg.mip;
-	ubo->Slice = (float)(cfg.sliceFace>>cfg.mip);
+	if(texDetails.curType != eGL_TEXTURE_3D)
+		ubo->Slice = (float)cfg.sliceFace;
+	else
+		ubo->Slice = (float)(cfg.sliceFace>>cfg.mip);
 
 	ubo->OutputDisplayFormat = resType;
 	
