@@ -17,19 +17,20 @@ Quick Links:
 API Support
 --------------
 
-|                  | Status                            | Windows                  | Linux                           |
-| ---------------- | --------------------------------- | ------------------------ | ------------------------------- |
-| D3D11            | Well supported, all features.     | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL 3.2 core+ | *Work in progress, not complete.* | :heavy_check_mark:       | :heavy_check_mark: No native UI |
-| OpenGL Pre-3.2   | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D10            | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D9             | No immediate plans                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| Mantle           | Planned for the future.           | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D12            | Planned for the future.           | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| Next Gen OpenGL  | Planned for the future.           | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+|                  | Status                                 | Windows                  | Linux                           |
+| ---------------- | -------------------------------------- | ------------------------ | ------------------------------- |
+| D3D11            | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
+| OpenGL 3.2 core+ | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
+| OpenGL Pre-3.2   | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D10            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D9             | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| Mantle           | Plans cancelled, redirected to Vulkan. | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D12            | Planned for the future.                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| Vulkan           | Planned for the future.                | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 
-* D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge.
-* OpenGL support has a few assumptions and limitations for now, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL)
+* D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge, falling back to WARP software emulation if this hardware isn't present.
+* \*OpenGL is only explicitly supported for the core profile 3.2+ subset of features, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL) for details.
+* \*\*A Qt version of the UI is planned, with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes).
 
 Downloads
 --------------
