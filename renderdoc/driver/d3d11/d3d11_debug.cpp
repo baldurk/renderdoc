@@ -3940,23 +3940,19 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
 			// 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
 			//
-			// Since we want the indices to be preserved in order to easily match up inputs to outputs,
-			// but shifted, fill in gaps in our streamout vertex buffer with the lowest index value.
-			// (use the lowest index value so that even the gaps are a 'valid' vertex, rather than
-			// potentially garbage data).
-			uint32_t minindex = indices.empty() ? 0 : indices[0];
+			// Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
+			// which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
+			// We just stream-out a tightly packed list of unique indices, and then remap the index buffer
+			// so that what did point to 500 points to 0 (accounting for rebasing), and what did point
+			// to 510 now points to 3 (accounting for the unique sort).
 
-			// indices[] contains ascending unique vertex indices referenced. Fill gaps with minindex
-			for(size_t i=1; i < indices.size(); i++)
+			// we use a map here since the indices may be sparse. Especially considering if an index
+			// is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
+			map<uint32_t,size_t> indexRemap;
+			for(size_t i=0; i < indices.size(); i++)
 			{
-				if(indices[i]-1 > indices[i-1])
-				{
-					size_t gapsize = size_t( (indices[i]-1) - indices[i-1] );
-
-					indices.insert(indices.begin()+i, gapsize, minindex);
-
-					i += gapsize;
-				}
+				// by definition, this index will only appear once in indices[]
+				indexRemap[ indices[i] ] = i;
 			}
 
 			D3D11_BUFFER_DESC desc = { UINT(sizeof(uint32_t)*indices.size()), D3D11_USAGE_IMMUTABLE, D3D11_BIND_INDEX_BUFFER, 0, 0, 0 };
@@ -3979,17 +3975,17 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			m_pImmediateContext->IASetPrimitiveTopology(topo);
 			m_pImmediateContext->IASetIndexBuffer(UNWRAP(WrappedID3D11Buffer, origBuf), idxFmt, idxOffs);
 			
-			// rebase existing index buffer to point from 0 onwards (which will index into our
-			// stream-out'd vertex buffer)
+			// rebase existing index buffer to point to the right elements in our stream-out'd
+			// vertex buffer
 			if(index16)
 			{
 				for(uint32_t i=0; i < numIndices; i++)
-					idx16[i] -= uint16_t(minindex&0xffff);
+					idx16[i] = uint16_t(indexRemap[ idx16[i] ]);
 			}
 			else
 			{
 				for(uint32_t i=0; i < numIndices; i++)
-					idx32[i] -= minindex;
+					idx32[i] = uint32_t(indexRemap[ idx32[i] ]);
 			}
 			
 			desc.ByteWidth = (UINT)idxdata.size();

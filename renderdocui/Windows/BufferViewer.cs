@@ -85,14 +85,14 @@ namespace renderdocui.Windows
         private class Dataset
         {
             public uint IndexCount = 0;
-            public uint IndexAdd = 0;
 
             public MeshFormat PostVS;
 
             public PrimitiveTopology Topology = PrimitiveTopology.Unknown;
 
             public byte[][] Buffers = null;
-            public uint[] Indices = null;
+            public uint[] Indices = null; // 'displayed' indices from index buffer
+            public uint[] DataIndices = null; // where to find the data, different only for PostVS
         }
 
         // we generate a UIState object with everything needed to populate the actual
@@ -848,7 +848,6 @@ namespace renderdocui.Windows
             Dataset ret = new Dataset();
 
             ret.IndexCount = 0;
-            ret.IndexAdd = 0;
 
             if (input == null)
                 return ret;
@@ -865,6 +864,7 @@ namespace renderdocui.Windows
                         ret.Buffers[0] = r.GetTextureData(input.Buffers[1], 0, 0);
 
                     ret.Indices = null;
+                    ret.DataIndices = null;
                     ret.IndexCount = (uint)ret.Buffers[0].Length / input.Strides[0];
                 }
 
@@ -904,6 +904,7 @@ namespace renderdocui.Windows
                 }
 
                 ret.Indices = null;
+                ret.DataIndices = null;
 
                 if (ret.PostVS.buf != ResourceId.Null && type == MeshDataStage.VSOut &&
                     (input.Drawcall.flags & DrawcallFlags.UseIBuffer) > 0 && input.IndexBuffer != ResourceId.Null)
@@ -939,21 +940,17 @@ namespace renderdocui.Windows
                         }
                     }
 
-                    uint minIndex = ret.Indices.Length > 0 ? ret.Indices[0] : 0;
-                    foreach (var i in ret.Indices)
+                    rawidxs = r.GetBufferData(ret.PostVS.idxbuf, 0, 0);
+
+                    if (input.Drawcall.indexByteWidth == 0 || rawidxs == null || rawidxs.Length == 0)
                     {
-                        if (input.Drawcall.indexByteWidth == 2 && i == input.IndexRestartValue && input.IndexRestart)
-                            continue;
-                        if (input.Drawcall.indexByteWidth == 4 && i == input.IndexRestartValue && input.IndexRestart)
-                            continue;
-
-                        minIndex = Math.Min(minIndex, i);
+                        ret.DataIndices = new uint[0] { };
                     }
-
-                    for (int idx = 0; idx < ret.Indices.Length; idx++)
-                        ret.Indices[idx] -= minIndex;
-
-                    ret.IndexAdd = minIndex;
+                    else
+                    {
+                        ret.DataIndices = new uint[rawidxs.Length / sizeof(uint)];
+                        Buffer.BlockCopy(rawidxs, 0, ret.DataIndices, 0, rawidxs.Length);
+                    }
                 }
 
                 return ret;
@@ -1006,6 +1003,8 @@ namespace renderdocui.Windows
                         maxIndex = Math.Max(maxIndex, i);
                     }
                 }
+
+                ret.DataIndices = ret.Indices;
 
                 ret.Buffers = new byte[input.Buffers.Length][];
                 for (int i = 0; i < input.Buffers.Length; i++)
@@ -1602,29 +1601,33 @@ namespace renderdocui.Windows
                         return;
                     }
 
-                    uint index = (uint)rowIdx;
+                    uint dataIndex = (uint)rowIdx;
 
                     bool outOfBoundsIdx = false;
 
-                    if (data.Indices != null)
+                    if (data.DataIndices != null)
                     {
-                        if (rowIdx >= data.Indices.Length)
+                        if (rowIdx >= data.DataIndices.Length)
                         {
-                            index = 0;
+                            dataIndex = 0;
                             outOfBoundsIdx = true;
                         }
                         else
                         {
-                            index = data.Indices[rowIdx];
+                            dataIndex = data.DataIndices[rowIdx];
                         }
                     }
                     else if (input.Drawcall != null && (input.Drawcall.flags & DrawcallFlags.UseIBuffer) != 0 &&
                         (state == m_VSIn || state == m_VSOut))
                     {
                         // no index buffer, but indexed drawcall
-                        index = 0;
+                        dataIndex = 0;
                         outOfBoundsIdx = true;
                     }
+
+                    uint displayIndex = dataIndex;
+                    if (data.Indices != null && rowIdx < data.Indices.Length)
+                        displayIndex = data.Indices[rowIdx];
 
                     object[] rowdata = null;
 
@@ -1637,16 +1640,16 @@ namespace renderdocui.Windows
                         if (outOfBoundsIdx)
                             rowdata[1] = "-";
                         else
-                            rowdata[1] = index + data.IndexAdd;
+                            rowdata[1] = displayIndex;
 
                         bool strip = state.m_Data.Topology == PrimitiveTopology.LineStrip ||
                                      state.m_Data.Topology == PrimitiveTopology.LineStrip_Adj ||
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip ||
                                      state.m_Data.Topology == PrimitiveTopology.TriangleStrip_Adj;
 
-                        if (state.m_Input.Drawcall.indexByteWidth == 2 && index == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 2 && dataIndex == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
                             rowdata[1] = "-1";
-                        if (state.m_Input.Drawcall.indexByteWidth == 4 && index == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
+                        if (state.m_Input.Drawcall.indexByteWidth == 4 && dataIndex == state.m_Input.IndexRestartValue && state.m_Input.IndexRestart && strip)
                             rowdata[1] = "-1";
 
                         x = 2;
@@ -1679,7 +1682,7 @@ namespace renderdocui.Windows
                             BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
 
                             uint offs = input.Strides[bufferFormats[el].buffer] *
-                                (bufferFormats[el].perinstance ? (instance / (uint)bufferFormats[el].instancerate) : index)
+                                (bufferFormats[el].perinstance ? (instance / (uint)bufferFormats[el].instancerate) : dataIndex)
                                                 + bufferFormats[el].offset;
 
                             if (!MeshView)
