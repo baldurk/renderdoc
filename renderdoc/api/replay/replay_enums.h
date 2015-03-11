@@ -345,6 +345,14 @@ enum ResourceUsage
 	eUsage_OM_DSV,
 
 	eUsage_Clear,
+
+	eUsage_GenMips,
+	eUsage_Resolve,
+	eUsage_ResolveSrc,
+	eUsage_ResolveDst,
+	eUsage_Copy,
+	eUsage_CopySrc,
+	eUsage_CopyDst,
 };
 
 enum DrawcallFlags
@@ -358,14 +366,17 @@ enum DrawcallFlags
 	eDraw_PushMarker  = 0x20,
 	eDraw_Present     = 0x40,
 	eDraw_MultiDraw   = 0x80,
+	eDraw_Copy        = 0x100,
+	eDraw_Resolve     = 0x200,
+	eDraw_GenMips     = 0x400,
 
 	// flags
-	eDraw_UseIBuffer  = 0x0100,
-	eDraw_Instanced   = 0x0200,
-	eDraw_Auto        = 0x0400,
-	eDraw_Indirect    = 0x0800,
-	eDraw_ClearColour = 0x1000,
-	eDraw_ClearDepth  = 0x2000,
+	eDraw_UseIBuffer  = 0x01000,
+	eDraw_Instanced   = 0x02000,
+	eDraw_Auto        = 0x04000,
+	eDraw_Indirect    = 0x08000,
+	eDraw_ClearColour = 0x10000,
+	eDraw_ClearDepth  = 0x20000,
 };
 
 enum SolidShadeMode

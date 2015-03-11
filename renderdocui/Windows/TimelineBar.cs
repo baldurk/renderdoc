@@ -621,7 +621,10 @@ namespace renderdocui.Windows
                                     {
                                         // read/write
                                         if (u.usage == ResourceUsage.CS_UAV ||
-                                            u.usage == ResourceUsage.PS_UAV)
+                                            u.usage == ResourceUsage.PS_UAV ||
+                                            u.usage == ResourceUsage.GenMips ||
+                                            u.usage == ResourceUsage.Copy ||
+                                            u.usage == ResourceUsage.Resolve)
                                         {
                                             DrawPip(g, Color.Orchid, highlightBarRect, 3, d, s.draws.Count, start, widths[i], "");
                                             DrawPip(g, Color.Lime, highlightBarRect, 4, d, s.draws.Count, start, widths[i], "");
@@ -630,7 +633,9 @@ namespace renderdocui.Windows
                                         // write
                                         else if (u.usage == ResourceUsage.SO ||
                                                  u.usage == ResourceUsage.OM_DSV ||
-                                                 u.usage == ResourceUsage.OM_RTV)
+                                                 u.usage == ResourceUsage.OM_RTV ||
+                                                 u.usage == ResourceUsage.CopyDst ||
+                                                 u.usage == ResourceUsage.ResolveDst)
                                         {
                                             DrawPip(g, Color.Orchid, highlightBarRect, 1, d, s.draws.Count, start, widths[i], "");
                                             MarkWrite(s.draws[d].eventID);

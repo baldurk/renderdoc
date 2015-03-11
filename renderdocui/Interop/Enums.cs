@@ -342,28 +342,39 @@ namespace renderdoc
     	OM_DSV,
 
         Clear,
+
+        GenMips,
+        Resolve,
+        ResolveSrc,
+        ResolveDst,
+        Copy,
+        CopySrc,
+        CopyDst,
     };
 
     [Flags]
     public enum DrawcallFlags
     {
         // types
-        Clear = 0x01,
-        Drawcall = 0x02,
-        Dispatch = 0x04,
-        CmdList = 0x08,
-        SetMarker = 0x10,
-        PushMarker = 0x20,
-        Present = 0x40,
-        MultiDraw = 0x80,
+        Clear       = 0x01,
+        Drawcall    = 0x02,
+        Dispatch    = 0x04,
+        CmdList     = 0x08,
+        SetMarker   = 0x10,
+        PushMarker  = 0x20,
+        Present     = 0x40,
+        MultiDraw   = 0x80,
+        Copy        = 0x100,
+        Resolve     = 0x200,
+        GenMips     = 0x400,
 
         // flags
-        UseIBuffer = 0x100,
-        Instanced = 0x200,
-        Auto = 0x400,
-        Indirect = 0x800,
-        ClearColour = 0x1000,
-        ClearDepth = 0x2000,
+        UseIBuffer  = 0x01000,
+        Instanced   = 0x02000,
+        Auto        = 0x04000,
+        Indirect    = 0x08000,
+        ClearColour = 0x10000,
+        ClearDepth  = 0x20000,
     };
 
     public enum SolidShadeMode
@@ -560,6 +571,14 @@ namespace renderdoc
                 case ResourceUsage.OM_DSV: return "Depthstencil";
 
                 case ResourceUsage.Clear: return "Clear";
+
+                case ResourceUsage.GenMips: return "Generate Mips";
+                case ResourceUsage.Resolve: return "Resolve";
+                case ResourceUsage.ResolveSrc: return "Resolve - Source";
+                case ResourceUsage.ResolveDst: return "Resolve - Dest";
+                case ResourceUsage.Copy: return "Copy";
+                case ResourceUsage.CopySrc: return "Copy - Source";
+                case ResourceUsage.CopyDst: return "Copy - Dest";
             }
 
             return "Unknown Usage String";

@@ -633,12 +633,28 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
 	SERIALISE_ELEMENT(GLenum, Target, target);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 
-	if(m_State == READING)
+	if(m_State <= EXECUTING)
 	{
 		if(Target != eGL_NONE)
 			m_Real.glGenerateTextureMipmapEXT(GetResourceManager()->GetLiveResource(id).name, Target);
 		else
 			m_Real.glGenerateTextureMipmap(GetResourceManager()->GetLiveResource(id).name);
+	}
+
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(GENERATE_MIPMAP, desc);
+		string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_GenMips;
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
@@ -659,10 +675,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 	}
 	else if(m_State == WRITING_IDLE)
 	{
-		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
-		Serialise_glGenerateTextureMipmapEXT(record->Resource.name, target);
-
-		record->AddChunk(scope.Get());
+		GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 	}
 }
 
@@ -742,6 +755,25 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
 															dstres.name, DestTarget, DestLevel, DestX, DestY, DestZ,
 															SourceWidth, SourceHeight, SourceDepth);
 	}
+
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(COPY_SUBIMAGE, desc);
+		string name = "glCopyImageSubData(" +
+						ToStr::Get(srcid) + ", " +
+						ToStr::Get(dstid) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Copy;
+
+		AddDrawcall(draw, true);
+	}
+
 	return true;
 }
 

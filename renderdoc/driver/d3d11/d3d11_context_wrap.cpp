@@ -4797,6 +4797,44 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion( ID3D11Resource
 													SourceSubresource, box);
 	}
 
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	// version 5 added this as a drawcall, we can assume for older logs there's just no debug messages
+	if(m_pDevice->GetLogVersion() >= 0x000006)
+		Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		std::string dstName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Destination));
+		std::string srcName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Source));
+
+		if(dstName == "") dstName = ToStr::Get(Destination);
+		if(srcName == "") srcName = ToStr::Get(Source);
+
+		AddEvent(COPY_SUBRESOURCE_REGION, desc);
+		string name = "CopySubresourceRegion(" + dstName + ", " + srcName + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Copy;
+
+		AddDrawcall(draw, true);
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
+			m_pDevice->GetResourceManager()->HasLiveResource(Source))
+		{
+			if(Destination == Source)
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+			}
+			else
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Source)].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -4888,6 +4926,44 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(ID3D11Resource *pDstReso
 	{
 		m_pRealContext->CopyResource(m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource*)m_pDevice->GetResourceManager()->GetLiveResource(Destination)),
 											m_pDevice->GetResourceManager()->UnwrapResource((ID3D11Resource*)m_pDevice->GetResourceManager()->GetLiveResource(Source)));
+	}
+
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	// version 5 added this as a drawcall, we can assume for older logs there's just no debug messages
+	if(m_pDevice->GetLogVersion() >= 0x000006)
+		Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		std::string dstName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Destination));
+		std::string srcName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(Source));
+
+		if(dstName == "") dstName = ToStr::Get(Destination);
+		if(srcName == "") srcName = ToStr::Get(Source);
+
+		AddEvent(COPY_RESOURCE, desc);
+		string name = "CopyResource(" + dstName + ", " + srcName + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Copy;
+
+		AddDrawcall(draw, true);
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
+			m_pDevice->GetResourceManager()->HasLiveResource(Source))
+		{
+			if(Destination == Source)
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+			}
+			else
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Source)].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
+			}
+		}
 	}
 
 	return true;
@@ -5307,6 +5383,44 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pD
 												SourceSubresource, Format);
 	}
 
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	// version 5 added this as a drawcall, we can assume for older logs there's just no debug messages
+	if(m_pDevice->GetLogVersion() >= 0x000006)
+		Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		std::string dstName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(DestResource));
+		std::string srcName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(SourceResource));
+
+		if(dstName == "") dstName = ToStr::Get(DestResource);
+		if(srcName == "") srcName = ToStr::Get(SourceResource);
+
+		AddEvent(RESOLVE_SUBRESOURCE, desc);
+		string name = "ResolveSubresource(" + dstName + ", " + srcName + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Resolve;
+
+		AddDrawcall(draw, true);
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(DestResource) &&
+			m_pDevice->GetResourceManager()->HasLiveResource(SourceResource))
+		{
+			if(DestResource == SourceResource)
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(DestResource)].push_back(EventUsage(m_CurEventID, eUsage_Resolve));
+			}
+			else
+			{
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(DestResource)].push_back(EventUsage(m_CurEventID, eUsage_ResolveDst));
+				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(SourceResource)].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -5393,6 +5507,41 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
 	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
 	{
 		m_pRealContext->GenerateMips(UNWRAP(WrappedID3D11ShaderResourceView, m_pDevice->GetResourceManager()->GetLiveResource(ShaderResourceView)));
+	}
+
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	// version 5 added this as a drawcall, we can assume for older logs there's just no debug messages
+	if(m_pDevice->GetLogVersion() >= 0x000006)
+		Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		ResourceId id = ShaderResourceView;
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
+		{
+			id = ((WrappedID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(ShaderResourceView))->GetResourceResID();
+			m_ResourceUses[id].push_back(EventUsage(m_CurEventID, eUsage_GenMips));
+			id = m_pDevice->GetResourceManager()->GetOriginalID(id);
+		}
+
+		std::string resName = GetDebugName(m_pDevice->GetResourceManager()->GetLiveResource(id));
+
+		if(resName == "") resName = ToStr::Get(id);
+
+		AddEvent(GENERATE_MIPS, desc);
+		string name = "GenerateMips(" + resName + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_GenMips;
+
+		AddDrawcall(draw, true);
+
+		if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
+			m_ResourceUses[((WrappedID3D11ShaderResourceView *)m_pDevice->GetResourceManager()->GetLiveResource(ShaderResourceView))->GetResourceResID()]
+				.push_back(EventUsage(m_CurEventID, eUsage_GenMips));
 	}
 
 	return true;
@@ -5617,7 +5766,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(ID3D11Un
 							ToStr::Get(Values[0]) + ", " +
 							ToStr::Get(Values[1]) + ", " +
 							ToStr::Get(Values[2]) + ", " +
-							ToStr::Get(Values[3]) + ", " +
+							ToStr::Get(Values[3]) +
 							")";
 
 		FetchDrawcall draw;

@@ -205,6 +205,7 @@ D3D11InitParams::D3D11InitParams()
 // Here we list which non-current versions we support, and what changed
 const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SUPPORTED_OLD_VERSIONS] = {
 	0x0000004, // from 0x4 to 0x5, we added the stream-out hidden counters in the context's Serialise_BeginCaptureFrame
+	0x0000005, // from 0x5 to 0x6, several new calls were made 'drawcalls', like Copy & GenerateMips, with serialised debug messages
 };
 
 ReplayCreateStatus D3D11InitParams::Serialise()

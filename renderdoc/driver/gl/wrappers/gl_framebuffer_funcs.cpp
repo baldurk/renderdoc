@@ -1259,6 +1259,24 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 		m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
 	}
 
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	Serialise_DebugMessages();
+
+	if(m_State == READING)
+	{
+		AddEvent(BLIT_FRAMEBUFFER, desc);
+		string name = "glBlitFramebuffer(" +
+						ToStr::Get(readId) + ", " +
+						ToStr::Get(drawId) + ")";
+
+		FetchDrawcall draw;
+		draw.name = name;
+		draw.flags |= eDraw_Resolve;
+
+		AddDrawcall(draw, true);
+	}
+
 	return true;
 }
 

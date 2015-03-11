@@ -66,10 +66,10 @@ struct D3D11InitParams : public RDCInitParams
 	UINT NumFeatureLevels;
 	D3D_FEATURE_LEVEL FeatureLevels[16];
 	
-	static const uint32_t D3D11_SERIALISE_VERSION = 0x0000005;
+	static const uint32_t D3D11_SERIALISE_VERSION = 0x0000006;
 
 	// backwards compatibility for old logs described at the declaration of this array
-	static const uint32_t D3D11_NUM_SUPPORTED_OLD_VERSIONS = 1;
+	static const uint32_t D3D11_NUM_SUPPORTED_OLD_VERSIONS = 2;
 	static const uint32_t D3D11_OLD_VERSIONS[D3D11_NUM_SUPPORTED_OLD_VERSIONS];
 
 	// version number internal to d3d11 stream
