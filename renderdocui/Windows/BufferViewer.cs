@@ -1404,9 +1404,14 @@ namespace renderdocui.Windows
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
                             BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] *
-                                (bufferFormats[el].perinstance ? (instance/(uint)bufferFormats[el].instancerate) : index)
-                                                + bufferFormats[el].offset;
+                            uint instIdx = 0;
+                            // for instancing, need to handle instance rate being 0 (every instance takes index 0 in that case)
+                            if (bufferFormats[el].perinstance)
+                                instIdx = bufferFormats[el].instancerate > 0 ? (instance / (uint)bufferFormats[el].instancerate) : 0;
+                            else
+                                instIdx = index;
+
+                            uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
 
                             if (!MeshView)
                                 offs += ByteOffset;
@@ -1681,9 +1686,14 @@ namespace renderdocui.Windows
                             Stream strm = state.m_Stream[bufferFormats[el].buffer];
                             BinaryReader read = state.m_Reader[bufferFormats[el].buffer];
 
-                            uint offs = input.Strides[bufferFormats[el].buffer] *
-                                (bufferFormats[el].perinstance ? (instance / (uint)bufferFormats[el].instancerate) : dataIndex)
-                                                + bufferFormats[el].offset;
+                            uint instIdx = 0;
+                            // for instancing, need to handle instance rate being 0 (every instance takes index 0 in that case)
+                            if (bufferFormats[el].perinstance)
+                                instIdx = bufferFormats[el].instancerate > 0 ? (instance / (uint)bufferFormats[el].instancerate) : 0;
+                            else
+                                instIdx = dataIndex;
+
+                            uint offs = input.Strides[bufferFormats[el].buffer] * instIdx + bufferFormats[el].offset;
 
                             if (!MeshView)
                                 offs += ByteOffset;
