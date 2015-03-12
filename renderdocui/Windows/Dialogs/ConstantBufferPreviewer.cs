@@ -211,9 +211,13 @@ namespace renderdocui.Controls
         {
             get
             {
+                APIPipelineStateType pipeType = APIPipelineStateType.D3D11;
+                if (m_Core != null && m_Core.APIProps != null)
+                    pipeType = m_Core.APIProps.pipelineType;
+
                 return String.Format("{0} {1} {2}",
-                    Stage.Str(m_Core != null ? m_Core.APIProps.pipelineType : APIPipelineStateType.D3D11),
-                    m_Core == null || m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
+                    Stage.Str(pipeType),
+                    pipeType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
                     Slot);
             }
         }
