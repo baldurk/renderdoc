@@ -4890,7 +4890,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion( ID3D11Resource *pDstReso
 
 			to += DstX;
 
-			size_t length = record->Length;
+			size_t length = srcRecord->Length;
 
 			if(pSrcBox)
 			{
