@@ -73,9 +73,9 @@ namespace renderdocui.Windows
             }
             set
             {
-                if (m_Trace != null && m_Trace.states != null)
+                if (m_Trace != null && m_Trace.states != null && m_Trace.states.Length > 0)
                 {
-                    CurrentStep_ = Math.Min(m_Trace.states.Length - 1, Math.Max(0, value));
+                    CurrentStep_ = Helpers.Clamp(value, 0, m_Trace.states.Length - 1);
                 }
                 else
                 {
@@ -765,7 +765,7 @@ namespace renderdocui.Windows
 
         public void UpdateDebugging()
         {
-            if (m_Trace == null || m_Trace.states.Length == 0)
+            if (m_Trace == null || m_Trace.states == null || m_Trace.states.Length == 0)
             {
                 //curInstruction.Text = "0";
 
