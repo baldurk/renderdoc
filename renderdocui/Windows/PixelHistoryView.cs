@@ -262,7 +262,7 @@ namespace renderdocui.Windows
 
             if (mod.uavWrite)
             {
-                string name = "Potential UAV write";
+                string name = "Potential UAV/Copy write";
 
                 string preModVal = "Tex Before\n\n" + ModificationValueString(mod.preMod, texture.format, depth);
                 string postModVal = "Tex After\n\n" + ModificationValueString(mod.postMod, texture.format, depth);
@@ -352,7 +352,7 @@ namespace renderdocui.Windows
 
             if (mods[0].uavWrite)
             {
-                name += String.Format("EID {0}\n{1}\nBound as UAV - potential modification", mods[0].eventID, drawcall.name);
+                name += String.Format("EID {0}\n{1}\nBound as UAV or copy - potential modification", mods[0].eventID, drawcall.name);
 
                 if (mods[0].preMod.col.value.u[0] == mods[0].postMod.col.value.u[0] &&
                     mods[0].preMod.col.value.u[1] == mods[0].postMod.col.value.u[1] &&

@@ -1152,6 +1152,8 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 			case eUsage_GS_SRV:
 			case eUsage_PS_SRV:
 			case eUsage_CS_SRV:
+			case eUsage_CopySrc:
+			case eUsage_ResolveSrc:
 				// read-only, not a valid pixel history event
 				continue;
 			
@@ -1162,6 +1164,11 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 			case eUsage_OM_RTV:
 			case eUsage_OM_DSV:
 			case eUsage_Clear:
+			case eUsage_Copy:
+			case eUsage_CopyDst:
+			case eUsage_Resolve:
+			case eUsage_ResolveDst:
+			case eUsage_GenMips:
 				// writing - include in pixel history events
 				break;
 		}

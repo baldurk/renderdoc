@@ -3905,7 +3905,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		curNumInst = D3D11_SHADER_MAX_INTERFACES;
 		curNumScissors = curNumViews = 16;
 
-		bool uavOutput = (events[ev].usage == eUsage_CS_UAV || events[ev].usage == eUsage_PS_UAV);
+		bool uavOutput = (events[ev].usage == eUsage_PS_UAV ||
+				events[ev].usage == eUsage_CS_UAV ||
+				events[ev].usage == eUsage_CopyDst ||
+				events[ev].usage == eUsage_Copy ||
+				events[ev].usage == eUsage_Resolve ||
+				events[ev].usage == eUsage_ResolveDst ||
+				events[ev].usage == eUsage_GenMips);
 
 		m_pImmediateContext->RSGetState(&curRS);
 		m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
@@ -4390,7 +4396,15 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		bool clear = (draw->flags & eDraw_Clear);
 
-		if(occlData > 0 || clear || events[i].usage == eUsage_PS_UAV || events[i].usage == eUsage_CS_UAV)
+		bool uavWrite = (events[i].usage == eUsage_PS_UAV ||
+				events[i].usage == eUsage_CS_UAV ||
+				events[i].usage == eUsage_CopyDst ||
+				events[i].usage == eUsage_Copy ||
+				events[i].usage == eUsage_Resolve ||
+				events[i].usage == eUsage_ResolveDst ||
+				events[i].usage == eUsage_GenMips);
+
+		if(occlData > 0 || clear || uavWrite)
 		{
 			PixelModification mod;
 			RDCEraseEl(mod);
@@ -4399,13 +4413,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			mod.eventID = events[i].eventID;
 
-			mod.uavWrite = (events[i].usage == eUsage_PS_UAV || events[i].usage == eUsage_CS_UAV);
+			mod.uavWrite = uavWrite;
 
 			mod.preMod.col.value_u[0] = (uint32_t)i;
 
-			if((draw->flags & eDraw_Clear) == 0 &&
-				 events[i].usage != eUsage_PS_UAV &&
-				 events[i].usage != eUsage_CS_UAV)
+			if((draw->flags & eDraw_Clear) == 0 && !uavWrite)
 			{
 				if(flags[i] & TestMustFail_DepthTesting)
 					mod.depthTestFailed = true;
