@@ -1443,9 +1443,9 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 					valid = false;
 
 					// explicitly allow over-sized depth targets
-					if(desc.Width < d3.Width &&
-						desc.Height < d3.Height &&
-						desc.Depth < d3.Depth &&
+					if(desc.Width <= d3.Width &&
+						desc.Height <= d3.Height &&
+						desc.Depth <= d3.Depth &&
 						desc2.SampleDesc.Count == d2.SampleDesc.Count &&
 						desc2.SampleDesc.Quality == d2.SampleDesc.Quality)
 					{
