@@ -1,4 +1,3 @@
-Demos/
 Debug/
 Documentation/
 Release/
@@ -19,18 +18,14 @@ obj/
 .obj/
 *.opensdf
 *.pdb
+*.sln.ide/
 *.so
 *.a
 *.exp
 *.lib
 *.sdf
 *.suo
-*.PixRun
 *.dll
 symsrv.yes
-capture.log*
-capture.d3dbgr*
-Direct3DLog.txt
 ipch/
-*.nvuser
 *.shfbproj_*
