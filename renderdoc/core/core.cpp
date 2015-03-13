@@ -463,7 +463,7 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 		chunkSerialiser->SerialiseString("DriverName", m_CurrentDriverName);
 		
 		{
-			ScopedContext scope(chunkSerialiser, NULL, "Driver Specific", DRIVER_INIT_PARAMS, false);
+			ScopedContext driverparams(chunkSerialiser, NULL, "Driver Specific", DRIVER_INIT_PARAMS, false);
 
 			params->m_pSerialiser = chunkSerialiser;
 			params->m_State = WRITING;

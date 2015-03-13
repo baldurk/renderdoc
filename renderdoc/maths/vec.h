@@ -55,7 +55,7 @@ class Vec3f
 
 		inline float Length() const
 		{
-			return sqrt(Dot(*this));
+			return sqrtf(Dot(*this));
 		}
 
 		inline void Normalise()

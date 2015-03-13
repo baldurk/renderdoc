@@ -1206,8 +1206,8 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 		ClearMaps();
 		for(size_t i=0; i < m_pDevice->GetNumDeferredContexts(); i++)
 		{
-			WrappedID3D11DeviceContext *context = m_pDevice->GetDeferredContext(i);
-			context->ClearMaps();
+			WrappedID3D11DeviceContext *defcontext = m_pDevice->GetDeferredContext(i);
+			defcontext->ClearMaps();
 		}
 	}
 
@@ -1223,15 +1223,15 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		D3D11ChunkType context = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		D3D11ChunkType chunktype = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
 
-		ProcessChunk(offset, context, false);
+		ProcessChunk(offset, chunktype, false);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 		
 		// for now just abort after capture scope. Really we'd need to support multiple frames
 		// but for now this will do.
-		if(context == CONTEXT_CAPTURE_FOOTER)
+		if(chunktype == CONTEXT_CAPTURE_FOOTER)
 			break;
 		
 		m_CurEventID++;
@@ -1256,12 +1256,12 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 		for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
 		{
-			ResourceId id = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
+			ResourceId resid = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
 
-			if(m_pDevice->GetResourceManager()->GetInitialContents(id).resource == NULL)
+			if(m_pDevice->GetResourceManager()->GetInitialContents(resid).resource == NULL)
 				continue;
 
-			RDCDEBUG("Resource %llu", id);
+			RDCDEBUG("Resource %llu", resid);
 			if(it->second.empty())
 			{
 				RDCDEBUG("Never used!");

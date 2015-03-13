@@ -801,11 +801,11 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetShader(ID3D11VertexShader *pShad
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.Shader, pShader);
-		m_pRealContext->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.Shader, pSH);
+		m_pRealContext->VSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11VertexShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -1162,11 +1162,11 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetShader(ID3D11HullShader *pShader
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.Shader, pShader);
-		m_pRealContext->HSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11HullShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.Shader, pSH);
+		m_pRealContext->HSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11HullShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -1522,11 +1522,11 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetShader(ID3D11DomainShader *pShad
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.Shader, pShader);
-		m_pRealContext->DSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11DomainShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.Shader, pSH);
+		m_pRealContext->DSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11DomainShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -1882,11 +1882,11 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetShader(ID3D11GeometryShader *pSh
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.Shader, pShader);
-		m_pRealContext->GSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11GeometryShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.Shader, pSH);
+		m_pRealContext->GSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11GeometryShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -2651,11 +2651,11 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetShader(ID3D11PixelShader *pShade
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.Shader, pShader);
-		m_pRealContext->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.Shader, pSH);
+		m_pRealContext->PSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11PixelShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -3389,7 +3389,7 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 
 	for(uint32_t i=0; i < NumMessages; i++)
 	{
-		ScopedContext scope(m_pSerialiser, m_pDebugSerialiser, "DebugMessage", "DebugMessage", 0, false);
+		ScopedContext msgscope(m_pSerialiser, m_pDebugSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
 		string desc;
 		if(m_State >= WRITING)
@@ -3780,8 +3780,6 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 	if(m_State == READING)
 	{
 		AddEvent(DRAW, desc);
-		
-		ID3D11Buffer *argBuffer = NULL;
 		
 		FetchDrawcall draw;
 
@@ -4323,11 +4321,11 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetShader(ID3D11ComputeShader *pSha
 		for(UINT i=0; i < NumClassInstances; i++)
 			Instances[i] = UNWRAP(WrappedID3D11ClassInstance, Instances[i]);
 		
-		ID3D11DeviceChild *pShader = NULL;
+		ID3D11DeviceChild *pSH = NULL;
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Shader))
-			pShader = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
-		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.Shader, pShader);
-		m_pRealContext->CSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11ComputeShader>, pShader), Instances, NumClassInstances);
+			pSH = (ID3D11DeviceChild *)m_pDevice->GetResourceManager()->GetLiveResource(Shader);
+		m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.Shader, pSH);
+		m_pRealContext->CSSetShader(UNWRAP(WrappedID3D11Shader<ID3D11ComputeShader>, pSH), Instances, NumClassInstances);
 		VerifyState();
 	}
 
@@ -6602,7 +6600,7 @@ bool WrappedID3D11DeviceContext::Serialise_Map(ID3D11Resource *pResource, UINT S
 						}
 						else
 						{
-							MapIntercept intercept;
+							intercept = MapIntercept();
 							intercept.SetD3D(mapped);
 							intercept.Init((ID3D11Buffer *)pResource, record->GetDataPtr());
 							intercept.CopyFromD3D();

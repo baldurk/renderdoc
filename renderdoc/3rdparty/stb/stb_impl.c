@@ -7,7 +7,9 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 
-#pragma warning(disable:4996)
+#pragma warning(disable:4996) // function unsafe (fopen vs fopen_s)
+#pragma warning(disable:4456) // declaration hides previous local declaration
+#pragma warning(disable:4457) // declaration hides function parameter
 
 #include "stb_image.h"
 #include "stb_image_write.h"

@@ -2126,7 +2126,7 @@ void WrappedOpenGL::Serialise_DebugMessages()
 
 	for(uint32_t i=0; i < NumMessages; i++)
 	{
-		ScopedContext scope(m_pSerialiser, NULL, "DebugMessage", "DebugMessage", 0, false);
+		ScopedContext msgscope(m_pSerialiser, NULL, "DebugMessage", "DebugMessage", 0, false);
 
 		string desc;
 		if(m_State >= WRITING)
@@ -3249,15 +3249,15 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		uint64_t offset = m_pSerialiser->GetOffset();
 
-		GLChunkType context = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		GLChunkType chunktype = (GLChunkType)m_pSerialiser->PushContext(NULL, 1, false);
 
-		ContextProcessChunk(offset, context, false);
+		ContextProcessChunk(offset, chunktype, false);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 		
 		// for now just abort after capture scope. Really we'd need to support multiple frames
 		// but for now this will do.
-		if(context == CONTEXT_CAPTURE_FOOTER)
+		if(chunktype == CONTEXT_CAPTURE_FOOTER)
 			break;
 		
 		m_CurEventID++;

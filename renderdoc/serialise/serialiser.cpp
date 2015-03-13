@@ -29,6 +29,11 @@
 
 #include "serialise/string_utils.h"
 
+#ifdef _MSC_VER
+#pragma warning (disable : 4422) // warning C4422: 'snprintf' : too many arguments passed for format string
+                                 // false positive as VS is trying to parse renderdoc's custom format strings
+#endif
+
 #if !defined(RELEASE)
 
 int64_t Chunk::m_LiveChunks = 0;
@@ -531,7 +536,7 @@ uint64_t Serialiser::FlushToDisk()
 		{
 			Chunk *chunk = m_Chunks[i];
 
-			size_t alignedoffs = AlignUp16(offs);
+			alignedoffs = AlignUp16(offs);
 
 			if(offs != alignedoffs && chunk->IsAligned())
 			{
@@ -1033,7 +1038,7 @@ template<>
 string ToStrHelper<false, void *>::Get(void* const &el)
 {
 	char tostrBuf[256] = {0};
-	StringFormat::snprintf(tostrBuf, 255, "0x%X", el);
+	StringFormat::snprintf(tostrBuf, 255, "0x%p", el);
 
 	return tostrBuf;
 }

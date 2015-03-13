@@ -1404,20 +1404,20 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
 		for(uint32_t i=0; i < Count; i++)
 		{
-			FetchDrawcall draw;
-			draw.numIndices = countArray[i];
-			draw.vertexOffset = firstArray[i];
+			FetchDrawcall multidraw;
+			multidraw.numIndices = countArray[i];
+			multidraw.vertexOffset = firstArray[i];
 		
-			draw.name = "glMultiDrawArrays[" + ToStr::Get(i) + "](" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.vertexOffset) + ")";
+			multidraw.name = "glMultiDrawArrays[" + ToStr::Get(i) + "](" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.vertexOffset) + ")";
 
-			draw.flags |= eDraw_Drawcall;
+			multidraw.flags |= eDraw_Drawcall;
 
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -1550,20 +1550,20 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
 		for(uint32_t i=0; i < Count; i++)
 		{
-			FetchDrawcall draw;
-			draw.numIndices = countArray[i];
-			draw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
+			FetchDrawcall multidraw;
+			multidraw.numIndices = countArray[i];
+			multidraw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
 		
-			draw.name = "glMultiDrawElements[" + ToStr::Get(i) + "](" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.indexOffset) + ")";
+			multidraw.name = "glMultiDrawElements[" + ToStr::Get(i) + "](" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.indexOffset) + ")";
 
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
 			AddEvent(MULTI_DRAWELEMENTS, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -1703,23 +1703,23 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
 		for(uint32_t i=0; i < Count; i++)
 		{
-			FetchDrawcall draw;
-			draw.numIndices = countArray[i];
-			draw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
-			draw.vertexOffset = baseArray[i];
+			FetchDrawcall multidraw;
+			multidraw.numIndices = countArray[i];
+			multidraw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
+			multidraw.vertexOffset = baseArray[i];
 		
-			draw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.indexOffset) + ", " +
-						ToStr::Get(draw.vertexOffset) + ")";
+			multidraw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.indexOffset) + ", " +
+						ToStr::Get(multidraw.vertexOffset) + ")";
 
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
-			draw.indexByteWidth = IdxSize;
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.indexByteWidth = IdxSize;
 
 			AddEvent(MULTI_DRAWELEMENTSBASEVERTEX, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -1851,24 +1851,24 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 			else
 				offs += sizeof(params);
 
-			FetchDrawcall draw;
-			draw.numIndices = params.count;
-			draw.numInstances = params.instanceCount;
-			draw.vertexOffset = params.first;
-			draw.instanceOffset = params.baseInstance;
+			FetchDrawcall multidraw;
+			multidraw.numIndices = params.count;
+			multidraw.numInstances = params.instanceCount;
+			multidraw.vertexOffset = params.first;
+			multidraw.instanceOffset = params.baseInstance;
 		
-			draw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.numInstances) + ", " + 
-						ToStr::Get(draw.vertexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ">)";
+			multidraw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.numInstances) + ", " +
+						ToStr::Get(multidraw.vertexOffset) + ", " +
+						ToStr::Get(multidraw.instanceOffset) + ">)";
 
-			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+			multidraw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -1977,11 +1977,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
-		uint32_t IdxSize =
-		    Type == eGL_UNSIGNED_BYTE  ? 1
-		  : Type == eGL_UNSIGNED_SHORT ? 2
-		  : /*Type == eGL_UNSIGNED_INT*/ 4;
-
 		FetchDrawcall draw;
 		draw.name = name;
 
@@ -2009,26 +2004,26 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 			else
 				offs += sizeof(params);
 
-			FetchDrawcall draw;
-			draw.numIndices = params.count;
-			draw.numInstances = params.instanceCount;
-			draw.indexOffset = params.firstIndex;
-			draw.vertexOffset = params.baseVertex;
-			draw.instanceOffset = params.baseInstance;
+			FetchDrawcall multidraw;
+			multidraw.numIndices = params.count;
+			multidraw.numInstances = params.instanceCount;
+			multidraw.indexOffset = params.firstIndex;
+			multidraw.vertexOffset = params.baseVertex;
+			multidraw.instanceOffset = params.baseInstance;
 		
-			draw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](<" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.numInstances) + ", " + 
-						ToStr::Get(draw.indexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ">)";
+			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](<" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.numInstances) + ", " +
+						ToStr::Get(multidraw.indexOffset) + ", " +
+						ToStr::Get(multidraw.instanceOffset) + ">)";
 
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
 
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
-			draw.indexByteWidth = IdxSize;
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.indexByteWidth = IdxSize;
 			
 			AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -2167,24 +2162,24 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 			else
 				offs += sizeof(params);
 
-			FetchDrawcall draw;
-			draw.numIndices = params.count;
-			draw.numInstances = params.instanceCount;
-			draw.vertexOffset = params.first;
-			draw.instanceOffset = params.baseInstance;
+			FetchDrawcall multidraw;
+			multidraw.numIndices = params.count;
+			multidraw.numInstances = params.instanceCount;
+			multidraw.vertexOffset = params.first;
+			multidraw.instanceOffset = params.baseInstance;
 		
-			draw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.numInstances) + ", " + 
-						ToStr::Get(draw.vertexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ">)";
+			multidraw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.numInstances) + ", " +
+						ToStr::Get(multidraw.vertexOffset) + ", " +
+						ToStr::Get(multidraw.instanceOffset) + ">)";
 
-			draw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
+			multidraw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 			
 			AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -2305,11 +2300,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 						ToStr::Get(realdrawcount) + ">, " +
 						ToStr::Get(MaxCount) + ")";
 
-		uint32_t IdxSize =
-		    Type == eGL_UNSIGNED_BYTE  ? 1
-		  : Type == eGL_UNSIGNED_SHORT ? 2
-		  : /*Type == eGL_UNSIGNED_INT*/ 4;
-
 		FetchDrawcall draw;
 		draw.name = name;
 
@@ -2337,26 +2327,26 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 			else
 				offs += sizeof(params);
 
-			FetchDrawcall draw;
-			draw.numIndices = params.count;
-			draw.numInstances = params.instanceCount;
-			draw.indexOffset = params.firstIndex;
-			draw.vertexOffset = params.baseVertex;
-			draw.instanceOffset = params.baseInstance;
+			FetchDrawcall multidraw;
+			multidraw.numIndices = params.count;
+			multidraw.numInstances = params.instanceCount;
+			multidraw.indexOffset = params.firstIndex;
+			multidraw.vertexOffset = params.baseVertex;
+			multidraw.instanceOffset = params.baseInstance;
 		
-			draw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +
-						ToStr::Get(draw.numIndices) + ", " +
-						ToStr::Get(draw.numInstances) + ", " + 
-						ToStr::Get(draw.indexOffset) + ", " +
-						ToStr::Get(draw.instanceOffset) + ")";
+			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +
+						ToStr::Get(multidraw.numIndices) + ", " +
+						ToStr::Get(multidraw.numInstances) + ", " +
+						ToStr::Get(multidraw.indexOffset) + ", " +
+						ToStr::Get(multidraw.instanceOffset) + ")";
 
-			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
+			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
 
-			draw.topology = MakePrimitiveTopology(m_Real, Mode);
-			draw.indexByteWidth = IdxSize;
+			multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
+			multidraw.indexByteWidth = IdxSize;
 			
 			AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
-			AddDrawcall(draw, true);
+			AddDrawcall(multidraw, true);
 
 			m_CurEventID++;
 		}
@@ -2390,7 +2380,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 {
 	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
 
 	if(m_State <= EXECUTING)
 	{
@@ -2412,7 +2402,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 		if(m_State == READING)
 			name = "glClearBufferfv(" +
 						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ", " +
+						ToStr::Get(drawbuf) + ", " +
 						ToStr::Get(v.x) + ", " +
 						ToStr::Get(v.y) + ", " +
 						ToStr::Get(v.z) + ", " +
@@ -2423,7 +2413,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
 		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearNamedFramebufferfv(framebuffer, buf, draw, &v.x);
+			m_Real.glClearNamedFramebufferfv(framebuffer, buf, drawbuf, &v.x);
 	}
 	else
 	{
@@ -2432,11 +2422,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 		if(m_State == READING)
 			name = "glClearBufferfv(" +
 						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ", " +
+						ToStr::Get(drawbuf) + ", " +
 						ToStr::Get(val) + ")";
 
 		if(m_State <= EXECUTING)
-			m_Real.glClearNamedFramebufferfv(framebuffer, buf, draw, &val);
+			m_Real.glClearNamedFramebufferfv(framebuffer, buf, drawbuf, &val);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -2496,7 +2486,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 {
 	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -2518,7 +2508,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 		if(m_State == READING)
 			name = "glClearBufferiv(" +
 						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ", " +
+						ToStr::Get(drawbuf) + ", " +
 						ToStr::Get(v[0]) + ", " +
 						ToStr::Get(v[1]) + ", " +
 						ToStr::Get(v[2]) + ", " +
@@ -2529,7 +2519,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
 		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearNamedFramebufferiv(framebuffer, buf, draw, v);
+			m_Real.glClearNamedFramebufferiv(framebuffer, buf, drawbuf, v);
 	}
 	else
 	{
@@ -2538,11 +2528,11 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 		if(m_State == READING)
 			name = "glClearBufferiv(" +
 						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ", " +
+						ToStr::Get(drawbuf) + ", " +
 						ToStr::Get(val) + ")";
 
 		if(m_State <= EXECUTING)
-			m_Real.glClearNamedFramebufferiv(framebuffer, buf, draw, &val);
+			m_Real.glClearNamedFramebufferiv(framebuffer, buf, drawbuf, &val);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -2602,7 +2592,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 {
 	SERIALISE_ELEMENT(ResourceId, Id, (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer)) : ResourceId()));
 	SERIALISE_ELEMENT(GLenum, buf, buffer);
-	SERIALISE_ELEMENT(int32_t, draw, drawbuffer);
+	SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -2623,7 +2613,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 		if(m_State == READING)
 			name = "glClearBufferuiv(" +
 						ToStr::Get(buf) + ", " +
-						ToStr::Get(draw) + ", " +
+						ToStr::Get(drawbuf) + ", " +
 						ToStr::Get(v[0]) + ", " +
 						ToStr::Get(v[1]) + ", " +
 						ToStr::Get(v[2]) + ", " +
@@ -2634,7 +2624,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 		// necessary since these functions can be serialised even if ARB_dsa was not used originally, and
 		// we need to support this case.
 		if(m_State <= EXECUTING)
-			m_Real.glClearNamedFramebufferuiv(framebuffer, buf, draw, v);
+			m_Real.glClearNamedFramebufferuiv(framebuffer, buf, drawbuf, v);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();

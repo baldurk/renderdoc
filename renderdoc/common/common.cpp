@@ -132,8 +132,8 @@ bool Vec16NotEqual(void *a, void *b)
 
 bool FindDiffRange(void *a, void *b, size_t bufSize, size_t &diffStart, size_t &diffEnd)
 {
-	RDCASSERT(((unsigned long)a)%16 == 0);
-	RDCASSERT(((unsigned long)b)%16 == 0);
+	RDCASSERT(uintptr_t(a)%16 == 0);
+	RDCASSERT(uintptr_t(b)%16 == 0);
 
 	diffStart = bufSize+1;
 	diffEnd = 0;

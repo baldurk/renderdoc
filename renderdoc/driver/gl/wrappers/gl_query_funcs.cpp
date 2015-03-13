@@ -34,7 +34,7 @@ bool WrappedOpenGL::Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfi
 
 	if(m_State < WRITING)
 	{
-		GLsync real = m_Real.glFenceSync(Condition, Flags);
+		real = m_Real.glFenceSync(Condition, Flags);
 		
 		GLuint name = 0;
 		ResourceId liveid = ResourceId();

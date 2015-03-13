@@ -906,7 +906,7 @@ namespace renderdocui.Windows.PipelineState
                 restartIndex.Text = "";
             }
 
-            if (state.m_VtxIn.ibuffer != null)
+            if (state.m_VtxIn.ibuffer != ResourceId.Null)
             {
                 if (ibufferUsed || showDisabled.Checked)
                 {

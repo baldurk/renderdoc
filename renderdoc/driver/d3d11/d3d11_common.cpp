@@ -1308,7 +1308,7 @@ void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC &el)
 	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
 	for(int i=0; i < 8; i++)
 	{
-		ScopedContext scope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC", 0, true);
+		ScopedContext targetscope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC", 0, true);
 
 		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
 		Serialise("BlendEnable", enable);
@@ -1340,14 +1340,14 @@ void Serialiser::Serialise(const char *name, D3D11_DEPTH_STENCIL_DESC &el)
 	Serialise("StencilWriteMask", el.StencilWriteMask);
 
 	{
-		ScopedContext scope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
+		ScopedContext opscope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
 		Serialise("FrontFace.StencilFailOp", el.FrontFace.StencilFailOp);
 		Serialise("FrontFace.StencilDepthFailOp", el.FrontFace.StencilDepthFailOp);
 		Serialise("FrontFace.StencilPassOp", el.FrontFace.StencilPassOp);
 		Serialise("FrontFace.StencilFunc", el.FrontFace.StencilFunc);
 	}
 	{
-		ScopedContext scope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
+		ScopedContext opscope(this, this, name, "D3D11_DEPTH_STENCILOP_DESC", 0, true);
 		Serialise("BackFace.StencilFailOp", el.BackFace.StencilFailOp);
 		Serialise("BackFace.StencilDepthFailOp", el.BackFace.StencilDepthFailOp);
 		Serialise("BackFace.StencilPassOp", el.BackFace.StencilPassOp);
@@ -1494,7 +1494,7 @@ void Serialiser::Serialise(const char *name, D3D11_BLEND_DESC1 &el)
 	Serialise("IndependentBlendEnable", el.IndependentBlendEnable);
 	for(int i=0; i < 8; i++)
 	{
-		ScopedContext scope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
+		ScopedContext targetscope(this, this, name, "D3D11_RENDER_TARGET_BLEND_DESC1", 0, true);
 
 		bool enable = el.RenderTarget[i].BlendEnable == TRUE;
 		Serialise("BlendEnable", enable);

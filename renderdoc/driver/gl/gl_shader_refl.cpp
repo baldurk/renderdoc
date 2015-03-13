@@ -1468,12 +1468,12 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				GLenum props[] = { eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_LOCATION_COMPONENT };
 				GLint values[] = { 0              , 0       , 0           , 0                      };
 
-				GLsizei numProps = (GLsizei)ARRAY_COUNT(props);
+				GLsizei numSigProps = (GLsizei)ARRAY_COUNT(props);
 
 				// GL_LOCATION_COMPONENT not supported on core <4.4 (or without GL_ARB_enhanced_layouts)
 				if(!ExtensionSupported[ExtensionSupported_ARB_enhanced_layouts] && GLCoreVersion < 44)
-					numProps--;
-				gl.glGetProgramResourceiv(sepProg, sigEnum, i, numProps, props, numProps, NULL, values);
+					numSigProps--;
+				gl.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
 
 				char *nm = new char[values[0]+1];
 				gl.glGetProgramResourceName(sepProg, sigEnum, i, values[0]+1, NULL, nm);
@@ -1715,11 +1715,11 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 				}
 				else
 				{
-					for(int i=0; i < rows; i++)
+					for(int r=0; r < rows; r++)
 					{
 						SigParameter s = sig;
-						s.varName = StringFormat::Fmt("%s.row%d", nm, i);
-						s.regIndex += i;
+						s.varName = StringFormat::Fmt("%s.row%d", nm, r);
+						s.regIndex += r;
 						sigs.push_back(s);
 					}
 				}

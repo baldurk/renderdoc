@@ -237,7 +237,7 @@ class OpenGLHook : LibraryHook
 			if(!m_EnabledHooks)
 				return false;
 			
-			bool success = SetupHooks(GL);
+			bool success = SetupHooks();
 
 			if(!success) return false;
 			
@@ -615,7 +615,7 @@ class OpenGLHook : LibraryHook
 
 		set<HGLRC> m_Contexts;
 
-		bool SetupHooks(GLHookSet &GL)
+		bool SetupHooks()
 		{
 			bool success = true;
 			

@@ -361,13 +361,7 @@ void DXBCFile::MakeDisassembly()
 		default: RDCERR("Unknown shader type: %u", m_Type); break;
 	}
 
-	char buf[] = {0, 0};
-	buf[0] = (char)('0'+m_Version.Major);
-	m_Disassembly += buf;
-	m_Disassembly += "_";
-	buf[0] = (char)('0'+m_Version.Minor);
-	m_Disassembly += buf;
-	m_Disassembly += "\n";
+	m_Disassembly += StringFormat::Fmt("%d_%d\n", m_Version.Major, m_Version.Minor);
 
 	int indent = 0;
 

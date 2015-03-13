@@ -174,7 +174,7 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 				}
 				else if(type == ePacket_CopyCapture)
 				{
-					vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
+					caps = RenderDoc::Inst().GetCaptures();
 
 					uint32_t id = 0;
 					recvser->Serialise("", id);

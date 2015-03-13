@@ -3226,8 +3226,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 							{
 								uint32_t *u = (uint32_t *)d;
 
-								for(int i=0; i < fmt.numComps; i++)
-									result.value.uv[i] = u[i];
+								for(int c=0; c < fmt.numComps; c++)
+									result.value.uv[c] = u[c];
 							}
 							else if(fmt.byteWidth == 2)
 							{
@@ -3235,41 +3235,41 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 								{
 									uint16_t *u = (uint16_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.fv[i] = ConvertFromHalf(u[i]);
+									for(int c=0; c < fmt.numComps; c++)
+										result.value.fv[c] = ConvertFromHalf(u[c]);
 								}
 								else if(fmt.fmt == eCompType_UInt)
 								{
 									uint16_t *u = (uint16_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.uv[i] = u[i];
+									for(int c=0; c < fmt.numComps; c++)
+										result.value.uv[c] = u[c];
 								}
 								else if(fmt.fmt == eCompType_SInt)
 								{
 									int16_t *in = (int16_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.iv[i] = in[i];
+									for(int c=0; c < fmt.numComps; c++)
+										result.value.iv[c] = in[c];
 								}
 								else if(fmt.fmt == eCompType_UNorm)
 								{
 									uint16_t *u = (uint16_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.fv[i] = float(u[i])/float(0xffff);
+									for(int c=0; c < fmt.numComps; c++)
+										result.value.fv[c] = float(u[c])/float(0xffff);
 								}
 								else if(fmt.fmt == eCompType_SNorm)
 								{
 									int16_t *in = (int16_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
+									for(int c=0; c < fmt.numComps; c++)
 									{
 										// -32768 is mapped to -1, then -32767 to -32767 are mapped to -1 to 1
-										if(in[i] == -32768)
-											result.value.fv[i] = -1.0f;
+										if(in[c] == -32768)
+											result.value.fv[c] = -1.0f;
 										else
-											result.value.fv[i] = float(in[i])/32767.0f;
+											result.value.fv[c] = float(in[c])/32767.0f;
 									}
 								}
 								else
@@ -3283,34 +3283,34 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 								{
 									uint8_t *u = (uint8_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.uv[i] = u[i];
+									for(int c = 0; c < fmt.numComps; c++)
+										result.value.uv[c] = u[c];
 								}
 								else if(fmt.fmt == eCompType_SInt)
 								{
 									int8_t *in = (int8_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.iv[i] = in[i];
+									for(int c = 0; c < fmt.numComps; c++)
+										result.value.iv[c] = in[c];
 								}
 								else if(fmt.fmt == eCompType_UNorm)
 								{
 									uint8_t *u = (uint8_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
-										result.value.fv[i] = float(u[i])/float(0xff);
+									for(int c = 0; c < fmt.numComps; c++)
+										result.value.fv[c] = float(u[c])/float(0xff);
 								}
 								else if(fmt.fmt == eCompType_SNorm)
 								{
 									int8_t *in = (int8_t *)d;
 
-									for(int i=0; i < fmt.numComps; i++)
+									for(int c=0; c < fmt.numComps; c++)
 									{
 										// -128 is mapped to -1, then -127 to -127 are mapped to -1 to 1
-										if(in[i] == -128)
-											result.value.fv[i] = -1.0f;
+										if(in[c] == -128)
+											result.value.fv[c] = -1.0f;
 										else
-											result.value.fv[i] = float(in[i])/127.0f;
+											result.value.fv[c] = float(in[c])/127.0f;
 									}
 								}
 								else
@@ -3326,13 +3326,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					ShaderVariable fetch("", 0U, 0U, 0U, 0U);
 
-					for(int i=0; i < 4; i++)
+					for(int c=0; c < 4; c++)
 					{
-						uint8_t comp = op.operands[2].comps[i];
-						if(op.operands[2].comps[i] == 0xff)
+						uint8_t comp = op.operands[2].comps[c];
+						if(op.operands[2].comps[c] == 0xff)
 							comp = 0;
 
-						fetch.value.uv[i] = result.value.uv[comp];
+						fetch.value.uv[c] = result.value.uv[comp];
 					}
 
 					s.SetDst(op.operands[0], op, fetch);

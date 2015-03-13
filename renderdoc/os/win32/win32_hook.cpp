@@ -104,7 +104,7 @@ struct DllHookset
 struct CachedHookData
 {
 	map<string, DllHookset> DllHooks;
-	HMODULE module;
+	HMODULE ownmodule;
 	Threading::CriticalSection lock;
 	char lowername[512];
 
@@ -344,7 +344,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
 	if(mod == NULL || func == NULL)
 		return (FARPROC)NULL;
 
-	if(mod == s_HookData->module || OrdinalAsString((void *)func))
+	if(mod == s_HookData->ownmodule || OrdinalAsString((void *)func))
 		return GetProcAddress(mod, func);
 	
 	for(auto it=s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
@@ -383,11 +383,11 @@ void Win32_IAT_BeginHooks()
 	GetModuleHandleEx(
 		GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
 		(LPCTSTR)&s_HookData,
-		&s_HookData->module);
+		&s_HookData->ownmodule);
 
 	for(auto it=s_HookData->DllHooks.begin(); it != s_HookData->DllHooks.end(); ++it)
 		for(size_t i=0; i < it->second.FunctionHooks.size(); i++)
-			it->second.FunctionHooks[i].excludeModule = s_HookData->module;
+			it->second.FunctionHooks[i].excludeModule = s_HookData->ownmodule;
 }
 
 // hook all functions for currently loaded modules.

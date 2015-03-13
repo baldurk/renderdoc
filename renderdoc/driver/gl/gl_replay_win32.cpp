@@ -429,9 +429,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 
 		GLint numExts = 0;
 		getInt(eGL_NUM_EXTENSIONS, &numExts);
-		for(GLint i=0; i < numExts; i++)
+		for(GLint e=0; e < numExts; e++)
 		{
-			const char *ext = (const char *)getStr(eGL_EXTENSIONS, (GLuint)i);
+			const char *ext = (const char *)getStr(eGL_EXTENSIONS, (GLuint)e);
 
 			if(!strcmp(ext, "GL_EXT_direct_state_access"))
 			{

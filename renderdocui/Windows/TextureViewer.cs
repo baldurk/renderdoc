@@ -2154,11 +2154,11 @@ namespace renderdocui.Windows
 
         #region Mouse movement and scrolling
 
-        private Point m_DragStartScroll;
-        private Point m_DragStartPos;
+        private Point m_DragStartScroll = Point.Empty;
+        private Point m_DragStartPos = Point.Empty;
 
-        private Point m_CurHoverPixel;
-        private Point m_PickedPoint;
+        private Point m_CurHoverPixel = Point.Empty;
+        private Point m_PickedPoint = Point.Empty;
 
         private PixelValue m_CurRealValue = null;
         private PixelValue m_CurPixelValue = null;
@@ -2547,7 +2547,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
-            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
             {
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
@@ -2575,7 +2575,7 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
-            if (m_Output != null && m_PickedPoint != null && m_PickedPoint.X > 0 && m_PickedPoint.Y > 0)
+            if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
             {
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {

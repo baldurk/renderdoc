@@ -238,7 +238,7 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
 					byte *data = ptr; ptr += len; bufsize -= len;
 
 					ID3DBlob *blob = NULL;
-					HRESULT hr = blobCreate((SIZE_T)len, &blob);
+					hr = blobCreate((SIZE_T)len, &blob);
 
 					if(FAILED(hr))
 					{
@@ -1294,8 +1294,8 @@ bool D3D11DebugManager::InitStreamOut()
 	hr = m_pDevice->CreateQuery(&qdesc, &m_SOStatsQuery);
 	if(FAILED(hr)) RDCERR("Failed to create m_SOStatsQuery %08x", hr);
 
-	D3D11_RASTERIZER_DESC desc;
 	{
+		D3D11_RASTERIZER_DESC desc;
 		desc.AntialiasedLineEnable = TRUE;
 		desc.DepthBias = 0;
 		desc.DepthBiasClamp = 0.0f;
@@ -1321,6 +1321,12 @@ bool D3D11DebugManager::InitStreamOut()
 
 		hr = m_pDevice->CreateRasterizerState(&desc, &m_WireframeHelpersCullCWRS);
 		if(FAILED(hr)) RDCERR("Failed to create m_WireframeHelpersCullCCWRS %08x", hr);
+
+		desc.FillMode = D3D11_FILL_SOLID;
+		desc.CullMode = D3D11_CULL_NONE;
+
+		hr = m_pDevice->CreateRasterizerState(&desc, &m_SolidHelpersRS);
+		if(FAILED(hr)) RDCERR("Failed to create m_SolidHelpersRS %08x", hr);
 	}
 
 	{
@@ -1340,14 +1346,6 @@ bool D3D11DebugManager::InitStreamOut()
 
 		hr = m_pDevice->CreateBlendState(&desc, &m_WireframeHelpersBS);
 		if(FAILED(hr)) RDCERR("Failed to create m_WireframeHelpersRS %08x", hr);
-	}
-
-	{
-		desc.FillMode = D3D11_FILL_SOLID;
-		desc.CullMode = D3D11_CULL_NONE;
-
-		hr = m_pDevice->CreateRasterizerState(&desc, &m_SolidHelpersRS);
-		if(FAILED(hr)) RDCERR("Failed to create m_SolidHelpersRS %08x", hr);
 	}
 	
 	{
@@ -2431,15 +2429,15 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 			m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvMS, 0, 0, NULL, NULL);
 
 			// loop over every stencil value (zzzzzz, no shader stencil read/write)
-			for(UINT stencil=0; stencil < 256; stencil++)
+			for(UINT stencilval=0; stencilval < 256; stencilval++)
 			{
-				uint32_t cdata[4] = { descMS.SampleDesc.Count, stencil, 0, slice};
+				uint32_t cdata[4] = { descMS.SampleDesc.Count, stencilval, 0, slice};
 
 				ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
 
 				m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
-				m_pImmediateContext->OMSetDepthStencilState(dsState, stencil);
+				m_pImmediateContext->OMSetDepthStencilState(dsState, stencilval);
 
 				m_pImmediateContext->Draw(3, 0);
 			}
@@ -2724,15 +2722,15 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 				m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, dsvArray, 0, 0, NULL, NULL);
 
 				// loop over every stencil value (zzzzzz, no shader stencil read/write)
-				for(UINT stencil=0; stencil < 256; stencil++)
+				for(UINT stencilval=0; stencilval < 256; stencilval++)
 				{
-					uint32_t cdata[4] = { descMS.SampleDesc.Count, stencil, sample, slice};
+					uint32_t cdata[4] = { descMS.SampleDesc.Count, stencilval, sample, slice};
 					
 					ID3D11Buffer *cbuf = MakeCBuffer((float *)cdata, sizeof(cdata));
 
 					m_pImmediateContext->PSSetConstantBuffers(0, 1, &cbuf);
 
-					m_pImmediateContext->OMSetDepthStencilState(dsState, stencil);
+					m_pImmediateContext->OMSetDepthStencilState(dsState, stencilval);
 
 					m_pImmediateContext->Draw(3, 0);
 				}
@@ -3366,8 +3364,6 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 			RDCASSERT(dxbc);
 			RDCASSERT(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER);
 
-			WrappedID3D11Shader<ID3D11PixelShader> *wrapped = NULL;
-			
 			if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.CustomShader))
 			{
 				WrappedID3D11Shader<ID3D11PixelShader> *wrapped =
@@ -4390,7 +4386,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		m_PostVSData[idx].gsout.hasPosOut = posidx >= 0;
 		m_PostVSData[idx].gsout.idxBuf = NULL;
 
-		D3D11_PRIMITIVE_TOPOLOGY topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 		
 		if(lastShader == dxbcGS)
 		{

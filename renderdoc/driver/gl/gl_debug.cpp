@@ -2549,8 +2549,8 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		// see above for the justification/explanation of this monstrosity.
 
-		GLint status = 0;
-		bool finished = false;
+		status = 0;
+		finished = false;
 		while(true)
 		{
 			// specify current varyings & relink
@@ -2663,7 +2663,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			// we don't have to restore the buffer binding on the default feedback object.
 			gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
 
-			GLuint idxBuf = 0;
+			idxBuf = 0;
 
 			GLenum shaderOutMode = eGL_TRIANGLES;
 			GLenum lastOutTopo = eGL_TRIANGLES;
@@ -2718,7 +2718,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
 
 			// this should be the same as the draw size
-			GLuint primsWritten = 0;
+			primsWritten = 0;
 			gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
 
 			error = false;
@@ -2730,7 +2730,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			}
 
 			// get buffer data from buffer attached to feedback object
-			float *data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
+			data = (float *)gl.glMapNamedBufferEXT(DebugData.feedbackBuffer, eGL_READ_ONLY);
 			
 			if(data == NULL)
 			{
@@ -2788,12 +2788,12 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 			gl.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
 			gl.glNamedBufferStorageEXT(lastoutBuffer, stride*m_PostVSData[idx].gsout.numVerts, data, 0);
 
-			byte *byteData = (byte *)data;
+			byteData = (byte *)data;
 
-			float nearp = 0.1f;
-			float farp = 100.0f;
+			nearp = 0.1f;
+			farp = 100.0f;
 
-			Vec4f *pos0 = (Vec4f *)byteData;
+			pos0 = (Vec4f *)byteData;
 
 			for(uint32_t i=1; posidx != -1 && i < m_PostVSData[idx].gsout.numVerts; i++)
 			{
@@ -3102,7 +3102,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 				GLuint vb = m_pDriver->GetResourceManager()->GetCurrentResource(fmt.buf).name;
 				gl.glBindVertexBuffer(0, vb, fmt.offset, fmt.stride);
 
-				GLenum topo = MakeGLPrimitiveTopology(fmt.topo);
+				GLenum secondarytopo = MakeGLPrimitiveTopology(fmt.topo);
 				
 				if(fmt.idxbuf != ResourceId())
 				{
@@ -3115,11 +3115,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 					else if(fmt.idxByteWidth == 4)
 						idxtype = eGL_UNSIGNED_INT;
 
-					gl.glDrawElements(topo, fmt.numVerts, idxtype, (const void *)uintptr_t(fmt.idxoffs));
+					gl.glDrawElements(secondarytopo, fmt.numVerts, idxtype, (const void *)uintptr_t(fmt.idxoffs));
 				}
 				else
 				{
-					gl.glDrawArrays(topo, 0, fmt.numVerts);
+					gl.glDrawArrays(secondarytopo, 0, fmt.numVerts);
 				}
 			}
 		}

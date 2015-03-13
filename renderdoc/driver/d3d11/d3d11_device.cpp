@@ -1195,7 +1195,9 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 			stageDesc.ArraySize *= desc.SampleDesc.Count;
 		}
 
-		HRESULT hr = m_pDevice->CreateTexture2D(&stageDesc, NULL, &stage);
+		HRESULT hr = S_OK;
+
+		hr = m_pDevice->CreateTexture2D(&stageDesc, NULL, &stage);
 
 		if(FAILED(hr))
 		{
@@ -1207,7 +1209,7 @@ bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
 			
 			if(desc.MiscFlags & D3D11_RESOURCE_MISC_SHARED_KEYEDMUTEX)
 			{
-				HRESULT hr = UNWRAP(WrappedID3D11Texture2D, tex2D)->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&mutex);
+				hr = UNWRAP(WrappedID3D11Texture2D, tex2D)->QueryInterface(__uuidof(IDXGIKeyedMutex), (void **)&mutex);
 
 				if(SUCCEEDED(hr) && mutex)
 				{
@@ -1686,8 +1688,10 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 				
 				initialDesc.Usage = D3D11_USAGE_IMMUTABLE;
 
+				HRESULT hr = S_OK;
+
 				ID3D11Texture2D *contents = NULL;
-				HRESULT hr = m_pDevice->CreateTexture2D(&initialDesc, subData, &contents);
+				hr = m_pDevice->CreateTexture2D(&initialDesc, subData, &contents);
 
 				if(FAILED(hr) || contents == NULL)
 				{
@@ -1705,7 +1709,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 							desc.Format = GetDepthTypedFormat(desc.Format);
 
 						ID3D11Texture2D *contentsMS = NULL;
-						HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &contentsMS);
+						hr = m_pDevice->CreateTexture2D(&desc, NULL, &contentsMS);
 						
 						m_DebugManager->CopyArrayToTex2DMS(contentsMS, contents);
 
@@ -1901,14 +1905,14 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
 		{
 			ID3D11Buffer *stage = NULL;
 
-			D3D11_BUFFER_DESC desc;
-			desc.BindFlags = 0;
-			desc.ByteWidth = 16;
-			desc.MiscFlags = 0;
-			desc.StructureByteStride = 0;
-			desc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
-			desc.Usage = D3D11_USAGE_STAGING;
-			HRESULT hr = m_pDevice->CreateBuffer(&desc, NULL, &stage);
+			D3D11_BUFFER_DESC bdesc;
+			bdesc.BindFlags = 0;
+			bdesc.ByteWidth = 16;
+			bdesc.MiscFlags = 0;
+			bdesc.StructureByteStride = 0;
+			bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+			bdesc.Usage = D3D11_USAGE_STAGING;
+			HRESULT hr = m_pDevice->CreateBuffer(&bdesc, NULL, &stage);
 
 			if(FAILED(hr) || stage == NULL)
 			{
@@ -2240,7 +2244,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t frameID, uint32_t startEventID, uin
 
 		m_pSerialiser->SetOffset(offs);
 		
-		D3D11ChunkType header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+		header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
 		m_pSerialiser->SkipCurrentChunk();
 		m_pSerialiser->PopContext(NULL, header);
 
@@ -2386,10 +2390,10 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 	
 	if(swap)
 	{
-		DXGI_SWAP_CHAIN_DESC desc;
-		swap->GetDesc(&desc);
+		DXGI_SWAP_CHAIN_DESC sdesc;
+		swap->GetDesc(&sdesc);
 
-		Keyboard::AddInputWindow(desc.OutputWindow);
+		Keyboard::AddInputWindow(sdesc.OutputWindow);
 	}
 
 	if(m_SwapChain == NULL)
@@ -2578,7 +2582,9 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 
 			ID3D11Texture2D *stagingTex = NULL;
 
-			HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &stagingTex);
+			HRESULT hr = S_OK;
+
+			hr = m_pDevice->CreateTexture2D(&desc, NULL, &stagingTex);
 
 			if(FAILED(hr))
 			{
@@ -2594,7 +2600,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *wnd)
 
 					ID3D11Texture2D *resolveTex = NULL;
 
-					HRESULT hr = m_pDevice->CreateTexture2D(&desc, NULL, &resolveTex);
+					hr = m_pDevice->CreateTexture2D(&desc, NULL, &resolveTex);
 
 					if(FAILED(hr))
 					{
@@ -3266,7 +3272,7 @@ bool WrappedID3D11Device::Serialise_ReleaseResource(ID3D11DeviceChild *res)
 	}
 	if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
 	{
-		ID3D11DeviceChild *res = GetResourceManager()->GetLiveResource(resource);
+		res = GetResourceManager()->GetLiveResource(resource);
 		GetResourceManager()->EraseLiveResource(resource);
 		SAFE_RELEASE(res);
 	}

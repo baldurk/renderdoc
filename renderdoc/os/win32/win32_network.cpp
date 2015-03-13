@@ -283,10 +283,10 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
 
 	std::wstring whost = StringFormat::UTF82Wide(string(host));
 
-	addrinfoW *result = NULL;
-	GetAddrInfoW(whost.c_str(), portwstr, &hints, &result);
+	addrinfoW *addrResult = NULL;
+	GetAddrInfoW(whost.c_str(), portwstr, &hints, &addrResult);
 
-	for(addrinfoW *ptr = result; ptr != NULL; ptr = ptr->ai_next)
+	for(addrinfoW *ptr = addrResult; ptr != NULL; ptr = ptr->ai_next)
 	{
 		SOCKET s = WSASocket(AF_INET, SOCK_STREAM, IPPROTO_TCP, NULL, 0, WSA_FLAG_NO_HANDLE_INHERIT);
 

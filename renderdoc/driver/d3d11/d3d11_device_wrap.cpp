@@ -621,9 +621,9 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 	{
 		ID3D11ShaderResourceView *ret;
 		
-		D3D11_SHADER_RESOURCE_VIEW_DESC *pDesc = NULL;
+		D3D11_SHADER_RESOURCE_VIEW_DESC *pSRVDesc = NULL;
 		if(HasDesc)
-			pDesc = &Descriptor;
+			pSRVDesc = &Descriptor;
 
 		ID3D11Resource *live = (ID3D11Resource*)GetResourceManager()->GetLiveResource(Resource);
 		
@@ -644,7 +644,7 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 			backbufferTypedDesc.Format = tex2d->m_RealDescriptor->Format;
 			backbufferTypedDesc.Texture2D.MipLevels = 1;
 			backbufferTypedDesc.Texture2D.MostDetailedMip = 0;
-			pDesc = &backbufferTypedDesc;
+			pSRVDesc = &backbufferTypedDesc;
 		}
 		
 		// if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
@@ -653,12 +653,12 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 		//
 		// This behaviour is documented only for render targets, but seems to be used & work for
 		// SRVs, so apply it here too.
-		if(pDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+		if(pSRVDesc && pSRVDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
 		{
-			pDesc->Format = tex2d->m_RealDescriptor->Format;
+			pSRVDesc->Format = tex2d->m_RealDescriptor->Format;
 		}
 
-		HRESULT hr = m_pDevice->CreateShaderResourceView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
+		HRESULT hr = m_pDevice->CreateShaderResourceView(GetResourceManager()->UnwrapResource(live), pSRVDesc, &ret);
 
 		if(FAILED(hr))
 		{
@@ -750,13 +750,13 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
 	{
 		ID3D11UnorderedAccessView *ret;
 		
-		D3D11_UNORDERED_ACCESS_VIEW_DESC *pDesc = NULL;
+		D3D11_UNORDERED_ACCESS_VIEW_DESC *pUAVDesc = NULL;
 		if(HasDesc)
-			pDesc = &Descriptor;
+			pUAVDesc = &Descriptor;
 		
 		ID3D11Resource *live = (ID3D11Resource*)GetResourceManager()->GetLiveResource(Resource);
 		
-		HRESULT hr = m_pDevice->CreateUnorderedAccessView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
+		HRESULT hr = m_pDevice->CreateUnorderedAccessView(GetResourceManager()->UnwrapResource(live), pUAVDesc, &ret);
 
 		if(FAILED(hr))
 		{
@@ -848,9 +848,9 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 	{
 		ID3D11RenderTargetView *ret;
 		
-		D3D11_RENDER_TARGET_VIEW_DESC *pDesc = NULL;
+		D3D11_RENDER_TARGET_VIEW_DESC *pRTVDesc = NULL;
 		if(HasDesc)
-			pDesc = &Descriptor;
+			pRTVDesc = &Descriptor;
 
 		ID3D11Resource *live = (ID3D11Resource *)GetResourceManager()->GetLiveResource(Resource);
 
@@ -870,18 +870,18 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 
 			backbufferTypedDesc.Format = tex2d->m_RealDescriptor->Format;
 			backbufferTypedDesc.Texture2D.MipSlice = 0;
-			pDesc = &backbufferTypedDesc;
+			pRTVDesc = &backbufferTypedDesc;
 		}
 
 		// if we have a descriptor but it specifies DXGI_FORMAT_UNKNOWN format, that means use
 		// the texture's format. But as above, we fudge around the typeless backbuffer so we
 		// have to set the correct typed format
-		if(pDesc && pDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
+		if(pRTVDesc && pRTVDesc->Format == DXGI_FORMAT_UNKNOWN && WrappedID3D11Texture2D::IsAlloc(live) && tex2d->m_RealDescriptor)
 		{
-			pDesc->Format = tex2d->m_RealDescriptor->Format;
+			pRTVDesc->Format = tex2d->m_RealDescriptor->Format;
 		}
 		
-		HRESULT hr = m_pDevice->CreateRenderTargetView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
+		HRESULT hr = m_pDevice->CreateRenderTargetView(GetResourceManager()->UnwrapResource(live), pRTVDesc, &ret);
 
 		if(FAILED(hr))
 		{
@@ -976,7 +976,7 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
 		
 		ID3D11Resource *live = (ID3D11Resource*)GetResourceManager()->GetLiveResource(Resource);
 
-		D3D11_DEPTH_STENCIL_VIEW_DESC *pDesc = NULL;
+		pDesc = NULL;
 		if(HasDesc) pDesc = &Descriptor;
 
 		HRESULT hr = m_pDevice->CreateDepthStencilView(GetResourceManager()->UnwrapResource(live), pDesc, &ret);
@@ -2544,7 +2544,7 @@ bool WrappedID3D11Device::Serialise_OpenSharedResource(
 			{
 				ID3D11Buffer *stage = NULL;
 
-				D3D11_BUFFER_DESC desc;
+				RDCEraseEl(desc);
 				desc.ByteWidth = Descriptor.ByteWidth;
 				desc.MiscFlags = 0;
 				desc.StructureByteStride = 0;

@@ -144,22 +144,22 @@ void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 		string dummy, dummy2;
 		FileIO::GetDefaultFiles("remotecopy", cap_file, dummy, dummy2);
 
-		Serialiser *ser = NULL;
+		Serialiser *fileRecv = NULL;
 
-		if(!RecvChunkedFile(client, ePacket_CopyCapture, cap_file.c_str(), ser, NULL))
+		if(!RecvChunkedFile(client, ePacket_CopyCapture, cap_file.c_str(), fileRecv, NULL))
 		{
 			FileIO::Delete(cap_file.c_str());
 			
 			RDCERR("Network error receiving file");
 
-			SAFE_DELETE(ser);
+			SAFE_DELETE(fileRecv);
 			SAFE_DELETE(client);
 			continue;
 		}
 		
 		RDCLOG("File received.");
 		
-		SAFE_DELETE(ser);
+		SAFE_DELETE(fileRecv);
 
 		RDCDriver driverType = RDC_Unknown;
 		string driverName = "";
@@ -183,7 +183,6 @@ void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 			if(status != eReplayCreate_Success || driver == NULL)
 			{
 				RDCERR("Failed to create remote driver for driver type %d name %s", driverType, driverName.c_str());
-				SAFE_DELETE(ser);
 				SAFE_DELETE(client);
 				continue;
 			}
@@ -335,12 +334,12 @@ struct RemoteRenderer
 			PacketType type = ePacket_Noop;
 			while(m_Socket)
 			{
-				Serialiser *ser;
-				GetPacket(type, &ser);
+				Serialiser *progressSer;
+				GetPacket(type, &progressSer);
 
 				if(!m_Socket || type != ePacket_LogOpenProgress) break;
 
-				ser->Serialise("", *progress);
+				progressSer->Serialise("", *progress);
 
 				RDCLOG("% 3.0f%%...", (*progress)*100.0f);
 			}

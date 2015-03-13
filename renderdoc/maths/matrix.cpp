@@ -200,7 +200,7 @@ Matrix4f Matrix4f::Inverse() const
     float b5 = (*this)[10]*(*this)[15] - (*this)[11]*(*this)[14];
 
     float det = a0*b5 - a1*b4 + a2*b3 + a3*b2 - a4*b1 + a5*b0;
-    if (fabs(det) > FLT_EPSILON)
+    if (fabsf(det) > FLT_EPSILON)
     {
         Matrix4f inverse;
         inverse[ 0] = + (*this)[ 5]*b5 - (*this)[ 6]*b4 + (*this)[ 7]*b3;
@@ -349,8 +349,8 @@ Matrix4f Matrix4f::Orthographic(const float near, const float far)
 	float T = 10.0f;
 	float B = -10.0f;
 
-	float N = -fabs(far-near)*0.5f;
-	float F = fabs(far-near)*0.5f;
+	float N = -fabsf(far-near)*0.5f;
+	float F = fabsf(far-near)*0.5f;
 
 	if(far < near)
 	{

@@ -1144,7 +1144,7 @@ SDBGChunk::SDBGChunk(void *data)
 
 	char *dbgPostHeader = dbgData+sizeof(SDBGHeader);
 
-	SDBGFileHeader *Files = (SDBGFileHeader *)(dbgPostHeader+m_Header.files.offset);
+	SDBGFileHeader *FileHeaders = (SDBGFileHeader *)(dbgPostHeader+m_Header.files.offset);
 	SDBGAsmInstruction *Instructions = (SDBGAsmInstruction *)(dbgPostHeader+m_Header.instructions.offset);
 	SDBGVariable *Variables = (SDBGVariable *)(dbgPostHeader+m_Header.variables.offset);
 	SDBGInputRegister *Inputs = (SDBGInputRegister *)(dbgPostHeader+m_Header.inputRegisters.offset);
@@ -1153,7 +1153,7 @@ SDBGChunk::SDBGChunk(void *data)
 	SDBGType *Types = (SDBGType *)(dbgPostHeader+m_Header.types.offset);
 	int32_t *Int32DB = (int32_t *)(dbgPostHeader+m_Header.int32DBOffset);
 
-	m_FileHeaders = vector<SDBGFileHeader>(Files, Files + m_Header.files.count);
+	m_FileHeaders = vector<SDBGFileHeader>(FileHeaders, FileHeaders + m_Header.files.count);
 	m_Instructions = vector<SDBGAsmInstruction>(Instructions, Instructions + m_Header.instructions.count);
 	m_Variables = vector<SDBGVariable>(Variables, Variables + m_Header.variables.count);
 	m_Inputs = vector<SDBGInputRegister>(Inputs, Inputs + m_Header.inputRegisters.count);
@@ -1254,14 +1254,14 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 	byte *data = NULL;
 
-	uint32_t len;
+	uint32_t spdblength;
 	{
 		uint32_t *raw = (uint32_t *)chunk;
 
 		if(raw[0] != FOURCC_SPDB)
 			return;
 
-		len = raw[1];
+		spdblength = raw[1];
 
 		data = (byte *)&raw[2];
 	}
@@ -1276,7 +1276,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 		return;
 	}
 	
-	RDCASSERT(header->PageCount*header->PageSize == len);
+	RDCASSERT(header->PageCount*header->PageSize == spdblength);
 	
 	const byte **pages = new const byte*[header->PageCount];
 	for(uint32_t i=0; i < header->PageCount; i++)
@@ -1470,12 +1470,12 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 		PDBStream &s = streams[modules[m].stream];
 		PageMapping modMapping(pages, header->PageSize, &s.pageIndices[0], (uint32_t)s.pageIndices.size());
-		uint32_t *data = (uint32_t *)modMapping.Data();
+		uint32_t *moduledata = (uint32_t *)modMapping.Data();
 		
-		RDCASSERT(data[0] == 4);
+		RDCASSERT(moduledata[0] == 4);
 
-		byte *cur = (byte *)&data[1];
-		byte *end = (byte *)data + modules[m].cbSyms;
+		byte *cur = (byte *)&moduledata[1];
+		byte *end = (byte *)moduledata + modules[m].cbSyms;
 		while(cur < end)
 		{
 			uint16_t *sym = (uint16_t *)cur;
@@ -1489,10 +1489,10 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 			if(type == 0x1110)
 			{
-				ProcHeader *header = (ProcHeader *)contents;
-				char *name = (char *)(header + 1);
+				ProcHeader *proc = (ProcHeader *)contents;
+				char *name = (char *)(proc + 1);
 
-				//RDCDEBUG("Got global procedure start %s %x -> %x", name, header->Offset, header->Offset+header->Length);
+				//RDCDEBUG("Got global procedure start %s %x -> %x", name, proc->Offset, proc->Offset+proc->Length);
 			}
 			else if(type == 0x113c)
 			{
@@ -1567,7 +1567,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				func.baseLineNum = 0;
 
 				byte *iterator = (byte *)contents;
-				byte *end = contents + len;
+				byte *callend = contents + len;
 
 				uint32_t *adsf = (uint32_t *)iterator;
 
@@ -1580,17 +1580,16 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				uint32_t currentColStart = 1;
 				uint32_t currentColEnd = 100000;
 				
-				while(iterator < end)
+				while(iterator < callend)
 				{
-					uint32_t type = (uint32_t)*iterator;
-					FuncCallBytestreamOpcodes opcode = (FuncCallBytestreamOpcodes)type;
+					FuncCallBytestreamOpcodes opcode = (FuncCallBytestreamOpcodes)*iterator;
 					iterator++;
 
 					if(opcode == PrologueEnd ||
 						 opcode == EpilogueBegin)
 					{
-						uint32_t data = ReadVarLenUInt(iterator);
-						//RDCDEBUG("type %02x: unk=%02x", type, data);
+						uint32_t value = ReadVarLenUInt(iterator);
+						//RDCDEBUG("type %02x: unk=%02x", opcode, value);
 
 						if(opcode == EpilogueBegin)
 						{
@@ -1600,9 +1599,9 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 					}
 					else if(opcode == FunctionEndNoAdvance)
 					{
-						uint32_t data = ReadVarLenUInt(iterator);
+						uint32_t value = ReadVarLenUInt(iterator);
 						
-						//RDCDEBUG("                      type %02x: %02x: adjust line by 4(?!) & bytes by %x", type, data, data);
+						//RDCDEBUG("                      type %02x: %02x: adjust line by 4(?!) & bytes by %x", opcode, value, value);
 
 						if(working)
 						{
@@ -1613,31 +1612,31 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 							loc.colEnd = currentColEnd;
 							func.locations.push_back(loc);
 
-							loc.offset = currentBytes+data;
+							loc.offset = currentBytes+ value;
 							loc.funcEnd = true;
 							func.locations.push_back(loc);
 
 							//RDCDEBUG("                          (loc: %04x - %u [%u,%u] )", currentBytes, currentLine, currentColStart, currentColEnd);
 						}
 
-						currentBytes += data;
+						currentBytes += value;
 					}
 					else if(opcode == AdvanceBytesAndLines)
 					{
-						uint32_t data = (uint32_t)*iterator; iterator++;
+						uint32_t value = (uint32_t)*iterator; iterator++;
 
-						uint32_t byteMod = (data&0xf);
-						uint32_t lineMod = (data>>4);
+						uint32_t byteMod = (value &0xf);
+						uint32_t lineMod = (value >>4);
 
 						currentBytes += byteMod;
 						currentLine += lineMod/2;
 
-						//RDCDEBUG("                      type %02x: %02x: adjust line by %u & bytes by %x", type, data, lineMod/2, byteMod);
+						//RDCDEBUG("                      type %02x: %02x: adjust line by %u & bytes by %x", type, value, lineMod/2, byteMod);
 
 					}
 					else if(opcode == EndOfFunction)
 					{
-						//RDCDEBUG("type %02x:", type);
+						//RDCDEBUG("type %02x:", opcode);
 
 						byte lenbyte = *iterator;
 
@@ -1667,7 +1666,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 					else if(opcode == SetByteOffset)
 					{
 						currentBytes = ReadVarLenUInt(iterator);
-						//RDCDEBUG("                      type %02x: start at byte offset %x", type, currentBytes);
+						//RDCDEBUG("                      type %02x: start at byte offset %x", opcode, currentBytes);
 					}
 					else if(opcode == AdvanceBytes)
 					{
@@ -1675,7 +1674,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 						currentBytes += offs;
 
-						//RDCDEBUG("                      type %02x: advance %x bytes", type, offs);
+						//RDCDEBUG("                      type %02x: advance %x bytes", opcode, offs);
 
 						if(working)
 						{
@@ -1698,26 +1697,26 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 						else
 							currentLine += (linesAdv/2);
 
-						//RDCDEBUG("                      type %02x: advance %u (%u) lines", type, linesAdv/2, linesAdv);
+						//RDCDEBUG("                      type %02x: advance %u (%u) lines", opcode, linesAdv/2, linesAdv);
 					}
 					else if(opcode == ColumnStart)
 					{
 						currentColStart = ReadVarLenUInt(iterator);
-						//RDCDEBUG("                      type %02x: col < %u", type, currentColStart);
+						//RDCDEBUG("                      type %02x: col < %u", opcode, currentColStart);
 					}
 					else if(opcode == ColumnEnd)
 					{
 						currentColEnd = ReadVarLenUInt(iterator);
-						//RDCDEBUG("                      type %02x: col > %u", type, currentColEnd);
+						//RDCDEBUG("                      type %02x: col > %u", opcode, currentColEnd);
 					}
 					else if(opcode == EndStream)
 					{
-						while(*iterator == 0 && iterator < end) iterator++;
-						RDCASSERT(iterator == end);
+						while(*iterator == 0 && iterator < callend) iterator++;
+						RDCASSERT(iterator == callend);
 					}
 					else
 					{
-						RDCLOG("Unrecognised: %02x", type);
+						RDCLOG("Unrecognised: %02x", opcode);
 						break;
 					}
 				}
@@ -1737,7 +1736,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				
 				funcCalls.push_back(func);
 
-				//RDCDEBUG("Lost %d bytes after we stopped processing", end - iterator);
+				//RDCDEBUG("Lost %d bytes after we stopped processing", callend - iterator);
 			}
 			else if(type == 0x113E)
 			{
@@ -1919,7 +1918,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 					FileLineNumbers *file = (FileLineNumbers *)cur;
 					cur = (byte *)(file + 1);
 					
-					uint32_t *data = (uint32_t *)cur;
+					uint32_t *linedata = (uint32_t *)cur;
 
 					cur += (sizeof(uint32_t) + sizeof(uint32_t)) * file->numLines;
 					if(hasExtra)
@@ -1938,18 +1937,18 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 
 					for(uint32_t l=0; l < file->numLines; l++)
 					{
-						uint32_t offs    = data[0];
-						uint32_t lineNum = data[1]&0x00fffff;
-						uint32_t unknown = data[1]>>24;
+						uint32_t offs    = linedata[0];
+						uint32_t lineNum = linedata[1]&0x00fffff;
+						uint32_t unknown = linedata[1]>>24;
 
-						data += 2;
+						linedata += 2;
 
 						m_LineNumbers[offs] = make_pair(fileIdx, lineNum);
 
 						//RDCDEBUG("Offset %x is line %d", offs, lineNum);
 					}
 
-					uint16_t *extraData = (uint16_t *)data;
+					uint16_t *extraData = (uint16_t *)linedata;
 					
 					for(uint32_t l=0; l < file->numLines; l++)
 					{
@@ -1970,7 +1969,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				cur = (byte *)(len + 1);
 
 				uint32_t *calls = (uint32_t *)cur;
-				uint32_t *end = (uint32_t *)(cur + *len);
+				uint32_t *callsend = (uint32_t *)(cur + *len);
 
 				// 0 seems to indicate no files, 1 indicates files but we don't need
 				// to care as we can just handle this below.
@@ -1978,7 +1977,7 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 				calls++;
 
 				int idx = 0;
-				while(calls < end)
+				while(calls < callsend)
 				{
 					// some kind of control bytes? they have n file mappings following but I'm not sure what
 					// they mean
