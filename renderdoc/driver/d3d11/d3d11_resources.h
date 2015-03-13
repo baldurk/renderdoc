@@ -1179,7 +1179,9 @@ public:
 class WrappedID3D11Query : public WrappedDeviceChild<ID3D11Query>
 {
 public:
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Query);
+	static const int AllocPoolCount = 16*1024;
+	static const int AllocPoolMaxByteSize = 1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Query, AllocPoolCount, AllocPoolMaxByteSize);
 
 	WrappedID3D11Query(ID3D11Query* real, WrappedID3D11Device* device)
 		: WrappedDeviceChild(real, device) {}
