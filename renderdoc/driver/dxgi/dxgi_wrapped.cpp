@@ -471,7 +471,7 @@ HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags, const DX
 
 	m_pDevice->Present(this, SyncInterval, Flags);
 
-	return m_pReal2->Present1(SyncInterval, Flags, pPresentParameters);
+	return m_pReal1->Present1(SyncInterval, Flags, pPresentParameters);
 }
 #endif
 
