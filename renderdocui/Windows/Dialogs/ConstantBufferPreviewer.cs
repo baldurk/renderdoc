@@ -365,7 +365,8 @@ namespace renderdocui.Controls
 			split.Panel2.Controls.Add(m_FormatSpecifier);
 			m_FormatSpecifier.Dock = DockStyle.Fill;
 			split.Panel2Collapsed = false;
-			split.SplitterDistance = split.ClientRectangle.Height / 2;
+			if (split.ClientRectangle.Height > split.Panel1MinSize + split.Panel2MinSize)
+				split.SplitterDistance = split.ClientRectangle.Height / 2;
 		}
     }
 }
