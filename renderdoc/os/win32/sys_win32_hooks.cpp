@@ -140,6 +140,7 @@ class SysHook : LibraryHook
 
 					if(app.find("renderdoccmd.exe") != string::npos ||
 					   app.find("renderdocui.vshost.exe") != string::npos ||
+					   app.find("qrenderdoc.exe") != string::npos ||
 					   app.find("renderdocui.exe") != string::npos)
 					{
 						inject = false;
@@ -152,6 +153,7 @@ class SysHook : LibraryHook
 
 					if(cmd.find("renderdoccmd.exe") != string::npos ||
 					   cmd.find("renderdocui.vshost.exe") != string::npos ||
+					   cmd.find("qrenderdoc.exe") != string::npos ||
 					   cmd.find("renderdocui.exe") != string::npos)
 					{
 						inject = false;
@@ -227,6 +229,7 @@ class SysHook : LibraryHook
 
 					if(app.find(L"renderdoccmd.exe") != wstring::npos ||
 					   app.find(L"renderdocui.vshost.exe") != wstring::npos ||
+					   app.find(L"qrenderdoc.exe") != string::npos ||
 					   app.find(L"renderdocui.exe") != wstring::npos)
 					{
 						inject = false;
@@ -239,6 +242,7 @@ class SysHook : LibraryHook
 
 					if(cmd.find(L"renderdoccmd.exe") != wstring::npos ||
 					   cmd.find(L"renderdocui.vshost.exe") != wstring::npos ||
+					   cmd.find(L"qrenderdoc.exe") != wstring::npos ||
 					   cmd.find(L"renderdocui.exe") != wstring::npos)
 					{
 						inject = false;
