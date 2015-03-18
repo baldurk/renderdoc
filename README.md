@@ -1,7 +1,7 @@
 RenderDoc
 ==============
 
-Welcome to RenderDoc - a graphics debugger, currently available for D3D11 development on windows. 
+Welcome to RenderDoc - a graphics debugger, currently available for D3D11 and OpenGL development on windows. 
 
 Quick Links:
 
