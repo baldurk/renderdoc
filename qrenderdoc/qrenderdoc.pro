@@ -40,6 +40,7 @@ win32 {
 
 	# Link against the core library
 	LIBS += -L$$_PRO_FILE_PWD_/../renderdoc -lrenderdoc
+	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
 
 }
 
