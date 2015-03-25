@@ -4,28 +4,28 @@
 #include "ui_MainWindow.h"
 
 MainWindow::MainWindow(QWidget *parent) :
-    QMainWindow(parent),
-    ui(new Ui::MainWindow)
+  QMainWindow(parent),
+  ui(new Ui::MainWindow)
 {
-    ui->setupUi(this);
+  ui->setupUi(this);
 
-    EventBrowser *eventbrowser = new EventBrowser();
+  EventBrowser *eventbrowser = new EventBrowser();
 
-    ui->toolWindowManager->addToolWindow(eventbrowser, ToolWindowManager::EmptySpace);
+  ui->toolWindowManager->addToolWindow(eventbrowser, ToolWindowManager::EmptySpace);
 
-    TextureViewer *textureviewer = new TextureViewer();
+  TextureViewer *textureviewer = new TextureViewer();
 
-    ui->toolWindowManager->addToolWindow(textureviewer, ToolWindowManager::AreaReference(ToolWindowManager::RightOf, ui->toolWindowManager->areaOf(eventbrowser)));
+  ui->toolWindowManager->addToolWindow(textureviewer, ToolWindowManager::AreaReference(ToolWindowManager::RightOf, ui->toolWindowManager->areaOf(eventbrowser)));
 
-    ui->toolWindowManager->setRubberBandLineWidth(50);
+  ui->toolWindowManager->setRubberBandLineWidth(50);
 }
 
 MainWindow::~MainWindow()
 {
-    delete ui;
+  delete ui;
 }
 
 void MainWindow::on_action_Exit_triggered()
 {
-    this->close();
+  this->close();
 }

@@ -53,14 +53,16 @@ SOURCES += main.cpp\
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     EventBrowser.cpp \
-    TextureViewer.cpp
+    TextureViewer.cpp \
+    CustomPaintWidget.cpp
 
 HEADERS  += MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     EventBrowser.h \
-    TextureViewer.h
+    TextureViewer.h \
+    CustomPaintWidget.h
 
 FORMS    += MainWindow.ui \
     EventBrowser.ui \
