@@ -48,20 +48,20 @@ win32 {
 }
 
 SOURCES += main.cpp\
-    MainWindow.cpp
+    MainWindow.cpp \
     3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     EventBrowser.cpp \
     TextureViewer.cpp
 
-HEADERS  += MainWindow.h
+HEADERS  += MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     EventBrowser.h \
     TextureViewer.h
 
-FORMS    += MainWindow.ui
+FORMS    += MainWindow.ui \
     EventBrowser.ui \
     TextureViewer.ui
