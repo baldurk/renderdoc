@@ -19,6 +19,9 @@ OBJECTS_DIR = .obj
 # include path for core renderdoc API
 INCLUDEPATH += $$_PRO_FILE_PWD_/../renderdoc/api/replay
 
+# For ToolWindowManager
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/toolwindowmanager
+
 # Different output folders per platform
 win32 {
 
@@ -45,8 +48,20 @@ win32 {
 }
 
 SOURCES += main.cpp\
-        MainWindow.cpp
+    MainWindow.cpp
+    3rdparty/toolwindowmanager/ToolWindowManager.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
+    EventBrowser.cpp \
+    TextureViewer.cpp
 
 HEADERS  += MainWindow.h
+    3rdparty/toolwindowmanager/ToolWindowManager.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
+    EventBrowser.h \
+    TextureViewer.h
 
 FORMS    += MainWindow.ui
+    EventBrowser.ui \
+    TextureViewer.ui

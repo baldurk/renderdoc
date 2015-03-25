@@ -1,7 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow" >
-  <property name="geometry" >
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
@@ -9,16 +10,363 @@
     <height>300</height>
    </rect>
   </property>
-  <property name="windowTitle" >
+  <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QMenuBar" name="menuBar" />
-  <widget class="QToolBar" name="mainToolBar" />
-  <widget class="QWidget" name="centralWidget" />
-  <widget class="QStatusBar" name="statusBar" />
+  <widget class="QWidget" name="centralWidget">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="ToolWindowManager" name="toolWindowManager" native="true"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menuBar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>400</width>
+     <height>18</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menu_Tools">
+    <property name="title">
+     <string>&amp;Tools</string>
+    </property>
+    <addaction name="action_Resolve_Symbols"/>
+    <addaction name="action_Log_Statistics"/>
+    <addaction name="separator"/>
+    <addaction name="action_Options"/>
+    <addaction name="action_Manage_Replay_Devices"/>
+   </widget>
+   <widget class="QMenu" name="menu_File">
+    <property name="title">
+     <string>&amp;File</string>
+    </property>
+    <addaction name="action_Capture_Log"/>
+    <addaction name="action_Attach_to_Running_Instance"/>
+    <addaction name="action_Inject_into_Process"/>
+    <addaction name="separator"/>
+    <addaction name="action_Open_Log"/>
+    <addaction name="action_Save_Log"/>
+    <addaction name="actionC_lose_Log"/>
+    <addaction name="separator"/>
+    <addaction name="action_Recent_Logs"/>
+    <addaction name="actionR_ecent_Capture_Settings"/>
+    <addaction name="separator"/>
+    <addaction name="action_Exit"/>
+   </widget>
+   <widget class="QMenu" name="menu_Window">
+    <property name="title">
+     <string>&amp;Window</string>
+    </property>
+    <widget class="QMenu" name="menu_Save_Layout">
+     <property name="title">
+      <string>&amp;Save Layout</string>
+     </property>
+     <addaction name="action_Default_Layout"/>
+     <addaction name="separator"/>
+     <addaction name="actionLayout_2"/>
+     <addaction name="actionLayout_3"/>
+     <addaction name="actionLayout_4"/>
+     <addaction name="actionLayout_5"/>
+     <addaction name="actionLayout_6"/>
+     <addaction name="actionLayout_7"/>
+    </widget>
+    <widget class="QMenu" name="menu_Load_Layout">
+     <property name="title">
+      <string>&amp;Load Layout</string>
+     </property>
+     <addaction name="action_Default_Layout_2"/>
+     <addaction name="separator"/>
+     <addaction name="actionLayout_8"/>
+     <addaction name="actionLayout_9"/>
+     <addaction name="actionLayout_10"/>
+     <addaction name="actionLayout_11"/>
+     <addaction name="actionLayout_12"/>
+     <addaction name="actionLayout_13"/>
+    </widget>
+    <addaction name="menu_Save_Layout"/>
+    <addaction name="menu_Load_Layout"/>
+    <addaction name="separator"/>
+    <addaction name="actionP_ython_Shell"/>
+    <addaction name="action_Event_Viewer"/>
+    <addaction name="action_Texture_Viewer"/>
+    <addaction name="action_Pipeline_State"/>
+    <addaction name="action_API_Inspector"/>
+    <addaction name="action_Mesh_Output"/>
+    <addaction name="actionLog_Errors_and_Warnings"/>
+    <addaction name="actionT_imeline"/>
+   </widget>
+   <widget class="QMenu" name="menu_Help">
+    <property name="title">
+     <string>&amp;Help</string>
+    </property>
+    <addaction name="actionView_Documentation"/>
+    <addaction name="actionView_Diagnostic_Log_File"/>
+    <addaction name="actionSend_Error_Report"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate_available"/>
+    <addaction name="separator"/>
+    <addaction name="actionSource_on_github"/>
+    <addaction name="actionBuild_Release_downloads"/>
+    <addaction name="action_About"/>
+   </widget>
+   <addaction name="menu_File"/>
+   <addaction name="menu_Window"/>
+   <addaction name="menu_Tools"/>
+   <addaction name="menu_Help"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <action name="action_Capture_Log">
+   <property name="text">
+    <string>&amp;Capture Log</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+N</string>
+   </property>
+  </action>
+  <action name="action_Attach_to_Running_Instance">
+   <property name="text">
+    <string>&amp;Attach to Running Instance</string>
+   </property>
+  </action>
+  <action name="action_Inject_into_Process">
+   <property name="text">
+    <string>&amp;Inject into Process</string>
+   </property>
+  </action>
+  <action name="action_Open_Log">
+   <property name="text">
+    <string>&amp;Open Log</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
+  <action name="action_Save_Log">
+   <property name="text">
+    <string>&amp;Save Log</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionC_lose_Log">
+   <property name="text">
+    <string>C&amp;lose Log</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+W</string>
+   </property>
+  </action>
+  <action name="action_Recent_Logs">
+   <property name="text">
+    <string>&amp;Recent Logs</string>
+   </property>
+  </action>
+  <action name="actionR_ecent_Capture_Settings">
+   <property name="text">
+    <string>R&amp;ecent Capture Settings</string>
+   </property>
+  </action>
+  <action name="action_Exit">
+   <property name="text">
+    <string>&amp;Exit</string>
+   </property>
+   <property name="shortcut">
+    <string>Alt+F4</string>
+   </property>
+  </action>
+  <action name="actionP_ython_Shell">
+   <property name="text">
+    <string>P&amp;ython Shell</string>
+   </property>
+  </action>
+  <action name="action_Event_Viewer">
+   <property name="text">
+    <string>&amp;Event Viewer</string>
+   </property>
+  </action>
+  <action name="action_Texture_Viewer">
+   <property name="text">
+    <string>&amp;Texture Viewer</string>
+   </property>
+  </action>
+  <action name="action_Pipeline_State">
+   <property name="text">
+    <string>&amp;Pipeline State</string>
+   </property>
+  </action>
+  <action name="action_API_Inspector">
+   <property name="text">
+    <string>&amp;API Inspector</string>
+   </property>
+  </action>
+  <action name="action_Mesh_Output">
+   <property name="text">
+    <string>&amp;Mesh Output</string>
+   </property>
+  </action>
+  <action name="actionLog_Errors_and_Warnings">
+   <property name="text">
+    <string>Log Errors and &amp;Warnings</string>
+   </property>
+  </action>
+  <action name="actionT_imeline">
+   <property name="text">
+    <string>T&amp;imeline</string>
+   </property>
+  </action>
+  <action name="actionLayout_1">
+   <property name="text">
+    <string>Layout 1</string>
+   </property>
+  </action>
+  <action name="action_Default_Layout">
+   <property name="text">
+    <string>&amp;Default Layout</string>
+   </property>
+  </action>
+  <action name="action_Default_Layout_2">
+   <property name="text">
+    <string>&amp;Default Layout</string>
+   </property>
+  </action>
+  <action name="actionLayout_2">
+   <property name="text">
+    <string>Layout &amp;1</string>
+   </property>
+  </action>
+  <action name="actionLayout_3">
+   <property name="text">
+    <string>Layout &amp;2</string>
+   </property>
+  </action>
+  <action name="actionLayout_4">
+   <property name="text">
+    <string>Layout &amp;3</string>
+   </property>
+  </action>
+  <action name="actionLayout_5">
+   <property name="text">
+    <string>Layout &amp;4</string>
+   </property>
+  </action>
+  <action name="actionLayout_t">
+   <property name="text">
+    <string>Layout &amp;5</string>
+   </property>
+  </action>
+  <action name="actionLayout_6">
+   <property name="text">
+    <string>Layout &amp;5</string>
+   </property>
+  </action>
+  <action name="actionLayout_7">
+   <property name="text">
+    <string>Layout &amp;6</string>
+   </property>
+  </action>
+  <action name="actionLayout_8">
+   <property name="text">
+    <string>Layout &amp;1</string>
+   </property>
+  </action>
+  <action name="actionLayout_9">
+   <property name="text">
+    <string>Layout &amp;2</string>
+   </property>
+  </action>
+  <action name="actionLayout_10">
+   <property name="text">
+    <string>Layout &amp;3</string>
+   </property>
+  </action>
+  <action name="actionLayout_11">
+   <property name="text">
+    <string>Layout &amp;4</string>
+   </property>
+  </action>
+  <action name="actionLayout_12">
+   <property name="text">
+    <string>Layout &amp;5</string>
+   </property>
+  </action>
+  <action name="actionLayout_13">
+   <property name="text">
+    <string>Layout &amp;6</string>
+   </property>
+  </action>
+  <action name="action_Resolve_Symbols">
+   <property name="text">
+    <string>&amp;Resolve Symbols</string>
+   </property>
+  </action>
+  <action name="action_Log_Statistics">
+   <property name="text">
+    <string>&amp;Log Statistics</string>
+   </property>
+  </action>
+  <action name="action_Options">
+   <property name="text">
+    <string>&amp;Options</string>
+   </property>
+  </action>
+  <action name="action_Manage_Replay_Devices">
+   <property name="text">
+    <string>&amp;Manage Replay Devices</string>
+   </property>
+  </action>
+  <action name="actionView_Documentation">
+   <property name="text">
+    <string>View &amp;Documentation</string>
+   </property>
+  </action>
+  <action name="actionView_Diagnostic_Log_File">
+   <property name="text">
+    <string>View Diagnostic &amp;Log File</string>
+   </property>
+  </action>
+  <action name="actionSend_Error_Report">
+   <property name="text">
+    <string>Send &amp;Error Report</string>
+   </property>
+  </action>
+  <action name="actionUpdate_available">
+   <property name="text">
+    <string>Update available</string>
+   </property>
+  </action>
+  <action name="actionSource_on_github">
+   <property name="text">
+    <string>Source on github</string>
+   </property>
+  </action>
+  <action name="actionBuild_Release_downloads">
+   <property name="text">
+    <string>Build/Release downloads</string>
+   </property>
+  </action>
+  <action name="action_About">
+   <property name="text">
+    <string>&amp;About</string>
+   </property>
+  </action>
  </widget>
- <layoutDefault spacing="6" margin="11" />
- <pixmapfunction></pixmapfunction>
+ <layoutdefault spacing="6" margin="11"/>
  <resources/>
  <connections/>
 </ui>
