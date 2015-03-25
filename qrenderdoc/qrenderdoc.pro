@@ -45,8 +45,8 @@ win32 {
 }
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        MainWindow.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += MainWindow.h
 
-FORMS    += mainwindow.ui
+FORMS    += MainWindow.ui

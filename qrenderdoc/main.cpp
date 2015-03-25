@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "MainWindow.h"
 #include <QApplication>
 
 #include "renderdoc_replay.h"
