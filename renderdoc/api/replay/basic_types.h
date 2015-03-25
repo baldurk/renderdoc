@@ -62,7 +62,11 @@ struct array
 		elems = 0; count = 0;
 	}
 
+#ifdef RENDERDOC_EXPORTS
 	static void deallocate(const void *p) { free((void *)p); }
+#else
+	static void deallocate(const void *p) { RENDERDOC_FreeArrayMem(p); }
+#endif
 	static void *allocate(size_t s) { return malloc(s); }
 
 	T &operator [](size_t i) { return elems[i]; }

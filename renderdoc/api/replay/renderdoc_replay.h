@@ -30,8 +30,6 @@
 typedef uint8_t byte;
 typedef uint32_t bool32;
 
-#include "basic_types.h"
-
 #ifdef WIN32
 
 #ifdef RENDERDOC_EXPORTS
@@ -56,6 +54,13 @@ typedef uint32_t bool32;
 #error "Unknown platform"
 
 #endif
+
+// needs to be declared up here for reference in basic_types
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
+typedef void (RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(const void *mem);
+
+#include "basic_types.h"
 
 // We give every resource a globally unique ID so that we can differentiate
 // between two textures allocated in the same memory (after the first is freed)
@@ -296,6 +301,3 @@ typedef void (RENDERDOC_CC *pRENDERDOC_LogText)(const char *text);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint32_t &len);
 typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetThumbnail)(const char *filename, byte *buf, uint32_t &len);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
-typedef void (RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(const void *mem);
