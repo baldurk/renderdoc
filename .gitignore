@@ -8,7 +8,7 @@ Release32/
 Release64/
 dist/
 Resources/*.png
-qrenderdoc/Makefile
+qrenderdoc/Makefile*
 *.exe
 *.aps
 *.ilk
