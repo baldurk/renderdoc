@@ -301,7 +301,7 @@ namespace renderdocui.Windows
                     }
                 }
 
-                if(!found)
+                if (!found && !drawNode.Nodes.IsEmpty())
                     drawNode.Tag = drawNode.Nodes.LastNode.Tag;
             }
 
