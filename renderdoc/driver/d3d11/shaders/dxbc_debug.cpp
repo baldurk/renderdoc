@@ -2122,9 +2122,16 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						{
 							ASMDecl &decl = s.dxbc->m_Declarations[i];
 
-							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW && !srv &&
 								decl.operand.indices[0].index == resIndex &&
 								decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+							{
+								stride = decl.stride;
+								break;
+							}
+							if(decl.operand.type == TYPE_RESOURCE && srv &&
+								decl.operand.indices[0].index == resIndex &&
+								decl.declaration == OPCODE_DCL_RESOURCE_STRUCTURED)
 							{
 								stride = decl.stride;
 								break;
