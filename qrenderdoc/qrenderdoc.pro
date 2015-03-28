@@ -67,3 +67,6 @@ HEADERS  += MainWindow.h \
 FORMS    += MainWindow.ui \
     EventBrowser.ui \
     TextureViewer.ui
+
+RESOURCES += \
+    resources.qrc
