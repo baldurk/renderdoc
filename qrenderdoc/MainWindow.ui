@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>975</width>
+    <height>622</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -37,7 +37,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>400</width>
+     <width>975</width>
      <height>18</height>
     </rect>
    </property>
@@ -367,6 +367,13 @@
   </action>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>ToolWindowManager</class>
+   <extends>QWidget</extends>
+   <header>toolwindowmanager.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

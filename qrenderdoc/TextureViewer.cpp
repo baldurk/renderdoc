@@ -3,6 +3,7 @@
 
 #include "renderdoc_replay.h"
 
+extern ReplayRenderer *renderer;
 ReplayOutput *out = NULL;
 TextureDisplay d;
 
@@ -11,11 +12,6 @@ TextureViewer::TextureViewer(QWidget *parent) :
   ui(new Ui::TextureViewer)
 {
   ui->setupUi(this);
-
-  ReplayRenderer *renderer = NULL;
-
-  float progress = 0.0f;
-  RENDERDOC_CreateReplayRenderer("T:\\renderdoc\\archive_renderdoc_captures\\deferred_plusplus.rdc", &progress, &renderer);
 
   rdctype::array<FetchTexture> texs;
   ReplayRenderer_GetTextures(renderer, &texs);
@@ -34,7 +30,7 @@ TextureViewer::TextureViewer(QWidget *parent) :
       d.FlipY = false;
       d.rangemin = 0.0f;
       d.rangemax = 1.0f;
-      d.scale = 1.0f;
+      d.scale = -1.0f;
       d.offx = 0.0f;
       d.offy = 0.0f;
       d.sliceFace = 0;
@@ -57,6 +53,11 @@ TextureViewer::TextureViewer(QWidget *parent) :
   ReplayOutput_SetTextureDisplay(out, d);
 
   ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+}
+
+QWidget *TextureViewer::renderSurf()
+{
+  return ui->framerender;
 }
 
 TextureViewer::~TextureViewer()

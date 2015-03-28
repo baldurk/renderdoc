@@ -15,6 +15,8 @@ class TextureViewer : public QFrame
     explicit TextureViewer(QWidget *parent = 0);
     ~TextureViewer();
 
+    QWidget *renderSurf();
+
   private:
     Ui::TextureViewer *ui;
 };
