@@ -3,6 +3,12 @@
 
 #include "renderdoc_replay.h"
 
+#if defined(__linux__)
+#include <QX11Info>
+#include <X11/Xlib.h>
+#include <GL/glx.h>
+#endif
+
 extern ReplayRenderer *renderer;
 ReplayOutput *out = NULL;
 TextureDisplay d;
@@ -43,9 +49,19 @@ TextureViewer::TextureViewer(QWidget *parent) :
     }
   }
 
+#if defined(WIN32)
   HWND wnd = (HWND)ui->framerender->winId();
-
   out = ReplayRenderer_CreateOutput(renderer, wnd);
+#elif defined(__linux__)
+  Display *display = QX11Info::display();
+  GLXDrawable drawable = (GLXDrawable)ui->framerender->winId();
+
+  void *displayAndDrawable[2] = { (void *)display, (void *)drawable };
+
+  out = ReplayRenderer_CreateOutput(renderer, (void *)displayAndDrawable);
+#else
+  #error "Unknown platform"
+#endif
 
   OutputConfig c = { eOutputType_TexDisplay };
 

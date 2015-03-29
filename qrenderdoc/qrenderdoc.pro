@@ -45,6 +45,8 @@ win32 {
 	LIBS += -L$$_PRO_FILE_PWD_/../renderdoc -lrenderdoc
 	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
 
+	QT += x11extras
+
 }
 
 SOURCES += main.cpp\
