@@ -1958,7 +1958,8 @@ namespace renderdocui.Windows.PipelineState
 
                     compileSource = compileSource.Substring(0, offs) + "\n\n" + fileText + "\n\n" + (tail ? compileSource.Substring(lineEnd + 1) : "");
 
-                    offs = compileSource.IndexOf("#include", offs);
+                    // need to start searching from the beginning - wasteful but allows nested includes to work
+                    offs = compileSource.IndexOf("#include");
                 }
 
                 // invoke off to the ReplayRenderer to replace the log's shader
