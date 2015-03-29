@@ -371,7 +371,7 @@
   <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
-   <header>toolwindowmanager.h</header>
+   <header>ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
