@@ -14,6 +14,7 @@ TEMPLATE = app
 # Temp files into .obj
 MOC_DIR = .obj
 UI_DIR = .obj
+RCC_DIR = .obj
 OBJECTS_DIR = .obj
 
 # include path for core renderdoc API
