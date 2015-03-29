@@ -1904,12 +1904,12 @@ namespace renderdocui.Windows.PipelineState
                 {
                     // search back to ensure this is a valid #include (ie. not in a comment).
                     // Must only see whitespace before, then a newline.
-                    int ws = offs-1;
+                    int ws = Math.Max(0, offs-1);
                     while (ws >= 0 && (compileSource[ws] == ' ' || compileSource[ws] == '\t'))
                         ws--;
 
                     // not valid? jump to next.
-                    if (compileSource[ws] != '\n')
+                    if (ws > 0 && compileSource[ws] != '\n')
                     {
                         offs = compileSource.IndexOf("#include", offs + 1);
                         continue;
