@@ -119,8 +119,9 @@ struct D3D11PipelineState
 		struct Sampler
 		{
 			Sampler()
-				: Samp(), MaxAniso(0), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
-			  , UseBorder(false), UseComparison(false)
+				: Samp()
+				, UseBorder(false), UseComparison(false)
+			 	, MaxAniso(0), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
 			{ BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f; }
 			ResourceId Samp;
 			rdctype::str AddressU, AddressV, AddressW;

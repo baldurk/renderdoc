@@ -127,8 +127,9 @@ struct GLPipelineState
 	struct Sampler
 	{
 		Sampler()
-			: Samp(), MaxAniso(0.0f), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
+			: Samp()
 			, UseBorder(false), UseComparison(false), SeamlessCube(false)
+			, MaxAniso(0.0f), MaxLOD(0.0f), MinLOD(0.0f), MipLODBias(0.0f)
 		{ BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f; }
 		ResourceId Samp;
 		rdctype::str AddressS, AddressT, AddressR;

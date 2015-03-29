@@ -123,7 +123,7 @@ struct str : public rdctype::array<char>
 	str &operator =(const char *const in);
 
 	str() : rdctype::array<char>() {}
-	str(const str &o) { elems = 0; count = 0; *this = o; }
+	str(const str &o) : rdctype::array<char>() { *this = o; }
 	str &operator =(const str &o)
 	{
 		// do nothing if we're self-assigning
