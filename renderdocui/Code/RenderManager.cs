@@ -52,6 +52,7 @@ namespace renderdocui.Code
 
             public InvokeMethod method;
             volatile public bool processed;
+            public Exception ex = null;
         };
 
         ////////////////////////////////////////////
@@ -113,6 +114,14 @@ namespace renderdocui.Code
 
         public float LoadProgress;
 
+        [ThreadStatic]
+        private bool CatchExceptions = false;
+
+        public void SetExceptionCatching(bool catching)
+        {
+            CatchExceptions = catching;
+        }
+
         public void BeginInvoke(InvokeMethod m)
         {
             InvokeHandle cmd = new InvokeHandle(m);
@@ -127,6 +136,9 @@ namespace renderdocui.Code
             PushInvoke(cmd);
 
             while (!cmd.processed) ;
+
+            if (cmd.ex != null)
+                throw cmd.ex;
         }
 
         private void PushInvoke(InvokeHandle cmd)
@@ -204,7 +216,23 @@ namespace renderdocui.Code
                         foreach (var cmd in queue)
                         {
                             if (cmd.method != null)
-                                cmd.method(renderer);
+                            {
+                                if (CatchExceptions)
+                                {
+                                    try
+                                    {
+                                        cmd.method(renderer);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        cmd.ex = ex;
+                                    }
+                                }
+                                else
+                                {
+                                    cmd.method(renderer);
+                                }
+                            }
 
                             cmd.processed = true;
                         }
