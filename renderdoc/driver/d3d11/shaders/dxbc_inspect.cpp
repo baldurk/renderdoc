@@ -1554,6 +1554,51 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 							}
 						}
 					}
+					else if(!strcmp(key, "hlslDefines"))
+					{
+						string cmdlineDefines = "// Command line defines:\n\n";
+
+						char *c = value;
+
+						while(*c)
+						{
+							// skip whitespace
+							while(*c && (*c == ' ' || *c == '\t' || *c == '\n'))
+								c++;
+
+							if(*c == 0) break;
+
+							// start of a definition
+							if(c[0] == '/' && c[1] == 'D')
+							{
+								c += 2;
+								// skip whitespace
+								while(*c && (*c == ' ' || *c == '\t' || *c == '\n')) c++;
+
+								if(*c == 0) break;
+
+								char *defstart = c;
+								char *defend = strchr(c, '=');
+
+								if(defend == 0) break;
+
+								c = defend+1;
+
+								char *valstart = c;
+
+								// skip to end or next whitespace
+								while(*c && *c != ' ' && *c != '\t' && *c != '\n') c++;
+
+								char *valend = c;
+
+								cmdlineDefines += "#define ";
+								cmdlineDefines += string(defstart, defend) + " " + string(valstart, valend);
+								cmdlineDefines += "\n";
+							}
+						}
+
+						Files.push_back(make_pair("@cmdline", cmdlineDefines));
+					}
 					
 					key = value + strlen(value) + 1;
 				}

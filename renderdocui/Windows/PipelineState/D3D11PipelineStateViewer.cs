@@ -1962,6 +1962,9 @@ namespace renderdocui.Windows.PipelineState
                     offs = compileSource.IndexOf("#include");
                 }
 
+                if (updatedfiles.ContainsKey("@cmdline"))
+                    compileSource = updatedfiles["@cmdline"] + "\n\n" + compileSource;
+
                 // invoke off to the ReplayRenderer to replace the log's shader
                 // with our edited one
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
