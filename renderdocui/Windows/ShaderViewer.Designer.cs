@@ -29,44 +29,46 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
-            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
-            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin1 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient1 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient2 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient3 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient4 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient5 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient3 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            TreelistView.TreeListColumn treeListColumn21 = new TreelistView.TreeListColumn("Name", "Name");
+            TreelistView.TreeListColumn treeListColumn22 = new TreelistView.TreeListColumn("Type", "Type");
+            TreelistView.TreeListColumn treeListColumn23 = new TreelistView.TreeListColumn("Value", "Value");
+            TreelistView.TreeListColumn treeListColumn24 = new TreelistView.TreeListColumn("Name", "Name");
+            TreelistView.TreeListColumn treeListColumn25 = new TreelistView.TreeListColumn("Type", "Type");
+            TreelistView.TreeListColumn treeListColumn26 = new TreelistView.TreeListColumn("Value", "Value");
+            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin2 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
+            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin2 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient4 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient8 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient9 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient5 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient10 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient11 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient12 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient6 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient13 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient14 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ShaderViewer));
-            TreelistView.TreeListColumn treeListColumn14 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn15 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
-            TreelistView.TreeListColumn treeListColumn16 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
-            TreelistView.TreeListColumn treeListColumn17 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn18 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SystemValue", "System Value")));
-            TreelistView.TreeListColumn treeListColumn19 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
-            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Unused", "Unused")));
-            TreelistView.TreeListColumn treeListColumn7 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn8 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
-            TreelistView.TreeListColumn treeListColumn9 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
-            TreelistView.TreeListColumn treeListColumn10 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn11 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SystemValue", "System Value")));
-            TreelistView.TreeListColumn treeListColumn12 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
-            TreelistView.TreeListColumn treeListColumn13 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Used", "Used")));
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
+            TreelistView.TreeListColumn treeListColumn27 = new TreelistView.TreeListColumn("Name", "Name");
+            TreelistView.TreeListColumn treeListColumn28 = new TreelistView.TreeListColumn("Index", "Index");
+            TreelistView.TreeListColumn treeListColumn29 = new TreelistView.TreeListColumn("Reg", "Reg");
+            TreelistView.TreeListColumn treeListColumn30 = new TreelistView.TreeListColumn("Type", "Type");
+            TreelistView.TreeListColumn treeListColumn31 = new TreelistView.TreeListColumn("SystemValue", "System Value");
+            TreelistView.TreeListColumn treeListColumn32 = new TreelistView.TreeListColumn("Mask", "Mask");
+            TreelistView.TreeListColumn treeListColumn33 = new TreelistView.TreeListColumn("Used", "Used");
+            TreelistView.TreeListColumn treeListColumn34 = new TreelistView.TreeListColumn("Name", "Name");
+            TreelistView.TreeListColumn treeListColumn35 = new TreelistView.TreeListColumn("Index", "Index");
+            TreelistView.TreeListColumn treeListColumn36 = new TreelistView.TreeListColumn("Reg", "Reg");
+            TreelistView.TreeListColumn treeListColumn37 = new TreelistView.TreeListColumn("Type", "Type");
+            TreelistView.TreeListColumn treeListColumn38 = new TreelistView.TreeListColumn("SystemValue", "System Value");
+            TreelistView.TreeListColumn treeListColumn39 = new TreelistView.TreeListColumn("Mask", "Mask");
+            TreelistView.TreeListColumn treeListColumn40 = new TreelistView.TreeListColumn("Unused", "Unused");
             this.variableBox = new System.Windows.Forms.GroupBox();
+            this.variableRegs = new TreelistView.TreeListView();
             this.constantBox = new System.Windows.Forms.GroupBox();
+            this.constantRegs = new TreelistView.TreeListView();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.showWindows = new System.Windows.Forms.ToolStripDropDownButton();
             this.autosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -93,7 +95,9 @@
             this.errorsBox = new System.Windows.Forms.GroupBox();
             this.errors = new System.Windows.Forms.TextBox();
             this.inSigBox = new System.Windows.Forms.GroupBox();
+            this.inSig = new TreelistView.TreeListView();
             this.outSigBox = new System.Windows.Forms.GroupBox();
+            this.outSig = new TreelistView.TreeListView();
             this.watchBox = new System.Windows.Forms.GroupBox();
             this.watchRegs = new System.Windows.Forms.ListView();
             this.VarName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -101,24 +105,20 @@
             this.Value = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.variableHover = new System.Windows.Forms.ToolTip(this.components);
             this.hoverTimer = new System.Windows.Forms.Timer(this.components);
-            this.outSig = new TreelistView.TreeListView();
-            this.inSig = new TreelistView.TreeListView();
-            this.variableRegs = new TreelistView.TreeListView();
-            this.constantRegs = new TreelistView.TreeListView();
             this.variableBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).BeginInit();
             this.constantBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).BeginInit();
             this.debuggingStrip.SuspendLayout();
             this.mainLayout.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.editStrip.SuspendLayout();
             this.errorsBox.SuspendLayout();
             this.inSigBox.SuspendLayout();
-            this.outSigBox.SuspendLayout();
-            this.watchBox.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.outSig)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.inSig)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).BeginInit();
+            this.outSigBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.outSig)).BeginInit();
+            this.watchBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // variableBox
@@ -131,6 +131,31 @@
             this.variableBox.TabStop = false;
             this.variableBox.Text = "Variable Registers";
             // 
+            // variableRegs
+            // 
+            treeListColumn21.AutoSizeMinSize = 0;
+            treeListColumn21.Width = 105;
+            treeListColumn22.AutoSizeMinSize = 0;
+            treeListColumn22.Width = 57;
+            treeListColumn23.AutoSize = true;
+            treeListColumn23.AutoSizeMinSize = 0;
+            treeListColumn23.Width = 183;
+            this.variableRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn21,
+            treeListColumn22,
+            treeListColumn23});
+            this.variableRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.variableRegs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.variableRegs.Location = new System.Drawing.Point(3, 16);
+            this.variableRegs.MultiSelect = false;
+            this.variableRegs.Name = "variableRegs";
+            this.variableRegs.RowOptions.ShowHeader = false;
+            this.variableRegs.Size = new System.Drawing.Size(183, 169);
+            this.variableRegs.TabIndex = 1;
+            this.variableRegs.Text = "treeListView1";
+            this.variableRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.variableRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
+            // 
             // constantBox
             // 
             this.constantBox.Controls.Add(this.constantRegs);
@@ -140,6 +165,31 @@
             this.constantBox.TabIndex = 7;
             this.constantBox.TabStop = false;
             this.constantBox.Text = "Constants && Resources";
+            // 
+            // constantRegs
+            // 
+            treeListColumn24.AutoSizeMinSize = 0;
+            treeListColumn24.Width = 109;
+            treeListColumn25.AutoSizeMinSize = 0;
+            treeListColumn25.Width = 57;
+            treeListColumn26.AutoSize = true;
+            treeListColumn26.AutoSizeMinSize = 0;
+            treeListColumn26.Width = 180;
+            this.constantRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn24,
+            treeListColumn25,
+            treeListColumn26});
+            this.constantRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.constantRegs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.constantRegs.Location = new System.Drawing.Point(3, 16);
+            this.constantRegs.MultiSelect = false;
+            this.constantRegs.Name = "constantRegs";
+            this.constantRegs.RowOptions.ShowHeader = false;
+            this.constantRegs.Size = new System.Drawing.Size(226, 171);
+            this.constantRegs.TabIndex = 0;
+            this.constantRegs.Text = "treeListView1";
+            this.constantRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.constantRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
             // dockPanel
             // 
@@ -151,52 +201,52 @@
             this.dockPanel.Location = new System.Drawing.Point(3, 34);
             this.dockPanel.Name = "dockPanel";
             this.dockPanel.Size = new System.Drawing.Size(424, 285);
-            dockPanelGradient1.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient1.StartColor = System.Drawing.SystemColors.ControlLight;
-            autoHideStripSkin1.DockStripGradient = dockPanelGradient1;
-            tabGradient1.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient1.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient1.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            autoHideStripSkin1.TabGradient = tabGradient1;
-            autoHideStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            dockPanelSkin1.AutoHideStripSkin = autoHideStripSkin1;
-            tabGradient2.EndColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient2.StartColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient2.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient1.ActiveTabGradient = tabGradient2;
-            dockPanelGradient2.EndColor = System.Drawing.SystemColors.Control;
-            dockPanelGradient2.StartColor = System.Drawing.SystemColors.Control;
-            dockPaneStripGradient1.DockStripGradient = dockPanelGradient2;
-            tabGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient3.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient1.InactiveTabGradient = tabGradient3;
-            dockPaneStripSkin1.DocumentGradient = dockPaneStripGradient1;
-            dockPaneStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            tabGradient4.EndColor = System.Drawing.SystemColors.ActiveCaption;
-            tabGradient4.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient4.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
-            tabGradient4.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
-            dockPaneStripToolWindowGradient1.ActiveCaptionGradient = tabGradient4;
-            tabGradient5.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient5.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient5.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripToolWindowGradient1.ActiveTabGradient = tabGradient5;
-            dockPanelGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
-            dockPaneStripToolWindowGradient1.DockStripGradient = dockPanelGradient3;
-            tabGradient6.EndColor = System.Drawing.SystemColors.InactiveCaption;
-            tabGradient6.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient6.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
-            tabGradient6.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
-            dockPaneStripToolWindowGradient1.InactiveCaptionGradient = tabGradient6;
-            tabGradient7.EndColor = System.Drawing.Color.Transparent;
-            tabGradient7.StartColor = System.Drawing.Color.Transparent;
-            tabGradient7.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            dockPaneStripToolWindowGradient1.InactiveTabGradient = tabGradient7;
-            dockPaneStripSkin1.ToolWindowGradient = dockPaneStripToolWindowGradient1;
-            dockPanelSkin1.DockPaneStripSkin = dockPaneStripSkin1;
-            this.dockPanel.Skin = dockPanelSkin1;
+            dockPanelGradient4.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient4.StartColor = System.Drawing.SystemColors.ControlLight;
+            autoHideStripSkin2.DockStripGradient = dockPanelGradient4;
+            tabGradient8.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient8.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient8.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            autoHideStripSkin2.TabGradient = tabGradient8;
+            autoHideStripSkin2.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            dockPanelSkin2.AutoHideStripSkin = autoHideStripSkin2;
+            tabGradient9.EndColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient9.StartColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient9.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient2.ActiveTabGradient = tabGradient9;
+            dockPanelGradient5.EndColor = System.Drawing.SystemColors.Control;
+            dockPanelGradient5.StartColor = System.Drawing.SystemColors.Control;
+            dockPaneStripGradient2.DockStripGradient = dockPanelGradient5;
+            tabGradient10.EndColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient10.StartColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient10.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient2.InactiveTabGradient = tabGradient10;
+            dockPaneStripSkin2.DocumentGradient = dockPaneStripGradient2;
+            dockPaneStripSkin2.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            tabGradient11.EndColor = System.Drawing.SystemColors.ActiveCaption;
+            tabGradient11.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient11.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
+            tabGradient11.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
+            dockPaneStripToolWindowGradient2.ActiveCaptionGradient = tabGradient11;
+            tabGradient12.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient12.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient12.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripToolWindowGradient2.ActiveTabGradient = tabGradient12;
+            dockPanelGradient6.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient6.StartColor = System.Drawing.SystemColors.ControlLight;
+            dockPaneStripToolWindowGradient2.DockStripGradient = dockPanelGradient6;
+            tabGradient13.EndColor = System.Drawing.SystemColors.InactiveCaption;
+            tabGradient13.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient13.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
+            tabGradient13.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
+            dockPaneStripToolWindowGradient2.InactiveCaptionGradient = tabGradient13;
+            tabGradient14.EndColor = System.Drawing.Color.Transparent;
+            tabGradient14.StartColor = System.Drawing.Color.Transparent;
+            tabGradient14.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            dockPaneStripToolWindowGradient2.InactiveTabGradient = tabGradient14;
+            dockPaneStripSkin2.ToolWindowGradient = dockPaneStripToolWindowGradient2;
+            dockPanelSkin2.DockPaneStripSkin = dockPaneStripSkin2;
+            this.dockPanel.Skin = dockPanelSkin2;
             this.dockPanel.TabIndex = 2;
             // 
             // showWindows
@@ -461,6 +511,43 @@
             this.inSigBox.TabStop = false;
             this.inSigBox.Text = "Input Signature";
             // 
+            // inSig
+            // 
+            treeListColumn27.AutoSize = true;
+            treeListColumn27.AutoSizeMinSize = 20;
+            treeListColumn27.Width = 100;
+            treeListColumn28.AutoSizeMinSize = 10;
+            treeListColumn28.Width = 50;
+            treeListColumn29.AutoSizeMinSize = 10;
+            treeListColumn29.Width = 50;
+            treeListColumn30.AutoSizeMinSize = 20;
+            treeListColumn30.Width = 60;
+            treeListColumn31.AutoSizeMinSize = 15;
+            treeListColumn31.Width = 75;
+            treeListColumn32.AutoSizeMinSize = 15;
+            treeListColumn32.Width = 50;
+            treeListColumn33.AutoSizeMinSize = 15;
+            treeListColumn33.Width = 50;
+            this.inSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn27,
+            treeListColumn28,
+            treeListColumn29,
+            treeListColumn30,
+            treeListColumn31,
+            treeListColumn32,
+            treeListColumn33});
+            this.inSig.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.inSig.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.inSig.Location = new System.Drawing.Point(3, 16);
+            this.inSig.MultiSelect = false;
+            this.inSig.Name = "inSig";
+            this.inSig.RowOptions.ShowHeader = false;
+            this.inSig.Size = new System.Drawing.Size(452, 169);
+            this.inSig.TabIndex = 1;
+            this.inSig.Text = "Input Signature";
+            this.inSig.ViewOptions.ShowLine = false;
+            this.inSig.ViewOptions.ShowPlusMinus = false;
+            // 
             // outSigBox
             // 
             this.outSigBox.Controls.Add(this.outSig);
@@ -470,6 +557,43 @@
             this.outSigBox.TabIndex = 8;
             this.outSigBox.TabStop = false;
             this.outSigBox.Text = "Output Signature";
+            // 
+            // outSig
+            // 
+            treeListColumn34.AutoSize = true;
+            treeListColumn34.AutoSizeMinSize = 20;
+            treeListColumn34.Width = 100;
+            treeListColumn35.AutoSizeMinSize = 10;
+            treeListColumn35.Width = 50;
+            treeListColumn36.AutoSizeMinSize = 10;
+            treeListColumn36.Width = 50;
+            treeListColumn37.AutoSizeMinSize = 20;
+            treeListColumn37.Width = 60;
+            treeListColumn38.AutoSizeMinSize = 15;
+            treeListColumn38.Width = 75;
+            treeListColumn39.AutoSizeMinSize = 15;
+            treeListColumn39.Width = 50;
+            treeListColumn40.AutoSizeMinSize = 15;
+            treeListColumn40.Width = 50;
+            this.outSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn34,
+            treeListColumn35,
+            treeListColumn36,
+            treeListColumn37,
+            treeListColumn38,
+            treeListColumn39,
+            treeListColumn40});
+            this.outSig.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.outSig.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.outSig.Location = new System.Drawing.Point(3, 16);
+            this.outSig.MultiSelect = false;
+            this.outSig.Name = "outSig";
+            this.outSig.RowOptions.ShowHeader = false;
+            this.outSig.Size = new System.Drawing.Size(452, 153);
+            this.outSig.TabIndex = 1;
+            this.outSig.Text = "Output Signature";
+            this.outSig.ViewOptions.ShowLine = false;
+            this.outSig.ViewOptions.ShowPlusMinus = false;
             // 
             // watchBox
             // 
@@ -505,6 +629,8 @@
             this.watchRegs.DoubleClick += new System.EventHandler(this.watchRegs_DoubleClick);
             this.watchRegs.KeyUp += new System.Windows.Forms.KeyEventHandler(this.watchRegs_KeyUp);
             this.watchRegs.Layout += new System.Windows.Forms.LayoutEventHandler(this.watchRegs_Layout);
+            this.watchRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.watchRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
             // VarName
             // 
@@ -534,126 +660,6 @@
             this.hoverTimer.Interval = 500;
             this.hoverTimer.Tick += new System.EventHandler(this.hoverTimer_Tick);
             // 
-            // outSig
-            // 
-            treeListColumn14.AutoSize = true;
-            treeListColumn14.AutoSizeMinSize = 20;
-            treeListColumn14.Width = 100;
-            treeListColumn15.AutoSizeMinSize = 10;
-            treeListColumn15.Width = 50;
-            treeListColumn16.AutoSizeMinSize = 10;
-            treeListColumn16.Width = 50;
-            treeListColumn17.AutoSizeMinSize = 20;
-            treeListColumn17.Width = 60;
-            treeListColumn18.AutoSizeMinSize = 15;
-            treeListColumn18.Width = 75;
-            treeListColumn19.AutoSizeMinSize = 15;
-            treeListColumn19.Width = 50;
-            treeListColumn20.AutoSizeMinSize = 15;
-            treeListColumn20.Width = 50;
-            this.outSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn14,
-            treeListColumn15,
-            treeListColumn16,
-            treeListColumn17,
-            treeListColumn18,
-            treeListColumn19,
-            treeListColumn20});
-            this.outSig.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.outSig.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.outSig.Location = new System.Drawing.Point(3, 16);
-            this.outSig.MultiSelect = false;
-            this.outSig.Name = "outSig";
-            this.outSig.RowOptions.ShowHeader = false;
-            this.outSig.Size = new System.Drawing.Size(452, 153);
-            this.outSig.TabIndex = 1;
-            this.outSig.Text = "Output Signature";
-            this.outSig.ViewOptions.ShowLine = false;
-            this.outSig.ViewOptions.ShowPlusMinus = false;
-            // 
-            // inSig
-            // 
-            treeListColumn7.AutoSize = true;
-            treeListColumn7.AutoSizeMinSize = 20;
-            treeListColumn7.Width = 100;
-            treeListColumn8.AutoSizeMinSize = 10;
-            treeListColumn8.Width = 50;
-            treeListColumn9.AutoSizeMinSize = 10;
-            treeListColumn9.Width = 50;
-            treeListColumn10.AutoSizeMinSize = 20;
-            treeListColumn10.Width = 60;
-            treeListColumn11.AutoSizeMinSize = 15;
-            treeListColumn11.Width = 75;
-            treeListColumn12.AutoSizeMinSize = 15;
-            treeListColumn12.Width = 50;
-            treeListColumn13.AutoSizeMinSize = 15;
-            treeListColumn13.Width = 50;
-            this.inSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn7,
-            treeListColumn8,
-            treeListColumn9,
-            treeListColumn10,
-            treeListColumn11,
-            treeListColumn12,
-            treeListColumn13});
-            this.inSig.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.inSig.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.inSig.Location = new System.Drawing.Point(3, 16);
-            this.inSig.MultiSelect = false;
-            this.inSig.Name = "inSig";
-            this.inSig.RowOptions.ShowHeader = false;
-            this.inSig.Size = new System.Drawing.Size(452, 169);
-            this.inSig.TabIndex = 1;
-            this.inSig.Text = "Input Signature";
-            this.inSig.ViewOptions.ShowLine = false;
-            this.inSig.ViewOptions.ShowPlusMinus = false;
-            // 
-            // variableRegs
-            // 
-            treeListColumn1.AutoSizeMinSize = 0;
-            treeListColumn1.Width = 105;
-            treeListColumn2.AutoSizeMinSize = 0;
-            treeListColumn2.Width = 57;
-            treeListColumn3.AutoSize = true;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 183;
-            this.variableRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1,
-            treeListColumn2,
-            treeListColumn3});
-            this.variableRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.variableRegs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.variableRegs.Location = new System.Drawing.Point(3, 16);
-            this.variableRegs.MultiSelect = false;
-            this.variableRegs.Name = "variableRegs";
-            this.variableRegs.RowOptions.ShowHeader = false;
-            this.variableRegs.Size = new System.Drawing.Size(183, 169);
-            this.variableRegs.TabIndex = 1;
-            this.variableRegs.Text = "treeListView1";
-            // 
-            // constantRegs
-            // 
-            treeListColumn4.AutoSizeMinSize = 0;
-            treeListColumn4.Width = 109;
-            treeListColumn5.AutoSizeMinSize = 0;
-            treeListColumn5.Width = 57;
-            treeListColumn6.AutoSize = true;
-            treeListColumn6.AutoSizeMinSize = 0;
-            treeListColumn6.Width = 180;
-            this.constantRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn4,
-            treeListColumn5,
-            treeListColumn6});
-            this.constantRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.constantRegs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.constantRegs.Location = new System.Drawing.Point(3, 16);
-            this.constantRegs.MultiSelect = false;
-            this.constantRegs.Name = "constantRegs";
-            this.constantRegs.RowOptions.ShowHeader = false;
-            this.constantRegs.Size = new System.Drawing.Size(226, 171);
-            this.constantRegs.TabIndex = 0;
-            this.constantRegs.Text = "treeListView1";
-            // 
             // ShaderViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -672,7 +678,9 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ShaderViewer_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ShaderViewer_FormClosed);
             this.variableBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).EndInit();
             this.constantBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).EndInit();
             this.debuggingStrip.ResumeLayout(false);
             this.debuggingStrip.PerformLayout();
             this.mainLayout.ResumeLayout(false);
@@ -684,12 +692,10 @@
             this.errorsBox.ResumeLayout(false);
             this.errorsBox.PerformLayout();
             this.inSigBox.ResumeLayout(false);
-            this.outSigBox.ResumeLayout(false);
-            this.watchBox.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.outSig)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.inSig)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).EndInit();
+            this.outSigBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.outSig)).EndInit();
+            this.watchBox.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
