@@ -640,28 +640,33 @@ namespace renderdocui.Windows
 
         private void eventView_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.G && e.Control && m_Core.LogLoaded)
-            {
-                ShowJump();
-            }
-            if (e.KeyCode == Keys.F && e.Control && m_Core.LogLoaded)
-            {
-                ShowFind();
-            }
-            if (e.KeyCode == Keys.T && e.Control && m_Core.LogLoaded)
-            {
-                TimeDrawcalls();
-            }
-            if (e.KeyCode == Keys.C && e.Control)
-            {
-                string text = "";
-                for(int i=0; i < eventView.FocusedNode.Count; i++)
-                {
-                    text += DataToString(eventView.Columns[i], eventView.FocusedNode[i]) + " ";
-                }
-                text += Environment.NewLine;
+            if (!m_Core.LogLoaded) return;
 
-                Clipboard.SetText(text);
+            if(e.Control)
+            {
+                if (e.KeyCode == Keys.G)
+                {
+                    ShowJump();
+                }
+                if (e.KeyCode == Keys.F)
+                {
+                    ShowFind();
+                }
+                if (e.KeyCode == Keys.T)
+                {
+                    TimeDrawcalls();
+                }
+                if (e.KeyCode == Keys.C)
+                {
+                    string text = "";
+                    for (int i = 0; i < eventView.FocusedNode.Count; i++)
+                    {
+                        text += DataToString(eventView.Columns[i], eventView.FocusedNode[i]) + " ";
+                    }
+                    text += Environment.NewLine;
+
+                    Clipboard.SetText(text);
+                }
             }
         }
 
