@@ -282,7 +282,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 
 			for(size_t i=0; i < sources.size(); i++)
 			{
-				string &src = sources[i];
+				string src = strings[i];
 
 				size_t len = src.length();
 				size_t it = src.find("#version");
