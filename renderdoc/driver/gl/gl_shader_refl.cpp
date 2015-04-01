@@ -1718,7 +1718,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 					for(int r=0; r < rows; r++)
 					{
 						SigParameter s = sig;
-						s.varName = StringFormat::Fmt("%s.row%d", nm, r);
+						s.varName = StringFormat::Fmt("%s:row%d", nm, r);
 						s.regIndex += r;
 						sigs.push_back(s);
 					}

@@ -2085,6 +2085,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		return;
 	}
 	
+	list<string> matrixVaryings; // matrices need some fixup
 	vector<const char *> varyings;
 
 	// we don't want to do any work, so just discard before rasterizing
@@ -2099,10 +2100,33 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	for(int32_t i=0; i < vsRefl->OutputSig.count; i++)
 	{
-		varyings.push_back(vsRefl->OutputSig[i].varName.elems);
+		const char *name = vsRefl->OutputSig[i].varName.elems;
+		int32_t len = vsRefl->OutputSig[i].varName.count;
+
+		bool include = true;
+
+		// for matrices with names including :row1, :row2 etc we only include :row0
+		// as a varying (but increment the stride for all rows to account for the space)
+		// and modify the name to remove the :row0 part
+		const char *colon = strchr(name, ':');
+		if(colon)
+		{
+			if(name[len-1] != '0')
+			{
+				include = false;
+			}
+			else
+			{
+				matrixVaryings.push_back(string(name, colon));
+				name = matrixVaryings.back().c_str();
+			}
+		}
+
+		if(include)
+			varyings.push_back(name);
 
 		if(vsRefl->OutputSig[i].systemValue == eAttr_Position)
-			posidx = i;
+			posidx = int32_t(varyings.size())-1;
 
 		stride += sizeof(float)*vsRefl->OutputSig[i].compCount;
 	}
@@ -2530,10 +2554,33 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 		for(int32_t i=0; i < lastRefl->OutputSig.count; i++)
 		{
-			varyings.push_back(lastRefl->OutputSig[i].varName.elems);
+			const char *name = lastRefl->OutputSig[i].varName.elems;
+			int32_t len = lastRefl->OutputSig[i].varName.count;
+
+			bool include = true;
+
+			// for matrices with names including :row1, :row2 etc we only include :row0
+			// as a varying (but increment the stride for all rows to account for the space)
+			// and modify the name to remove the :row0 part
+			const char *colon = strchr(name, ':');
+			if(colon)
+			{
+				if(name[len-1] != '0')
+				{
+					include = false;
+				}
+				else
+				{
+					matrixVaryings.push_back(string(name, colon));
+					name = matrixVaryings.back().c_str();
+				}
+			}
+
+			if(include)
+				varyings.push_back(name);
 
 			if(lastRefl->OutputSig[i].systemValue == eAttr_Position)
-				posidx = i;
+				posidx = int32_t(varyings.size())-1;
 
 			stride += sizeof(float)*lastRefl->OutputSig[i].compCount;
 		}
