@@ -1353,15 +1353,43 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
 	size_t len = strlen(text);
 
+	if(len > FONT_MAX_CHARS)
+	{
+		static bool printedWarning = false;
+
+		// this could be called once a frame, don't want to spam the log
+		if(!printedWarning)
+		{
+			printedWarning = true;
+			RDCWARN("log string '%s' is too long", text, (int)len);
+		}
+
+		len = FONT_MAX_CHARS;
+	}
+
 	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.StringUBO);
 	uint32_t *texs = (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len*4*sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	
-	for(size_t i=0; i < len; i++)
+	if(texs)
 	{
-		texs[i*4+0] = text[i] - ' ';
-		texs[i*4+1] = text[i] - ' ';
-		texs[i*4+2] = text[i] - ' ';
-		texs[i*4+3] = text[i] - ' ';
+		for(size_t i=0; i < len; i++)
+		{
+			texs[i*4+0] = text[i] - ' ';
+			texs[i*4+1] = text[i] - ' ';
+			texs[i*4+2] = text[i] - ' ';
+			texs[i*4+3] = text[i] - ' ';
+		}
+	}
+	else
+	{
+		static bool printedWarning = false;
+
+		// this could be called once a frame, don't want to spam the log
+		if(!printedWarning)
+		{
+			printedWarning = true;
+			RDCWARN("failed to map %d characters for '%s' (%d)", (int)len, text, ctxdata.StringUBO);
+		}
 	}
 
 	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
