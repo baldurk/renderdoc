@@ -1391,7 +1391,7 @@ namespace renderdocui.Windows
 
                     if (int.TryParse(start, out runTo))
                     {
-                        if (runTo >= 0 && runTo < m_Trace.states.Length)
+                        if (runTo >= 0)
                         {
                             RunTo(runTo, true);
                             break;
