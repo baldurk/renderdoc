@@ -782,17 +782,23 @@ namespace renderdocui.Windows
             {
                 var pt = m_HoverItem.ListView.PointToClient(Cursor.Position);
 
-                hoverPoint = new Point(m_HoverItem.ListView.ClientRectangle.Left + pt.X + 10, m_HoverItem.ListView.ClientRectangle.Top + pt.Y + 10);
-                hoverVar = m_HoverItem.Tag as ShaderVariable;
-                hoverWin = m_HoverItem.ListView;
+                if (m_HoverItem.ListView.ClientRectangle.Contains(pt))
+                {
+                    hoverPoint = new Point(m_HoverItem.ListView.ClientRectangle.Left + pt.X + 10, m_HoverItem.ListView.ClientRectangle.Top + pt.Y + 10);
+                    hoverVar = m_HoverItem.Tag as ShaderVariable;
+                    hoverWin = m_HoverItem.ListView;
+                }
             }
             else if (m_HoverNode != null)
             {
                 var pt = m_HoverNode.OwnerView.PointToClient(Cursor.Position);
 
-                hoverPoint = new Point(m_HoverNode.OwnerView.ClientRectangle.Left + pt.X + 10, m_HoverNode.OwnerView.ClientRectangle.Top + pt.Y + 10);
-                hoverVar = m_HoverNode.Tag as ShaderVariable;
-                hoverWin = m_HoverNode.OwnerView;
+                if (m_HoverNode.OwnerView.ClientRectangle.Contains(pt))
+                {
+                    hoverPoint = new Point(m_HoverNode.OwnerView.ClientRectangle.Left + pt.X + 10, m_HoverNode.OwnerView.ClientRectangle.Top + pt.Y + 10);
+                    hoverVar = m_HoverNode.Tag as ShaderVariable;
+                    hoverWin = m_HoverNode.OwnerView;
+                }
             }
 
             if(hoverVar != null)
