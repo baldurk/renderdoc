@@ -227,7 +227,7 @@ void RenderDoc::BecomeReplayHost(volatile bool32 &killReplay)
 	}
 }
 
-struct RemoteRenderer
+struct RemoteRenderer : public IRemoteRenderer
 {
 	public:
 		RemoteRenderer(Network::Socket *sock)

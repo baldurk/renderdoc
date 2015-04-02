@@ -37,7 +37,7 @@
 
 struct ReplayRenderer;
 
-struct ReplayOutput
+struct ReplayOutput : public IReplayOutput
 {
 public:
 	bool SetOutputConfig(const OutputConfig &o);
@@ -123,7 +123,7 @@ private:
 	friend struct ReplayRenderer;
 };
 
-struct ReplayRenderer
+struct ReplayRenderer : public IReplayRenderer
 {
 	public:
 		ReplayRenderer();
@@ -185,6 +185,9 @@ struct ReplayRenderer
 		bool GetCBufferVariableContents(ResourceId shader, uint32_t cbufslot, ResourceId buffer, uint32_t offs, rdctype::array<ShaderVariable> *vars);
 	
 		ReplayOutput *CreateOutput(void *handle);
+
+		void ShutdownOutput(ReplayOutput *output);
+		void Shutdown();
 	private:
 		ReplayCreateStatus PostCreateInit(IReplayDriver *device);
 		

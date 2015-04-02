@@ -200,12 +200,12 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetGLPipelineState(IntPtr real, IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
+        private static extern void ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_FreeCustomShader(IntPtr real, ResourceId id);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_BuildTargetShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
+        private static extern void ReplayRenderer_BuildTargetShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_ReplaceResource(IntPtr real, ResourceId from, ResourceId to);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -353,13 +353,10 @@ namespace renderdoc
             IntPtr entry_mem = CustomMarshal.MakeUTF8String(entry);
             IntPtr source_mem = CustomMarshal.MakeUTF8String(source);
 
-            bool success = ReplayRenderer_BuildCustomShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
+            ReplayRenderer_BuildCustomShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
 
             CustomMarshal.Free(entry_mem);
             CustomMarshal.Free(source_mem);
-
-            if (!success)
-                ret = ResourceId.Null;
 
             errors = CustomMarshal.TemplatedArrayToString(mem, true);
 
@@ -380,13 +377,10 @@ namespace renderdoc
             IntPtr entry_mem = CustomMarshal.MakeUTF8String(entry);
             IntPtr source_mem = CustomMarshal.MakeUTF8String(source);
 
-            bool success = ReplayRenderer_BuildTargetShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
+            ReplayRenderer_BuildTargetShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
 
             CustomMarshal.Free(entry_mem);
             CustomMarshal.Free(source_mem);
-
-            if (!success)
-                ret = ResourceId.Null;
 
             errors = CustomMarshal.TemplatedArrayToString(mem, true);
 

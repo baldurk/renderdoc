@@ -1268,6 +1268,16 @@ ReplayOutput *ReplayRenderer::CreateOutput(void *wndhandle)
 	return out;
 }
 
+void ReplayRenderer::ShutdownOutput(ReplayOutput *output)
+{
+	RDCUNIMPLEMENTED("Shutting down individual outputs");
+}
+
+void ReplayRenderer::Shutdown()
+{
+	delete this;
+}
+
 ResourceId ReplayRenderer::BuildTargetShader(const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, rdctype::str *errors)
 {
 	ResourceId id;
@@ -1509,9 +1519,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(Repla
 extern "C" RENDERDOC_API ReplayOutput* RENDERDOC_CC ReplayRenderer_CreateOutput(ReplayRenderer *rend, void *handle)
 { return rend->CreateOutput(handle); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRenderer *rend)
-{ delete rend; }
+{ rend->Shutdown(); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(ReplayRenderer *rend, ReplayOutput *output)
-{ RDCUNIMPLEMENTED("destroying individual outputs"); }
+{ rend->ShutdownOutput(output); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_HasCallstacks(ReplayRenderer *rend)
 { return rend->HasCallstacks(); }
@@ -1527,24 +1537,20 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetD3D11PipelineStat
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend, GLPipelineState *state)
 { return rend->GetGLPipelineState(state); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_BuildCustomShader(ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
 {
-	if(shaderID == NULL) return false;
+	if(shaderID == NULL) return;
 
 	*shaderID = rend->BuildCustomShader(entry, source, compileFlags, type, errors);
-
-	return (*shaderID != ResourceId());
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeCustomShader(ReplayRenderer *rend, ResourceId id)
 { return rend->FreeCustomShader(id); }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_BuildTargetShader(ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildTargetShader(ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags, ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
 {
-	if(shaderID == NULL) return false;
+	if(shaderID == NULL) return;
 
 	*shaderID = rend->BuildTargetShader(entry, source, compileFlags, type, errors);
-
-	return (*shaderID != ResourceId());
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_ReplaceResource(ReplayRenderer *rend, ResourceId from, ResourceId to)
 { return rend->ReplaceResource(from, to); }
