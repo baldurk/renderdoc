@@ -52,26 +52,27 @@ win32 {
 
 }
 
-SOURCES += main.cpp\
-    MainWindow.cpp \
+SOURCES += Code/main.cpp \
+    Windows/MainWindow.cpp \
+    Windows/EventBrowser.cpp \
+    Windows/TextureViewer.cpp \
+    Widgets/CustomPaintWidget.cpp \
     3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
-    EventBrowser.cpp \
-    TextureViewer.cpp \
-    CustomPaintWidget.cpp
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
 
-HEADERS  += MainWindow.h \
+HEADERS  += Windows/MainWindow.h \
+    Windows/EventBrowser.h \
+    Windows/TextureViewer.h \
+    Widgets/CustomPaintWidget.h \
     3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
-    EventBrowser.h \
-    TextureViewer.h \
-    CustomPaintWidget.h
+    Code/Core.h
 
-FORMS    += MainWindow.ui \
-    EventBrowser.ui \
-    TextureViewer.ui
+FORMS    += Windows/MainWindow.ui \
+    Windows/EventBrowser.ui \
+    Windows/TextureViewer.ui
 
 RESOURCES += \
     resources.qrc
