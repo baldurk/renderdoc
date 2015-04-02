@@ -251,6 +251,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 
 int renderdoccmd(int argc, char **argv);
 bool argequal(const char *a, const char *b);
+void readCapOpts(const char *str, CaptureOptions *opts);
 
 int WINAPI wWinMain(_In_ HINSTANCE hInst,
 	_In_opt_ HINSTANCE hPrevInstance,
@@ -487,8 +488,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		wpathmatch.resize(wcslen(wpathmatch.c_str()));
 		
 		CaptureOptions cmdopts;
-		string optstring(&argv[4][0]);
-		cmdopts.FromString(optstring);
+		readCapOpts(argv[4], &cmdopts);
 
 		// make sure the user doesn't accidentally run this with 'a' as a parameter or something.
 		// "a.exe" is over 4 characters so this limit should not be a problem.

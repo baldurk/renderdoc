@@ -27,9 +27,6 @@
 
 #include <stdint.h>
 
-typedef uint8_t byte;
-typedef uint32_t bool32;
-
 #ifdef WIN32
 
 #ifdef RENDERDOC_EXPORTS
@@ -55,9 +52,6 @@ typedef uint32_t bool32;
 
 #endif
 
-#include <string>
-#include <sstream> // istringstream/ostringstream used to avoid other dependencies
-
 struct CaptureOptions
 {
 	CaptureOptions()
@@ -76,49 +70,63 @@ struct CaptureOptions
 
 	// Whether or not to allow the application to enable vsync
 	//
-	// Enabled - allows the application to enable or disable vsync at will
-	// Disabled - vsync is force disabled
-	bool32 AllowVSync;
+	// 1 - allows the application to enable or disable vsync at will
+	// 0 - vsync is force disabled
+	uint32_t AllowVSync;
 	
 	// Whether or not to allow the application to enable fullscreen
 	//
-	// Enabled - allows the application to enable or disable fullscreen at will
-	// Disabled - fullscreen is force disabled
-	bool32 AllowFullscreen;
+	// 1 - allows the application to enable or disable fullscreen at will
+	// 0 - fullscreen is force disabled
+	uint32_t AllowFullscreen;
 
-	// Enables in-built API debugging features and records the results into the
-	// capture logfile, which is matched up with events on replay
-	bool32 DebugDeviceMode;
+	// 1 - in-built API debugging features and records the results into the
+	//     capture logfile, which is matched up with events on replay
+	// 0 - no API debugging is enabled
+	uint32_t DebugDeviceMode;
 
-	// Captures callstacks for every API event during capture
-	bool32 CaptureCallstacks;
+	// 1 - Captures callstacks for every API event during capture
+	// 0 - no callstacks are captured
+	uint32_t CaptureCallstacks;
 
-	// Only captures callstacks for drawcall type API events.
-	// Ignored if CaptureCallstacks is disabled
-	bool32 CaptureCallstacksOnlyDraws;
+	// 1 - Only captures callstacks for drawcall type API events.
+	//     Ignored if CaptureCallstacks is disabled
+	// 0 - Callstacks, if enabled, are captured for every event.
+	uint32_t CaptureCallstacksOnlyDraws;
 
 	// Specify a delay in seconds to wait for a debugger to attach after
 	// creating or injecting into a process, before continuing to allow it to run.
+	// 0 indicates no delay, and the process will run immediately after injection
 	uint32_t DelayForDebugger;
 
-	// Verify any writes to mapped buffers, to check that they don't overwrite the
-	// bounds of the pointer returned.
-	bool32 VerifyMapWrites;
+	// 1 - Verify any writes to mapped buffers, to check that they don't overwrite the
+	//     bounds of the pointer returned.
+	// 0 - No verification is performed, and overwriting bounds may cause crashes or
+	//     corruption in RenderDoc
+	uint32_t VerifyMapWrites;
 
-	// Hooks any system API events that create child processes, and injects
-	// renderdoc into them recursively with the same options.
-	bool32 HookIntoChildren;
+	// 1 - Hooks any system API events that create child processes, and injects
+	//     renderdoc into them recursively with the same options.
+	// 0 - Child processes are not hooked by RenderDoc
+	uint32_t HookIntoChildren;
 
 	// By default renderdoc only includes resources in the final logfile necessary
 	// for that frame, this allows you to override that behaviour
 	//
-	// Enabled - all live resources at the time of capture are included in the log
-	//           and available for inspection
-	// Disabled - only the resources referenced by the captured frame are included
-	bool32 RefAllResources;
+	// 1 - all live resources at the time of capture are included in the log
+	//     and available for inspection
+	// 0 - only the resources referenced by the captured frame are included
+	uint32_t RefAllResources;
 
-	// By default renderdoc skips saving initial states for
-	bool32 SaveAllInitials;
+	// By default renderdoc skips saving initial states for resources where the
+	// previous contents don't appear to be used, assuming that writes before
+	// reads indicate previous contents aren't used.
+	//
+	// 1 - initial contents at the start of each captured frame are saved, even if
+	//     they are later overwritten or cleared before being used.
+	// 0 - unless a read is detected, initial contents will not be saved and will
+	//     appear as black or empty data.
+	uint32_t SaveAllInitials;
 
 	// In APIs that allow for the recording of command lists to be replayed later,
 	// renderdoc may choose to not capture command lists before a frame capture is
@@ -126,48 +134,15 @@ struct CaptureOptions
 	// and replayed many times will not be available and may cause a failure to
 	// capture.
 	//
-	// Enabled - All command lists are captured from the start of the application
-	// Disabled - Command lists are only captured if their recording begins during
-	//            the period when a frame capture is in progress.
-	bool32 CaptureAllCmdLists;
-	
-#ifdef __cplusplus
-	void FromString(std::string str)
-	{
-		std::istringstream iss(str);
-
-		iss >> AllowFullscreen
-				>> AllowVSync
-				>> DebugDeviceMode
-				>> CaptureCallstacks
-				>> CaptureCallstacksOnlyDraws
-				>> DelayForDebugger
-				>> VerifyMapWrites
-				>> HookIntoChildren
-				>> RefAllResources
-				>> SaveAllInitials
-				>> CaptureAllCmdLists;
-	}
-
-	std::string ToString() const
-	{
-		std::ostringstream oss;
-
-		oss << AllowFullscreen << " "
-				<< AllowVSync << " "
-				<< DebugDeviceMode << " "
-				<< CaptureCallstacks << " "
-				<< CaptureCallstacksOnlyDraws << " "
-				<< DelayForDebugger << " "
-				<< VerifyMapWrites << " "
-				<< HookIntoChildren << " "
-				<< RefAllResources << " "
-				<< SaveAllInitials << " "
-				<< CaptureAllCmdLists << " ";
-
-		return oss.str();
-	}
-#endif
+	// Note this is typically only true for APIs where multithreading is difficult
+	// or discouraged. Newer APIs like Vulkan and D3D12 will ignore this option and
+	// always capture all command lists since the API is heavily oriented around it,
+	// and the overheads have been reduced by API design.
+	//
+	// 1 - All command lists are captured from the start of the application
+	// 0 - Command lists are only captured if their recording begins during
+	//     the period when a frame capture is in progress.
+	uint32_t CaptureAllCmdLists;
 };
 
 enum KeyButton
@@ -249,8 +224,8 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const char *logfile);
 extern "C" RENDERDOC_API const char* RENDERDOC_CC RENDERDOC_GetLogFile();
 typedef const char* (RENDERDOC_CC *pRENDERDOC_GetLogFile)();
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
@@ -264,8 +239,8 @@ typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *device, void *wndHandle);
 typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *device, void *wndHandle);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *device, void *wndHandle);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *device, void *wndHandle);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EndFrameCapture(void *device, void *wndHandle);
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *device, void *wndHandle);
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();

@@ -26,6 +26,14 @@
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
 
+void readCapOpts(const char *str, CaptureOptions *opts)
+{
+	// serialise from string with two chars per byte
+	byte *b = (byte *)opts;
+	for(size_t i=0; i < sizeof(CaptureOptions); i++)
+		*(b++) = (byte(str[i*2+0] - 'a') << 4) | byte(str[i*2+1] - 'a');
+}
+
 // DllMain equivalent
 __attribute__((constructor))
 void library_loaded()
@@ -56,7 +64,7 @@ void library_loaded()
 			string optstr = opts;
 
 			CaptureOptions optstruct;
-			optstruct.FromString(optstr);
+			readCapOpts(optstr.c_str(), &optstruct);
 
 			RenderDoc::Inst().SetCaptureOptions(&optstruct);
 		}

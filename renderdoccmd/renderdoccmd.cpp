@@ -70,6 +70,14 @@ bool argequal(const char *a, const char *b)
 	return *a == 0 && *b == 0;
 }
 
+void readCapOpts(const char *str, CaptureOptions *opts)
+{
+	// serialise from string with two chars per byte
+	byte *b = (byte *)opts;
+	for(size_t i=0; i < sizeof(CaptureOptions); i++)
+		*(b++) = (byte(str[i*2+0] - 'a') << 4) | byte(str[i*2+1] - 'a');
+}
+
 // defined in platform .cpps
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg);
 wstring GetUsername();
@@ -278,10 +286,7 @@ int renderdoccmd(int argc, char **argv)
 				if(log[0] == 0) log = NULL;
 
 				CaptureOptions cmdopts;
-
-				string optstring(&argv[4][0], &argv[4][0] + strlen(argv[4]));
-
-				cmdopts.FromString(optstring);
+				readCapOpts(argv[4], &cmdopts);
 
 				return RENDERDOC_InjectIntoProcess(pidNum, log, &cmdopts, false);
 			}

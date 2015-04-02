@@ -277,8 +277,18 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 		tSec.nLength = sizeof(tSec);
 	
 		wchar_t *paramsAlloc = new wchar_t[2048];
-
-		string optstr = opts->ToString();
+		
+		// serialise to string with two chars per byte
+		string optstr;
+		{
+			optstr.reserve(sizeof(CaptureOptions)*2+1);
+			byte *b = (byte *)opts;
+			for(size_t i=0; i < sizeof(CaptureOptions); i++)
+			{
+				optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
+				optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
+			}
+		}
 
 		_snwprintf_s(paramsAlloc, 2047, 2047, L"\"%ls\" --cap32for64 %d \"%ls\" \"%hs\"",
 		             renderdocPath, pid, wlogfile.c_str(), optstr.c_str());
@@ -460,7 +470,17 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 	
 	wchar_t *paramsAlloc = new wchar_t[2048];
 
-	string optstr = opts->ToString();
+	// serialise to string with two chars per byte
+	string optstr;
+	{
+		optstr.reserve(sizeof(CaptureOptions)*2+1);
+		byte *b = (byte *)opts;
+		for(size_t i=0; i < sizeof(CaptureOptions); i++)
+		{
+			optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
+			optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
+		}
+	}
 	
 	wstring wlogfile = logfile == NULL ? L"" : StringFormat::UTF82Wide(string(logfile));
 	wstring wpathmatch = StringFormat::UTF82Wide(string(pathmatch));

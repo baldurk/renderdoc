@@ -133,7 +133,18 @@ uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workin
 
 	if(opts)
 	{
-		string e = StringFormat::Fmt("RENDERDOC_CAPTUREOPTS=%s", opts->ToString().c_str());
+		string optstr;
+		{
+			optstr.reserve(sizeof(CaptureOptions)*2+1);
+			byte *b = (byte *)opts;
+			for(size_t i=0; i < sizeof(CaptureOptions); i++)
+			{
+				optstr.push_back(char( 'a' + ((b[i] >> 4)&0xf) ));
+				optstr.push_back(char( 'a' + ((b[i]     )&0xf) ));
+			}
+		}
+
+		string e = StringFormat::Fmt("RENDERDOC_CAPTUREOPTS=%s", optstr.c_str());
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;

@@ -176,7 +176,7 @@ class RenderDoc
 		void SetReplayApp(bool replay) { m_Replay = replay; }
 		bool IsReplayApp() const { return m_Replay; }
 
-		void BecomeReplayHost(volatile bool32 &killReplay);
+		void BecomeReplayHost(volatile uint32_t &killReplay);
 
 		void SetCaptureOptions(const CaptureOptions *opts);
 		const CaptureOptions &GetCaptureOptions() const { return m_Options; }
