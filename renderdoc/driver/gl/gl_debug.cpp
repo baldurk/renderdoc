@@ -745,7 +745,23 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 		gl.glBindSampler(texSlot, DebugData.pointNoMipSampler);
 	else
 		gl.glBindSampler(texSlot, DebugData.pointSampler);
-	
+
+	int maxlevel = -1;
+
+	int clampmaxlevel = details.mips - 1;
+
+	gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+
+	// need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
+	if(clampmaxlevel != maxlevel)
+	{
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+	}
+	else
+	{
+		maxlevel = -1;
+	}
+
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.minmaxTileResult);
 
 	gl.glUseProgram(DebugData.minmaxTileProgram[progIdx]);
@@ -764,6 +780,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 	Vec4f minmax[2];
 	gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.minmaxResult);
 	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(minmax), minmax);
+
+	if(maxlevel >= 0)
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 
 	minval[0] = minmax[0].x;
 	minval[1] = minmax[0].y;
@@ -916,6 +935,22 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 	else
 		gl.glBindSampler(texSlot, DebugData.pointSampler);
 
+	int maxlevel = -1;
+
+	int clampmaxlevel = details.mips - 1;
+
+	gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
+
+	// need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
+	if(clampmaxlevel != maxlevel)
+	{
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&clampmaxlevel);
+	}
+	else
+	{
+		maxlevel = -1;
+	}
+
 	gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 0, DebugData.histogramBuf);
 
 	GLuint zero = 0;
@@ -931,6 +966,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
 	gl.glBindBuffer(eGL_COPY_READ_BUFFER, DebugData.histogramBuf);
 	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, 0, sizeof(uint32_t)*HGRAM_NUM_BUCKETS, &histogram[0]);
+
+	if(maxlevel >= 0)
+		gl.glTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, (GLint *)&maxlevel);
 
 	return true;
 }
