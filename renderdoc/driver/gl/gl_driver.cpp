@@ -1353,7 +1353,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
 	size_t len = strlen(text);
 
-	if(len > FONT_MAX_CHARS)
+	if((int)len > FONT_MAX_CHARS)
 	{
 		static bool printedWarning = false;
 
