@@ -38,7 +38,7 @@
   <customwidget>
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
-   <header>CustomPaintWidget.h</header>
+   <header>Widgets/CustomPaintWidget.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
