@@ -59,7 +59,8 @@ SOURCES += Code/main.cpp \
     Widgets/CustomPaintWidget.cpp \
     3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
+    Code/RenderManager.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -68,7 +69,8 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
-    Code/Core.h
+    Code/Core.h \
+    Code/RenderManager.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
