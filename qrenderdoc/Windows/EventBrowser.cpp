@@ -1,5 +1,8 @@
 #include "EventBrowser.h"
 #include "ui_EventBrowser.h"
+
+#include "Code/Core.h"
+
 #include "renderdoc_replay.h"
 
 extern ReplayOutput *out;
@@ -68,6 +71,17 @@ EventBrowser::~EventBrowser()
 
 void EventBrowser::on_find_clicked()
 {
+  Core c;
+
+  c.Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+
+    D3D11PipelineState state;
+    r->GetD3D11PipelineState(&state);
+
+    QInvoke::call([this,state]() {
+      ui->label->setText(state.m_PS.ShaderName.elems);
+    });
+  });
 }
 
 void EventBrowser::on_gotoEID_clicked()
