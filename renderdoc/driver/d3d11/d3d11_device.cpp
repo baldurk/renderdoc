@@ -280,7 +280,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	m_InternalRefcount = 0;
 	m_Alive = true;
 
-	m_DummyInfo.m_pDevice = this;
+	m_DummyInfoQueue.m_pDevice = this;
+	m_WrappedDebug.m_pDevice = this;
 
 	m_FrameCounter = 0;
 	m_FailedFrame = 0;
@@ -353,6 +354,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	SAFE_RELEASE(context);
 
 	realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
+	realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
 
 	if(m_pInfoQueue)
 	{
@@ -444,6 +446,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
 	SAFE_DELETE(m_ResourceManager);
 
 	SAFE_RELEASE(m_pInfoQueue);
+	SAFE_RELEASE(m_WrappedDebug.m_pDebug);
 	SAFE_RELEASE(m_pDevice);
 
 	SAFE_DELETE(m_pSerialiser);
@@ -484,6 +487,36 @@ ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::AddRef()
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::Release()
+{
+	m_pDevice->Release();
+	return 1;
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D11Debug::QueryInterface(REFIID riid, void **ppvObject)
+{
+	if(riid == __uuidof(ID3D11InfoQueue)
+		 || riid == __uuidof(ID3D11Debug)
+		 || riid == __uuidof(ID3D11Device)
+#if defined(INCLUDE_D3D_11_1)
+		 || riid == __uuidof(ID3D11Device1)
+		 || riid == __uuidof(ID3D11Device2)
+#endif
+		 )
+		return m_pDevice->QueryInterface(riid, ppvObject);
+
+	string guid = ToStr::Get(riid);
+	RDCWARN("Querying ID3D11Debug for interface: %s", guid.c_str());
+
+	return m_pDebug->QueryInterface(riid, ppvObject);
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11Debug::AddRef()
+{
+	m_pDevice->AddRef();
+	return 1;
+}
+
+ULONG STDMETHODCALLTYPE WrappedID3D11Debug::Release()
 {
 	m_pDevice->Release();
 	return 1;
@@ -617,10 +650,25 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 #endif
 	else if(riid == __uuidof(ID3D11InfoQueue))
 	{
-		RDCWARN("Returning a dumy ID3D11InfoQueue that does nothing. This ID3D11InfoQueue will not work!");
-		*ppvObject = (ID3D11InfoQueue *)&m_DummyInfo;
-		m_DummyInfo.AddRef();
+		RDCWARN("Returning a dummy ID3D11InfoQueue that does nothing. This ID3D11InfoQueue will not work!");
+		*ppvObject = (ID3D11InfoQueue *)&m_DummyInfoQueue;
+		m_DummyInfoQueue.AddRef();
 		return S_OK;
+	}
+	else if(riid == __uuidof(ID3D11Debug))
+	{
+		// we queryinterface for this at startup, so if it's present we can
+		// return our wrapper
+		if(m_WrappedDebug.m_pDebug)
+		{
+			AddRef();
+			*ppvObject = (ID3D11Debug *)&m_WrappedDebug;
+			return S_OK;
+		}
+		else
+		{
+			return E_NOINTERFACE;
+		}
 	}
 	else
 	{
