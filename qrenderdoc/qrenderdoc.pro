@@ -60,7 +60,8 @@ SOURCES += Code/main.cpp \
     3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
-    Code/RenderManager.cpp
+    Code/RenderManager.cpp \
+    Code/Core.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
