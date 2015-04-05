@@ -3,6 +3,8 @@
 
 #include "renderdoc_replay.h"
 
+#include <functional>
+
 #include <QString>
 #include <QThread>
 #include <QMutex>
@@ -17,7 +19,7 @@ class RenderManager : public QThread
     void run();
 
   public:
-    typedef void (*InvokeMethod)(IReplayRenderer *r);
+    typedef std::function<void(IReplayRenderer*)> InvokeMethod;
 
     RenderManager();
     ~RenderManager();
