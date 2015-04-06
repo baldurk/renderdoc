@@ -1,7 +1,7 @@
 Windows
 --------------
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012 and VS2013 without issues. It compiles fine in the [free VS2013 version](http://www.visualstudio.com/en-us/news/vs2013-community-vs.aspx).
+The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. To build on later VS versions, simply open & upgrade, I've tested building on VS2012, VS2013 and VS2015 without issues. It compiles fine in the [free VS2013 version](http://www.visualstudio.com/en-us/news/vs2013-community-vs.aspx), just select to update the compilers.
 
 The only external dependency should be the [Windows 8.1 SDK](http://msdn.microsoft.com/en-us/windows/desktop/bg162891.aspx). The 8.0 SDK should also work fine, but [the vcxproj](renderdoc/renderdoc.vcxproj) is set up to look in `$(ProgramFiles)\Windows Kits\8.1\` for the necessary paths. If your SDK is installed elsewhere you'll also need to change these locally. You can also compile only against the June 2010 DirectX SDK if you undefine `INCLUDE_D3D_11_1` in `d3d11_common.h`, and `INCLUDE_DXGI_1_2` in `dxgi_wrapped.h`.
 
@@ -23,7 +23,9 @@ Linux
 
 Just 'make' in the root should do the trick. This build system is work in progress as the linux port is very early, so it may change!
 
-There's no configuration or cmake setup, it assumes gcc/g++ (this can be overwridden via variables CC and CPP, or just in the makefiles), and links against -lX11 and -lGL.
+There's no configuration or cmake setup, it assumes gcc/g++ (this can be overwridden via variables CC and CPP, or just in the makefiles).
+
+Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 along with the 'x11extras' package.
 
 Builds
 --------------
