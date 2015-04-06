@@ -48,7 +48,7 @@ win32 {
 	LIBS += -L$$_PRO_FILE_PWD_/../renderdoc -lrenderdoc
 	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
 
-	QMAKE_CXXFLAGS += -std=c++11
+	QMAKE_CXXFLAGS += -std=c++11 -Wno-unused-parameter
 
 	QT += x11extras
 
