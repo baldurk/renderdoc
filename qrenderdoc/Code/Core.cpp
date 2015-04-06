@@ -8,6 +8,12 @@
 
 Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp)
 {
+  m_LogLoaded = false; m_LoadInProgress = false;
+
+  m_FrameID = 0; m_EventID = 0;
+
+  memset(&m_APIProps, 0, sizeof(m_APIProps));
+
   m_MainWindow = new MainWindow(this, paramFilename, remoteHost, remoteIdent, temp);
   m_MainWindow->show();
 }
