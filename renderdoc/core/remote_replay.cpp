@@ -267,7 +267,7 @@ struct RemoteRenderer : public IRemoteRenderer
 			m_RemoteDrivers.reserve(m.size());
 			for(auto it=m.begin(); it != m.end(); ++it) m_RemoteDrivers.push_back(*it);
 		}
-		~RemoteRenderer()
+		virtual ~RemoteRenderer()
 		{
 			SAFE_DELETE(m_Socket);
 		}

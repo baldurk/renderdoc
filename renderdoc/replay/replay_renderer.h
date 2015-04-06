@@ -61,7 +61,7 @@ public:
 	uint32_t PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
 private:
 	ReplayOutput(ReplayRenderer *parent, void *w);
-	~ReplayOutput();
+	virtual ~ReplayOutput();
 	
 	void SetFrameEvent(int frameID, int eventID);
 	void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
@@ -127,7 +127,7 @@ struct ReplayRenderer : public IReplayRenderer
 {
 	public:
 		ReplayRenderer();
-		~ReplayRenderer();
+		virtual ~ReplayRenderer();
 
 		APIProperties GetAPIProperties();
 

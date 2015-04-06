@@ -398,6 +398,8 @@ struct RemoteAccess : public IRemoteAccess
 			SAFE_DELETE(ser);
 		}
 
+		virtual ~RemoteAccess() {}
+
 		bool Connected() { return m_Socket != NULL && m_Socket->Connected(); }
 		
 		void Shutdown()
