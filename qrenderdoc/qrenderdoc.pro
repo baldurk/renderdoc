@@ -38,6 +38,8 @@ win32 {
 	# Link against the core library
 	LIBS += $$DESTDIR/renderdoc.lib
 
+	QMAKE_CXXFLAGS_WARN_ON -= -w34100 
+
 } else {
 
 	DESTDIR = $$_PRO_FILE_PWD_/../bin
