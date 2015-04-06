@@ -64,6 +64,55 @@ namespace renderdocui.Windows
         private DockContent m_VariablesDock = null;
         private DockContent m_WatchDock = null;
 
+        private MenuItem m_IntContext = null;
+        private MenuItem m_FloatContext = null;
+        private int m_RightclickPoint = 0;
+        private ContextMenu AssemblyContextMenu()
+        {
+            // thanks to http://swensencode.blogspot.co.uk/2013/03/extending-scintilla-with-modifiable.html
+            // for pointing in the right direction
+            ContextMenu cm = new ContextMenu();
+
+            cm.MenuItems.Add(m_IntContext = new MenuItem("Integer register display", intToggleContext_Click));
+            cm.MenuItems.Add(m_FloatContext = new MenuItem("Float register display", floatToggleContext_Click));
+            cm.MenuItems.Add(new MenuItem("-"));
+            cm.MenuItems.Add(new MenuItem("Toggle breakpoint", toggleBreakpointContext_Click));
+            cm.MenuItems.Add(new MenuItem("Run to Cursor", runCursorContext_Click));
+            cm.MenuItems.Add(new MenuItem("-"));
+            cm.MenuItems.Add(new MenuItem("Copy", (s, ea) => m_DisassemblyView.Clipboard.Copy()));
+            cm.MenuItems.Add(new MenuItem("Select All", (s, ea) => m_DisassemblyView.Selection.SelectAll()));
+
+            m_FloatContext.Checked = true;
+
+            return cm;
+        }
+
+        private void intToggleContext_Click(object sender, EventArgs args)
+        {
+            displayInts_Click(null, null);
+        }
+
+        private void floatToggleContext_Click(object sender, EventArgs args)
+        {
+            displayFloats_Click(null, null);
+        }
+
+        private void runCursorContext_Click(object sender, EventArgs args)
+        {
+            m_DisassemblyView.CurrentPos = m_RightclickPoint;
+            RunToCursor();
+        }
+
+        private void toggleBreakpointContext_Click(object sender, EventArgs args)
+        {
+            ToggleBreakpoint(m_DisassemblyView, m_RightclickPoint);
+        }
+
+        private void contextMouseDown(object sender, MouseEventArgs args)
+        {
+            m_RightclickPoint = m_DisassemblyView.PositionFromPoint(args.X, args.Y);
+        }
+
         private int CurrentStep_;
         public int CurrentStep
         {
@@ -233,6 +282,44 @@ namespace renderdocui.Windows
         }
 
         private HashSet<int> m_Breakpoints = new HashSet<int>();
+
+        void ToggleBreakpoint(ScintillaNET.Scintilla sc, int position)
+        {
+            var line = sc.Lines.FromPosition(position);
+
+            while (line != null)
+            {
+                var trimmed = line.Text.Trim();
+
+                int colon = trimmed.IndexOf(":");
+
+                if (colon >= 0)
+                {
+                    string start = trimmed.Substring(0, colon);
+
+                    int lineNum = -1;
+
+                    if (int.TryParse(start, out lineNum))
+                    {
+                        if (line.GetMarkers().Contains(sc.Markers[BREAKPOINT_MARKER]))
+                        {
+                            line.DeleteMarkerSet(BreakpointMarkers);
+                            m_Breakpoints.Remove(lineNum);
+                        }
+                        else
+                        {
+                            line.AddMarkerSet(BreakpointMarkers);
+                            m_Breakpoints.Add(lineNum);
+                        }
+
+                        sc.Invalidate();
+                        return;
+                    }
+                }
+
+                line = line.Next;
+            }
+        }
             
         void scintilla1_DebuggingKeyDown(object sender, KeyEventArgs e)
         {
@@ -240,40 +327,7 @@ namespace renderdocui.Windows
             {
                 var sc = sender as ScintillaNET.Scintilla;
 
-                var line = sc.Lines.FromPosition(sc.CurrentPos);
-
-                while (line != null)
-                {
-                    var trimmed = line.Text.Trim();
-
-                    int colon = trimmed.IndexOf(":");
-
-                    if (colon >= 0)
-                    {
-                        string start = trimmed.Substring(0, colon);
-
-                        int lineNum = -1;
-
-                        if (int.TryParse(start, out lineNum))
-                        {
-                            if (line.GetMarkers().Contains(sc.Markers[BREAKPOINT_MARKER]))
-                            {
-                                line.DeleteMarkerSet(BreakpointMarkers);
-                                m_Breakpoints.Remove(lineNum);
-                            }
-                            else
-                            {
-                                line.AddMarkerSet(BreakpointMarkers);
-                                m_Breakpoints.Add(lineNum);
-                            }
-
-                            sc.Invalidate();
-                            return;
-                        }
-                    }
-
-                    line = line.Next;
-                }
+                ToggleBreakpoint(sc, sc.CurrentPos);
             }
         }
 
@@ -390,6 +444,9 @@ namespace renderdocui.Windows
 
                 BreakpointMarkers.Add(BREAKPOINT_MARKER);
                 BreakpointMarkers.Add(BREAKPOINT_MARKER + 1);
+
+                m_DisassemblyView.ContextMenu = AssemblyContextMenu();
+                m_DisassemblyView.MouseDown += new MouseEventHandler(contextMouseDown);
 
                 m_Scintillas.Add(m_DisassemblyView);
 
@@ -1637,6 +1694,9 @@ namespace renderdocui.Windows
             displayInts.Checked = true;
             displayFloats.Checked = false;
 
+            if (m_IntContext != null) m_IntContext.Checked = true;
+            if (m_FloatContext != null) m_FloatContext.Checked = false;
+
             UpdateDebugging();
         }
 
@@ -1644,6 +1704,9 @@ namespace renderdocui.Windows
         {
             displayInts.Checked = false;
             displayFloats.Checked = true;
+
+            if (m_IntContext != null) m_IntContext.Checked = false;
+            if (m_FloatContext != null) m_FloatContext.Checked = true;
 
             UpdateDebugging();
         }
