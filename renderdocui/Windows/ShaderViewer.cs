@@ -287,7 +287,7 @@ namespace renderdocui.Windows
         {
             var line = sc.Lines.FromPosition(position);
 
-            while (line != null)
+            while (line != null && line.StartPosition >= 0)
             {
                 var trimmed = line.Text.Trim();
 
@@ -445,8 +445,11 @@ namespace renderdocui.Windows
                 BreakpointMarkers.Add(BREAKPOINT_MARKER);
                 BreakpointMarkers.Add(BREAKPOINT_MARKER + 1);
 
-                m_DisassemblyView.ContextMenu = AssemblyContextMenu();
-                m_DisassemblyView.MouseDown += new MouseEventHandler(contextMouseDown);
+                if (trace != null)
+                {
+                    m_DisassemblyView.ContextMenu = AssemblyContextMenu();
+                    m_DisassemblyView.MouseDown += new MouseEventHandler(contextMouseDown);
+                }
 
                 m_Scintillas.Add(m_DisassemblyView);
 
