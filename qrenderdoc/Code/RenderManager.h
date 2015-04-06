@@ -12,12 +12,10 @@
 #include <QWaitCondition>
 
 struct IReplayRenderer;
+class LambdaThread;
 
-class RenderManager : public QThread
+class RenderManager
 {
-    Q_OBJECT
-    void run();
-
   public:
     typedef std::function<void(IReplayRenderer*)> InvokeMethod;
 
@@ -26,7 +24,7 @@ class RenderManager : public QThread
 
     void Init(int proxyRenderer, QString replayHost, QString logfile, float *progress);
 
-    bool IsRunning() { return isRunning() && m_Running; }
+    bool IsRunning();
     ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
 
     void AsyncInvoke(InvokeMethod m);
@@ -49,6 +47,8 @@ class RenderManager : public QThread
         bool selfdelete;
     };
 
+    void run();
+
     QMutex m_RenderLock;
     QQueue<InvokeHandle *> m_RenderQueue;
     QWaitCondition m_RenderCondition;
@@ -61,6 +61,7 @@ class RenderManager : public QThread
     float *m_Progress;
 
     volatile bool m_Running;
+    LambdaThread *m_Thread;
     ReplayCreateStatus m_CreateStatus;
 };
 

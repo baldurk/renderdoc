@@ -2,27 +2,24 @@
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
-#include "renderdoc_replay.h"
 
-ReplayRenderer *renderer = NULL;
-QWidget *texviewer = NULL;
+#include <QFileDialog>
+#include <QFileInfo>
 
-MainWindow::MainWindow(QWidget *parent) :
-  QMainWindow(parent),
-  ui(new Ui::MainWindow)
+#include "Code/Core.h"
+
+MainWindow::MainWindow(Core *core, QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp) :
+  QMainWindow(NULL),
+  ui(new Ui::MainWindow),
+  m_Core(core)
 {
   ui->setupUi(this);
 
-  float progress = 0.0f;
-  RENDERDOC_CreateReplayRenderer("T:\\renderdoc\\archive_renderdoc_captures\\deferred_plusplus.rdc", &progress, &renderer);
-
-  EventBrowser *eventbrowser = new EventBrowser();
+  EventBrowser *eventbrowser = new EventBrowser(core);
 
   ui->toolWindowManager->addToolWindow(eventbrowser, ToolWindowManager::EmptySpace);
 
-  TextureViewer *textureviewer = new TextureViewer();
-
-  texviewer = textureviewer->renderSurf();
+  TextureViewer *textureviewer = new TextureViewer(core);
 
   ui->toolWindowManager->addToolWindow(textureviewer, ToolWindowManager::AreaReference(ToolWindowManager::RightOf, ui->toolWindowManager->areaOf(eventbrowser)));
 
@@ -37,4 +34,21 @@ MainWindow::~MainWindow()
 void MainWindow::on_action_Exit_triggered()
 {
   this->close();
+}
+
+void MainWindow::on_action_Open_Log_triggered()
+{
+  QString filename = QFileDialog::getOpenFileName(this,
+                                                  "Select Logfile to open",
+                                                  "",
+                                                  "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg *.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
+
+  QFileInfo checkFile(filename);
+  if(filename != "" && checkFile.exists() && checkFile.isFile())
+  {
+    LambdaThread *thread = new LambdaThread([filename,this] () {
+      m_Core->LoadLogfile(filename, false);
+    });
+    thread->start();
+  }
 }

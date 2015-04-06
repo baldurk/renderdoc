@@ -1,10 +1,13 @@
 #include "RenderManager.h"
 
+#include "Core.h"
+
 #include <QMutexLocker>
 
 RenderManager::RenderManager()
 {
   m_Running = false;
+  m_Thread = NULL;
 }
 
 RenderManager::~RenderManager()
@@ -24,9 +27,15 @@ void RenderManager::Init(int proxyRenderer, QString replayHost, QString logfile,
 
   *progress = 0.0f;
 
-  start(HighestPriority);
+  m_Thread = new LambdaThread([this]() { run(); });
+  m_Thread->start(QThread::HighestPriority);
 
-  while (!isRunning()) {}
+  while (m_Thread->isRunning() && !m_Running) {}
+}
+
+bool RenderManager::IsRunning()
+{
+  return m_Thread->isRunning() && m_Running;
 }
 
 void RenderManager::AsyncInvoke(RenderManager::InvokeMethod m)
@@ -53,12 +62,14 @@ void RenderManager::CloseThread()
   m_RenderCondition.wakeAll();
 
   // wait for the thread to close and clean up
-  while(isRunning()) {}
+  while(m_Thread->isRunning()) {}
+
+  m_Thread->deleteLater();
 }
 
 void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 {
-  if(!isRunning() || !m_Running)
+  if(m_Thread == NULL || !m_Thread->isRunning() || !m_Running)
   {
     cmd->processed = true;
     if(cmd->selfdelete) delete cmd;

@@ -3,13 +3,6 @@
 
 #include "Code/Core.h"
 
-#include "renderdoc_replay.h"
-
-extern ReplayOutput *out;
-extern ReplayRenderer *renderer;
-extern TextureDisplay d;
-extern QWidget *texviewer;
-
 uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws)
 {
   uint lastEID = 0;
@@ -25,29 +18,14 @@ uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &
   return lastEID;
 }
 
-EventBrowser::EventBrowser(QWidget *parent) :
+EventBrowser::EventBrowser(Core *core, QWidget *parent) :
   QFrame(parent),
-  ui(new Ui::EventBrowser)
+  ui(new Ui::EventBrowser),
+  m_Core(core)
 {
   ui->setupUi(this);
 
-  rdctype::array<FetchDrawcall> draws;
-  ReplayRenderer_GetDrawcalls(renderer, 0, &draws);
-
-  rdctype::array<FetchFrameInfo> frameInfo;
-  ReplayRenderer_GetFrameInfo(renderer, &frameInfo);
-
-  QTreeWidgetItem *frame = new QTreeWidgetItem((QTreeWidget *)NULL, QStringList{QString("Frame #%1").arg(frameInfo[0].frameNumber), "", ""});
-
-  QTreeWidgetItem *framestart = new QTreeWidgetItem(frame, QStringList{"Frame Start", "0", "0.0"});
-  framestart->setData(0, Qt::UserRole, QVariant(0));
-
-  uint lastEID = AddDrawcalls(frame, draws);
-  frame->setData(0, Qt::UserRole, QVariant(lastEID));
-
-  ui->events->insertTopLevelItem(0, frame);
-
-  ui->events->expandItem(frame);
+  m_Core->AddLogViewer(this);
 
   ui->events->header()->resizeSection(1, 80);
 
@@ -66,22 +44,37 @@ EventBrowser::EventBrowser(QWidget *parent) :
 
 EventBrowser::~EventBrowser()
 {
+  m_Core->RemoveLogViewer(this);
   delete ui;
+}
+
+void EventBrowser::OnLogfileLoaded()
+{
+  QTreeWidgetItem *frame = new QTreeWidgetItem((QTreeWidget *)NULL, QStringList{QString("Frame #%1").arg(m_Core->FrameInfo()[0].frameNumber), "", ""});
+
+  QTreeWidgetItem *framestart = new QTreeWidgetItem(frame, QStringList{"Frame Start", "0", "0.0"});
+  framestart->setData(0, Qt::UserRole, QVariant(0));
+
+  uint lastEID = AddDrawcalls(frame, m_Core->CurDrawcalls(0));
+  frame->setData(0, Qt::UserRole, QVariant(lastEID));
+
+  ui->events->insertTopLevelItem(0, frame);
+
+  ui->events->expandItem(frame);
+}
+
+void EventBrowser::OnLogfileClosed()
+{
+  ui->events->clear();
+}
+
+void EventBrowser::OnEventSelected(uint32_t frameID, uint32_t eventID)
+{
+
 }
 
 void EventBrowser::on_find_clicked()
 {
-  Core c;
-
-  c.Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
-
-    D3D11PipelineState state;
-    r->GetD3D11PipelineState(&state);
-
-    QInvoke::call([this,state]() {
-      ui->label->setText(state.m_PS.ShaderName.elems);
-    });
-  });
 }
 
 void EventBrowser::on_gotoEID_clicked()
@@ -94,13 +87,5 @@ void EventBrowser::on_events_itemSelectionChanged()
 
     uint EID = ui->events->selectedItems()[0]->data(0, Qt::UserRole).toUInt();
 
-    ReplayRenderer_SetFrameEvent(renderer, 0, EID);
-
-    D3D11PipelineState state;
-    ReplayRenderer_GetD3D11PipelineState(renderer, &state);
-
-    d.texid = state.m_OM.RenderTargets[0].Resource;
-    ReplayOutput_SetTextureDisplay(out, d);
-
-    texviewer->update();
+    m_Core->SetEventID(this, 0, EID);
 }

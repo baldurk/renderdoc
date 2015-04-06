@@ -3,10 +3,9 @@
 
 #include "renderdoc_replay.h"
 
-extern ReplayOutput *out;
-
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
+  m_Output = NULL;
   setAttribute(Qt::WA_PaintOnScreen);
 }
 
@@ -17,6 +16,6 @@ CustomPaintWidget::~CustomPaintWidget()
 
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
-  ReplayOutput_Display(out);
+  if(m_Output) m_Output->Display();
 }
 

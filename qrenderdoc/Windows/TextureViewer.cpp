@@ -1,7 +1,7 @@
 #include "TextureViewer.h"
 #include "ui_TextureViewer.h"
 
-#include "renderdoc_replay.h"
+#include "Code/Core.h"
 
 #if defined(__linux__)
 #include <QX11Info>
@@ -9,74 +9,82 @@
 #include <GL/glx.h>
 #endif
 
-extern ReplayRenderer *renderer;
-ReplayOutput *out = NULL;
-TextureDisplay d;
-
-TextureViewer::TextureViewer(QWidget *parent) :
+TextureViewer::TextureViewer(Core *core, QWidget *parent) :
   QFrame(parent),
-  ui(new Ui::TextureViewer)
+  ui(new Ui::TextureViewer),
+  m_Core(core)
 {
   ui->setupUi(this);
 
-  rdctype::array<FetchTexture> texs;
-  ReplayRenderer_GetTextures(renderer, &texs);
+  m_Core->AddLogViewer(this);
 
-  for(int32_t i=0; i < texs.count; i++)
-  {
-    if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
-    {
-      d.texid = texs[i].ID;
-      d.mip = 0;
-      d.sampleIdx = ~0U;
-      d.overlay = eTexOverlay_None;
-      d.CustomShader = ResourceId();
-      d.HDRMul = -1.0f;
-      d.linearDisplayAsGamma = true;
-      d.FlipY = false;
-      d.rangemin = 0.0f;
-      d.rangemax = 1.0f;
-      d.scale = -1.0f;
-      d.offx = 0.0f;
-      d.offy = 0.0f;
-      d.sliceFace = 0;
-      d.rawoutput = false;
-      d.lightBackgroundColour = d.darkBackgroundColour =
-        FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
-      d.Red = d.Green = d.Blue = true;
-      d.Alpha = false;
-      break;
-    }
-  }
+  ui->framerender->SetOutput(NULL);
+  m_Output = NULL;
+}
 
+TextureViewer::~TextureViewer()
+{
+  m_Core->RemoveLogViewer(this);
+  delete ui;
+}
+
+void TextureViewer::OnLogfileLoaded()
+{
 #if defined(WIN32)
   HWND wnd = (HWND)ui->framerender->winId();
-  out = ReplayRenderer_CreateOutput(renderer, wnd);
 #elif defined(__linux__)
   Display *display = QX11Info::display();
   GLXDrawable drawable = (GLXDrawable)ui->framerender->winId();
 
   void *displayAndDrawable[2] = { (void *)display, (void *)drawable };
-
-  out = ReplayRenderer_CreateOutput(renderer, (void *)displayAndDrawable);
+  void *wnd = displayAndDrawable;
 #else
   #error "Unknown platform"
 #endif
 
-  OutputConfig c = { eOutputType_TexDisplay };
+  m_Core->Renderer()->BlockInvoke([wnd,this](IReplayRenderer *r) {
+    m_Output = r->CreateOutput(wnd);
+    ui->framerender->SetOutput(m_Output);
 
-  ReplayOutput_SetOutputConfig(out, c);
-  ReplayOutput_SetTextureDisplay(out, d);
-
-  ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
+    OutputConfig c = { eOutputType_TexDisplay };
+    m_Output->SetOutputConfig(c);
+  });
 }
 
-QWidget *TextureViewer::renderSurf()
+void TextureViewer::OnLogfileClosed()
 {
-  return ui->framerender;
+  m_Output = NULL;
+  ui->framerender->SetOutput(NULL);
 }
 
-TextureViewer::~TextureViewer()
+void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 {
-  delete ui;
+  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+    TextureDisplay d;
+    if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
+      d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+    else
+      d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0];
+    d.mip = 0;
+    d.sampleIdx = ~0U;
+    d.overlay = eTexOverlay_None;
+    d.CustomShader = ResourceId();
+    d.HDRMul = -1.0f;
+    d.linearDisplayAsGamma = true;
+    d.FlipY = false;
+    d.rangemin = 0.0f;
+    d.rangemax = 1.0f;
+    d.scale = -1.0f;
+    d.offx = 0.0f;
+    d.offy = 0.0f;
+    d.sliceFace = 0;
+    d.rawoutput = false;
+    d.lightBackgroundColour = d.darkBackgroundColour =
+        FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+    d.Red = d.Green = d.Blue = true;
+    d.Alpha = false;
+    m_Output->SetTextureDisplay(d);
+
+    GUIInvoke::call([this]() { ui->framerender->update(); });
+  });
 }
