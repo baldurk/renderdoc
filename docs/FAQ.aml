@@ -341,5 +341,27 @@
         </para>
       </content>
     </section>
+    <section address="FAQ11">
+      <title>RenderDoc is complaining about my OpenGL app in the overlay - what gives?</title>
+      <content>
+        <para>
+          The first thing to remember is that <legacyBold>RenderDoc only supports Core 3.2 and above OpenGL</legacyBold>.
+          If your app is using features from before 3.2 it almost certainly won't work as most functionality
+          is not supported. A couple of things like not creating a VAO (which are required in core profile) and
+          luminance textures (which don't exist in core profile) are allowed, but none of the fixed function
+          pipeline will work, etc etc.
+        </para>
+        <para>
+          If your app is not using the CreateContextAttribs API then RenderDoc will completely refuse to capture,
+          and will display overlay text to this effect using the simplest fixed-function pipeline code, so it will
+          run on any OpenGL app, even on a 1.4 context or similar.
+        </para>
+        <para>
+          If your app did use the CreateContextAttribs API, RenderDoc will allow you to capture, but compatibility
+          profiles will have a warning displayed in the overlay - this is because you could easily use old functionality
+          as it is all still available in the context.
+        </para>
+      </content>
+    </section>
   </developerConceptualDocument>
 </topic>

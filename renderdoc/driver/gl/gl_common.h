@@ -71,6 +71,13 @@ struct GLWindowingData
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);
 
+// no longer in glcorearb.h or glext.h
+const GLenum eGL_LUMINANCE = (GLenum)0x1909;
+const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
+const GLenum eGL_INTENSITY = (GLenum)0x8049;
+const GLenum eGL_LIGHTING = (GLenum)0x0B50;
+const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
+
 class WrappedOpenGL;
 struct GLHookSet;
 

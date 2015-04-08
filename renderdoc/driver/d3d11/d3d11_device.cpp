@@ -3074,13 +3074,11 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 				if(overlay & eOverlay_FrameNumber)
 				{
-					if(!overlayText.empty()) overlayText += " ";
-					overlayText += StringFormat::Fmt("Frame: %d.", m_FrameCounter);
+					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
 				}
 				if(overlay & eOverlay_FrameRate)
 				{
-					if(!overlayText.empty()) overlayText += " ";
-					overlayText += StringFormat::Fmt("%.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
 																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
 				}
 

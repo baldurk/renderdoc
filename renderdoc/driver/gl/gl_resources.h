@@ -36,11 +36,6 @@ GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
 GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat);
 
-// no longer in glcorearb.h or glext.h
-const GLenum eGL_LUMINANCE = (GLenum)0x1909;
-const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
-const GLenum eGL_INTENSITY = (GLenum)0x8049;
-
 void EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat);
 
 int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d);

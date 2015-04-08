@@ -313,6 +313,8 @@ class WrappedOpenGL
 			ContextData()
 			{
 				built = ready = false;
+				attribsCreate = false;
+				version = 0;
 				isCore = false;
 				Program = GeneralUBO = StringUBO = GlyphUBO = 0;
 				GlyphTexture = DummyVAO = 0;
@@ -329,7 +331,12 @@ class WrappedOpenGL
 			bool built;
 			bool ready;
 
+			int version;
+			bool attribsCreate;
 			bool isCore;
+
+			bool Legacy() { return !attribsCreate || version < 32; }
+			bool Modern() { return !Legacy(); }
 
 			GLuint Program;
 			GLuint GeneralUBO, StringUBO, GlyphUBO;
@@ -427,7 +434,7 @@ class WrappedOpenGL
 
 		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
-		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core);
+		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate);
 		void DeleteContext(void *contextHandle);
 		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
