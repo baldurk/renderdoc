@@ -61,6 +61,7 @@ namespace renderdocui.Windows.Dialogs
             TextureViewer_PerTexSettings.Checked = m_Core.Config.TextureViewer_PerTexSettings;
             ShaderViewer_FriendlyNaming.Checked = m_Core.Config.ShaderViewer_FriendlyNaming;
             CheckUpdate_AllowChecks.Checked = m_Core.Config.CheckUpdate_AllowChecks;
+            Font_PreferMonospaced.Checked = m_Core.Config.Font_PreferMonospaced;
 
             AllowGlobalHook.Checked = m_Core.Config.AllowGlobalHook;
             
@@ -140,7 +141,7 @@ namespace renderdocui.Windows.Dialogs
             m_Core.Config.Formatter_NegExp = (int)Formatter_NegExp.Value;
             m_Core.Config.Formatter_PosExp = (int)Formatter_PosExp.Value;
 
-            m_Core.Config.SetupFormatter();
+            m_Core.Config.SetupFormatting();
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }
@@ -148,6 +149,15 @@ namespace renderdocui.Windows.Dialogs
         private void CheckUpdate_AllowChecks_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.CheckUpdate_AllowChecks = CheckUpdate_AllowChecks.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void Font_PreferMonospaced_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.Font_PreferMonospaced = Font_PreferMonospaced.Checked;
+
+            m_Core.Config.SetupFormatting();
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }

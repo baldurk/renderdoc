@@ -52,6 +52,8 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            localProxy.Font = core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             m_Core = core;
@@ -110,6 +112,8 @@ namespace renderdocui.Windows.Dialogs
                 host.Dock = DockStyle.Fill;
                 host.FormattingEnabled = true;
                 host.TabIndex = row + 1;
+
+                host.Font = m_Core.Config.PreferredFont;
 
                 hosts.Clear();
 

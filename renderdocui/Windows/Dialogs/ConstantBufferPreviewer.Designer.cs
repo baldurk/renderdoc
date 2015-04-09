@@ -69,8 +69,9 @@
             // 
             // slotLabel
             // 
+            this.slotLabel.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.slotLabel.Name = "slotLabel";
-            this.slotLabel.Size = new System.Drawing.Size(19, 22);
+            this.slotLabel.Size = new System.Drawing.Size(35, 22);
             this.slotLabel.Text = "    ";
             // 
             // toolStripSeparator1
@@ -80,8 +81,9 @@
             // 
             // nameLabel
             // 
+            this.nameLabel.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.nameLabel.Name = "nameLabel";
-            this.nameLabel.Size = new System.Drawing.Size(22, 22);
+            this.nameLabel.Size = new System.Drawing.Size(42, 22);
             this.nameLabel.Text = "     ";
             // 
             // toolStripSeparator2
@@ -126,7 +128,7 @@
             treeListColumn2.AutoSizeMinSize = 0;
             treeListColumn2.Width = 50;
             treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 50;
+            treeListColumn3.Width = 70;
             this.variables.Columns.AddRange(new TreelistView.TreeListColumn[] {
             treeListColumn1,
             treeListColumn2,
@@ -134,6 +136,7 @@
             this.variables.ColumnsOptions.LeftMargin = 0;
             this.variables.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.variables.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.variables.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.variables.Location = new System.Drawing.Point(0, 0);
             this.variables.Name = "variables";
             this.variables.RowOptions.ShowHeader = false;

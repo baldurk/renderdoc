@@ -166,6 +166,12 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            exePath.Font =
+                workDirPath.Font =
+                cmdline.Font = 
+                pidList.Font = 
+                core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             var defaults = new CaptureSettings();

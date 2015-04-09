@@ -210,6 +210,13 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            constantRegs.Font =
+                variableRegs.Font =
+                watchRegs.Font =
+                inSig.Font =
+                outSig.Font =
+                core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             this.SuspendLayout();
@@ -344,11 +351,25 @@ namespace renderdocui.Windows
         {
             InitializeComponent();
 
+            constantRegs.Font =
+                variableRegs.Font =
+                watchRegs.Font =
+                inSig.Font =
+                outSig.Font =
+                core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             this.SuspendLayout();
 
             mainLayout.Dock = DockStyle.Fill;
+
+            constantRegs.Font =
+                variableRegs.Font =
+                watchRegs.Font =
+                inSig.Font =
+                outSig.Font =
+                core.Config.PreferredFont;
 
             m_Core = core;
             m_ShaderDetails = shader;

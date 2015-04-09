@@ -63,6 +63,11 @@ namespace renderdocui.Windows
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
+            jumpToEID.Font =
+                findEvent.Font =
+                eventView.Font = 
+                core.Config.PreferredFont;
+
             HideJumpAndFind();
 
             m_Core = core;

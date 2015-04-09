@@ -53,6 +53,10 @@ namespace renderdocui.Windows
 
             m_Core = core;
 
+            callstack.Font =
+                apiEvents.Font =
+                core.Config.PreferredFont;
+
             panelSplitter.Collapsed = true;
         }
 

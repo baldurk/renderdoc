@@ -540,7 +540,27 @@ namespace renderdoc
 
             return "Unknown";
         }
+        
+        public static string Str(this ShaderResourceType type)
+        {
+            switch (type)
+            {
+                case ShaderResourceType.None: return "None";
+                case ShaderResourceType.Buffer: return "Buffer";
+                case ShaderResourceType.Texture1D: return "1D";
+                case ShaderResourceType.Texture1DArray: return "1D Array";
+                case ShaderResourceType.Texture2D: return "2D";
+                case ShaderResourceType.TextureRect: return "Rect";
+                case ShaderResourceType.Texture2DArray: return "2D Array";
+                case ShaderResourceType.Texture2DMS: return "2D MS";
+                case ShaderResourceType.Texture2DMSArray: return "2D MS Array";
+                case ShaderResourceType.Texture3D: return "3D";
+                case ShaderResourceType.TextureCube: return "Cube";
+                case ShaderResourceType.TextureCubeArray: return "Cube Array";
+            }
 
+            return "Unknown resource type";
+        }
         public static string Str(this ResourceUsage usage)
         {
             switch (usage)

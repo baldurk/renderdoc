@@ -53,6 +53,31 @@ namespace renderdocui.Windows.PipelineState
 
             m_DockContent = c;
 
+            inputLayouts.Font = core.Config.PreferredFont;
+            iabuffers.Font = core.Config.PreferredFont;
+
+            csUAVs.Font = core.Config.PreferredFont;
+            gsStreams.Font = core.Config.PreferredFont;
+
+            groupX.Font = groupY.Font = groupZ.Font = core.Config.PreferredFont;
+            threadX.Font = threadY.Font = threadZ.Font = core.Config.PreferredFont;
+
+            vsShader.Font = vsResources.Font = vsSamplers.Font = vsCBuffers.Font = vsClasses.Font = core.Config.PreferredFont;
+            gsShader.Font = gsResources.Font = gsSamplers.Font = gsCBuffers.Font = gsClasses.Font = core.Config.PreferredFont;
+            hsShader.Font = hsResources.Font = hsSamplers.Font = hsCBuffers.Font = hsClasses.Font = core.Config.PreferredFont;
+            dsShader.Font = dsResources.Font = dsSamplers.Font = dsCBuffers.Font = dsClasses.Font = core.Config.PreferredFont;
+            psShader.Font = psResources.Font = psSamplers.Font = psCBuffers.Font = psClasses.Font = core.Config.PreferredFont;
+            csShader.Font = csResources.Font = csSamplers.Font = csCBuffers.Font = csClasses.Font = core.Config.PreferredFont;
+
+            viewports.Font = core.Config.PreferredFont;
+            scissors.Font = core.Config.PreferredFont;
+
+            targetOutputs.Font = core.Config.PreferredFont;
+            blendOperations.Font = core.Config.PreferredFont;
+            
+            pipeFlow.Font = new System.Drawing.Font(core.Config.PreferredFont.FontFamily, 11.25F,
+                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+
             pipeFlow.SetStages(new KeyValuePair<string, string>[] {
                 new KeyValuePair<string,string>("IA", "Input Assembler"),
                 new KeyValuePair<string,string>("VS", "Vertex Shader"),
@@ -261,7 +286,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -887,7 +912,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1125,7 +1150,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1202,7 +1227,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1288,7 +1313,7 @@ namespace renderdocui.Windows.PipelineState
                         a = texs[t].arraysize;
                         format = texs[t].format.ToString();
                         name = texs[t].name;
-                        typename = texs[t].resType.ToString();
+                        typename = texs[t].resType.Str();
 
                         tag = texs[t];
                     }

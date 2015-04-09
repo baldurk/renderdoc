@@ -130,7 +130,7 @@ namespace renderdocui.Code
             }
 
             // propogate float formatting settings to the Formatter class used globally to format float values
-            cfg.SetupFormatter();
+            cfg.SetupFormatting();
 
             Application.CurrentCulture = new System.Globalization.CultureInfo("en-GB");
 

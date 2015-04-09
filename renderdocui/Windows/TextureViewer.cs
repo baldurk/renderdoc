@@ -179,6 +179,18 @@ namespace renderdocui.Windows
 
             InitializeComponent();
 
+            textureList.Font =
+                texturefilter.Font =
+                rangeBlack.Font =
+                rangeWhite.Font =
+                customShader.Font =
+                hdrMul.Font =
+                channels.Font =
+                mipLevel.Font =
+                sliceFace.Font =
+                zoomOption.Font = 
+                core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             textureList.m_Core = core;
@@ -2946,7 +2958,7 @@ namespace renderdocui.Windows
         private void saveTex_Click(object sender, EventArgs e)
         {
             if (m_SaveDialog == null)
-                m_SaveDialog = new TextureSaveDialog();
+                m_SaveDialog = new TextureSaveDialog(m_Core);
 
             m_SaveDialog.saveData.id = m_TexDisplay.texid;
             m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;

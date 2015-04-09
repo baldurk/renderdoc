@@ -35,7 +35,7 @@
             TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
             TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Stride", "Stride")));
             TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("bytelen", "Buffer Byte Len")));
+            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("bytelen", "Byte Len")));
             TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             System.Windows.Forms.GroupBox groupBox2;
             TreelistView.TreeListColumn treeListColumn7 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
@@ -196,12 +196,12 @@
             TreelistView.TreeListColumn treeListColumn152 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
             TreelistView.TreeListColumn treeListColumn153 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Enabled", "Enabled")));
             TreelistView.TreeListColumn treeListColumn154 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic", "Logic")));
-            TreelistView.TreeListColumn treeListColumn155 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Blend Src", "Blend Src")));
-            TreelistView.TreeListColumn treeListColumn156 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Blend Dst", "Blend Dst")));
-            TreelistView.TreeListColumn treeListColumn157 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Blend Op", "Blend Op")));
-            TreelistView.TreeListColumn treeListColumn158 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Blend Src", "Alpha Blend Src")));
-            TreelistView.TreeListColumn treeListColumn159 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Blend Dst", "Alpha Blend Dst")));
-            TreelistView.TreeListColumn treeListColumn160 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Blend Op", "Alpha Blend Op")));
+            TreelistView.TreeListColumn treeListColumn155 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Src", "Colour Src")));
+            TreelistView.TreeListColumn treeListColumn156 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Dst", "Colour Dst")));
+            TreelistView.TreeListColumn treeListColumn157 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Op", "Colour Op")));
+            TreelistView.TreeListColumn treeListColumn158 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Src", "Alpha Src")));
+            TreelistView.TreeListColumn treeListColumn159 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Dst", "Alpha Dst")));
+            TreelistView.TreeListColumn treeListColumn160 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Op", "Alpha Op")));
             TreelistView.TreeListColumn treeListColumn161 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic Op", "Logic Op")));
             TreelistView.TreeListColumn treeListColumn162 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Write Mask", "Write Mask")));
             TreelistView.TreeListColumn treeListColumn163 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Face", "Face")));
@@ -240,18 +240,13 @@
             TreelistView.TreeListColumn treeListColumn196 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
             TreelistView.TreeListColumn treeListColumn197 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
             TreelistView.TreeListColumn treeListColumn198 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            this.pipeFlow = new renderdocui.Controls.PipelineFlowchart();
             this.flowLayoutPanel6 = new System.Windows.Forms.FlowLayoutPanel();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
             this.showDisabledToolitem = new System.Windows.Forms.ToolStripButton();
             this.showEmptyToolitem = new System.Windows.Forms.ToolStripButton();
             this.export = new System.Windows.Forms.ToolStripButton();
-            this.rightclickMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
-            this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
-            this.pipeFlow = new renderdocui.Controls.PipelineFlowchart();
             this.stageTabControl = new renderdocui.Controls.TablessControl();
             this.tabIA = new System.Windows.Forms.TabPage();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -440,6 +435,11 @@
             this.csSamplers = new TreelistView.TreeListView();
             this.groupBox36 = new System.Windows.Forms.GroupBox();
             this.csCBuffers = new TreelistView.TreeListView();
+            this.rightclickMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
+            this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -455,7 +455,6 @@
             toolstripTable.SuspendLayout();
             this.flowLayoutPanel6.SuspendLayout();
             this.toolStrip1.SuspendLayout();
-            this.rightclickMenu.SuspendLayout();
             this.stageTabControl.SuspendLayout();
             this.tabIA.SuspendLayout();
             this.panel1.SuspendLayout();
@@ -602,6 +601,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.csSamplers)).BeginInit();
             this.groupBox36.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).BeginInit();
+            this.rightclickMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // toolStripLabel1
@@ -626,6 +626,19 @@
             toolstripTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 90F));
             toolstripTable.Size = new System.Drawing.Size(1171, 738);
             toolstripTable.TabIndex = 2;
+            // 
+            // pipeFlow
+            // 
+            this.pipeFlow.BackColor = System.Drawing.Color.Transparent;
+            this.pipeFlow.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.pipeFlow.Font = new System.Drawing.Font("Tahoma", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.pipeFlow.Location = new System.Drawing.Point(4, 35);
+            this.pipeFlow.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
+            this.pipeFlow.Name = "pipeFlow";
+            this.pipeFlow.SelectedStage = 0;
+            this.pipeFlow.Size = new System.Drawing.Size(1163, 62);
+            this.pipeFlow.TabIndex = 0;
+            this.pipeFlow.SelectedStageChanged += new System.EventHandler<System.EventArgs>(this.pipeFlow_SelectedStageChanged);
             // 
             // flowLayoutPanel6
             // 
@@ -684,49 +697,6 @@
             this.export.Size = new System.Drawing.Size(59, 22);
             this.export.Text = "Export";
             this.export.Click += new System.EventHandler(this.export_Click);
-            // 
-            // rightclickMenu
-            // 
-            this.rightclickMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.showDisabled,
-            this.showEmpty});
-            this.rightclickMenu.Name = "rightclickMenu";
-            this.rightclickMenu.Size = new System.Drawing.Size(144, 48);
-            // 
-            // showDisabled
-            // 
-            this.showDisabled.Image = global::renderdocui.Properties.Resources.page_white_delete;
-            this.showDisabled.Name = "showDisabled";
-            this.showDisabled.Size = new System.Drawing.Size(143, 22);
-            this.showDisabled.Text = "Show Disabled";
-            this.showDisabled.Click += new System.EventHandler(this.hideDisabled_Click);
-            // 
-            // showEmpty
-            // 
-            this.showEmpty.Image = global::renderdocui.Properties.Resources.page_white_database;
-            this.showEmpty.Name = "showEmpty";
-            this.showEmpty.Size = new System.Drawing.Size(143, 22);
-            this.showEmpty.Text = "Show Empty";
-            this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
-            // 
-            // exportDialog
-            // 
-            this.exportDialog.DefaultExt = "html";
-            this.exportDialog.Filter = "HTML Files (*.html)|*.html";
-            this.exportDialog.Title = "Export pipeline state as HTML";
-            // 
-            // pipeFlow
-            // 
-            this.pipeFlow.BackColor = System.Drawing.Color.Transparent;
-            this.pipeFlow.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.pipeFlow.Font = new System.Drawing.Font("Tahoma", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.pipeFlow.Location = new System.Drawing.Point(4, 35);
-            this.pipeFlow.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
-            this.pipeFlow.Name = "pipeFlow";
-            this.pipeFlow.SelectedStage = 0;
-            this.pipeFlow.Size = new System.Drawing.Size(1163, 62);
-            this.pipeFlow.TabIndex = 0;
-            this.pipeFlow.SelectedStageChanged += new System.EventHandler<System.EventArgs>(this.pipeFlow_SelectedStageChanged);
             // 
             // stageTabControl
             // 
@@ -925,13 +895,13 @@
             treeListColumn10.AutoSizeMinSize = 0;
             treeListColumn10.Width = 150;
             treeListColumn11.AutoSizeMinSize = 0;
-            treeListColumn11.Width = 60;
+            treeListColumn11.Width = 80;
             treeListColumn12.AutoSizeMinSize = 0;
             treeListColumn12.Width = 150;
             treeListColumn13.AutoSizeMinSize = 0;
             treeListColumn13.Width = 90;
             treeListColumn14.AutoSizeMinSize = 0;
-            treeListColumn14.Width = 60;
+            treeListColumn14.Width = 75;
             treeListColumn15.AutoSizeMinSize = 0;
             treeListColumn15.Width = 25;
             this.inputLayouts.Columns.AddRange(new TreelistView.TreeListColumn[] {
@@ -1235,7 +1205,7 @@
             treeListColumn20.AutoSizeMinSize = 150;
             treeListColumn20.Width = 50;
             treeListColumn21.AutoSizeMinSize = 0;
-            treeListColumn21.Width = 75;
+            treeListColumn21.Width = 85;
             treeListColumn22.AutoSizeMinSize = 0;
             treeListColumn22.Width = 50;
             treeListColumn23.AutoSizeMinSize = 0;
@@ -1243,7 +1213,7 @@
             treeListColumn24.AutoSizeMinSize = 0;
             treeListColumn24.Width = 50;
             treeListColumn25.AutoSizeMinSize = 0;
-            treeListColumn25.Width = 75;
+            treeListColumn25.Width = 85;
             treeListColumn26.AutoSizeMinSize = 0;
             treeListColumn26.Width = 200;
             treeListColumn27.AutoSizeMinSize = 0;
@@ -1301,7 +1271,7 @@
             treeListColumn30.AutoSizeMinSize = 0;
             treeListColumn30.Width = 250;
             treeListColumn31.AutoSizeMinSize = 0;
-            treeListColumn31.Width = 70;
+            treeListColumn31.Width = 90;
             treeListColumn32.AutoSize = true;
             treeListColumn32.AutoSizeMinSize = 50;
             treeListColumn32.Width = 50;
@@ -1351,7 +1321,7 @@
             treeListColumn34.AutoSizeMinSize = 100;
             treeListColumn34.Width = 50;
             treeListColumn35.AutoSizeMinSize = 0;
-            treeListColumn35.Width = 75;
+            treeListColumn35.Width = 85;
             treeListColumn36.AutoSizeMinSize = 0;
             treeListColumn36.Width = 200;
             treeListColumn37.AutoSizeMinSize = 0;
@@ -1556,7 +1526,7 @@
             treeListColumn42.AutoSizeMinSize = 150;
             treeListColumn42.Width = 50;
             treeListColumn43.AutoSizeMinSize = 0;
-            treeListColumn43.Width = 75;
+            treeListColumn43.Width = 85;
             treeListColumn44.AutoSizeMinSize = 0;
             treeListColumn44.Width = 50;
             treeListColumn45.AutoSizeMinSize = 0;
@@ -1564,7 +1534,7 @@
             treeListColumn46.AutoSizeMinSize = 0;
             treeListColumn46.Width = 50;
             treeListColumn47.AutoSizeMinSize = 0;
-            treeListColumn47.Width = 75;
+            treeListColumn47.Width = 85;
             treeListColumn48.AutoSizeMinSize = 0;
             treeListColumn48.Width = 200;
             treeListColumn49.AutoSizeMinSize = 0;
@@ -1622,7 +1592,7 @@
             treeListColumn52.AutoSizeMinSize = 0;
             treeListColumn52.Width = 250;
             treeListColumn53.AutoSizeMinSize = 0;
-            treeListColumn53.Width = 70;
+            treeListColumn53.Width = 90;
             treeListColumn54.AutoSize = true;
             treeListColumn54.AutoSizeMinSize = 50;
             treeListColumn54.Width = 50;
@@ -1672,7 +1642,7 @@
             treeListColumn56.AutoSizeMinSize = 100;
             treeListColumn56.Width = 50;
             treeListColumn57.AutoSizeMinSize = 0;
-            treeListColumn57.Width = 75;
+            treeListColumn57.Width = 85;
             treeListColumn58.AutoSizeMinSize = 0;
             treeListColumn58.Width = 200;
             treeListColumn59.AutoSizeMinSize = 0;
@@ -1877,7 +1847,7 @@
             treeListColumn64.AutoSizeMinSize = 150;
             treeListColumn64.Width = 50;
             treeListColumn65.AutoSizeMinSize = 0;
-            treeListColumn65.Width = 75;
+            treeListColumn65.Width = 85;
             treeListColumn66.AutoSizeMinSize = 0;
             treeListColumn66.Width = 50;
             treeListColumn67.AutoSizeMinSize = 0;
@@ -1885,7 +1855,7 @@
             treeListColumn68.AutoSizeMinSize = 0;
             treeListColumn68.Width = 50;
             treeListColumn69.AutoSizeMinSize = 0;
-            treeListColumn69.Width = 75;
+            treeListColumn69.Width = 85;
             treeListColumn70.AutoSizeMinSize = 0;
             treeListColumn70.Width = 200;
             treeListColumn71.AutoSizeMinSize = 0;
@@ -1943,7 +1913,7 @@
             treeListColumn74.AutoSizeMinSize = 0;
             treeListColumn74.Width = 250;
             treeListColumn75.AutoSizeMinSize = 0;
-            treeListColumn75.Width = 70;
+            treeListColumn75.Width = 90;
             treeListColumn76.AutoSize = true;
             treeListColumn76.AutoSizeMinSize = 50;
             treeListColumn76.Width = 50;
@@ -1993,7 +1963,7 @@
             treeListColumn78.AutoSizeMinSize = 100;
             treeListColumn78.Width = 50;
             treeListColumn79.AutoSizeMinSize = 0;
-            treeListColumn79.Width = 75;
+            treeListColumn79.Width = 85;
             treeListColumn80.AutoSizeMinSize = 0;
             treeListColumn80.Width = 200;
             treeListColumn81.AutoSizeMinSize = 0;
@@ -2247,7 +2217,7 @@
             treeListColumn91.AutoSizeMinSize = 150;
             treeListColumn91.Width = 50;
             treeListColumn92.AutoSizeMinSize = 0;
-            treeListColumn92.Width = 75;
+            treeListColumn92.Width = 85;
             treeListColumn93.AutoSizeMinSize = 0;
             treeListColumn93.Width = 50;
             treeListColumn94.AutoSizeMinSize = 0;
@@ -2255,7 +2225,7 @@
             treeListColumn95.AutoSizeMinSize = 0;
             treeListColumn95.Width = 50;
             treeListColumn96.AutoSizeMinSize = 0;
-            treeListColumn96.Width = 75;
+            treeListColumn96.Width = 85;
             treeListColumn97.AutoSizeMinSize = 0;
             treeListColumn97.Width = 200;
             treeListColumn98.AutoSizeMinSize = 0;
@@ -2313,7 +2283,7 @@
             treeListColumn101.AutoSizeMinSize = 0;
             treeListColumn101.Width = 250;
             treeListColumn102.AutoSizeMinSize = 0;
-            treeListColumn102.Width = 70;
+            treeListColumn102.Width = 90;
             treeListColumn103.AutoSize = true;
             treeListColumn103.AutoSizeMinSize = 50;
             treeListColumn103.Width = 50;
@@ -2461,7 +2431,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 607F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 608F));
             this.tableLayoutPanel8.Controls.Add(this.forcedSampleCount, 7, 1);
             this.tableLayoutPanel8.Controls.Add(this.label14, 6, 1);
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
@@ -2758,7 +2728,7 @@
             treeListColumn113.AutoSizeMinSize = 0;
             treeListColumn113.Width = 50;
             treeListColumn114.AutoSizeMinSize = 0;
-            treeListColumn114.Width = 60;
+            treeListColumn114.Width = 70;
             treeListColumn115.AutoSize = true;
             treeListColumn115.AutoSizeMinSize = 60;
             treeListColumn115.Width = 60;
@@ -3006,7 +2976,7 @@
             treeListColumn125.AutoSizeMinSize = 150;
             treeListColumn125.Width = 50;
             treeListColumn126.AutoSizeMinSize = 0;
-            treeListColumn126.Width = 75;
+            treeListColumn126.Width = 85;
             treeListColumn127.AutoSizeMinSize = 0;
             treeListColumn127.Width = 50;
             treeListColumn128.AutoSizeMinSize = 0;
@@ -3014,7 +2984,7 @@
             treeListColumn129.AutoSizeMinSize = 0;
             treeListColumn129.Width = 50;
             treeListColumn130.AutoSizeMinSize = 0;
-            treeListColumn130.Width = 75;
+            treeListColumn130.Width = 85;
             treeListColumn131.AutoSizeMinSize = 0;
             treeListColumn131.Width = 200;
             treeListColumn132.AutoSizeMinSize = 0;
@@ -3072,7 +3042,7 @@
             treeListColumn135.AutoSizeMinSize = 0;
             treeListColumn135.Width = 250;
             treeListColumn136.AutoSizeMinSize = 0;
-            treeListColumn136.Width = 70;
+            treeListColumn136.Width = 90;
             treeListColumn137.AutoSize = true;
             treeListColumn137.AutoSizeMinSize = 50;
             treeListColumn137.Width = 50;
@@ -3122,7 +3092,7 @@
             treeListColumn139.AutoSizeMinSize = 100;
             treeListColumn139.Width = 50;
             treeListColumn140.AutoSizeMinSize = 0;
-            treeListColumn140.Width = 75;
+            treeListColumn140.Width = 85;
             treeListColumn141.AutoSizeMinSize = 0;
             treeListColumn141.Width = 200;
             treeListColumn142.AutoSizeMinSize = 0;
@@ -3221,7 +3191,7 @@
             treeListColumn148.AutoSizeMinSize = 0;
             treeListColumn148.Width = 50;
             treeListColumn149.AutoSizeMinSize = 0;
-            treeListColumn149.Width = 75;
+            treeListColumn149.Width = 85;
             treeListColumn150.AutoSizeMinSize = 0;
             treeListColumn150.Width = 200;
             treeListColumn151.AutoSizeMinSize = 0;
@@ -3274,7 +3244,7 @@
             treeListColumn152.AutoSizeMinSize = 0;
             treeListColumn152.Width = 50;
             treeListColumn153.AutoSizeMinSize = 0;
-            treeListColumn153.Width = 50;
+            treeListColumn153.Width = 60;
             treeListColumn154.AutoSizeMinSize = 0;
             treeListColumn154.Width = 50;
             treeListColumn155.AutoSizeMinSize = 0;
@@ -3822,7 +3792,7 @@
             treeListColumn173.AutoSizeMinSize = 0;
             treeListColumn173.Width = 50;
             treeListColumn174.AutoSizeMinSize = 0;
-            treeListColumn174.Width = 75;
+            treeListColumn174.Width = 85;
             treeListColumn175.AutoSizeMinSize = 0;
             treeListColumn175.Width = 200;
             treeListColumn176.AutoSizeMinSize = 0;
@@ -4091,7 +4061,7 @@
             treeListColumn181.AutoSizeMinSize = 150;
             treeListColumn181.Width = 50;
             treeListColumn182.AutoSizeMinSize = 0;
-            treeListColumn182.Width = 75;
+            treeListColumn182.Width = 85;
             treeListColumn183.AutoSizeMinSize = 0;
             treeListColumn183.Width = 50;
             treeListColumn184.AutoSizeMinSize = 0;
@@ -4099,7 +4069,7 @@
             treeListColumn185.AutoSizeMinSize = 0;
             treeListColumn185.Width = 50;
             treeListColumn186.AutoSizeMinSize = 0;
-            treeListColumn186.Width = 75;
+            treeListColumn186.Width = 85;
             treeListColumn187.AutoSizeMinSize = 0;
             treeListColumn187.Width = 200;
             treeListColumn188.AutoSizeMinSize = 0;
@@ -4156,7 +4126,7 @@
             treeListColumn191.AutoSizeMinSize = 0;
             treeListColumn191.Width = 250;
             treeListColumn192.AutoSizeMinSize = 0;
-            treeListColumn192.Width = 70;
+            treeListColumn192.Width = 90;
             treeListColumn193.AutoSize = true;
             treeListColumn193.AutoSizeMinSize = 50;
             treeListColumn193.Width = 50;
@@ -4205,7 +4175,7 @@
             treeListColumn195.AutoSizeMinSize = 100;
             treeListColumn195.Width = 50;
             treeListColumn196.AutoSizeMinSize = 0;
-            treeListColumn196.Width = 75;
+            treeListColumn196.Width = 85;
             treeListColumn197.AutoSizeMinSize = 0;
             treeListColumn197.Width = 200;
             treeListColumn198.AutoSizeMinSize = 0;
@@ -4238,6 +4208,36 @@
             this.csCBuffers.Leave += new System.EventHandler(this.disableSelection_Leave);
             this.csCBuffers.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
+            // rightclickMenu
+            // 
+            this.rightclickMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.showDisabled,
+            this.showEmpty});
+            this.rightclickMenu.Name = "rightclickMenu";
+            this.rightclickMenu.Size = new System.Drawing.Size(144, 48);
+            // 
+            // showDisabled
+            // 
+            this.showDisabled.Image = global::renderdocui.Properties.Resources.page_white_delete;
+            this.showDisabled.Name = "showDisabled";
+            this.showDisabled.Size = new System.Drawing.Size(143, 22);
+            this.showDisabled.Text = "Show Disabled";
+            this.showDisabled.Click += new System.EventHandler(this.hideDisabled_Click);
+            // 
+            // showEmpty
+            // 
+            this.showEmpty.Image = global::renderdocui.Properties.Resources.page_white_database;
+            this.showEmpty.Name = "showEmpty";
+            this.showEmpty.Size = new System.Drawing.Size(143, 22);
+            this.showEmpty.Text = "Show Empty";
+            this.showEmpty.Click += new System.EventHandler(this.hideEmpty_Click);
+            // 
+            // exportDialog
+            // 
+            this.exportDialog.DefaultExt = "html";
+            this.exportDialog.Filter = "HTML Files (*.html)|*.html";
+            this.exportDialog.Title = "Export pipeline state as HTML";
+            // 
             // D3D11PipelineStateViewer
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -4252,7 +4252,6 @@
             this.flowLayoutPanel6.PerformLayout();
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
-            this.rightclickMenu.ResumeLayout(false);
             this.stageTabControl.ResumeLayout(false);
             this.tabIA.ResumeLayout(false);
             this.panel1.ResumeLayout(false);
@@ -4416,6 +4415,7 @@
             ((System.ComponentModel.ISupportInitialize)(this.csSamplers)).EndInit();
             this.groupBox36.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csCBuffers)).EndInit();
+            this.rightclickMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }

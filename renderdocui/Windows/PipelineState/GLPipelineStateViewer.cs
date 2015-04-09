@@ -64,6 +64,30 @@ namespace renderdocui.Windows.PipelineState
 
             m_DockContent = c;
 
+            inputLayouts.Font = core.Config.PreferredFont;
+            iabuffers.Font = core.Config.PreferredFont;
+
+            gsFeedback.Font = core.Config.PreferredFont;
+
+            groupX.Font = groupY.Font = groupZ.Font = core.Config.PreferredFont;
+            threadX.Font = threadY.Font = threadZ.Font = core.Config.PreferredFont;
+
+            vsShader.Font = vsTextures.Font = vsSamplers.Font = vsCBuffers.Font = vsSubroutines.Font = vsReadWrite.Font = core.Config.PreferredFont;
+            gsShader.Font = gsTextures.Font = gsSamplers.Font = gsCBuffers.Font = gsSubroutines.Font = gsReadWrite.Font = core.Config.PreferredFont;
+            tcsShader.Font = tcsTextures.Font = tcsSamplers.Font = tcsCBuffers.Font = tcsSubroutines.Font = tcsReadWrite.Font = core.Config.PreferredFont;
+            tesShader.Font = tesTextures.Font = tesSamplers.Font = tesCBuffers.Font = tesSubroutines.Font = tesReadWrite.Font = core.Config.PreferredFont;
+            fsShader.Font = fsTextures.Font = fsSamplers.Font = fsCBuffers.Font = fsSubroutines.Font = fsReadWrite.Font = core.Config.PreferredFont;
+            csShader.Font = csTextures.Font = csSamplers.Font = csCBuffers.Font = csSubroutines.Font = csReadWrite.Font = core.Config.PreferredFont;
+
+            viewports.Font = core.Config.PreferredFont;
+            scissors.Font = core.Config.PreferredFont;
+
+            targetOutputs.Font = core.Config.PreferredFont;
+            blendOperations.Font = core.Config.PreferredFont;
+
+            pipeFlow.Font = new System.Drawing.Font(core.Config.PreferredFont.FontFamily, 11.25F,
+                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+
             pipeFlow.SetStages(new KeyValuePair<string, string>[] {
                 new KeyValuePair<string,string>("VTX", "Vertex Input"),
                 new KeyValuePair<string,string>("VS", "Vertex Shader"),
@@ -110,14 +134,13 @@ namespace renderdocui.Windows.PipelineState
 
             restartIndex.Text = "";
 
-            ClearShaderState(vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines);
-            ClearShaderState(gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines);
-            ClearShaderState(tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines);
-            ClearShaderState(tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines);
-            ClearShaderState(fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines);
-            ClearShaderState(csShader, csTextures, csSamplers, csCBuffers, csSubroutines);
+            ClearShaderState(vsShader, vsTextures, vsSamplers, vsCBuffers, vsSubroutines, vsReadWrite);
+            ClearShaderState(gsShader, gsTextures, gsSamplers, gsCBuffers, gsSubroutines, gsReadWrite);
+            ClearShaderState(tesShader, tesTextures, tesSamplers, tesCBuffers, tesSubroutines, tesReadWrite);
+            ClearShaderState(tcsShader, tcsTextures, tcsSamplers, tcsCBuffers, tcsSubroutines, tcsReadWrite);
+            ClearShaderState(fsShader, fsTextures, fsSamplers, fsCBuffers, fsSubroutines, fsReadWrite);
+            ClearShaderState(csShader, csTextures, csSamplers, csCBuffers, csSubroutines, csReadWrite);
 
-            csReadWrite.Nodes.Clear();
             gsFeedback.Nodes.Clear();
 
             var tick = global::renderdocui.Properties.Resources.tick;
@@ -190,14 +213,16 @@ namespace renderdocui.Windows.PipelineState
             node.Italic = true;
         }
 
-        private void ClearShaderState(Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
-                                      TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
+        private void ClearShaderState(Label shader, TreelistView.TreeListView textures, TreelistView.TreeListView samplers,
+                                      TreelistView.TreeListView cbuffers, TreelistView.TreeListView subroutines,
+                                      TreelistView.TreeListView readwrites)
         {
             shader.Text = "Unbound";
-            resources.Nodes.Clear();
+            textures.Nodes.Clear();
             samplers.Nodes.Clear();
             cbuffers.Nodes.Clear();
-            classes.Nodes.Clear();
+            subroutines.Nodes.Clear();
+            readwrites.Nodes.Clear();
         }
 
         // Set a shader stage's resources and values
@@ -297,7 +322,7 @@ namespace renderdocui.Windows.PipelineState
                                     a = texs[t].arraysize;
                                     format = texs[t].format.ToString();
                                     name = texs[t].name;
-                                    typename = texs[t].resType.ToString();
+                                    typename = texs[t].resType.Str();
 
                                     if (texs[t].format.special &&
                                         (texs[t].format.specialFormat == SpecialFormat.D24S8 ||
@@ -1328,7 +1353,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
 
@@ -1388,7 +1413,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
