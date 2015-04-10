@@ -787,6 +787,14 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	gl.glBindVertexArray(m_FakeVAO);
 	gl.glBindVertexArray(0);
 
+	// we use this to draw from index data that was 'immediate' passed to the
+	// draw function, as i na real memory pointer
+	gl.glGenBuffers(1, &m_FakeIdxBuf);
+	gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+	m_FakeIdxSize = 1024*1024; // this buffer is resized up as needed
+	gl.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
+	gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+
 	gl.glGenFramebuffers(1, &m_FakeBB_FBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
 
@@ -825,6 +833,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 
 	gl.glViewport(0, 0, params.width, params.height);
 
+	m_FakeBB_DepthStencil = 0;
 	if(params.depthBits > 0 || params.stencilBits > 0)
 	{
 		gl.glGenTextures(1, &m_FakeBB_DepthStencil);
@@ -884,6 +893,12 @@ const char * WrappedOpenGL::GetChunkName(uint32_t idx)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
+	m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
+	m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
+	m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
+	m_Real.glDeleteTextures(1, &m_FakeBB_Color);
+	if(m_FakeBB_DepthStencil) m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
+
 	SAFE_DELETE(m_pSerialiser);
 
 	GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);

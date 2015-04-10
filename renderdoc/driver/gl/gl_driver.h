@@ -286,6 +286,8 @@ class WrappedOpenGL
 		GLuint m_FakeBB_Color;
 		GLuint m_FakeBB_DepthStencil;
 		GLuint m_FakeVAO;
+		GLuint m_FakeIdxBuf;
+		GLsizeiptr m_FakeIdxSize;
 
 		ResourceId m_FakeVAOID;
 		
@@ -1112,6 +1114,12 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+
+		// utility handling functions for glDraw*Elements* to handle pointers to indices being
+		// passed directly, with no index buffer bound. It's not allowed in core profile but
+		// it's fairly common and not too hard to support
+		byte *Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset);
+		void Common_postElements(byte *idxDelete);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));

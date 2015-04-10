@@ -724,16 +724,91 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 	}
 }
 
+byte *WrappedOpenGL::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset)
+{
+	GLint idxbuf = 0;
+	// while writing, check to see if an index buffer is bound
+	if(m_State >= WRITING)
+		m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+	
+	// serialise whether we're reading indices as memory
+	SERIALISE_ELEMENT(bool, IndicesFromMemory, idxbuf == 0);
+
+	if(IndicesFromMemory)
+	{
+		uint32_t IdxSize =
+				Type == eGL_UNSIGNED_BYTE  ? 1
+			: Type == eGL_UNSIGNED_SHORT ? 2
+			: /*Type == eGL_UNSIGNED_INT*/ 4;
+		
+		// serialise the actual data (IdxOffset is a pointer not an offset in this case)
+		SERIALISE_ELEMENT_BUF(byte *, idxdata, (void *)IdxOffset, size_t(IdxSize*Count));
+
+		if(m_State <= EXECUTING)
+		{
+			GLsizeiptr idxlen = GLsizeiptr(IdxSize*Count);
+
+			// resize fake index buffer if necessary
+			if(idxlen > m_FakeIdxSize)
+			{
+				m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+				m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
+				
+				m_FakeIdxSize = idxlen;
+
+				m_Real.glGenBuffers(1, &m_FakeIdxBuf);
+				m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+				m_Real.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
+			}
+			
+			// bind and update fake index buffer, to draw from the 'immediate' index data
+			m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+
+			m_Real.glNamedBufferSubDataEXT(m_FakeIdxBuf, 0, idxlen, idxdata);
+
+			// Set offset to 0 - means we read data from start of our fake index buffer
+			IdxOffset = 0;
+		
+			// we'll delete this later (only when replaying)
+			return idxdata;
+		}
+
+		// can just return NULL, since we don't need to do any cleanup or deletion
+	}
+
+	return NULL;
+}
+
+void WrappedOpenGL::Common_postElements(byte *idxDelete)
+{
+	// unbind temporary fake index buffer we used to pass 'immediate' index data
+	if(idxDelete)
+	{
+		m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+
+		AddDebugMessage(eDbgCategory_Deprecated, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+			"Assuming GL core profile is used then specifying indices as a raw array, "
+			"not as offset into element array buffer, is illegal.");
+
+		// delete serialised data
+		SAFE_DELETE_ARRAY(idxDelete);
+	}
+}
+
 bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type, const void *indices)
 {
 	SERIALISE_ELEMENT(GLenum, Mode, mode);
 	SERIALISE_ELEMENT(uint32_t, Count, count);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
 
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElements(Mode, Count, Type, (const void *)IdxOffset);
+
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -864,10 +939,14 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 	SERIALISE_ELEMENT(uint32_t, Count, count);
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+	
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
 
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
+		
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -932,9 +1011,13 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 	SERIALISE_ELEMENT(uint32_t, BaseVtx, basevertex);
 
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset, BaseVtx);
+
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -997,10 +1080,14 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 	SERIALISE_ELEMENT(GLenum, Type, type);
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 	SERIALISE_ELEMENT(int32_t, BaseVtx, basevertex);
+	
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
 
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
+		
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -1064,9 +1151,13 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
 
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
+
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -1130,10 +1221,14 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 	SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
 	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
 	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
+	
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
 
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseInstance);
+		
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -1199,9 +1294,13 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
 	SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
 
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex);
+
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
@@ -1267,10 +1366,14 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 	SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
 	SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
 	SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
+	
+	byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
 
 	if(m_State <= EXECUTING)
 	{
 		m_Real.glDrawElementsInstancedBaseVertexBaseInstance(Mode, Count, Type, (const void *)IdxOffset, InstCount, BaseVertex, BaseInstance);
+		
+		Common_postElements(idxDelete);
 	}
 	
 	const string desc = m_pSerialiser->GetDebugStr();
