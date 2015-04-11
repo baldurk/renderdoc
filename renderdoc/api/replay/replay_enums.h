@@ -319,30 +319,34 @@ enum ResourceUsage
 {
 	eUsage_None,
 
-	eUsage_IA_VB,
-	eUsage_IA_IB,
+	eUsage_VertexBuffer,
+	eUsage_IndexBuffer,
 
-	eUsage_VS_CB,
-	eUsage_HS_CB,
-	eUsage_DS_CB,
-	eUsage_GS_CB,
-	eUsage_PS_CB,
-	eUsage_CS_CB,
+	eUsage_VS_Constants,
+	eUsage_HS_Constants,
+	eUsage_DS_Constants,
+	eUsage_GS_Constants,
+	eUsage_PS_Constants,
+	eUsage_CS_Constants,
 
 	eUsage_SO,
 
-	eUsage_VS_SRV,
-	eUsage_HS_SRV,
-	eUsage_DS_SRV,
-	eUsage_GS_SRV,
-	eUsage_PS_SRV,
-	eUsage_CS_SRV,
+	eUsage_VS_Resource,
+	eUsage_HS_Resource,
+	eUsage_DS_Resource,
+	eUsage_GS_Resource,
+	eUsage_PS_Resource,
+	eUsage_CS_Resource,
 
-	eUsage_CS_UAV,
-	eUsage_PS_UAV,
+	eUsage_VS_RWResource,
+	eUsage_HS_RWResource,
+	eUsage_DS_RWResource,
+	eUsage_GS_RWResource,
+	eUsage_PS_RWResource,
+	eUsage_CS_RWResource,
 
-	eUsage_OM_RTV,
-	eUsage_OM_DSV,
+	eUsage_ColourTarget,
+	eUsage_DepthStencilTarget,
 
 	eUsage_Clear,
 
@@ -371,12 +375,12 @@ enum DrawcallFlags
 	eDraw_GenMips     = 0x400,
 
 	// flags
-	eDraw_UseIBuffer  = 0x01000,
-	eDraw_Instanced   = 0x02000,
-	eDraw_Auto        = 0x04000,
-	eDraw_Indirect    = 0x08000,
-	eDraw_ClearColour = 0x10000,
-	eDraw_ClearDepth  = 0x20000,
+	eDraw_UseIBuffer        = 0x01000,
+	eDraw_Instanced         = 0x02000,
+	eDraw_Auto              = 0x04000,
+	eDraw_Indirect          = 0x08000,
+	eDraw_ClearColour       = 0x10000,
+	eDraw_ClearDepthStencil = 0x20000,
 };
 
 enum SolidShadeMode

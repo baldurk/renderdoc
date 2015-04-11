@@ -174,7 +174,7 @@ struct GLRenderState
 		uint32_t name;
 		uint64_t start;
 		uint64_t size;
-	} AtomicCounter[1], ShaderStorage[8], TransformFeedback[4], UniformBinding[84];
+	} AtomicCounter[8], ShaderStorage[96], TransformFeedback[4], UniformBinding[84];
 
 	struct BlendState
 	{

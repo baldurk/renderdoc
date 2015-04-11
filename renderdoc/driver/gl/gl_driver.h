@@ -55,7 +55,7 @@ struct GLInitParams : public RDCInitParams
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x000000B;
+	static const uint32_t GL_SERIALISE_VERSION = 0x000000C;
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;
@@ -197,6 +197,8 @@ class WrappedOpenGL
 
 		list<DrawcallTreeNode *> m_DrawcallStack;
 
+		map<ResourceId, vector<EventUsage> > m_ResourceUses;
+
 		// buffer used
 		vector<byte> m_ScratchBuf;
 
@@ -299,6 +301,7 @@ class WrappedOpenGL
 		void ProcessChunk(uint64_t offset, GLChunkType context);
 		void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 		void ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute);
+		void AddUsage(FetchDrawcall draw);
 		void AddDrawcall(FetchDrawcall d, bool hasEvents);
 		void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
 		
@@ -435,6 +438,8 @@ class WrappedOpenGL
 		const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
 
 		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
+
+		vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
 
 		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate);
 		void DeleteContext(void *contextHandle);

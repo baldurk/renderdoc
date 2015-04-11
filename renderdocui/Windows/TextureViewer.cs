@@ -3051,9 +3051,9 @@ namespace renderdocui.Windows
             ToolStripItem item = null;
 
             if (start == end)
-                item = new ToolStripLabel("EID " + start + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + ": " + usage.Str(m_Core.APIProps.pipelineType));
             else
-                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str(m_Core.APIProps.pipelineType));
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
@@ -3091,7 +3091,7 @@ namespace renderdocui.Windows
                     {
                         uint start = 0;
                         uint end = 0;
-                        ResourceUsage us = ResourceUsage.IA_IB;
+                        ResourceUsage us = ResourceUsage.IndexBuffer;
 
                         foreach (var u in usage)
                         {

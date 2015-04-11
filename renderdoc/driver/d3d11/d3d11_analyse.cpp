@@ -3903,13 +3903,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		curNumInst = D3D11_SHADER_MAX_INTERFACES;
 		curNumScissors = curNumViews = 16;
 
-		bool uavOutput = (events[ev].usage == eUsage_PS_UAV ||
-				events[ev].usage == eUsage_CS_UAV ||
-				events[ev].usage == eUsage_CopyDst ||
-				events[ev].usage == eUsage_Copy ||
-				events[ev].usage == eUsage_Resolve ||
-				events[ev].usage == eUsage_ResolveDst ||
-				events[ev].usage == eUsage_GenMips);
+		bool uavOutput = (
+			(events[ev].usage >= eUsage_VS_RWResource &&
+			 events[ev].usage <= eUsage_CS_RWResource) ||
+			 events[ev].usage == eUsage_CopyDst ||
+			 events[ev].usage == eUsage_Copy ||
+			 events[ev].usage == eUsage_Resolve ||
+			 events[ev].usage == eUsage_ResolveDst ||
+			 events[ev].usage == eUsage_GenMips);
 
 		m_pImmediateContext->RSGetState(&curRS);
 		m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
@@ -4394,8 +4395,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 		bool clear = (draw->flags & eDraw_Clear);
 
-		bool uavWrite = (events[i].usage == eUsage_PS_UAV ||
-				events[i].usage == eUsage_CS_UAV ||
+		bool uavWrite = (
+				(events[i].usage >= eUsage_VS_RWResource &&
+				 events[i].usage <= eUsage_CS_RWResource) ||
 				events[i].usage == eUsage_CopyDst ||
 				events[i].usage == eUsage_Copy ||
 				events[i].usage == eUsage_Resolve ||

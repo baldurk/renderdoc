@@ -6002,7 +6002,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 
 		FetchDrawcall draw;
 		draw.name = name;
-		draw.flags |= eDraw_Clear|eDraw_ClearDepth;
+		draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
 
 		AddDrawcall(draw, true);
 		

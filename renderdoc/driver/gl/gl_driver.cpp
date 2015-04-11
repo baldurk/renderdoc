@@ -798,8 +798,6 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	gl.glGenFramebuffers(1, &m_FakeBB_FBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
 
-	GLNOTIMP("backbuffer needs to resize if the size is exceeded");
-
 	GLenum colfmt = eGL_RGBA8;
 
 	if(params.colorBits == 32)
@@ -3578,6 +3576,16 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
+		
+		// it's easier to remove duplicate usages here than check it as we go.
+		// this means if textures are bound in multiple places in the same draw
+		// we don't have duplicate uses
+		for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
+		{
+			vector<EventUsage> &v = it->second;
+			std::sort(v.begin(), v.end());
+			v.erase( std::unique(v.begin(), v.end()), v.end() );
+		}
 	}
 
 	GetResourceManager()->MarkInFrame(false);
@@ -3656,6 +3664,254 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 		context->m_State = state;
 }
 
+void WrappedOpenGL::AddUsage(FetchDrawcall d)
+{
+	if((d.flags & (eDraw_Drawcall|eDraw_Dispatch)) == 0)
+		return;
+
+	const GLHookSet &gl = m_Real;
+
+	GLResourceManager *rm = GetResourceManager();
+	
+	void *ctx = GetCtx();
+
+	uint32_t e = d.eventID;
+
+	//////////////////////////////
+	// Input
+
+	if(d.flags & eDraw_UseIBuffer)
+	{
+		GLuint ibuffer = 0;
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
+
+		if(ibuffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, ibuffer))].push_back(EventUsage(e, eUsage_IndexBuffer));
+	}
+
+	// Vertex buffers and attributes
+	GLint numVBufferBindings = 16;
+	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+	
+	for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
+	{
+		GLuint buffer = GetBoundVertexBuffer(m_Real, i);
+
+		if(buffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_VertexBuffer));
+	}
+	
+	//////////////////////////////
+	// Shaders
+	
+	{
+		GLRenderState rs(&m_Real, NULL, READING);
+		rs.FetchState(ctx, this);
+
+		ShaderReflection *refl[6] = { NULL };
+		ShaderBindpointMapping mapping[6];
+
+		GLuint curProg = 0;
+		gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+
+		if(curProg == 0)
+		{
+			gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
+
+			if(curProg == 0)
+			{
+				// no program bound at this draw
+			}
+			else
+			{
+				auto &pipeDetails = m_Pipelines[rm->GetID(ProgramPipeRes(ctx, curProg))];
+
+				for(size_t i=0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
+				{
+					if(pipeDetails.stageShaders[i] != ResourceId())
+					{
+						curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+
+						refl[i] = &m_Shaders[pipeDetails.stageShaders[i]].reflection;
+						GetBindpointMapping(m_Real, curProg, (int)i, refl[i], mapping[i]);
+					}
+				}
+			}
+		}
+		else
+		{
+			auto &progDetails = m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
+
+			for(size_t i=0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
+			{
+				if(progDetails.stageShaders[i] != ResourceId())
+				{
+					refl[i] = &m_Shaders[progDetails.stageShaders[i]].reflection;
+					GetBindpointMapping(m_Real, curProg, (int)i, refl[i], mapping[i]);
+				}
+			}
+		}
+
+		for(size_t i=0; i < ARRAY_COUNT(refl); i++)
+		{
+			EventUsage cb = EventUsage(e, ResourceUsage(eUsage_VS_Constants + i));
+			EventUsage res = EventUsage(e, ResourceUsage(eUsage_VS_Resource + i));
+			EventUsage rw = EventUsage(e, ResourceUsage(eUsage_VS_RWResource + i));
+
+			if(refl[i])
+			{
+				for(int32_t c=0; c < refl[i]->ConstantBlocks.count; c++)
+				{
+					if(!refl[i]->ConstantBlocks[c].bufferBacked) continue;
+					if(refl[i]->ConstantBlocks[c].bindPoint < 0 ||
+						refl[i]->ConstantBlocks[c].bindPoint >= mapping[i].ConstantBlocks.count) continue;
+
+					int32_t bind = mapping[i].ConstantBlocks[ refl[i]->ConstantBlocks[c].bindPoint ].bind;
+
+					if(rs.UniformBinding[bind].name)
+						m_ResourceUses[rm->GetID(BufferRes(ctx, rs.UniformBinding[bind].name))].push_back(cb);
+				}
+				
+				for(int32_t r=0; r < refl[i]->Resources.count; r++)
+				{
+					int32_t bind = mapping[i].Resources[ refl[i]->Resources[r].bindPoint ].bind;
+
+					if(refl[i]->Resources[r].IsReadWrite)
+					{
+						if(refl[i]->Resources[r].IsTexture)
+						{
+							if(rs.Images[bind].name)
+								m_ResourceUses[rm->GetID(TextureRes(ctx, rs.UniformBinding[bind].name))].push_back(rw);
+						}
+						else
+						{
+							if(refl[i]->Resources[r].variableType.descriptor.cols == 1 &&
+								refl[i]->Resources[r].variableType.descriptor.rows == 1 &&
+								refl[i]->Resources[r].variableType.descriptor.type == eVar_UInt)
+							{
+								if(rs.AtomicCounter[bind].name)
+									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
+							}
+							else
+							{
+								if(rs.ShaderStorage[bind].name)
+									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.ShaderStorage[bind].name))].push_back(rw);
+							}
+						}
+						continue;
+					}
+
+					uint32_t *texList = NULL;
+					
+					switch(refl[i]->Resources[r].resType)
+					{
+						case eResType_None:
+							texList = NULL;
+							break;
+						case eResType_Buffer:
+							texList = rs.TexBuffer;
+							break;
+						case eResType_Texture1D:
+							texList = rs.Tex1D;
+							break;
+						case eResType_Texture1DArray:
+							texList = rs.Tex1DArray;
+							break;
+						case eResType_Texture2D:
+							texList = rs.Tex2D;
+							break;
+						case eResType_TextureRect:
+							texList = rs.TexRect;
+							break;
+						case eResType_Texture2DArray:
+							texList = rs.Tex2DArray;
+							break;
+						case eResType_Texture2DMS:
+							texList = rs.Tex2DMS;
+							break;
+						case eResType_Texture2DMSArray:
+							texList = rs.Tex2DMSArray;
+							break;
+						case eResType_Texture3D:
+							texList = rs.Tex3D;
+							break;
+						case eResType_TextureCube:
+							texList = rs.TexCube;
+							break;
+						case eResType_TextureCubeArray:
+							texList = rs.TexCubeArray;
+							break;
+					}
+					
+					if(texList != NULL && texList[bind] != 0)
+						m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(res);
+				}
+			}
+		}
+	}
+	
+	//////////////////////////////
+	// Feedback
+	
+	GLint maxCount = 0;
+	gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+	for(int i=0; i < maxCount; i++)
+	{
+		GLuint buffer = 0;
+		gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);
+
+		if(buffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_SO));
+	}
+	
+	//////////////////////////////
+	// FBO
+	
+	GLint numCols = 8;
+	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+	
+	GLuint attachment = 0;
+	GLenum type = eGL_TEXTURE;
+	for(GLint i=0; i < numCols; i++)
+	{
+		type = eGL_TEXTURE;
+
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_ColourTarget));
+			else
+				m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_ColourTarget));
+		}
+	}
+
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+	if(attachment)
+	{
+		if(type == eGL_TEXTURE)
+			m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+		else
+			m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+	}
+
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+	
+	if(attachment)
+	{
+		if(type == eGL_TEXTURE)
+			m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+		else
+			m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+	}
+}
+
 void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
 	if(d.context == ResourceId()) d.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
@@ -3711,7 +3967,7 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		draw.events = evs;
 	}
 
-	//AddUsage(draw);
+	AddUsage(draw);
 	
 	// should have at least the root drawcall here, push this drawcall
 	// onto the back's children list.

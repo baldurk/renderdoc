@@ -1275,6 +1275,59 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 		draw.flags |= eDraw_Resolve;
 
 		AddDrawcall(draw, true);
+
+		GLint numCols = 8;
+		m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+		for(int i=0; i < numCols+2; i++)
+		{
+			GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0+i);
+			if(i == numCols  ) attachName = eGL_DEPTH_ATTACHMENT;
+			if(i == numCols+1) attachName = eGL_STENCIL_ATTACHMENT;
+
+			GLuint srcattachment = 0, dstattachment = 0;
+			GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
+
+			m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&srcattachment);
+			m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&srctype);
+
+			m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&dstattachment);
+			m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&dsttype);
+
+			ResourceId srcid, dstid;
+			
+			if(srctype == eGL_TEXTURE)
+				srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
+			else
+				srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
+			
+			if(dstattachment == srcattachment)
+			{
+				m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+			}
+			else
+			{
+				if(dsttype == eGL_TEXTURE)
+					dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
+				else
+					dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+
+				// MS to non-MS is a resolve
+				if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+					  m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
+					  m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
+					  m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+				{
+					m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
+					m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_ResolveDst));
+				}
+				else
+				{
+					m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
+					m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+				}
+			}
+		}
 	}
 
 	return true;

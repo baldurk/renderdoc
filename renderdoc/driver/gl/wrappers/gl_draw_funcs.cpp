@@ -2543,8 +2543,26 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Clear;
+		if(buf == eGL_COLOR)
+			draw.flags |= eDraw_ClearColour;
+		else
+			draw.flags |= eDraw_ClearDepthStencil;
 		
 		AddDrawcall(draw, true);
+		
+		GLuint attachment = 0;
+		GLenum attachName = buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_DEPTH_ATTACHMENT;
+		GLenum type = eGL_TEXTURE;
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			else
+				m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		}
 	}
 
 
@@ -2649,8 +2667,26 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Clear;
+		if(buf == eGL_COLOR)
+			draw.flags |= eDraw_ClearColour;
+		else
+			draw.flags |= eDraw_ClearDepthStencil;
 		
 		AddDrawcall(draw, true);
+		
+		GLuint attachment = 0;
+		GLenum attachName = buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_STENCIL_ATTACHMENT;
+		GLenum type = eGL_TEXTURE;
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			else
+				m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		}
 	}
 
 
@@ -2740,9 +2776,23 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 
 		FetchDrawcall draw;
 		draw.name = name;
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_Clear|eDraw_ClearColour;
 		
 		AddDrawcall(draw, true);
+		
+		GLuint attachment = 0;
+		GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf);
+		GLenum type = eGL_TEXTURE;
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			else
+				m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		}
 	}
 
 	return true;
@@ -2817,9 +2867,35 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
 
 		FetchDrawcall draw;
 		draw.name = name;
-		draw.flags |= eDraw_Clear;
+		draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
 		
 		AddDrawcall(draw, true);
+		
+		GLuint attachment = 0;
+		GLenum type = eGL_TEXTURE;
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			else
+				m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		}
+		
+		attachment = 0;
+		type = eGL_TEXTURE;
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			else
+				m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+		}
 	}
 
 	return true;
@@ -3123,8 +3199,69 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Clear;
+		if(Mask & GL_COLOR_BUFFER_BIT)
+			draw.flags |= eDraw_ClearColour;
+		if(Mask & (eGL_DEPTH_BUFFER_BIT|eGL_STENCIL_BUFFER_BIT))
+			draw.flags |= eDraw_ClearDepthStencil;
 		
 		AddDrawcall(draw, true);
+		
+		GLuint attachment = 0;
+		GLenum type = eGL_TEXTURE;
+
+		if(Mask & GL_DEPTH_BUFFER_BIT)
+		{
+			m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+			m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+			if(attachment)
+			{
+				if(type == eGL_TEXTURE)
+					m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+				else
+					m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			}
+		}
+		
+		attachment = 0;
+		type = eGL_TEXTURE;
+		
+		if(Mask & GL_STENCIL_BUFFER_BIT)
+		{
+			m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+			m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+			if(attachment)
+			{
+				if(type == eGL_TEXTURE)
+					m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+				else
+					m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+			}
+		}
+		
+		if(Mask & GL_COLOR_BUFFER_BIT)
+		{
+			GLint numCols = 8;
+			m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+			for(int i=0; i < numCols; i++)
+			{
+				attachment = 0;
+				type = eGL_TEXTURE;
+
+				m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+				m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+				if(attachment)
+				{
+					if(type == eGL_TEXTURE)
+						m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+					else
+						m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(EventUsage(m_CurEventID, eUsage_Clear));
+				}
+			}
+		}
 	}
 
 	return true;

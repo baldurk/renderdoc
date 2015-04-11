@@ -655,6 +655,8 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
 		draw.flags |= eDraw_GenMips;
 
 		AddDrawcall(draw, true);
+
+		m_ResourceUses[GetResourceManager()->GetLiveID(id)].push_back(EventUsage(m_CurEventID, eUsage_GenMips));
 	}
 
 	return true;
@@ -772,6 +774,16 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
 		draw.flags |= eDraw_Copy;
 
 		AddDrawcall(draw, true);
+
+		if(srcid == dstid)
+		{
+			m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+		}
+		else
+		{
+			m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
+			m_ResourceUses[GetResourceManager()->GetLiveID(dstid)].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+		}
 	}
 
 	return true;
