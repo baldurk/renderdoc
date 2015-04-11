@@ -96,14 +96,14 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
 	}
 }
 
-void CheckVertexOutputUses(vector<string> sources, bool &pointSizeUsed, bool &clipDistanceUsed)
+void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, bool &clipDistanceUsed)
 {
 	pointSizeUsed = false;
 	clipDistanceUsed = false;
 
 	for(size_t i=0; i < sources.size(); i++)
 	{
-		string &s = sources[i];
+		const string &s = sources[i];
 
 		size_t offs = 0;
 
