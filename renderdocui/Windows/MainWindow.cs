@@ -829,6 +829,7 @@ namespace renderdocui.Windows
         }
 
         public bool OwnTemporaryLog = false;
+        private bool SavedTemporaryLog = false;
 
         public void ShowLiveCapture(LiveCapture live)
         {
@@ -1041,7 +1042,11 @@ namespace renderdocui.Windows
             {
                 string temppath = m_Core.LogFileName;
 
-                DialogResult res = MessageBox.Show("Save this logfile?", "Unsaved log", MessageBoxButtons.YesNoCancel);
+                DialogResult res = DialogResult.No;
+
+                // unless we've saved the log, prompt to save
+                if(!SavedTemporaryLog)
+                    res = MessageBox.Show("Save this logfile?", "Unsaved log", MessageBoxButtons.YesNoCancel);
 
                 if (res == DialogResult.Cancel)
                 {
@@ -1061,6 +1066,7 @@ namespace renderdocui.Windows
                 if (temppath != m_Core.LogFileName || res == DialogResult.No)
                     deletepath = temppath;
                 OwnTemporaryLog = false;
+                SavedTemporaryLog = false;
             }
 
             CloseLogfile();
@@ -1084,17 +1090,13 @@ namespace renderdocui.Windows
                     return false;
                 }
 
+                // we copy the (possibly) temp log to the desired path, but the log item remains referring to the original path.
+                // This ensures that if the user deletes the saved path we can still open or re-save it.
                 File.Copy(m_Core.LogFileName, saveDialog.FileName, true);
 
-                OwnTemporaryLog = false;
-
-                m_Core.LogFileName = saveDialog.FileName;
-
-                SetTitle();
-
-                m_Core.Config.AddRecentFile(m_Core.Config.RecentLogFiles, m_Core.LogFileName, 10);
-
-                PopulateRecentFiles();
+                // we don't prompt to save on closing - if the user deleted the log that we just saved, then
+                // that is up to them.
+                SavedTemporaryLog = true;
 
                 return true;
             }

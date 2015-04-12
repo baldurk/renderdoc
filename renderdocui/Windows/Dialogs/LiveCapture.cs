@@ -386,13 +386,11 @@ namespace renderdocui.Windows
 
             string path = m_Main.GetSavePath();
 
+            // we copy the temp log to the desired path, but the log item remains referring to the temp path.
+            // This ensures that if the user deletes the saved path we can still open or re-save it.
             if (path.Length > 0)
             {
                 File.Copy(log.localpath, path, true);
-                File.Delete(log.localpath);
-
-                log.localpath = path;
-                log.saved = true;
                 return true;
             }
 
