@@ -764,6 +764,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_FakeBB_Color = 0;
 	m_FakeBB_DepthStencil = 0;
 	m_FakeVAO = 0;
+	m_FakeIdxBuf = 0;
+	m_FakeIdxSize = 0;
 		
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
@@ -891,10 +893,10 @@ const char * WrappedOpenGL::GetChunkName(uint32_t idx)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
-	m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
-	m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
-	m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
-	m_Real.glDeleteTextures(1, &m_FakeBB_Color);
+	if(m_FakeIdxBuf) m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
+	if(m_FakeVAO) m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
+	if(m_FakeBB_FBO) m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
+	if(m_FakeBB_Color) m_Real.glDeleteTextures(1, &m_FakeBB_Color);
 	if(m_FakeBB_DepthStencil) m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
 
 	SAFE_DELETE(m_pSerialiser);
