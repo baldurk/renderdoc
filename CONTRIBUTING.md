@@ -36,21 +36,22 @@ Code Explanation
 There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) on the wiki explaining different aspects of how the code fits together - like how the capture-side works vs replay-side, how shader debugging works, etc.
 
     renderdoc/ 
-        dist.sh                         ; a little script that will build into dist/ with everything necessary
-                                        ; to distribute a build - assumes that exes etc are already built
+        Makefile                        ; The linux make file, will recurse into subdirectories to build them
+        renderdoc.sln                   ; VS2010 solution for windows building
         renderdoc/
             3rdparty/                   ; third party utilities & libraries included
             ...                         ; everything else in here consists of the core renderdoc runtime
         renderdoccmd/                   ; A small C++ utility program that runs to do various little tasks
+        renderdocshim/                  ; A tiny C DLL using only kernel32.dll that is used for global hooking
         renderdocui/                    ; The .NET UI layer built on top of renderdoc/
+            3rdparty/                   ; third party utilities & libraries included
         pdblocate/                      ; a simple stub program to invoke DIA to look up symbols/pdbs
                                         ; for callstack resolution on windows
         docs/                           ; source documentation for the .chm file or http://docs.renderdoc.org/
                                         ; in the Sandcastle help file builder
         installer/                      ; installer scripts for WiX Toolset
-        ScintillaNET/                   ; .NET component for using Scintilla in the shader viewers
-        WinFormsUI/                     ; dockpanelsuite for docking UI
-        breakpad/                       ; parts of google breakpad necessary for crash reporting system
+        dist.sh                         ; a little script that will build into dist/ with everything necessary
+                                        ; to distribute a build - assumes that exes etc are already built
 
 Testing
 --------------
