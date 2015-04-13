@@ -518,7 +518,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->WindowSize(w, r.right-r.left, r.bottom-r.top);
 
-			glhooks.GetDriver()->Present(w);
+			glhooks.GetDriver()->SwapBuffers(w);
 
 			return glhooks.SwapBuffers_hook()(dc);
 		}

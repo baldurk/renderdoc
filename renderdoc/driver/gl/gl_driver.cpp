@@ -673,17 +673,19 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	m_FrameTimer.Restart();
 
+	m_AppControlledCapture = false;
+
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
 	m_CurFileSize = 0;
 
 	m_RealDebugFunc = NULL;
 	m_RealDebugFuncParam = NULL;
-	
+
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
-       m_CurEventID = 0;
-       m_CurDrawcallID = 0;
+	m_CurEventID = 0;
+	m_CurDrawcallID = 0;
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
@@ -752,6 +754,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
 		GetResourceManager()->AddResourceRecord(m_FakeVAOID);
 		GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
+
+		RenderDoc::Inst().AddDefaultFrameCapturer(this);
 	}
 	else
 	{
@@ -899,6 +903,8 @@ WrappedOpenGL::~WrappedOpenGL()
 	if(m_FakeBB_Color) m_Real.glDeleteTextures(1, &m_FakeBB_Color);
 	if(m_FakeBB_DepthStencil) m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
 
+	RenderDoc::Inst().RemoveDefaultFrameCapturer(this);
+
 	SAFE_DELETE(m_pSerialiser);
 
 	GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
@@ -967,12 +973,32 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 	m_ContextData.erase(contextHandle);
 }
 
+void WrappedOpenGL::ContextData::UnassociateWindow(void *wndHandle)
+{
+	auto it = windows.find(wndHandle);
+	if(it != windows.end())
+	{
+		windows.erase(wndHandle);
+		RenderDoc::Inst().RemoveFrameCapturer(ctx, wndHandle);
+	}
+}
+
+void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHandle)
+{
+	auto it = windows.find(wndHandle);
+	if(it == windows.end())
+		RenderDoc::Inst().AddFrameCapturer(ctx, wndHandle, gl);
+
+	windows[wndHandle] = Timing::GetUnixTimestamp();
+}
+
 void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate)
 {
 	// TODO: support multiple GL contexts more explicitly
 	m_InitParams = initParams;
 
 	ContextData &ctxdata = m_ContextData[winData.ctx];
+	ctxdata.ctx = winData.ctx;
 	ctxdata.isCore = core;
 	ctxdata.attribsCreate = attribsCreate;
 }
@@ -1920,15 +1946,54 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
 	}
 }
 
-void WrappedOpenGL::Present(void *windowHandle)
+void WrappedOpenGL::SwapBuffers(void *windowHandle)
 {
-	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
-
 	if(m_State == WRITING_IDLE)
 		RenderDoc::Inst().Tick();
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 	
+	ContextData &ctxdata = GetCtxData();
+	
+	// we only handle context-window associations here as it's too common to
+	// create invisible helper windows while creating contexts, that then
+	// become the default window.
+	// Since we only capture windows that do SwapBuffers (i.e. if you're doing
+	// headless rendering then you must capture via the API anyway), this
+	// isn't a big problem.
+	//
+	// Also we only set up associations for capturable windows.
+	if(ctxdata.Modern())
+	{
+		for(auto it=m_ContextData.begin(); it != m_ContextData.end(); ++it)
+			if(it->first != ctxdata.ctx)
+				it->second.UnassociateWindow(windowHandle);
+
+		ctxdata.AssociateWindow(this, windowHandle);
+	}
+	
+	bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
+	
+	// look at previous associations and decay any that are too old
+	uint64_t ref = Timing::GetUnixTimestamp() - 5; // 5 seconds
+
+	for(auto cit=m_ContextData.begin(); cit != m_ContextData.end(); ++cit)
+	{
+		for(auto wit=cit->second.windows.begin(); wit != cit->second.windows.end(); )
+		{
+			if(wit->second < ref)
+			{
+				auto remove = wit;
+				++wit;
+				cit->second.windows.erase(remove);
+			}
+			else
+			{
+				++wit;
+			}
+		}
+	}
+
 	if(m_State == WRITING_IDLE)
 	{
 		m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
@@ -1960,15 +2025,13 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-		if((overlay & eOverlay_Enabled) && m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+		if(overlay & eOverlay_Enabled)
 		{
 			RenderTextState textState;
 
-			ContextData &ctxdata = GetCtxData();
-
 			textState.Push(m_Real, ctxdata.Modern());
 
-			// TODO: handle selecting active window amongst many
+			if(activeWindow)
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
@@ -2046,6 +2109,38 @@ void WrappedOpenGL::Present(void *windowHandle)
 				y += 1.0f;
 #endif
 			}
+			else
+			{
+				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
+
+				string str = "OpenGL. Inactive window.";
+				
+				if(ctxdata.Modern())
+				{
+					for(size_t i=0; i < keys.size(); i++)
+					{
+						if(i == 0)
+							str += " ";
+						else
+							str += ", ";
+
+						str += ToStr::Get(keys[i]);
+					}
+
+					if(!keys.empty())
+						str += " to cycle between windows.";
+				}
+				else
+				{
+					if(!ctxdata.attribsCreate)
+					{
+						str += "\nContext not created via CreateContextAttribs. Capturing disabled.\n";
+					}
+					str += "Only OpenGL 3.2+ contexts are supported.";
+				}
+
+				RenderOverlayText(0.0f, 0.0f, str.c_str());
+			}
 
 			textState.Pop(m_Real, ctxdata.Modern());
 
@@ -2060,195 +2155,229 @@ void WrappedOpenGL::Present(void *windowHandle)
 			}
 		}
 	}
-
-	// kill any current capture
-	if(m_State == WRITING_CAPFRAME)
-	{
-		//if(HasSuccessfulCapture())
-		{
-			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
-
-			EndCaptureFrame();
-			FinishCapture();
-			
-			const uint32_t maxSize = 1024;
-
-			byte *thpixels = NULL;
-			uint32_t thwidth = 0;
-			uint32_t thheight = 0;
-
-			if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
-			{
-				RDCGLenum prevReadBuf = eGL_BACK;
-				GLint prevBuf = 0;
-				GLint packBufBind = 0;
-				GLint prevPackRowLen = 0;
-				GLint prevPackSkipRows = 0;
-				GLint prevPackSkipPixels = 0;
-				GLint prevPackAlignment = 0;
-				m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
-				m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
-				m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
-				m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
-				m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
-				m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
-				m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
-
-				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
-				m_Real.glReadBuffer(eGL_BACK);
-				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
-				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
-
-				thwidth = m_InitParams.width;
-				thheight = m_InitParams.height;
-
-				thpixels = new byte[thwidth*thheight*3];
-
-				m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
-
-				for(uint32_t y=0; y <= thheight/2; y++)
-				{
-					for(uint32_t x=0; x < thwidth; x++)
-					{
-						byte save[3];
-						save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
-						save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
-						save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
-						
-						thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
-						thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
-						thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
-						
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
-					}
-				}
-
-				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
-				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
-				m_Real.glReadBuffer(prevReadBuf);
-				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
-				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
-			}
-			
-			byte *jpgbuf = NULL;
-			int len = thwidth*thheight;
-
-			if(len > 0)
-			{
-				jpgbuf = new byte[len];
-
-				jpge::params p;
-
-				p.m_quality = 40;
-
-				bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
-
-				if(!success)
-				{
-					RDCERR("Failed to compress to jpg");
-					SAFE_DELETE_ARRAY(jpgbuf);
-					thwidth = 0;
-					thheight = 0;
-				}
-			}
-
-			Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
-
-			{
-				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
-
-				SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
-				SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
-
-				m_pFileSerialiser->Insert(scope.Get(true));
-			}
-
-			RDCDEBUG("Inserting Resource Serialisers");	
-
-			GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
-			
-			GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
-
-			RDCDEBUG("Creating Capture Scope");	
-
-			{
-				SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
-
-				Serialise_CaptureScope(0);
-
-				m_pFileSerialiser->Insert(scope.Get(true));
-			}
-
-			{
-				RDCDEBUG("Getting Resource Record");	
-
-				GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
-
-				RDCDEBUG("Accumulating context resource list");	
-
-				map<int32_t, Chunk *> recordlist;
-				record->Insert(recordlist);
-
-				RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
-
-				for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-					m_pFileSerialiser->Insert(it->second);
-
-				RDCDEBUG("Done");	
-			}
-
-			m_CurFileSize += m_pFileSerialiser->FlushToDisk();
-
-			RenderDoc::Inst().SuccessfullyWrittenLog();
-
-			SAFE_DELETE(m_pFileSerialiser);
-
-			m_State = WRITING_IDLE;
-			
-			GetResourceManager()->MarkUnwrittenResources();
-
-			GetResourceManager()->ClearReferencedResources();
-		}
-	}
+	
+	if(!activeWindow)
+		return;
+	
+	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
 
 	// only allow capturing on 'modern' created contexts
-	if(GetCtxData().Modern() && RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE && m_FrameRecord.empty())
+	if(ctxdata.Legacy())
+		return;
+
+	// kill any current capture that isn't application defined
+	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+		EndFrameCapture(this, windowHandle);
+	
+	// for now, only allow one captured frame at all
+	if(!m_FrameRecord.empty())
+		return;
+	
+	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		m_State = WRITING_CAPFRAME;
+		StartFrameCapture(this, windowHandle);
 
-		GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+		m_AppControlledCapture = false;
+	}
+}
 
-		bool switchedContext = false;
-		if(prevctx.ctx == NULL)
+void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
+{
+	m_State = WRITING_CAPFRAME;
+
+	m_AppControlledCapture = true;
+
+	GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+
+	bool switchedContext = false;
+	if(prevctx.ctx == NULL)
+	{
+		MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
+		switchedContext = true;
+	}
+
+	FetchFrameRecord record;
+	record.frameInfo.frameNumber = m_FrameCounter+1;
+	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
+	m_FrameRecord.push_back(record);
+
+	GetResourceManager()->ClearReferencedResources();
+
+	GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+	GetResourceManager()->PrepareInitialContents();
+
+	AttemptCapture();
+	BeginCaptureFrame();
+
+	if(switchedContext)
+		MakeContextCurrent(prevctx);
+
+	RDCLOG("Starting capture, frame %u", m_FrameCounter);
+}
+
+bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
+{
+	if(m_State != WRITING_CAPFRAME) return true;
+	
+	CaptureFailReason reason = CaptureSucceeded;
+
+	//if(HasSuccessfulCapture(reason))
+	{
+		RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+		ContextEndFrame();
+		FinishCapture();
+
+		const uint32_t maxSize = 1024;
+
+		byte *thpixels = NULL;
+		uint32_t thwidth = 0;
+		uint32_t thheight = 0;
+
+		if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
 		{
-			MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
-			switchedContext = true;
+			RDCGLenum prevReadBuf = eGL_BACK;
+			GLint prevBuf = 0;
+			GLint packBufBind = 0;
+			GLint prevPackRowLen = 0;
+			GLint prevPackSkipRows = 0;
+			GLint prevPackSkipPixels = 0;
+			GLint prevPackAlignment = 0;
+			m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
+			m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
+			m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
+			m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
+			m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
+			m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
+			m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
+
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+			m_Real.glReadBuffer(eGL_BACK);
+			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
+			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+
+			thwidth = m_InitParams.width;
+			thheight = m_InitParams.height;
+
+			thpixels = new byte[thwidth*thheight*3];
+
+			m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
+
+			for(uint32_t y=0; y <= thheight/2; y++)
+			{
+				for(uint32_t x=0; x < thwidth; x++)
+				{
+					byte save[3];
+					save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
+					save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
+					save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
+
+					thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
+					thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
+					thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
+
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
+				}
+			}
+
+			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
+			m_Real.glReadBuffer(prevReadBuf);
+			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
+			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 		}
 
-		FetchFrameRecord record;
-		record.frameInfo.frameNumber = m_FrameCounter+1;
-		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
-		m_FrameRecord.push_back(record);
+		byte *jpgbuf = NULL;
+		int len = thwidth*thheight;
+
+		if(len > 0)
+		{
+			jpgbuf = new byte[len];
+
+			jpge::params p;
+
+			p.m_quality = 40;
+
+			bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+			if(!success)
+			{
+				RDCERR("Failed to compress to jpg");
+				SAFE_DELETE_ARRAY(jpgbuf);
+				thwidth = 0;
+				thheight = 0;
+			}
+		}
+
+		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+
+		{
+			SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+
+			SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
+			SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		RDCDEBUG("Inserting Resource Serialisers");	
+
+		GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+
+		GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
+
+		RDCDEBUG("Creating Capture Scope");	
+
+		{
+			SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
+
+			Serialise_CaptureScope(0);
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		{
+			RDCDEBUG("Getting Resource Record");	
+
+			GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
+
+			RDCDEBUG("Accumulating context resource list");	
+
+			map<int32_t, Chunk *> recordlist;
+			record->Insert(recordlist);
+
+			RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
+
+			for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+				m_pFileSerialiser->Insert(it->second);
+
+			RDCDEBUG("Done");	
+		}
+
+		m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+
+		RenderDoc::Inst().SuccessfullyWrittenLog();
+
+		SAFE_DELETE(m_pFileSerialiser);
+
+		m_State = WRITING_IDLE;
+
+		GetResourceManager()->MarkUnwrittenResources();
 
 		GetResourceManager()->ClearReferencedResources();
 
-		GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
-		GetResourceManager()->PrepareInitialContents();
-		
-		AttemptCapture();
-		BeginCaptureFrame();
-
-		if(switchedContext)
-			MakeContextCurrent(prevctx);
-
-		RDCLOG("Starting capture, frame %u", m_FrameCounter);
+		return true;
+	}
+	//else
+	{
+		// failed to capture
 	}
 }
 
@@ -2273,7 +2402,7 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 	}
 }
 
-void WrappedOpenGL::EndCaptureFrame()
+void WrappedOpenGL::ContextEndFrame()
 {
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
 	
@@ -2314,7 +2443,7 @@ void WrappedOpenGL::AttemptCapture()
 	m_DebugMessages.clear();
 
 	{
-		RDCDEBUG("Immediate Context %llu Attempting capture", GetContextResourceID());
+		RDCDEBUG("GL Context %llu Attempting capture", GetContextResourceID());
 
 		//m_SuccessfulCapture = true;
 

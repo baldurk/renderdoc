@@ -238,7 +238,6 @@ private:
 
 	static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-	IDXGISwapChain *m_SwapChain;
 	map<IDXGISwapChain*, ID3D11RenderTargetView*> m_SwapChains;
 
 	uint32_t m_FrameCounter;
@@ -300,9 +299,8 @@ public:
 	
 	void Serialise_CaptureScope(uint64_t offset);
 
-	void StartFrameCapture(void *wnd);
-	void SetActiveWindow(void *wnd);
-	bool EndFrameCapture(void *wnd);
+	void StartFrameCapture(void *dev, void *wnd);
+	bool EndFrameCapture(void *dev, void *wnd);
 
 	////////////////////////////////////////////////////////////////
 	// log replaying

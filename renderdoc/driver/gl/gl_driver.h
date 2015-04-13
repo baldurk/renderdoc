@@ -61,6 +61,12 @@ struct GLInitParams : public RDCInitParams
 	uint32_t SerialiseVersion;
 };
 
+enum CaptureFailReason
+{
+	CaptureSucceeded = 0,
+	CaptureFailed_UncappedUnmap,
+};
+
 struct DrawcallTreeNode
 {
 	DrawcallTreeNode() {}
@@ -93,7 +99,7 @@ struct Replacement
 	GLResource res;
 };
 
-class WrappedOpenGL
+class WrappedOpenGL : public IFrameCapturer
 {
 	private:
 		const GLHookSet &m_Real;
@@ -124,6 +130,7 @@ class WrappedOpenGL
 		// internals
 		Serialiser *m_pSerialiser;
 		LogState m_State;
+		bool m_AppControlledCapture;
 		
 		GLReplay m_Replay;
 
@@ -311,8 +318,8 @@ class WrappedOpenGL
 		bool Serialise_BeginCaptureFrame(bool applyInitialState);
 		void BeginCaptureFrame();
 		void FinishCapture();
-		void EndCaptureFrame();
-		
+		void ContextEndFrame();
+
 		struct ContextData
 		{
 			ContextData()
@@ -333,12 +340,26 @@ class WrappedOpenGL
 				m_ProgramPipeline = m_Program = 0;
 			}
 
+			void *ctx;
+
 			bool built;
 			bool ready;
 
 			int version;
 			bool attribsCreate;
 			bool isCore;
+
+			// map from window handle void* to uint64_t unix timestamp with
+			// the last time a window was seen/associated with this context.
+			// Decays after a few seconds since there's no good explicit
+			// 'remove' type call for GL, only wglCreateContext/wglMakeCurrent
+			map<void *, uint64_t> windows;
+
+			// a window is only associated with one context at once, so any
+			// time we associate a window, it broadcasts to all other
+			// contexts to let them know to remove it
+			void UnassociateWindow(void *wndHandle);
+			void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
 
 			bool Legacy() { return !attribsCreate || version < 32; }
 			bool Modern() { return !Legacy(); }
@@ -445,7 +466,15 @@ class WrappedOpenGL
 		void DeleteContext(void *contextHandle);
 		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
-		void Present(void *windowHandle);
+		void SwapBuffers(void *windowHandle);
+
+		void StartFrameCapture();
+
+		void EndFrameCapture();
+
+
+		void StartFrameCapture(void *dev, void *wnd);
+		bool EndFrameCapture(void *dev, void *wnd);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture(GLenum target, GLuint texture));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTextures(GLuint first, GLsizei count, const GLuint *textures));

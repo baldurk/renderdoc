@@ -288,8 +288,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	m_FailedReason = CaptureSucceeded;
 	m_Failures = 0;
 
-	m_SwapChain = NULL;
-
 	m_FrameTimer.Restart();
 
 	m_AppControlledCapture = false;
@@ -343,7 +341,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_DeviceRecord->NumSubResources = 0;
 		m_DeviceRecord->SubResources = NULL;
 
-		RenderDoc::Inst().AddFrameCapturer(this, this);
+		RenderDoc::Inst().AddDefaultFrameCapturer(this);
 	}
 	
 	ID3D11DeviceContext *context = NULL;
@@ -417,6 +415,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
 	if(m_pCurrentWrappedDevice == this)
 		m_pCurrentWrappedDevice = NULL;
 
+	RenderDoc::Inst().RemoveDefaultFrameCapturer(this);
+
 	for(auto it = m_CachedStateObjects.begin(); it != m_CachedStateObjects.end(); ++it)
 		if(*it)
 			(*it)->Release();
@@ -456,9 +456,6 @@ WrappedID3D11Device::~WrappedID3D11Device()
 		SAFE_DELETE(it->second);
 	m_LayoutDXBC.clear();
 	m_LayoutDescs.clear();
-
-	if(!RenderDoc::Inst().IsReplayApp())
-		RenderDoc::Inst().RemoveFrameCapturer(this);
 	
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -2327,6 +2324,8 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)
 		swap->GetDesc(&desc);
 
 		Keyboard::RemoveInputWindow(desc.OutputWindow);
+
+		RenderDoc::Inst().RemoveFrameCapturer(this, desc.OutputWindow);
 	}
 
 	auto it = m_SwapChains.find(swap);
@@ -2334,14 +2333,6 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)
 	{
 		SAFE_RELEASE(it->second);
 		m_SwapChains.erase(it);
-	}
-
-	if(swap == m_SwapChain)
-	{
-		if(m_SwapChains.empty())
-			m_SwapChain = NULL;
-		else
-			m_SwapChain = m_SwapChains.begin()->first;
 	}
 }
 
@@ -2442,11 +2433,8 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 		swap->GetDesc(&sdesc);
 
 		Keyboard::AddInputWindow(sdesc.OutputWindow);
-	}
 
-	if(m_SwapChain == NULL)
-	{
-		m_SwapChain = swap;
+		RenderDoc::Inst().AddFrameCapturer(this, sdesc.OutputWindow, this);
 	}
 }
 
@@ -2474,7 +2462,7 @@ int WrappedID3D11Device::EndEvent()
 	return m_pCurrentWrappedDevice->m_pImmediateContext->ThreadSafe_EndEvent();
 }
 
-void WrappedID3D11Device::StartFrameCapture(void *wnd)
+void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 {
 	if(m_State != WRITING_IDLE) return;
 
@@ -2526,24 +2514,7 @@ void WrappedID3D11Device::StartFrameCapture(void *wnd)
 	RDCLOG("Starting capture, frame %u", m_FrameCounter);
 }
 
-void WrappedID3D11Device::SetActiveWindow(void *wnd)
-{
-	for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
-	{
-		DXGI_SWAP_CHAIN_DESC swapDesc;
-		it->first->GetDesc(&swapDesc);
-
-		if(swapDesc.OutputWindow == wnd)
-		{
-			m_SwapChain = it->first;
-			return;
-		}
-	}
-
-	RDCERR("Output window %p provided for active window corresponds with no known swap chain", wnd);
-}
-
-bool WrappedID3D11Device::EndFrameCapture(void *wnd)
+bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 {
 	if(m_State != WRITING_CAPFRAME) return true;
 
@@ -2996,7 +2967,6 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 	if((Flags & DXGI_PRESENT_TEST) != 0)
 		return S_OK;
 	
-	RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
 	m_pCurrentWrappedDevice = this;
 	
 	if(m_State == WRITING_IDLE)
@@ -3007,6 +2977,10 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 
 	m_pImmediateContext->BeginFrame();
+
+	DXGI_SWAP_CHAIN_DESC swapdesc;
+	swap->GetDesc(&swapdesc);
+	bool activeWindow = RenderDoc::Inst().IsActiveWindow(this, swapdesc.OutputWindow);
 
 	if(m_State == WRITING_IDLE)
 	{
@@ -3055,7 +3029,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
 			GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
-			if(swap == m_SwapChain)
+			if(activeWindow)
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
@@ -3131,7 +3105,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
 
-				string str = "Inactive swapchain.";
+				string str = "D3D11. Inactive swapchain.";
 
 				for(size_t i=0; i < keys.size(); i++)
 				{
@@ -3151,48 +3125,20 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 			old.ApplyState(m_pImmediateContext);
 		}
-
-		if(RenderDoc::Inst().ShouldFocusToggle())
-		{
-			IDXGISwapChain *s = m_SwapChain;
-			m_SwapChain = NULL;
-
-			for(auto it=m_SwapChains.begin(); it!=m_SwapChains.end(); ++it)
-			{
-				auto next = it; next++;
-				if(it->first == s)
-				{
-					if(next != m_SwapChains.end())
-						m_SwapChain = next->first;
-					else
-						m_SwapChain = m_SwapChains.begin()->first;
-					break;
-				}
-			}
-
-			if(m_SwapChain == NULL)
-				m_SwapChain = swap;
-
-			DXGI_SWAP_CHAIN_DESC swapDesc = {0};
-			m_SwapChain->GetDesc(&swapDesc);
-			GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
-			GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
-		}
 	}
 
-	if(swap != m_SwapChain || m_SwapChain == NULL)
+	if(!activeWindow)
 		return S_OK;
 	
-	DXGI_SWAP_CHAIN_DESC swapDesc = {0};
-	m_SwapChain->GetDesc(&swapDesc);
+	RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
 
 	// kill any current capture that isn't application defined
 	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
-		EndFrameCapture(swapDesc.OutputWindow);
+		EndFrameCapture(this, swapdesc.OutputWindow);
 
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		StartFrameCapture(swapDesc.OutputWindow);
+		StartFrameCapture(this, swapdesc.OutputWindow);
 
 		m_AppControlledCapture = false;
 	}
