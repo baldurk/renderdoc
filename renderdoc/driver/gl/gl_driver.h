@@ -430,7 +430,7 @@ class WrappedOpenGL : public IFrameCapturer
 
 	public:
 		WrappedOpenGL(const char *logfile, const GLHookSet &funcs);
-		~WrappedOpenGL();
+		virtual ~WrappedOpenGL();
 
 		GLResourceManager *GetResourceManager() { return m_ResourceManager; }
 

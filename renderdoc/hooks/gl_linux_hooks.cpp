@@ -728,7 +728,7 @@ void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	
 	OpenGLHook::glhooks.GetDriver()->WindowSize((void *)drawable, width, height);
 	
-	OpenGLHook::glhooks.GetDriver()->Present((void *)drawable);
+	OpenGLHook::glhooks.GetDriver()->SwapBuffers((void *)drawable);
 
 	OpenGLHook::glhooks.glXSwapBuffers_real(dpy, drawable);
 }
