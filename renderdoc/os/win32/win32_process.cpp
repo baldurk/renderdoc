@@ -500,7 +500,11 @@ void *Process::GetFunctionAddress(const char *module, const char *function)
 {
 	HMODULE mod = GetModuleHandleA(module);
 	if(mod == 0)
-		return NULL;
+	{
+		mod = LoadLibraryA(module);
+		if (mod == 0)
+			return NULL;
+	}
 
 	return (void *)GetProcAddress(mod, function);
 }
