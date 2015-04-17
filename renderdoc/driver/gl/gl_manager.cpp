@@ -266,6 +266,8 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 	
 	const GLHookSet &gl = m_GL->m_Real;
 
+	gl.glFlush();
+
 	if(res.Namespace == eResBuffer)
 	{
 		GLResourceRecord *record = GetResourceRecord(res);
@@ -1397,8 +1399,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 			if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
 				gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE, (GLint *)&state->depthMode);
 
-			if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
-				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS, (GLint *)&state->seamless);
+			//if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+			//	gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS, (GLint *)&state->seamless);
 
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
