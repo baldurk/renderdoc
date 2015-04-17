@@ -76,18 +76,18 @@
   <ItemGroup>
     <Reference Include="IronPython, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>ironpython\IronPython.dll</HintPath>
+      <HintPath>3rdparty\ironpython\IronPython.dll</HintPath>
     </Reference>
     <Reference Include="IronPython.Modules, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>ironpython\IronPython.Modules.dll</HintPath>
+      <HintPath>3rdparty\ironpython\IronPython.Modules.dll</HintPath>
     </Reference>
     <Reference Include="Microsoft.Scripting, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
-      <HintPath>ironpython\Microsoft.Scripting.dll</HintPath>
+      <HintPath>3rdparty\ironpython\Microsoft.Scripting.dll</HintPath>
     </Reference>
     <Reference Include="ScintillaNET">
-      <HintPath>..\ScintillaNET\ScintillaNET.dll</HintPath>
+      <HintPath>3rdparty\ScintillaNET\ScintillaNET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -427,7 +427,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WinFormsUI\WinFormsUI.csproj">
+    <ProjectReference Include="3rdparty\WinFormsUI\WinFormsUI.csproj">
       <Project>{C75532C4-765B-418E-B09B-46D36B2ABDB1}</Project>
       <Name>WinFormsUI</Name>
     </ProjectReference>
@@ -455,11 +455,11 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="..\ScintillaNET\SciLexer.dll">
+    <Content Include="3rdparty\ScintillaNET\SciLexer.dll">
       <Link>SciLexer.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\ScintillaNET\SciLexer64.dll">
+    <Content Include="3rdparty\ScintillaNET\SciLexer64.dll">
       <Link>SciLexer64.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>

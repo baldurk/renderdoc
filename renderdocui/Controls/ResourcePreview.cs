@@ -49,6 +49,8 @@ namespace renderdocui.Controls
         {
             InitializeComponent();
 
+            descriptionLabel.Font = core.Config.PreferredFont;
+
             m_Name = "Unbound";
             m_Width = 1;
             m_Height = 1;

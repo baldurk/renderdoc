@@ -71,6 +71,13 @@ struct GLWindowingData
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);
 
+// no longer in glcorearb.h or glext.h
+const GLenum eGL_LUMINANCE = (GLenum)0x1909;
+const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
+const GLenum eGL_INTENSITY = (GLenum)0x8049;
+const GLenum eGL_LIGHTING = (GLenum)0x0B50;
+const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
+
 class WrappedOpenGL;
 struct GLHookSet;
 
@@ -92,6 +99,8 @@ const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
+
+void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 
 extern int GLCoreVersion;
 extern bool GLIsCore;

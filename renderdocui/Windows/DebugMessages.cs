@@ -52,6 +52,8 @@ namespace renderdocui.Windows
 
             m_Core = core;
 
+            messages.Font = core.Config.PreferredFont;
+
             RefreshMessageList();
         }
 

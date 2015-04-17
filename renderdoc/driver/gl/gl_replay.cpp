@@ -787,12 +787,6 @@ vector<DebugMessage> GLReplay::GetDebugMessages()
 
 ShaderReflection *GLReplay::GetShader(ResourceId id)
 {
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	
-	void *ctx = m_ReplayCtx.ctx;
-	
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
 	
 	if(shaderDetails.prog == 0)
@@ -802,198 +796,6 @@ ShaderReflection *GLReplay::GetShader(ResourceId id)
 	}
 
 	return &shaderDetails.reflection;
-}
-
-void GLReplay::GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
-{
-	// in case of bugs, we readback into this array instead of
-	GLint dummyReadback[32];
-
-#if !defined(RELEASE)
-	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
-		dummyReadback[i] = 0x6c7b8a9d;
-#endif
-
-	const GLenum refEnum[] = {
-		eGL_REFERENCED_BY_VERTEX_SHADER,
-		eGL_REFERENCED_BY_TESS_CONTROL_SHADER,
-		eGL_REFERENCED_BY_TESS_EVALUATION_SHADER,
-		eGL_REFERENCED_BY_GEOMETRY_SHADER,
-		eGL_REFERENCED_BY_FRAGMENT_SHADER,
-		eGL_REFERENCED_BY_COMPUTE_SHADER,
-	};
-	
-	create_array_uninit(mapping.Resources, refl->Resources.count);
-	for(int32_t i=0; i < refl->Resources.count; i++)
-	{
-		if(refl->Resources.elems[i].IsTexture)
-		{
-			// normal sampler or image load/store
-
-			GLint loc = gl.glGetUniformLocation(curProg, refl->Resources.elems[i].name.elems);
-			if(loc >= 0)
-			{
-				gl.glGetUniformiv(curProg, loc, dummyReadback);
-				mapping.Resources[i].bind = dummyReadback[0];
-			}
-
-			// handle sampler arrays, use the base name
-			string name = refl->Resources.elems[i].name.elems;
-			if(name.back() == ']')
-			{
-				do
-				{
-					name.pop_back();
-				} while(name.back() != '[');
-				name.pop_back();
-			}
-			
-			GLuint idx = 0;
-			idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
-
-			if(idx == GL_INVALID_INDEX)
-			{
-				mapping.Resources[i].used = false;
-			}
-			else
-			{
-				GLint used = 0;
-				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-				mapping.Resources[i].used = (used != 0);
-			}
-		}
-		else if(refl->Resources.elems[i].IsReadWrite && !refl->Resources.elems[i].IsTexture)
-		{
-			if(refl->Resources.elems[i].variableType.descriptor.cols == 1 &&
-				refl->Resources.elems[i].variableType.descriptor.rows == 1 &&
-				refl->Resources.elems[i].variableType.descriptor.type == eVar_UInt)
-			{
-				// atomic uint
-				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
-
-				if(idx == GL_INVALID_INDEX)
-				{
-					mapping.Resources[i].bind = -1;
-					mapping.Resources[i].used = false;
-				}
-				else
-				{
-					GLenum prop = eGL_ATOMIC_COUNTER_BUFFER_INDEX;
-					GLuint atomicIndex;
-					gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &prop, 1, NULL, (GLint *)&atomicIndex);
-
-					if(atomicIndex == GL_INVALID_INDEX)
-					{
-						mapping.Resources[i].bind = -1;
-						mapping.Resources[i].used = false;
-					}
-					else
-					{
-						const GLenum atomicRefEnum[] = {
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
-							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
-						};
-						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, eGL_ATOMIC_COUNTER_BUFFER_BINDING, &mapping.Resources[i].bind);
-						GLint used = 0;
-						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
-						mapping.Resources[i].used = (used != 0);
-					}
-				}
-			}
-			else
-			{
-				// shader storage buffer object
-				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK, refl->Resources.elems[i].name.elems);
-
-				if(idx == GL_INVALID_INDEX)
-				{
-					mapping.Resources[i].bind = -1;
-					mapping.Resources[i].used = false;
-				}
-				else
-				{
-					GLenum prop = eGL_BUFFER_BINDING;
-					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL, &mapping.Resources[i].bind);
-					GLint used = 0;
-					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-					mapping.Resources[i].used = (used != 0);
-				}
-			}
-		}
-		else
-		{
-			mapping.Resources[i].bind = -1;
-			mapping.Resources[i].used = false;
-		}
-	}
-	
-	create_array_uninit(mapping.ConstantBlocks, refl->ConstantBlocks.count);
-	for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
-	{
-		if(refl->ConstantBlocks.elems[i].bufferBacked)
-		{
-			GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks.elems[i].name.elems);
-			if(loc >= 0)
-			{
-				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
-				mapping.ConstantBlocks[i].bind = dummyReadback[0];
-			}
-		}
-		else
-		{
-			mapping.ConstantBlocks[i].bind = -1;
-		}
-
-		if(!refl->ConstantBlocks.elems[i].bufferBacked)
-		{
-			mapping.ConstantBlocks[i].used = true;
-		}
-		else
-		{
-			GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
-			if(idx == GL_INVALID_INDEX)
-			{
-				mapping.ConstantBlocks[i].used = false;
-			}
-			else
-			{
-				GLint used = 0;
-				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
-				mapping.ConstantBlocks[i].used = (used != 0);
-			}
-		}
-	}
-	
-	GLint numVAttribBindings = 16;
-	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
-
-	create_array_uninit(mapping.InputAttributes, numVAttribBindings);
-	for(int32_t i=0; i < numVAttribBindings; i++)
-		mapping.InputAttributes[i] = -1;
-
-	// override identity map with bindings
-	if(shadIdx == 0)
-	{
-		for(int32_t i=0; i < refl->InputSig.count; i++)
-		{
-			GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig.elems[i].varName.elems);
-
-			if(loc >= 0 && loc < numVAttribBindings)
-			{
-				mapping.InputAttributes[loc] = i;
-			}
-		}
-	}
-
-#if !defined(RELEASE)
-	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
-		if(dummyReadback[i] != 0x6c7b8a9d)
-			RDCERR("Invalid uniform readback - data beyond first element modified!");
-#endif
 }
 
 void GLReplay::SavePipelineState()
@@ -1239,7 +1041,7 @@ void GLReplay::SavePipelineState()
 					curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
 					stages[i]->Shader = rm->GetOriginalID(pipeDetails.stageShaders[i]);
 					refls[i] = GetShader(pipeDetails.stageShaders[i]);
-					GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+					GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 					mappings[i] = &stages[i]->BindpointMapping;
 				}
 				else
@@ -1259,7 +1061,7 @@ void GLReplay::SavePipelineState()
 			{
 				stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
 				refls[i] = GetShader(progDetails.stageShaders[i]);
-				GetMapping(gl, curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+				GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
 				mappings[i] = &stages[i]->BindpointMapping;
 			}
 		}
@@ -2953,17 +2755,17 @@ void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 	m_pDriver->glNamedBufferSubDataEXT(buf, 0, dataSize, data);
 }
 
+vector<EventUsage> GLReplay::GetUsage(ResourceId id)
+{
+	return m_pDriver->GetUsage(id);
+}
+
 #pragma endregion
 
 
 
 
 
-vector<EventUsage> GLReplay::GetUsage(ResourceId id)
-{
-	GLNOTIMP("GetUsage");
-	return vector<EventUsage>();
-}
 
 void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
 {

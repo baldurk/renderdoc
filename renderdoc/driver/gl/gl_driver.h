@@ -55,10 +55,16 @@ struct GLInitParams : public RDCInitParams
 	uint32_t width;
 	uint32_t height;
 	
-	static const uint32_t GL_SERIALISE_VERSION = 0x000000A;
+	static const uint32_t GL_SERIALISE_VERSION = 0x000000C;
 
 	// version number internal to opengl stream
 	uint32_t SerialiseVersion;
+};
+
+enum CaptureFailReason
+{
+	CaptureSucceeded = 0,
+	CaptureFailed_UncappedUnmap,
 };
 
 struct DrawcallTreeNode
@@ -93,7 +99,7 @@ struct Replacement
 	GLResource res;
 };
 
-class WrappedOpenGL
+class WrappedOpenGL : public IFrameCapturer
 {
 	private:
 		const GLHookSet &m_Real;
@@ -124,6 +130,7 @@ class WrappedOpenGL
 		// internals
 		Serialiser *m_pSerialiser;
 		LogState m_State;
+		bool m_AppControlledCapture;
 		
 		GLReplay m_Replay;
 
@@ -196,6 +203,8 @@ class WrappedOpenGL
 		DrawcallTreeNode m_ParentDrawcall;
 
 		list<DrawcallTreeNode *> m_DrawcallStack;
+
+		map<ResourceId, vector<EventUsage> > m_ResourceUses;
 
 		// buffer used
 		vector<byte> m_ScratchBuf;
@@ -286,6 +295,8 @@ class WrappedOpenGL
 		GLuint m_FakeBB_Color;
 		GLuint m_FakeBB_DepthStencil;
 		GLuint m_FakeVAO;
+		GLuint m_FakeIdxBuf;
+		GLsizeiptr m_FakeIdxSize;
 
 		ResourceId m_FakeVAOID;
 		
@@ -297,6 +308,7 @@ class WrappedOpenGL
 		void ProcessChunk(uint64_t offset, GLChunkType context);
 		void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 		void ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool forceExecute);
+		void AddUsage(FetchDrawcall draw);
 		void AddDrawcall(FetchDrawcall d, bool hasEvents);
 		void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
 		
@@ -306,13 +318,15 @@ class WrappedOpenGL
 		bool Serialise_BeginCaptureFrame(bool applyInitialState);
 		void BeginCaptureFrame();
 		void FinishCapture();
-		void EndCaptureFrame();
-		
+		void ContextEndFrame();
+
 		struct ContextData
 		{
 			ContextData()
 			{
 				built = ready = false;
+				attribsCreate = false;
+				version = 0;
 				isCore = false;
 				Program = GeneralUBO = StringUBO = GlyphUBO = 0;
 				GlyphTexture = DummyVAO = 0;
@@ -326,10 +340,29 @@ class WrappedOpenGL
 				m_ProgramPipeline = m_Program = 0;
 			}
 
+			void *ctx;
+
 			bool built;
 			bool ready;
 
+			int version;
+			bool attribsCreate;
 			bool isCore;
+
+			// map from window handle void* to uint64_t unix timestamp with
+			// the last time a window was seen/associated with this context.
+			// Decays after a few seconds since there's no good explicit
+			// 'remove' type call for GL, only wglCreateContext/wglMakeCurrent
+			map<void *, uint64_t> windows;
+
+			// a window is only associated with one context at once, so any
+			// time we associate a window, it broadcasts to all other
+			// contexts to let them know to remove it
+			void UnassociateWindow(void *wndHandle);
+			void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
+
+			bool Legacy() { return !attribsCreate || version < 32; }
+			bool Modern() { return !Legacy(); }
 
 			GLuint Program;
 			GLuint GeneralUBO, StringUBO, GlyphUBO;
@@ -397,7 +430,7 @@ class WrappedOpenGL
 
 	public:
 		WrappedOpenGL(const char *logfile, const GLHookSet &funcs);
-		~WrappedOpenGL();
+		virtual ~WrappedOpenGL();
 
 		GLResourceManager *GetResourceManager() { return m_ResourceManager; }
 
@@ -427,11 +460,21 @@ class WrappedOpenGL
 
 		const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
-		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core);
+		vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
+
+		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate);
 		void DeleteContext(void *contextHandle);
 		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
-		void Present(void *windowHandle);
+		void SwapBuffers(void *windowHandle);
+
+		void StartFrameCapture();
+
+		void EndFrameCapture();
+
+
+		void StartFrameCapture(void *dev, void *wnd);
+		bool EndFrameCapture(void *dev, void *wnd);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTexture(GLenum target, GLuint texture));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glBindTextures(GLuint first, GLsizei count, const GLuint *textures));
@@ -1105,6 +1148,12 @@ class WrappedOpenGL
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x2dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glProgramUniformMatrix4x3dv(GLuint program, GLint location, GLsizei count, GLboolean transpose, const GLdouble *value));
+
+		// utility handling functions for glDraw*Elements* to handle pointers to indices being
+		// passed directly, with no index buffer bound. It's not allowed in core profile but
+		// it's fairly common and not too hard to support
+		byte *Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset);
+		void Common_postElements(byte *idxDelete);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArrays(GLenum mode, GLint first, GLsizei count));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count, GLsizei instancecount));

@@ -246,9 +246,9 @@ uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const char *logf
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *wndHandle)
+void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *device, void *wndHandle)
 {
-	RenderDoc::Inst().SetActiveWindow(wndHandle);
+	RenderDoc::Inst().SetActiveWindow(device, wndHandle);
 }
 
 extern "C" RENDERDOC_API
@@ -258,15 +258,15 @@ void RENDERDOC_CC RENDERDOC_TriggerCapture()
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle)
+void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *device, void *wndHandle)
 {
-	RenderDoc::Inst().StartFrameCapture(wndHandle);
+	RenderDoc::Inst().StartFrameCapture(device, wndHandle);
 }
 
 extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle)
+bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *device, void *wndHandle)
 {
-	return RenderDoc::Inst().EndFrameCapture(wndHandle);
+	return RenderDoc::Inst().EndFrameCapture(device, wndHandle);
 }
 
 extern "C" RENDERDOC_API

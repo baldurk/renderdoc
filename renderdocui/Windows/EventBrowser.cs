@@ -63,6 +63,11 @@ namespace renderdocui.Windows
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
+            jumpToEID.Font =
+                findEvent.Font =
+                eventView.Font = 
+                core.Config.PreferredFont;
+
             HideJumpAndFind();
 
             m_Core = core;
@@ -224,7 +229,7 @@ namespace renderdocui.Windows
             return new TreelistView.Node(new object[] { EID, draw, text, duration });
         }
 
-        private TreelistView.Node AddDrawcall(TreelistView.Node existing, FetchDrawcall drawcall, TreelistView.Node root, Dictionary<uint, List<CounterResult>> times)
+        private TreelistView.Node AddDrawcall(FetchDrawcall drawcall, TreelistView.Node root)
         {
             if (m_Core.Config.EventBrowser_HideEmpty)
             {
@@ -233,20 +238,7 @@ namespace renderdocui.Windows
             }
 
             UInt32 eventNum = drawcall.eventID;
-            double duration = 0.0;
-            if (times != null && times.ContainsKey(eventNum))
-                duration = times[eventNum][0].value.d;
-            TreelistView.Node drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, duration);
-
-            if (existing != null)
-            {
-                existing.SetData(drawNode.GetData());
-                drawNode = existing;
-            }
-            else
-            {
-                root.Nodes.Add(drawNode);
-            }
+            TreelistView.Node drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, 0.0);
 
             DeferredEvent def = new DeferredEvent();
             def.frameID = m_Core.CurFrame;
@@ -275,17 +267,12 @@ namespace renderdocui.Windows
             {
                 for (int i = 0; i < drawcall.children.Length; i++)
                 {
-                    TreelistView.Node d = drawNode.Nodes.Count > i ? drawNode.Nodes[i] : null;
-
-                    AddDrawcall(d, drawcall.children[i], drawNode, times);
+                    AddDrawcall(drawcall.children[i], drawNode);
 
                     if (i > 0 && (drawcall.children[i-1].flags & DrawcallFlags.SetMarker) > 0)
                     {
                         drawNode.Nodes[drawNode.Nodes.Count - 2].Tag = drawNode.Nodes.LastNode.Tag;
                     }
-
-                    if (i < drawNode.Nodes.Count && (double)drawNode.Nodes[i]["Duration"] > 0.0)
-                        drawNode["Duration"] = Math.Max(0.0, (double)drawNode["Duration"]) + (double)drawNode.Nodes[i]["Duration"];
                 }
 
                 bool found = false;
@@ -301,14 +288,54 @@ namespace renderdocui.Windows
                     }
                 }
 
-                if(!found)
+                if (!found && !drawNode.Nodes.IsEmpty())
                     drawNode.Tag = drawNode.Nodes.LastNode.Tag;
             }
+
+            if (drawNode.Nodes.IsEmpty() && (drawcall.flags & DrawcallFlags.PushMarker) != 0)
+                return null;
+
+            root.Nodes.Add(drawNode);
 
             return drawNode;
         }
 
-        private void AddFrameDrawcalls(TreelistView.Node frame, FetchDrawcall[] drawcalls, Dictionary<uint, List<CounterResult>> times)
+        private void SetDrawcallTimes(TreelistView.Node n, Dictionary<uint, List<CounterResult>> times)
+        {
+            if (n == null || times == null) return;
+
+            // parent nodes take the value of the sum of their children
+            double duration = 0.0;
+
+            // look up leaf nodes in the dictionary
+            if (n.Nodes.IsEmpty())
+            {
+                uint eid = (uint)n["EID"];
+
+                if (times.ContainsKey(eid))
+                    duration = times[eid][0].value.d;
+                else
+                    duration = -1.0;
+
+                n["Duration"] = duration;
+
+                return;
+            }
+
+            for (int i = 0; i < n.Nodes.Count; i++)
+            {
+                SetDrawcallTimes(n.Nodes[i], times);
+
+                double nd = (double)n.Nodes[i]["Duration"];
+
+                if(nd > 0.0)
+                    duration += nd;
+            }
+
+            n["Duration"] = duration;
+        }
+
+        private void AddFrameDrawcalls(TreelistView.Node frame, FetchDrawcall[] drawcalls)
         {
             eventView.BeginUpdate();
 
@@ -318,23 +345,11 @@ namespace renderdocui.Windows
             startEv.frameID = m_Core.CurFrame;
             startEv.eventID = 0;
 
-            if(frame.Nodes.Count == 0)
-                frame.Nodes.Add(MakeNode(0, 0, "Frame Start", -1.0)).Tag = startEv;
+            frame.Nodes.Clear();
+            frame.Nodes.Add(MakeNode(0, 0, "Frame Start", -1.0)).Tag = startEv;
 
             for (int i = 0; i < drawcalls.Length; i++)
-            {
-                TreelistView.Node d = frame.Nodes.Count > (i + 1) ? frame.Nodes[i + 1] : null;
-
-                TreelistView.Node newD = AddDrawcall(d, drawcalls[i], frame, times);
-
-                if (newD != null)
-                {
-                    d = newD;
-
-                    if ((double)d["Duration"] > 0.0)
-                        frame["Duration"] = Math.Max(0.0, (double)frame["Duration"]) + (double)d["Duration"];
-                }
-            }
+                AddDrawcall(drawcalls[i], frame);
 
             frame.Tag = frame.Nodes.LastNode.Tag;
 
@@ -377,7 +392,7 @@ namespace renderdocui.Windows
             eventView.EndUpdate();
                 
             for (int curFrame = 0; curFrame < frameList.Length; curFrame++)
-                AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame), null);
+                AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame));
 
             if (frameList.Length > 0)
             {
@@ -630,28 +645,33 @@ namespace renderdocui.Windows
 
         private void eventView_KeyDown(object sender, KeyEventArgs e)
         {
-            if (e.KeyCode == Keys.G && e.Control && m_Core.LogLoaded)
-            {
-                ShowJump();
-            }
-            if (e.KeyCode == Keys.F && e.Control && m_Core.LogLoaded)
-            {
-                ShowFind();
-            }
-            if (e.KeyCode == Keys.T && e.Control && m_Core.LogLoaded)
-            {
-                TimeDrawcalls();
-            }
-            if (e.KeyCode == Keys.C && e.Control)
-            {
-                string text = "";
-                for(int i=0; i < eventView.FocusedNode.Count; i++)
-                {
-                    text += DataToString(eventView.Columns[i], eventView.FocusedNode[i]) + " ";
-                }
-                text += Environment.NewLine;
+            if (!m_Core.LogLoaded) return;
 
-                Clipboard.SetText(text);
+            if(e.Control)
+            {
+                if (e.KeyCode == Keys.G)
+                {
+                    ShowJump();
+                }
+                if (e.KeyCode == Keys.F)
+                {
+                    ShowFind();
+                }
+                if (e.KeyCode == Keys.T)
+                {
+                    TimeDrawcalls();
+                }
+                if (e.KeyCode == Keys.C)
+                {
+                    string text = "";
+                    for (int i = 0; i < eventView.FocusedNode.Count; i++)
+                    {
+                        text += DataToString(eventView.Columns[i], eventView.FocusedNode[i]) + " ";
+                    }
+                    text += Environment.NewLine;
+
+                    Clipboard.SetText(text);
+                }
             }
         }
 
@@ -704,8 +724,12 @@ namespace renderdocui.Windows
                         eventView.Columns.SetVisibleIndex(col, eventView.Columns.VisibleColumns.Length);
                     }
 
+                    eventView.BeginUpdate();
+
                     for (int curFrame = 0; curFrame < m_FrameNodes.Count; curFrame++)
-                        AddFrameDrawcalls(m_FrameNodes[curFrame], m_Core.GetDrawcalls((UInt32)curFrame), times[curFrame]);
+                        SetDrawcallTimes(m_FrameNodes[curFrame], times[curFrame]);
+
+                    eventView.EndUpdate();
                 });
             });
         }

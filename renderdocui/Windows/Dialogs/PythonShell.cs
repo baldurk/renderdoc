@@ -128,7 +128,9 @@ namespace renderdocui.Windows.Dialogs
 
             try
             {
+                m_Core.Renderer.SetExceptionCatching(true);
                 dynamic ret = engine.CreateScriptSourceFromString(script).Execute(scope);
+                m_Core.Renderer.SetExceptionCatching(false);
                 if (ret != null)
                 {
                     stdoutwriter.Write(ret.ToString() + Environment.NewLine);
@@ -137,6 +139,8 @@ namespace renderdocui.Windows.Dialogs
             }
             catch (Exception ex)
             {
+                m_Core.Renderer.SetExceptionCatching(false);
+
                 // IronPython throws so many exceptions, we don't want to kill the application
                 // so we just swallow Exception to cover all the bases
                 string exstr = engine.GetService<ExceptionOperations>().FormatException(ex);

@@ -593,7 +593,7 @@ GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis, GLXContext shareList
 	data.wnd = (GLXDrawable)NULL;
 	data.ctx = ret;
 
-	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, false);
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, false, false);
 
 	return ret;
 }
@@ -691,7 +691,7 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	data.wnd = (GLXDrawable)NULL;
 	data.ctx = ret;
 
-	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, core);
+	OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, core, true);
 
 	return ret;
 }
@@ -728,7 +728,7 @@ void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 	
 	OpenGLHook::glhooks.GetDriver()->WindowSize((void *)drawable, width, height);
 	
-	OpenGLHook::glhooks.GetDriver()->Present((void *)drawable);
+	OpenGLHook::glhooks.GetDriver()->SwapBuffers((void *)drawable);
 
 	OpenGLHook::glhooks.glXSwapBuffers_real(dpy, drawable);
 }
@@ -874,5 +874,92 @@ GLWindowingData MakeContext(GLWindowingData share)
 void DeleteContext(GLWindowingData context)
 {
 	OpenGLHook::glhooks.DeleteContext(context);
+}
+
+// dirty immediate mode rendering functions for backwards compatible
+// rendering of overlay text
+typedef void (*GLGETINTEGERVPROC)(GLenum,GLint*);
+typedef void (*GLPUSHMATRIXPROC)();
+typedef void (*GLLOADIDENTITYPROC)();
+typedef void (*GLMATRIXMODEPROC)(GLenum);
+typedef void (*GLORTHOPROC)(GLdouble,GLdouble,GLdouble,GLdouble,GLdouble,GLdouble);
+typedef void (*GLPOPMATRIXPROC)();
+typedef void (*GLBEGINPROC)(GLenum);
+typedef void (*GLVERTEX2FPROC)(float,float);
+typedef void (*GLTEXCOORD2FPROC)(float,float);
+typedef void (*GLENDPROC)();
+
+static GLGETINTEGERVPROC getInt = NULL;
+static GLPUSHMATRIXPROC pushm = NULL;
+static GLLOADIDENTITYPROC loadident = NULL;
+static GLMATRIXMODEPROC matMode = NULL;
+static GLORTHOPROC ortho = NULL;
+static GLPOPMATRIXPROC popm = NULL;
+static GLBEGINPROC begin = NULL;
+static GLVERTEX2FPROC v2f = NULL;
+static GLTEXCOORD2FPROC t2f = NULL;
+static GLENDPROC end = NULL;
+
+const GLenum MAT_MODE = (GLenum)0x0BA0;
+const GLenum MAT_MDVW = (GLenum)0x1700;
+const GLenum MAT_PROJ = (GLenum)0x1701;
+
+static bool immediateInited = false;
+
+bool immediateBegin(GLenum mode, float width, float height)
+{
+	if(!immediateInited)
+	{
+		getInt = (GLGETINTEGERVPROC)dlsym(RTLD_NEXT, "glGetIntegerv"); if(!getInt) return false;
+		pushm = (GLPUSHMATRIXPROC)dlsym(RTLD_NEXT, "glPushMatrix"); if(!pushm) return false;
+		loadident = (GLLOADIDENTITYPROC)dlsym(RTLD_NEXT, "glLoadIdentity"); if(!loadident) return false;
+		matMode = (GLMATRIXMODEPROC)dlsym(RTLD_NEXT, "glMatrixMode"); if(!matMode) return false;
+		ortho = (GLORTHOPROC)dlsym(RTLD_NEXT, "glOrtho"); if(!ortho) return false;
+		popm = (GLPOPMATRIXPROC)dlsym(RTLD_NEXT, "glPopMatrix"); if(!popm) return false;
+		begin = (GLBEGINPROC)dlsym(RTLD_NEXT, "glBegin"); if(!begin) return false;
+		v2f = (GLVERTEX2FPROC)dlsym(RTLD_NEXT, "glVertex2f"); if(!v2f) return false;
+		t2f = (GLTEXCOORD2FPROC)dlsym(RTLD_NEXT, "glTexCoord2f"); if(!t2f) return false;
+		end = (GLENDPROC)dlsym(RTLD_NEXT, "glEnd"); if(!end) return false;
+
+		immediateInited = true;
+	}
+	
+	GLenum prevMatMode = eGL_NONE;
+	getInt(MAT_MODE, (GLint *)&prevMatMode);
+
+	matMode(MAT_PROJ);
+	pushm();
+	loadident();
+	ortho(0.0, width, height, 0.0, -1.0, 1.0);
+
+	matMode(MAT_MDVW);
+	pushm();
+	loadident();
+
+	matMode(prevMatMode);
+
+	begin(mode);
+
+	return true;
+}
+
+void immediateVert(float x, float y, float u, float v)
+{
+	t2f(u,v); v2f(x,y);
+}
+
+void immediateEnd()
+{
+	end();
+	
+	GLenum prevMatMode = eGL_NONE;
+	getInt(MAT_MODE, (GLint *)&prevMatMode);
+
+	matMode(MAT_PROJ);
+	popm();
+	matMode(MAT_MDVW);
+	popm();
+
+	matMode(prevMatMode);
 }
 

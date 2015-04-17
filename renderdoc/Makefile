@@ -127,7 +127,7 @@ OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 -include $(OBJDIR_OBJECTS:.o=.d)
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA)
-	g++ -o librenderdoc.so $^ $(LDFLAGS)
+	$(CPP) -o librenderdoc.so $^ $(LDFLAGS)
 
 .PHONY: clean
 clean:

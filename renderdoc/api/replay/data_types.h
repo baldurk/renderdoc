@@ -142,10 +142,24 @@ struct FetchFrameInfo
 
 struct EventUsage
 {
+#ifdef __cplusplus
 	EventUsage()
 		: eventID(0), usage(eUsage_None) {}
 	EventUsage(uint32_t e, ResourceUsage u)
 		: eventID(e), usage(u) {}
+
+	bool operator <(const EventUsage &o) const
+	{
+		if(eventID != o.eventID)
+			return eventID < o.eventID;
+		return usage < o.usage;
+	}
+
+	bool operator ==(const EventUsage &o) const
+	{
+		return eventID == o.eventID && usage == o.usage;
+	}
+#endif
 
 	uint32_t eventID;
 	ResourceUsage usage;

@@ -30,7 +30,7 @@ OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 
 bin/renderdoccmd: $(OBJDIR_OBJECTS) ../renderdoc/librenderdoc.so
 	mkdir -p bin/
-	g++ -o bin/renderdoccmd $(OBJDIR_OBJECTS) $(LDFLAGS)
+	$(CPP) -o bin/renderdoccmd $(OBJDIR_OBJECTS) $(LDFLAGS)
 
 .PHONY: clean
 clean:

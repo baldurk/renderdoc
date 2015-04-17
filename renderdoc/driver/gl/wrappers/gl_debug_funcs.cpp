@@ -202,7 +202,7 @@ void WrappedOpenGL::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
 
 void WrappedOpenGL::glFrameTerminatorGREMEDY()
 {
-	Present(NULL);
+	SwapBuffers(NULL);
 }
 
 void WrappedOpenGL::glStringMarkerGREMEDY(GLsizei len, const void *string)

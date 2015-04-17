@@ -226,7 +226,12 @@ enum InAppOverlay
 
 // API breaking change history:
 // Version 1 -> 2 - strings changed from wchar_t* to char* (UTF-8)
-#define RENDERDOC_API_VERSION 2
+// Version 2 -> 3 - StartFrameCapture, EndFrameCapture and SetActiveWindow take
+//                  'device' pointer as well as window handles.
+//                  This is either ID3D11Device* or the GL context (HGLRC/GLXContext)
+//                  You can still pass NULL to both to capture the default, as long as
+//                  there's only one device/window pair alive.
+#define RENDERDOC_API_VERSION 3
 
 //////////////////////////////////////////////////////////////////////////
 // In-program functions
@@ -250,17 +255,17 @@ typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *wndHandle);
-typedef void (RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(void *wndHandle);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *device, void *wndHandle);
+typedef void (RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(void *device, void *wndHandle);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerCapture();
 typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *wndHandle);
-typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *wndHandle);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *device, void *wndHandle);
+typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *device, void *wndHandle);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *wndHandle);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *wndHandle);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *device, void *wndHandle);
+typedef bool32 (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(void *device, void *wndHandle);
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits();
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetOverlayBits)();

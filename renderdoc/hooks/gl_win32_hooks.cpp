@@ -379,7 +379,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false);
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false, false);
 
 			return ret;
 		}
@@ -400,7 +400,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false);
+			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false, false);
 
 			return ret;
 		}
@@ -468,7 +468,7 @@ class OpenGLHook : LibraryHook
 			data.wnd = WindowFromDC(dc);
 			data.ctx = ret;
 
-			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc), core);
+			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc), core, true);
 
 			return ret;
 		}
@@ -518,7 +518,7 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->WindowSize(w, r.right-r.left, r.bottom-r.top);
 
-			glhooks.GetDriver()->Present(w);
+			glhooks.GetDriver()->SwapBuffers(w);
 
 			return glhooks.SwapBuffers_hook()(dc);
 		}
@@ -864,4 +864,95 @@ GLWindowingData MakeContext(GLWindowingData share)
 void DeleteContext(GLWindowingData context)
 {
 	OpenGLHook::glhooks.DeleteContext(context);
+}
+
+// dirty immediate mode rendering functions for backwards compatible
+// rendering of overlay text
+typedef void (WINAPI *GLGETINTEGERVPROC)(GLenum,GLint*);
+typedef void (WINAPI *GLPUSHMATRIXPROC)();
+typedef void (WINAPI *GLLOADIDENTITYPROC)();
+typedef void (WINAPI *GLMATRIXMODEPROC)(GLenum);
+typedef void (WINAPI *GLORTHOPROC)(GLdouble,GLdouble,GLdouble,GLdouble,GLdouble,GLdouble);
+typedef void (WINAPI *GLPOPMATRIXPROC)();
+typedef void (WINAPI *GLBEGINPROC)(GLenum);
+typedef void (WINAPI *GLVERTEX2FPROC)(float,float);
+typedef void (WINAPI *GLTEXCOORD2FPROC)(float,float);
+typedef void (WINAPI *GLENDPROC)();
+
+static GLGETINTEGERVPROC getInt = NULL;
+static GLPUSHMATRIXPROC pushm = NULL;
+static GLLOADIDENTITYPROC loadident = NULL;
+static GLMATRIXMODEPROC matMode = NULL;
+static GLORTHOPROC ortho = NULL;
+static GLPOPMATRIXPROC popm = NULL;
+static GLBEGINPROC begin = NULL;
+static GLVERTEX2FPROC v2f = NULL;
+static GLTEXCOORD2FPROC t2f = NULL;
+static GLENDPROC end = NULL;
+
+const GLenum MAT_MODE = (GLenum)0x0BA0;
+const GLenum MAT_MDVW = (GLenum)0x1700;
+const GLenum MAT_PROJ = (GLenum)0x1701;
+
+static bool immediateInited = false;
+
+bool immediateBegin(GLenum mode, float width, float height)
+{
+	if(!immediateInited)
+	{
+		HMODULE mod = GetModuleHandleA("opengl32.dll");
+
+		if(mod == NULL) return false;
+
+		getInt = (GLGETINTEGERVPROC)GetProcAddress(mod, "glGetIntegerv"); if(!getInt) return false;
+		pushm = (GLPUSHMATRIXPROC)GetProcAddress(mod, "glPushMatrix"); if(!pushm) return false;
+		loadident = (GLLOADIDENTITYPROC)GetProcAddress(mod, "glLoadIdentity"); if(!loadident) return false;
+		matMode = (GLMATRIXMODEPROC)GetProcAddress(mod, "glMatrixMode"); if(!matMode) return false;
+		ortho = (GLORTHOPROC)GetProcAddress(mod, "glOrtho"); if(!ortho) return false;
+		popm = (GLPOPMATRIXPROC)GetProcAddress(mod, "glPopMatrix"); if(!popm) return false;
+		begin = (GLBEGINPROC)GetProcAddress(mod, "glBegin"); if(!begin) return false;
+		v2f = (GLVERTEX2FPROC)GetProcAddress(mod, "glVertex2f"); if(!v2f) return false;
+		t2f = (GLTEXCOORD2FPROC)GetProcAddress(mod, "glTexCoord2f"); if(!t2f) return false;
+		end = (GLENDPROC)GetProcAddress(mod, "glEnd"); if(!end) return false;
+
+		immediateInited = true;
+	}
+	
+	GLenum prevMatMode = eGL_NONE;
+	getInt(MAT_MODE, (GLint *)&prevMatMode);
+
+	matMode(MAT_PROJ);
+	pushm();
+	loadident();
+	ortho(0.0, width, height, 0.0, -1.0, 1.0);
+
+	matMode(MAT_MDVW);
+	pushm();
+	loadident();
+
+	matMode(prevMatMode);
+
+	begin(mode);
+
+	return true;
+}
+
+void immediateVert(float x, float y, float u, float v)
+{
+	t2f(u,v); v2f(x,y);
+}
+
+void immediateEnd()
+{
+	end();
+	
+	GLenum prevMatMode = eGL_NONE;
+	getInt(MAT_MODE, (GLint *)&prevMatMode);
+
+	matMode(MAT_PROJ);
+	popm();
+	matMode(MAT_MDVW);
+	popm();
+
+	matMode(prevMatMode);
 }

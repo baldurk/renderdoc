@@ -39,6 +39,13 @@
 
 #include <algorithm>
 
+const int firstChar = int(' ') + 1;
+const int lastChar = 127;
+const int numChars = lastChar-firstChar;
+const float charPixelHeight = 20.0f;
+
+stbtt_bakedchar chardata[numChars];
+
 const char *GLChunkNames[] =
 {
 	"WrappedOpenGL::Initialisation",
@@ -666,17 +673,19 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	m_FrameTimer.Restart();
 
+	m_AppControlledCapture = false;
+
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
 	m_CurFileSize = 0;
 
 	m_RealDebugFunc = NULL;
 	m_RealDebugFuncParam = NULL;
-	
+
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
-       m_CurEventID = 0;
-       m_CurDrawcallID = 0;
+	m_CurEventID = 0;
+	m_CurDrawcallID = 0;
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
@@ -745,6 +754,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
 		GetResourceManager()->AddResourceRecord(m_FakeVAOID);
 		GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
+
+		RenderDoc::Inst().AddDefaultFrameCapturer(this);
 	}
 	else
 	{
@@ -757,6 +768,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_FakeBB_Color = 0;
 	m_FakeBB_DepthStencil = 0;
 	m_FakeVAO = 0;
+	m_FakeIdxBuf = 0;
+	m_FakeIdxSize = 0;
 		
 	RDCDEBUG("Debug Text enabled - for development! remove before release!");
 	m_pSerialiser->SetDebugText(true);
@@ -780,10 +793,16 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 	gl.glBindVertexArray(m_FakeVAO);
 	gl.glBindVertexArray(0);
 
+	// we use this to draw from index data that was 'immediate' passed to the
+	// draw function, as i na real memory pointer
+	gl.glGenBuffers(1, &m_FakeIdxBuf);
+	gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+	m_FakeIdxSize = 1024*1024; // this buffer is resized up as needed
+	gl.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
+	gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+
 	gl.glGenFramebuffers(1, &m_FakeBB_FBO);
 	gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
-
-	GLNOTIMP("backbuffer needs to resize if the size is exceeded");
 
 	GLenum colfmt = eGL_RGBA8;
 
@@ -818,6 +837,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 
 	gl.glViewport(0, 0, params.width, params.height);
 
+	m_FakeBB_DepthStencil = 0;
 	if(params.depthBits > 0 || params.stencilBits > 0)
 	{
 		gl.glGenTextures(1, &m_FakeBB_DepthStencil);
@@ -877,6 +897,14 @@ const char * WrappedOpenGL::GetChunkName(uint32_t idx)
 
 WrappedOpenGL::~WrappedOpenGL()
 {
+	if(m_FakeIdxBuf) m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
+	if(m_FakeVAO) m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
+	if(m_FakeBB_FBO) m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
+	if(m_FakeBB_Color) m_Real.glDeleteTextures(1, &m_FakeBB_Color);
+	if(m_FakeBB_DepthStencil) m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
+
+	RenderDoc::Inst().RemoveDefaultFrameCapturer(this);
+
 	SAFE_DELETE(m_pSerialiser);
 
 	GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
@@ -915,6 +943,11 @@ WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
 // defined in gl_<platform>_hooks.cpp
 void MakeContextCurrent(GLWindowingData data);
 
+// for 'backwards compatible' overlay rendering
+bool immediateBegin(GLenum mode, float width, float height);
+void immediateVert(float x, float y, float u, float v);
+void immediateEnd();
+
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -940,13 +973,34 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 	m_ContextData.erase(contextHandle);
 }
 
-void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core)
+void WrappedOpenGL::ContextData::UnassociateWindow(void *wndHandle)
+{
+	auto it = windows.find(wndHandle);
+	if(it != windows.end())
+	{
+		windows.erase(wndHandle);
+		RenderDoc::Inst().RemoveFrameCapturer(ctx, wndHandle);
+	}
+}
+
+void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHandle)
+{
+	auto it = windows.find(wndHandle);
+	if(it == windows.end())
+		RenderDoc::Inst().AddFrameCapturer(ctx, wndHandle, gl);
+
+	windows[wndHandle] = Timing::GetUnixTimestamp();
+}
+
+void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate)
 {
 	// TODO: support multiple GL contexts more explicitly
 	m_InitParams = initParams;
 
 	ContextData &ctxdata = m_ContextData[winData.ctx];
+	ctxdata.ctx = winData.ctx;
 	ctxdata.isCore = core;
+	ctxdata.attribsCreate = attribsCreate;
 }
 
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
@@ -1051,6 +1105,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
 				int ver = mj*10 + mn;
 
+				ctxdata.version = ver;
+
 				if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
 				{
 					GLCoreVersion = ver;
@@ -1059,37 +1115,20 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				}
 			}
 
-			if(gl.glGenTextures && gl.glTextureStorage2DEXT && gl.glTextureSubImage2DEXT &&
-				gl.glGenVertexArrays && gl.glBindVertexArray &&
-				gl.glGenBuffers && gl.glNamedBufferStorageEXT &&
-				gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
-				gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
+			// to let us display the overlay on old GL contexts, use as simple a subset of functionality as possible
+			// to upload the texture. VAO and shaders are used optionally on modern contexts, otherwise we fall back
+			// to immediate mode rendering by hand
+			if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glTexImage2D && gl.glTexParameteri)
 			{
-				gl.glGenTextures(1, &ctxdata.GlyphTexture);
-				gl.glTextureStorage2DEXT(ctxdata.GlyphTexture, eGL_TEXTURE_2D, 1, eGL_R8, FONT_TEX_WIDTH, FONT_TEX_HEIGHT);
-
-				GLuint curvao = 0;
-				gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
-
-				gl.glGenVertexArrays(1, &ctxdata.DummyVAO);
-				gl.glBindVertexArray(ctxdata.DummyVAO);
-
 				string ttfstring = GetEmbeddedResource(sourcecodepro_ttf);
 				byte *ttfdata = (byte *)ttfstring.c_str();
 
-				const int firstChar = int(' ') + 1;
-				const int lastChar = 127;
-				const int numChars = lastChar-firstChar;
-
 				byte *buf = new byte[FONT_TEX_WIDTH * FONT_TEX_HEIGHT];
 
-				const float pixelHeight = 20.0f;
+				stbtt_BakeFontBitmap(ttfdata, 0, charPixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
 
-				stbtt_bakedchar chardata[numChars];
-				int ret = stbtt_BakeFontBitmap(ttfdata, 0, pixelHeight, buf, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, firstChar, numChars, chardata);
-
-				ctxdata.CharSize = pixelHeight;
-				ctxdata.CharAspect = chardata->xadvance / pixelHeight;
+				ctxdata.CharSize = charPixelHeight;
+				ctxdata.CharAspect = chardata->xadvance / charPixelHeight;
 
 				stbtt_fontinfo f = {0};
 				stbtt_InitFont(&f, ttfdata, 0);
@@ -1097,10 +1136,24 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 				int ascent = 0;
 				stbtt_GetFontVMetrics(&f, &ascent, NULL, NULL);
 
-				float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, pixelHeight);
+				float maxheight = float(ascent)*stbtt_ScaleForPixelHeight(&f, charPixelHeight);
 
-				gl.glTextureSubImage2DEXT(ctxdata.GlyphTexture, eGL_TEXTURE_2D, 0, 0, 0, FONT_TEX_WIDTH, FONT_TEX_HEIGHT,
-					eGL_RED, eGL_UNSIGNED_BYTE, (void *)buf);
+				{
+					GLuint curtex = 0;
+					gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curtex);
+
+					GLenum texFmt = eGL_R8;
+					if(ctxdata.Legacy())
+						texFmt = eGL_LUMINANCE;
+
+					gl.glGenTextures(1, &ctxdata.GlyphTexture);
+					gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
+					gl.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED, eGL_UNSIGNED_BYTE, buf);
+					gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
+					gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
+
+					gl.glBindTexture(eGL_TEXTURE_2D, curtex);
+				}
 
 				delete[] buf;
 
@@ -1113,72 +1166,97 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 					float x = b->xoff;
 					float y = b->yoff + maxheight;
 
-					glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/pixelHeight, b->xadvance/float(b->x1 - b->x0), pixelHeight/float(b->y1 - b->y0));
+					glyphData[(i+1)*2 + 0] = Vec4f(x/b->xadvance, y/charPixelHeight, b->xadvance/float(b->x1 - b->x0), charPixelHeight/float(b->y1 - b->y0));
 					glyphData[(i+1)*2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
 				}
 
-				gl.glGenBuffers(1, &ctxdata.GlyphUBO);
-				gl.glNamedBufferStorageEXT(ctxdata.GlyphUBO, sizeof(glyphData), glyphData, 0);
-
-				gl.glGenBuffers(1, &ctxdata.GeneralUBO);
-				gl.glNamedBufferStorageEXT(ctxdata.GeneralUBO, sizeof(FontUniforms), NULL, GL_MAP_WRITE_BIT);
-
-				gl.glGenBuffers(1, &ctxdata.StringUBO);
-				gl.glNamedBufferStorageEXT(ctxdata.StringUBO, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, GL_MAP_WRITE_BIT);
-
-				string textvs = "#version 420 core\n\n";
-				textvs += GetEmbeddedResource(debuguniforms_h);
-				textvs += GetEmbeddedResource(text_vert);
-				string textfs = GetEmbeddedResource(text_frag);
-
-				GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-				GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
-
-				const char *src = textvs.c_str();
-				gl.glShaderSource(vs, 1, &src, NULL);
-				src = textfs.c_str();
-				gl.glShaderSource(fs, 1, &src, NULL);
-
-				gl.glCompileShader(vs);
-				gl.glCompileShader(fs);
-
-				char buffer[1024] = {0};
-				GLint status = 0;
-
-				gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
-				if(status == 0)
+				if(ctxdata.Modern() && gl.glGenVertexArrays && gl.glBindVertexArray)
 				{
-					gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-					RDCERR("Shader error: %s", buffer);
+					GLuint curvao = 0;
+					gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&curvao);
+
+					gl.glGenVertexArrays(1, &ctxdata.DummyVAO);
+					gl.glBindVertexArray(ctxdata.DummyVAO);
+
+					gl.glBindVertexArray(curvao);
 				}
 
-				gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
-				if(status == 0)
+				if(ctxdata.Modern() && gl.glGenBuffers && gl.glBufferData && gl.glBindBuffer)
 				{
-					gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-					RDCERR("Shader error: %s", buffer);
+					GLuint curubo = 0;
+					gl.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint *)&curubo);
+
+					gl.glGenBuffers(1, &ctxdata.GlyphUBO);
+					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GlyphUBO);
+					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(glyphData), glyphData, eGL_STATIC_DRAW);
+
+					gl.glGenBuffers(1, &ctxdata.GeneralUBO);
+					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
+					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(FontUniforms), NULL, eGL_DYNAMIC_DRAW);
+
+					gl.glGenBuffers(1, &ctxdata.StringUBO);
+					gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
+					gl.glBufferData(eGL_UNIFORM_BUFFER, sizeof(uint32_t)*4*FONT_MAX_CHARS, NULL, eGL_DYNAMIC_DRAW);
+
+					gl.glBindBuffer(eGL_UNIFORM_BUFFER, curubo);
 				}
 
-				ctxdata.Program = gl.glCreateProgram();
-
-				gl.glAttachShader(ctxdata.Program, vs);
-				gl.glAttachShader(ctxdata.Program, fs);
-
-				gl.glLinkProgram(ctxdata.Program);
-
-				gl.glGetProgramiv(ctxdata.Program, eGL_LINK_STATUS, &status);
-				if(status == 0)
+				if(ctxdata.Modern() &&
+					gl.glCreateShader && gl.glShaderSource && gl.glCompileShader && gl.glGetShaderiv && gl.glGetShaderInfoLog && gl.glDeleteShader &&
+					gl.glCreateProgram && gl.glAttachShader && gl.glLinkProgram && gl.glGetProgramiv && gl.glGetProgramInfoLog)
 				{
-					gl.glGetProgramInfoLog(ctxdata.Program, 1024, NULL, buffer);
-					RDCERR("Link error: %s", buffer);
-				}
+					string textvs = "#version 420 core\n\n";
+					textvs += GetEmbeddedResource(debuguniforms_h);
+					textvs += GetEmbeddedResource(text_vert);
+					string textfs = GetEmbeddedResource(text_frag);
 
-				gl.glDeleteShader(vs);
-				gl.glDeleteShader(fs);
+					GLuint vs = gl.glCreateShader(eGL_VERTEX_SHADER);
+					GLuint fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
+
+					const char *src = textvs.c_str();
+					gl.glShaderSource(vs, 1, &src, NULL);
+					src = textfs.c_str();
+					gl.glShaderSource(fs, 1, &src, NULL);
+
+					gl.glCompileShader(vs);
+					gl.glCompileShader(fs);
+
+					char buffer[1024] = {0};
+					GLint status = 0;
+
+					gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
+					if(status == 0)
+					{
+						gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
+						RDCERR("Shader error: %s", buffer);
+					}
+
+					gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
+					if(status == 0)
+					{
+						gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
+						RDCERR("Shader error: %s", buffer);
+					}
+
+					ctxdata.Program = gl.glCreateProgram();
+
+					gl.glAttachShader(ctxdata.Program, vs);
+					gl.glAttachShader(ctxdata.Program, fs);
+
+					gl.glLinkProgram(ctxdata.Program);
+
+					gl.glGetProgramiv(ctxdata.Program, eGL_LINK_STATUS, &status);
+					if(status == 0)
+					{
+						gl.glGetProgramInfoLog(ctxdata.Program, 1024, NULL, buffer);
+						RDCERR("Link error: %s", buffer);
+					}
+
+					gl.glDeleteShader(vs);
+					gl.glDeleteShader(fs);
+				}
 
 				ctxdata.ready = true;
-
-				gl.glBindVertexArray(curvao);
 			}
 		}
 	}
@@ -1202,23 +1280,46 @@ struct RenderTextState
 	GLenum SourceRGB, SourceAlpha;
 	GLenum DestinationRGB, DestinationAlpha;
 	GLenum PolygonMode;
-	GLfloat Viewport[4];
+	GLfloat Viewportf[4];
+	GLint Viewport[4];
 	GLenum ActiveTexture;
 	GLuint tex0;
 	GLuint ubo[3];
 	GLuint prog;
+	GLuint pipe;
 	GLuint VAO;
 
-	void Push(const GLHookSet &gl)
+	// if this context wasn't created with CreateContextAttribs we
+	// do an immediate mode render, so fewer states are pushed/popped.
+	// note we don't assume a 1.0 context since that would be painful to
+	// handle. Instead we just skip bits of state we're not going to mess
+	// with. In some cases this might cause problems e.g. we don't use
+	// indexed enable states for blend and scissor test because we're
+	// assuming there's no separate blending.
+	//
+	// In the end, this is just a best-effort to keep going without
+	// crashing. Old GL versions aren't supported.
+	void Push(const GLHookSet &gl, bool modern)
 	{
-		enableBits[0] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
-		enableBits[1] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
-		enableBits[2] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
-		enableBits[3] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
-		enableBits[4] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
-		enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
-		
-		if(GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])
+		enableBits[0] = gl.glIsEnabled(eGL_DEPTH_TEST) != 0;
+		enableBits[1] = gl.glIsEnabled(eGL_STENCIL_TEST) != 0;
+		enableBits[2] = gl.glIsEnabled(eGL_CULL_FACE) != 0;
+		if(modern)
+		{
+			enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
+			enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
+			enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+		}
+		else
+		{
+			enableBits[3] = gl.glIsEnabled(eGL_BLEND) != 0;
+			enableBits[4] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
+			enableBits[5] = gl.glIsEnabled(eGL_TEXTURE_2D) != 0;
+			enableBits[6] = gl.glIsEnabled(eGL_LIGHTING) != 0;
+			enableBits[7] = gl.glIsEnabled(eGL_ALPHA_TEST) != 0;
+		}
+
+		if(modern && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control]))
 		{
 			gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
 			gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
@@ -1229,15 +1330,29 @@ struct RenderTextState
 			ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
 		}
 
-		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint*)&EquationRGB);
-		gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint*)&EquationAlpha);
+		if(modern)
+		{
+			gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint*)&EquationRGB);
+			gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint*)&EquationAlpha);
 
-		gl.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint*)&SourceRGB);
-		gl.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint*)&SourceAlpha);
+			gl.glGetIntegeri_v(eGL_BLEND_SRC_RGB, 0, (GLint*)&SourceRGB);
+			gl.glGetIntegeri_v(eGL_BLEND_SRC_ALPHA, 0, (GLint*)&SourceAlpha);
 
-		gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint*)&DestinationRGB);
-		gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint*)&DestinationAlpha);
-		
+			gl.glGetIntegeri_v(eGL_BLEND_DST_RGB, 0, (GLint*)&DestinationRGB);
+			gl.glGetIntegeri_v(eGL_BLEND_DST_ALPHA, 0, (GLint*)&DestinationAlpha);
+		}
+		else
+		{
+			gl.glGetIntegerv(eGL_BLEND_EQUATION_RGB, (GLint*)&EquationRGB);
+			gl.glGetIntegerv(eGL_BLEND_EQUATION_ALPHA, (GLint*)&EquationAlpha);
+
+			gl.glGetIntegerv(eGL_BLEND_SRC_RGB, (GLint*)&SourceRGB);
+			gl.glGetIntegerv(eGL_BLEND_SRC_ALPHA, (GLint*)&SourceAlpha);
+
+			gl.glGetIntegerv(eGL_BLEND_DST_RGB, (GLint*)&DestinationRGB);
+			gl.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint*)&DestinationAlpha);
+		}
+
 		if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
 		{
 			GLenum dummy[2] = { eGL_FILL, eGL_FILL };
@@ -1250,52 +1365,99 @@ struct RenderTextState
 		{
 			PolygonMode = eGL_FILL;
 		}
-		
-		gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewport[0]);
+
+		if(modern)
+			gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewportf[0]);
+		else
+			gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
 
 		gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 		gl.glActiveTexture(eGL_TEXTURE0);
 		gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&tex0);
 
-		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint*)&ubo[0]);
-		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint*)&ubo[1]);
-		gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint*)&ubo[2]);
-
+		// we get the current program but only try to restore it if it's non-0
+		prog = 0;
 		gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
-		
-		gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+
+		// since we will use the fixed function pipeline, also need to check for
+		// program pipeline bindings (if we weren't, our program would override)
+		pipe = 0;
+		gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+
+		if(modern)
+		{
+			gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 0, (GLint*)&ubo[0]);
+			gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 1, (GLint*)&ubo[1]);
+			gl.glGetIntegeri_v(eGL_UNIFORM_BUFFER_BINDING, 2, (GLint*)&ubo[2]);
+
+			gl.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
+		}
 	}
 
-	void Pop(const GLHookSet &gl)
+	void Pop(const GLHookSet &gl, bool modern)
 	{
-		if(enableBits[0]) gl.glEnablei(eGL_BLEND, 0); else gl.glDisablei(eGL_BLEND, 0);
-		if(enableBits[1]) gl.glEnable(eGL_DEPTH_TEST); else gl.glDisable(eGL_DEPTH_TEST);
-		if(enableBits[2]) gl.glEnable(eGL_DEPTH_CLAMP); else gl.glDisable(eGL_DEPTH_CLAMP);
-		if(enableBits[3]) gl.glEnable(eGL_STENCIL_TEST); else gl.glDisable(eGL_STENCIL_TEST);
-		if(enableBits[4]) gl.glEnable(eGL_CULL_FACE); else gl.glDisable(eGL_CULL_FACE);
-		if(enableBits[5]) gl.glEnablei(eGL_SCISSOR_TEST, 0); else gl.glDisablei(eGL_SCISSOR_TEST, 0);
+		if(enableBits[0]) gl.glEnable(eGL_DEPTH_TEST); else gl.glDisable(eGL_DEPTH_TEST);
+		if(enableBits[1]) gl.glEnable(eGL_STENCIL_TEST); else gl.glDisable(eGL_STENCIL_TEST);
+		if(enableBits[2]) gl.glEnable(eGL_CULL_FACE); else gl.glDisable(eGL_CULL_FACE);
 
-		if(gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
+		if(modern)
+		{
+			if(enableBits[3]) gl.glEnable(eGL_DEPTH_CLAMP); else gl.glDisable(eGL_DEPTH_CLAMP);
+			if(enableBits[4]) gl.glEnablei(eGL_BLEND, 0); else gl.glDisablei(eGL_BLEND, 0);
+			if(enableBits[5]) gl.glEnablei(eGL_SCISSOR_TEST, 0); else gl.glDisablei(eGL_SCISSOR_TEST, 0);
+		}
+		else
+		{
+			if(enableBits[3]) gl.glEnable(eGL_BLEND); else gl.glDisable(eGL_BLEND);
+			if(enableBits[4]) gl.glEnable(eGL_SCISSOR_TEST); else gl.glDisable(eGL_SCISSOR_TEST);
+			if(enableBits[5]) gl.glEnable(eGL_TEXTURE_2D); else gl.glDisable(eGL_TEXTURE_2D);
+			if(enableBits[6]) gl.glEnable(eGL_LIGHTING); else gl.glDisable(eGL_LIGHTING);
+			if(enableBits[7]) gl.glEnable(eGL_ALPHA_TEST); else gl.glDisable(eGL_ALPHA_TEST);
+		}
+
+		if(modern && gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
 			gl.glClipControl(ClipOrigin, ClipDepth);
 		
-		gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
-		gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
+		if(modern)
+		{
+			gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+			gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
+		}
+		else
+		{
+			gl.glBlendFuncSeparate(SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
+			gl.glBlendEquationSeparate(EquationRGB, EquationAlpha);
+		}
 
 		gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 		
-		gl.glViewportIndexedf(0, Viewport[0], Viewport[1], Viewport[2], Viewport[3]);
+		if(modern)
+			gl.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
+		else
+			gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
 		
 		gl.glActiveTexture(eGL_TEXTURE0);
 		gl.glBindTexture(eGL_TEXTURE_2D, tex0);
 		gl.glActiveTexture(ActiveTexture);
-		
-		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
-		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
-		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
 
-		gl.glUseProgram(prog);
-		
-		gl.glBindVertexArray(VAO);
+		if(modern)
+		{
+			gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ubo[0]);
+			gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ubo[1]);
+			gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ubo[2]);
+
+			gl.glUseProgram(prog);
+
+			gl.glBindVertexArray(VAO);
+		}
+		else
+		{
+			// only restore these if there was a setting and the function pointer exists
+			if(gl.glUseProgram && prog != 0)
+				gl.glUseProgram(prog);
+			if(gl.glBindProgramPipeline && pipe != 0)
+				gl.glBindProgramPipeline(pipe);
+		}
 	}
 };
 
@@ -1334,78 +1496,220 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 
 	if(!ctxdata.built || !ctxdata.ready) return;
 
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
-
-	FontUniforms *ubo = (FontUniforms *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(FontUniforms), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	ubo->TextPosition.x = x;
-	ubo->TextPosition.y = y;
-
-	ubo->FontScreenAspect.x = 1.0f/float(m_InitParams.width);
-	ubo->FontScreenAspect.y = 1.0f/float(m_InitParams.height);
-
-	ubo->TextSize = ctxdata.CharSize;
-	ubo->FontScreenAspect.x *= ctxdata.CharAspect;
-
-	ubo->CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
-	ubo->CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
-
-	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
-	size_t len = strlen(text);
-
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.StringUBO);
-	uint32_t *texs = (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len*4*sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-	
-	for(size_t i=0; i < len; i++)
+	// if it's reasonably modern context, assume we can use buffers and UBOs
+	if(ctxdata.Modern())
 	{
-		texs[i*4+0] = text[i] - ' ';
-		texs[i*4+1] = text[i] - ' ';
-		texs[i*4+2] = text[i] - ' ';
-		texs[i*4+3] = text[i] - ' ';
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
+
+		FontUniforms *ubo = (FontUniforms *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(FontUniforms), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+		ubo->TextPosition.x = x;
+		ubo->TextPosition.y = y;
+
+		ubo->FontScreenAspect.x = 1.0f/float(m_InitParams.width);
+		ubo->FontScreenAspect.y = 1.0f/float(m_InitParams.height);
+
+		ubo->TextSize = ctxdata.CharSize;
+		ubo->FontScreenAspect.x *= ctxdata.CharAspect;
+
+		ubo->CharacterSize.x = 1.0f/float(FONT_TEX_WIDTH);
+		ubo->CharacterSize.y = 1.0f/float(FONT_TEX_HEIGHT);
+
+		gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+		size_t len = strlen(text);
+
+		if((int)len > FONT_MAX_CHARS)
+		{
+			static bool printedWarning = false;
+
+			// this could be called once a frame, don't want to spam the log
+			if(!printedWarning)
+			{
+				printedWarning = true;
+				RDCWARN("log string '%s' is too long", text, (int)len);
+			}
+
+			len = FONT_MAX_CHARS;
+		}
+
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.StringUBO);
+		uint32_t *texs = (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len*4*sizeof(uint32_t), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+		if(texs)
+		{
+			for(size_t i=0; i < len; i++)
+			{
+				texs[i*4+0] = text[i] - ' ';
+				texs[i*4+1] = text[i] - ' ';
+				texs[i*4+2] = text[i] - ' ';
+				texs[i*4+3] = text[i] - ' ';
+			}
+		}
+		else
+		{
+			static bool printedWarning = false;
+
+			// this could be called once a frame, don't want to spam the log
+			if(!printedWarning)
+			{
+				printedWarning = true;
+				RDCWARN("failed to map %d characters for '%s' (%d)", (int)len, text, ctxdata.StringUBO);
+			}
+		}
+
+		gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+		//////////////////////////////////////////////////////////////////////////////////
+		// Make sure if you change any other state in here, that you also update the push
+		// and pop functions above (RenderTextState)
+
+		// set blend state
+		gl.glEnablei(eGL_BLEND, 0);
+		gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
+		gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+
+		// set depth & stencil
+		gl.glDisable(eGL_DEPTH_TEST);
+		gl.glDisable(eGL_DEPTH_CLAMP);
+		gl.glDisable(eGL_STENCIL_TEST);
+		gl.glDisable(eGL_CULL_FACE);
+
+		// set viewport & scissor
+		gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+		gl.glDisablei(eGL_SCISSOR_TEST, 0);
+		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
+
+		if(gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
+			gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
+
+		// bind UBOs
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
+		gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
+
+		// bind empty VAO just for valid rendering
+		gl.glBindVertexArray(ctxdata.DummyVAO);
+
+		// bind textures
+		gl.glActiveTexture(eGL_TEXTURE0);
+		gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
+
+		// bind program
+		gl.glUseProgram(ctxdata.Program);
+
+		// draw string
+		gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);
 	}
+	else
+	{
+		// if it wasn't created in modern fashion with createattribs, assume the worst
+		// and draw with immediate mode (since it's impossible that the context is core
+		// profile, this will always work)
+		//
+		// This isn't perfect since without a lot of fiddling we'd need to check if e.g.
+		// indexed blending should be used or not. Since we're not too worried about
+		// working in this situation, just doing something reasonable, we just assume
+		// roughly ~2.0 functionality
+		
+		//////////////////////////////////////////////////////////////////////////////////
+		// Make sure if you change any other state in here, that you also update the push
+		// and pop functions above (RenderTextState)
 
-	gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+		// disable blending and some old-style fixed function features
+		gl.glDisable(eGL_BLEND);
+		gl.glDisable(eGL_LIGHTING);
+		gl.glDisable(eGL_ALPHA_TEST);
 
-	//////////////////////////////////////////////////////////////////////////////////
-	// Make sure if you change any other state in here, that you also update the push
-	// and pop functions above (RenderTextState)
+		// set depth & stencil
+		gl.glDisable(eGL_DEPTH_TEST);
+		gl.glDisable(eGL_STENCIL_TEST);
+		gl.glDisable(eGL_CULL_FACE);
 
-	// set blend state
-	gl.glEnablei(eGL_BLEND, 0);
-	gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
-	gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+		// set viewport & scissor
+		gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
+		gl.glDisable(eGL_SCISSOR_TEST);
+		gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
-	// set depth & stencil
-	gl.glDisable(eGL_DEPTH_TEST);
-	gl.glDisable(eGL_DEPTH_CLAMP);
-	gl.glDisable(eGL_STENCIL_TEST);
-	gl.glDisable(eGL_CULL_FACE);
+		// bind textures
+		gl.glActiveTexture(eGL_TEXTURE0);
+		gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
+		gl.glEnable(eGL_TEXTURE_2D);
 
-	// set viewport & scissor
-	gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
-	gl.glDisablei(eGL_SCISSOR_TEST, 0);
-	gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
-	
-	if(gl.glClipControl && (GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])) // only available in 4.5+
-		gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
+		// just in case, try to disable the programmable pipeline
+		if(gl.glUseProgram)
+			gl.glUseProgram(0);
+		if(gl.glBindProgramPipeline)
+			gl.glBindProgramPipeline(0);
 
-	// bind UBOs
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, ctxdata.GlyphUBO);
-	gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, ctxdata.StringUBO);
+		// draw string (based on sample code from stb_truetype.h)
+		if(immediateBegin(eGL_QUADS, (float)m_InitParams.width, (float)m_InitParams.height))
+		{
+			y += 1.0f;
+			y *= charPixelHeight;
 
-	// bind empty VAO just for valid rendering
-	gl.glBindVertexArray(ctxdata.DummyVAO);
-	
-	// bind textures
-	gl.glActiveTexture(eGL_TEXTURE0);
-	gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
-	
-	// bind program
-	gl.glUseProgram(ctxdata.Program);
+			float startx = x;
+			float starty = y;
 
-	// draw string
-	gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);
+			float maxx = x, minx = x;
+			float maxy = y, miny = y - charPixelHeight;
+
+			stbtt_aligned_quad q;
+
+			const char *prepass = text;
+			while (*prepass)
+			{
+				char c = *prepass;
+				if (c >= firstChar && c <= lastChar)
+				{
+					stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c-firstChar, &x, &y, &q, 1);
+					
+					maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
+					maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
+					
+					minx = RDCMIN(minx, RDCMIN(q.x0, q.x1));
+					miny = RDCMIN(miny, RDCMIN(q.y0, q.y1));
+				}
+				else
+				{
+					x += chardata[0].xadvance;
+				}
+				prepass++;
+			}
+
+			x = startx;
+			y = starty;
+
+			// draw black bar behind text
+			immediateVert(minx, maxy, 0.0f, 0.0f);
+			immediateVert(maxx, maxy, 0.0f, 0.0f);
+			immediateVert(maxx, miny, 0.0f, 0.0f);
+			immediateVert(minx, miny, 0.0f, 0.0f);
+
+			while (*text)
+			{
+				char c = *text;
+				if (c >= firstChar && c <= lastChar)
+				{
+					stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c-firstChar, &x, &y, &q, 1);
+
+					immediateVert(q.x0, q.y0, q.s0, q.t0);
+					immediateVert(q.x1, q.y0, q.s1, q.t0);
+					immediateVert(q.x1, q.y1, q.s1, q.t1);
+					immediateVert(q.x0, q.y1, q.s0, q.t1);
+					
+					maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
+					maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
+				}
+				else
+				{
+					x += chardata[0].xadvance;
+				}
+				++text;
+			}
+
+			immediateEnd();
+		}
+	}
 }
 
 struct ReplacementSearch
@@ -1642,15 +1946,54 @@ void WrappedOpenGL::FreeTargetResource(ResourceId id)
 	}
 }
 
-void WrappedOpenGL::Present(void *windowHandle)
+void WrappedOpenGL::SwapBuffers(void *windowHandle)
 {
-	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
-
 	if(m_State == WRITING_IDLE)
 		RenderDoc::Inst().Tick();
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 	
+	ContextData &ctxdata = GetCtxData();
+	
+	// we only handle context-window associations here as it's too common to
+	// create invisible helper windows while creating contexts, that then
+	// become the default window.
+	// Since we only capture windows that do SwapBuffers (i.e. if you're doing
+	// headless rendering then you must capture via the API anyway), this
+	// isn't a big problem.
+	//
+	// Also we only set up associations for capturable windows.
+	if(ctxdata.Modern())
+	{
+		for(auto it=m_ContextData.begin(); it != m_ContextData.end(); ++it)
+			if(it->first != ctxdata.ctx)
+				it->second.UnassociateWindow(windowHandle);
+
+		ctxdata.AssociateWindow(this, windowHandle);
+	}
+	
+	bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
+	
+	// look at previous associations and decay any that are too old
+	uint64_t ref = Timing::GetUnixTimestamp() - 5; // 5 seconds
+
+	for(auto cit=m_ContextData.begin(); cit != m_ContextData.end(); ++cit)
+	{
+		for(auto wit=cit->second.windows.begin(); wit != cit->second.windows.end(); )
+		{
+			if(wit->second < ref)
+			{
+				auto remove = wit;
+				++wit;
+				cit->second.windows.erase(remove);
+			}
+			else
+			{
+				++wit;
+			}
+		}
+	}
+
 	if(m_State == WRITING_IDLE)
 	{
 		m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
@@ -1682,39 +2025,43 @@ void WrappedOpenGL::Present(void *windowHandle)
 
 		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-		if((overlay & eOverlay_Enabled) && m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+		if(overlay & eOverlay_Enabled)
 		{
 			RenderTextState textState;
 
-			textState.Push(m_Real);
+			textState.Push(m_Real, ctxdata.Modern());
 
-			// TODO: handle selecting active window amongst many
+			if(activeWindow)
 			{
 				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
-				string overlayText = "OpenGL. ";
+				string overlayText = "OpenGL.";
 
-				for(size_t i=0; i < keys.size(); i++)
+				if(ctxdata.Modern())
 				{
-					if(i > 0)
-						overlayText += ", ";
+					overlayText += " ";
 
-					overlayText += ToStr::Get(keys[i]);
+					for(size_t i=0; i < keys.size(); i++)
+					{
+						if(i > 0)
+							overlayText += ", ";
+
+						overlayText += ToStr::Get(keys[i]);
+					}
+
+					if(!keys.empty())
+						overlayText += " to capture.";
 				}
-
-				if(!keys.empty())
-					overlayText += " to capture.";
 
 				if(overlay & eOverlay_FrameNumber)
 				{
-					if(!overlayText.empty()) overlayText += " ";
-					overlayText += StringFormat::Fmt("Frame: %d.", m_FrameCounter);
+					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
 				}
 				if(overlay & eOverlay_FrameRate)
 				{
-					if(!overlayText.empty()) overlayText += " ";
-					overlayText += StringFormat::Fmt("%.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
-						m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
+					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
+						m_AvgFrametime, m_MinFrametime, m_MaxFrametime,
+						m_AvgFrametime <= 0.0f ? 0.0f : 1000.0f/m_AvgFrametime);
 				}
 
 				float y=0.0f;
@@ -1725,7 +2072,23 @@ void WrappedOpenGL::Present(void *windowHandle)
 					y += 1.0f;
 				}
 
-				if(overlay & eOverlay_CaptureList)
+				if(ctxdata.Legacy())
+				{
+					if(!ctxdata.attribsCreate)
+					{
+						RenderOverlayText(0.0f, y, "Context not created via CreateContextAttribs. Capturing disabled.");
+						y += 1.0f;
+					}
+					RenderOverlayText(0.0f, y, "Only OpenGL 3.2+ contexts are supported.");
+					y += 1.0f;
+				}
+				else if(!ctxdata.isCore)
+				{
+					RenderOverlayText(0.0f, y, "WARNING: Non-core context in use. Compatibility profile not supported.");
+					y += 1.0f;
+				}
+
+				if(ctxdata.Modern() && (overlay & eOverlay_CaptureList))
 				{
 					RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
 					y += 1.0f;
@@ -1746,198 +2109,275 @@ void WrappedOpenGL::Present(void *windowHandle)
 				y += 1.0f;
 #endif
 			}
-
-			textState.Pop(m_Real);
-		}
-	}
-
-	// kill any current capture
-	if(m_State == WRITING_CAPFRAME)
-	{
-		//if(HasSuccessfulCapture())
-		{
-			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
-
-			EndCaptureFrame();
-			FinishCapture();
-			
-			const uint32_t maxSize = 1024;
-
-			byte *thpixels = NULL;
-			uint32_t thwidth = 0;
-			uint32_t thheight = 0;
-
-			if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
+			else
 			{
-				RDCGLenum prevReadBuf = eGL_BACK;
-				GLint prevBuf = 0;
-				GLint packBufBind = 0;
-				GLint prevPackRowLen = 0;
-				GLint prevPackSkipRows = 0;
-				GLint prevPackSkipPixels = 0;
-				GLint prevPackAlignment = 0;
-				m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
-				m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
-				m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
-				m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
-				m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
-				m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
-				m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
+				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
 
-				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
-				m_Real.glReadBuffer(eGL_BACK);
-				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
-				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
-
-				thwidth = m_InitParams.width;
-				thheight = m_InitParams.height;
-
-				thpixels = new byte[thwidth*thheight*3];
-
-				m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
-
-				for(uint32_t y=0; y <= thheight/2; y++)
+				string str = "OpenGL. Inactive window.";
+				
+				if(ctxdata.Modern())
 				{
-					for(uint32_t x=0; x < thwidth; x++)
+					for(size_t i=0; i < keys.size(); i++)
 					{
-						byte save[3];
-						save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
-						save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
-						save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
-						
-						thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
-						thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
-						thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
-						
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
-						thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
+						if(i == 0)
+							str += " ";
+						else
+							str += ", ";
+
+						str += ToStr::Get(keys[i]);
 					}
+
+					if(!keys.empty())
+						str += " to cycle between windows.";
 				}
-
-				m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
-				m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
-				m_Real.glReadBuffer(prevReadBuf);
-				m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
-				m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
-				m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
-			}
-			
-			byte *jpgbuf = NULL;
-			int len = thwidth*thheight;
-
-			if(len > 0)
-			{
-				jpgbuf = new byte[len];
-
-				jpge::params p;
-
-				p.m_quality = 40;
-
-				bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
-
-				if(!success)
+				else
 				{
-					RDCERR("Failed to compress to jpg");
-					SAFE_DELETE_ARRAY(jpgbuf);
-					thwidth = 0;
-					thheight = 0;
+					if(!ctxdata.attribsCreate)
+					{
+						str += "\nContext not created via CreateContextAttribs. Capturing disabled.\n";
+					}
+					str += "Only OpenGL 3.2+ contexts are supported.";
 				}
+
+				RenderOverlayText(0.0f, 0.0f, str.c_str());
 			}
 
-			Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+			textState.Pop(m_Real, ctxdata.Modern());
 
+			// swallow all errors we might have inadvertantly caused. This is
+			// better than letting an error propagate and maybe screw up the
+			// app (although it means we might swallow an error from before the
+			// SwapBuffers call, it can't be helped.
+			if(ctxdata.Legacy() && m_Real.glGetError)
 			{
-				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
-
-				SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
-				SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
-
-				m_pFileSerialiser->Insert(scope.Get(true));
+				GLenum err = m_Real.glGetError();
+				while(err) err = m_Real.glGetError();
 			}
-
-			RDCDEBUG("Inserting Resource Serialisers");	
-
-			GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
-			
-			GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
-
-			RDCDEBUG("Creating Capture Scope");	
-
-			{
-				SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
-
-				Serialise_CaptureScope(0);
-
-				m_pFileSerialiser->Insert(scope.Get(true));
-			}
-
-			{
-				RDCDEBUG("Getting Resource Record");	
-
-				GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
-
-				RDCDEBUG("Accumulating context resource list");	
-
-				map<int32_t, Chunk *> recordlist;
-				record->Insert(recordlist);
-
-				RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
-
-				for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-					m_pFileSerialiser->Insert(it->second);
-
-				RDCDEBUG("Done");	
-			}
-
-			m_CurFileSize += m_pFileSerialiser->FlushToDisk();
-
-			RenderDoc::Inst().SuccessfullyWrittenLog();
-
-			SAFE_DELETE(m_pFileSerialiser);
-
-			m_State = WRITING_IDLE;
-			
-			GetResourceManager()->MarkUnwrittenResources();
-
-			GetResourceManager()->ClearReferencedResources();
 		}
 	}
+	
+	if(!activeWindow)
+		return;
+	
+	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
 
-	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE && m_FrameRecord.empty())
+	// only allow capturing on 'modern' created contexts
+	if(ctxdata.Legacy())
+		return;
+
+	// kill any current capture that isn't application defined
+	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+		EndFrameCapture(this, windowHandle);
+	
+	// for now, only allow one captured frame at all
+	if(!m_FrameRecord.empty())
+		return;
+	
+	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		m_State = WRITING_CAPFRAME;
+		StartFrameCapture(this, windowHandle);
 
-		GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+		m_AppControlledCapture = false;
+	}
+}
 
-		bool switchedContext = false;
-		if(prevctx.ctx == NULL)
+void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
+{
+	m_State = WRITING_CAPFRAME;
+
+	m_AppControlledCapture = true;
+
+	GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
+
+	bool switchedContext = false;
+	if(prevctx.ctx == NULL)
+	{
+		MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
+		switchedContext = true;
+	}
+
+	FetchFrameRecord record;
+	record.frameInfo.frameNumber = m_FrameCounter+1;
+	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
+	m_FrameRecord.push_back(record);
+
+	GetResourceManager()->ClearReferencedResources();
+
+	GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+	GetResourceManager()->PrepareInitialContents();
+
+	AttemptCapture();
+	BeginCaptureFrame();
+
+	if(switchedContext)
+		MakeContextCurrent(prevctx);
+
+	RDCLOG("Starting capture, frame %u", m_FrameCounter);
+}
+
+bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
+{
+	if(m_State != WRITING_CAPFRAME) return true;
+	
+	CaptureFailReason reason = CaptureSucceeded;
+
+	//if(HasSuccessfulCapture(reason))
+	{
+		RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+		ContextEndFrame();
+		FinishCapture();
+
+		const uint32_t maxSize = 1024;
+
+		byte *thpixels = NULL;
+		uint32_t thwidth = 0;
+		uint32_t thheight = 0;
+
+		if(m_Real.glGetIntegerv && m_Real.glReadBuffer && m_Real.glBindFramebuffer && m_Real.glBindBuffer && m_Real.glReadPixels)
 		{
-			MakeContextCurrent(m_DefaultContexts[Threading::GetCurrentID()]);
-			switchedContext = true;
+			RDCGLenum prevReadBuf = eGL_BACK;
+			GLint prevBuf = 0;
+			GLint packBufBind = 0;
+			GLint prevPackRowLen = 0;
+			GLint prevPackSkipRows = 0;
+			GLint prevPackSkipPixels = 0;
+			GLint prevPackAlignment = 0;
+			m_Real.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&prevReadBuf);
+			m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &prevBuf);
+			m_Real.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, &packBufBind);
+			m_Real.glGetIntegerv(eGL_PACK_ROW_LENGTH, &prevPackRowLen);
+			m_Real.glGetIntegerv(eGL_PACK_SKIP_ROWS, &prevPackSkipRows);
+			m_Real.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &prevPackSkipPixels);
+			m_Real.glGetIntegerv(eGL_PACK_ALIGNMENT, &prevPackAlignment);
+
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
+			m_Real.glReadBuffer(eGL_BACK);
+			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
+			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
+			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
+
+			thwidth = m_InitParams.width;
+			thheight = m_InitParams.height;
+
+			thpixels = new byte[thwidth*thheight*3];
+
+			m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
+
+			for(uint32_t y=0; y <= thheight/2; y++)
+			{
+				for(uint32_t x=0; x < thwidth; x++)
+				{
+					byte save[3];
+					save[0] = thpixels[y*(thwidth*3) + x*3 + 0];
+					save[1] = thpixels[y*(thwidth*3) + x*3 + 1];
+					save[2] = thpixels[y*(thwidth*3) + x*3 + 2];
+
+					thpixels[y*(thwidth*3) + x*3 + 0] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0];
+					thpixels[y*(thwidth*3) + x*3 + 1] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1];
+					thpixels[y*(thwidth*3) + x*3 + 2] = thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2];
+
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 0] = save[0];
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 1] = save[1];
+					thpixels[(thheight-1-y)*(thwidth*3) + x*3 + 2] = save[2];
+				}
+			}
+
+			m_Real.glBindBuffer(eGL_PIXEL_PACK_BUFFER, packBufBind);
+			m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, prevBuf);
+			m_Real.glReadBuffer(prevReadBuf);
+			m_Real.glPixelStorei(eGL_PACK_ROW_LENGTH, prevPackRowLen);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_ROWS, prevPackSkipRows);
+			m_Real.glPixelStorei(eGL_PACK_SKIP_PIXELS, prevPackSkipPixels);
+			m_Real.glPixelStorei(eGL_PACK_ALIGNMENT, prevPackAlignment);
 		}
 
-		FetchFrameRecord record;
-		record.frameInfo.frameNumber = m_FrameCounter+1;
-		record.frameInfo.captureTime = Timing::GetUnixTimestamp();
-		m_FrameRecord.push_back(record);
+		byte *jpgbuf = NULL;
+		int len = thwidth*thheight;
+
+		if(len > 0)
+		{
+			jpgbuf = new byte[len];
+
+			jpge::params p;
+
+			p.m_quality = 40;
+
+			bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+
+			if(!success)
+			{
+				RDCERR("Failed to compress to jpg");
+				SAFE_DELETE_ARRAY(jpgbuf);
+				thwidth = 0;
+				thheight = 0;
+			}
+		}
+
+		Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
+
+		{
+			SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
+
+			SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
+			SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		RDCDEBUG("Inserting Resource Serialisers");	
+
+		GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+
+		GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
+
+		RDCDEBUG("Creating Capture Scope");	
+
+		{
+			SCOPED_SERIALISE_CONTEXT(CAPTURE_SCOPE);
+
+			Serialise_CaptureScope(0);
+
+			m_pFileSerialiser->Insert(scope.Get(true));
+		}
+
+		{
+			RDCDEBUG("Getting Resource Record");	
+
+			GLResourceRecord *record = m_ResourceManager->GetResourceRecord(m_ContextResourceID);
+
+			RDCDEBUG("Accumulating context resource list");	
+
+			map<int32_t, Chunk *> recordlist;
+			record->Insert(recordlist);
+
+			RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
+
+			for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+				m_pFileSerialiser->Insert(it->second);
+
+			RDCDEBUG("Done");	
+		}
+
+		m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+
+		RenderDoc::Inst().SuccessfullyWrittenLog();
+
+		SAFE_DELETE(m_pFileSerialiser);
+
+		m_State = WRITING_IDLE;
+
+		GetResourceManager()->MarkUnwrittenResources();
 
 		GetResourceManager()->ClearReferencedResources();
 
-		GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
-		GetResourceManager()->PrepareInitialContents();
-		
-		AttemptCapture();
-		BeginCaptureFrame();
-
-		if(switchedContext)
-			MakeContextCurrent(prevctx);
-
-		RDCLOG("Starting capture, frame %u", m_FrameCounter);
+		return true;
+	}
+	//else
+	{
+		// failed to capture
 	}
 }
 
@@ -1962,7 +2402,7 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
 	}
 }
 
-void WrappedOpenGL::EndCaptureFrame()
+void WrappedOpenGL::ContextEndFrame()
 {
 	SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
 	
@@ -2003,7 +2443,7 @@ void WrappedOpenGL::AttemptCapture()
 	m_DebugMessages.clear();
 
 	{
-		RDCDEBUG("Immediate Context %llu Attempting capture", GetContextResourceID());
+		RDCDEBUG("GL Context %llu Attempting capture", GetContextResourceID());
 
 		//m_SuccessfulCapture = true;
 
@@ -3267,6 +3707,16 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 		GetFrameRecord().back().frameInfo.debugMessages = GetDebugMessages();
+		
+		// it's easier to remove duplicate usages here than check it as we go.
+		// this means if textures are bound in multiple places in the same draw
+		// we don't have duplicate uses
+		for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
+		{
+			vector<EventUsage> &v = it->second;
+			std::sort(v.begin(), v.end());
+			v.erase( std::unique(v.begin(), v.end()), v.end() );
+		}
 	}
 
 	GetResourceManager()->MarkInFrame(false);
@@ -3345,6 +3795,254 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 		context->m_State = state;
 }
 
+void WrappedOpenGL::AddUsage(FetchDrawcall d)
+{
+	if((d.flags & (eDraw_Drawcall|eDraw_Dispatch)) == 0)
+		return;
+
+	const GLHookSet &gl = m_Real;
+
+	GLResourceManager *rm = GetResourceManager();
+	
+	void *ctx = GetCtx();
+
+	uint32_t e = d.eventID;
+
+	//////////////////////////////
+	// Input
+
+	if(d.flags & eDraw_UseIBuffer)
+	{
+		GLuint ibuffer = 0;
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
+
+		if(ibuffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, ibuffer))].push_back(EventUsage(e, eUsage_IndexBuffer));
+	}
+
+	// Vertex buffers and attributes
+	GLint numVBufferBindings = 16;
+	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+	
+	for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
+	{
+		GLuint buffer = GetBoundVertexBuffer(m_Real, i);
+
+		if(buffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_VertexBuffer));
+	}
+	
+	//////////////////////////////
+	// Shaders
+	
+	{
+		GLRenderState rs(&m_Real, NULL, READING);
+		rs.FetchState(ctx, this);
+
+		ShaderReflection *refl[6] = { NULL };
+		ShaderBindpointMapping mapping[6];
+
+		GLuint curProg = 0;
+		gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+
+		if(curProg == 0)
+		{
+			gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint*)&curProg);
+
+			if(curProg == 0)
+			{
+				// no program bound at this draw
+			}
+			else
+			{
+				auto &pipeDetails = m_Pipelines[rm->GetID(ProgramPipeRes(ctx, curProg))];
+
+				for(size_t i=0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
+				{
+					if(pipeDetails.stageShaders[i] != ResourceId())
+					{
+						curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+
+						refl[i] = &m_Shaders[pipeDetails.stageShaders[i]].reflection;
+						GetBindpointMapping(m_Real, curProg, (int)i, refl[i], mapping[i]);
+					}
+				}
+			}
+		}
+		else
+		{
+			auto &progDetails = m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
+
+			for(size_t i=0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
+			{
+				if(progDetails.stageShaders[i] != ResourceId())
+				{
+					refl[i] = &m_Shaders[progDetails.stageShaders[i]].reflection;
+					GetBindpointMapping(m_Real, curProg, (int)i, refl[i], mapping[i]);
+				}
+			}
+		}
+
+		for(size_t i=0; i < ARRAY_COUNT(refl); i++)
+		{
+			EventUsage cb = EventUsage(e, ResourceUsage(eUsage_VS_Constants + i));
+			EventUsage res = EventUsage(e, ResourceUsage(eUsage_VS_Resource + i));
+			EventUsage rw = EventUsage(e, ResourceUsage(eUsage_VS_RWResource + i));
+
+			if(refl[i])
+			{
+				for(int32_t c=0; c < refl[i]->ConstantBlocks.count; c++)
+				{
+					if(!refl[i]->ConstantBlocks[c].bufferBacked) continue;
+					if(refl[i]->ConstantBlocks[c].bindPoint < 0 ||
+						refl[i]->ConstantBlocks[c].bindPoint >= mapping[i].ConstantBlocks.count) continue;
+
+					int32_t bind = mapping[i].ConstantBlocks[ refl[i]->ConstantBlocks[c].bindPoint ].bind;
+
+					if(rs.UniformBinding[bind].name)
+						m_ResourceUses[rm->GetID(BufferRes(ctx, rs.UniformBinding[bind].name))].push_back(cb);
+				}
+				
+				for(int32_t r=0; r < refl[i]->Resources.count; r++)
+				{
+					int32_t bind = mapping[i].Resources[ refl[i]->Resources[r].bindPoint ].bind;
+
+					if(refl[i]->Resources[r].IsReadWrite)
+					{
+						if(refl[i]->Resources[r].IsTexture)
+						{
+							if(rs.Images[bind].name)
+								m_ResourceUses[rm->GetID(TextureRes(ctx, rs.UniformBinding[bind].name))].push_back(rw);
+						}
+						else
+						{
+							if(refl[i]->Resources[r].variableType.descriptor.cols == 1 &&
+								refl[i]->Resources[r].variableType.descriptor.rows == 1 &&
+								refl[i]->Resources[r].variableType.descriptor.type == eVar_UInt)
+							{
+								if(rs.AtomicCounter[bind].name)
+									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.AtomicCounter[bind].name))].push_back(rw);
+							}
+							else
+							{
+								if(rs.ShaderStorage[bind].name)
+									m_ResourceUses[rm->GetID(BufferRes(ctx, rs.ShaderStorage[bind].name))].push_back(rw);
+							}
+						}
+						continue;
+					}
+
+					uint32_t *texList = NULL;
+					
+					switch(refl[i]->Resources[r].resType)
+					{
+						case eResType_None:
+							texList = NULL;
+							break;
+						case eResType_Buffer:
+							texList = rs.TexBuffer;
+							break;
+						case eResType_Texture1D:
+							texList = rs.Tex1D;
+							break;
+						case eResType_Texture1DArray:
+							texList = rs.Tex1DArray;
+							break;
+						case eResType_Texture2D:
+							texList = rs.Tex2D;
+							break;
+						case eResType_TextureRect:
+							texList = rs.TexRect;
+							break;
+						case eResType_Texture2DArray:
+							texList = rs.Tex2DArray;
+							break;
+						case eResType_Texture2DMS:
+							texList = rs.Tex2DMS;
+							break;
+						case eResType_Texture2DMSArray:
+							texList = rs.Tex2DMSArray;
+							break;
+						case eResType_Texture3D:
+							texList = rs.Tex3D;
+							break;
+						case eResType_TextureCube:
+							texList = rs.TexCube;
+							break;
+						case eResType_TextureCubeArray:
+							texList = rs.TexCubeArray;
+							break;
+					}
+					
+					if(texList != NULL && texList[bind] != 0)
+						m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(res);
+				}
+			}
+		}
+	}
+	
+	//////////////////////////////
+	// Feedback
+	
+	GLint maxCount = 0;
+	gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+	for(int i=0; i < maxCount; i++)
+	{
+		GLuint buffer = 0;
+		gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&buffer);
+
+		if(buffer)
+			m_ResourceUses[rm->GetID(BufferRes(ctx, buffer))].push_back(EventUsage(e, eUsage_SO));
+	}
+	
+	//////////////////////////////
+	// FBO
+	
+	GLint numCols = 8;
+	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+	
+	GLuint attachment = 0;
+	GLenum type = eGL_TEXTURE;
+	for(GLint i=0; i < numCols; i++)
+	{
+		type = eGL_TEXTURE;
+
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(attachment)
+		{
+			if(type == eGL_TEXTURE)
+				m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_ColourTarget));
+			else
+				m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_ColourTarget));
+		}
+	}
+
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+	if(attachment)
+	{
+		if(type == eGL_TEXTURE)
+			m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+		else
+			m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+	}
+
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&attachment);
+	gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+	
+	if(attachment)
+	{
+		if(type == eGL_TEXTURE)
+			m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+		else
+			m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(EventUsage(e, eUsage_DepthStencilTarget));
+	}
+}
+
 void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
 	if(d.context == ResourceId()) d.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
@@ -3400,7 +4098,7 @@ void WrappedOpenGL::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		draw.events = evs;
 	}
 
-	//AddUsage(draw);
+	AddUsage(draw);
 	
 	// should have at least the root drawcall here, push this drawcall
 	// onto the back's children list.

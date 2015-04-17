@@ -53,6 +53,31 @@ namespace renderdocui.Windows.PipelineState
 
             m_DockContent = c;
 
+            inputLayouts.Font = core.Config.PreferredFont;
+            iabuffers.Font = core.Config.PreferredFont;
+
+            csUAVs.Font = core.Config.PreferredFont;
+            gsStreams.Font = core.Config.PreferredFont;
+
+            groupX.Font = groupY.Font = groupZ.Font = core.Config.PreferredFont;
+            threadX.Font = threadY.Font = threadZ.Font = core.Config.PreferredFont;
+
+            vsShader.Font = vsResources.Font = vsSamplers.Font = vsCBuffers.Font = vsClasses.Font = core.Config.PreferredFont;
+            gsShader.Font = gsResources.Font = gsSamplers.Font = gsCBuffers.Font = gsClasses.Font = core.Config.PreferredFont;
+            hsShader.Font = hsResources.Font = hsSamplers.Font = hsCBuffers.Font = hsClasses.Font = core.Config.PreferredFont;
+            dsShader.Font = dsResources.Font = dsSamplers.Font = dsCBuffers.Font = dsClasses.Font = core.Config.PreferredFont;
+            psShader.Font = psResources.Font = psSamplers.Font = psCBuffers.Font = psClasses.Font = core.Config.PreferredFont;
+            csShader.Font = csResources.Font = csSamplers.Font = csCBuffers.Font = csClasses.Font = core.Config.PreferredFont;
+
+            viewports.Font = core.Config.PreferredFont;
+            scissors.Font = core.Config.PreferredFont;
+
+            targetOutputs.Font = core.Config.PreferredFont;
+            blendOperations.Font = core.Config.PreferredFont;
+            
+            pipeFlow.Font = new System.Drawing.Font(core.Config.PreferredFont.FontFamily, 11.25F,
+                System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+
             pipeFlow.SetStages(new KeyValuePair<string, string>[] {
                 new KeyValuePair<string,string>("IA", "Input Assembler"),
                 new KeyValuePair<string,string>("VS", "Vertex Shader"),
@@ -261,7 +286,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -887,7 +912,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1125,7 +1150,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1202,7 +1227,7 @@ namespace renderdocui.Windows.PipelineState
                                 a = texs[t].arraysize;
                                 format = texs[t].format.ToString();
                                 name = texs[t].name;
-                                typename = texs[t].resType.ToString();
+                                typename = texs[t].resType.Str();
 
                                 tag = texs[t];
                             }
@@ -1288,7 +1313,7 @@ namespace renderdocui.Windows.PipelineState
                         a = texs[t].arraysize;
                         format = texs[t].format.ToString();
                         name = texs[t].name;
-                        typename = texs[t].resType.ToString();
+                        typename = texs[t].resType.Str();
 
                         tag = texs[t];
                     }
@@ -1904,12 +1929,12 @@ namespace renderdocui.Windows.PipelineState
                 {
                     // search back to ensure this is a valid #include (ie. not in a comment).
                     // Must only see whitespace before, then a newline.
-                    int ws = offs-1;
+                    int ws = Math.Max(0, offs-1);
                     while (ws >= 0 && (compileSource[ws] == ' ' || compileSource[ws] == '\t'))
                         ws--;
 
                     // not valid? jump to next.
-                    if (compileSource[ws] != '\n')
+                    if (ws > 0 && compileSource[ws] != '\n')
                     {
                         offs = compileSource.IndexOf("#include", offs + 1);
                         continue;
@@ -1958,8 +1983,12 @@ namespace renderdocui.Windows.PipelineState
 
                     compileSource = compileSource.Substring(0, offs) + "\n\n" + fileText + "\n\n" + (tail ? compileSource.Substring(lineEnd + 1) : "");
 
-                    offs = compileSource.IndexOf("#include", offs);
+                    // need to start searching from the beginning - wasteful but allows nested includes to work
+                    offs = compileSource.IndexOf("#include");
                 }
+
+                if (updatedfiles.ContainsKey("@cmdline"))
+                    compileSource = updatedfiles["@cmdline"] + "\n\n" + compileSource;
 
                 // invoke off to the ReplayRenderer to replace the log's shader
                 // with our edited one

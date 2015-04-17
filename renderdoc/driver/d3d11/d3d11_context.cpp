@@ -938,7 +938,6 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 	else if(context->m_State == READING && chunk == POP_EVENT)
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-		RDCASSERT(context->m_DrawcallStack.size() > 1);
 		if(context->m_DrawcallStack.size() > 1)
 			context->m_DrawcallStack.pop_back();
 	}
@@ -966,11 +965,11 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 	// IA
 
 	if(d.flags & eDraw_UseIBuffer && pipe->IA.IndexBuffer != NULL)
-		m_ResourceUses[GetIDForResource(pipe->IA.IndexBuffer)].push_back(EventUsage(e, eUsage_IA_IB));
+		m_ResourceUses[GetIDForResource(pipe->IA.IndexBuffer)].push_back(EventUsage(e, eUsage_IndexBuffer));
 
 	for(int i=0; i < D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT; i++)
 		if(pipe->IA.Used_VB(m_pDevice, i))
-			m_ResourceUses[GetIDForResource(pipe->IA.VBs[i])].push_back(EventUsage(e, eUsage_IA_VB));
+			m_ResourceUses[GetIDForResource(pipe->IA.VBs[i])].push_back(EventUsage(e, eUsage_VertexBuffer));
 	
 	//////////////////////////////
 	// Shaders
@@ -982,17 +981,17 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 		
 		for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 			if(sh.Used_CB(i))
-				m_ResourceUses[GetIDForResource(sh.ConstantBuffers[i])].push_back(EventUsage(e, (ResourceUsage)(eUsage_VS_CB+s)));
+				m_ResourceUses[GetIDForResource(sh.ConstantBuffers[i])].push_back(EventUsage(e, (ResourceUsage)(eUsage_VS_Constants+s)));
 	
 		for(int i=0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
 			if(sh.Used_SRV(i))
-				m_ResourceUses[((WrappedID3D11ShaderResourceView *)sh.SRVs[i])->GetResourceResID()].push_back(EventUsage(e, (ResourceUsage)(eUsage_VS_SRV+s)));
+				m_ResourceUses[((WrappedID3D11ShaderResourceView *)sh.SRVs[i])->GetResourceResID()].push_back(EventUsage(e, (ResourceUsage)(eUsage_VS_Resource+s)));
 	
 		if(s == 5)
 		{
 			for(int i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
 				if(pipe->CS.Used_UAV(i) && pipe->CS.UAVs[i])
-					m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->CS.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_CS_UAV));
+					m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->CS.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_CS_RWResource));
 		}
 	}
 	
@@ -1008,14 +1007,14 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 
 	for(int i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
 		if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i])
-			m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->OM.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_PS_UAV));
+			m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->OM.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_PS_RWResource));
 	
 	if(pipe->OM.DepthView) // assuming for now that any DSV bound is used.
-		m_ResourceUses[((WrappedID3D11DepthStencilView *)pipe->OM.DepthView)->GetResourceResID()].push_back(EventUsage(e, eUsage_OM_DSV));
+		m_ResourceUses[((WrappedID3D11DepthStencilView *)pipe->OM.DepthView)->GetResourceResID()].push_back(EventUsage(e, eUsage_DepthStencilTarget));
 
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 		if(pipe->OM.RenderTargets[i]) // assuming for now that any RTV bound is used.
-			m_ResourceUses[((WrappedID3D11RenderTargetView *)pipe->OM.RenderTargets[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_OM_RTV));
+			m_ResourceUses[((WrappedID3D11RenderTargetView *)pipe->OM.RenderTargets[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_ColourTarget));
 }
 
 void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
@@ -1253,16 +1252,27 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 			m_ResourceUses[it->first];
 		for(auto it=WrappedID3D11Texture3D::m_TextureList.begin(); it != WrappedID3D11Texture3D::m_TextureList.end(); ++it)
 			m_ResourceUses[it->first];
-
+		
+		// it's easier to remove duplicate usages here than check it as we go.
+		// this means if textures are bound in multiple places in the same draw
+		// we don't have duplicate uses
 		for(auto it = m_ResourceUses.begin(); it != m_ResourceUses.end(); ++it)
 		{
+			vector<EventUsage> &v = it->second;
+			std::sort(v.begin(), v.end());
+			v.erase( std::unique(v.begin(), v.end()), v.end() );
+			
+#if 0
 			ResourceId resid = m_pDevice->GetResourceManager()->GetOriginalID(it->first);
-
+			
 			if(m_pDevice->GetResourceManager()->GetInitialContents(resid).resource == NULL)
 				continue;
-
+			
+			// code disabled for now as skipping these initial states
+			// doesn't seem to produce any measurable improvement in any case
+			// I've checked
 			RDCDEBUG("Resource %llu", resid);
-			if(it->second.empty())
+			if(v.empty())
 			{
 				RDCDEBUG("Never used!");
 				initialSkips++;
@@ -1271,13 +1281,13 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 			{
 				bool written = false;
 
-				for(auto usit = it->second.begin(); usit != it->second.end(); ++usit)
+				for(auto usit = v.begin(); usit != v.end(); ++usit)
 				{
 					ResourceUsage u = usit->usage;
 
 					if(u == eUsage_SO ||
-						u == eUsage_CS_UAV || u == eUsage_PS_UAV ||
-						u == eUsage_OM_DSV || u == eUsage_OM_RTV)
+						(u >= eUsage_VS_RWResource && u <= eUsage_CS_RWResource) ||
+						u == eUsage_DepthStencilTarget || u == eUsage_ColourTarget)
 					{
 						written = true;
 						break;
@@ -1294,9 +1304,10 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 					initialSkips++;
 				}
 			}
+#endif
 		}
 
-		RDCDEBUG("Can skip %d initial states.", initialSkips);
+		//RDCDEBUG("Can skip %d initial states.", initialSkips);
 	}
 
 	m_pDevice->GetResourceManager()->MarkInFrame(false);

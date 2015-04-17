@@ -316,30 +316,34 @@ namespace renderdoc
     {
     	None,
 
-    	IA_VB,
-    	IA_IB,
+    	VertexBuffer,
+    	IndexBuffer,
 
-    	VS_CB,
-    	HS_CB,
-    	DS_CB,
-    	GS_CB,
-    	PS_CB,
-    	CS_CB,
+    	VS_Constants,
+    	HS_Constants,
+    	DS_Constants,
+    	GS_Constants,
+    	PS_Constants,
+    	CS_Constants,
 
     	SO,
 
-    	VS_SRV,
-    	HS_SRV,
-    	DS_SRV,
-    	GS_SRV,
-    	PS_SRV,
-    	CS_SRV,
+    	VS_Resource,
+    	HS_Resource,
+    	DS_Resource,
+    	GS_Resource,
+    	PS_Resource,
+    	CS_Resource,
 
-    	CS_UAV,
-    	PS_UAV,
+        VS_RWResource,
+        HS_RWResource,
+        DS_RWResource,
+        GS_RWResource,
+        PS_RWResource,
+        CS_RWResource,
 
-    	OM_RTV,
-    	OM_DSV,
+    	ColourTarget,
+    	DepthStencilTarget,
 
         Clear,
 
@@ -540,45 +544,117 @@ namespace renderdoc
 
             return "Unknown";
         }
-
-        public static string Str(this ResourceUsage usage)
+        
+        public static string Str(this ShaderResourceType type)
         {
-            switch (usage)
+            switch (type)
             {
-                case ResourceUsage.IA_VB: return "Vertex Buffer";
-                case ResourceUsage.IA_IB: return "Index Buffer";
+                case ShaderResourceType.None: return "None";
+                case ShaderResourceType.Buffer: return "Buffer";
+                case ShaderResourceType.Texture1D: return "1D";
+                case ShaderResourceType.Texture1DArray: return "1D Array";
+                case ShaderResourceType.Texture2D: return "2D";
+                case ShaderResourceType.TextureRect: return "Rect";
+                case ShaderResourceType.Texture2DArray: return "2D Array";
+                case ShaderResourceType.Texture2DMS: return "2D MS";
+                case ShaderResourceType.Texture2DMSArray: return "2D MS Array";
+                case ShaderResourceType.Texture3D: return "3D";
+                case ShaderResourceType.TextureCube: return "Cube";
+                case ShaderResourceType.TextureCubeArray: return "Cube Array";
+            }
 
-                case ResourceUsage.VS_CB: return "VS - Constant Buffer";
-                case ResourceUsage.GS_CB: return "GS - Constant Buffer";
-                case ResourceUsage.HS_CB: return "HS - Constant Buffer";
-                case ResourceUsage.DS_CB: return "DS - Constant Buffer";
-                case ResourceUsage.CS_CB: return "CS - Constant Buffer";
-                case ResourceUsage.PS_CB: return "PS - Constant Buffer";
+            return "Unknown resource type";
+        }
 
-                case ResourceUsage.SO: return "Stream Out";
+        public static string Str(this ResourceUsage usage, APIPipelineStateType apitype)
+        {
+            if (apitype == APIPipelineStateType.D3D11)
+            {
+                switch (usage)
+                {
+                    case ResourceUsage.VertexBuffer: return "Vertex Buffer";
+                    case ResourceUsage.IndexBuffer: return "Index Buffer";
 
-                case ResourceUsage.VS_SRV: return "VS - Resource";
-                case ResourceUsage.GS_SRV: return "GS - Resource";
-                case ResourceUsage.HS_SRV: return "HS - Resource";
-                case ResourceUsage.DS_SRV: return "DS - Resource";
-                case ResourceUsage.CS_SRV: return "CS - Resource";
-                case ResourceUsage.PS_SRV: return "PS - Resource";
+                    case ResourceUsage.VS_Constants: return "VS - Constant Buffer";
+                    case ResourceUsage.GS_Constants: return "GS - Constant Buffer";
+                    case ResourceUsage.HS_Constants: return "HS - Constant Buffer";
+                    case ResourceUsage.DS_Constants: return "DS - Constant Buffer";
+                    case ResourceUsage.CS_Constants: return "CS - Constant Buffer";
+                    case ResourceUsage.PS_Constants: return "PS - Constant Buffer";
 
-                case ResourceUsage.CS_UAV: return "CS - UAV";
-                case ResourceUsage.PS_UAV: return "PS - UAV";
+                    case ResourceUsage.SO: return "Stream Out";
 
-                case ResourceUsage.OM_RTV: return "Rendertarget";
-                case ResourceUsage.OM_DSV: return "Depthstencil";
+                    case ResourceUsage.VS_Resource: return "VS - Resource";
+                    case ResourceUsage.GS_Resource: return "GS - Resource";
+                    case ResourceUsage.HS_Resource: return "HS - Resource";
+                    case ResourceUsage.DS_Resource: return "DS - Resource";
+                    case ResourceUsage.CS_Resource: return "CS - Resource";
+                    case ResourceUsage.PS_Resource: return "PS - Resource";
 
-                case ResourceUsage.Clear: return "Clear";
+                    case ResourceUsage.VS_RWResource: return "VS - UAV";
+                    case ResourceUsage.HS_RWResource: return "HS - UAV";
+                    case ResourceUsage.DS_RWResource: return "DS - UAV";
+                    case ResourceUsage.GS_RWResource: return "GS - UAV";
+                    case ResourceUsage.PS_RWResource: return "PS - UAV";
+                    case ResourceUsage.CS_RWResource: return "CS - UAV";
 
-                case ResourceUsage.GenMips: return "Generate Mips";
-                case ResourceUsage.Resolve: return "Resolve";
-                case ResourceUsage.ResolveSrc: return "Resolve - Source";
-                case ResourceUsage.ResolveDst: return "Resolve - Dest";
-                case ResourceUsage.Copy: return "Copy";
-                case ResourceUsage.CopySrc: return "Copy - Source";
-                case ResourceUsage.CopyDst: return "Copy - Dest";
+                    case ResourceUsage.ColourTarget: return "Rendertarget";
+                    case ResourceUsage.DepthStencilTarget: return "Depthstencil";
+
+                    case ResourceUsage.Clear: return "Clear";
+
+                    case ResourceUsage.GenMips: return "Generate Mips";
+                    case ResourceUsage.Resolve: return "Resolve";
+                    case ResourceUsage.ResolveSrc: return "Resolve - Source";
+                    case ResourceUsage.ResolveDst: return "Resolve - Dest";
+                    case ResourceUsage.Copy: return "Copy";
+                    case ResourceUsage.CopySrc: return "Copy - Source";
+                    case ResourceUsage.CopyDst: return "Copy - Dest";
+                }
+            }
+            else if (apitype == APIPipelineStateType.OpenGL)
+            {
+                switch (usage)
+                {
+                    case ResourceUsage.VertexBuffer: return "Vertex Buffer";
+                    case ResourceUsage.IndexBuffer: return "Index Buffer";
+
+                    case ResourceUsage.VS_Constants: return "VS - Uniform Buffer";
+                    case ResourceUsage.GS_Constants: return "GS - Uniform Buffer";
+                    case ResourceUsage.HS_Constants: return "HS - Uniform Buffer";
+                    case ResourceUsage.DS_Constants: return "DS - Uniform Buffer";
+                    case ResourceUsage.CS_Constants: return "CS - Uniform Buffer";
+                    case ResourceUsage.PS_Constants: return "PS - Uniform Buffer";
+
+                    case ResourceUsage.SO: return "Transform Feedback";
+
+                    case ResourceUsage.VS_Resource: return "VS - Texture";
+                    case ResourceUsage.GS_Resource: return "GS - Texture";
+                    case ResourceUsage.HS_Resource: return "HS - Texture";
+                    case ResourceUsage.DS_Resource: return "DS - Texture";
+                    case ResourceUsage.CS_Resource: return "CS - Texture";
+                    case ResourceUsage.PS_Resource: return "PS - Texture";
+
+                    case ResourceUsage.VS_RWResource: return "VS - Image/SSBO";
+                    case ResourceUsage.HS_RWResource: return "HS - Image/SSBO";
+                    case ResourceUsage.DS_RWResource: return "DS - Image/SSBO";
+                    case ResourceUsage.GS_RWResource: return "GS - Image/SSBO";
+                    case ResourceUsage.PS_RWResource: return "PS - Image/SSBO";
+                    case ResourceUsage.CS_RWResource: return "CS - Image/SSBO";
+
+                    case ResourceUsage.ColourTarget: return "FBO Colour";
+                    case ResourceUsage.DepthStencilTarget: return "FBO Depthstencil";
+
+                    case ResourceUsage.Clear: return "Clear";
+
+                    case ResourceUsage.GenMips: return "Generate Mips";
+                    case ResourceUsage.Resolve: return "Framebuffer blit";
+                    case ResourceUsage.ResolveSrc: return "Framebuffer blit - Source";
+                    case ResourceUsage.ResolveDst: return "Framebuffer blit - Dest";
+                    case ResourceUsage.Copy: return "Copy";
+                    case ResourceUsage.CopySrc: return "Copy - Source";
+                    case ResourceUsage.CopyDst: return "Copy - Dest";
+                }
             }
 
             return "Unknown Usage String";

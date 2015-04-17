@@ -62,9 +62,8 @@ struct ICrashHandler
 
 struct IFrameCapturer
 {
-	virtual void StartFrameCapture(void *wnd) = 0;
-	virtual void SetActiveWindow(void *wnd) = 0;
-	virtual bool EndFrameCapture(void *wnd) = 0;
+	virtual void StartFrameCapture(void *dev, void *wnd) = 0;
+	virtual bool EndFrameCapture(void *dev, void *wnd) = 0;
 };
 
 enum LogState
@@ -236,14 +235,20 @@ class RenderDoc
 
 		void Tick();
 
-		void AddFrameCapturer(void *wnd, IFrameCapturer *cap);
-		void RemoveFrameCapturer(void *wnd);
-		
-		void StartFrameCapture(void *wnd);
-		void SetActiveWindow(void *wnd);
-		bool EndFrameCapture(void *wnd);
+		void AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap);
+		void RemoveFrameCapturer(void *dev, void *wnd);
 
-		void FocusToggle() { m_Focus = true; m_Cap = false; }
+		// add window-less frame capturers for use via users capturing
+		// manually through the renderdoc API with NULL device/window handles
+		void AddDefaultFrameCapturer(IFrameCapturer *cap);
+		void RemoveDefaultFrameCapturer(IFrameCapturer *cap);
+		
+		void StartFrameCapture(void *dev, void *wnd);
+		void SetActiveWindow(void *dev, void *wnd);
+		bool EndFrameCapture(void *dev, void *wnd);
+
+		bool IsActiveWindow(void *dev, void *wnd) { return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd; }
+
 		void TriggerCapture() { m_Cap = true; }
 
 		uint32_t GetOverlayBits() { return m_Overlay; }
@@ -267,7 +272,6 @@ class RenderDoc
 		const vector<KeyButton> &GetFocusKeys() { return m_FocusKeys; }
 		const vector<KeyButton> &GetCaptureKeys() { return m_CaptureKeys; }
 
-		bool ShouldFocusToggle() { bool ret = m_Focus; m_Focus = false; return ret; }
 		bool ShouldTriggerCapture(uint32_t frameNumber);
 	private:
 		RenderDoc();
@@ -277,7 +281,6 @@ class RenderDoc
 
 		bool m_Replay;
 
-		bool m_Focus;
 		bool m_Cap;
 
 		vector<KeyButton> m_FocusKeys;
@@ -319,7 +322,27 @@ class RenderDoc
 			int RefCount;
 		};
 
-		map<void*, FrameCap> m_WindowFrameCapturers;
+		struct DeviceWnd
+		{
+			DeviceWnd() : dev(NULL), wnd(NULL) {}
+			DeviceWnd(void *d, void *w) : dev(d), wnd(w) {}
+			void *dev;
+			void *wnd;
+
+			bool operator ==(const DeviceWnd &o) const
+			{
+				return dev == o.dev && wnd == o.wnd;
+			}
+			bool operator <(const DeviceWnd &o) const
+			{
+				if(dev != o.dev) return dev < o.dev;
+				return wnd < o.wnd;
+			}
+		};
+
+		map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
+		DeviceWnd m_ActiveWindow;
+		set<IFrameCapturer *> m_DefaultFrameCapturers;
 
 		volatile bool m_RemoteServerThreadShutdown;
 		volatile bool m_RemoteClientThreadShutdown;

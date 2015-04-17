@@ -96,14 +96,14 @@ void copy(rdctype::array<ShaderConstant> &outvars, const vector<DynShaderConstan
 	}
 }
 
-void CheckVertexOutputUses(vector<string> sources, bool &pointSizeUsed, bool &clipDistanceUsed)
+void CheckVertexOutputUses(const vector<string> &sources, bool &pointSizeUsed, bool &clipDistanceUsed)
 {
 	pointSizeUsed = false;
 	clipDistanceUsed = false;
 
 	for(size_t i=0; i < sources.size(); i++)
 	{
-		string &s = sources[i];
+		const string &s = sources[i];
 
 		size_t offs = 0;
 
@@ -282,7 +282,7 @@ GLuint MakeSeparableShaderProgram(const GLHookSet &gl, GLenum type, vector<strin
 
 			for(size_t i=0; i < sources.size(); i++)
 			{
-				string &src = sources[i];
+				string src = strings[i];
 
 				size_t len = src.length();
 				size_t it = src.find("#version");
@@ -1718,7 +1718,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 					for(int r=0; r < rows; r++)
 					{
 						SigParameter s = sig;
-						s.varName = StringFormat::Fmt("%s.row%d", nm, r);
+						s.varName = StringFormat::Fmt("%s:row%d", nm, r);
 						s.regIndex += r;
 						sigs.push_back(s);
 					}
@@ -1744,3 +1744,194 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	refl.ConstantBlocks = cbuffers;
 }
 
+void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
+{
+	// in case of bugs, we readback into this array instead of
+	GLint dummyReadback[32];
+
+#if !defined(RELEASE)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		dummyReadback[i] = 0x6c7b8a9d;
+#endif
+
+	const GLenum refEnum[] = {
+		eGL_REFERENCED_BY_VERTEX_SHADER,
+		eGL_REFERENCED_BY_TESS_CONTROL_SHADER,
+		eGL_REFERENCED_BY_TESS_EVALUATION_SHADER,
+		eGL_REFERENCED_BY_GEOMETRY_SHADER,
+		eGL_REFERENCED_BY_FRAGMENT_SHADER,
+		eGL_REFERENCED_BY_COMPUTE_SHADER,
+	};
+	
+	create_array_uninit(mapping.Resources, refl->Resources.count);
+	for(int32_t i=0; i < refl->Resources.count; i++)
+	{
+		if(refl->Resources.elems[i].IsTexture)
+		{
+			// normal sampler or image load/store
+
+			GLint loc = gl.glGetUniformLocation(curProg, refl->Resources.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetUniformiv(curProg, loc, dummyReadback);
+				mapping.Resources[i].bind = dummyReadback[0];
+			}
+
+			// handle sampler arrays, use the base name
+			string name = refl->Resources.elems[i].name.elems;
+			if(name.back() == ']')
+			{
+				do
+				{
+					name.pop_back();
+				} while(name.back() != '[');
+				name.pop_back();
+			}
+			
+			GLuint idx = 0;
+			idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, name.c_str());
+
+			if(idx == GL_INVALID_INDEX)
+			{
+				mapping.Resources[i].used = false;
+			}
+			else
+			{
+				GLint used = 0;
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+				mapping.Resources[i].used = (used != 0);
+			}
+		}
+		else if(refl->Resources.elems[i].IsReadWrite && !refl->Resources.elems[i].IsTexture)
+		{
+			if(refl->Resources.elems[i].variableType.descriptor.cols == 1 &&
+				refl->Resources.elems[i].variableType.descriptor.rows == 1 &&
+				refl->Resources.elems[i].variableType.descriptor.type == eVar_UInt)
+			{
+				// atomic uint
+				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM, refl->Resources.elems[i].name.elems);
+
+				if(idx == GL_INVALID_INDEX)
+				{
+					mapping.Resources[i].bind = -1;
+					mapping.Resources[i].used = false;
+				}
+				else
+				{
+					GLenum prop = eGL_ATOMIC_COUNTER_BUFFER_INDEX;
+					GLuint atomicIndex;
+					gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &prop, 1, NULL, (GLint *)&atomicIndex);
+
+					if(atomicIndex == GL_INVALID_INDEX)
+					{
+						mapping.Resources[i].bind = -1;
+						mapping.Resources[i].used = false;
+					}
+					else
+					{
+						const GLenum atomicRefEnum[] = {
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
+							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
+						};
+						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, eGL_ATOMIC_COUNTER_BUFFER_BINDING, &mapping.Resources[i].bind);
+						GLint used = 0;
+						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
+						mapping.Resources[i].used = (used != 0);
+					}
+				}
+			}
+			else
+			{
+				// shader storage buffer object
+				GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_SHADER_STORAGE_BLOCK, refl->Resources.elems[i].name.elems);
+
+				if(idx == GL_INVALID_INDEX)
+				{
+					mapping.Resources[i].bind = -1;
+					mapping.Resources[i].used = false;
+				}
+				else
+				{
+					GLenum prop = eGL_BUFFER_BINDING;
+					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL, &mapping.Resources[i].bind);
+					GLint used = 0;
+					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+					mapping.Resources[i].used = (used != 0);
+				}
+			}
+		}
+		else
+		{
+			mapping.Resources[i].bind = -1;
+			mapping.Resources[i].used = false;
+		}
+	}
+	
+	create_array_uninit(mapping.ConstantBlocks, refl->ConstantBlocks.count);
+	for(int32_t i=0; i < refl->ConstantBlocks.count; i++)
+	{
+		if(refl->ConstantBlocks.elems[i].bufferBacked)
+		{
+			GLint loc = gl.glGetUniformBlockIndex(curProg, refl->ConstantBlocks.elems[i].name.elems);
+			if(loc >= 0)
+			{
+				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+				mapping.ConstantBlocks[i].bind = dummyReadback[0];
+			}
+		}
+		else
+		{
+			mapping.ConstantBlocks[i].bind = -1;
+		}
+
+		if(!refl->ConstantBlocks.elems[i].bufferBacked)
+		{
+			mapping.ConstantBlocks[i].used = true;
+		}
+		else
+		{
+			GLuint idx = gl.glGetProgramResourceIndex(curProg, eGL_UNIFORM_BLOCK, refl->ConstantBlocks.elems[i].name.elems);
+			if(idx == GL_INVALID_INDEX)
+			{
+				mapping.ConstantBlocks[i].used = false;
+			}
+			else
+			{
+				GLint used = 0;
+				gl.glGetProgramResourceiv(curProg, eGL_UNIFORM_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
+				mapping.ConstantBlocks[i].used = (used != 0);
+			}
+		}
+	}
+	
+	GLint numVAttribBindings = 16;
+	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+
+	create_array_uninit(mapping.InputAttributes, numVAttribBindings);
+	for(int32_t i=0; i < numVAttribBindings; i++)
+		mapping.InputAttributes[i] = -1;
+
+	// override identity map with bindings
+	if(shadIdx == 0)
+	{
+		for(int32_t i=0; i < refl->InputSig.count; i++)
+		{
+			GLint loc = gl.glGetAttribLocation(curProg, refl->InputSig.elems[i].varName.elems);
+
+			if(loc >= 0 && loc < numVAttribBindings)
+			{
+				mapping.InputAttributes[loc] = i;
+			}
+		}
+	}
+
+#if !defined(RELEASE)
+	for(size_t i=1; i < ARRAY_COUNT(dummyReadback); i++)
+		if(dummyReadback[i] != 0x6c7b8a9d)
+			RDCERR("Invalid uniform readback - data beyond first element modified!");
+#endif
+}

@@ -196,8 +196,6 @@ class GLReplay : public IReplayDriver
 
 		void CreateCustomShaderTex(uint32_t w, uint32_t h);
 		void SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram);
-
-		void GetMapping(WrappedOpenGL &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 		
 		void CopyArrayToTex2DMS(GLuint destMS, GLuint srcArray, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat);
 		void CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height, GLint arraySize, GLint samples, GLenum intFormat);

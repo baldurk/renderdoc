@@ -228,6 +228,16 @@ namespace renderdocui.Windows
             m_VSOut.m_GridView = vsOutBufferView;
             m_GSOut.m_GridView = gsOutBufferView;
 
+            rowOffset.Font =
+                byteOffset.Font =
+                instanceIdxToolitem.Font =
+                camSpeed.Font =
+                fovGuess.Font =
+                aspectGuess.Font =
+                nearGuess.Font =
+                farGuess.Font =
+                core.Config.PreferredFont;
+
             m_ContextUIState = m_VSIn;
 
             DockHandler.GetPersistStringCallback = PersistString;
@@ -923,11 +933,16 @@ namespace renderdocui.Windows
                     {
                         ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
 
-                        if (input.Drawcall.indexByteWidth == 2)
+                        if (input.Drawcall.indexByteWidth == 1)
+                        {
+                            for (int i = 0; i < rawidxs.Length; i++)
+                                ret.Indices[i] = rawidxs[i];
+                        }
+                        else if (input.Drawcall.indexByteWidth == 2)
                         {
                             ushort[] tmp = new ushort[rawidxs.Length / 2];
 
-                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
+                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, tmp.Length * sizeof(ushort));
 
                             for (int i = 0; i < tmp.Length; i++)
                             {
@@ -936,7 +951,7 @@ namespace renderdocui.Windows
                         }
                         else if (input.Drawcall.indexByteWidth == 4)
                         {
-                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, ret.Indices.Length * sizeof(uint));
                         }
                     }
 
@@ -948,8 +963,28 @@ namespace renderdocui.Windows
                     }
                     else
                     {
-                        ret.DataIndices = new uint[rawidxs.Length / sizeof(uint)];
-                        Buffer.BlockCopy(rawidxs, 0, ret.DataIndices, 0, rawidxs.Length);
+                        ret.DataIndices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
+
+                        if (input.Drawcall.indexByteWidth == 1)
+                        {
+                            for (int i = 0; i < rawidxs.Length; i++)
+                                ret.DataIndices[i] = rawidxs[i];
+                        }
+                        else if (input.Drawcall.indexByteWidth == 2)
+                        {
+                            ushort[] tmp = new ushort[rawidxs.Length / 2];
+
+                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, tmp.Length * sizeof(ushort));
+
+                            for (int i = 0; i < tmp.Length; i++)
+                            {
+                                ret.DataIndices[i] = tmp[i];
+                            }
+                        }
+                        else if (input.Drawcall.indexByteWidth == 4)
+                        {
+                            Buffer.BlockCopy(rawidxs, 0, ret.DataIndices, 0, ret.DataIndices.Length * sizeof(uint));
+                        }
                     }
                 }
 
@@ -975,11 +1010,16 @@ namespace renderdocui.Windows
                     {
                         ret.Indices = new uint[rawidxs.Length / input.Drawcall.indexByteWidth];
 
-                        if (input.Drawcall.indexByteWidth == 2)
+                        if (input.Drawcall.indexByteWidth == 1)
+                        {
+                            for (int i = 0; i < rawidxs.Length; i++)
+                                ret.Indices[i] = rawidxs[i];
+                        }
+                        else if (input.Drawcall.indexByteWidth == 2)
                         {
                             ushort[] tmp = new ushort[rawidxs.Length / 2];
 
-                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, rawidxs.Length);
+                            Buffer.BlockCopy(rawidxs, 0, tmp, 0, tmp.Length * sizeof(ushort));
 
                             for (int i = 0; i < tmp.Length; i++)
                             {
@@ -988,16 +1028,14 @@ namespace renderdocui.Windows
                         }
                         else if (input.Drawcall.indexByteWidth == 4)
                         {
-                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, rawidxs.Length);
+                            Buffer.BlockCopy(rawidxs, 0, ret.Indices, 0, ret.Indices.Length * sizeof(uint));
                         }
                     }
 
                     maxIndex = 0;
                     foreach (var i in ret.Indices)
                     {
-                        if (input.Drawcall.indexByteWidth == 2 && i == input.IndexRestartValue && input.IndexRestart)
-                            continue;
-                        if (input.Drawcall.indexByteWidth == 4 && i == input.IndexRestartValue && input.IndexRestart)
+                        if (i == input.IndexRestartValue && input.IndexRestart)
                             continue;
 
                         maxIndex = Math.Max(maxIndex, i);
@@ -1554,11 +1592,25 @@ namespace renderdocui.Windows
         {
             if (o is float)
             {
-                return Formatter.Format((float)o);
+                // pad with space on left if sign is missing, to better align
+                float f = (float)o;
+                if(f < 0.0f)
+                    return Formatter.Format(f);
+                else if(f > 0.0f)
+                    return " " + Formatter.Format(f);
+                else
+                    return " " + Formatter.Format(0.0f); // force negative and positive 0 together
             }
             else if (o is double)
             {
-                return Formatter.Format((double)o);
+                // pad with space on left if sign is missing, to better align
+                double f = (double)o;
+                if (f < 0.0)
+                    return Formatter.Format(f);
+                else if (f > 0.0)
+                    return " " + Formatter.Format(f);
+                else
+                    return " " + Formatter.Format(0.0); // force negative and positive 0 together
             }
             else if (o is uint)
             {

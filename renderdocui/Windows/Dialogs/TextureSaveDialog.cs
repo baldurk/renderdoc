@@ -8,14 +8,25 @@ using System.IO;
 using System.Text;
 using System.Windows.Forms;
 using renderdoc;
+using renderdocui.Code;
 
 namespace renderdocui.Windows.Dialogs
 {
     public partial class TextureSaveDialog : Form
     {
-        public TextureSaveDialog()
+        public TextureSaveDialog(Core core)
         {
             InitializeComponent();
+
+            filename.Font =
+                fileFormat.Font =
+                jpegCompression.Font =
+                mipSelect.Font =
+                sampleSelect.Font =
+                sliceSelect.Font =
+                blackPoint.Font =
+                whitePoint.Font =
+                core.Config.PreferredFont;
 
             fileFormat.Items.Clear();
 

@@ -620,8 +620,9 @@ namespace renderdocui.Windows
                                     if (u.eventID == s.draws[d].eventID)
                                     {
                                         // read/write
-                                        if (u.usage == ResourceUsage.CS_UAV ||
-                                            u.usage == ResourceUsage.PS_UAV ||
+                                        if (
+                                            ((int)u.usage >= (int)ResourceUsage.VS_RWResource &&
+                                             (int)u.usage <= (int)ResourceUsage.CS_RWResource) ||
                                             u.usage == ResourceUsage.GenMips ||
                                             u.usage == ResourceUsage.Copy ||
                                             u.usage == ResourceUsage.Resolve)
@@ -632,8 +633,8 @@ namespace renderdocui.Windows
                                         }
                                         // write
                                         else if (u.usage == ResourceUsage.SO ||
-                                                 u.usage == ResourceUsage.OM_DSV ||
-                                                 u.usage == ResourceUsage.OM_RTV ||
+                                                 u.usage == ResourceUsage.DepthStencilTarget ||
+                                                 u.usage == ResourceUsage.ColourTarget ||
                                                  u.usage == ResourceUsage.CopyDst ||
                                                  u.usage == ResourceUsage.ResolveDst)
                                         {

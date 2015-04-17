@@ -1138,20 +1138,20 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 
 		switch(usage[i].usage)
 		{
-			case eUsage_IA_VB:
-			case eUsage_IA_IB:
-			case eUsage_VS_CB:
-			case eUsage_HS_CB:
-			case eUsage_DS_CB:
-			case eUsage_GS_CB:
-			case eUsage_PS_CB:
-			case eUsage_CS_CB:
-			case eUsage_VS_SRV:
-			case eUsage_HS_SRV:
-			case eUsage_DS_SRV:
-			case eUsage_GS_SRV:
-			case eUsage_PS_SRV:
-			case eUsage_CS_SRV:
+			case eUsage_VertexBuffer:
+			case eUsage_IndexBuffer:
+			case eUsage_VS_Constants:
+			case eUsage_HS_Constants:
+			case eUsage_DS_Constants:
+			case eUsage_GS_Constants:
+			case eUsage_PS_Constants:
+			case eUsage_CS_Constants:
+			case eUsage_VS_Resource:
+			case eUsage_HS_Resource:
+			case eUsage_DS_Resource:
+			case eUsage_GS_Resource:
+			case eUsage_PS_Resource:
+			case eUsage_CS_Resource:
 			case eUsage_CopySrc:
 			case eUsage_ResolveSrc:
 				// read-only, not a valid pixel history event
@@ -1159,10 +1159,14 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
 			
 			case eUsage_None:
 			case eUsage_SO:
-			case eUsage_CS_UAV:
-			case eUsage_PS_UAV:
-			case eUsage_OM_RTV:
-			case eUsage_OM_DSV:
+			case eUsage_VS_RWResource:
+			case eUsage_HS_RWResource:
+			case eUsage_DS_RWResource:
+			case eUsage_GS_RWResource:
+			case eUsage_PS_RWResource:
+			case eUsage_CS_RWResource:
+			case eUsage_ColourTarget:
+			case eUsage_DepthStencilTarget:
 			case eUsage_Clear:
 			case eUsage_Copy:
 			case eUsage_CopyDst:

@@ -91,6 +91,15 @@ namespace renderdocui.Code
         public int Formatter_NegExp = 5;
         public int Formatter_PosExp = 7;
 
+        public bool Font_PreferMonospaced = false;
+
+        [XmlIgnore] // not directly serializable
+        public System.Drawing.Font PreferredFont
+        {
+            get;
+            private set;
+        }
+
         public bool CheckUpdate_AllowChecks = true;
         public bool CheckUpdate_UpdateAvailable = false;
         public DateTime CheckUpdate_LastUpdate = new DateTime(2012, 06, 27);
@@ -99,12 +108,16 @@ namespace renderdocui.Code
 
         public bool AllowGlobalHook = false;
 
-        public void SetupFormatter()
+        public void SetupFormatting()
         {
             Formatter.MinFigures = Formatter_MinFigures;
             Formatter.MaxFigures = Formatter_MaxFigures;
             Formatter.ExponentialNegCutoff = Formatter_NegExp;
             Formatter.ExponentialPosCutoff = Formatter_PosExp;
+
+            PreferredFont = Font_PreferMonospaced
+                ? new System.Drawing.Font("Consolas", 9.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
+                : new System.Drawing.Font("Tahoma", 8.25F);
         }
 
         public void AddRecentFile(List<string> recentList, string file, int maxItems)

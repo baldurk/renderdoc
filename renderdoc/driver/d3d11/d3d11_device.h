@@ -78,6 +78,44 @@ struct D3D11InitParams : public RDCInitParams
 
 class WrappedID3D11Device;
 
+// We can pass through all calls to ID3D11Debug without intercepting, this
+// struct isonly here so that we can intercept QueryInterface calls to return
+// ID3D11InfoQueue
+struct WrappedID3D11Debug : public ID3D11Debug
+{
+	WrappedID3D11Device *m_pDevice;
+	ID3D11Debug *m_pDebug;
+
+	WrappedID3D11Debug() { }
+
+	//////////////////////////////
+	// implement IUnknown
+	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
+	ULONG STDMETHODCALLTYPE AddRef();
+	ULONG STDMETHODCALLTYPE Release();
+
+	//////////////////////////////
+	// implement ID3D11Debug
+	virtual HRESULT STDMETHODCALLTYPE SetFeatureMask(UINT Mask)
+	{ return m_pDebug->SetFeatureMask(Mask); }
+	virtual UINT STDMETHODCALLTYPE GetFeatureMask()
+	{ return m_pDebug->GetFeatureMask(); }
+	virtual HRESULT STDMETHODCALLTYPE SetPresentPerRenderOpDelay(UINT Milliseconds)
+	{ return m_pDebug->SetPresentPerRenderOpDelay(Milliseconds); }
+	virtual UINT STDMETHODCALLTYPE GetPresentPerRenderOpDelay()
+	{ return m_pDebug->GetPresentPerRenderOpDelay(); }
+	virtual HRESULT STDMETHODCALLTYPE SetSwapChain(IDXGISwapChain *pSwapChain)
+	{ return m_pDebug->SetSwapChain(pSwapChain); }
+	virtual HRESULT STDMETHODCALLTYPE GetSwapChain(IDXGISwapChain **ppSwapChain)
+	{ return m_pDebug->GetSwapChain(ppSwapChain); }
+	virtual HRESULT STDMETHODCALLTYPE ValidateContext(ID3D11DeviceContext *pContext)
+	{ return m_pDebug->ValidateContext(pContext); }
+	virtual HRESULT STDMETHODCALLTYPE ReportLiveDeviceObjects(D3D11_RLDO_FLAGS Flags)
+	{ return m_pDebug->ReportLiveDeviceObjects(Flags); }
+	virtual HRESULT STDMETHODCALLTYPE ValidateContextForDispatch(ID3D11DeviceContext *pContext)
+	{ return m_pDebug->ValidateContextForDispatch(pContext); }
+};
+
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
 // have to check for E_NOINTERFACE when they expect an infoqueue to be there
@@ -156,7 +194,8 @@ private:
 		
 	D3D11Replay m_Replay;
 
-	DummyID3D11InfoQueue m_DummyInfo;
+	DummyID3D11InfoQueue m_DummyInfoQueue;
+	WrappedID3D11Debug m_WrappedDebug;
 
 	unsigned int m_InternalRefcount;
 	RefCounter m_RefCounter;
@@ -199,7 +238,6 @@ private:
 
 	static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-	IDXGISwapChain *m_SwapChain;
 	map<IDXGISwapChain*, ID3D11RenderTargetView*> m_SwapChains;
 
 	uint32_t m_FrameCounter;
@@ -261,9 +299,8 @@ public:
 	
 	void Serialise_CaptureScope(uint64_t offset);
 
-	void StartFrameCapture(void *wnd);
-	void SetActiveWindow(void *wnd);
-	bool EndFrameCapture(void *wnd);
+	void StartFrameCapture(void *dev, void *wnd);
+	bool EndFrameCapture(void *dev, void *wnd);
 
 	////////////////////////////////////////////////////////////////
 	// log replaying

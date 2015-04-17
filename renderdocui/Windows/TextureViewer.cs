@@ -179,6 +179,18 @@ namespace renderdocui.Windows
 
             InitializeComponent();
 
+            textureList.Font =
+                texturefilter.Font =
+                rangeBlack.Font =
+                rangeWhite.Font =
+                customShader.Font =
+                hdrMul.Font =
+                channels.Font =
+                mipLevel.Font =
+                sliceFace.Font =
+                zoomOption.Font = 
+                core.Config.PreferredFont;
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             textureList.m_Core = core;
@@ -2946,7 +2958,7 @@ namespace renderdocui.Windows
         private void saveTex_Click(object sender, EventArgs e)
         {
             if (m_SaveDialog == null)
-                m_SaveDialog = new TextureSaveDialog();
+                m_SaveDialog = new TextureSaveDialog(m_Core);
 
             m_SaveDialog.saveData.id = m_TexDisplay.texid;
             m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
@@ -3039,9 +3051,9 @@ namespace renderdocui.Windows
             ToolStripItem item = null;
 
             if (start == end)
-                item = new ToolStripLabel("EID " + start + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + ": " + usage.Str(m_Core.APIProps.pipelineType));
             else
-                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str());
+                item = new ToolStripLabel("EID " + start + "-" + end + ": " + usage.Str(m_Core.APIProps.pipelineType));
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
@@ -3079,7 +3091,7 @@ namespace renderdocui.Windows
                     {
                         uint start = 0;
                         uint end = 0;
-                        ResourceUsage us = ResourceUsage.IA_IB;
+                        ResourceUsage us = ResourceUsage.IndexBuffer;
 
                         foreach (var u in usage)
                         {

@@ -2122,9 +2122,16 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 						{
 							ASMDecl &decl = s.dxbc->m_Declarations[i];
 
-							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
+							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW && !srv &&
 								decl.operand.indices[0].index == resIndex &&
 								decl.declaration == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED)
+							{
+								stride = decl.stride;
+								break;
+							}
+							if(decl.operand.type == TYPE_RESOURCE && srv &&
+								decl.operand.indices[0].index == resIndex &&
+								decl.declaration == OPCODE_DCL_RESOURCE_STRUCTURED)
 							{
 								stride = decl.stride;
 								break;
@@ -2273,6 +2280,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 						fetch.value.uv[i] = datau32[comp];
 					}
+
+					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
+					// to match this expectation, propogate the component across.
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
 				}
@@ -2537,6 +2549,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				result.type = eVar_UInt;
 			}
 
+			// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
+			// to match this expectation, propogate the component across.
+			if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+				result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
+
 			s.SetDst(op.operands[0], op, result);
 			
 			SAFE_RELEASE(context);
@@ -2677,6 +2694,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					result.type = eVar_UInt;
 				}
 	
+				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
+				// to match this expectation, propogate the component across.
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
+
 				s.SetDst(op.operands[0], op, result);
 			}
 			else
@@ -3100,7 +3122,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 				// to match this expectation, propogate the component across.
-				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[0] != 0xff && op.operands[0].comps[0] != 0xff && op.operands[0].comps[0] != 0xff)
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
 					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 				s.SetDst(op.operands[0], op, result);
@@ -3334,6 +3356,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 						fetch.value.uv[c] = result.value.uv[comp];
 					}
+
+					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
+					// to match this expectation, propogate the component across.
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
 

@@ -275,12 +275,12 @@ bool ASMOperand::operator ==(const ASMOperand &o) const
 
 void DXBCFile::DisassembleHexDump()
 {
+	if(m_HexDump.empty())
+		return;
+
 	uint32_t *begin = &m_HexDump.front();
 	uint32_t *cur = begin;
 	uint32_t *end = &m_HexDump.back();
-
-	if(m_HexDump.empty())
-		return;
 
 	m_Type = VersionToken::ProgramType.Get(cur[0]);
 	m_Version.Major = VersionToken::MajorVersion.Get(cur[0]);
@@ -398,9 +398,13 @@ void DXBCFile::MakeDisassembly()
 
 			// handle #line directives by inserting empty lines or erasing as necessary
 			
+			char emptyString[] = "";
+
 			for(size_t srcLine=0; srcLine < srclines.size(); srcLine++)
 			{
-				char *c = &srclines[srcLine][0];
+				char *c = emptyString;
+				if(!srclines[srcLine].empty())
+					c = &srclines[srcLine][0];
 				while(*c == '\t' || *c == ' ' || *c == '\r') c++;
 
 				if(strncmp(c, "#line", 5))

@@ -69,6 +69,9 @@ namespace renderdocui.Windows
 
             m_Core = core;
 
+            events.Font =
+                core.Config.PreferredFont;
+
             texture = tex;
             pixel = pt;
             rangeMin = rangemin;

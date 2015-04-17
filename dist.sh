@@ -22,8 +22,8 @@ mkdir -p dist/Release{32,64}
 cp -R x64/Release/* dist/Release64/
 cp -R Win32/Release/* dist/Release32/
 
-cp renderdocui/ironpython/pythonlibs.dll dist/Release64/
-cp renderdocui/ironpython/pythonlibs.dll dist/Release32/
+cp renderdocui/3rdparty/ironpython/pythonlibs.dll dist/Release64/
+cp renderdocui/3rdparty/ironpython/pythonlibs.dll dist/Release32/
 
 # Copy in d3dcompiler from windows kit 8.1
 cp /c/Program\ Files\ \(x86\)/Windows\ Kits/8.1/Redist/D3D/x64/d3dcompiler_47.dll dist/Release64/

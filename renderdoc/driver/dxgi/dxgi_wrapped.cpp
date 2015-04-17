@@ -271,16 +271,12 @@ WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain* real, HWND wnd, W
 		}
 	}
 
-	if(m_Wnd) RenderDoc::Inst().AddFrameCapturer(m_Wnd, m_pDevice);
-
 	SAFE_ADDREF(m_pDevice);
 }
 
 WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()
 {
 	m_pDevice->ReleaseSwapchainResources(this);
-	
-	if(m_Wnd) RenderDoc::Inst().RemoveFrameCapturer(m_Wnd);
 
 	for(int i=0; i < MAX_NUM_BACKBUFFERS; i++)
 	{

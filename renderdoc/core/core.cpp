@@ -160,7 +160,6 @@ RenderDoc::RenderDoc()
 
 	m_Replay = false;
 
-	m_Focus = false;
 	m_Cap = false;
 
 	m_FocusKeys.clear();
@@ -311,66 +310,88 @@ void RenderDoc::Shutdown()
 	}
 }
 
-void RenderDoc::StartFrameCapture(void *wnd)
+void RenderDoc::StartFrameCapture(void *dev, void *wnd)
 {
-	if(wnd == NULL)
+	if(dev == NULL || wnd == NULL)
 	{
+		// if we have a single window frame capturer, use that in preference
 		if(m_WindowFrameCapturers.size() == 1)
 		{
-			m_WindowFrameCapturers.begin()->second.FrameCapturer->StartFrameCapture(wnd);
+			auto it = m_WindowFrameCapturers.begin();
+			it->second.FrameCapturer->StartFrameCapture(it->first.dev, it->first.wnd);
 		}
+		// otherwise, see if we only have one default capturer
+		else if(m_DefaultFrameCapturers.size() == 1)
+		{
+			(*m_DefaultFrameCapturers.begin())->StartFrameCapture(dev, wnd);
+		}
+		// otherwise we can't capture with NULL handles
 		else
 		{
-			RDCERR("Multiple frame capture methods registered, can't capture by NULL window");
+			RDCERR("Multiple frame capture methods registered, can't capture by NULL handles");
 		}
 		return;
 	}
 
-	auto it = m_WindowFrameCapturers.find(wnd);
+	DeviceWnd dw(dev, wnd);
+
+	auto it = m_WindowFrameCapturers.find(dw);
 	if(it == m_WindowFrameCapturers.end())
 	{
-		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		RDCERR("Couldn't find frame capturer for device %p window %p", dev, wnd);
 		return;
 	}
 
-	it->second.FrameCapturer->StartFrameCapture(wnd);
+	it->second.FrameCapturer->StartFrameCapture(dev, wnd);
 }
 
-void RenderDoc::SetActiveWindow(void *wnd)
+void RenderDoc::SetActiveWindow(void *dev, void *wnd)
 {
-	auto it = m_WindowFrameCapturers.find(wnd);
+	DeviceWnd dw(dev, wnd);
+
+	auto it = m_WindowFrameCapturers.find(dw);
 	if(it == m_WindowFrameCapturers.end())
 	{
-		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		RDCERR("Couldn't find frame capturer for device %p window %p", dev, wnd);
 		return;
 	}
 
-	it->second.FrameCapturer->SetActiveWindow(wnd);
+	m_ActiveWindow = dw;
 }
 
-bool RenderDoc::EndFrameCapture(void *wnd)
+bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
 {
-	if(wnd == NULL)
+	if(dev == NULL || wnd == NULL)
 	{
+		// if we have a single window frame capturer, use that in preference
 		if(m_WindowFrameCapturers.size() == 1)
 		{
-			return m_WindowFrameCapturers.begin()->second.FrameCapturer->EndFrameCapture(wnd);
+			auto it = m_WindowFrameCapturers.begin();
+			return it->second.FrameCapturer->EndFrameCapture(it->first.dev, it->first.wnd);
 		}
+		// otherwise, see if we only have one default capturer
+		else if(m_DefaultFrameCapturers.size() == 1)
+		{
+			(*m_DefaultFrameCapturers.begin())->EndFrameCapture(dev, wnd);
+		}
+		// otherwise we can't capture with NULL handles
 		else
 		{
-			RDCERR("Multiple frame capture methods registered, can't capture by NULL window");
+			RDCERR("Multiple frame capture methods registered, can't capture by NULL handles");
 		}
 		return false;
 	}
 
-	auto it = m_WindowFrameCapturers.find(wnd);
+	DeviceWnd dw(dev, wnd);
+
+	auto it = m_WindowFrameCapturers.find(dw);
 	if(it == m_WindowFrameCapturers.end())
 	{
-		RDCERR("Couldn't find frame capturer for this window %p", wnd);
+		RDCERR("Couldn't find frame capturer for device %p, window %p", dev, wnd);
 		return false;
 	}
 
-	return it->second.FrameCapturer->EndFrameCapture(wnd);
+	return it->second.FrameCapturer->EndFrameCapture(dev, wnd);
 }
 
 void RenderDoc::Tick()
@@ -385,9 +406,32 @@ void RenderDoc::Tick()
 	for(size_t i=0; i < m_CaptureKeys.size(); i++) cur_cap |= Keyboard::GetKeyState(m_CaptureKeys[i]);
 
 	if(!prev_focus && cur_focus)
-			FocusToggle();
+	{
+		m_Cap = false;
+
+		// can only shift focus if we have multiple windows
+		if(m_WindowFrameCapturers.size() > 1)
+		{
+			for(auto it = m_WindowFrameCapturers.begin(); it != m_WindowFrameCapturers.end(); ++it)
+			{
+				if(it->first == m_ActiveWindow)
+				{
+					auto nextit = it; ++nextit;
+
+					if(nextit != m_WindowFrameCapturers.end())
+						m_ActiveWindow = nextit->first;
+					else
+						m_ActiveWindow = m_WindowFrameCapturers.begin()->first;
+
+					break;
+				}
+			}
+		}
+	}
 	if(!prev_cap && cur_cap)
-			TriggerCapture();
+	{
+		TriggerCapture();
+	}
 
 	prev_focus = cur_focus;
 	prev_cap = cur_cap;
@@ -729,15 +773,27 @@ void RenderDoc::SuccessfullyWrittenLog()
 	}
 }
 
-void RenderDoc::AddFrameCapturer(void *wnd, IFrameCapturer *cap)
+void RenderDoc::AddDefaultFrameCapturer(IFrameCapturer *cap)
 {
-	if(wnd == NULL || cap == NULL)
+	m_DefaultFrameCapturers.insert(cap);
+}
+
+void RenderDoc::RemoveDefaultFrameCapturer(IFrameCapturer *cap)
+{
+	m_DefaultFrameCapturers.erase(cap);
+}
+
+void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
+{
+	if(dev == NULL || wnd == NULL || cap == NULL)
 	{
 		RDCERR("Invalid FrameCapturer combination: %#p / %#p", wnd, cap);
 		return;
 	}
+
+	DeviceWnd dw(dev, wnd);
 	
-	auto it = m_WindowFrameCapturers.find(wnd);
+	auto it = m_WindowFrameCapturers.find(dw);
 	if(it != m_WindowFrameCapturers.end())
 	{
 		if(it->second.FrameCapturer != cap)
@@ -747,19 +803,35 @@ void RenderDoc::AddFrameCapturer(void *wnd, IFrameCapturer *cap)
 	}
 	else
 	{
-		m_WindowFrameCapturers[wnd].FrameCapturer = cap;
+		m_WindowFrameCapturers[dw].FrameCapturer = cap;
 	}
+
+	// the first one we see becomes the default
+	if(m_ActiveWindow == DeviceWnd())
+		m_ActiveWindow = dw;
 }
 
-void RenderDoc::RemoveFrameCapturer(void *wnd)
+void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 {
-	auto it = m_WindowFrameCapturers.find(wnd);
+	DeviceWnd dw(dev, wnd);
+	
+	auto it = m_WindowFrameCapturers.find(dw);
 	if(it != m_WindowFrameCapturers.end())
 	{
 		it->second.RefCount--;
 
 		if(it->second.RefCount <= 0)
+		{
+			if(m_ActiveWindow == dw)
+			{
+				if(m_WindowFrameCapturers.size() == 1)
+					m_ActiveWindow = DeviceWnd();
+				else
+					m_ActiveWindow = m_WindowFrameCapturers.begin()->first;
+			}
+
 			m_WindowFrameCapturers.erase(it);
+		}
 	}
 	else
 	{

@@ -6002,7 +6002,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(ID3D11DepthSten
 
 		FetchDrawcall draw;
 		draw.name = name;
-		draw.flags |= eDraw_Clear|eDraw_ClearDepth;
+		draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
 
 		AddDrawcall(draw, true);
 		
@@ -6229,9 +6229,12 @@ bool WrappedID3D11DeviceContext::Serialise_SetPredication(ID3D11Predicate *pPred
 	SERIALISE_ELEMENT(ResourceId, Predicate, GetIDForResource(pPredicate));
 	SERIALISE_ELEMENT(uint8_t, PredicateValue, PredicateValue_ == TRUE);
 
-	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(Predicate))
+	if(m_State <= EXECUTING)
 	{
-		m_pRealContext->SetPredication(UNWRAP(WrappedID3D11Predicate, m_pDevice->GetResourceManager()->GetLiveResource(Predicate)), PredicateValue);
+		pPredicate = NULL;
+		if(m_pDevice->GetResourceManager()->HasLiveResource(Predicate))
+			pPredicate = UNWRAP(WrappedID3D11Predicate, m_pDevice->GetResourceManager()->GetLiveResource(Predicate));
+		m_pRealContext->SetPredication(pPredicate, PredicateValue);
 	}
 
 	return true;

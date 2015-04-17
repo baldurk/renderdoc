@@ -57,6 +57,10 @@ namespace renderdocui.Windows.Dialogs
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
+            hostname.Font =
+                hosts.Font =
+                core.Config.PreferredFont;
+
             m_Core = core;
             m_Main = main;
 

@@ -29,6 +29,12 @@
         private void InitializeComponent()
         {
             this.components = new System.ComponentModel.Container();
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
+            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
+            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
+            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
             WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
             WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin1 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
             WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
@@ -45,28 +51,24 @@
             WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ShaderViewer));
-            TreelistView.TreeListColumn treeListColumn14 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn15 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
-            TreelistView.TreeListColumn treeListColumn16 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
-            TreelistView.TreeListColumn treeListColumn17 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn18 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SystemValue", "System Value")));
-            TreelistView.TreeListColumn treeListColumn19 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
-            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Unused", "Unused")));
             TreelistView.TreeListColumn treeListColumn7 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
             TreelistView.TreeListColumn treeListColumn8 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
             TreelistView.TreeListColumn treeListColumn9 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
             TreelistView.TreeListColumn treeListColumn10 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn11 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SystemValue", "System Value")));
+            TreelistView.TreeListColumn treeListColumn11 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SysValue", "SysValue")));
             TreelistView.TreeListColumn treeListColumn12 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
             TreelistView.TreeListColumn treeListColumn13 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Used", "Used")));
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
+            TreelistView.TreeListColumn treeListColumn14 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
+            TreelistView.TreeListColumn treeListColumn15 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
+            TreelistView.TreeListColumn treeListColumn16 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Reg", "Reg")));
+            TreelistView.TreeListColumn treeListColumn17 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn18 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("SysValue", "SysValue")));
+            TreelistView.TreeListColumn treeListColumn19 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mask", "Mask")));
+            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Unused", "Unused")));
             this.variableBox = new System.Windows.Forms.GroupBox();
+            this.variableRegs = new TreelistView.TreeListView();
             this.constantBox = new System.Windows.Forms.GroupBox();
+            this.constantRegs = new TreelistView.TreeListView();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.showWindows = new System.Windows.Forms.ToolStripDropDownButton();
             this.autosToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -93,7 +95,9 @@
             this.errorsBox = new System.Windows.Forms.GroupBox();
             this.errors = new System.Windows.Forms.TextBox();
             this.inSigBox = new System.Windows.Forms.GroupBox();
+            this.inSig = new TreelistView.TreeListView();
             this.outSigBox = new System.Windows.Forms.GroupBox();
+            this.outSig = new TreelistView.TreeListView();
             this.watchBox = new System.Windows.Forms.GroupBox();
             this.watchRegs = new System.Windows.Forms.ListView();
             this.VarName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
@@ -101,24 +105,20 @@
             this.Value = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.variableHover = new System.Windows.Forms.ToolTip(this.components);
             this.hoverTimer = new System.Windows.Forms.Timer(this.components);
-            this.outSig = new TreelistView.TreeListView();
-            this.inSig = new TreelistView.TreeListView();
-            this.variableRegs = new TreelistView.TreeListView();
-            this.constantRegs = new TreelistView.TreeListView();
             this.variableBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).BeginInit();
             this.constantBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).BeginInit();
             this.debuggingStrip.SuspendLayout();
             this.mainLayout.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
             this.editStrip.SuspendLayout();
             this.errorsBox.SuspendLayout();
             this.inSigBox.SuspendLayout();
-            this.outSigBox.SuspendLayout();
-            this.watchBox.SuspendLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.outSig)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.inSig)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).BeginInit();
-            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).BeginInit();
+            this.outSigBox.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.outSig)).BeginInit();
+            this.watchBox.SuspendLayout();
             this.SuspendLayout();
             // 
             // variableBox
@@ -131,6 +131,31 @@
             this.variableBox.TabStop = false;
             this.variableBox.Text = "Variable Registers";
             // 
+            // variableRegs
+            // 
+            treeListColumn1.AutoSizeMinSize = 0;
+            treeListColumn1.Width = 105;
+            treeListColumn2.AutoSizeMinSize = 0;
+            treeListColumn2.Width = 57;
+            treeListColumn3.AutoSize = true;
+            treeListColumn3.AutoSizeMinSize = 0;
+            treeListColumn3.Width = 183;
+            this.variableRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn1,
+            treeListColumn2,
+            treeListColumn3});
+            this.variableRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.variableRegs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.variableRegs.Location = new System.Drawing.Point(3, 16);
+            this.variableRegs.MultiSelect = false;
+            this.variableRegs.Name = "variableRegs";
+            this.variableRegs.RowOptions.ShowHeader = false;
+            this.variableRegs.Size = new System.Drawing.Size(183, 169);
+            this.variableRegs.TabIndex = 1;
+            this.variableRegs.Text = "treeListView1";
+            this.variableRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.variableRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
+            // 
             // constantBox
             // 
             this.constantBox.Controls.Add(this.constantRegs);
@@ -140,6 +165,31 @@
             this.constantBox.TabIndex = 7;
             this.constantBox.TabStop = false;
             this.constantBox.Text = "Constants && Resources";
+            // 
+            // constantRegs
+            // 
+            treeListColumn4.AutoSizeMinSize = 0;
+            treeListColumn4.Width = 109;
+            treeListColumn5.AutoSizeMinSize = 0;
+            treeListColumn5.Width = 57;
+            treeListColumn6.AutoSize = true;
+            treeListColumn6.AutoSizeMinSize = 0;
+            treeListColumn6.Width = 180;
+            this.constantRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn4,
+            treeListColumn5,
+            treeListColumn6});
+            this.constantRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.constantRegs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.constantRegs.Location = new System.Drawing.Point(3, 16);
+            this.constantRegs.MultiSelect = false;
+            this.constantRegs.Name = "constantRegs";
+            this.constantRegs.RowOptions.ShowHeader = false;
+            this.constantRegs.Size = new System.Drawing.Size(226, 171);
+            this.constantRegs.TabIndex = 0;
+            this.constantRegs.Text = "treeListView1";
+            this.constantRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.constantRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
             // dockPanel
             // 
@@ -461,6 +511,43 @@
             this.inSigBox.TabStop = false;
             this.inSigBox.Text = "Input Signature";
             // 
+            // inSig
+            // 
+            treeListColumn7.AutoSize = true;
+            treeListColumn7.AutoSizeMinSize = 20;
+            treeListColumn7.Width = 100;
+            treeListColumn8.AutoSizeMinSize = 10;
+            treeListColumn8.Width = 50;
+            treeListColumn9.AutoSizeMinSize = 10;
+            treeListColumn9.Width = 50;
+            treeListColumn10.AutoSizeMinSize = 20;
+            treeListColumn10.Width = 60;
+            treeListColumn11.AutoSizeMinSize = 15;
+            treeListColumn11.Width = 75;
+            treeListColumn12.AutoSizeMinSize = 15;
+            treeListColumn12.Width = 50;
+            treeListColumn13.AutoSizeMinSize = 15;
+            treeListColumn13.Width = 50;
+            this.inSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
+            treeListColumn7,
+            treeListColumn8,
+            treeListColumn9,
+            treeListColumn10,
+            treeListColumn11,
+            treeListColumn12,
+            treeListColumn13});
+            this.inSig.Cursor = System.Windows.Forms.Cursors.Arrow;
+            this.inSig.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.inSig.Location = new System.Drawing.Point(3, 16);
+            this.inSig.MultiSelect = false;
+            this.inSig.Name = "inSig";
+            this.inSig.RowOptions.ShowHeader = false;
+            this.inSig.Size = new System.Drawing.Size(452, 169);
+            this.inSig.TabIndex = 1;
+            this.inSig.Text = "Input Signature";
+            this.inSig.ViewOptions.ShowLine = false;
+            this.inSig.ViewOptions.ShowPlusMinus = false;
+            // 
             // outSigBox
             // 
             this.outSigBox.Controls.Add(this.outSig);
@@ -470,69 +557,6 @@
             this.outSigBox.TabIndex = 8;
             this.outSigBox.TabStop = false;
             this.outSigBox.Text = "Output Signature";
-            // 
-            // watchBox
-            // 
-            this.watchBox.Controls.Add(this.watchRegs);
-            this.watchBox.Location = new System.Drawing.Point(647, 5);
-            this.watchBox.Name = "watchBox";
-            this.watchBox.Size = new System.Drawing.Size(250, 141);
-            this.watchBox.TabIndex = 10;
-            this.watchBox.TabStop = false;
-            this.watchBox.Text = "Watch";
-            // 
-            // watchRegs
-            // 
-            this.watchRegs.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.watchRegs.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
-            this.VarName,
-            this.Type,
-            this.Value});
-            this.watchRegs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.watchRegs.FullRowSelect = true;
-            this.watchRegs.GridLines = true;
-            this.watchRegs.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
-            this.watchRegs.LabelEdit = true;
-            this.watchRegs.Location = new System.Drawing.Point(3, 16);
-            this.watchRegs.MultiSelect = false;
-            this.watchRegs.Name = "watchRegs";
-            this.watchRegs.Size = new System.Drawing.Size(244, 122);
-            this.watchRegs.TabIndex = 0;
-            this.watchRegs.UseCompatibleStateImageBehavior = false;
-            this.watchRegs.View = System.Windows.Forms.View.Details;
-            this.watchRegs.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.watchRegs_AfterLabelEdit);
-            this.watchRegs.Click += new System.EventHandler(this.watchRegs_Click);
-            this.watchRegs.DoubleClick += new System.EventHandler(this.watchRegs_DoubleClick);
-            this.watchRegs.KeyUp += new System.Windows.Forms.KeyEventHandler(this.watchRegs_KeyUp);
-            this.watchRegs.Layout += new System.Windows.Forms.LayoutEventHandler(this.watchRegs_Layout);
-            // 
-            // VarName
-            // 
-            this.VarName.Text = "Name";
-            // 
-            // Type
-            // 
-            this.Type.Text = "Type";
-            // 
-            // Value
-            // 
-            this.Value.Text = "Value";
-            // 
-            // variableHover
-            // 
-            this.variableHover.AutoPopDelay = 5000;
-            this.variableHover.InitialDelay = 1000;
-            this.variableHover.OwnerDraw = true;
-            this.variableHover.ReshowDelay = 100;
-            this.variableHover.UseAnimation = false;
-            this.variableHover.UseFading = false;
-            this.variableHover.Draw += new System.Windows.Forms.DrawToolTipEventHandler(this.variableHover_Draw);
-            this.variableHover.Popup += new System.Windows.Forms.PopupEventHandler(this.variableHover_Popup);
-            // 
-            // hoverTimer
-            // 
-            this.hoverTimer.Interval = 500;
-            this.hoverTimer.Tick += new System.EventHandler(this.hoverTimer_Tick);
             // 
             // outSig
             // 
@@ -571,88 +595,70 @@
             this.outSig.ViewOptions.ShowLine = false;
             this.outSig.ViewOptions.ShowPlusMinus = false;
             // 
-            // inSig
+            // watchBox
             // 
-            treeListColumn7.AutoSize = true;
-            treeListColumn7.AutoSizeMinSize = 20;
-            treeListColumn7.Width = 100;
-            treeListColumn8.AutoSizeMinSize = 10;
-            treeListColumn8.Width = 50;
-            treeListColumn9.AutoSizeMinSize = 10;
-            treeListColumn9.Width = 50;
-            treeListColumn10.AutoSizeMinSize = 20;
-            treeListColumn10.Width = 60;
-            treeListColumn11.AutoSizeMinSize = 15;
-            treeListColumn11.Width = 75;
-            treeListColumn12.AutoSizeMinSize = 15;
-            treeListColumn12.Width = 50;
-            treeListColumn13.AutoSizeMinSize = 15;
-            treeListColumn13.Width = 50;
-            this.inSig.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn7,
-            treeListColumn8,
-            treeListColumn9,
-            treeListColumn10,
-            treeListColumn11,
-            treeListColumn12,
-            treeListColumn13});
-            this.inSig.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.inSig.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.inSig.Location = new System.Drawing.Point(3, 16);
-            this.inSig.MultiSelect = false;
-            this.inSig.Name = "inSig";
-            this.inSig.RowOptions.ShowHeader = false;
-            this.inSig.Size = new System.Drawing.Size(452, 169);
-            this.inSig.TabIndex = 1;
-            this.inSig.Text = "Input Signature";
-            this.inSig.ViewOptions.ShowLine = false;
-            this.inSig.ViewOptions.ShowPlusMinus = false;
+            this.watchBox.Controls.Add(this.watchRegs);
+            this.watchBox.Location = new System.Drawing.Point(647, 5);
+            this.watchBox.Name = "watchBox";
+            this.watchBox.Size = new System.Drawing.Size(250, 141);
+            this.watchBox.TabIndex = 10;
+            this.watchBox.TabStop = false;
+            this.watchBox.Text = "Watch";
             // 
-            // variableRegs
+            // watchRegs
             // 
-            treeListColumn1.AutoSizeMinSize = 0;
-            treeListColumn1.Width = 105;
-            treeListColumn2.AutoSizeMinSize = 0;
-            treeListColumn2.Width = 57;
-            treeListColumn3.AutoSize = true;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 183;
-            this.variableRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1,
-            treeListColumn2,
-            treeListColumn3});
-            this.variableRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.variableRegs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.variableRegs.Location = new System.Drawing.Point(3, 16);
-            this.variableRegs.MultiSelect = false;
-            this.variableRegs.Name = "variableRegs";
-            this.variableRegs.RowOptions.ShowHeader = false;
-            this.variableRegs.Size = new System.Drawing.Size(183, 169);
-            this.variableRegs.TabIndex = 1;
-            this.variableRegs.Text = "treeListView1";
+            this.watchRegs.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.watchRegs.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            this.VarName,
+            this.Type,
+            this.Value});
+            this.watchRegs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.watchRegs.FullRowSelect = true;
+            this.watchRegs.GridLines = true;
+            this.watchRegs.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
+            this.watchRegs.LabelEdit = true;
+            this.watchRegs.Location = new System.Drawing.Point(3, 16);
+            this.watchRegs.MultiSelect = false;
+            this.watchRegs.Name = "watchRegs";
+            this.watchRegs.Size = new System.Drawing.Size(244, 122);
+            this.watchRegs.TabIndex = 0;
+            this.watchRegs.UseCompatibleStateImageBehavior = false;
+            this.watchRegs.View = System.Windows.Forms.View.Details;
+            this.watchRegs.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.watchRegs_AfterLabelEdit);
+            this.watchRegs.Click += new System.EventHandler(this.watchRegs_Click);
+            this.watchRegs.DoubleClick += new System.EventHandler(this.watchRegs_DoubleClick);
+            this.watchRegs.KeyUp += new System.Windows.Forms.KeyEventHandler(this.watchRegs_KeyUp);
+            this.watchRegs.Layout += new System.Windows.Forms.LayoutEventHandler(this.watchRegs_Layout);
+            this.watchRegs.Leave += new System.EventHandler(this.regsList_Leave);
+            this.watchRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
-            // constantRegs
+            // VarName
             // 
-            treeListColumn4.AutoSizeMinSize = 0;
-            treeListColumn4.Width = 109;
-            treeListColumn5.AutoSizeMinSize = 0;
-            treeListColumn5.Width = 57;
-            treeListColumn6.AutoSize = true;
-            treeListColumn6.AutoSizeMinSize = 0;
-            treeListColumn6.Width = 180;
-            this.constantRegs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn4,
-            treeListColumn5,
-            treeListColumn6});
-            this.constantRegs.Cursor = System.Windows.Forms.Cursors.Arrow;
-            this.constantRegs.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.constantRegs.Location = new System.Drawing.Point(3, 16);
-            this.constantRegs.MultiSelect = false;
-            this.constantRegs.Name = "constantRegs";
-            this.constantRegs.RowOptions.ShowHeader = false;
-            this.constantRegs.Size = new System.Drawing.Size(226, 171);
-            this.constantRegs.TabIndex = 0;
-            this.constantRegs.Text = "treeListView1";
+            this.VarName.Text = "Name";
+            // 
+            // Type
+            // 
+            this.Type.Text = "Type";
+            // 
+            // Value
+            // 
+            this.Value.Text = "Value";
+            // 
+            // variableHover
+            // 
+            this.variableHover.AutoPopDelay = 5000;
+            this.variableHover.InitialDelay = 1000;
+            this.variableHover.OwnerDraw = true;
+            this.variableHover.ReshowDelay = 100;
+            this.variableHover.UseAnimation = false;
+            this.variableHover.UseFading = false;
+            this.variableHover.Draw += new System.Windows.Forms.DrawToolTipEventHandler(this.variableHover_Draw);
+            this.variableHover.Popup += new System.Windows.Forms.PopupEventHandler(this.variableHover_Popup);
+            // 
+            // hoverTimer
+            // 
+            this.hoverTimer.Interval = 500;
+            this.hoverTimer.Tick += new System.EventHandler(this.hoverTimer_Tick);
             // 
             // ShaderViewer
             // 
@@ -672,7 +678,9 @@
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.ShaderViewer_FormClosing);
             this.FormClosed += new System.Windows.Forms.FormClosedEventHandler(this.ShaderViewer_FormClosed);
             this.variableBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).EndInit();
             this.constantBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).EndInit();
             this.debuggingStrip.ResumeLayout(false);
             this.debuggingStrip.PerformLayout();
             this.mainLayout.ResumeLayout(false);
@@ -684,12 +692,10 @@
             this.errorsBox.ResumeLayout(false);
             this.errorsBox.PerformLayout();
             this.inSigBox.ResumeLayout(false);
-            this.outSigBox.ResumeLayout(false);
-            this.watchBox.ResumeLayout(false);
-            ((System.ComponentModel.ISupportInitialize)(this.outSig)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.inSig)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.variableRegs)).EndInit();
-            ((System.ComponentModel.ISupportInitialize)(this.constantRegs)).EndInit();
+            this.outSigBox.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.outSig)).EndInit();
+            this.watchBox.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
