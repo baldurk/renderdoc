@@ -3860,7 +3860,13 @@ void WrappedOpenGL::glDeleteBuffers(GLsizei n, const GLuint *buffers)
 			{
 				// if we have a persistent pointer, make sure to unmap it
 				if(record->Map.persistentPtr)
+				{
+					m_PersistentMaps.erase(record);
+					if(record->Map.access & GL_MAP_COHERENT_BIT)
+						m_CoherentMaps.erase(record);
+
 					m_Real.glUnmapNamedBufferEXT(res.name);
+				}
 
 				// free any shadow storage
 				record->FreeShadowStorage();
