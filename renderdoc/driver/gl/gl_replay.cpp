@@ -486,6 +486,9 @@ void GLReplay::CacheTexture(ResourceId id)
 		res.depth = depth;
 	}
 
+	if (depth < 0)
+		depth = res.depth;
+
 	// reasonably common defaults
 	tex.msQual = 0;
 	tex.msSamp = 1;
