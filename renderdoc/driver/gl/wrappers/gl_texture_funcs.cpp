@@ -1050,8 +1050,18 @@ bool WrappedOpenGL::Serialise_glTextureParameteriEXT(GLuint texture, GLenum targ
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameteriEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Param);
-		else
+		else if (m_Real.glTextureParameteri != NULL)
 			m_Real.glTextureParameteri(GetResourceManager()->GetLiveResource(id).name, PName, Param);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameteriEXT(res.name, curType, PName, Param);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	return true;
@@ -1128,8 +1138,18 @@ bool WrappedOpenGL::Serialise_glTextureParameterivEXT(GLuint texture, GLenum tar
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameterivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
-		else
+		else if (m_Real.glTextureParameteriv != NULL)
 			m_Real.glTextureParameteriv(GetResourceManager()->GetLiveResource(id).name, PName, Params);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameterivEXT(res.name, curType, PName, Params);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	delete[] Params;
@@ -1208,8 +1228,18 @@ bool WrappedOpenGL::Serialise_glTextureParameterIivEXT(GLuint texture, GLenum ta
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameterIivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
-		else
+		else if (m_Real.glTextureParameterIiv != NULL)
 			m_Real.glTextureParameterIiv(GetResourceManager()->GetLiveResource(id).name, PName, Params);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameterIivEXT(res.name, curType, PName, Params);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	delete[] Params;
@@ -1288,8 +1318,18 @@ bool WrappedOpenGL::Serialise_glTextureParameterIuivEXT(GLuint texture, GLenum t
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameterIuivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
-		else
+		else if (m_Real.glTextureParameterIuiv != NULL)
 			m_Real.glTextureParameterIuiv(GetResourceManager()->GetLiveResource(id).name, PName, Params);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameterIuivEXT(res.name, curType, PName, Params);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	delete[] Params;
@@ -1367,8 +1407,18 @@ bool WrappedOpenGL::Serialise_glTextureParameterfEXT(GLuint texture, GLenum targ
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameterfEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Param);
-		else
+		else if (m_Real.glTextureParameterf)
 			m_Real.glTextureParameterf(GetResourceManager()->GetLiveResource(id).name, PName, Param);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameterfEXT(res.name, curType, PName, Param);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	return true;
@@ -1445,8 +1495,18 @@ bool WrappedOpenGL::Serialise_glTextureParameterfvEXT(GLuint texture, GLenum tar
 	{
 		if(Target != eGL_NONE)
 			m_Real.glTextureParameterfvEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName, Params);
-		else
+		else if (m_Real.glTextureParameterfv)
 			m_Real.glTextureParameterfv(GetResourceManager()->GetLiveResource(id).name, PName, Params);
+		else
+		{
+			GLResource res = GetResourceManager()->GetLiveResource(id);
+			GLenum curType = m_Textures[GetResourceManager()->GetLiveID(id)].curType;
+			GLuint curTex = 0;
+			m_Real.glGetIntegerv(TextureBinding(curType), (GLint*)curTex);
+			m_Real.glBindTexture(curType, res.name);
+			m_Real.glTextureParameterfvEXT(res.name, curType, PName, Params);
+			m_Real.glBindTexture(curType, curTex);
+		}
 	}
 
 	delete[] Params;

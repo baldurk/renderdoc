@@ -125,6 +125,8 @@ vector<ResourceId> GLReplay::GetTextures()
 void GLReplay::SetReplayData(GLWindowingData data)
 {
 	m_ReplayCtx = data;
+	if (m_pDriver != NULL)
+		m_pDriver->RegisterContext(m_ReplayCtx, NULL, true, true);
 	
 	InitDebugData();
 
@@ -485,6 +487,9 @@ void GLReplay::CacheTexture(ResourceId id)
 		RDCWARN("TextureData::depth didn't get filled out, setting at last minute");
 		res.depth = depth;
 	}
+
+	if (depth < 0)
+		depth = res.depth;
 
 	// reasonably common defaults
 	tex.msQual = 0;
