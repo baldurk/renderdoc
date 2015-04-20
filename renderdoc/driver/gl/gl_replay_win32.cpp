@@ -182,6 +182,8 @@ uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
 	win.width = rect.right-rect.left;
 	win.height = rect.bottom-rect.top;
 
+	m_pDriver->RegisterContext(win, m_ReplayCtx.ctx, true, true);
+
 	InitOutputWindow(win);
 	CreateOutputWindowBackbuffer(win, depth);
 

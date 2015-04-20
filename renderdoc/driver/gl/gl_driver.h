@@ -463,6 +463,7 @@ class WrappedOpenGL : public IFrameCapturer
 		vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
 
 		void CreateContext(GLWindowingData winData, void *shareContext, GLInitParams initParams, bool core, bool attribsCreate);
+		void RegisterContext(GLWindowingData winData, void *shareContext, bool core, bool attribsCreate);
 		void DeleteContext(void *contextHandle);
 		void ActivateContext(GLWindowingData winData);
 		void WindowSize(void *windowHandle, uint32_t w, uint32_t h);
