@@ -32,6 +32,7 @@
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
             System.Windows.Forms.GroupBox groupBox1;
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(SettingsDialog));
             System.Windows.Forms.Label label13;
             System.Windows.Forms.Label label6;
             System.Windows.Forms.Label label4;
@@ -41,6 +42,7 @@
             System.Windows.Forms.Label label7;
             System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label11;
+            System.Windows.Forms.Label label15;
             System.Windows.Forms.GroupBox groupBox2;
             System.Windows.Forms.Label label10;
             System.Windows.Forms.GroupBox groupBox3;
@@ -48,8 +50,7 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
-            TreelistView.TreeListColumn treeListColumn2 = new TreelistView.TreeListColumn("Section", "Section");
-            System.Windows.Forms.Label label15;
+            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Section", "Section");
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -61,6 +62,7 @@
             this.Formatter_MinFigures = new System.Windows.Forms.NumericUpDown();
             this.CheckUpdate_AllowChecks = new System.Windows.Forms.CheckBox();
             this.browseCaptureDirectory = new System.Windows.Forms.Button();
+            this.Font_PreferMonospaced = new System.Windows.Forms.CheckBox();
             this.texViewTab = new System.Windows.Forms.TabPage();
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.TextureViewer_ResetRange = new System.Windows.Forms.CheckBox();
@@ -77,7 +79,6 @@
             this.ok = new System.Windows.Forms.Button();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
             this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
-            this.Font_PreferMonospaced = new System.Windows.Forms.CheckBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -90,6 +91,7 @@
             label7 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             label11 = new System.Windows.Forms.Label();
+            label15 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
             label10 = new System.Windows.Forms.Label();
             groupBox3 = new System.Windows.Forms.GroupBox();
@@ -97,7 +99,6 @@
             groupBox4 = new System.Windows.Forms.GroupBox();
             label8 = new System.Windows.Forms.Label();
             label9 = new System.Windows.Forms.Label();
-            label15 = new System.Windows.Forms.Label();
             tableLayoutPanel1.SuspendLayout();
             this.settingsTabs.SuspendLayout();
             this.generalTab.SuspendLayout();
@@ -225,8 +226,7 @@
             this.AllowGlobalHook.Name = "AllowGlobalHook";
             this.AllowGlobalHook.Size = new System.Drawing.Size(15, 14);
             this.AllowGlobalHook.TabIndex = 16;
-            this.toolTip.SetToolTip(this.AllowGlobalHook, "Allow RenderDoc to insert a global hook into all processes to catch the execution" +
-        " of the desired process, without directly launching it.");
+            this.toolTip.SetToolTip(this.AllowGlobalHook, resources.GetString("AllowGlobalHook.ToolTip"));
             this.AllowGlobalHook.UseVisualStyleBackColor = true;
             this.AllowGlobalHook.CheckedChanged += new System.EventHandler(this.AllowGlobalHook_CheckedChanged);
             // 
@@ -242,8 +242,7 @@
             label13.TabIndex = 15;
             label13.Text = "Allow global process hooking - be careful!";
             label13.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label13, "Allows RenderDoc to phone home to http://renderdoc.org to anonymously check for n" +
-        "ew versions.");
+            this.toolTip.SetToolTip(label13, resources.GetString("label13.ToolTip"));
             // 
             // Formatter_PosExp
             // 
@@ -469,7 +468,8 @@
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
             this.CheckUpdate_AllowChecks.TabIndex = 8;
-            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allow periodic update checks");
+            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allows RenderDoc to phone home to http://renderdoc.org to anonymously check for n" +
+        "ew versions.");
             this.CheckUpdate_AllowChecks.UseVisualStyleBackColor = true;
             this.CheckUpdate_AllowChecks.CheckedChanged += new System.EventHandler(this.CheckUpdate_AllowChecks_CheckedChanged);
             // 
@@ -500,6 +500,33 @@
         "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
             this.browseCaptureDirectory.UseVisualStyleBackColor = true;
             this.browseCaptureDirectory.Click += new System.EventHandler(this.browseCaptureDirectory_Click);
+            // 
+            // label15
+            // 
+            label15.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label15.AutoSize = true;
+            label15.Location = new System.Drawing.Point(3, 231);
+            label15.Name = "label15";
+            label15.Size = new System.Drawing.Size(259, 20);
+            label15.TabIndex = 17;
+            label15.Text = "Prefer monospaced fonts in UI (restart required)";
+            label15.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label15, "Wherever possible a monospaced font will be used instead of the default font");
+            // 
+            // Font_PreferMonospaced
+            // 
+            this.Font_PreferMonospaced.AutoSize = true;
+            this.Font_PreferMonospaced.Checked = true;
+            this.Font_PreferMonospaced.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.Font_PreferMonospaced.Location = new System.Drawing.Point(268, 234);
+            this.Font_PreferMonospaced.Name = "Font_PreferMonospaced";
+            this.Font_PreferMonospaced.Size = new System.Drawing.Size(15, 14);
+            this.Font_PreferMonospaced.TabIndex = 18;
+            this.toolTip.SetToolTip(this.Font_PreferMonospaced, "Wherever possible a monospaced font will be used instead of the default font");
+            this.Font_PreferMonospaced.UseVisualStyleBackColor = true;
+            this.Font_PreferMonospaced.CheckedChanged += new System.EventHandler(this.Font_PreferMonospaced_CheckedChanged);
             // 
             // texViewTab
             // 
@@ -754,11 +781,11 @@
             // pagesTree
             // 
             this.pagesTree.AlwaysDisplayVScroll = true;
-            treeListColumn2.AutoSize = true;
-            treeListColumn2.AutoSizeMinSize = 0;
-            treeListColumn2.Width = 50;
+            treeListColumn1.AutoSize = true;
+            treeListColumn1.AutoSizeMinSize = 0;
+            treeListColumn1.Width = 50;
             this.pagesTree.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn2});
+            treeListColumn1});
             this.pagesTree.ColumnsOptions.HeaderHeight = 1;
             this.pagesTree.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.pagesTree.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -787,33 +814,6 @@
             // browserCaptureDialog
             // 
             this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
-            // 
-            // label15
-            // 
-            label15.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            label15.AutoSize = true;
-            label15.Location = new System.Drawing.Point(3, 231);
-            label15.Name = "label15";
-            label15.Size = new System.Drawing.Size(259, 20);
-            label15.TabIndex = 17;
-            label15.Text = "Prefer monospaced fonts in UI (restart required)";
-            label15.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label15, "Wherever possible a monospaced font will be used instead of the default font");
-            // 
-            // Font_PreferMonospaced
-            // 
-            this.Font_PreferMonospaced.AutoSize = true;
-            this.Font_PreferMonospaced.Checked = true;
-            this.Font_PreferMonospaced.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.Font_PreferMonospaced.Location = new System.Drawing.Point(268, 234);
-            this.Font_PreferMonospaced.Name = "Font_PreferMonospaced";
-            this.Font_PreferMonospaced.Size = new System.Drawing.Size(15, 14);
-            this.Font_PreferMonospaced.TabIndex = 18;
-            this.toolTip.SetToolTip(this.Font_PreferMonospaced, "Wherever possible a monospaced font will be used instead of the default font");
-            this.Font_PreferMonospaced.UseVisualStyleBackColor = true;
-            this.Font_PreferMonospaced.CheckedChanged += new System.EventHandler(this.Font_PreferMonospaced_CheckedChanged);
             // 
             // SettingsDialog
             // 
