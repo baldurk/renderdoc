@@ -560,6 +560,12 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_KHR_robustness");
 	globalExts.push_back("GL_KHR_robust_buffer_access_behavior");
 
+	// this WGL extension is advertised in the gl ext string instead of via the wgl ext string,
+	// return it just in case anyone is checking for it via this place. On non-windows platforms
+	// it won't be reported as we do the intersection of renderdoc supported extensions and
+	// implementation supported extensions.
+	globalExts.push_back("WGL_EXT_swap_control");
+
 	/************************************************************************
 
 	Extensions I plan to support, but haven't implemented yet for one reason or another.
