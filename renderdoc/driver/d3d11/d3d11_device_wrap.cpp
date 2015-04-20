@@ -159,6 +159,8 @@ HRESULT WrappedID3D11Device::CreateBuffer(
 				SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER);
 				Serialise_CreateBuffer(pDesc, pInitialData, &wrapped);
 
+				scope.SetAlignment(32);
+
 				chunk = scope.Get();
 			}
 

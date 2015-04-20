@@ -62,8 +62,8 @@ struct D3D11ResourceRecord : public ResourceRecord
 	{
 		if(ShadowPtr[ctx][0] == NULL)
 		{
-			ShadowPtr[ctx][0] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
-			ShadowPtr[ctx][1] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue));
+			ShadowPtr[ctx][0] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue), 32);
+			ShadowPtr[ctx][1] = Serialiser::AllocAlignedBuffer(size + sizeof(markerValue), 32);
 
 			memcpy(ShadowPtr[ctx][0] + size, markerValue, sizeof(markerValue));
 			memcpy(ShadowPtr[ctx][1] + size, markerValue, sizeof(markerValue));
