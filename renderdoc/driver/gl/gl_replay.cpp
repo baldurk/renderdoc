@@ -125,6 +125,8 @@ vector<ResourceId> GLReplay::GetTextures()
 void GLReplay::SetReplayData(GLWindowingData data)
 {
 	m_ReplayCtx = data;
+	if (m_pDriver != NULL)
+		m_pDriver->RegisterContext(m_ReplayCtx, NULL, true, true);
 	
 	InitDebugData();
 

@@ -1009,6 +1009,14 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, G
 	ctxdata.attribsCreate = attribsCreate;
 }
 
+void WrappedOpenGL::RegisterContext(GLWindowingData winData, void *shareContext, bool core, bool attribsCreate)
+{
+	ContextData &ctxdata = m_ContextData[winData.ctx];
+	ctxdata.ctx = winData.ctx;
+	ctxdata.isCore = core;
+	ctxdata.attribsCreate = attribsCreate;
+}
+
 void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 {
 	m_ActiveContexts[Threading::GetCurrentID()] = winData;
