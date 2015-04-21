@@ -390,8 +390,17 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 	}
 	
 	GLint red, depth;
-	gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &red);
-	gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE, sizeof(GLint), &depth);
+	if(gl.glGetInternalformativ)
+	{
+		gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &red);
+		gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE, sizeof(GLint), &depth);
+	}
+	else
+	{
+		// without the query function, just default to sensible defaults
+		red = 8;
+		depth = 32;
+	}
 
 	switch(internalFormat)
 	{
