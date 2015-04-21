@@ -7117,8 +7117,6 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 				if(record->DataInSerialiser)
 				{
 					Serialise_Unmap(pResource, Subresource);
-
-					scope.SetAlignment(32);
 				}
 				else
 				{
