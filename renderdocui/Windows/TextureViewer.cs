@@ -1335,7 +1335,8 @@ namespace renderdocui.Windows
                     }
                 }
 
-                sliceFace.SelectedIndex = (int)m_Following.GetFirstArraySlice(m_Core);
+                int firstArraySlice = (int)m_Following.GetFirstArraySlice(m_Core);
+                sliceFace.SelectedIndex = Helpers.Clamp(firstArraySlice, 0, (int)numSlices - 1);
             }
 
             // mip and slice were reset to 0 above, we must restore any per-tex settings to apply
