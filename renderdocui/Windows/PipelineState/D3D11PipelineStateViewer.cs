@@ -222,8 +222,25 @@ namespace renderdocui.Windows.PipelineState
                 shader.Text = stage.ShaderName;
 
             if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
-                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + 
-                                Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+            {
+                string shaderfn = "";
+
+                try
+                {
+                    shaderfn = Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+                }
+                catch (ArgumentException)
+                {
+                    // invalid path or similar, just try to go from last \ or / onwards
+
+                    shaderfn = shaderDetails.DebugInfo.files[0].filename;
+                    int idx = shaderfn.LastIndexOfAny(new char[] { '/', '\\' });
+                    if (idx > 0)
+                        shaderfn = shaderfn.Substring(idx + 1);
+                }
+
+                shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + shaderfn;
+            }
 
             int vs = 0;
             
