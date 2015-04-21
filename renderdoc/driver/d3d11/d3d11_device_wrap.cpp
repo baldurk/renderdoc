@@ -385,6 +385,8 @@ HRESULT WrappedID3D11Device::CreateTexture1D(
 				SCOPED_SERIALISE_CONTEXT(CREATE_TEXTURE_1D);
 				Serialise_CreateTexture1D(pDesc, pInitialData, &wrapped);
 
+				scope.SetAlignment(32);
+
 				chunk = scope.Get();
 			}
 
@@ -486,6 +488,8 @@ HRESULT WrappedID3D11Device::CreateTexture2D(
 				SCOPED_SERIALISE_CONTEXT(CREATE_TEXTURE_2D);
 				Serialise_CreateTexture2D(pDesc, pInitialData, &wrapped);
 
+				scope.SetAlignment(32);
+
 				chunk = scope.Get();
 			}
 
@@ -586,6 +590,8 @@ HRESULT WrappedID3D11Device::CreateTexture3D(
 			{
 				SCOPED_SERIALISE_CONTEXT(CREATE_TEXTURE_3D);
 				Serialise_CreateTexture3D(pDesc, pInitialData, &wrapped);
+
+				scope.SetAlignment(32);
 
 				chunk = scope.Get();
 			}
@@ -2818,6 +2824,8 @@ HRESULT WrappedID3D11Device::OpenSharedResource(
 			{
 				SCOPED_SERIALISE_CONTEXT(OPEN_SHARED_RESOURCE);
 				Serialise_OpenSharedResource(hResource, ReturnedInterface, ppResource);
+
+				scope.SetAlignment(32);
 
 				chunk = scope.Get();
 			}
