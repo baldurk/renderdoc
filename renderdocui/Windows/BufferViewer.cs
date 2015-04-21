@@ -2840,7 +2840,12 @@ namespace renderdocui.Windows
 
             if (row >= ui.m_Rows.Length || ui.m_Rows[row].Length <= 1) return;
 
-            UInt32 idx = (UInt32)ui.m_Rows[row][1];
+            UInt32 idx = 0;
+
+            if (ui.m_Rows[row][1] is UInt32)
+            {
+                idx = (UInt32)ui.m_Rows[row][1];
+            }
 
             var draw = m_Core.CurDrawcall;
 
