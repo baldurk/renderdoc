@@ -62,8 +62,6 @@
   multiple contexts that don't share with each other (or only share within defined groups).</para></listItem>
   <listItem><para>Shader debugging is not supported on any shader stage.</para></listItem>
   <listItem><para>Pixel history is not implemented.</para></listItem>
-  <listItem><para>Resource usage throughout the frame (e.g. listing a texture as used as framebuffer attachment
-  or image or texture at different draw calls) is not gathered.</para></listItem>
   <listItem><para>Logfiles currently contain every live resource at the time of capture, and they are
   not 'trimmed' down to only the resources referenced.</para></listItem>
   <listItem><para>Some initial contents aren't properly fetched or stored, so in some cases changes
