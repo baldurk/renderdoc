@@ -7024,6 +7024,12 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 			m_pSerialiser->Serialise("DiffStart", diffStart);
 			m_pSerialiser->Serialise("DiffEnd", diffEnd);
 
+			// this is a bit of a hack, but to maintain backwards compatibility we have a
+			// separate function here that aligns the next serialised buffer to a 32-byte
+			// boundary in memory while writing (just skips the padding on read).
+			if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000007)
+				m_pSerialiser->AlignNextBuffer(32);
+
 			byte *buf = (byte *)intercept.app.pData;
 			m_pSerialiser->SerialiseBuffer("MapData", buf, len);
 

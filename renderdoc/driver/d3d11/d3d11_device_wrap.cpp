@@ -44,6 +44,12 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(
 		pInitialData = &fakeData;
 	}
 
+	// this is a bit of a hack, but to maintain backwards compatibility we have a
+	// separate function here that aligns the next serialised buffer to a 32-byte
+	// boundary in memory while writing (just skips the padding on read).
+	if(m_State >= WRITING || GetLogVersion() >= 0x000007)
+		m_pSerialiser->AlignNextBuffer(32);
+
 	SERIALISE_ELEMENT_BUF(byte *, InitialData, pInitialData->pSysMem, Descriptor.ByteWidth);
 
 	uint64_t offs = m_pSerialiser->GetOffset()-Descriptor.ByteWidth;
@@ -260,6 +266,12 @@ vector<D3D11_SUBRESOURCE_DATA> WrappedID3D11Device::Serialise_CreateTextureData(
 
 			intercept.CopyFromD3D();
 		}
+
+		// this is a bit of a hack, but to maintain backwards compatibility we have a
+		// separate function here that aligns the next serialised buffer to a 32-byte
+		// boundary in memory while writing (just skips the padding on read).
+		if(m_State >= WRITING || GetLogVersion() >= 0x000007)
+			m_pSerialiser->AlignNextBuffer(32);
 
 		SERIALISE_ELEMENT_BUF(byte *, buf, scratch, subresourceSize);
 

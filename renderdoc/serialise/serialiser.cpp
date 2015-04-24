@@ -940,6 +940,36 @@ void Serialiser::SkipBuffer()
 	ReadBytes(len);
 }
 
+void Serialiser::AlignNextBuffer(const size_t alignment)
+{
+	// this is a super hack but it's the easiest way to align a buffer to a larger pow2 alignment
+	// than the default 16-bytes, while still able to be backwards compatible with old logs that
+	// weren't so aligned. We know that SerialiseBuffer will align to the nearest 16-byte boundary
+	// after serialising 4 bytes of length, so we pad up to exactly 4 bytes before the desired
+	// alignment, then after the 4 byte length there's nothing for the other padding to do.
+	//
+	// Note the chunk still needs to be aligned when the memory is allocated - this just ensures
+	// the offset from the start is also aligned
+
+	size_t len = 0;
+
+	if(m_Mode >= WRITING)
+	{
+		// add sizeof(uint32_t) since we'll be serialising out how much padding is here
+		uint64_t curoffs = GetOffset() + sizeof(uint32_t);
+		uint64_t alignedoffs = AlignUp(curoffs, (uint64_t)alignment);
+
+		len = size_t(alignedoffs - curoffs);
+	}
+
+	// avoid dynamically allocating
+	RDCASSERT(alignment <= 128);
+	byte padding[128] = {0};
+	byte *p = &padding[0];
+
+	SerialiseBuffer("", p, len);
+}
+
 void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
 {
 	uint32_t bufLen = (uint32_t)len;

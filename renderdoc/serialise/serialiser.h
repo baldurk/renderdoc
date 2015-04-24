@@ -487,6 +487,7 @@ class Serialiser
 		// memory will be returned, or it must be already large enough.
 		void SerialiseBuffer(const char *name, byte *&buf, size_t &len);
 		void SkipBuffer();
+		void AlignNextBuffer(const size_t alignment);
 
 		// NOT recommended interface. Useful for specific situations if e.g. you have
 		// a buffer of data that is not arbitrary in size and can be determined by a 'type' or

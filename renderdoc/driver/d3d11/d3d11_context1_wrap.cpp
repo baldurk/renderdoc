@@ -171,6 +171,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
 		byte *padding = m_State >= WRITING ? new byte[ResourceBufLen] : NULL;
 
+		// this is a bit of a hack, but to maintain backwards compatibility we have a
+		// separate function here that aligns the next serialised buffer to a 32-byte
+		// boundary in memory while writing (just skips the padding on read).
+		if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000007)
+			m_pSerialiser->AlignNextBuffer(32);
+
 		SERIALISE_ELEMENT_BUF(byte *, bufData, padding, ResourceBufLen);
 
 		if(record)

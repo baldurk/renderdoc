@@ -206,6 +206,7 @@ D3D11InitParams::D3D11InitParams()
 const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SUPPORTED_OLD_VERSIONS] = {
 	0x0000004, // from 0x4 to 0x5, we added the stream-out hidden counters in the context's Serialise_BeginCaptureFrame
 	0x0000005, // from 0x5 to 0x6, several new calls were made 'drawcalls', like Copy & GenerateMips, with serialised debug messages
+	0x0000006, // from 0x6 to 0x7, we added some more padding in some buffer & texture chunks to get larger alignment than 16-byte
 };
 
 ReplayCreateStatus D3D11InitParams::Serialise()

@@ -309,6 +309,9 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr 
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
 
+	// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+	m_pSerialiser->AlignNextBuffer(64);
+
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
 
 	uint64_t offs = m_pSerialiser->GetOffset();
@@ -423,6 +426,9 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr siz
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 	SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+
+	// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+	m_pSerialiser->AlignNextBuffer(64);
 
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
 	
