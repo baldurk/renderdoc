@@ -395,10 +395,10 @@ void WrappedOpenGL::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, cons
 	SAFE_DELETE_ARRAY(dummy);
 }
 
-void WrappedOpenGL::glNamedBufferStorage(GLuint buffer, GLsizei size, const void *data, GLbitfield flags)
+void WrappedOpenGL::glNamedBufferStorage(GLuint buffer, GLsizeiptr size, const void *data, GLbitfield flags)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	glNamedBufferStorageEXT(buffer, (GLsizeiptr)size, data, flags);
+	glNamedBufferStorageEXT(buffer, size, data, flags);
 }
 
 void WrappedOpenGL::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
@@ -577,10 +577,10 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 	SAFE_DELETE_ARRAY(dummy);
 }
 
-void WrappedOpenGL::glNamedBufferData(GLuint buffer, GLsizei size, const void *data, GLenum usage)
+void WrappedOpenGL::glNamedBufferData(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	glNamedBufferDataEXT(buffer, (GLsizeiptr)size, data, usage);
+	glNamedBufferDataEXT(buffer, size, data, usage);
 }
 
 void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
@@ -756,10 +756,10 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 	}
 }
 
-void WrappedOpenGL::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, const void *data)
+void WrappedOpenGL::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, const void *data)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	glNamedBufferSubDataEXT(buffer, offset, (GLsizeiptr)size, data);
+	glNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
 void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
@@ -844,9 +844,9 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 	}
 }
 
-void WrappedOpenGL::glCopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizei size)
+void WrappedOpenGL::glCopyNamedBufferSubData(GLuint readBuffer, GLuint writeBuffer, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
 {
-	glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, (GLsizeiptr)size);
+	glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size);
 }
 
 void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, GLintptr readOffset, GLintptr writeOffset, GLsizeiptr size)
@@ -1756,10 +1756,10 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 	return m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
 }
 
-void *WrappedOpenGL::glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length, GLbitfield access)
+void *WrappedOpenGL::glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length, GLbitfield access)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	return glMapNamedBufferRangeEXT(buffer, offset, (GLsizeiptr)length, access);
+	return glMapNamedBufferRangeEXT(buffer, offset, length, access);
 }
 
 void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)
@@ -2158,10 +2158,10 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 	}
 }
 
-void WrappedOpenGL::glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizei length)
+void WrappedOpenGL::glFlushMappedNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	glFlushMappedNamedBufferRangeEXT(buffer, offset, (GLsizeiptr)length);
+	glFlushMappedNamedBufferRangeEXT(buffer, offset, length);
 }
 
 void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLsizeiptr length)
@@ -2377,7 +2377,7 @@ void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLui
 	}
 }
 
-bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size)
+bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
 	SERIALISE_ELEMENT(uint32_t, idx, index);
 	SERIALISE_ELEMENT(ResourceId, xid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), xfb)));
@@ -2402,7 +2402,7 @@ bool WrappedOpenGL::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint 
 	return true;
 }
 
-void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size)
+void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
 	m_Real.glTransformFeedbackBufferRange(xfb, index, buffer, offset, size);
 

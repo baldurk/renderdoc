@@ -1648,25 +1648,25 @@
     HookWrapper2(void, glClipControl, GLenum, origin, GLenum, depth); \
     HookWrapper2(void, glCreateTransformFeedbacks, GLsizei, n, GLuint *, ids); \
     HookWrapper3(void, glTransformFeedbackBufferBase, GLuint, xfb, GLuint, index, GLuint, buffer); \
-    HookWrapper5(void, glTransformFeedbackBufferRange, GLuint, xfb, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizei, size); \
+    HookWrapper5(void, glTransformFeedbackBufferRange, GLuint, xfb, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper3(void, glGetTransformFeedbackiv, GLuint, xfb, GLenum, pname, GLint *, param); \
     HookWrapper4(void, glGetTransformFeedbacki_v, GLuint, xfb, GLenum, pname, GLuint, index, GLint *, param); \
     HookWrapper4(void, glGetTransformFeedbacki64_v, GLuint, xfb, GLenum, pname, GLuint, index, GLint64 *, param); \
     HookWrapper2(void, glCreateBuffers, GLsizei, n, GLuint *, buffers); \
-    HookWrapper4(void, glNamedBufferStorage, GLuint, buffer, GLsizei, size, const void *, data, GLbitfield, flags); \
-    HookWrapper4(void, glNamedBufferData, GLuint, buffer, GLsizei, size, const void *, data, GLenum, usage); \
-    HookWrapper4(void, glNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizei, size, const void *, data); \
-    HookWrapper5(void, glCopyNamedBufferSubData, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizei, size); \
+    HookWrapper4(void, glNamedBufferStorage, GLuint, buffer, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+    HookWrapper4(void, glNamedBufferData, GLuint, buffer, GLsizeiptr, size, const void *, data, GLenum, usage); \
+    HookWrapper4(void, glNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, const void *, data); \
+    HookWrapper5(void, glCopyNamedBufferSubData, GLuint, readBuffer, GLuint, writeBuffer, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper5(void, glClearNamedBufferDataEXT, GLuint, buffer, GLenum, internalformat, GLenum, format, GLenum, type, const void *, data); \
-    HookWrapper7(void, glClearNamedBufferSubData, GLuint, buffer, GLenum, internalformat, GLintptr, offset, GLsizei, size, GLenum, format, GLenum, type, const void *, data); \
+    HookWrapper7(void, glClearNamedBufferSubData, GLuint, buffer, GLenum, internalformat, GLintptr, offset, GLsizeiptr, size, GLenum, format, GLenum, type, const void *, data); \
     HookWrapper2(void *, glMapNamedBufferEXT, GLuint, buffer, GLenum, access); \
-    HookWrapper4(void *, glMapNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizei, length, GLbitfield, access); \
+    HookWrapper4(void *, glMapNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper1(GLboolean, glUnmapNamedBufferEXT, GLuint, buffer); \
-    HookWrapper3(void, glFlushMappedNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizei, length); \
+    HookWrapper3(void, glFlushMappedNamedBufferRange, GLuint, buffer, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper3(void, glGetNamedBufferParameterivEXT, GLuint, buffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetNamedBufferParameteri64v, GLuint, buffer, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glGetNamedBufferPointervEXT, GLuint, buffer, GLenum, pname, void **, params); \
-    HookWrapper4(void, glGetNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizei, size, void *, data); \
+    HookWrapper4(void, glGetNamedBufferSubData, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, void *, data); \
     HookWrapper2(void, glCreateFramebuffers, GLsizei, n, GLuint *, framebuffers); \
     HookWrapper4(void, glNamedFramebufferRenderbufferEXT, GLuint, framebuffer, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
     HookWrapper3(void, glNamedFramebufferParameteriEXT, GLuint, framebuffer, GLenum, pname, GLint, param); \
@@ -1691,7 +1691,7 @@
     HookWrapper3(void, glGetNamedRenderbufferParameterivEXT, GLuint, renderbuffer, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glCreateTextures, GLenum, target, GLsizei, n, GLuint *, textures); \
     HookWrapper3(void, glTextureBuffer, GLuint, texture, GLenum, internalformat, GLuint, buffer); \
-    HookWrapper5(void, glTextureBufferRange, GLuint, texture, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizei, size); \
+    HookWrapper5(void, glTextureBufferRange, GLuint, texture, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper4(void, glTextureStorage1D, GLuint, texture, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper5(void, glTextureStorage2D, GLuint, texture, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, glTextureStorage3D, GLuint, texture, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
@@ -1897,7 +1897,7 @@
     HookWrapper4(void, glbufferpagecommitmentarb, GLenum, target, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
     HookWrapper4(void, glnamedbufferpagecommitmentext, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
     HookWrapper4(void, glnamedbufferpagecommitmentarb, GLuint, buffer, GLintptr, offset, GLsizeiptr, size, GLboolean, commit); \
-    HookWrapper9(void, gltexpagecommitmentarb, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, resident); \
+    HookWrapper9(void, gltexpagecommitmentarb, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
     HookWrapper1(void, glclientactivetexture, GLenum, texture); \
     HookWrapper2(void, glmultitexcoord1d, GLenum, target, GLdouble, s); \
     HookWrapper2(void, glmultitexcoord1dv, GLenum, target, const GLdouble *, v); \
@@ -2689,7 +2689,7 @@
     HookWrapper5(void, glprogramuniformmatrix3x4dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glprogramuniformmatrix4x2dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper5(void, glprogramuniformmatrix4x3dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper9(void, gltexturepagecommitmentext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, resident); \
+    HookWrapper9(void, gltexturepagecommitmentext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
     HookWrapper1(void, glfogcoordfext, GLfloat, coord); \
     HookWrapper1(void, glfogcoordfvext, const GLfloat *, coord); \
     HookWrapper1(void, glfogcoorddext, GLdouble, coord); \
@@ -2900,6 +2900,23 @@
     HookWrapper1(GLboolean, glisimagehandleresidentnv, GLuint64, handle); \
     HookWrapper2(void, glblendparameterinv, GLenum, pname, GLint, value); \
     HookWrapper0(void, glblendbarriernv); \
+    HookWrapper2(void, glcreatestatesnv, GLsizei, n, GLuint *, states); \
+    HookWrapper2(void, gldeletestatesnv, GLsizei, n, const GLuint *, states); \
+    HookWrapper1(GLboolean, glisstatenv, GLuint, state); \
+    HookWrapper2(void, glstatecapturenv, GLuint, state, GLenum, mode); \
+    HookWrapper2(GLuint, glgetcommandheadernv, GLenum, tokenID, GLuint, size); \
+    HookWrapper1(GLushort, glgetstageindexnv, GLenum, shadertype); \
+    HookWrapper5(void, gldrawcommandsnv, GLenum, primitiveMode, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, GLuint, count); \
+    HookWrapper4(void, gldrawcommandsaddressnv, GLenum, primitiveMode, const GLuint64 *, indirects, const GLsizei *, sizes, GLuint, count); \
+    HookWrapper6(void, gldrawcommandsstatesnv, GLuint, buffer, const GLintptr *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+    HookWrapper5(void, gldrawcommandsstatesaddressnv, const GLuint64 *, indirects, const GLsizei *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+    HookWrapper2(void, glcreatecommandlistsnv, GLsizei, n, GLuint *, lists); \
+    HookWrapper2(void, gldeletecommandlistsnv, GLsizei, n, const GLuint *, lists); \
+    HookWrapper1(GLboolean, gliscommandlistnv, GLuint, list); \
+    HookWrapper7(void, gllistdrawcommandsstatesclientnv, GLuint, list, GLuint, segment, const void **, indirects, const size_t *, sizes, const GLuint *, states, const GLuint *, fbos, GLuint, count); \
+    HookWrapper2(void, glcommandlistsegmentsnv, GLuint, list, GLuint, segments); \
+    HookWrapper1(void, glcompilecommandlistnv, GLuint, list); \
+    HookWrapper1(void, glcallcommandlistnv, GLuint, list); \
     HookWrapper2(void, glbeginconditionalrendernv, GLuint, id, GLenum, mode); \
     HookWrapper0(void, glendconditionalrendernv); \
     HookWrapper2(void, glsubpixelprecisionbiasnv, GLuint, xbits, GLuint, ybits); \
@@ -4431,6 +4448,23 @@
     HandleUnsupported(PFNGLISIMAGEHANDLERESIDENTNVPROC, glisimagehandleresidentnv); \
     HandleUnsupported(PFNGLBLENDPARAMETERINVPROC, glblendparameterinv); \
     HandleUnsupported(PFNGLBLENDBARRIERNVPROC, glblendbarriernv); \
+    HandleUnsupported(PFNGLCREATESTATESNVPROC, glcreatestatesnv); \
+    HandleUnsupported(PFNGLDELETESTATESNVPROC, gldeletestatesnv); \
+    HandleUnsupported(PFNGLISSTATENVPROC, glisstatenv); \
+    HandleUnsupported(PFNGLSTATECAPTURENVPROC, glstatecapturenv); \
+    HandleUnsupported(PFNGLGETCOMMANDHEADERNVPROC, glgetcommandheadernv); \
+    HandleUnsupported(PFNGLGETSTAGEINDEXNVPROC, glgetstageindexnv); \
+    HandleUnsupported(PFNGLDRAWCOMMANDSNVPROC, gldrawcommandsnv); \
+    HandleUnsupported(PFNGLDRAWCOMMANDSADDRESSNVPROC, gldrawcommandsaddressnv); \
+    HandleUnsupported(PFNGLDRAWCOMMANDSSTATESNVPROC, gldrawcommandsstatesnv); \
+    HandleUnsupported(PFNGLDRAWCOMMANDSSTATESADDRESSNVPROC, gldrawcommandsstatesaddressnv); \
+    HandleUnsupported(PFNGLCREATECOMMANDLISTSNVPROC, glcreatecommandlistsnv); \
+    HandleUnsupported(PFNGLDELETECOMMANDLISTSNVPROC, gldeletecommandlistsnv); \
+    HandleUnsupported(PFNGLISCOMMANDLISTNVPROC, gliscommandlistnv); \
+    HandleUnsupported(PFNGLLISTDRAWCOMMANDSSTATESCLIENTNVPROC, gllistdrawcommandsstatesclientnv); \
+    HandleUnsupported(PFNGLCOMMANDLISTSEGMENTSNVPROC, glcommandlistsegmentsnv); \
+    HandleUnsupported(PFNGLCOMPILECOMMANDLISTNVPROC, glcompilecommandlistnv); \
+    HandleUnsupported(PFNGLCALLCOMMANDLISTNVPROC, glcallcommandlistnv); \
     HandleUnsupported(PFNGLBEGINCONDITIONALRENDERNVPROC, glbeginconditionalrendernv); \
     HandleUnsupported(PFNGLENDCONDITIONALRENDERNVPROC, glendconditionalrendernv); \
     HandleUnsupported(PFNGLSUBPIXELPRECISIONBIASNVPROC, glsubpixelprecisionbiasnv); \

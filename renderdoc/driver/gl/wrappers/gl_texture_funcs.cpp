@@ -4185,7 +4185,7 @@ void WrappedOpenGL::glTextureBufferRangeEXT(GLuint texture, GLenum target, GLenu
 	Common_glTextureBufferRangeEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target, internalformat, buffer, offset, size);
 }
 
-void WrappedOpenGL::glTextureBufferRange(GLuint texture, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizei size)
+void WrappedOpenGL::glTextureBufferRange(GLuint texture, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
 	m_Real.glTextureBufferRange(texture, internalformat, buffer, offset, size);
 
@@ -4193,7 +4193,7 @@ void WrappedOpenGL::glTextureBufferRange(GLuint texture, GLenum internalformat, 
 	if(m_State < WRITING)
 		RDCERR("Internal textures should be allocated via dsa interfaces");
 
-	Common_glTextureBufferRangeEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, internalformat, buffer, offset, (GLsizeiptr)size);
+	Common_glTextureBufferRangeEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, internalformat, buffer, offset, size);
 }
 
 void WrappedOpenGL::glTexBufferRange(GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size)

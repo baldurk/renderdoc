@@ -42,7 +42,7 @@ void APIENTRY _glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint bu
 	hookset->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, old);
 }
 
-void APIENTRY _glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizei size)
+void APIENTRY _glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size)
 {
 	GLuint old = 0;
 	hookset->glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&old);

@@ -3130,10 +3130,10 @@ void WrappedOpenGL::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalf
 	}
 }
 
-void WrappedOpenGL::glClearNamedBufferSubData(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizei size, GLenum format, GLenum type, const void *data)
+void WrappedOpenGL::glClearNamedBufferSubData(GLuint buffer, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)
 {
 	// only difference to EXT function is size parameter, so just upcast
-	glClearNamedBufferSubDataEXT(buffer, internalformat, offset, (GLsizeiptr)size, format, type, data);
+	glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
 }
 
 void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset, GLsizeiptr size, GLenum format, GLenum type, const void *data)

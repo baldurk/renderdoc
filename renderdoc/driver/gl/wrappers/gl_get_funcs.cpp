@@ -897,7 +897,7 @@ void WrappedOpenGL::glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, G
 	m_Real.glGetNamedBufferSubDataEXT(buffer, offset, size, data);
 }
 
-void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizei size, void *data)
+void WrappedOpenGL::glGetNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
 {
 	CoherentMapImplicitBarrier();
 	
