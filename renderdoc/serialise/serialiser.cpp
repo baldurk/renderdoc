@@ -984,7 +984,7 @@ void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
 
 	len = (size_t)bufLen;
 	
-	if(m_DebugTextWriting)
+	if(m_DebugTextWriting && name && name[0])
 	{
 		const char *ellipsis = "...";
 
