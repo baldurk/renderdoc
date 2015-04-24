@@ -525,6 +525,9 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	// DEFINE_GUID(IID_IDirect3DDevice9, 0xd0223b96, 0xbf7a, 0x43fd, 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb);
 	static const GUID IDirect3DDevice9_uuid = { 0xd0223b96, 0xbf7a, 0x43fd, { 0x92, 0xbd, 0xa4, 0x3b, 0xd, 0x82, 0xb9, 0xeb } };
 
+	// RenderDoc UUID {A7AA6116-9C8D-4BBA-9083-B4D816B71B78}
+	static const GUID IRenderDoc_uuid = { 0xa7aa6116, 0x9c8d, 0x4bba, { 0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78 } };
+
 	HRESULT hr = S_OK;
 
 	if(riid == __uuidof(IDXGIDevice))
@@ -667,6 +670,12 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 		{
 			return E_NOINTERFACE;
 		}
+	}
+	else if(riid == IRenderDoc_uuid)
+	{
+		AddRef();
+		*ppvObject = this;
+		return S_OK;
 	}
 	else
 	{

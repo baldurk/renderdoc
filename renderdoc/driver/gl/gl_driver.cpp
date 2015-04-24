@@ -1109,6 +1109,11 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 					}
 				}
 			}
+
+			// this extension is something RenderDoc will support even if the impl
+			// doesn't. https://renderdoc.org/debug_tool.txt
+			ctxdata.glExts.push_back("GL_EXT_debug_tool");
+
 			merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
 
 			if(gl.glGetIntegerv)

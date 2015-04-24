@@ -8458,6 +8458,20 @@ GLAPI GLsync APIENTRY glImportSyncEXT (GLenum external_sync_type, GLintptr exter
 #endif
 #endif /* GL_EXT_x11_sync_object */
 
+// Manually added for ease of running scripts on this header to generate
+// prototypes/enum etc. https://renderdoc.org/debug_tool.txt
+#ifndef GL_EXT_debug_tool
+#define GL_EXT_debug_tool 1
+#define GL_DEBUG_TOOL_EXT                 0x6789
+#define GL_DEBUG_TOOL_NAME_EXT            0x678A
+#define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
+#define GL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT 0x0001
+#define GL_DEBUG_TOOL_TRACE_CAPTURE_BIT_EXT 0x0002
+#define GL_DEBUG_TOOL_API_CALL_LOG_BIT_EXT 0x0004
+#define GL_DEBUG_TOOL_PROFILING_BIT_EXT   0x0008
+#define GL_DEBUG_TOOL_VALIDATION_BIT_EXT  0x0010
+#endif /* GL_EXT_debug_tool */
+
 #ifndef GL_GREMEDY_frame_terminator
 #define GL_GREMEDY_frame_terminator 1
 typedef void (APIENTRYP PFNGLFRAMETERMINATORGREMEDYPROC) (void);

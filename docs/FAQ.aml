@@ -341,7 +341,7 @@
         </para>
       </content>
     </section>
-    <section address="FAQ11">
+    <section address="FAQ16">
       <title>RenderDoc is complaining about my OpenGL app in the overlay - what gives?</title>
       <content>
         <para>
@@ -360,6 +360,43 @@
           If your app did use the CreateContextAttribs API, RenderDoc will allow you to capture, but compatibility
           profiles will have a warning displayed in the overlay - this is because you could easily use old functionality
           as it is all still available in the context.
+        </para>
+      </content>
+    </section>
+    <section address="FAQ17">
+      <title>Can I tell via the graphics APIs if RenderDoc is present at runtime?</title>
+      <content>
+        <para>
+          Yes indeed. Some APIs offer ways to do this already - D3DPERF_GetStatus(),
+          ID3DUserDefinedAnnotation::GetStatus() and ID3D11DeviceContext2::IsAnnotationEnabled().
+        </para>
+        <para>
+          In addition to those:
+        </para>
+        <para>
+          Querying an ID3D11Device for UUID {A7AA6116-9C8D-4BBA-9083-B4D816B71B78}
+          will return an IUnknown* and S_OK when RenderDoc is present.
+        </para>
+        <para>
+          <externalLink>
+<linkText>GL_EXT_debug_tool</linkText>
+<linkAlternateText>GL_EXT_debug_tool</linkAlternateText>
+<linkUri>https://renderdoc.org/debug_tool.txt</linkUri>
+<linkTarget>_blank</linkTarget>
+</externalLink>
+		  is implemented on RenderDoc, which is an extension I've proposed for this purpose
+		  (identifying when and which tool is injected in your program). It allows you to query
+		  for the presence name and type of a debug tool that's currently hooked. At the
+		  time of writing only RenderDoc implements this as I've only just proposed the
+		  extension publicly, but in future you can use the queries described in that spec.
+<alert class="note">
+  <para>Alert text</para> Until enumerants are assigned (if that ever happens):
+ <code language="cpp">
+ #define GL_DEBUG_TOOL_EXT                 0x6789
+ #define GL_DEBUG_TOOL_NAME_EXT            0x678A
+ #define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B</code>
+</alert>
+
         </para>
       </content>
     </section>

@@ -69,6 +69,24 @@ triggerFunc();
 			  perform precise refinements with the arrow keys to nudge the selection in each direction.</para></listItem>
 			  <listItem><para>To get API debug or error messages, enable "Create Debug Device" when capturing
 			  then check out the <link xlink:href="1f098896-0e60-485a-b879-900a4a320b80" /> window.</para></listItem>
+			  <listItem><para>Detecting RenderDoc from your code can either be done by trying to load and
+			  use the renderdoc in-program API, or through API specific ways:
+<code language="cpp">
+// For D3D11:
+ID3D11Device *devicePointer = ...;
+IUnknown *unk = NULL;
+HRESULT hr = devicePointer->QueryInterface(MAKE_GUID({A7AA6116-9C8D-4BBA-9083-B4D816B71B78}), &amp;unk);
+if(SUCCEEDED(hr)) { /* renderdoc is present; */ }
+
+// For OpenGL:
+// if GL_EXT_debug_tool is present (see https://renderdoc.org/debug_tool.txt)
+glIsEnabled(GL_DEBUG_TOOL_EXT);
+
+// Until enumerants are assigned (if that ever happens):
+#define GL_DEBUG_TOOL_EXT                 0x6789
+#define GL_DEBUG_TOOL_NAME_EXT            0x678A
+#define GL_DEBUG_TOOL_PURPOSE_EXT         0x678B
+</code></para></listItem>
 			  <listItem><para>More coming soon hopefully :).</para></listItem>
 			</list>
         </para>
