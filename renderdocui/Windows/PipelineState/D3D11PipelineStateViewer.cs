@@ -1641,6 +1641,8 @@ namespace renderdocui.Windows.PipelineState
 
         private void defaultCopyPaste_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.C && e.Control)
             {
                 string text = "";
