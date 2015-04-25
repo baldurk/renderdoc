@@ -2414,7 +2414,7 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.numVerts = ui.m_Data.PostVS.numVerts;
                 }
 
-                if ((ui.m_Input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0)
+                if ((ui.m_Input.Drawcall.flags & DrawcallFlags.UseIBuffer) == 0 || ui.m_Stage == MeshDataStage.GSOut)
                 {
                     m_MeshDisplay.position.idxbuf = ResourceId.Null;
                     m_MeshDisplay.position.idxoffs = 0;
