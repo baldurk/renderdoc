@@ -322,16 +322,16 @@ namespace renderdocui.Windows
 
                 if (m_Core.Config.EventBrowser_HideEmpty)
                 {
-                    if ((d.children == null || d.children.Length == 0) && (d.flags & DrawcallFlags.PushMarker) != 0)
+                    if ((d.children == null || d.children.Length == 0) && (d.flags & (DrawcallFlags.PushMarker | DrawcallFlags.MultiDraw)) != 0)
                         continue;
                 }
 
-                bool newSection = ((d.flags & DrawcallFlags.PushMarker) > 0 || sections.Count == 0);
+                bool newSection = ((d.flags & (DrawcallFlags.PushMarker|DrawcallFlags.MultiDraw)) > 0 || sections.Count == 0);
                 if (!newSection)
                 {
                     var lastSection = sections.Last();
 
-                    if (lastSection.Count == 1 && (lastSection[0].flags & DrawcallFlags.PushMarker) > 0)
+                    if (lastSection.Count == 1 && (lastSection[0].flags & (DrawcallFlags.PushMarker | DrawcallFlags.MultiDraw)) > 0)
                         newSection = true;
                 }
 
@@ -348,7 +348,7 @@ namespace renderdocui.Windows
             {
                 Section sec = null;
 
-                if (s.Count == 1 && (s[0].flags & DrawcallFlags.PushMarker) > 0)
+                if (s.Count == 1 && (s[0].flags & (DrawcallFlags.PushMarker | DrawcallFlags.MultiDraw)) > 0)
                 {
                     sec = GatherEvents(s[0].children);
                     sec.Name = s[0].name;
