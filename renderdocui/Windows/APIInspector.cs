@@ -275,7 +275,8 @@ namespace renderdocui.Windows
                     text += string.Format("{0,-5}  {1}" + Environment.NewLine, n[0].ToString(), n[1].ToString());
                 }
 
-                Clipboard.SetText(text);
+                if (text.Length > 0)
+                    Clipboard.SetText(text);
             }
         }
 
@@ -291,7 +292,8 @@ namespace renderdocui.Windows
                     text += n.ToString() + Environment.NewLine;
                 }
 
-                Clipboard.SetText(text);
+                if (text.Length > 0)
+                    Clipboard.SetText(text);
             }
         }
 

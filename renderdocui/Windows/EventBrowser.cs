@@ -670,7 +670,8 @@ namespace renderdocui.Windows
                     }
                     text += Environment.NewLine;
 
-                    Clipboard.SetText(text);
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
                 }
             }
         }

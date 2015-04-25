@@ -280,7 +280,8 @@ namespace renderdocui.Controls
                     text += string.Format(fmt, n[0], n[1], n[2]);
                 }
 
-                Clipboard.SetText(text);
+                if (text.Length > 0)
+                    Clipboard.SetText(text);
             }
         }
 
