@@ -6929,6 +6929,9 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
 		SERIALISE_ELEMENT(uint32_t, DiffStart, (uint32_t)diffStart);
 		SERIALISE_ELEMENT(uint32_t, DiffEnd, (uint32_t)diffEnd);
 
+		if(m_State >= WRITING || m_pDevice->GetLogVersion() >= 0x000007)
+			m_pSerialiser->AlignNextBuffer(32);
+
 		m_pSerialiser->SerialiseBuffer("MapData", appWritePtr, len);
 
 		if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(mapIdx.resource))
