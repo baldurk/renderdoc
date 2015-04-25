@@ -265,6 +265,8 @@ namespace renderdocui.Windows
 
         private void apiEvents_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.C && e.Control)
             {
                 string text = "";
@@ -279,6 +281,8 @@ namespace renderdocui.Windows
 
         private void callstack_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.C && e.Control)
             {
                 string text = "";

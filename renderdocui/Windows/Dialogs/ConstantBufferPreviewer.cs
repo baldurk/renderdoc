@@ -255,6 +255,8 @@ namespace renderdocui.Controls
 
         private void variables_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+        
             if (e.KeyCode == Keys.C && e.Control)
             {
                 int[] width = new int[] { 0, 0, 0 };

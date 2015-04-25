@@ -2229,6 +2229,8 @@ namespace renderdocui.Windows
                 Clipboard.SetText(texStatusDim.Text + " | " + statusLabel.Text);
             }
 
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
                 m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
