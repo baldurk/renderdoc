@@ -847,7 +847,7 @@ bool WrappedOpenGL::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield sta
 {
 	SERIALISE_ELEMENT(ResourceId, pipe, GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)));
 	SERIALISE_ELEMENT(uint32_t, Stages, stages);
-	SERIALISE_ELEMENT(ResourceId, prog, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+	SERIALISE_ELEMENT(ResourceId, prog, (program ? GetResourceManager()->GetID(ProgramRes(GetCtx(), program)) : ResourceId()));
 
 	if(m_State < WRITING)
 	{
@@ -896,8 +896,12 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 		RDCASSERT(record);
 		record->AddChunk(scope.Get());
 
-		GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-		record->AddParent(progrecord);
+		if(program)
+		{
+			GLResourceRecord *progrecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+			RDCASSERT(progrecord);
+			record->AddParent(progrecord);
+		}
 	}
 }
 
