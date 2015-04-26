@@ -281,7 +281,6 @@ class WrappedOpenGL : public IFrameCapturer
 				GLbitfield use;
 			};
 
-			vector<ProgramUse> programs;
 			ResourceId stagePrograms[6];
 			ResourceId stageShaders[6];
 		};
