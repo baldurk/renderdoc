@@ -228,6 +228,22 @@ private:
 	bool m_AppControlledCapture;
 	
 	set<ID3D11DeviceChild *> m_CachedStateObjects;
+
+	// This function will check if m_CachedStateObjects is growing too large, and if so
+	// go through m_CachedStateObjects and release any state objects that are purely
+	// cached (refcount == 1). This prevents us from aggressively caching and running
+	// out of state objects (D3D11 has a max of 4096).
+	//
+	// This isn't the ideal solution as it means some Create calls will be slightly
+	// more expensive while they run this garbage collect, but it is the simplest.
+	//
+	// For cases where cached objects are repeatedly created and released this will
+	// rarely kick in - only in the case where a lot of unique state objects are
+	// created then released and never re-used.
+	//
+	// Must be called while m_D3DLock is held.
+	void CachedObjectsGarbageCollect();
+
 	set<WrappedID3D11DeviceContext *> m_DeferredContexts;
 	map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
 	map<ID3D11InputLayout *, ShaderReflection *> m_LayoutDXBC;

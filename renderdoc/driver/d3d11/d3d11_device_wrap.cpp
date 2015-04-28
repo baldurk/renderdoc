@@ -2036,6 +2036,8 @@ HRESULT WrappedID3D11Device::CreateBlendState(
 		
 		ID3D11BlendState *wrapped = new WrappedID3D11BlendState(real, this);
 
+		CachedObjectsGarbageCollect();
+
 		{
 			RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
 			wrapped->AddRef();
@@ -2108,6 +2110,8 @@ HRESULT WrappedID3D11Device::CreateDepthStencilState(
 		}
 		
 		ID3D11DepthStencilState *wrapped = new WrappedID3D11DepthStencilState(real, this);
+
+		CachedObjectsGarbageCollect();
 
 		{
 			RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
@@ -2182,6 +2186,8 @@ HRESULT WrappedID3D11Device::CreateRasterizerState(
 		
 		ID3D11RasterizerState *wrapped = new WrappedID3D11RasterizerState(real, this);
 
+		CachedObjectsGarbageCollect();
+
 		{
 			RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());
 			wrapped->AddRef();
@@ -2254,6 +2260,8 @@ HRESULT WrappedID3D11Device::CreateSamplerState(
 		}
 
 		ID3D11SamplerState *wrapped = new WrappedID3D11SamplerState(real, this);
+
+		CachedObjectsGarbageCollect();
 
 		{
 			RDCASSERT(m_CachedStateObjects.find(wrapped) == m_CachedStateObjects.end());

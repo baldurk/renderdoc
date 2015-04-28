@@ -3156,6 +3156,39 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 	return S_OK;
 }
 
+void WrappedID3D11Device::CachedObjectsGarbageCollect()
+{
+	// 4000 is a fairly arbitrary number, chosen to make sure this garbage
+	// collection kicks in as rarely as possible (4000 is a *lot* of unique
+	// state objects to have), while still meaning that we'll never
+	// accidentally cause a state object to fail to create because the app
+	// expects only N to be alive but we're caching M more causing M+N>4096
+	if(m_CachedStateObjects.size() < 4000) return;
+
+	// Now release all purely cached objects that have no external refcounts.
+	// This will thrash if we have e.g. 2000 rasterizer state objects, all
+	// referenced, and 2000 sampler state objects, all referenced.
+
+	for(auto it=m_CachedStateObjects.begin(); it != m_CachedStateObjects.end();)
+	{
+		ID3D11DeviceChild *o = *it;
+
+		o->AddRef();
+		if(o->Release() == 1)
+		{
+			auto eraseit = it;
+			++it;
+			o->Release();
+			InternalRelease();
+			m_CachedStateObjects.erase(eraseit);
+		}
+		else
+		{
+			++it;
+		}
+	}
+}
+
 void WrappedID3D11Device::AddDeferredContext(WrappedID3D11DeviceContext *defctx)
 {
 	RDCASSERT(m_DeferredContexts.find(defctx) == m_DeferredContexts.end());
