@@ -951,15 +951,17 @@ void Serialiser::AlignNextBuffer(const size_t alignment)
 	// Note the chunk still needs to be aligned when the memory is allocated - this just ensures
 	// the offset from the start is also aligned
 
-	size_t len = 0;
+	uint32_t len = 0;
 
 	if(m_Mode >= WRITING)
 	{
-		// add sizeof(uint32_t) since we'll be serialising out how much padding is here
-		uint64_t curoffs = GetOffset() + sizeof(uint32_t);
+		// add sizeof(uint32_t) since we'll be serialising out how much padding is here,
+		// then another sizeof(uint32_t) so we're aligning the offset after the buffer's
+		// serialised length
+		uint64_t curoffs = GetOffset() + sizeof(uint32_t)*2;
 		uint64_t alignedoffs = AlignUp(curoffs, (uint64_t)alignment);
 
-		len = size_t(alignedoffs - curoffs);
+		len = uint32_t(alignedoffs - curoffs);
 	}
 
 	// avoid dynamically allocating
@@ -967,7 +969,16 @@ void Serialiser::AlignNextBuffer(const size_t alignment)
 	byte padding[128] = {0};
 	byte *p = &padding[0];
 
-	SerialiseBuffer("", p, len);
+	if(m_Mode >= WRITING)
+	{
+		WriteFrom(len);
+		WriteBytes(&padding[0], (size_t)len);
+	}
+	else
+	{
+		ReadInto(len);
+		ReadBytes(len);
+	}
 }
 
 void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
