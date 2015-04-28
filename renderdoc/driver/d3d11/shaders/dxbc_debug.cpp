@@ -2283,7 +2283,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 					// to match this expectation, propogate the component across.
-					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
@@ -2551,7 +2551,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 			// to match this expectation, propogate the component across.
-			if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+			if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 				result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 			s.SetDst(op.operands[0], op, result);
@@ -2696,7 +2696,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 	
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 				// to match this expectation, propogate the component across.
-				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 				s.SetDst(op.operands[0], op, result);
@@ -3122,7 +3122,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 				// to match this expectation, propogate the component across.
-				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 				s.SetDst(op.operands[0], op, result);
@@ -3359,7 +3359,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 					// to match this expectation, propogate the component across.
-					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
