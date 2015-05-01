@@ -2024,9 +2024,9 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&elArrayBuffer);
 
 	// reflection structures
-	ShaderReflection *vsRefl = NULL;
-	ShaderReflection *tesRefl = NULL;
-	ShaderReflection *gsRefl = NULL;
+	const ShaderReflection *vsRefl = NULL;
+	const ShaderReflection *tesRefl = NULL;
+	const ShaderReflection *gsRefl = NULL;
 
 	// non-program used separable programs of each shader.
 	// we'll add our feedback varings to these programs, relink,
@@ -2575,7 +2575,7 @@ void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(tesProg || gsProg)
 	{
 		GLuint lastProg = gsProg;
-		ShaderReflection *lastRefl = gsRefl;
+		const ShaderReflection *lastRefl = gsRefl;
 
 		if(lastProg == 0)
 		{

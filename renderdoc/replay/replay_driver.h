@@ -62,7 +62,7 @@ class IRemoteDriver
 
 		virtual vector<DebugMessage> GetDebugMessages() = 0;
 
-		virtual ShaderReflection *GetShader(ResourceId id) = 0;
+		virtual const ShaderReflection *GetShader(ResourceId id) const = 0;
 		
 		virtual vector<EventUsage> GetUsage(ResourceId id) = 0;
 

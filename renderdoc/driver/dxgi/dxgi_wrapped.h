@@ -29,7 +29,7 @@
 #include <d3d11.h>
 
 // if you don't have the windows 8.1 SDK, remove this define to exclude the DXGI1.2+ functionality
-#define INCLUDE_DXGI_1_2
+// #define INCLUDE_DXGI_1_2
 
 #include "common/common.h"
 #include "common/wrapped_pool.h"

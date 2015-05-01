@@ -1744,7 +1744,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	refl.ConstantBlocks = cbuffers;
 }
 
-void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping)
+void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, const ShaderReflection *refl, ShaderBindpointMapping &mapping)
 {
 	// in case of bugs, we readback into this array instead of
 	GLint dummyReadback[32];

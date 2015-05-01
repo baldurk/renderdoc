@@ -300,19 +300,17 @@ void DXBCFile::DisassembleHexDump()
 
 	cur += 2;
 
+	ASMOperation op;
 	while(cur < end)
 	{
-		ASMOperation op;
-		ASMDecl decl;
-
 		uintptr_t offset = cur-begin;
 
-		decl.instruction = m_Instructions.size();
-		decl.offset = offset*sizeof(uint32_t);
-		op.offset = offset*sizeof(uint32_t);
-
-		if(!ExtractOperation(cur, op))
+		if(!ExtractOperation(cur, op, offset*sizeof(uint32_t)))
 		{
+			ASMDecl decl;
+			decl.instruction = m_Instructions.size();
+			decl.offset = offset*sizeof(uint32_t);
+
 			if(!ExtractDecl(cur, decl))
 			{
 				RDCERR("Unexpected non-operation and non-decl in token stream at 0x%x", cur-begin);
@@ -337,8 +335,12 @@ void DXBCFile::DisassembleHexDump()
 	m_Instructions.push_back(implicitRet);
 }
 
-void DXBCFile::MakeDisassembly()
+// Marked as const because it is only called by GetDisassembly which is semantically const
+// It computes m_Disassembly which is marked mutable
+void DXBCFile::MakeDisassembly() const
 {
+	RDCASSERT(m_Disassembly.size() == 0);
+
 	uint32_t *hash = (uint32_t *)&m_ShaderBlob[4]; // hash is 4 uints, starting after the FOURCC of 'DXBC'
 
 	m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n",
@@ -1634,7 +1636,7 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 	return true;
 }
 
-bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
+bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp, uintptr_t offset)
 {
 	uint32_t *begin = tokenStream;
 	uint32_t OpcodeToken0 = tokenStream[0];
@@ -1643,10 +1645,13 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 	
 	RDCASSERT(op < NUM_OPCODES);
 
+	retOp.offset = offset;
+
 	if(IsDeclaration(op) && op != OPCODE_CUSTOMDATA)
 		return false;
 
 	// possibly only set these when applicable
+	retOp = ASMOperation();
 	retOp.operation = op;
 	retOp.length = Opcode::Length.Get(OpcodeToken0);
 	retOp.nonzero = Opcode::TestNonZero.Get(OpcodeToken0) == 1;
@@ -1898,7 +1903,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 
 // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
 // for details of these opcodes
-size_t DXBCFile::NumOperands(OpcodeType op)
+size_t DXBCFile::NumOperands(OpcodeType op) const
 {
 	switch(op)
 	{

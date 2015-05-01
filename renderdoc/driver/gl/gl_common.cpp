@@ -1635,7 +1635,7 @@ void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog,
 	ForAllProgramUniforms<CopyUniforms, SerialiseUniforms>(gl, ser, prog, prog, locTranslate, writing);
 }
 
-void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, const ShaderReflection *refl)
 {
 	// copy over attrib bindings
 	for(int32_t i=0; i < refl->InputSig.count; i++)
@@ -1650,7 +1650,7 @@ void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progd
 	}
 }
 
-void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl)
+void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, const ShaderReflection *refl)
 {
 	// copy over fragdata bindings
 	for(int32_t i=0; i < refl->OutputSig.count; i++)

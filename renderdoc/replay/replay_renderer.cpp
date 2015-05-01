@@ -1245,7 +1245,7 @@ bool ReplayRenderer::GetCBufferVariableContents(ResourceId shader, uint32_t cbuf
 	return true;
 }
 
-ShaderReflection *ReplayRenderer::GetShaderDetails(ResourceId shader)
+const ShaderReflection *ReplayRenderer::GetShaderDetails(ResourceId shader)
 {
 	return m_pDevice->GetShader(m_pDevice->GetLiveID(shader));
 }
@@ -1566,7 +1566,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBuffers(ReplayRen
 { return rend->GetBuffers(bufs); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetResolve(ReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace)
 { return rend->GetResolve(callstack, callstackLen, trace); }
-extern "C" RENDERDOC_API ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
+extern "C" RENDERDOC_API const ShaderReflection* RENDERDOC_CC ReplayRenderer_GetShaderDetails(ReplayRenderer *rend, ResourceId shader)
 { return rend->GetShaderDetails(shader); }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDebugMessages(ReplayRenderer *rend, rdctype::array<DebugMessage> *msgs)
 { return rend->GetDebugMessages(msgs); }

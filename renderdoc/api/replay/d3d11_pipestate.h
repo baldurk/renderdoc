@@ -70,7 +70,7 @@ struct D3D11PipelineState
 		ResourceId Shader;
 		rdctype::str ShaderName;
 		bool32 customName;
-		ShaderReflection *ShaderDetails;
+		const ShaderReflection *ShaderDetails;
 		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;

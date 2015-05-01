@@ -329,7 +329,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents);
 
-		ShaderReflection *GetShader(ResourceId id);
+		const ShaderReflection *GetShader(ResourceId id) const;
 		
 		bool HasCallstacks();
 		void InitCallstackResolver();
@@ -401,7 +401,7 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		
 		map<ResourceId, ResourceId> m_LiveIDs;
 
-		map<ResourceId, ShaderReflection *> m_ShaderReflectionCache;
+		mutable map<ResourceId, ShaderReflection *> m_ShaderReflectionCache;
 
 		Network::Socket *m_Socket;
 		Serialiser *m_FromReplaySerialiser;

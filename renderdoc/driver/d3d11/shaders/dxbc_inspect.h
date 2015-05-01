@@ -26,11 +26,11 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <map>
+#include <unordered_map>
 using std::vector;
 using std::pair;
 using std::string;
-using std::map;
+using std::unordered_map;
 
 #pragma once
 
@@ -257,7 +257,6 @@ struct CBufferVariable
 
 	struct
 	{
-		string					name;
 		uint32_t					offset;			// offset in parent (cbuffer or nested struct)
 		uint32_t					flags;
 		std::vector<uint8_t>		defaultValue;
@@ -277,7 +276,6 @@ struct CBuffer
 
 	struct Descriptor
 	{
-		string                  name;
 
 		enum Type
 		{
@@ -329,6 +327,7 @@ class DXBCFile
 
 		DXBCFile &operator =(const DXBCFile &o)
 		{
+			m_Ready = o.m_Ready;
 			m_Type = o.m_Type;
 			m_Version = o.m_Version;
 			
@@ -353,6 +352,7 @@ class DXBCFile
 			m_PatchConstantSig = o.m_PatchConstantSig;
 			m_Declarations = o.m_Declarations;
 			m_Instructions = o.m_Instructions;
+			m_Disassembled = o.m_Disassembled;
 			m_Disassembly = o.m_Disassembly;
 
 			m_HexDump = o.m_HexDump;
@@ -362,8 +362,58 @@ class DXBCFile
 			return *this;
 		}
 
+	size_t NumOperands(OpcodeType op) const;
+
+		const string& GetDisassembly() const
+		{
+			EnsureIsReady();
+			if (!m_Disassembled)
+			{
+				MakeDisassembly();
+				m_Disassembled = true;
+			}
+			return m_Disassembly;
+		}
+
+		D3D11_SHADER_VERSION_TYPE GetType() const { EnsureIsReady(); return m_Type; }
+
+		struct Version { uint32_t Major, Minor; };
+		Version GetVersion() const { EnsureIsReady(); return m_Version; }
+
+		const ShaderStatistics &GetSgaderStats() const { EnsureIsReady(); return m_ShaderStats; }
+		const DXBCDebugChunk *GetDebugInfo() const { EnsureIsReady(); return m_DebugInfo; }
+
+		const vector<uint32_t> &GetImmediate() const { EnsureIsReady(); return m_Immediate; }
+
+		const vector<ShaderInputBind> &GetResources() const { EnsureIsReady(); return m_Resources; }
+
+		const vector<CBuffer> &GetCBuffers() const { EnsureIsReady(); return m_CBuffers; }
+
+		const CBuffer &GetInterfaces() const { EnsureIsReady(); return m_Interfaces; }
+
+		typedef unordered_map<string, CBufferVariableType> ResourceBindsContainer;
+		const ResourceBindsContainer &GetResourceBinds() const { EnsureIsReady(); return m_ResourceBinds; }
+
+		const vector<SigParameter> &GetInputSig() const { EnsureIsReady(); return m_InputSig; }
+		const vector<SigParameter> &GetOutputSig() const { EnsureIsReady(); return m_OutputSig; }
+
+		const vector<ASMDecl> GetDeclarations() const { EnsureIsReady(); return m_Declarations; }							// declarations of inputs, outputs, constant buffers, temp registers etc.
+		const vector<ASMOperation> &GetInstructions() const { EnsureIsReady(); return m_Instructions; }
+
+		const vector<byte> &GetShaderBlob() const { EnsureIsReady(); return m_ShaderBlob; }
+
+	private:
+		void Initialize();
+		void EnsureIsReady() const
+		{
+			if (!m_Ready)
+			{
+				DXBCFile *This = const_cast<DXBCFile*>(this);
+				This->Initialize();
+			}
+		}
 		D3D11_SHADER_VERSION_TYPE m_Type;
-		struct { uint32_t Major, Minor; } m_Version;
+		Version m_Version;
 
 		ShaderStatistics m_ShaderStats;
 		DXBCDebugChunk *m_DebugInfo;
@@ -376,7 +426,8 @@ class DXBCFile
 
 		CBuffer m_Interfaces;
 
-		map<string, CBufferVariableType> m_ResourceBinds;
+		typedef unordered_map<string, CBufferVariableType> ResourceBindsContainer;
+		ResourceBindsContainer m_ResourceBinds;
 
 		vector<SigParameter> m_InputSig;
 		vector<SigParameter> m_OutputSig;
@@ -384,27 +435,29 @@ class DXBCFile
 		
 		vector<ASMDecl> m_Declarations;							// declarations of inputs, outputs, constant buffers, temp registers etc.
 		vector<ASMOperation> m_Instructions;
-		string m_Disassembly;
+		mutable string m_Disassembly;
 
 		vector<uint32_t> m_HexDump;
 		
 		vector<byte> m_ShaderBlob;
 		
-		size_t NumOperands(OpcodeType op);
+		mutable bool m_Disassembled;
+		mutable bool m_Ready;
+
 	private:
 		void DisassembleHexDump();
-		void MakeDisassembly();
+		void MakeDisassembly() const;
 		void GuessResources();
 
 		// these functions modify tokenStream pointer to point after the item
-		bool ExtractOperation(uint32_t *&tokenStream, ASMOperation &op);		// returns false if not an operation (ie. it's a declaration)
+		bool ExtractOperation(uint32_t *&tokenStream, ASMOperation &op, uintptr_t offset);		// returns false if not an operation (ie. it's a declaration)
 		bool ExtractDecl(uint32_t *&tokenStream, ASMDecl &decl);				// as above
 		bool ExtractOperand(uint32_t *&tokenStream, ASMOperand &oper);		
 
 		bool IsDeclaration(OpcodeType op);
 
 		CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
-		map<uint32_t, CBufferVariableType> m_Variables;
+		unordered_map<uint32_t, CBufferVariableType> m_Variables;
 };
 
 }; // namespace DXBC

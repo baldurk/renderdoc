@@ -811,9 +811,9 @@ ResourceFormat MakeResourceFormat(DXGI_FORMAT fmt)
 	return ret;
 }
 
-ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &offset);
+ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable& var, uint32_t &offset);
 
-ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)
+ShaderVariableType MakeShaderVariableType(const DXBC::CBufferVariableType& type, uint32_t &offset)
 {
 	ShaderVariableType ret;
 
@@ -859,7 +859,7 @@ ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32
 	return ret;
 }
 
-ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &offset)
+ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable& var, uint32_t &offset)
 {
 	ShaderConstant ret;
 
@@ -876,57 +876,60 @@ ShaderConstant MakeConstantBufferVariable(DXBC::CBufferVariable var, uint32_t &o
 	return ret;
 }
 
-ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
+ShaderReflection *MakeShaderReflection(const DXBC::DXBCFile &dxbc)
 {
-	if(dxbc == NULL || !RenderDoc::Inst().IsReplayApp())
+	if(!RenderDoc::Inst().IsReplayApp())
 		return NULL;
 
 	ShaderReflection *ret = new ShaderReflection();
 
-	if(dxbc->m_DebugInfo)
+	auto debugInfo = dxbc.GetDebugInfo();
+	if(debugInfo)
 	{
-		ret->DebugInfo.entryFunc = dxbc->m_DebugInfo->GetEntryFunction();
-		ret->DebugInfo.compileFlags = dxbc->m_DebugInfo->GetShaderCompileFlags();
+		ret->DebugInfo.entryFunc = debugInfo->GetEntryFunction();
+		ret->DebugInfo.compileFlags = debugInfo->GetShaderCompileFlags();
 
-		create_array_uninit(ret->DebugInfo.files, dxbc->m_DebugInfo->Files.size());
-		for(size_t i=0; i < dxbc->m_DebugInfo->Files.size(); i++)
+		create_array_uninit(ret->DebugInfo.files, debugInfo->Files.size());
+		for(size_t i=0; i < debugInfo->Files.size(); i++)
 		{
-			ret->DebugInfo.files[i].first = dxbc->m_DebugInfo->Files[i].first;
-			ret->DebugInfo.files[i].second = dxbc->m_DebugInfo->Files[i].second;
+			ret->DebugInfo.files[i].first = debugInfo->Files[i].first;
+			ret->DebugInfo.files[i].second = debugInfo->Files[i].second;
 		}
 	}
 
-	ret->Disassembly = dxbc->m_Disassembly;
+	ret->Disassembly = dxbc.GetDisassembly();
 
-	ret->InputSig = dxbc->m_InputSig;
-	ret->OutputSig = dxbc->m_OutputSig;
+	ret->InputSig = dxbc.GetInputSig();
+	ret->OutputSig = dxbc.GetOutputSig();
 
-	create_array_uninit(ret->ConstantBlocks, dxbc->m_CBuffers.size());
-	for(size_t i=0; i < dxbc->m_CBuffers.size(); i++)
+	auto cBuffers = dxbc.GetCBuffers();
+	create_array_uninit(ret->ConstantBlocks, cBuffers.size());
+	for(size_t i=0; i < cBuffers.size(); i++)
 	{
 		ConstantBlock &cb = ret->ConstantBlocks[i];
-		cb.name = dxbc->m_CBuffers[i].name;
+		cb.name = cBuffers[i].name;
 		cb.bufferBacked = true;
 		cb.bindPoint = (uint32_t)i;
 
-		create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
-		for(size_t v=0; v < dxbc->m_CBuffers[i].variables.size(); v++)
+		create_array_uninit(cb.variables, cBuffers[i].variables.size());
+		for(size_t v=0; v < cBuffers[i].variables.size(); v++)
 		{
 			uint32_t vecOffset = 0;
-			cb.variables[v] = MakeConstantBufferVariable(dxbc->m_CBuffers[i].variables[v], vecOffset);
+			cb.variables[v] = MakeConstantBufferVariable(cBuffers[i].variables[v], vecOffset);
 		}
 	}
 
 	int numResources = 0;
-	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
-		if(dxbc->m_Resources[i].type != DXBC::ShaderInputBind::TYPE_CBUFFER)
+	auto resources = dxbc.GetResources();
+	for(size_t i=0; i < resources.size(); i++)
+		if(resources[i].type != DXBC::ShaderInputBind::TYPE_CBUFFER)
 			numResources++;
 
 	create_array_uninit(ret->Resources, numResources);
 	int32_t idx=0;
-	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
+	for(size_t i=0; i < resources.size(); i++)
 	{
-		const auto &r = dxbc->m_Resources[i];
+		const auto &r = resources[i];
 		
 		if(r.type == DXBC::ShaderInputBind::TYPE_CBUFFER)
 			continue;
@@ -1017,10 +1020,13 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		}
 		else
 		{
-			if(dxbc->m_ResourceBinds.find(r.name) != dxbc->m_ResourceBinds.end())
+			auto resourceBinds = dxbc.GetResourceBinds();
+			DXBC::DXBCFile::ResourceBindsContainer::const_iterator it = resourceBinds.find(r.name);
+			if(it != resourceBinds.end())
 			{
 				uint32_t vecOffset = 0;
-				res.variableType = MakeShaderVariableType(dxbc->m_ResourceBinds[r.name], vecOffset);
+				const DXBC::CBufferVariableType& type = it->second;
+				res.variableType = MakeShaderVariableType(type, vecOffset);
 			}
 			else
 			{
@@ -1035,12 +1041,13 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 	}
 
 	uint32_t numInterfaces = 0;
-	for(size_t i=0; i < dxbc->m_Interfaces.variables.size(); i++)
-		numInterfaces = RDCMAX(dxbc->m_Interfaces.variables[i].descriptor.offset+1, numInterfaces);
+	auto interfaces = dxbc.GetInterfaces();
+	for(size_t i=0; i < interfaces.variables.size(); i++)
+		numInterfaces = RDCMAX(interfaces.variables[i].descriptor.offset+1, numInterfaces);
 
 	create_array(ret->Interfaces, numInterfaces);
-	for(size_t i=0; i < dxbc->m_Interfaces.variables.size(); i++)
-		ret->Interfaces[dxbc->m_Interfaces.variables[i].descriptor.offset] = dxbc->m_Interfaces.variables[i].name;
+	for(size_t i=0; i < interfaces.variables.size(); i++)
+		ret->Interfaces[interfaces.variables[i].descriptor.offset] = interfaces.variables[i].name;
 
 	return ret;
 }

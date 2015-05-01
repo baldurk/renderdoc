@@ -1079,37 +1079,34 @@ public:
 	struct ShaderEntry
 	{
 		ShaderEntry() : m_DXBCFile(NULL), m_Details(NULL) {}
-		ShaderEntry(const DXBC::DXBCFile &file)
+		ShaderEntry(const std::shared_ptr<DXBC::DXBCFile> &file)
 		{
-			m_DXBCFile = new DXBC::DXBCFile(file);
-			m_Details = MakeShaderReflection(m_DXBCFile);
-		}
-		ShaderEntry(const ShaderEntry &e)
-		{
-			*this = e;
-		}
-		ShaderEntry &operator =(const ShaderEntry &e)
-		{
-			m_DXBCFile = NULL;
-			if(e.m_DXBCFile)
-				m_DXBCFile = new DXBC::DXBCFile(*e.m_DXBCFile);
-			m_Details = MakeShaderReflection(m_DXBCFile);
-
-			return *this;
-		}
-		~ShaderEntry()
-		{
-			SAFE_DELETE(m_DXBCFile);
-			SAFE_DELETE(m_Details);
+			m_DXBCFile = file;
+			m_DetailsComputed = false;
 		}
 
-		DXBC::DXBCFile *m_DXBCFile;
-		ShaderReflection *m_Details;
+		const std::shared_ptr<ShaderReflection> &GetDetails() const
+		{
+			if (!m_DetailsComputed)
+			{
+				m_DetailsComputed = true;
+				if (NULL != m_DXBCFile)
+					m_Details.reset(MakeShaderReflection(*m_DXBCFile));
+			}
+			return m_Details;
+		}
+
+		const std::shared_ptr<DXBC::DXBCFile> &GetDXBCFile() const { return m_DXBCFile; }
+
+	private:
+		std::shared_ptr<DXBC::DXBCFile> m_DXBCFile;
+		mutable bool m_DetailsComputed;
+		mutable std::shared_ptr<ShaderReflection> m_Details;
 	};
 
 	static map<ResourceId, ShaderEntry> m_ShaderList;
 
-	WrappedShader(ResourceId id, const DXBC::DXBCFile &file) : m_ID(id)
+	WrappedShader(ResourceId id, const std::shared_ptr<DXBC::DXBCFile> &file) : m_ID(id)
 	{
 		RDCASSERT(m_ShaderList.find(m_ID) == m_ShaderList.end());
 		m_ShaderList[m_ID] = ShaderEntry(file);
@@ -1119,8 +1116,8 @@ public:
 		if(m_ShaderList.find(m_ID) != m_ShaderList.end()) m_ShaderList.erase(m_ID);
 	}
 
-	DXBC::DXBCFile *GetDXBC() { return m_ShaderList[m_ID].m_DXBCFile; }
-	ShaderReflection *GetDetails() { return m_ShaderList[m_ID].m_Details; }
+	const std::shared_ptr<DXBC::DXBCFile> GetDXBC() const { return m_ShaderList[m_ID].GetDXBCFile(); }
+	const std::shared_ptr<ShaderReflection> &GetDetails() const { return m_ShaderList[m_ID].GetDetails(); }
 private:
 	ResourceId m_ID;
 };
@@ -1133,7 +1130,7 @@ public:
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Shader<RealShaderType>, AllocPoolCount, AllocPoolMaxByteSize);
 
-	WrappedID3D11Shader(RealShaderType* real, const DXBC::DXBCFile &file, WrappedID3D11Device* device)
+	WrappedID3D11Shader(RealShaderType* real, const std::shared_ptr<DXBC::DXBCFile> &file, WrappedID3D11Device* device)
 		: WrappedDeviceChild<RealShaderType>(real, device), WrappedShader(GetResourceID(), file) {}
 	virtual ~WrappedID3D11Shader() { Shutdown(); }
 };

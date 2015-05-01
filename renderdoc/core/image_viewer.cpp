@@ -124,7 +124,7 @@ class ImageViewer : public IReplayDriver
 		void InitPostVSBuffers(uint32_t frameID, uint32_t eventID) {}
 		MeshFormat GetPostVSBuffers(uint32_t frameID, uint32_t eventID, uint32_t instID, MeshDataStage stage) { MeshFormat ret; RDCEraseEl(ret); return ret; }
 		ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) { return ResourceId(); }
-		ShaderReflection *GetShader(ResourceId id) { return NULL; }
+		const ShaderReflection *GetShader(ResourceId id) const { return NULL; }
 		bool HasCallstacks() { return false; }
 		void InitCallstackResolver() {}
 		Callstack::StackResolver *GetCallstackResolver() { return NULL; }

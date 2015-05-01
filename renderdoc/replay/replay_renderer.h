@@ -161,7 +161,7 @@ struct ReplayRenderer
 		bool GetTextures(rdctype::array<FetchTexture> *texs);
 		bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
 		bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
-		ShaderReflection *GetShaderDetails(ResourceId shader);
+		const ShaderReflection *GetShaderDetails(ResourceId shader);
 		bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 		
 		bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history);

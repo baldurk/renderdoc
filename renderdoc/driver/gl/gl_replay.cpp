@@ -784,7 +784,7 @@ vector<DebugMessage> GLReplay::GetDebugMessages()
 	return m_pDriver->GetDebugMessages();
 }
 
-ShaderReflection *GLReplay::GetShader(ResourceId id)
+const ShaderReflection *GLReplay::GetShader(ResourceId id) const
 {
 	auto &shaderDetails = m_pDriver->m_Shaders[id];
 	
@@ -1005,7 +1005,7 @@ void GLReplay::SavePipelineState()
 		&pipe.m_FS,
 		&pipe.m_CS,
 	};
-	ShaderReflection *refls[6] = { NULL };
+	const ShaderReflection *refls[6] = { NULL };
 	ShaderBindpointMapping *mappings[6] = { NULL };
 
 	for(int i=0; i < 6; i++)

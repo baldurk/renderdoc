@@ -273,7 +273,7 @@ class SDBGChunk : public DXBCDebugChunk
 		SDBGHeader m_Header;
 		vector<SDBGFileHeader> m_FileHeaders;
 
-		vector<char> m_RawData;
+		std::shared_ptr< vector<char> > m_RawDataPtr;
 };
 
 };

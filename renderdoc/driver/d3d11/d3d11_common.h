@@ -28,7 +28,7 @@
 #define INITGUID
 
 // if you don't have the windows 8.1 SDK, remove this define to exclude the 11.1 functionality
-#define INCLUDE_D3D_11_1
+// #define INCLUDE_D3D_11_1
 
 #include <dxgi.h>
 #include <d3d11.h>
@@ -46,7 +46,7 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY Topo);
 D3D11_PRIMITIVE_TOPOLOGY MakeD3D11PrimitiveTopology(PrimitiveTopology Topo);
 
-ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
+ShaderReflection *MakeShaderReflection(const DXBC::DXBCFile &dxbc);
 
 template<class T>
 inline void SetDebugName( T* pObj, const char* name )
