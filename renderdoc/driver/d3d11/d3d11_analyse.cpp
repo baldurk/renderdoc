@@ -342,7 +342,7 @@ void D3D11DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
 		outvars.push_back(v[i]);
 }
 
-ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx, const DXBC::DXBCFile &dxbc, vector<byte> *cbufData)
+ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx, DXBC::DXBCFile *dxbc, vector<byte> *cbufData)
 {
 	using namespace DXBC;
 	using namespace ShaderDebug;
@@ -352,17 +352,15 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 	// use pixel shader here to get inputs
 	
 	int32_t maxReg = -1;
-	auto inputSig = dxbc.GetInputSig();
-	for(size_t i=0; i < inputSig.size(); i++)
-		maxReg = RDCMAX(maxReg, (int32_t)inputSig[i].regIndex);
+	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
+		maxReg = RDCMAX(maxReg, (int32_t)dxbc->m_InputSig[i].regIndex);
 
 	bool inputCoverage = false;
 	
-	auto declarations = dxbc.GetDeclarations();
-	for(size_t i=0; i < declarations.size(); i++)
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 	{
-		if(declarations[i].declaration == OPCODE_DCL_INPUT &&
-			 declarations[i].operand.type == TYPE_INPUT_COVERAGE_MASK)
+		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_INPUT &&
+			 dxbc->m_Declarations[i].operand.type == TYPE_INPUT_COVERAGE_MASK)
 		{
 			inputCoverage = true;
 			break;
@@ -372,11 +370,11 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 	if(maxReg >= 0 || inputCoverage)
 	{
 		create_array(trace.inputs, maxReg+1 + (inputCoverage?1:0));
-		for(size_t i=0; i < inputSig.size(); i++)
+		for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
 		{
 			char buf[64] = {0};
 
-			const SigParameter &sig = inputSig[i];
+			SigParameter &sig = dxbc->m_InputSig[i];
 
 			StringFormat::snprintf(buf, 63, "v%d", sig.regIndex);
 
@@ -409,23 +407,22 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 		}
 	}
 
-	auto outputSig = dxbc.GetOutputSig();
 	uint32_t specialOutputs = 0;
 	maxReg = -1;
-	for(size_t i=0; i < outputSig.size(); i++)
+	for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
 	{
-		if(outputSig[i].regIndex == ~0U)
+		if(dxbc->m_OutputSig[i].regIndex == ~0U)
 			specialOutputs++;
 		else
-			maxReg = RDCMAX(maxReg, (int32_t)outputSig[i].regIndex);
+			maxReg = RDCMAX(maxReg, (int32_t)dxbc->m_OutputSig[i].regIndex);
 	}
 
 	if(maxReg >= 0 || specialOutputs > 0)
 	{
 		create_array(initialState.outputs, maxReg+1 + specialOutputs);
-		for(size_t i=0; i < outputSig.size(); i++)
+		for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
 		{
-			const SigParameter &sig = outputSig[i];
+			SigParameter &sig = dxbc->m_OutputSig[i];
 
 			if(sig.regIndex == ~0U)
 				continue;
@@ -453,9 +450,9 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 		int32_t outIdx = maxReg+1;
 
-		for(size_t i=0; i < outputSig.size(); i++)
+		for(size_t i=0; i < dxbc->m_OutputSig.size(); i++)
 		{
-			const SigParameter &sig = outputSig[i];
+			SigParameter &sig = dxbc->m_OutputSig[i];
 
 			if(sig.regIndex != ~0U)
 				continue;
@@ -486,16 +483,15 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 		}
 	}
 
-	auto cBuffers = dxbc.GetCBuffers();
-	create_array(trace.cbuffers, cBuffers.size());
-	for(size_t i=0; i < cBuffers.size(); i++)
+	create_array(trace.cbuffers, dxbc->m_CBuffers.size());
+	for(size_t i=0; i < dxbc->m_CBuffers.size(); i++)
 	{
-		if(cBuffers[i].descriptor.type != CBuffer::Descriptor::TYPE_CBUFFER)
+		if(dxbc->m_CBuffers[i].descriptor.type != CBuffer::Descriptor::TYPE_CBUFFER)
 			continue;
 
 		vector<ShaderVariable> vars;
 
-		FillCBufferVariables(cBuffers[i].variables, vars, true, cbufData[i]);
+		FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true, cbufData[i]);
 
 		trace.cbuffers[i] = vars;
 
@@ -508,7 +504,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 	return initialState;
 }
 
-void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, const DXBC::DXBCFile &dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
+void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
 {
 	for(int i=0; UAVs != NULL && i+UAVStartSlot < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
 	{
@@ -765,13 +761,12 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 		}
 	}
 
-	auto declarations = dxbc.GetDeclarations();
-	for(size_t i=0; i < declarations.size(); i++)
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 	{
-		if(declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
-		   declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+		if(dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+		   dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
 		{
-			uint32_t slot = (uint32_t)declarations[i].operand.indices[0].index;
+			uint32_t slot = (uint32_t)dxbc->m_Declarations[i].operand.indices[0].index;
 
 			if(global.groupshared.size() <= slot)
 			{
@@ -779,11 +774,11 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
 				ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
 
-				mem.structured = (declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+				mem.structured = (dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
 
-				mem.count = declarations[i].count;
+				mem.count = dxbc->m_Declarations[i].count;
 				if(mem.structured)
-					mem.bytestride= declarations[i].stride;
+					mem.bytestride= dxbc->m_Declarations[i].stride;
 				else
 					mem.bytestride= 4; // raw groupshared is implicitly uint32s
 
@@ -840,7 +835,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	if(!vs)
 		return empty;
 
-	std::shared_ptr<DXBCFile> dxbc = vs->GetDXBC();
+	DXBCFile *dxbc = vs->GetDXBC();
 
 	if(!dxbc)
 		return empty;
@@ -897,25 +892,24 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, *dxbc, 0, NULL, rs->VS.SRVs);
-	State initialState = CreateShaderDebugState(ret, -1, *dxbc, cbufData);
+	CreateShaderGlobalState(global, dxbc, 0, NULL, rs->VS.SRVs);
+	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 
-	auto inputSig = dxbc->GetInputSig();
 	for(int32_t i=0; i < ret.inputs.count; i++)
 	{
-		if(inputSig[i].systemValue == eAttr_None ||
-			inputSig[i].systemValue == eAttr_Position) // SV_Position seems to get promoted automatically, but it's invalid for vertex input
+		if(dxbc->m_InputSig[i].systemValue == eAttr_None ||
+			dxbc->m_InputSig[i].systemValue == eAttr_Position) // SV_Position seems to get promoted automatically, but it's invalid for vertex input
 		{
 			const D3D11_INPUT_ELEMENT_DESC *el = NULL;
 
-			string signame = strlower(string(inputSig[i].semanticName.elems));
+			string signame = strlower(string(dxbc->m_InputSig[i].semanticName.elems));
 
 			for(size_t l=0; l < inputlayout.size(); l++)
 			{
 				string layoutname = strlower(string(inputlayout[l].SemanticName));
 
 				if(signame == layoutname &&
-					inputSig[i].semanticIndex == inputlayout[l].SemanticIndex)
+					dxbc->m_InputSig[i].semanticIndex == inputlayout[l].SemanticIndex)
 				{
 					el = &inputlayout[l];
 					break;
@@ -955,7 +949,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 			ResourceFormat fmt = MakeResourceFormat(el->Format);
 
 			// more data needed than is provided
-			if(inputSig[i].compCount > fmt.compCount)
+			if(dxbc->m_InputSig[i].compCount > fmt.compCount)
 			{
 				ret.inputs[i].value.u.w = 1;
 
@@ -1102,7 +1096,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 				}
 			}
 		}
-		else if(inputSig[i].systemValue == eAttr_VertexIndex)
+		else if(dxbc->m_InputSig[i].systemValue == eAttr_VertexIndex)
 		{
 			uint32_t sv_vertid = vertid;
 			
@@ -1111,7 +1105,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 			if(draw->flags & eDraw_UseIBuffer)
 				sv_vertid = idx;
 
-			if(inputSig[i].compType == eCompType_Float)
+			if(dxbc->m_InputSig[i].compType == eCompType_Float)
 				ret.inputs[i].value.f.x = 
 					ret.inputs[i].value.f.y = 
 					ret.inputs[i].value.f.z = 
@@ -1122,9 +1116,9 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 					ret.inputs[i].value.u.z = 
 					ret.inputs[i].value.u.w = sv_vertid;
 		}
-		else if(inputSig[i].systemValue == eAttr_InstanceIndex)
+		else if(dxbc->m_InputSig[i].systemValue == eAttr_InstanceIndex)
 		{
-			if(inputSig[i].compType == eCompType_Float)
+			if(dxbc->m_InputSig[i].compType == eCompType_Float)
 				ret.inputs[i].value.f.x = 
 					ret.inputs[i].value.f.y = 
 					ret.inputs[i].value.f.z = 
@@ -1204,16 +1198,16 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	
 	D3D11RenderState *rs = m_WrappedContext->GetCurrentPipelineState();
 	
-	std::shared_ptr<DXBCFile> dxbc = ps->GetDXBC();
+	DXBCFile *dxbc = ps->GetDXBC();
 
 	if(!dxbc)
 		return empty;
 	
-	std::shared_ptr<DXBCFile> prevdxbc = NULL;
+	DXBCFile *prevdxbc = NULL;
 
-	if(prevdxbc && gs != NULL) prevdxbc = gs->GetDXBC();
-	if(prevdxbc && ds != NULL) prevdxbc = ds->GetDXBC();
-	if(prevdxbc && vs != NULL) prevdxbc = vs->GetDXBC();
+	if(prevdxbc == NULL && gs != NULL) prevdxbc = gs->GetDXBC();
+	if(prevdxbc == NULL && ds != NULL) prevdxbc = ds->GetDXBC();
+	if(prevdxbc == NULL && vs != NULL) prevdxbc = vs->GetDXBC();
 
 	vector<DataOutput> initialValues;
 
@@ -1221,8 +1215,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	int structureStride = 0;
 	
-	auto inputSig = dxbc->GetInputSig();
-	if(inputSig.empty())
+	if(dxbc->m_InputSig.empty())
 	{
 		extractHlsl += "float4 input_dummy : SV_Position;\n";
 
@@ -1235,24 +1228,23 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	uint32_t nextreg = 0;
 
-	auto prevOutputSig = prevdxbc->GetOutputSig();
-	for(size_t i=0; i < inputSig.size(); i++)
+	for(size_t i=0; i < dxbc->m_InputSig.size(); i++)
 	{
 		extractHlsl += "  ";
 		
 		bool included = true;
 
 		// handled specially to account for SV_ ordering
-		if(inputSig[i].systemValue == eAttr_PrimitiveIndex ||
-			 inputSig[i].systemValue == eAttr_MSAACoverage ||
-			 inputSig[i].systemValue == eAttr_IsFrontFace ||
-			 inputSig[i].systemValue == eAttr_MSAASampleIndex)
+		if(dxbc->m_InputSig[i].systemValue == eAttr_PrimitiveIndex ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_MSAACoverage ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_IsFrontFace ||
+			 dxbc->m_InputSig[i].systemValue == eAttr_MSAASampleIndex)
 		{
 			extractHlsl += "//";
 			included = false;
 		}
 
-		int missingreg = int(inputSig[i].regIndex) - int(nextreg);
+		int missingreg = int(dxbc->m_InputSig[i].regIndex) - int(nextreg);
 
 		// fill in holes from output sig of previous shader if possible, to try and
 		// ensure the same register order
@@ -1262,32 +1254,32 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 			if(prevdxbc)
 			{
-				for(size_t os=0; os < prevOutputSig.size(); os++)
+				for(size_t os=0; os < prevdxbc->m_OutputSig.size(); os++)
 				{
-					if(prevOutputSig[os].regIndex == nextreg+dummy)
+					if(prevdxbc->m_OutputSig[os].regIndex == nextreg+dummy)
 					{
 						filled = true;
 
-						if(prevOutputSig[os].compType == eCompType_Float)
+						if(prevdxbc->m_OutputSig[os].compType == eCompType_Float)
 							extractHlsl += "float";
-						else if(prevOutputSig[os].compType == eCompType_SInt)
+						else if(prevdxbc->m_OutputSig[os].compType == eCompType_SInt)
 							extractHlsl += "int";
-						else if(prevOutputSig[os].compType == eCompType_UInt)
+						else if(prevdxbc->m_OutputSig[os].compType == eCompType_UInt)
 							extractHlsl += "uint";
 						else
-							RDCERR("Unexpected input signature type: %d", prevOutputSig[os].compType);
+							RDCERR("Unexpected input signature type: %d", prevdxbc->m_OutputSig[os].compType);
 
 						int numCols = 
-							(prevOutputSig[os].regChannelMask & 0x1 ? 1 : 0) +
-							(prevOutputSig[os].regChannelMask & 0x2 ? 1 : 0) +
-							(prevOutputSig[os].regChannelMask & 0x4 ? 1 : 0) +
-							(prevOutputSig[os].regChannelMask & 0x8 ? 1 : 0);
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x1 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x2 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x4 ? 1 : 0) +
+							(prevdxbc->m_OutputSig[os].regChannelMask & 0x8 ? 1 : 0);
 
 						structureStride += 4*numCols;
 
 						initialValues.push_back(DataOutput(-1, 0, numCols, eAttr_None, true));
 
-						string name = prevOutputSig[os].semanticIdxName.elems;
+						string name = prevdxbc->m_OutputSig[os].semanticIdxName.elems;
 
 						extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name + ";\n";
 					}
@@ -1306,43 +1298,43 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			}
 		}
 
-		nextreg = inputSig[i].regIndex+1;
+		nextreg = dxbc->m_InputSig[i].regIndex+1;
 
-		if(inputSig[i].compType == eCompType_Float)
+		if(dxbc->m_InputSig[i].compType == eCompType_Float)
 			extractHlsl += "float";
-		else if(inputSig[i].compType == eCompType_SInt)
+		else if(dxbc->m_InputSig[i].compType == eCompType_SInt)
 			extractHlsl += "int";
-		else if(inputSig[i].compType == eCompType_UInt)
+		else if(dxbc->m_InputSig[i].compType == eCompType_UInt)
 			extractHlsl += "uint";
 		else
-			RDCERR("Unexpected input signature type: %d", inputSig[i].compType);
+			RDCERR("Unexpected input signature type: %d", dxbc->m_InputSig[i].compType);
 		
 		int numCols = 
-			(inputSig[i].regChannelMask & 0x1 ? 1 : 0) +
-			(inputSig[i].regChannelMask & 0x2 ? 1 : 0) +
-			(inputSig[i].regChannelMask & 0x4 ? 1 : 0) +
-			(inputSig[i].regChannelMask & 0x8 ? 1 : 0);
+			(dxbc->m_InputSig[i].regChannelMask & 0x1 ? 1 : 0) +
+			(dxbc->m_InputSig[i].regChannelMask & 0x2 ? 1 : 0) +
+			(dxbc->m_InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
+			(dxbc->m_InputSig[i].regChannelMask & 0x8 ? 1 : 0);
 
 		if(included)
 			structureStride += 4*numCols;
 
-		string name = inputSig[i].semanticIdxName.elems;
+		string name = dxbc->m_InputSig[i].semanticIdxName.elems;
 		
 		extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name;
 		
-		if(inputSig[i].compType == eCompType_Float)
+		if(dxbc->m_InputSig[i].compType == eCompType_Float)
 			floatInputs.push_back("input_" + name);
 
 		extractHlsl += ";\n";
 		
 		int firstElem = 
-			inputSig[i].regChannelMask & 0x1 ? 0 :
-			inputSig[i].regChannelMask & 0x2 ? 1 :
-			inputSig[i].regChannelMask & 0x4 ? 2 :
-			inputSig[i].regChannelMask & 0x8 ? 3 :
+			dxbc->m_InputSig[i].regChannelMask & 0x1 ? 0 :
+			dxbc->m_InputSig[i].regChannelMask & 0x2 ? 1 :
+			dxbc->m_InputSig[i].regChannelMask & 0x4 ? 2 :
+			dxbc->m_InputSig[i].regChannelMask & 0x8 ? 3 :
 			-1;
 
-		initialValues.push_back(DataOutput(inputSig[i].regIndex, firstElem, numCols, inputSig[i].systemValue, included));
+		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue, included));
 	}
 
 	extractHlsl += "};\n\n";
@@ -1568,12 +1560,12 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	ShaderDebugTrace traces[4];
 	
 	GlobalState global;
-	CreateShaderGlobalState(global, *dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
+	CreateShaderGlobalState(global, dxbc, rs->OM.UAVStartSlot, rs->OM.UAVs, rs->PS.SRVs);
 
 	{
 		DebugHit *hit = winner;
 
-		State initialState = CreateShaderDebugState(traces[destIdx], destIdx, *dxbc, cbufData);
+		State initialState = CreateShaderDebugState(traces[destIdx], destIdx, dxbc, cbufData);
 
 		rdctype::array<ShaderVariable> &ins = traces[destIdx].inputs;
 		if(ins.count > 0 && !strcmp(ins[ins.count-1].name.elems, "vCoverage"))
@@ -1754,7 +1746,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	if(!cs)
 		return empty;
 
-	std::shared_ptr<DXBCFile> dxbc = cs->GetDXBC();
+	DXBCFile *dxbc = cs->GetDXBC();
 
 	if(!dxbc)
 		return empty;
@@ -1770,8 +1762,8 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 		
 	GlobalState global;
-	CreateShaderGlobalState(global, *dxbc, 0, rs->CS.UAVs, rs->CS.SRVs);
-	State initialState = CreateShaderDebugState(ret, -1, *dxbc, cbufData);
+	CreateShaderGlobalState(global, dxbc, 0, rs->CS.UAVs, rs->CS.SRVs);
+	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 	
 	for(int i=0; i < 3; i++)
 	{

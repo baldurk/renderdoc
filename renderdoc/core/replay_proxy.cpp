@@ -1699,13 +1699,13 @@ ResourceId ProxySerialiser::RenderOverlay(ResourceId texid, TextureDisplayOverla
 	return ret;
 }
 
-const ShaderReflection *ProxySerialiser::GetShader(ResourceId id) const
+ShaderReflection *ProxySerialiser::GetShader(ResourceId id)
 {
 	if(m_ReplayHost)
 	{
 		m_ToReplaySerialiser->Serialise("", id);
 
-		ShaderReflection *refl = const_cast<ShaderReflection *>(m_Remote->GetShader(id));
+		ShaderReflection *refl = m_Remote->GetShader(id);
 
 		bool hasrefl = (refl != NULL);
 		m_FromReplaySerialiser->Serialise("", hasrefl);
@@ -1720,7 +1720,7 @@ const ShaderReflection *ProxySerialiser::GetShader(ResourceId id) const
 	{
 		m_ToReplaySerialiser->Serialise("", id);
 
-		if(!const_cast<ProxySerialiser*>(this)->SendReplayCommand(eCommand_GetShader))
+		if(!SendReplayCommand(eCommand_GetShader))
 			return NULL;
 
 		bool hasrefl = false;

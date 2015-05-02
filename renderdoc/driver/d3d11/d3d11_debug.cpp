@@ -3359,10 +3359,10 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 		if(it != WrappedShader::m_ShaderList.end())
 		{
-			auto dxbc = it->second.GetDXBCFile();
+			auto dxbc = it->second.m_DXBCFile;
 
 			RDCASSERT(dxbc);
-			RDCASSERT(dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER);
+			RDCASSERT(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER);
 
 			if(m_WrappedDevice->GetResourceManager()->HasLiveResource(cfg.CustomShader))
 			{
@@ -3371,10 +3371,9 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 				customPS = wrapped->GetReal();
 
-				auto cBuffers = dxbc->GetCBuffers();
-				for(size_t i=0; i < cBuffers.size(); i++)
+				for(size_t i=0; i < dxbc->m_CBuffers.size(); i++)
 				{
-					const DXBC::CBuffer &cbuf = cBuffers[i];
+					const DXBC::CBuffer &cbuf = dxbc->m_CBuffers[i];
 					if(cbuf.name == "$Globals")
 					{
 						float *cbufData = new float[cbuf.descriptor.byteSize/sizeof(float) + 1];
@@ -3771,11 +3770,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 	if(drawcall->numIndices == 0)
 		return;
 
-	auto dxbcVS = wrappedVS->GetDXBC().get();
+	DXBC::DXBCFile *dxbcVS = wrappedVS->GetDXBC();
 
 	RDCASSERT(dxbcVS);
 	
-	std::shared_ptr<DXBC::DXBCFile> dxbcGS = NULL;
+	DXBC::DXBCFile *dxbcGS = NULL;
 	
 	if(gs)
 	{
@@ -3792,7 +3791,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		RDCASSERT(dxbcGS);
 	}
 	
-	std::shared_ptr<DXBC::DXBCFile> dxbcDS = NULL;
+	DXBC::DXBCFile *dxbcDS = NULL;
 	
 	if(ds)
 	{
@@ -3817,12 +3816,11 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 
 	ID3D11GeometryShader *streamoutGS = NULL;
 
-	auto outputSig = dxbcVS->GetOutputSig();
-	if(!outputSig.empty())
+	if(!dxbcVS->m_OutputSig.empty())
 	{
-		for(size_t i=0; i < outputSig.size(); i++)
+		for(size_t i=0; i < dxbcVS->m_OutputSig.size(); i++)
 		{
-			SigParameter &sign = outputSig[i];
+			SigParameter &sign = dxbcVS->m_OutputSig[i];
 
 			D3D11_SO_DECLARATION_ENTRY decl;
 
@@ -3854,8 +3852,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		}
 
 		HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
-			(void *)&dxbcVS->GetShaderBlob()[0],
-			dxbcVS->GetShaderBlob().size(),
+			(void *)&dxbcVS->m_ShaderBlob[0],
+			dxbcVS->m_ShaderBlob.size(),
 			&sodecls[0],
 			(UINT)sodecls.size(),
 			&stride,
@@ -4160,14 +4158,13 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		posidx = -1;
 		numPosComponents = 0;
 
-		std::shared_ptr<DXBC::DXBCFile> lastShader = dxbcGS;
+		DXBC::DXBCFile *lastShader = dxbcGS;
 		if(dxbcDS) lastShader = dxbcDS;
 
 		sodecls.clear();
-		auto outputSig = lastShader->GetOutputSig();
-		for(size_t i=0; i < outputSig.size(); i++)
+		for(size_t i=0; i < lastShader->m_OutputSig.size(); i++)
 		{
-			SigParameter &sign = outputSig[i];
+			SigParameter &sign = lastShader->m_OutputSig[i];
 
 			D3D11_SO_DECLARATION_ENTRY decl;
 
@@ -4205,8 +4202,8 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		streamoutGS = NULL;
 
 		HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(
-			(void *)&lastShader->GetShaderBlob()[0],
-			lastShader->GetShaderBlob().size(),
+			(void *)&lastShader->m_ShaderBlob[0],
+			lastShader->m_ShaderBlob.size(),
 			&sodecls[0],
 			(UINT)sodecls.size(),
 			&stride,
@@ -4393,24 +4390,22 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		if(lastShader == dxbcGS)
 		{
-			auto declarations = dxbcGS->GetDeclarations();
-			for(size_t i=0; i < declarations.size(); i++)
+			for(size_t i=0; i < dxbcGS->m_Declarations.size(); i++)
 			{
-				if(declarations[i].declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
+				if(dxbcGS->m_Declarations[i].declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
 				{
-					topo = (D3D11_PRIMITIVE_TOPOLOGY)declarations[i].outTopology; // enums match
+					topo = (D3D11_PRIMITIVE_TOPOLOGY)dxbcGS->m_Declarations[i].outTopology; // enums match
 					break;
 				}
 			}
 		}
 		else if(lastShader == dxbcDS)
 		{
-			auto declarations = dxbcDS->GetDeclarations();
-			for(size_t i=0; i < declarations.size(); i++)
+			for(size_t i=0; i < dxbcDS->m_Declarations.size(); i++)
 			{
-				if(declarations[i].declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
+				if(dxbcDS->m_Declarations[i].declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
 				{
-					if(declarations[i].domain == DXBC::DOMAIN_ISOLINE)
+					if(dxbcDS->m_Declarations[i].domain == DXBC::DOMAIN_ISOLINE)
 						topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 					else
 						topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

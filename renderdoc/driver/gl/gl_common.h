@@ -100,7 +100,7 @@ const char *SamplerString(GLenum smpenum);
 
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
 
-void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, const ShaderReflection *refl, ShaderBindpointMapping &mapping);
+void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
 
 extern int GLCoreVersion;
 extern bool GLIsCore;
@@ -146,8 +146,8 @@ struct ShaderReflection;
 
 void CopyProgramUniforms(const GLHookSet &gl, GLuint progSrc, GLuint progDst);
 void SerialiseProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint prog, map<GLint, GLint> *locTranslate, bool writing);
-void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, const ShaderReflection *refl);
-void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, const ShaderReflection *refl);
+void CopyProgramAttribBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl);
+void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint progdst, ShaderReflection *refl);
 
 struct DrawElementsIndirectCommand
 {

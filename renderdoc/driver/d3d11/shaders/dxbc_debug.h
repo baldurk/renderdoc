@@ -113,13 +113,13 @@ class State : public ShaderDebugState
 			done = false;
 			dxbc = NULL;
 		}
-		State(int quadIdx, const ShaderDebugTrace *t, const DXBC::DXBCFile &f, WrappedID3D11Device *d)
+		State(int quadIdx, const ShaderDebugTrace *t, DXBC::DXBCFile *f, WrappedID3D11Device *d)
 		{
 			quadIndex = quadIdx;
 			nextInstruction = 0;
 			done = false;
 			trace = t;
-			dxbc = &f;
+			dxbc = f;
 			device = d;
 		}
 
@@ -168,7 +168,7 @@ class State : public ShaderDebugState
 
 		VarType OperationType(const DXBC::OpcodeType &op) const;
 
-		const DXBC::DXBCFile *dxbc;
+		DXBC::DXBCFile *dxbc;
 		const ShaderDebugTrace *trace;
 		WrappedID3D11Device *device;
 };

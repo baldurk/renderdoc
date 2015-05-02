@@ -98,7 +98,7 @@ class GLReplay : public IReplayDriver
 		vector<ResourceId> GetTextures();
 		FetchTexture GetTexture(ResourceId id) { return m_CachedTextures[id]; }
 
-		const ShaderReflection *GetShader(ResourceId id) const;
+		ShaderReflection *GetShader(ResourceId id);
 		
 		vector<DebugMessage> GetDebugMessages();
 		

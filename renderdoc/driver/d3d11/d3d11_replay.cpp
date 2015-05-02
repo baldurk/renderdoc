@@ -289,16 +289,16 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
 	return tex;
 }
 
-const ShaderReflection *D3D11Replay::GetShader(ResourceId id) const
+ShaderReflection *D3D11Replay::GetShader(ResourceId id)
 {
 	auto it = WrappedShader::m_ShaderList.find(id);
 
 	if(it == WrappedShader::m_ShaderList.end())
 		return NULL;
 
-	RDCASSERT(it->second.GetDetails());
+	RDCASSERT(it->second.m_Details);
 
-	return it->second.GetDetails().get();
+	return it->second.m_Details;
 }
 
 void D3D11Replay::FreeTargetResource(ResourceId id)
@@ -1344,12 +1344,12 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vec
 	if(it == WrappedShader::m_ShaderList.end())
 		return;
 
-	RDCASSERT(it->second.GetDXBCFile());
+	RDCASSERT(it->second.m_DXBCFile);
 
-	auto dxbc = it->second.GetDXBCFile();
+	DXBC::DXBCFile *dxbc = it->second.m_DXBCFile;
 
-	if(cbufSlot < dxbc->GetCBuffers().size())
-		m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->GetCBuffers()[cbufSlot].variables, outvars, false, data);
+	if(cbufSlot < dxbc->m_CBuffers.size())
+		m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->m_CBuffers[cbufSlot].variables, outvars, false, data);
 	return;
 }
 

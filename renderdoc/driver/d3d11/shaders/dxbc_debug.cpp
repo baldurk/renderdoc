@@ -515,14 +515,13 @@ void State::Init()
 {
 	vector<uint32_t> indexTempSizes;
 
-	auto declarations = dxbc->GetDeclarations();
-	for(size_t i=0; i < declarations.size(); i++)
+	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 	{
-		if(declarations[i].declaration == OPCODE_DCL_TEMPS)
+		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_TEMPS)
 		{
-			create_array_uninit(registers, declarations[i].numTemps);
+			create_array_uninit(registers, dxbc->m_Declarations[i].numTemps);
 
-			for(uint32_t t=0; t < declarations[i].numTemps; t++)
+			for(uint32_t t=0; t < dxbc->m_Declarations[i].numTemps; t++)
 			{
 				char buf[64] = {0};
 
@@ -531,10 +530,10 @@ void State::Init()
 				registers[t] = ShaderVariable(buf, 0l, 0l, 0l, 0l);
 			}
 		}
-		if(declarations[i].declaration == OPCODE_DCL_INDEXABLE_TEMP)
+		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_INDEXABLE_TEMP)
 		{
-			uint32_t reg = declarations[i].tempReg;
-			uint32_t size = declarations[i].numTemps;
+			uint32_t reg = dxbc->m_Declarations[i].tempReg;
+			uint32_t size = dxbc->m_Declarations[i].numTemps;
 			if(reg >= indexTempSizes.size())
 				indexTempSizes.resize(reg+1);
 
@@ -566,7 +565,7 @@ void State::Init()
 
 bool State::Finished() const
 {
-	return dxbc && (done || nextInstruction >= (int)dxbc->GetInstructions().size());
+	return dxbc && (done || nextInstruction >= (int)dxbc->m_Instructions.size());
 }
 
 void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const ShaderVariable &val)
@@ -881,13 +880,12 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		}
 		case TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-			auto immediate = dxbc->GetImmediate();
-			RDCASSERT(indices[0]*4 + 4 < immediate.size());
+			RDCASSERT(indices[0]*4 + 4 < dxbc->m_Immediate.size());
 
 			v = s = ShaderVariable("", 0, 0, 0, 0);
 
-			if(indices[0]*4 + 4 < immediate.size())
-				memcpy(s.value.uv, &immediate[indices[0]*4], 16);
+			if(indices[0]*4 + 4 < dxbc->m_Immediate.size())
+				memcpy(s.value.uv, &dxbc->m_Immediate[indices[0]*4], 16);
 
 			break;
 		}
@@ -901,10 +899,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		{
 			uint32_t numthreads[3] = {0, 0, 0};
 
-			auto declarations = dxbc->GetDeclarations();
-			for(size_t i=0; i < declarations.size(); i++)
+			for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 			{
-				const ASMDecl &decl = declarations[i];
+				ASMDecl &decl = dxbc->m_Declarations[i];
 
 				if(decl.declaration == OPCODE_DCL_THREAD_GROUP)
 				{
@@ -935,10 +932,9 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		{
 			uint32_t numthreads[3] = {0, 0, 0};
 
-			auto declarations = dxbc->GetDeclarations();
-			for(size_t i=0; i < declarations.size(); i++)
+			for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
 			{
-				const ASMDecl &decl = declarations[i];
+				ASMDecl &decl = dxbc->m_Declarations[i];
 
 				if(decl.declaration == OPCODE_DCL_THREAD_GROUP)
 				{
@@ -1008,10 +1004,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 {
 	State s = *this;
 
-	if(s.nextInstruction >= s.dxbc->GetInstructions().size())
+	if(s.nextInstruction >= s.dxbc->m_Instructions.size())
 		return s;
 
-	const ASMOperation &op = s.dxbc->GetInstructions()[s.nextInstruction];
+	ASMOperation &op = s.dxbc->m_Instructions[s.nextInstruction];
 
 	s.nextInstruction++;
 
@@ -1961,10 +1957,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				numElems = global.uavs[resIndex].numElements;
 				data = &global.uavs[resIndex].data[0];
 
-				auto declarations = s.dxbc->GetDeclarations();
-				for(size_t i=0; i < declarations.size(); i++)
+				for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 				{
-					const ASMDecl &decl = declarations[i];
+					ASMDecl &decl = s.dxbc->m_Declarations[i];
 
 					if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW &&
 						 decl.operand.indices[0].index == resIndex)
@@ -2123,10 +2118,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					}
 					else if(!gsm)
 					{
-						auto declarations = s.dxbc->GetDeclarations();
-						for(size_t i=0; i < declarations.size(); i++)
+						for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 						{
-							const ASMDecl &decl = declarations[i];
+							ASMDecl &decl = s.dxbc->m_Declarations[i];
 
 							if(decl.operand.type == TYPE_UNORDERED_ACCESS_VIEW && !srv &&
 								decl.operand.indices[0].index == resIndex &&
@@ -2289,7 +2283,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 					// to match this expectation, propogate the component across.
-					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
@@ -2356,17 +2350,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				UINT slot = (UINT)(op.operands[1].indices[0].index&0xffffffff);
 
 				ID3D11ShaderResourceView *srv = NULL;
-				if(s.dxbc->GetType() == D3D11_SHVER_VERTEX_SHADER)
+				if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 					context->VSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->GetType() == D3D11_SHVER_HULL_SHADER)
+				else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
 					context->HSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->GetType() == D3D11_SHVER_DOMAIN_SHADER)
+				else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
 					context->DSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->GetType() == D3D11_SHVER_GEOMETRY_SHADER)
+				else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
 					context->GSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER)
+				else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
 					context->PSGetShaderResources(slot, 1, &srv);
-				else if(s.dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+				else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 					context->CSGetShaderResources(slot, 1, &srv);
 
 				if(srv)
@@ -2557,7 +2551,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 			// to match this expectation, propogate the component across.
-			if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+			if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 				result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 			s.SetDst(op.operands[0], op, result);
@@ -2583,7 +2577,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				if(op.operands[1].type == TYPE_UNORDERED_ACCESS_VIEW)
 				{
 					ID3D11UnorderedAccessView *uav = NULL;
-					if(s.dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+					if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 						context->CSGetUnorderedAccessViews(slot, 1, &uav);
 					else
 						context->OMGetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, slot, 1, &uav);
@@ -2619,17 +2613,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				else
 				{
 					ID3D11ShaderResourceView *srv = NULL;
-					if(s.dxbc->GetType() == D3D11_SHVER_VERTEX_SHADER)
+					if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 						context->VSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_HULL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
 						context->HSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_DOMAIN_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
 						context->DSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_GEOMETRY_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
 						context->GSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
 						context->PSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 						context->CSGetShaderResources(slot, 1, &srv);
 					
 					if(srv)
@@ -2702,7 +2696,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 	
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 				// to match this expectation, propogate the component across.
-				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 				s.SetDst(op.operands[0], op, result);
@@ -2739,17 +2733,17 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				if(op.operands[2].type != TYPE_UNORDERED_ACCESS_VIEW)
 				{
 					ID3D11ShaderResourceView *srv = NULL;
-					if(s.dxbc->GetType() == D3D11_SHVER_VERTEX_SHADER)
+					if(s.dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 						context->VSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_HULL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
 						context->HSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_DOMAIN_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
 						context->DSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_GEOMETRY_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
 						context->GSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
 						context->PSGetShaderResources(slot, 1, &srv);
-					else if(s.dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+					else if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 						context->CSGetShaderResources(slot, 1, &srv);
 
 					if(srv)
@@ -2910,7 +2904,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				else
 				{
 					ID3D11UnorderedAccessView *uav = NULL;
-					if(s.dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+					if(s.dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 					{
 						context->CSGetUnorderedAccessViews(slot, 1, &uav);
 					}
@@ -3045,10 +3039,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// search for the declaration
 				if(dim == 0)
 				{
-					auto declarations = s.dxbc->GetDeclarations();
-					for(size_t i=0; i < declarations.size(); i++)
+					for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 					{
-						const ASMDecl &decl = declarations[i];
+						ASMDecl &decl = s.dxbc->m_Declarations[i];
 
 						if(decl.declaration == OPCODE_DCL_RESOURCE && decl.operand.type == TYPE_RESOURCE &&
 							decl.operand.indices.size() == 1 && decl.operand.indices[0] == op.operands[2].indices[0])
@@ -3129,7 +3122,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 				// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 				// to match this expectation, propogate the component across.
-				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+				if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 					result.value.uv[ 0 ] = result.value.uv[ op.operands[0].comps[0] ];
 
 				s.SetDst(op.operands[0], op, result);
@@ -3179,10 +3172,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			DXBC::ResourceDimension resourceDim = DXBC::RESOURCE_DIMENSION_UNKNOWN;
 			
-			auto declarations = dxbc->GetDeclarations();
-			for(size_t i=0; i < declarations.size(); i++)
+			for(size_t i=0; i < s.dxbc->m_Declarations.size(); i++)
 			{
-				const ASMDecl &decl = declarations[i];
+				ASMDecl &decl = s.dxbc->m_Declarations[i];
 
 				if(decl.declaration == OPCODE_DCL_SAMPLER && decl.operand.indices == op.operands[3].indices)
 				{
@@ -3367,7 +3359,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 					// if we are assigning into a scalar, SetDst expects the result to be in .x (as normally we are assigning FROM a scalar also).
 					// to match this expectation, propogate the component across.
-					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] != 0xff && op.operands[0].comps[2] != 0xff && op.operands[0].comps[3] != 0xff)
+					if(op.operands[0].comps[0] != 0xff && op.operands[0].comps[1] == 0xff && op.operands[0].comps[2] == 0xff && op.operands[0].comps[3] == 0xff)
 						fetch.value.uv[ 0 ] = fetch.value.uv[ op.operands[0].comps[0] ];
 
 					s.SetDst(op.operands[0], op, fetch);
@@ -3853,30 +3845,30 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			// fetch SRV and sampler from the shader stage we're debugging that this opcode wants to
 			// load from
 
-			if(dxbc->GetType() == D3D11_SHVER_VERTEX_SHADER)
+			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 				context->VSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->GetType() == D3D11_SHVER_HULL_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
 				context->HSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->GetType() == D3D11_SHVER_DOMAIN_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
 				context->DSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->GetType() == D3D11_SHVER_GEOMETRY_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
 				context->GSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
 				context->PSGetShaderResources(texSlot, 1, &usedSRV);
-			else if(dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 				context->CSGetShaderResources(texSlot, 1, &usedSRV);
 			
-			if(dxbc->GetType() == D3D11_SHVER_VERTEX_SHADER)
+			if(dxbc->m_Type == D3D11_SHVER_VERTEX_SHADER)
 				context->VSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->GetType() == D3D11_SHVER_HULL_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_HULL_SHADER)
 				context->HSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->GetType() == D3D11_SHVER_DOMAIN_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_DOMAIN_SHADER)
 				context->DSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->GetType() == D3D11_SHVER_GEOMETRY_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_GEOMETRY_SHADER)
 				context->GSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->GetType() == D3D11_SHVER_PIXEL_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER)
 				context->PSGetSamplers(sampSlot, 1, &usedSamp);
-			else if(dxbc->GetType() == D3D11_SHVER_COMPUTE_SHADER)
+			else if(dxbc->m_Type == D3D11_SHVER_COMPUTE_SHADER)
 				context->CSGetSamplers(sampSlot, 1, &usedSamp);
 
 			// set onto PS while we perform the sample
@@ -4053,10 +4045,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 			uint32_t search = s.nextInstruction;
 
-			auto instructions = s.dxbc->GetInstructions();
-			for(; search < (int)instructions.size(); search++)
+			for(; search < (int)dxbc->m_Instructions.size(); search++)
 			{
-				const ASMOperation &nextOp = instructions[search];
+				const ASMOperation &nextOp = s.dxbc->m_Instructions[search];
 
 				// track nested switch statements to ensure we don't accidentally pick the case from a different switch
 				if(nextOp.operation == OPCODE_SWITCH)
@@ -4103,10 +4094,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			{
 				// skip straight past any case or default labels as we don't want to step to them, we want next instruction to point
 				// at the next excutable instruction (which might be a break if we're doing nothing)
-				auto instructions = s.dxbc->GetInstructions();
-				for(; jumpLocation < (int)instructions.size(); jumpLocation++)
+				for(; jumpLocation < (int)dxbc->m_Instructions.size(); jumpLocation++)
 				{
-					const ASMOperation &nextOp = instructions[jumpLocation];
+					const ASMOperation &nextOp = s.dxbc->m_Instructions[jumpLocation];
 
 					if(nextOp.operation != OPCODE_CASE && nextOp.operation != OPCODE_DEFAULT)
 						break;
@@ -4144,12 +4134,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// skip back one to the endloop that we're processing
 				s.nextInstruction--;
 
-				auto instructions = s.dxbc->GetInstructions();
 				for(; s.nextInstruction >= 0; s.nextInstruction--)
 				{
-					if(instructions[s.nextInstruction].operation == OPCODE_ENDLOOP)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDLOOP)
 						depth++;
-					if(instructions[s.nextInstruction].operation == OPCODE_LOOP)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_LOOP)
 						depth--;
 
 					if(depth == 0)
@@ -4177,14 +4166,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// break out (jump to next endloop/endswitch)
 				int depth = 1;
 				
-				auto instructions = s.dxbc->GetInstructions();
-				for(; s.nextInstruction < (int)instructions.size(); s.nextInstruction++)
+				for(; s.nextInstruction < (int)dxbc->m_Instructions.size(); s.nextInstruction++)
 				{
-					if(instructions[s.nextInstruction].operation == OPCODE_LOOP ||
-						instructions[s.nextInstruction].operation == OPCODE_SWITCH)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_LOOP ||
+						s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_SWITCH)
 						depth++;
-					if(instructions[s.nextInstruction].operation == OPCODE_ENDLOOP ||
-						instructions[s.nextInstruction].operation == OPCODE_ENDSWITCH)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDLOOP ||
+						s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDSWITCH)
 						depth--;
 
 					if(depth == 0)
@@ -4193,8 +4181,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					}
 				}
 
-				RDCASSERT(instructions[s.nextInstruction].operation == OPCODE_ENDLOOP ||
-									instructions[s.nextInstruction].operation == OPCODE_ENDSWITCH);
+				RDCASSERT(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDLOOP ||
+									s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDSWITCH);
 
 				// don't want to process the endloop and jump again!
 				s.nextInstruction++;
@@ -4221,14 +4209,13 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				// skip back one to the if that we're processing
 				s.nextInstruction--;
 
-				auto instructions = s.dxbc->GetInstructions();
-				for(; s.nextInstruction < (int)instructions.size(); s.nextInstruction++)
+				for(; s.nextInstruction < (int)dxbc->m_Instructions.size(); s.nextInstruction++)
 				{
-					if(instructions[s.nextInstruction].operation == OPCODE_IF)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_IF)
 						depth++;
-					if(instructions[s.nextInstruction].operation == OPCODE_ELSE)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ELSE)
 						depth--;
-					if(instructions[s.nextInstruction].operation == OPCODE_ENDIF)
+					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDIF)
 						depth--;
 
 					if(depth == 0)
@@ -4237,8 +4224,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 					}
 				}
 
-				RDCASSERT(instructions[s.nextInstruction].operation == OPCODE_ELSE ||
-						 instructions[s.nextInstruction].operation == OPCODE_ENDIF);
+				RDCASSERT(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ELSE ||
+						 s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDIF);
 
 				// step to next instruction after the else/endif (processing an else would skip that block)
 				s.nextInstruction++;
@@ -4251,12 +4238,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			// if we hit an else then we've just processed the if() bracket and need to break out (jump to next endif)
 			int depth = 1;
 
-			auto instructions = s.dxbc->GetInstructions();
-			for(; s.nextInstruction < (int)instructions.size(); s.nextInstruction++)
+			for(; s.nextInstruction < (int)dxbc->m_Instructions.size(); s.nextInstruction++)
 			{
-				if(instructions[s.nextInstruction].operation == OPCODE_IF)
+				if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_IF)
 					depth++;
-				if(instructions[s.nextInstruction].operation == OPCODE_ENDIF)
+				if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDIF)
 					depth--;
 
 				if(depth == 0)
@@ -4265,7 +4251,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				}
 			}
 
-			RDCASSERT(instructions[s.nextInstruction].operation == OPCODE_ENDIF);
+			RDCASSERT(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDIF);
 
 			break;
 		}

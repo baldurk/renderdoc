@@ -527,8 +527,8 @@ class D3D11DebugManager
 
 		bool InitDebugRendering();
 
-		ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx, const DXBC::DXBCFile &dxbc, vector<byte> *cbufData);
-		void CreateShaderGlobalState(ShaderDebug::GlobalState &global, const DXBC::DXBCFile &dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs);
+		ShaderDebug::State CreateShaderDebugState(ShaderDebugTrace &trace, int quadIdx, DXBC::DXBCFile *dxbc, vector<byte> *cbufData);
+		void CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs);
 		void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
 								  const vector<DXBC::CBufferVariable> &invars, vector<ShaderVariable> &outvars,
 								  const vector<byte> &data);

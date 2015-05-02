@@ -53,7 +53,7 @@ class D3D11Replay : public IReplayDriver
 		
 		vector<DebugMessage> GetDebugMessages();
 
-		const ShaderReflection *GetShader(ResourceId id) const;
+		ShaderReflection *GetShader(ResourceId id);
 		
 		vector<EventUsage> GetUsage(ResourceId id);
 

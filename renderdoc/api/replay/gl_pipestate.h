@@ -73,7 +73,7 @@ struct GLPipelineState
 	{
 		ShaderStage() : Shader(), ShaderDetails(NULL) {}
 		ResourceId Shader;
-		const ShaderReflection *ShaderDetails;
+		ShaderReflection *ShaderDetails;
 		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;
