@@ -244,9 +244,11 @@ class SDBGChunk : public DXBCDebugChunk
 		uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
 
 		void GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum) const;
-		
-		DXBCDebugChunk *Clone() const { return new SDBGChunk(*this); }
 	private:
+		SDBGChunk();
+		SDBGChunk(const SDBGChunk &);
+		SDBGChunk &operator =(const SDBGChunk &o);
+
 		bool m_HasDebugInfo;
 
 		string GetSymbolName(int symbolID);
@@ -265,8 +267,6 @@ class SDBGChunk : public DXBCDebugChunk
 		string m_CompilerSig;
 		string m_Entry;
 		string m_Profile;
-
-		SDBGChunk();
 
 		// these don't need to be exposed, a more processed and friendly
 		// version is exposed

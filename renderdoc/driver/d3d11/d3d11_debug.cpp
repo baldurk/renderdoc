@@ -3359,7 +3359,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
 		if(it != WrappedShader::m_ShaderList.end())
 		{
-			auto dxbc = it->second.m_DXBCFile;
+			auto dxbc = it->second->GetDXBC();
 
 			RDCASSERT(dxbc);
 			RDCASSERT(dxbc->m_Type == D3D11_SHVER_PIXEL_SHADER);

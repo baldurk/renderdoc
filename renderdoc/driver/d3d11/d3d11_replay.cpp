@@ -296,9 +296,10 @@ ShaderReflection *D3D11Replay::GetShader(ResourceId id)
 	if(it == WrappedShader::m_ShaderList.end())
 		return NULL;
 
-	RDCASSERT(it->second.m_Details);
+	ShaderReflection *ret = it->second->GetDetails();
+	RDCASSERT(ret);
 
-	return it->second.m_Details;
+	return ret;
 }
 
 void D3D11Replay::FreeTargetResource(ResourceId id)
@@ -1344,9 +1345,9 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vec
 	if(it == WrappedShader::m_ShaderList.end())
 		return;
 
-	RDCASSERT(it->second.m_DXBCFile);
+	DXBC::DXBCFile *dxbc = it->second->GetDXBC();
 
-	DXBC::DXBCFile *dxbc = it->second.m_DXBCFile;
+	RDCASSERT(dxbc);
 
 	if(cbufSlot < dxbc->m_CBuffers.size())
 		m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->m_CBuffers[cbufSlot].variables, outvars, false, data);

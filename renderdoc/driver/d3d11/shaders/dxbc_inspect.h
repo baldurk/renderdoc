@@ -310,8 +310,6 @@ class DXBCDebugChunk
 		vector< pair<string, string> > Files; // <filename, source>
 
 		virtual void GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum) const = 0;
-
-		virtual DXBCDebugChunk *Clone() const = 0;
 };
 
 // declare one of these and pass in your shader bytecode, then inspect
@@ -321,46 +319,6 @@ class DXBCFile
 	public:
 		DXBCFile(const void *ByteCode, size_t ByteCodeLength);
 		~DXBCFile() { SAFE_DELETE(m_DebugInfo); }
-
-		DXBCFile(const DXBCFile &o)
-		{
-			*this = o;
-		}
-
-		DXBCFile &operator =(const DXBCFile &o)
-		{
-			m_Type = o.m_Type;
-			m_Version = o.m_Version;
-			
-			m_ShaderStats = o.m_ShaderStats;
-
-			m_DebugInfo = NULL;
-			if(o.m_DebugInfo)
-				m_DebugInfo = o.m_DebugInfo->Clone();
-
-			m_Resources = o.m_Resources;
-			
-			m_CBuffers = o.m_CBuffers;
-			
-			m_Interfaces = o.m_Interfaces;
-
-			m_Immediate = o.m_Immediate;
-			
-			m_ResourceBinds = o.m_ResourceBinds;
-			
-			m_InputSig = o.m_InputSig;
-			m_OutputSig = o.m_OutputSig;
-			m_PatchConstantSig = o.m_PatchConstantSig;
-			m_Declarations = o.m_Declarations;
-			m_Instructions = o.m_Instructions;
-			m_Disassembly = o.m_Disassembly;
-
-			m_HexDump = o.m_HexDump;
-
-			m_ShaderBlob = o.m_ShaderBlob;
-
-			return *this;
-		}
 
 		D3D11_SHADER_VERSION_TYPE m_Type;
 		struct { uint32_t Major, Minor; } m_Version;
@@ -392,6 +350,9 @@ class DXBCFile
 		
 		size_t NumOperands(OpcodeType op);
 	private:
+		DXBCFile(const DXBCFile &o);
+		DXBCFile &operator =(const DXBCFile &o);
+
 		void DisassembleHexDump();
 		void MakeDisassembly();
 		void GuessResources();

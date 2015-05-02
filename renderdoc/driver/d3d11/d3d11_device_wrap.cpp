@@ -1204,7 +1204,7 @@ bool WrappedID3D11Device::Serialise_CreateVertexShader(
 		}
 		else
 		{
-			ret = new WrappedID3D11Shader<ID3D11VertexShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11VertexShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1232,7 +1232,7 @@ HRESULT WrappedID3D11Device::CreateVertexShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11VertexShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11VertexShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 
 		if(m_State >= WRITING)
 		{
@@ -1288,7 +1288,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShader(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11GeometryShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11GeometryShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1316,7 +1316,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 		
 		if(m_State >= WRITING)
 		{
@@ -1388,7 +1388,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11GeometryShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11GeometryShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1428,7 +1428,7 @@ HRESULT WrappedID3D11Device::CreateGeometryShaderWithStreamOutput(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11GeometryShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 		
 		if(m_State >= WRITING)
 		{
@@ -1485,7 +1485,7 @@ bool WrappedID3D11Device::Serialise_CreatePixelShader(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11PixelShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11PixelShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1513,7 +1513,7 @@ HRESULT WrappedID3D11Device::CreatePixelShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11PixelShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11PixelShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 
 		if(m_State >= WRITING)
 		{
@@ -1569,7 +1569,7 @@ bool WrappedID3D11Device::Serialise_CreateHullShader(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11HullShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11HullShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1597,7 +1597,7 @@ HRESULT WrappedID3D11Device::CreateHullShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11HullShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11HullShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 		
 		if(m_State >= WRITING)
 		{
@@ -1653,7 +1653,7 @@ bool WrappedID3D11Device::Serialise_CreateDomainShader(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11DomainShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11DomainShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1681,7 +1681,7 @@ HRESULT WrappedID3D11Device::CreateDomainShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11DomainShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11DomainShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 		
 		if(m_State >= WRITING)
 		{
@@ -1737,7 +1737,7 @@ bool WrappedID3D11Device::Serialise_CreateComputeShader(
 		}
 		else
 		{		
-			ret = new WrappedID3D11Shader<ID3D11ComputeShader>(ret, DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
+			ret = new WrappedID3D11Shader<ID3D11ComputeShader>(ret, new DXBC::DXBCFile(ShaderBytecode, (size_t)BytecodeLen), this);
 
 			GetResourceManager()->AddLiveResource(pShader, ret);
 		}
@@ -1765,7 +1765,7 @@ HRESULT WrappedID3D11Device::CreateComputeShader(
 	{
 		SCOPED_LOCK(m_D3DLock);
 
-		wrapped = new WrappedID3D11Shader<ID3D11ComputeShader>(real, DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
+		wrapped = new WrappedID3D11Shader<ID3D11ComputeShader>(real, new DXBC::DXBCFile(pShaderBytecode, BytecodeLength), this);
 		
 		if(m_State >= WRITING)
 		{
