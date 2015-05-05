@@ -290,9 +290,10 @@ class SPDBChunk : public DXBCDebugChunk
 		uint32_t GetShaderCompileFlags() const { return m_ShaderFlags; }
 
 		void GetFileLine(size_t instruction, uintptr_t offset, int32_t &fileIdx, int32_t &lineNum) const;
-		
-		DXBCDebugChunk *Clone() const { return new SPDBChunk(*this); }
 	private:
+		SPDBChunk(const SPDBChunk &);
+		SPDBChunk &operator =(const SPDBChunk &o);
+
 		bool m_HasDebugInfo;
 
 		CompilandDetails m_CompilandDetails;
