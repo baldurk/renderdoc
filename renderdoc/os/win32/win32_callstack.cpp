@@ -553,6 +553,7 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 	
 	EnumModChunk *chunk = (EnumModChunk *)(chunks);
 	WCHAR *modName = (WCHAR *)(chunks+sizeof(EnumModChunk));
+	bool ignoreAllFilesThatCouldNotBeFound = false;
 
 	if(pdblocatePipe == NULL)
 		return;
@@ -633,9 +634,11 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 				{
 					pdbName = dirname(defaultPdb) + L"\\" + basename(defaultPdb);
 
-					// prompt for new pdbName, unless it's renderdoc or dbghelp
+					// prompt for new pdbName, unless it's renderdoc, dbghelp or system dlls which are not expected to have valid pdbs
 					if(pdbName.find(L"renderdoc.") != wstring::npos ||
-						pdbName.find(L"dbghelp.") != wstring::npos)
+						pdbName.find(L"dbghelp.") != wstring::npos ||
+						pdbName.find(L":\\windows\\system32\\") != wstring::npos ||
+						ignoreAllFilesThatCouldNotBeFound)
 						pdbName = L"";
 					else
 						pdbName = pdbBrowse(pdbName);
@@ -672,20 +675,25 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 		{
 			modules.push_back(m); // still add the module, with 0 module id
 			
-			RDCWARN("Couldn't get symbols for %ls", m.name.c_str());
+			if (!ignoreAllFilesThatCouldNotBeFound && defaultPdb.find(L":\\windows\\system32\\") == wstring::npos)
+			{
+				RDCWARN("Couldn't get symbols for %ls", m.name.c_str());
 
-			// silently ignore renderdoc.dll and dbghelp.dll without asking to permanently ignore
-			if(m.name.find(L"renderdoc") != wstring::npos ||
-				m.name.find(L"dbghelp") != wstring::npos)
-				continue;
+				// silently ignore renderdoc.dll and dbghelp.dll without asking to permanently ignore
+				if(m.name.find(L"renderdoc") != wstring::npos ||
+					m.name.find(L"dbghelp") != wstring::npos)
+					continue;
 
-			wchar_t text[1024];
-			wsprintf(text, L"Do you want to permanently ignore this file?\nPath: %ls", m.name.c_str());
+				wchar_t text[1024];
+				wsprintf(text, L"Do you want to permanently ignore this file? Press Cancel to ignore all subsequent files that could not be found.\nPath: %ls", m.name.c_str());
 
-			int ret = MessageBoxW(NULL, text, L"Ignore this pdb?", MB_YESNO);
+				int ret = MessageBoxW(NULL, text, L"Ignore this pdb?", MB_YESNOCANCEL);
 
-			if(ret == IDYES)
-				pdbIgnores.push_back(m.name);
+				if(ret == IDYES)
+					pdbIgnores.push_back(m.name);
+				else if(ret == IDCANCEL)
+					ignoreAllFilesThatCouldNotBeFound = true;
+			}
 
 			continue;
 		}
