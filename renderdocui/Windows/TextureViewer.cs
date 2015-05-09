@@ -2093,7 +2093,7 @@ namespace renderdocui.Windows
 
             float prevScale = m_TexDisplay.scale;
 
-            m_TexDisplay.scale = Math.Max(0.1f, Math.Min(8.0f, s));
+            m_TexDisplay.scale = Math.Max(0.1f, Math.Min(256.0f, s));
 
             FetchTexture tex = CurrentTexture;
 
