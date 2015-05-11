@@ -674,7 +674,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
 	else if(riid == IRenderDoc_uuid)
 	{
 		AddRef();
-		*ppvObject = this;
+		*ppvObject = static_cast<IUnknown*>(this);
 		return S_OK;
 	}
 	else
