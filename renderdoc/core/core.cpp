@@ -825,9 +825,18 @@ void RenderDoc::RemoveFrameCapturer(void *dev, void *wnd)
 			if(m_ActiveWindow == dw)
 			{
 				if(m_WindowFrameCapturers.size() == 1)
+				{
 					m_ActiveWindow = DeviceWnd();
+				}
 				else
-					m_ActiveWindow = m_WindowFrameCapturers.begin()->first;
+				{
+					auto it = m_WindowFrameCapturers.begin();
+					// active window could be the first in our list, move
+					// to second (we know from above there are at least 2)
+					if(m_ActiveWindow == it->first)
+						it++;
+					m_ActiveWindow = it->first;
+				}
 			}
 
 			m_WindowFrameCapturers.erase(it);
