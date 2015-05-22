@@ -520,8 +520,15 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 			m_Resources.reserve(h->resources.count);
 
+			// we have to use this map to match up cbuffers to their bind point, as
+			// it's not guaranteed that the resources and cbuffers will come in the
+			// same order. However it's possible for two cbuffers to have the same
+			// name, so in that case we assume they will come in matching order
+			// and just append _ to subsequent cbuffers with the same name.
 			map<string, uint32_t> cbufferSlots;
 			uint32_t maxCBufferSlot = 0;
+
+			set<string> cbuffernames;
 
 			for(int32_t i = 0; i < h->resources.count; i++)
 			{
@@ -549,12 +556,21 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 				if(desc.type == ShaderInputBind::TYPE_CBUFFER)
 				{
-					cbufferSlots[desc.name] = desc.bindPoint;
+					string cname = desc.name;
+
+					while(cbuffernames.find(cname) != cbuffernames.end())
+						cname += "_";
+
+					cbuffernames.insert(cname);
+
+					cbufferSlots[cname] = desc.bindPoint;
 					maxCBufferSlot = RDCMAX(maxCBufferSlot, desc.bindPoint);
 				}
 
 				m_Resources.push_back(desc);
 			}
+
+			cbuffernames.clear();
 
 			if(h->cbuffers.count > 0)
 				m_CBuffers.resize(maxCBufferSlot+1);
@@ -634,10 +650,17 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 					cb.variables.push_back(v);
 				}
 
+				string cname = cb.name;
+
+				while(cbuffernames.find(cname) != cbuffernames.end())
+					cname += "_";
+
+				cbuffernames.insert(cname);
+
 				if(cb.descriptor.type == CBuffer::Descriptor::TYPE_CBUFFER)
 				{
-					RDCASSERT(cbufferSlots.find(cb.name) != cbufferSlots.end());
-					m_CBuffers[cbufferSlots[cb.name]] = cb;
+					RDCASSERT(cbufferSlots.find(cname) != cbufferSlots.end());
+					m_CBuffers[cbufferSlots[cname]] = cb;
 				}
 				else if(cb.descriptor.type == CBuffer::Descriptor::TYPE_RESOURCE_BIND_INFO)
 				{
