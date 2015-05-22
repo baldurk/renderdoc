@@ -1843,7 +1843,7 @@ namespace renderdocui.Windows.PipelineState
 
             string mainfile = "";
 
-            var files = new Dictionary<string, string>();
+            var files = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
             if (shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
             {
                 entryFunc = shaderDetails.DebugInfo.entryFunc;

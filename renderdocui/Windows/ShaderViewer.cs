@@ -1581,7 +1581,7 @@ namespace renderdocui.Windows
         {
             if (m_SaveCallback != null)
             {
-                var files = new Dictionary<string, string>();
+                var files = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase);
                 foreach (var s in m_Scintillas)
                     files.Add(s.Tag as string, s.Text);
                 m_SaveCallback(this, files);
