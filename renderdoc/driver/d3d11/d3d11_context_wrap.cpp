@@ -5553,6 +5553,9 @@ void WrappedID3D11DeviceContext::GenerateMips(ID3D11ShaderResourceView *pShaderR
 
 	m_EmptyCommandList = false;
 
+	if(!pShaderResourceView)
+		return;
+
 	if(m_State == WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(GENERATE_MIPS);
