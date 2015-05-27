@@ -2335,7 +2335,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(IDXGISwapChain *swap)
 
 		Keyboard::RemoveInputWindow(desc.OutputWindow);
 
-		RenderDoc::Inst().RemoveFrameCapturer(this, desc.OutputWindow);
+		RenderDoc::Inst().RemoveFrameCapturer((ID3D11Device *)this, desc.OutputWindow);
 	}
 
 	auto it = m_SwapChains.find(swap);
@@ -2444,7 +2444,7 @@ void WrappedID3D11Device::SetSwapChainTexture(IDXGISwapChain *swap, DXGI_SWAP_CH
 
 		Keyboard::AddInputWindow(sdesc.OutputWindow);
 
-		RenderDoc::Inst().AddFrameCapturer(this, sdesc.OutputWindow, this);
+		RenderDoc::Inst().AddFrameCapturer((ID3D11Device *)this, sdesc.OutputWindow, this);
 	}
 }
 
@@ -2990,7 +2990,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 	DXGI_SWAP_CHAIN_DESC swapdesc;
 	swap->GetDesc(&swapdesc);
-	bool activeWindow = RenderDoc::Inst().IsActiveWindow(this, swapdesc.OutputWindow);
+	bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D11Device *)this, swapdesc.OutputWindow);
 
 	if(m_State == WRITING_IDLE)
 	{
