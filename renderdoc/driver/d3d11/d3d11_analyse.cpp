@@ -3491,6 +3491,18 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	if(details.texFmt == DXGI_FORMAT_R32G32B32_UINT) details.texFmt = DXGI_FORMAT_R32G32B32A32_UINT;
 	if(details.texFmt == DXGI_FORMAT_R32G32B32_SINT) details.texFmt = DXGI_FORMAT_R32G32B32A32_SINT;
 
+	// these formats are only valid for depth textures at which point pixstore doesn't matter, so it
+	// can be anything.
+	if(details.texFmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS ||
+		 details.texFmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT ||
+		 details.texFmt == DXGI_FORMAT_R24G8_TYPELESS ||
+		 details.texFmt == DXGI_FORMAT_D24_UNORM_S8_UINT ||
+
+		 details.texFmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+		 details.texFmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
+		 details.texFmt == DXGI_FORMAT_R32G8X24_TYPELESS ||
+		 details.texFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT) details.texFmt = DXGI_FORMAT_R32G32B32A32_UINT;
+
 	// define a texture that we can copy before/after results into
 	D3D11_TEXTURE2D_DESC pixstoreDesc = {
 		RDCMIN(2048U, AlignUp16(pixstoreSlots)),
