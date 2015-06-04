@@ -1639,9 +1639,14 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
 		m_Real.glTextureImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Border, Format, Type, buf);
 
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -1788,6 +1793,10 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 		GLuint unpackbuf = 0;
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 		
 		if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
 		{
@@ -1814,6 +1823,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 		}
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -1966,9 +1976,14 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
 		m_Real.glTextureImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, IntFormat, Width, Height, Depth, Border, Format, Type, buf);
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2127,9 +2142,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage1DEXT(GLuint texture, GLen
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
 		m_Real.glCompressedTextureImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, fmt, Width, Border, byteSize, databuf);
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2287,6 +2307,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 		
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
 		if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
 		{
 			m_Real.glCompressedTextureImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, fmt, Width, Height, Border, byteSize, databuf);
@@ -2312,6 +2336,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage2DEXT(GLuint texture, GLen
 		}
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -2471,9 +2496,14 @@ bool WrappedOpenGL::Serialise_glCompressedTextureImage3DEXT(GLuint texture, GLen
 		m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&unpackbuf);
 		m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
+		GLint align = 1;
+		m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
 		m_Real.glCompressedTextureImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, fmt, Width, Height, Depth, Border, byteSize, databuf);
 		
 		if(unpackbuf) m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+		m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -3311,8 +3341,13 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
 		
 		if(Format == eGL_LUMINANCE)
 		{
@@ -3336,7 +3371,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 			m_Real.glTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, Width, Format, Type, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -3457,9 +3495,14 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-		
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
+
 		if(Format == eGL_LUMINANCE)
 		{
 			Format = eGL_RED;
@@ -3482,7 +3525,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 			m_Real.glTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff, Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -3605,9 +3651,14 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-		
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
+
 		if(Format == eGL_LUMINANCE)
 		{
 			Format = eGL_RED;
@@ -3630,7 +3681,10 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 			m_Real.glTextureSubImage3D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff, zoff, Width, Height, Depth, Format, Type, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -3747,8 +3801,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
 
 		if(Target != eGL_NONE)
 			m_Real.glCompressedTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, Width, fmt, byteSize, buf ? buf : (const void *)bufoffs);
@@ -3756,7 +3815,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 			m_Real.glCompressedTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, Width, fmt, byteSize, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -3875,8 +3937,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
 		
 		if(Target != eGL_NONE)
 			m_Real.glCompressedTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, Width, Height, fmt, byteSize, buf ? buf : (const void *)bufoffs);
@@ -3884,7 +3951,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 			m_Real.glCompressedTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff, Width, Height, fmt, byteSize, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
@@ -4005,8 +4075,13 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 	
 	if(m_State <= EXECUTING)
 	{
+		GLint align = 1;
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+			m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+		}
 		
 		if(Target != eGL_NONE)
 			m_Real.glCompressedTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf ? buf : (const void *)bufoffs);
@@ -4014,7 +4089,10 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 			m_Real.glCompressedTextureSubImage3D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize, buf ? buf : (const void *)bufoffs);
 
 		if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+		{
 			m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+			m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+		}
 
 		SAFE_DELETE_ARRAY(buf);
 	}
