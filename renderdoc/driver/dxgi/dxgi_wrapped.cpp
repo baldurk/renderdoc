@@ -473,6 +473,12 @@ HRESULT WrappedIDXGISwapChain2::Present1(UINT SyncInterval, UINT Flags, const DX
 
 bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
 {
+	if(ppvObject == NULL || *ppvObject == NULL)
+	{
+		RDCWARN("HandleWrap called with NULL ppvObject");
+		return false;
+	}
+
 	if(riid == __uuidof(IDXGIDevice))
 	{
 		// should have been handled elsewhere, so we can properly create this device
