@@ -613,55 +613,105 @@
     HookExtension(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline); \
     HookExtension(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IPROC,   glProgramUniform1i); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1IPROC,   glProgramUniform1i, glProgramUniform1iEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1IVPROC,  glProgramUniform1iv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1IVPROC,  glProgramUniform1iv, glProgramUniform1ivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1FPROC,   glProgramUniform1f); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1FPROC,   glProgramUniform1f, glProgramUniform1fEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1FVPROC,  glProgramUniform1fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1FVPROC,  glProgramUniform1fv, glProgramUniform1fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1DPROC,   glProgramUniform1d); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1DPROC,   glProgramUniform1d, glProgramUniform1dEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1DVPROC,  glProgramUniform1dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1DVPROC,  glProgramUniform1dv, glProgramUniform1dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1UIPROC,  glProgramUniform1ui); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1UIPROC,  glProgramUniform1ui, glProgramUniform1uiEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM1UIVPROC, glProgramUniform1uiv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM1UIVPROC, glProgramUniform1uiv, glProgramUniform1uivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2IPROC,   glProgramUniform2i); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2IPROC,   glProgramUniform2i, glProgramUniform2iEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2IVPROC,  glProgramUniform2iv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2IVPROC,  glProgramUniform2iv, glProgramUniform2ivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2FPROC,   glProgramUniform2f); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2FPROC,   glProgramUniform2f, glProgramUniform2fEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2FVPROC,  glProgramUniform2fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2FVPROC,  glProgramUniform2fv, glProgramUniform2fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2DPROC,   glProgramUniform2d); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2DPROC,   glProgramUniform2d, glProgramUniform2dEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2DVPROC,  glProgramUniform2dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2DVPROC,  glProgramUniform2dv, glProgramUniform2dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2UIPROC,  glProgramUniform2ui); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2UIPROC,  glProgramUniform2ui, glProgramUniform2uiEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM2UIVPROC, glProgramUniform2uiv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM2UIVPROC, glProgramUniform2uiv, glProgramUniform2uivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3IPROC,   glProgramUniform3i); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3IPROC,   glProgramUniform3i, glProgramUniform3iEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3IVPROC,  glProgramUniform3iv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3IVPROC,  glProgramUniform3iv, glProgramUniform3ivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3FPROC,   glProgramUniform3f); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3FPROC,   glProgramUniform3f, glProgramUniform3fEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3FVPROC,  glProgramUniform3fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3FVPROC,  glProgramUniform3fv, glProgramUniform3fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3DPROC,   glProgramUniform3d); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3DPROC,   glProgramUniform3d, glProgramUniform3dEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3DVPROC,  glProgramUniform3dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3DVPROC,  glProgramUniform3dv, glProgramUniform3dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3UIPROC,  glProgramUniform3ui); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3UIPROC,  glProgramUniform3ui, glProgramUniform3uiEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM3UIVPROC, glProgramUniform3uiv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM3UIVPROC, glProgramUniform3uiv, glProgramUniform3uivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4IPROC,   glProgramUniform4i); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4IPROC,   glProgramUniform4i, glProgramUniform4iEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4IVPROC,  glProgramUniform4iv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4IVPROC,  glProgramUniform4iv, glProgramUniform4ivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4FPROC,   glProgramUniform4f); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4FPROC,   glProgramUniform4f, glProgramUniform4fEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4FVPROC,  glProgramUniform4fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4FVPROC,  glProgramUniform4fv, glProgramUniform4fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4DPROC,   glProgramUniform4d); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4DPROC,   glProgramUniform4d, glProgramUniform4dEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4DVPROC,  glProgramUniform4dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4DVPROC,  glProgramUniform4dv, glProgramUniform4dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4UIPROC,  glProgramUniform4ui); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4UIPROC,  glProgramUniform4ui, glProgramUniform4uiEXT); \
     HookExtension(PFNGLPROGRAMUNIFORM4UIVPROC, glProgramUniform4uiv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORM4UIVPROC, glProgramUniform4uiv, glProgramUniform4uivEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2FVPROC,   glProgramUniformMatrix2fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2FVPROC,   glProgramUniformMatrix2fv, glProgramUniformMatrix2fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3FVPROC,   glProgramUniformMatrix3fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3FVPROC,   glProgramUniformMatrix3fv, glProgramUniformMatrix3fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4FVPROC,   glProgramUniformMatrix4fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4FVPROC,   glProgramUniformMatrix4fv, glProgramUniformMatrix4fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2DVPROC,   glProgramUniformMatrix2dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2DVPROC,   glProgramUniformMatrix2dv, glProgramUniformMatrix2dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3DVPROC,   glProgramUniformMatrix3dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3DVPROC,   glProgramUniformMatrix3dv, glProgramUniformMatrix3dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4DVPROC,   glProgramUniformMatrix4dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4DVPROC,   glProgramUniformMatrix4dv, glProgramUniformMatrix4dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC, glProgramUniformMatrix2x3fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC, glProgramUniformMatrix2x3fv, glProgramUniformMatrix2x3fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC, glProgramUniformMatrix3x2fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC, glProgramUniformMatrix3x2fv, glProgramUniformMatrix3x2fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC, glProgramUniformMatrix2x4fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC, glProgramUniformMatrix2x4fv, glProgramUniformMatrix2x4fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC, glProgramUniformMatrix4x2fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC, glProgramUniformMatrix4x2fv, glProgramUniformMatrix4x2fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC, glProgramUniformMatrix3x4fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC, glProgramUniformMatrix3x4fv, glProgramUniformMatrix3x4fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC, glProgramUniformMatrix4x3fv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC, glProgramUniformMatrix4x3fv, glProgramUniformMatrix4x3fvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC, glProgramUniformMatrix2x3dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC, glProgramUniformMatrix2x3dv, glProgramUniformMatrix2x3dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC, glProgramUniformMatrix3x2dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC, glProgramUniformMatrix3x2dv, glProgramUniformMatrix3x2dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC, glProgramUniformMatrix2x4dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC, glProgramUniformMatrix2x4dv, glProgramUniformMatrix2x4dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC, glProgramUniformMatrix4x2dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC, glProgramUniformMatrix4x2dv, glProgramUniformMatrix4x2dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC, glProgramUniformMatrix3x4dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC, glProgramUniformMatrix3x4dv, glProgramUniformMatrix3x4dvEXT); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv); \
+    HookExtensionAlias(PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC, glProgramUniformMatrix4x3dv, glProgramUniformMatrix4x3dvEXT); \
     HookExtension(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline); \
     HookExtension(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog); \
     HookExtension(PFNGLVERTEXATTRIBL1DPROC, glVertexAttribL1d); \
@@ -2605,39 +2655,6 @@
     HookWrapper2(void, glmatrixloadtransposedext, GLenum, mode, const GLdouble *, m); \
     HookWrapper2(void, glmatrixmulttransposefext, GLenum, mode, const GLfloat *, m); \
     HookWrapper2(void, glmatrixmulttransposedext, GLenum, mode, const GLdouble *, m); \
-    HookWrapper3(void, glprogramuniform1fext, GLuint, program, GLint, location, GLfloat, v0); \
-    HookWrapper4(void, glprogramuniform2fext, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1); \
-    HookWrapper5(void, glprogramuniform3fext, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2); \
-    HookWrapper6(void, glprogramuniform4fext, GLuint, program, GLint, location, GLfloat, v0, GLfloat, v1, GLfloat, v2, GLfloat, v3); \
-    HookWrapper3(void, glprogramuniform1iext, GLuint, program, GLint, location, GLint, v0); \
-    HookWrapper4(void, glprogramuniform2iext, GLuint, program, GLint, location, GLint, v0, GLint, v1); \
-    HookWrapper5(void, glprogramuniform3iext, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
-    HookWrapper6(void, glprogramuniform4iext, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2, GLint, v3); \
-    HookWrapper4(void, glprogramuniform1fvext, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glprogramuniform2fvext, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glprogramuniform3fvext, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glprogramuniform4fvext, GLuint, program, GLint, location, GLsizei, count, const GLfloat *, value); \
-    HookWrapper4(void, glprogramuniform1ivext, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
-    HookWrapper4(void, glprogramuniform2ivext, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
-    HookWrapper4(void, glprogramuniform3ivext, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
-    HookWrapper4(void, glprogramuniform4ivext, GLuint, program, GLint, location, GLsizei, count, const GLint *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2x3fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3x2fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2x4fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4x2fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3x4fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4x3fvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
-    HookWrapper3(void, glprogramuniform1uiext, GLuint, program, GLint, location, GLuint, v0); \
-    HookWrapper4(void, glprogramuniform2uiext, GLuint, program, GLint, location, GLuint, v0, GLuint, v1); \
-    HookWrapper5(void, glprogramuniform3uiext, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
-    HookWrapper6(void, glprogramuniform4uiext, GLuint, program, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2, GLuint, v3); \
-    HookWrapper4(void, glprogramuniform1uivext, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
-    HookWrapper4(void, glprogramuniform2uivext, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
-    HookWrapper4(void, glprogramuniform3uivext, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
-    HookWrapper4(void, glprogramuniform4uivext, GLuint, program, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper5(void, glnamedprogramlocalparameters4fvext, GLuint, program, GLenum, target, GLuint, index, GLsizei, count, const GLfloat *, params); \
     HookWrapper7(void, glnamedprogramlocalparameteri4iext, GLuint, program, GLenum, target, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
     HookWrapper4(void, glnamedprogramlocalparameteri4ivext, GLuint, program, GLenum, target, GLuint, index, const GLint *, params); \
@@ -2672,23 +2689,6 @@
     HookWrapper6(void, glvertexarraysecondarycoloroffsetext, GLuint, vaobj, GLuint, buffer, GLint, size, GLenum, type, GLsizei, stride, GLintptr, offset); \
     HookWrapper2(void, glenablevertexarrayext, GLuint, vaobj, GLenum, array); \
     HookWrapper2(void, gldisablevertexarrayext, GLuint, vaobj, GLenum, array); \
-    HookWrapper3(void, glprogramuniform1dext, GLuint, program, GLint, location, GLdouble, x); \
-    HookWrapper4(void, glprogramuniform2dext, GLuint, program, GLint, location, GLdouble, x, GLdouble, y); \
-    HookWrapper5(void, glprogramuniform3dext, GLuint, program, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z); \
-    HookWrapper6(void, glprogramuniform4dext, GLuint, program, GLint, location, GLdouble, x, GLdouble, y, GLdouble, z, GLdouble, w); \
-    HookWrapper4(void, glprogramuniform1dvext, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
-    HookWrapper4(void, glprogramuniform2dvext, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
-    HookWrapper4(void, glprogramuniform3dvext, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
-    HookWrapper4(void, glprogramuniform4dvext, GLuint, program, GLint, location, GLsizei, count, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2x3dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix2x4dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3x2dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix3x4dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4x2dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
-    HookWrapper5(void, glprogramuniformmatrix4x3dvext, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLdouble *, value); \
     HookWrapper9(void, gltexturepagecommitmentext, GLuint, texture, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, commit); \
     HookWrapper1(void, glfogcoordfext, GLfloat, coord); \
     HookWrapper1(void, glfogcoordfvext, const GLfloat *, coord); \
@@ -4153,39 +4153,6 @@
     HandleUnsupported(PFNGLMATRIXLOADTRANSPOSEDEXTPROC, glmatrixloadtransposedext); \
     HandleUnsupported(PFNGLMATRIXMULTTRANSPOSEFEXTPROC, glmatrixmulttransposefext); \
     HandleUnsupported(PFNGLMATRIXMULTTRANSPOSEDEXTPROC, glmatrixmulttransposedext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1FEXTPROC, glprogramuniform1fext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2FEXTPROC, glprogramuniform2fext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3FEXTPROC, glprogramuniform3fext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4FEXTPROC, glprogramuniform4fext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1IEXTPROC, glprogramuniform1iext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2IEXTPROC, glprogramuniform2iext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3IEXTPROC, glprogramuniform3iext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4IEXTPROC, glprogramuniform4iext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1FVEXTPROC, glprogramuniform1fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2FVEXTPROC, glprogramuniform2fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3FVEXTPROC, glprogramuniform3fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4FVEXTPROC, glprogramuniform4fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1IVEXTPROC, glprogramuniform1ivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2IVEXTPROC, glprogramuniform2ivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3IVEXTPROC, glprogramuniform3ivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4IVEXTPROC, glprogramuniform4ivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2FVEXTPROC, glprogramuniformmatrix2fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3FVEXTPROC, glprogramuniformmatrix3fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4FVEXTPROC, glprogramuniformmatrix4fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2X3FVEXTPROC, glprogramuniformmatrix2x3fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3X2FVEXTPROC, glprogramuniformmatrix3x2fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2X4FVEXTPROC, glprogramuniformmatrix2x4fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4X2FVEXTPROC, glprogramuniformmatrix4x2fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3X4FVEXTPROC, glprogramuniformmatrix3x4fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4X3FVEXTPROC, glprogramuniformmatrix4x3fvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1UIEXTPROC, glprogramuniform1uiext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2UIEXTPROC, glprogramuniform2uiext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3UIEXTPROC, glprogramuniform3uiext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4UIEXTPROC, glprogramuniform4uiext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1UIVEXTPROC, glprogramuniform1uivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2UIVEXTPROC, glprogramuniform2uivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3UIVEXTPROC, glprogramuniform3uivext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4UIVEXTPROC, glprogramuniform4uivext); \
     HandleUnsupported(PFNGLNAMEDPROGRAMLOCALPARAMETERS4FVEXTPROC, glnamedprogramlocalparameters4fvext); \
     HandleUnsupported(PFNGLNAMEDPROGRAMLOCALPARAMETERI4IEXTPROC, glnamedprogramlocalparameteri4iext); \
     HandleUnsupported(PFNGLNAMEDPROGRAMLOCALPARAMETERI4IVEXTPROC, glnamedprogramlocalparameteri4ivext); \
@@ -4220,23 +4187,6 @@
     HandleUnsupported(PFNGLVERTEXARRAYSECONDARYCOLOROFFSETEXTPROC, glvertexarraysecondarycoloroffsetext); \
     HandleUnsupported(PFNGLENABLEVERTEXARRAYEXTPROC, glenablevertexarrayext); \
     HandleUnsupported(PFNGLDISABLEVERTEXARRAYEXTPROC, gldisablevertexarrayext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1DEXTPROC, glprogramuniform1dext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2DEXTPROC, glprogramuniform2dext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3DEXTPROC, glprogramuniform3dext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4DEXTPROC, glprogramuniform4dext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM1DVEXTPROC, glprogramuniform1dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM2DVEXTPROC, glprogramuniform2dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM3DVEXTPROC, glprogramuniform3dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORM4DVEXTPROC, glprogramuniform4dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2DVEXTPROC, glprogramuniformmatrix2dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3DVEXTPROC, glprogramuniformmatrix3dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4DVEXTPROC, glprogramuniformmatrix4dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2X3DVEXTPROC, glprogramuniformmatrix2x3dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX2X4DVEXTPROC, glprogramuniformmatrix2x4dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3X2DVEXTPROC, glprogramuniformmatrix3x2dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX3X4DVEXTPROC, glprogramuniformmatrix3x4dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4X2DVEXTPROC, glprogramuniformmatrix4x2dvext); \
-    HandleUnsupported(PFNGLPROGRAMUNIFORMMATRIX4X3DVEXTPROC, glprogramuniformmatrix4x3dvext); \
     HandleUnsupported(PFNGLTEXTUREPAGECOMMITMENTEXTPROC, gltexturepagecommitmentext); \
     HandleUnsupported(PFNGLFOGCOORDFEXTPROC, glfogcoordfext); \
     HandleUnsupported(PFNGLFOGCOORDFVEXTPROC, glfogcoordfvext); \

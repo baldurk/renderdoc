@@ -531,56 +531,56 @@ struct GLHookSet
 	PFNGLUNIFORMMATRIX4DVPROC   glUniformMatrix4dv;
 	PFNGLUNIFORMMATRIX4X2DVPROC glUniformMatrix4x2dv;
 	PFNGLUNIFORMMATRIX4X3DVPROC glUniformMatrix4x3dv;
-	PFNGLPROGRAMUNIFORM1FPROC   glProgramUniform1f;
-	PFNGLPROGRAMUNIFORM1IPROC   glProgramUniform1i;
-	PFNGLPROGRAMUNIFORM1UIPROC  glProgramUniform1ui;
-	PFNGLPROGRAMUNIFORM1DPROC   glProgramUniform1d;
-	PFNGLPROGRAMUNIFORM2FPROC   glProgramUniform2f;
-	PFNGLPROGRAMUNIFORM2IPROC   glProgramUniform2i;
-	PFNGLPROGRAMUNIFORM2UIPROC  glProgramUniform2ui;
-	PFNGLPROGRAMUNIFORM2DPROC   glProgramUniform2d;
-	PFNGLPROGRAMUNIFORM3FPROC   glProgramUniform3f;
-	PFNGLPROGRAMUNIFORM3IPROC   glProgramUniform3i;
-	PFNGLPROGRAMUNIFORM3UIPROC  glProgramUniform3ui;
-	PFNGLPROGRAMUNIFORM3DPROC   glProgramUniform3d;
-	PFNGLPROGRAMUNIFORM4FPROC   glProgramUniform4f;
-	PFNGLPROGRAMUNIFORM4IPROC   glProgramUniform4i;
-	PFNGLPROGRAMUNIFORM4UIPROC  glProgramUniform4ui;
-	PFNGLPROGRAMUNIFORM4DPROC   glProgramUniform4d;
-	PFNGLPROGRAMUNIFORM1FVPROC  glProgramUniform1fv;
-	PFNGLPROGRAMUNIFORM1IVPROC  glProgramUniform1iv;
-	PFNGLPROGRAMUNIFORM1UIVPROC glProgramUniform1uiv;
-	PFNGLPROGRAMUNIFORM1DVPROC  glProgramUniform1dv;
-	PFNGLPROGRAMUNIFORM2FVPROC  glProgramUniform2fv;
-	PFNGLPROGRAMUNIFORM2IVPROC  glProgramUniform2iv;
-	PFNGLPROGRAMUNIFORM2UIVPROC glProgramUniform2uiv;
-	PFNGLPROGRAMUNIFORM2DVPROC  glProgramUniform2dv;
-	PFNGLPROGRAMUNIFORM3FVPROC  glProgramUniform3fv;
-	PFNGLPROGRAMUNIFORM3IVPROC  glProgramUniform3iv;
-	PFNGLPROGRAMUNIFORM3UIVPROC glProgramUniform3uiv;
-	PFNGLPROGRAMUNIFORM3DVPROC  glProgramUniform3dv;
-	PFNGLPROGRAMUNIFORM4FVPROC  glProgramUniform4fv;
-	PFNGLPROGRAMUNIFORM4IVPROC  glProgramUniform4iv;
-	PFNGLPROGRAMUNIFORM4UIVPROC glProgramUniform4uiv;
-	PFNGLPROGRAMUNIFORM4DVPROC  glProgramUniform4dv;
-	PFNGLPROGRAMUNIFORMMATRIX2FVPROC   glProgramUniformMatrix2fv;
-	PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC glProgramUniformMatrix2x3fv;
-	PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC glProgramUniformMatrix2x4fv;
-	PFNGLPROGRAMUNIFORMMATRIX3FVPROC   glProgramUniformMatrix3fv;
-	PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC glProgramUniformMatrix3x2fv;
-	PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC glProgramUniformMatrix3x4fv;
-	PFNGLPROGRAMUNIFORMMATRIX4FVPROC   glProgramUniformMatrix4fv;
-	PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC glProgramUniformMatrix4x2fv;
-	PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC glProgramUniformMatrix4x3fv;
-	PFNGLPROGRAMUNIFORMMATRIX2DVPROC   glProgramUniformMatrix2dv;
-	PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC glProgramUniformMatrix2x3dv;
-	PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC glProgramUniformMatrix2x4dv;
-	PFNGLPROGRAMUNIFORMMATRIX3DVPROC   glProgramUniformMatrix3dv;
-	PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC glProgramUniformMatrix3x2dv;
-	PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC glProgramUniformMatrix3x4dv;
-	PFNGLPROGRAMUNIFORMMATRIX4DVPROC   glProgramUniformMatrix4dv;
-	PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC glProgramUniformMatrix4x2dv;
-	PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC glProgramUniformMatrix4x3dv;
+	PFNGLPROGRAMUNIFORM1FPROC   glProgramUniform1f; // aliases glProgramUniform1fEXT
+	PFNGLPROGRAMUNIFORM1IPROC   glProgramUniform1i; // aliases glProgramUniform1iEXT
+	PFNGLPROGRAMUNIFORM1UIPROC  glProgramUniform1ui; // aliases glProgramUniform1uiEXT
+	PFNGLPROGRAMUNIFORM1DPROC   glProgramUniform1d; // aliases glProgramUniform1dEXT
+	PFNGLPROGRAMUNIFORM2FPROC   glProgramUniform2f; // aliases glProgramUniform2fEXT
+	PFNGLPROGRAMUNIFORM2IPROC   glProgramUniform2i; // aliases glProgramUniform2iEXT
+	PFNGLPROGRAMUNIFORM2UIPROC  glProgramUniform2ui; // aliases glProgramUniform2uiEXT
+	PFNGLPROGRAMUNIFORM2DPROC   glProgramUniform2d; // aliases glProgramUniform2dEXT
+	PFNGLPROGRAMUNIFORM3FPROC   glProgramUniform3f; // aliases glProgramUniform3fEXT
+	PFNGLPROGRAMUNIFORM3IPROC   glProgramUniform3i; // aliases glProgramUniform3iEXT
+	PFNGLPROGRAMUNIFORM3UIPROC  glProgramUniform3ui; // aliases glProgramUniform3uiEXT
+	PFNGLPROGRAMUNIFORM3DPROC   glProgramUniform3d; // aliases glProgramUniform3dEXT
+	PFNGLPROGRAMUNIFORM4FPROC   glProgramUniform4f; // aliases glProgramUniform4fEXT
+	PFNGLPROGRAMUNIFORM4IPROC   glProgramUniform4i; // aliases glProgramUniform4iEXT
+	PFNGLPROGRAMUNIFORM4UIPROC  glProgramUniform4ui; // aliases glProgramUniform4uiEXT
+	PFNGLPROGRAMUNIFORM4DPROC   glProgramUniform4d; // aliases glProgramUniform4dEXT
+	PFNGLPROGRAMUNIFORM1FVPROC  glProgramUniform1fv; // aliases glProgramUniform1fvEXT
+	PFNGLPROGRAMUNIFORM1IVPROC  glProgramUniform1iv; // aliases glProgramUniform1ivEXT
+	PFNGLPROGRAMUNIFORM1UIVPROC glProgramUniform1uiv; // aliases glProgramUniform1uivEXT
+	PFNGLPROGRAMUNIFORM1DVPROC  glProgramUniform1dv; // aliases glProgramUniform1dvEXT
+	PFNGLPROGRAMUNIFORM2FVPROC  glProgramUniform2fv; // aliases glProgramUniform2fvEXT
+	PFNGLPROGRAMUNIFORM2IVPROC  glProgramUniform2iv; // aliases glProgramUniform2ivEXT
+	PFNGLPROGRAMUNIFORM2UIVPROC glProgramUniform2uiv; // aliases glProgramUniform2uivEXT
+	PFNGLPROGRAMUNIFORM2DVPROC  glProgramUniform2dv; // aliases glProgramUniform2dvEXT
+	PFNGLPROGRAMUNIFORM3FVPROC  glProgramUniform3fv; // aliases glProgramUniform3fvEXT
+	PFNGLPROGRAMUNIFORM3IVPROC  glProgramUniform3iv; // aliases glProgramUniform3ivEXT
+	PFNGLPROGRAMUNIFORM3UIVPROC glProgramUniform3uiv; // aliases glProgramUniform3uivEXT
+	PFNGLPROGRAMUNIFORM3DVPROC  glProgramUniform3dv; // aliases glProgramUniform3dvEXT
+	PFNGLPROGRAMUNIFORM4FVPROC  glProgramUniform4fv; // aliases glProgramUniform4fvEXT
+	PFNGLPROGRAMUNIFORM4IVPROC  glProgramUniform4iv; // aliases glProgramUniform4ivEXT
+	PFNGLPROGRAMUNIFORM4UIVPROC glProgramUniform4uiv; // aliases glProgramUniform4uivEXT
+	PFNGLPROGRAMUNIFORM4DVPROC  glProgramUniform4dv; // aliases glProgramUniform4dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2FVPROC   glProgramUniformMatrix2fv; // aliases glProgramUniformMatrix2fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC glProgramUniformMatrix2x3fv; // aliases glProgramUniformMatrix2x3fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC glProgramUniformMatrix2x4fv; // aliases glProgramUniformMatrix2x4fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3FVPROC   glProgramUniformMatrix3fv; // aliases glProgramUniformMatrix3fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC glProgramUniformMatrix3x2fv; // aliases glProgramUniformMatrix3x2fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC glProgramUniformMatrix3x4fv; // aliases glProgramUniformMatrix3x4fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4FVPROC   glProgramUniformMatrix4fv; // aliases glProgramUniformMatrix4fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC glProgramUniformMatrix4x2fv; // aliases glProgramUniformMatrix4x2fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC glProgramUniformMatrix4x3fv; // aliases glProgramUniformMatrix4x3fvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2DVPROC   glProgramUniformMatrix2dv; // aliases glProgramUniformMatrix2dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC glProgramUniformMatrix2x3dv; // aliases glProgramUniformMatrix2x3dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC glProgramUniformMatrix2x4dv; // aliases glProgramUniformMatrix2x4dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3DVPROC   glProgramUniformMatrix3dv; // aliases glProgramUniformMatrix3dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC glProgramUniformMatrix3x2dv; // aliases glProgramUniformMatrix3x2dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC glProgramUniformMatrix3x4dv; // aliases glProgramUniformMatrix3x4dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4DVPROC   glProgramUniformMatrix4dv; // aliases glProgramUniformMatrix4dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC glProgramUniformMatrix4x2dv; // aliases glProgramUniformMatrix4x2dvEXT
+	PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC glProgramUniformMatrix4x3dv; // aliases glProgramUniformMatrix4x3dvEXT
 	PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements; // aliases glDrawRangeElementsEXT
 	PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC glDrawRangeElementsBaseVertex;
 	PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC glDrawArraysInstancedBaseInstance;
