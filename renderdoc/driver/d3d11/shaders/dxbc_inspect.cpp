@@ -570,6 +570,39 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 				m_Resources.push_back(desc);
 			}
 
+			// Expand out any array resources. We deliberately place these at the end of the resources
+			// array, so that any non-array resources can be picked up first before any arrays.
+			//
+			// The reason for this is that an array element could refer to an un-used alias in a bind
+			// point, and an individual non-array resoruce will always refer to the used alias (an
+			// un-used individual resource will be omitted entirely from the reflection
+			for(size_t i=0; i < m_Resources.size(); )
+			{
+				if(m_Resources[i].bindCount > 1)
+				{
+					ShaderInputBind desc = m_Resources[i];
+					m_Resources.erase(m_Resources.begin()+i);
+
+					string rname = desc.name;
+					uint32_t arraySize = desc.bindCount;
+
+					desc.bindCount = 1;
+
+					for(uint32_t i=0; i < arraySize; i++)
+					{
+						desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), i);
+						m_Resources.push_back(desc);
+						desc.bindPoint++;
+					}
+
+					// continue from the i'th element again since
+					// we just removed it.
+					continue;
+				}
+
+				i++;
+			}
+
 			cbuffernames.clear();
 
 			if(h->cbuffers.count > 0)

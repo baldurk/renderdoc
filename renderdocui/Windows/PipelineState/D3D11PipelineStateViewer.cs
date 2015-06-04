@@ -259,7 +259,10 @@ namespace renderdocui.Windows.PipelineState
                         foreach (var bind in shaderDetails.Resources)
                         {
                             if (bind.IsSRV && bind.bindPoint == i)
+                            {
                                 shaderInput = bind;
+                                break;
+                            }
                         }
                     }
 
@@ -380,7 +383,10 @@ namespace renderdocui.Windows.PipelineState
                         foreach (var bind in shaderDetails.Resources)
                         {
                             if (bind.IsSampler && bind.bindPoint == i)
+                            {
                                 shaderInput = bind;
+                                break;
+                            }
                         }
                     }
 
@@ -891,7 +897,10 @@ namespace renderdocui.Windows.PipelineState
                         foreach (var bind in state.m_CS.ShaderDetails.Resources)
                         {
                             if (bind.IsReadWrite && bind.bindPoint == i)
+                            {
                                 shaderInput = bind;
+                                break;
+                            }
                         }
                     }
 
@@ -1205,7 +1214,10 @@ namespace renderdocui.Windows.PipelineState
                         foreach (var bind in state.m_PS.ShaderDetails.Resources)
                         {
                             if (bind.IsReadWrite && bind.bindPoint == i + state.m_OM.UAVStartSlot)
+                            {
                                 shaderInput = bind;
+                                break;
+                            }
                         }
                     }
 
@@ -2424,7 +2436,10 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var bind in refl.Resources)
                 {
                     if (bind.IsReadWrite && bind.bindPoint == i)
+                    {
                         shaderInput = bind;
+                        break;
+                    }
                 }
             }
 
