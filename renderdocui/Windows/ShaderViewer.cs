@@ -248,7 +248,7 @@ namespace renderdocui.Windows
                 scintilla1.Tag = name;
 
                 scintilla1.PreviewKeyDown += new PreviewKeyDownEventHandler(scintilla1_PreviewKeyDown);
-                scintilla1.KeyDown += new KeyEventHandler(scintilla1_KeyDown);
+                scintilla1.KeyDown += new KeyEventHandler(editScintilla_KeyDown);
 
                 m_Scintillas.Add(scintilla1);
 
@@ -280,11 +280,42 @@ namespace renderdocui.Windows
             this.ResumeLayout(false);
         }
 
-        void scintilla1_KeyDown(object sender, KeyEventArgs e)
+        void editScintilla_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.S && e.Control)
             {
                 e.SuppressKeyPress = true;
+            }
+            else
+            {
+                readonlyScintilla_KeyDown(sender, e);
+            }
+        }
+
+        void readonlyScintilla_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F3 && e.Control)
+            {
+                ScintillaNET.Range range = null;
+
+                ScintillaNET.Scintilla sc = sender as ScintillaNET.Scintilla;
+
+                if(sc != null)
+                {
+                    string search = sc.GetWordFromPosition(sc.CurrentPos);
+                    if (sc.Selection.Length > 0)
+                        search = sc.Selection.Text;
+
+                    if (e.Shift)
+                        range = sc.FindReplace.FindPrevious(search, true, ScintillaNET.SearchFlags.MatchCase);
+                    else
+                        range = sc.FindReplace.FindNext(search, true, ScintillaNET.SearchFlags.MatchCase);
+
+                    sc.FindReplace.ClearAllHighlights();
+                    sc.FindReplace.HighlightAll(sc.FindReplace.FindAll(search, ScintillaNET.SearchFlags.MatchCase));
+
+                    sc.Selection.Range = range;
+                }
             }
         }
 
@@ -441,6 +472,7 @@ namespace renderdocui.Windows
                 m_DisassemblyView.TabIndex = 0;
 
                 m_DisassemblyView.KeyDown += new KeyEventHandler(m_DisassemblyView_KeyDown);
+                m_DisassemblyView.KeyDown += new KeyEventHandler(readonlyScintilla_KeyDown);
 
                 m_DisassemblyView.Markers[CURRENT_MARKER].BackColor = System.Drawing.Color.LightCoral;
                 m_DisassemblyView.Markers[CURRENT_MARKER].Symbol = ScintillaNET.MarkerSymbol.Background;
@@ -498,6 +530,8 @@ namespace renderdocui.Windows
                     scintilla1.IsReadOnly = true;
 
                     scintilla1.Tag = name;
+
+                    scintilla1.KeyDown += new KeyEventHandler(readonlyScintilla_KeyDown);
 
                     var w = Helpers.WrapDockContent(dockPanel, scintilla1, name);
                     w.CloseButton = false;
