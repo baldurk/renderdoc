@@ -159,7 +159,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 			// if we're just reading, make sure not to trample state (e.g. element array buffer
 			// binding in a VAO), since this is just a bind-to-create chunk.
 			GLuint prevbuf = 0;
-			if(m_State == READING && m_CurEventID == 0)
+			if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
 				m_Real.glGetIntegerv(BufferBinding(Target), (GLint *)&prevbuf);
 
 			GLResource res = GetResourceManager()->GetLiveResource(Id);
@@ -167,7 +167,7 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 
 			m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
 
-			if(m_State == READING && m_CurEventID == 0)
+			if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
 				m_Real.glBindBuffer(Target, prevbuf);
 		}
 	}
