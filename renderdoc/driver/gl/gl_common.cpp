@@ -1283,7 +1283,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 				name += StringFormat::Fmt("[%d]", arr);
 
 				if(ReadSourceProgram)
-					srcLocation = gl.glGetUniformLocation(progDst, name.c_str());
+					srcLocation = gl.glGetUniformLocation(progSrc, name.c_str());
 			}
 			
 			if(SerialiseUniforms)
