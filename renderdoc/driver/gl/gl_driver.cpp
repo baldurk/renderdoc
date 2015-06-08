@@ -381,6 +381,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_depth_clamp");
 	globalExts.push_back("GL_ARB_depth_texture");
 	globalExts.push_back("GL_ARB_derivative_control");
+	globalExts.push_back("GL_ARB_direct_state_access");
 	globalExts.push_back("GL_ARB_draw_buffers");
 	globalExts.push_back("GL_ARB_draw_buffers_blend");
 	globalExts.push_back("GL_ARB_draw_elements_base_vertex");
@@ -575,7 +576,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	Only very important/commonly used vendor extensions will be supported, generally I'll
 	stick to ARB, EXT and KHR.
 
-	* GL_ARB_direct_state_access (Required for 4.5)
 	* GL_ARB_bindless_texture
 	* GL_ARB_cl_event
 	* GL_ARB_sparse_buffer
