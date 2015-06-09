@@ -122,7 +122,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
 
 GLenum GetBaseFormat(GLenum internalFormat)
 {
-	switch(internalFormat)
+	switch((int)internalFormat)
 	{
 		case eGL_R8:
 		case eGL_R8_SNORM:
@@ -133,6 +133,12 @@ GLenum GetBaseFormat(GLenum internalFormat)
 			return eGL_RED;
 		case eGL_ALPHA8_EXT:
 			return eGL_ALPHA;
+		case eGL_LUMINANCE:
+			return eGL_LUMINANCE;
+		case eGL_LUMINANCE_ALPHA:
+			return eGL_LUMINANCE_ALPHA;
+		case eGL_INTENSITY:
+			return eGL_INTENSITY;
 		case eGL_R8I:
 		case eGL_R16I:
 		case eGL_R32I:
@@ -222,7 +228,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
 
 GLenum GetDataType(GLenum internalFormat)
 {
-	switch(internalFormat)
+	switch((int)internalFormat)
 	{
 		case eGL_RGBA8UI:
 		case eGL_RG8UI:
@@ -313,6 +319,9 @@ GLenum GetDataType(GLenum internalFormat)
 		case eGL_STENCIL_INDEX8:
 			return eGL_UNSIGNED_BYTE;
 		case eGL_ALPHA8_EXT:
+		case eGL_LUMINANCE_ALPHA:
+		case eGL_LUMINANCE:
+		case eGL_INTENSITY:
 			return eGL_UNSIGNED_BYTE;
 		default:
 			break;
@@ -451,7 +460,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 	return internalFormat;
 }
 
-void EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat)
+bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat)
 {
 	GLenum swizzle[] = { eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA };
 
@@ -534,11 +543,13 @@ void EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
 			swizzle[3] = eGL_GREEN;
 			break;
 		default:
-			return;
+			return false;
 	}
 
 	if(tex)
 		gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)swizzle);
+
+	return true;
 }
 
 bool IsCompressedFormat(GLenum internalFormat)

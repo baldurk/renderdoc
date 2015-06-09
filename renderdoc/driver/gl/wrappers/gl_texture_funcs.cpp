@@ -1619,7 +1619,7 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
 
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
@@ -1630,6 +1630,7 @@ bool WrappedOpenGL::Serialise_glTextureImage1DEXT(GLuint texture, GLenum target,
 			if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 1;
 			m_Textures[liveId].internalFormat = IntFormat;
+			m_Textures[liveId].emulated = emulated;
 		}
 
 		// for creation type chunks we forcibly don't use the unpack buffers as we
@@ -1774,7 +1775,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
 
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
@@ -1785,6 +1786,7 @@ bool WrappedOpenGL::Serialise_glTextureImage2DEXT(GLuint texture, GLenum target,
 			if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 2;
 			m_Textures[liveId].internalFormat = IntFormat;
+			m_Textures[liveId].emulated = emulated;
 		}
 		
 		// for creation type chunks we forcibly don't use the unpack buffers as we
@@ -1956,7 +1958,7 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 	
 	if(m_State == READING)
 	{
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, IntFormat, Format);
 
 		if(Level == 0) // assume level 0 will always get a glTexImage call
 		{
@@ -1967,6 +1969,7 @@ bool WrappedOpenGL::Serialise_glTextureImage3DEXT(GLuint texture, GLenum target,
 			if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 			m_Textures[liveId].dimension = 3;
 			m_Textures[liveId].internalFormat = IntFormat;
+			m_Textures[liveId].emulated = emulated;
 		}
 		
 		// for creation type chunks we forcibly don't use the unpack buffers as we
@@ -2836,7 +2839,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 	if(m_State == READING)
 	{
 		GLenum dummy;
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
@@ -2845,6 +2848,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 		if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 1;
 		m_Textures[liveId].internalFormat = Format;
+		m_Textures[liveId].emulated = emulated;
 
 		if(Target != eGL_NONE)
 			m_Real.glTextureStorage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width);
@@ -2929,7 +2933,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum targe
 	if(m_State == READING)
 	{
 		GLenum dummy;
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
@@ -2938,6 +2942,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum targe
 		if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 2;
 		m_Textures[liveId].internalFormat = Format;
+		m_Textures[liveId].emulated = emulated;
 
 		if(Target != eGL_NONE)
 			m_Real.glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height);
@@ -3021,7 +3026,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum targe
 	if(m_State == READING)
 	{
 		GLenum dummy;
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
@@ -3030,6 +3035,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum targe
 		if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 3;
 		m_Textures[liveId].internalFormat = Format;
+		m_Textures[liveId].emulated = emulated;
 
 		if(Target != eGL_NONE)
 			m_Real.glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels, Format, Width, Height, Depth);
@@ -3113,7 +3119,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, G
 	if(m_State == READING)
 	{
 		GLenum dummy;
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
@@ -3123,6 +3129,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, G
 		if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 2;
 		m_Textures[liveId].internalFormat = Format;
+		m_Textures[liveId].emulated = emulated;
 		
 		if(Target != eGL_NONE)
 			m_Real.glTextureStorage2DMultisampleEXT(GetResourceManager()->GetLiveResource(id).name, Target, Samples, Format, Width, Height, Fixedlocs ? GL_TRUE : GL_FALSE);
@@ -3221,7 +3228,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, G
 	if(m_State == READING)
 	{
 		GLenum dummy;
-		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+		bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
 
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
@@ -3231,6 +3238,7 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, G
 		if(Target != eGL_NONE) m_Textures[liveId].curType = TextureTarget(Target);
 		m_Textures[liveId].dimension = 2;
 		m_Textures[liveId].internalFormat = Format;
+		m_Textures[liveId].emulated = emulated;
 		
 		if(Target != eGL_NONE)
 			m_Real.glTextureStorage3DMultisampleEXT(GetResourceManager()->GetLiveResource(id).name, Target, Samples, Format, Width, Height, Depth, Fixedlocs ? GL_TRUE : GL_FALSE);

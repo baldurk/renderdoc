@@ -987,6 +987,9 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 					gl.glBindTexture(textype, prevtex);
 				}
 
+				GLenum dummy;
+				EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
+
 				// create texture of identical format/size to store initial contents
 				if(textype == eGL_TEXTURE_BUFFER)
 				{
@@ -1419,7 +1422,10 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_BASE_LEVEL, (GLint *)&state->baseLevel);
 			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_MAX_LEVEL, (GLint *)&state->maxLevel);
-			gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)state->swizzle);
+
+			// assume that emulated (luminance, alpha-only etc) textures are not swizzled
+			if(!details.emulated)
+				gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)state->swizzle);
 
 			if(!ms)
 			{

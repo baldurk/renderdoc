@@ -221,7 +221,7 @@ class WrappedOpenGL : public IFrameCapturer
 		struct TextureData
 		{
 			TextureData()
-				: curType(eGL_NONE), dimension(0)
+				: curType(eGL_NONE), dimension(0), emulated(false)
 				, width(0), height(0), depth(0), samples(0)
 				, creationFlags(0), internalFormat(eGL_NONE)
 				, renderbufferReadTex(0)
@@ -231,6 +231,7 @@ class WrappedOpenGL : public IFrameCapturer
 			GLResource resource;
 			GLenum curType;
 			GLint dimension;
+			bool emulated;
 			GLint width, height, depth, samples;
 			uint32_t creationFlags;
 			GLenum internalFormat;
