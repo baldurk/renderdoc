@@ -2835,6 +2835,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum targe
 
 	if(m_State == READING)
 	{
+		GLenum dummy;
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = 1;
@@ -2925,6 +2928,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum targe
 
 	if(m_State == READING)
 	{
+		GLenum dummy;
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
@@ -3014,6 +3020,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum targe
 
 	if(m_State == READING)
 	{
+		GLenum dummy;
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
@@ -3103,6 +3112,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, G
 
 	if(m_State == READING)
 	{
+		GLenum dummy;
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
@@ -3208,6 +3220,9 @@ bool WrappedOpenGL::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, G
 
 	if(m_State == READING)
 	{
+		GLenum dummy;
+		EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name, Target, Format, dummy);
+
 		ResourceId liveId = GetResourceManager()->GetLiveID(id);
 		m_Textures[liveId].width = Width;
 		m_Textures[liveId].height = Height;
