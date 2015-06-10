@@ -45,20 +45,26 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 				liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name));
 				break;
 			case eGL_BUFFER:
+			case eGL_BUFFER_OBJECT_EXT:
 				liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name));
 				break;
+			case eGL_PROGRAM_OBJECT_EXT:
 			case eGL_PROGRAM:
 				liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name));
 				break;
+			case eGL_PROGRAM_PIPELINE_OBJECT_EXT:
 			case eGL_PROGRAM_PIPELINE:
 				liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
 				break;
+			case eGL_VERTEX_ARRAY_OBJECT_EXT:
 			case eGL_VERTEX_ARRAY:
 				liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
 				break;
 			case eGL_SHADER:
+			case eGL_SHADER_OBJECT_EXT:
 				liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name));
 				break;
+			case eGL_QUERY_OBJECT_EXT:
 			case eGL_QUERY:
 				liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name));
 				break;
