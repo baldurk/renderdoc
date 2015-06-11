@@ -849,7 +849,7 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 														OM.UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);
 }
 
-void D3D11RenderState::TakeRef(IUnknown *p)
+void D3D11RenderState::TakeRef(ID3D11DeviceChild *p)
 {
 	if(p)
 	{
@@ -863,11 +863,16 @@ void D3D11RenderState::TakeRef(IUnknown *p)
 				m_pDevice->InternalRef();
 
 			m_pDevice->InternalRef();
+
+			// we can use any specialisation of device child here, as all that is templated
+			// is the nested pointer type. Saves having another class in the inheritance
+			// heirarchy :(
+			((WrappedDeviceChild<ID3D11Buffer>*)p)->PipelineAddRef();
 		}
 	}
 }
 
-void D3D11RenderState::ReleaseRef(IUnknown *p)
+void D3D11RenderState::ReleaseRef(ID3D11DeviceChild *p)
 {
 	if(p)
 	{
@@ -881,6 +886,9 @@ void D3D11RenderState::ReleaseRef(IUnknown *p)
 				m_pDevice->InternalRelease();
 
 			m_pDevice->InternalRelease();
+
+			// see above
+			((WrappedDeviceChild<ID3D11Buffer>*)p)->PipelineRelease();
 		}
 	}
 }

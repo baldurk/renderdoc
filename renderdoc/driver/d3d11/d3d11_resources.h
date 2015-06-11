@@ -479,11 +479,13 @@ class WrappedDeviceChild : public RefCounter, public NestedType, public TrackedR
 protected:
 	WrappedID3D11Device* m_pDevice;
 	NestedType* m_pReal;
+	unsigned int m_PipelineRefs;
 
 	WrappedDeviceChild(NestedType* real, WrappedID3D11Device* device)
 		:	RefCounter(real),
 			m_pDevice(device),
-			m_pReal(real)
+			m_pReal(real),
+			m_PipelineRefs(0)
 	{
 		m_pDevice->SoftRef();
 
@@ -515,9 +517,23 @@ public:
 
 	NestedType* GetReal() { return m_pReal; }
 	
-	ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::SoftRef(m_pDevice); }
-	ULONG STDMETHODCALLTYPE Release() { return RefCounter::SoftRelease(m_pDevice); }
+	ULONG STDMETHODCALLTYPE AddRef() { return RefCounter::SoftRef(m_pDevice) - m_PipelineRefs; }
+	ULONG STDMETHODCALLTYPE Release()
+	{
+		unsigned int piperefs = m_PipelineRefs;
+		return RefCounter::SoftRelease(m_pDevice) - piperefs;
+	}
 	
+	void PipelineAddRef()
+	{
+		InterlockedIncrement(&m_PipelineRefs);
+	}
+
+	void PipelineRelease()
+	{
+		InterlockedDecrement(&m_PipelineRefs);
+	}
+
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
 	{
 		if(riid == __uuidof(NestedType))
@@ -684,12 +700,13 @@ public:
 	
 	ULONG STDMETHODCALLTYPE AddRef()
 	{
-		return RefCounter::SoftRef(m_pDevice);
+		return RefCounter::SoftRef(m_pDevice) - m_PipelineRefs;
 	}
 
 	ULONG STDMETHODCALLTYPE Release()
 	{
 		unsigned int extRefCount = RefCounter::Release();
+		unsigned int pipeRefs = m_PipelineRefs;
 
 		WrappedID3D11Device *dev = m_pDevice;
 
@@ -698,7 +715,7 @@ public:
 
 		RefCounter::ReleaseDeviceSoftref(dev);
 
-		return extRefCount;
+		return extRefCount - pipeRefs;
 	}
 	
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
@@ -759,7 +776,7 @@ public:
 	static map<ResourceId, BufferEntry> m_BufferList;
 	
 	static const int AllocPoolCount = 128*1024;
-	static const int AllocPoolMaxByteSize = 11*1024*1024;
+	static const int AllocPoolMaxByteSize = 13*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Buffer, AllocPoolCount, AllocPoolMaxByteSize);
 
 	WrappedID3D11Buffer(ID3D11Buffer* real, uint32_t byteLength, WrappedID3D11Device* device)
@@ -1045,7 +1062,7 @@ class WrappedID3D11ShaderResourceView : public WrappedView<ID3D11ShaderResourceV
 {
 public:
 	static const int AllocPoolCount = 65535;
-	static const int AllocPoolMaxByteSize = 5*1024*1024;
+	static const int AllocPoolMaxByteSize = 6*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11ShaderResourceView, AllocPoolCount, AllocPoolMaxByteSize);
 
 	WrappedID3D11ShaderResourceView(ID3D11ShaderResourceView* real, ID3D11Resource* res, WrappedID3D11Device* device)

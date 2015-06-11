@@ -255,8 +255,8 @@ struct D3D11RenderState
 	/////////////////////////////////////////////////////////////////////////
 	// Utility functions to swap resources around, removing and adding refs
 
-	void TakeRef(IUnknown *p);
-	void ReleaseRef(IUnknown *p);
+	void TakeRef(ID3D11DeviceChild *p);
+	void ReleaseRef(ID3D11DeviceChild *p);
 
 	template<typename T>
 	void ChangeRefRead(T **stateArray, T *const*newArray, size_t offset, size_t num)
