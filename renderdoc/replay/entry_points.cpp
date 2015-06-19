@@ -111,6 +111,12 @@ const char* RENDERDOC_CC RENDERDOC_GetLogFile()
 }
 
 extern "C" RENDERDOC_API
+uint32_t RENDERDOC_CC RENDERDOC_GetNumCaptures()
+{
+	return (uint32_t)RenderDoc::Inst().GetCaptures().size();
+}
+
+extern "C" RENDERDOC_API
 bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp)
 {
 	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();

@@ -224,6 +224,9 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetLogFile)(const char *logfile);
 extern "C" RENDERDOC_API const char* RENDERDOC_CC RENDERDOC_GetLogFile();
 typedef const char* (RENDERDOC_CC *pRENDERDOC_GetLogFile)();
 
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetNumCaptures();
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetNumCaptures)();
+
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
 typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp);
 
