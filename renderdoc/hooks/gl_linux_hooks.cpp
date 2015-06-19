@@ -34,7 +34,7 @@
 #include "driver/gl/gl_hookset_defs.h"
 
 #include "common/threading.h"
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 
 namespace glEmulate { void EmulateUnsupportedFunctions(GLHookSet *hooks); }
 

@@ -38,7 +38,7 @@
 #include <string>
 using std::string;
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "os/os_specific.h"
 
 namespace Network

@@ -42,7 +42,7 @@
 // for dladdr
 #include <dlfcn.h>
 
-#include "common/string_utils.h"
+#include "serialise/string_utils.h"
 #include "common/threading.h"
 using std::string;
 
