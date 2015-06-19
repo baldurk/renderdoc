@@ -232,6 +232,7 @@ class RenderDoc
 		void GetCurrentDriver(RDCDriver &driver, string &name);
 
 		uint32_t GetRemoteAccessIdent() const { return m_RemoteIdent; }
+		bool IsRemoteAccessConnected();
 
 		void Tick();
 

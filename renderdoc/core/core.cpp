@@ -394,6 +394,12 @@ bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
 	return it->second.FrameCapturer->EndFrameCapture(dev, wnd);
 }
 
+bool RenderDoc::IsRemoteAccessConnected()
+{
+	SCOPED_LOCK(RenderDoc::Inst().m_SingleClientLock);
+	return !RenderDoc::Inst().m_SingleClientName.empty();
+}
+
 void RenderDoc::Tick()
 {
 	static bool prev_focus = false;

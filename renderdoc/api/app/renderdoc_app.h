@@ -199,6 +199,17 @@ enum InAppOverlay
 	eOverlay_None = 0,
 };
 
+////////////////////////////////////////////////
+//          !!!! IMPORTANT NOTE !!!!          //
+//                                            //
+// This API is pretty much experimental and   //
+// still in flux. The only thing guaranteed   //
+// to remain compatible is a call to          //
+// RENDERDOC_GetAPIVersion which must exactly //
+// match the version you expect.              //
+// It will be bumped on breaking changes.     //
+////////////////////////////////////////////////
+
 // API breaking change history:
 // Version 1 -> 2 - strings changed from wchar_t* to char* (UTF-8)
 // Version 2 -> 3 - StartFrameCapture, EndFrameCapture and SetActiveWindow take
@@ -259,6 +270,12 @@ typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureKeys)(KeyButton *keys, int num)
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident);
 typedef void (RENDERDOC_CC *pRENDERDOC_InitRemoteAccess)(uint32_t *ident);
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_IsRemoteAccessConnected();
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_IsRemoteAccessConnected)();
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline);
+typedef uint32_t (RENDERDOC_CC *pRENDERDOC_LaunchReplayUI)(uint32_t connectRemoteAccess, const char *cmdline);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UnloadCrashHandler();
 typedef void (RENDERDOC_CC *pRENDERDOC_UnloadCrashHandler)();

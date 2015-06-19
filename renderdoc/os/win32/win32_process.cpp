@@ -181,6 +181,74 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 	VirtualFreeEx(hProcess, remoteMem, dataLen, MEM_RELEASE);
 }
 
+static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine)
+{
+	PROCESS_INFORMATION pi;
+	STARTUPINFO si;
+	SECURITY_ATTRIBUTES pSec;
+	SECURITY_ATTRIBUTES tSec;
+
+	RDCEraseEl(pi);
+	RDCEraseEl(si);
+	RDCEraseEl(pSec);
+	RDCEraseEl(tSec);
+
+	pSec.nLength = sizeof(pSec);
+	tSec.nLength = sizeof(tSec);
+
+	wstring workdir = L"";
+
+	if(workingDir != NULL && workingDir[0] != 0)
+		workdir = StringFormat::UTF82Wide(string(workingDir));
+	else
+		workdir = StringFormat::UTF82Wide(dirname(string(app)));
+
+	wchar_t *paramsAlloc = NULL;
+
+	wstring wapp = StringFormat::UTF82Wide(string(app));
+
+	// CreateProcessW can modify the params, need space.
+	size_t len = wapp.length()+10;
+
+	wstring wcmd = L"";
+
+	if(cmdLine != NULL && cmdLine[0] != 0)
+	{
+		wcmd = StringFormat::UTF82Wide(string(cmdLine));
+		len += wcmd.length();
+	}
+
+	paramsAlloc = new wchar_t[len];
+
+	RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
+
+	wcscpy_s(paramsAlloc, len, L"\"");
+	wcscat_s(paramsAlloc, len, wapp.c_str());
+	wcscat_s(paramsAlloc, len, L"\"");
+
+	if(cmdLine != NULL && cmdLine[0] != 0)
+	{
+		wcscat_s(paramsAlloc, len, L" ");
+		wcscat_s(paramsAlloc, len, wcmd.c_str());
+	}
+
+	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
+		&pSec, &tSec, false, CREATE_SUSPENDED,
+		NULL, workdir.c_str(), &si, &pi);
+
+	SAFE_DELETE_ARRAY(paramsAlloc);
+
+	if (!retValue)
+	{
+		RDCERR("Process %s could not be loaded.", app);
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		RDCEraseEl(pi);
+	}
+
+	return pi;
+}
+
 uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	CaptureOptions options;
@@ -353,7 +421,21 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 	return remoteident;
 }
 
-uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)
+{
+	PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine);
+
+	if(pi.dwProcessId == 0)
+		return 0;
+
+	ResumeThread(pi.hThread);
+	CloseHandle(pi.hThread);
+	CloseHandle(pi.hProcess);
+
+	return pi.dwProcessId;
+}
+
+uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
 										const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	void *func = GetProcAddress(GetModuleHandleA("renderdoc.dll"), "RENDERDOC_SetLogFile");
@@ -364,69 +446,13 @@ uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workin
 		return 0;
 	}
 
-	PROCESS_INFORMATION pi;
-	STARTUPINFO si;
-	SECURITY_ATTRIBUTES pSec;
-	SECURITY_ATTRIBUTES tSec;
+	PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine);
 
-	RDCEraseEl(pi);
-	RDCEraseEl(si);
-	RDCEraseEl(pSec);
-	RDCEraseEl(tSec);
-
-	pSec.nLength = sizeof(pSec);
-	tSec.nLength = sizeof(tSec);
-
-	wstring workdir = L"";
-
-	if(workingDir != NULL && workingDir[0] != 0)
-		workdir = StringFormat::UTF82Wide(string(workingDir));
-	else
-		workdir = StringFormat::UTF82Wide(dirname(string(app)));
-
-	wchar_t *paramsAlloc = NULL;
-
-	wstring wapp = StringFormat::UTF82Wide(string(app));
-
-	// CreateProcessW can modify the params, need space.
-	size_t len = wapp.length()+10;
-
-	wstring wcmd = L"";
-	
-	if(cmdLine != NULL && cmdLine[0] != 0)
-	{
-		wcmd = StringFormat::UTF82Wide(string(cmdLine));
-		len += wcmd.length();
-	}
-
-	paramsAlloc = new wchar_t[len];
-
-	RDCEraseMem(paramsAlloc, len*sizeof(wchar_t));
-
-	wcscpy_s(paramsAlloc, len, L"\"");
-	wcscat_s(paramsAlloc, len, wapp.c_str());
-	wcscat_s(paramsAlloc, len, L"\"");
-
-	if(cmdLine != NULL && cmdLine[0] != 0)
-	{
-		wcscat_s(paramsAlloc, len, L" ");
-		wcscat_s(paramsAlloc, len, wcmd.c_str());
-	}
-
-	BOOL retValue = CreateProcessW(NULL, paramsAlloc,
-		&pSec, &tSec, false, CREATE_SUSPENDED,
-		NULL, workdir.c_str(), &si, &pi);
-
-	SAFE_DELETE_ARRAY(paramsAlloc);
+	if(pi.dwProcessId == 0)
+		return 0;
 
 	// don't need it
 	CloseHandle(pi.hProcess);
-
-	if (!retValue)
-	{
-		RDCERR("Process %s could not be loaded.", app);
-		return 0;
-	}
 
 	uint32_t ret = InjectIntoProcess(pi.dwProcessId, logfile, opts, false);
 

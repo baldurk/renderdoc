@@ -236,7 +236,7 @@ extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
 									 const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-	return Process::CreateAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
+	return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API
@@ -367,6 +367,27 @@ extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident)
 {
 	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
+}
+
+extern "C" RENDERDOC_API
+uint32_t RENDERDOC_CC RENDERDOC_IsRemoteAccessConnected()
+{
+	return RenderDoc::Inst().IsRemoteAccessConnected();
+}
+
+extern "C" RENDERDOC_API
+uint32_t RENDERDOC_CC RENDERDOC_LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline)
+{
+	string replayapp = FileIO::GetReplayAppFilename();
+
+	if(replayapp.empty())
+		return 0;
+
+	string cmd = cmdline ? cmdline : "";
+	if(connectRemoteAccess)
+		cmd += StringFormat::Fmt(" --remoteaccess localhost:%u", RenderDoc::Inst().GetRemoteAccessIdent());
+
+	return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str());
 }
 
 extern "C" RENDERDOC_API

@@ -39,9 +39,15 @@
 
 #include <iconv.h>
 
+// for dladdr
+#include <dlfcn.h>
+
 #include "common/string_utils.h"
 #include "common/threading.h"
 using std::string;
+
+// gives us an address to identify this so with
+static int soLocator=0;
 
 namespace Keyboard
 {
@@ -145,6 +151,55 @@ namespace FileIO
 		readlink("/proc/self/exe", path, 511);
 
 		selfName = string(path);
+	}
+
+	string GetReplayAppFilename()
+	{
+		// look up the shared object's path via dladdr
+		Dl_info info;
+		dladdr((void *)&soLocator, &info);
+		string path = info.dli_fname ? info.dli_fname : "";
+		path = dirname(path);
+		string replay = path + "/qrenderdoc";
+
+		FILE *f = FileIO::fopen(replay.c_str(), "r");
+		if(f)
+		{
+			FileIO::fclose(f);
+			return replay;
+		}
+
+		// if it's not in the same directory, try in a sibling /bin
+		// e.g. /foo/bar/lib/librenderdoc.so -> /foo/bar/bin/qrenderdoc
+		replay = path + "/../bin/qrenderdoc";
+
+		f = FileIO::fopen(replay.c_str(), "r");
+		if(f)
+		{
+			FileIO::fclose(f);
+			return replay;
+		}
+
+		// random guesses!
+		const char *guess[] = {
+			"/opt/renderdoc/qrenderdoc",
+			"/opt/renderdoc/bin/qrenderdoc",
+			"/usr/local/bin/qrenderdoc",
+			"/usr/bin/qrenderdoc"
+		};
+
+		for(size_t i=0; i < ARRAY_COUNT(guess); i++)
+		{
+			f = FileIO::fopen(guess[i], "r");
+			if(f)
+			{
+				FileIO::fclose(f);
+				return guess[i];
+			}
+		}
+
+		// out of ideas
+		return "";
 	}
 
 	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)

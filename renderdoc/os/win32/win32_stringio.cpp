@@ -25,6 +25,7 @@
 
 #include "os/os_specific.h"
 #include "api/app/renderdoc_app.h"
+#include "serialise/string_utils.h"
 
 #include <time.h>
 #include <stdio.h>
@@ -157,6 +158,56 @@ namespace FileIO
 		GetModuleFileNameW(NULL, curFile, 511);
 
 		selfName = StringFormat::Wide2UTF8(wstring(curFile));
+	}
+
+	string GetReplayAppFilename()
+	{
+		HMODULE hModule = NULL;
+		GetModuleHandleEx(
+			GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+			(LPCTSTR)&dllLocator,
+			&hModule);
+		wchar_t curFile[512] = {0};
+		GetModuleFileNameW(hModule, curFile, 511);
+
+		string path = StringFormat::Wide2UTF8(wstring(curFile));
+		path = dirname(path);
+		string exe = path + "/renderdocui.exe";
+
+		FILE *f = FileIO::fopen(exe.c_str(), "rb");
+		if(f)
+		{
+			FileIO::fclose(f);
+			return exe;
+		}
+
+		// if renderdocui.exe doesn't live in the same dir, we must be in x86/
+		// so look one up the tree.
+		exe = path + "/../renderdocui.exe";
+
+		f = FileIO::fopen(exe.c_str(), "rb");
+		if(f)
+		{
+			FileIO::fclose(f);
+			return exe;
+		}
+
+		// if we didn't find the exe at all, we must not be in a standard
+		// distributed renderdoc package. On windows we can check in the registry
+		// to try and find the installed path.
+
+		DWORD type = 0;
+		DWORD dataSize = sizeof(curFile);
+		RDCEraseEl(curFile);
+		RegGetValueW(HKEY_CLASSES_ROOT, L"RenderDoc.RDCCapture.1\\DefaultIcon", NULL, RRF_RT_ANY,
+			&type, (void *)curFile, &dataSize);
+
+		if(type == REG_EXPAND_SZ || type == REG_SZ)
+		{
+			return StringFormat::Wide2UTF8(wstring(curFile));
+		}
+
+		return "";
 	}
 
 	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target)

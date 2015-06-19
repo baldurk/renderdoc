@@ -34,13 +34,176 @@
 
 #include "serialise/string_utils.h"
 
+pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char *const *envp)
+{
+	if(!app) return (pid_t)0;
+
+	int argc = 0;
+	char *emptyargv[] = { NULL };
+	char **argv = emptyargv;
+
+	const char *c = cmdLine;
+
+	// parse command line into argv[], similar to how bash would
+	if(cmdLine)
+	{
+		argc = 1;
+
+		// get a rough upper bound on the number of arguments
+		while(*c)
+		{
+			if(*c == ' ' || *c == '\t') argc++;
+			c++;
+		}
+
+		argv = new char*[argc+2];
+
+		c = cmdLine;
+
+		string a;
+
+		argc = 0; // current argument we're fetching
+
+		// argv[0] is the application name, by convention
+		size_t len = strlen(app)+1;
+		argv[argc] = new char[len];
+		strcpy(argv[argc], app);
+
+		argc++;
+
+		bool dquot = false, squot = false; // are we inside ''s or ""s
+		while(*c)
+		{
+			if(!dquot && !squot && (*c == ' ' || *c == '\t'))
+			{
+				if(!a.empty())
+				{
+					// if we've fetched some number of non-space characters
+					argv[argc] = new char[a.length()+1];
+					memcpy(argv[argc], a.c_str(), a.length()+1);
+					argc++;
+				}
+
+				a = "";
+			}
+			else if(!dquot && *c == '"')
+			{
+				dquot = true;
+			}
+			else if(!squot && *c == '\'')
+			{
+				squot = true;
+			}
+			else if(dquot && *c == '"')
+			{
+				dquot = false;
+			}
+			else if(squot && *c == '\'')
+			{
+				squot = false;
+			}
+			else if(squot)
+			{
+				// single quotes don't escape, just copy literally until we leave single quote mode
+				a.push_back(*c);
+			}
+			else if(dquot)
+			{
+				// handle escaping
+				if(*c == '\\')
+				{
+					c++;
+					if(*c)
+					{
+						a.push_back(*c);
+					}
+					else
+					{
+						RDCERR("Malformed command line:\n%s", cmdLine);
+						return 0;
+					}
+				}
+				else
+				{
+					a.push_back(*c);
+				}
+			}
+			else
+			{
+				a.push_back(*c);
+			}
+
+			c++;
+		}
+
+		if(!a.empty())
+		{
+			// if we've fetched some number of non-space characters
+			argv[argc] = new char[a.length()+1];
+			memcpy(argv[argc], a.c_str(), a.length()+1);
+			argc++;
+		}
+
+		argv[argc] = NULL;
+
+		if(squot || dquot)
+		{
+			RDCERR("Malformed command line\n%s", cmdLine);
+			return 0;
+		}
+	}
+
+	pid_t childPid = fork();
+	if(childPid == 0)
+	{
+		if(workingDir)
+		{
+			chdir(workingDir);
+		}
+		else
+		{
+			string exedir = app;
+			chdir(dirname((char *)exedir.c_str()));
+		}
+
+		execve(app, argv, envp);
+		exit(0);
+	}
+	
+	char **argv_delete = argv;
+
+	if(argv != emptyargv)
+	{
+		while(*argv)
+		{
+			delete[] *argv;
+			argv++;
+		}
+
+		delete[] argv_delete;
+	}
+
+	return childPid;
+}
+
 uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	RDCUNIMPLEMENTED("Injecting into already running processes on linux");
 	return 0;
 }
 
-uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
+uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)
+{
+	if(app == NULL || app[0] == 0)
+	{
+		RDCERR("Invalid empty 'app'");
+		return 0;
+	}
+
+	return (uint32_t)RunProcess(app, workingDir, cmdLine, environ);
+}
+
+uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
                                              const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	if(app == NULL || app[0] == 0)
@@ -160,140 +323,11 @@ uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workin
 		envp[i] = NULL;
 	}
 
-	int argc = 0;
-	char *emptyargv[] = { NULL };
-	char **argv = emptyargv;
-
-	const char *c = cmdLine;
-
-	// parse command line into argv[], similar to how bash would
-	if(cmdLine)
-	{
-		argc = 1;
-
-		// get a rough upper bound on the number of arguments
-		while(*c)
-		{
-			if(*c == ' ' || *c == '\t') argc++;
-			c++;
-		}
-
-		argv = new char*[argc+2];
-
-		c = cmdLine;
-
-		string a;
-
-		argc = 0; // current argument we're fetching
-
-		// argv[0] is the application name, by convention
-		size_t len = strlen(app)+1;
-		argv[argc] = new char[len];
-		strcpy(argv[argc], app);
-
-		argc++;
-
-		bool dquot = false, squot = false; // are we inside ''s or ""s
-		while(*c)
-		{
-			if(!dquot && !squot && (*c == ' ' || *c == '\t'))
-			{
-				if(!a.empty())
-				{
-					// if we've fetched some number of non-space characters
-					argv[argc] = new char[a.length()+1];
-					memcpy(argv[argc], a.c_str(), a.length()+1);
-					argc++;
-				}
-
-				a = "";
-			}
-			else if(!dquot && *c == '"')
-			{
-				dquot = true;
-			}
-			else if(!squot && *c == '\'')
-			{
-				squot = true;
-			}
-			else if(dquot && *c == '"')
-			{
-				dquot = false;
-			}
-			else if(squot && *c == '\'')
-			{
-				squot = false;
-			}
-			else if(squot)
-			{
-				// single quotes don't escape, just copy literally until we leave single quote mode
-				a.push_back(*c);
-			}
-			else if(dquot)
-			{
-				// handle escaping
-				if(*c == '\\')
-				{
-					c++;
-					if(*c)
-					{
-						a.push_back(*c);
-					}
-					else
-					{
-						RDCERR("Malformed command line:\n%s", cmdLine);
-						return 0;
-					}
-				}
-				else
-				{
-					a.push_back(*c);
-				}
-			}
-			else
-			{
-				a.push_back(*c);
-			}
-
-			c++;
-		}
-
-		if(!a.empty())
-		{
-			// if we've fetched some number of non-space characters
-			argv[argc] = new char[a.length()+1];
-			memcpy(argv[argc], a.c_str(), a.length()+1);
-			argc++;
-		}
-
-		argv[argc] = NULL;
-
-		if(squot || dquot)
-		{
-			RDCERR("Malformed command line\n%s", cmdLine);
-			return 0;
-		}
-	}
+	pid_t childPid = RunProcess(app, workingDir, cmdLine, envp);
 
 	int ret = 0;
 
-	pid_t childPid = fork();
-	if(childPid == 0)
-	{
-		if(workingDir)
-		{
-			chdir(workingDir);
-		}
-		else
-		{
-			string exedir = app;
-			chdir(dirname((char *)exedir.c_str()));
-		}
-
-		execve(app, argv, envp);
-		exit(0);
-	}
-	else if(childPid > 0)
+	if(childPid != (pid_t)0)
 	{
 		// wait for child to have /proc/<pid> and read out tcp socket
 		usleep(1000);
@@ -343,19 +377,7 @@ uint32_t Process::CreateAndInjectIntoProcess(const char *app, const char *workin
 		}
 	}
 
-	char **argv_delete = argv;
 	char **envp_delete = envp;
-
-	if(argv != emptyargv)
-	{
-		while(*argv)
-		{
-			delete[] *argv;
-			argv++;
-		}
-
-		delete[] argv_delete;
-	}
 
 	while(*envp)
 	{
