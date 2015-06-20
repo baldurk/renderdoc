@@ -244,11 +244,26 @@ typedef uint32_t (RENDERDOC_CC *pRENDERDOC_GetCapture)(uint32_t idx, char *logfi
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetCaptureOptions)(const CaptureOptions *opts);
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerCapture();
+typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
+
+// In the below functions 'device pointer' corresponds to the API specific handle, e.g.
+// ID3D11Device, or the GL context pointer.
+// The 'window handle' is the OS's native window handle (HWND or GLXDrawable).
+
+// This must match precisely to a pair, and it sets the RenderDoc in-app overlay to select that
+// window as 'active' and respond to keypresses.
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *device, void *wndHandle);
 typedef void (RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(void *device, void *wndHandle);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerCapture();
-typedef void (RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
+// Either parameter can be NULL to wild-card match, such that you can capture from any
+// device to a particular window, or a particular device to any window.
+// In either case, if there are two or more possible matching (device,window) pairs it
+// is undefined which one will be captured.
+// You can pass (NULL, NULL) if you know you only have one device and one window, and
+// it will match. Likewise if you have not created a window at all (only off-screen
+// rendering), then NULL window pointer will capture, whether you pass a NULL device
+// or specify a device among multiple.
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *device, void *wndHandle);
 typedef void (RENDERDOC_CC *pRENDERDOC_StartFrameCapture)(void *device, void *wndHandle);

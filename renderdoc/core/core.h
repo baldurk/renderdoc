@@ -241,8 +241,8 @@ class RenderDoc
 
 		// add window-less frame capturers for use via users capturing
 		// manually through the renderdoc API with NULL device/window handles
-		void AddDefaultFrameCapturer(IFrameCapturer *cap);
-		void RemoveDefaultFrameCapturer(IFrameCapturer *cap);
+		void AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap);
+		void RemoveDeviceFrameCapturer(void *dev);
 		
 		void StartFrameCapture(void *dev, void *wnd);
 		void SetActiveWindow(void *dev, void *wnd);
@@ -334,16 +334,30 @@ class RenderDoc
 			{
 				return dev == o.dev && wnd == o.wnd;
 			}
+
 			bool operator <(const DeviceWnd &o) const
 			{
 				if(dev != o.dev) return dev < o.dev;
 				return wnd < o.wnd;
 			}
+
+			bool wildcardMatch(const DeviceWnd &o) const
+			{
+				if(dev == NULL || o.dev == NULL)
+					return wnd == NULL || o.wnd == NULL || wnd == o.wnd;
+
+				if(wnd == NULL || o.wnd == NULL)
+					return dev == NULL || o.dev == NULL || dev == o.dev;
+
+				return *this == o;
+			}
 		};
 
 		map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
 		DeviceWnd m_ActiveWindow;
-		set<IFrameCapturer *> m_DefaultFrameCapturers;
+		map<void *, IFrameCapturer *> m_DeviceFrameCapturers;
+
+		IFrameCapturer *MatchFrameCapturer(void *dev, void *wnd);
 
 		volatile bool m_RemoteServerThreadShutdown;
 		volatile bool m_RemoteClientThreadShutdown;

@@ -760,8 +760,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
 		GetResourceManager()->AddResourceRecord(m_FakeVAOID);
 		GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
-
-		RenderDoc::Inst().AddDefaultFrameCapturer(this);
 	}
 	else
 	{
@@ -909,8 +907,6 @@ WrappedOpenGL::~WrappedOpenGL()
 	if(m_FakeBB_Color) m_Real.glDeleteTextures(1, &m_FakeBB_Color);
 	if(m_FakeBB_DepthStencil) m_Real.glDeleteTextures(1, &m_FakeBB_DepthStencil);
 
-	RenderDoc::Inst().RemoveDefaultFrameCapturer(this);
-
 	SAFE_DELETE(m_pSerialiser);
 
 	GetResourceManager()->ReleaseCurrentResource(m_DeviceResourceID);
@@ -962,6 +958,8 @@ void WrappedOpenGL::DeleteContext(void *contextHandle)
 {
 	ContextData &ctxdata = m_ContextData[contextHandle];
 
+	RenderDoc::Inst().RemoveDeviceFrameCapturer(ctxdata.ctx);
+
 	if(ctxdata.built && ctxdata.ready)
 	{
 		if(ctxdata.Program)
@@ -1007,6 +1005,8 @@ void WrappedOpenGL::CreateContext(GLWindowingData winData, void *shareContext, G
 	ctxdata.ctx = winData.ctx;
 	ctxdata.isCore = core;
 	ctxdata.attribsCreate = attribsCreate;
+
+	RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 }
 
 void WrappedOpenGL::RegisterContext(GLWindowingData winData, void *shareContext, bool core, bool attribsCreate)
@@ -2186,7 +2186,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 	// kill any current capture that isn't application defined
 	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
-		EndFrameCapture(this, windowHandle);
+		EndFrameCapture(ctxdata.ctx, windowHandle);
 	
 	// for now, only allow one captured frame at all
 	if(!m_FrameRecord.empty())
@@ -2194,7 +2194,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 	
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		StartFrameCapture(this, windowHandle);
+		StartFrameCapture(ctxdata.ctx, windowHandle);
 
 		m_AppControlledCapture = false;
 	}

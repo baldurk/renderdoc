@@ -342,7 +342,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_DeviceRecord->NumSubResources = 0;
 		m_DeviceRecord->SubResources = NULL;
 
-		RenderDoc::Inst().AddDefaultFrameCapturer(this);
+		RenderDoc::Inst().AddDeviceFrameCapturer((ID3D11Device *)this, this);
 	}
 	
 	ID3D11DeviceContext *context = NULL;
@@ -416,7 +416,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
 	if(m_pCurrentWrappedDevice == this)
 		m_pCurrentWrappedDevice = NULL;
 
-	RenderDoc::Inst().RemoveDefaultFrameCapturer(this);
+	RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D11Device *)this);
 
 	for(auto it = m_CachedStateObjects.begin(); it != m_CachedStateObjects.end(); ++it)
 		if(*it)

@@ -30,6 +30,8 @@
 
 #include <time.h>
 
+#include <algorithm>
+
 #include "data/version.h"
 #include "crash_handler.h"
 
@@ -310,39 +312,51 @@ void RenderDoc::Shutdown()
 	}
 }
 
-void RenderDoc::StartFrameCapture(void *dev, void *wnd)
+IFrameCapturer *RenderDoc::MatchFrameCapturer(void *dev, void *wnd)
 {
-	if(dev == NULL || wnd == NULL)
-	{
-		// if we have a single window frame capturer, use that in preference
-		if(m_WindowFrameCapturers.size() == 1)
-		{
-			auto it = m_WindowFrameCapturers.begin();
-			it->second.FrameCapturer->StartFrameCapture(it->first.dev, it->first.wnd);
-		}
-		// otherwise, see if we only have one default capturer
-		else if(m_DefaultFrameCapturers.size() == 1)
-		{
-			(*m_DefaultFrameCapturers.begin())->StartFrameCapture(dev, wnd);
-		}
-		// otherwise we can't capture with NULL handles
-		else
-		{
-			RDCERR("Multiple frame capture methods registered, can't capture by NULL handles");
-		}
-		return;
-	}
-
 	DeviceWnd dw(dev, wnd);
 
-	auto it = m_WindowFrameCapturers.find(dw);
-	if(it == m_WindowFrameCapturers.end())
+	// lower_bound and the DeviceWnd ordering (pointer compares, dev over wnd) means that if either
+	// element in dw is NULL we can go forward from this iterator and find the first wildcardMatch
+	// note that if dev is specified and wnd is NULL, this will actually point at the first
+	// wildcardMatch already and we can use it immediately (since which window of multiple we
+	// choose is undefined, so up to us). If dev is NULL there is no window ordering (since dev is
+	// the primary sorting value) so we just iterate through the whole map. It should be small in
+	// the majority of cases
+	auto it = m_WindowFrameCapturers.lower_bound(dw);
+
+	while(it != m_WindowFrameCapturers.end())
 	{
-		RDCERR("Couldn't find frame capturer for device %p window %p", dev, wnd);
-		return;
+		if(it->first.wildcardMatch(dw)) break;
+		++it;
 	}
 
-	it->second.FrameCapturer->StartFrameCapture(dev, wnd);
+	if(it == m_WindowFrameCapturers.end())
+	{
+		// handle off-screen rendering where there are no device/window pairs in
+		// m_WindowFrameCapturers, instead we use the first matching device frame capturer
+		if(wnd == NULL)
+		{
+			auto defaultit = m_DeviceFrameCapturers.find(dev);
+			if(defaultit == m_DeviceFrameCapturers.end() && !m_DeviceFrameCapturers.empty())
+				defaultit = m_DeviceFrameCapturers.begin();
+
+			if(defaultit != m_DeviceFrameCapturers.end())
+				return defaultit->second;
+		}
+
+		RDCERR("Couldn't find matching frame capturer for device %p window %p", dev, wnd);
+		return NULL;
+	}
+
+	return it->second.FrameCapturer;
+}
+
+void RenderDoc::StartFrameCapture(void *dev, void *wnd)
+{
+	IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+	if(frameCap)
+		frameCap->StartFrameCapture(dev, wnd);
 }
 
 void RenderDoc::SetActiveWindow(void *dev, void *wnd)
@@ -361,37 +375,10 @@ void RenderDoc::SetActiveWindow(void *dev, void *wnd)
 
 bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
 {
-	if(dev == NULL || wnd == NULL)
-	{
-		// if we have a single window frame capturer, use that in preference
-		if(m_WindowFrameCapturers.size() == 1)
-		{
-			auto it = m_WindowFrameCapturers.begin();
-			return it->second.FrameCapturer->EndFrameCapture(it->first.dev, it->first.wnd);
-		}
-		// otherwise, see if we only have one default capturer
-		else if(m_DefaultFrameCapturers.size() == 1)
-		{
-			(*m_DefaultFrameCapturers.begin())->EndFrameCapture(dev, wnd);
-		}
-		// otherwise we can't capture with NULL handles
-		else
-		{
-			RDCERR("Multiple frame capture methods registered, can't capture by NULL handles");
-		}
-		return false;
-	}
-
-	DeviceWnd dw(dev, wnd);
-
-	auto it = m_WindowFrameCapturers.find(dw);
-	if(it == m_WindowFrameCapturers.end())
-	{
-		RDCERR("Couldn't find frame capturer for device %p, window %p", dev, wnd);
-		return false;
-	}
-
-	return it->second.FrameCapturer->EndFrameCapture(dev, wnd);
+	IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
+	if(frameCap)
+		return frameCap->EndFrameCapture(dev, wnd);
+	return false;
 }
 
 bool RenderDoc::IsRemoteAccessConnected()
@@ -779,14 +766,26 @@ void RenderDoc::SuccessfullyWrittenLog()
 	}
 }
 
-void RenderDoc::AddDefaultFrameCapturer(IFrameCapturer *cap)
+void RenderDoc::AddDeviceFrameCapturer(void *dev, IFrameCapturer *cap)
 {
-	m_DefaultFrameCapturers.insert(cap);
+	if(dev == NULL || cap == NULL)
+	{
+		RDCERR("Invalid FrameCapturer combination: %#p / %#p", dev, cap);
+		return;
+	}
+
+	m_DeviceFrameCapturers[dev] = cap;
 }
 
-void RenderDoc::RemoveDefaultFrameCapturer(IFrameCapturer *cap)
+void RenderDoc::RemoveDeviceFrameCapturer(void *dev)
 {
-	m_DefaultFrameCapturers.erase(cap);
+	if(dev == NULL)
+	{
+		RDCERR("Invalid device pointer: %#p / %#p", dev);
+		return;
+	}
+
+	m_DeviceFrameCapturers.erase(dev);
 }
 
 void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
@@ -803,7 +802,7 @@ void RenderDoc::AddFrameCapturer(void *dev, void *wnd, IFrameCapturer *cap)
 	if(it != m_WindowFrameCapturers.end())
 	{
 		if(it->second.FrameCapturer != cap)
-			RDCERR("New different FrameCapturer being registered for known window!");
+			RDCERR("New different FrameCapturer being registered for known device/window pair!");
 
 		it->second.RefCount++;
 	}
