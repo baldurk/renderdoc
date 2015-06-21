@@ -52,6 +52,102 @@ namespace renderdocui.Windows.Dialogs
             public string Executable = "";
             public string WorkingDir = "";
             public string CmdLine = "";
+
+            private static string registryKey = "SOFTWARE\\Baldur Karlsson\\RenderDoc";
+
+            public void UpdateFromRegistry()
+            {
+                RegistryHelper registry = new RegistryHelper();
+                string textResult;
+                bool boolResult;
+                int intResult;
+
+                registry.Open(registryKey);
+
+                if (registry.ReadValueAsString("Executable", out textResult))
+                {
+                    Executable = textResult;
+                }
+                if (registry.ReadValueAsString("WorkingDir", out textResult))
+                {
+                    WorkingDir = textResult;
+                }
+                if (registry.ReadValueAsString("CmdLine", out textResult))
+                {
+                    CmdLine = textResult;
+                }
+
+                if (registry.ReadValueAsBool("AllowVSync", out boolResult))
+                {
+                    Options.AllowVSync = boolResult;
+                }
+                if (registry.ReadValueAsBool("AllowFullscreen", out boolResult))
+                {
+                    Options.AllowFullscreen = boolResult;
+                }
+                if (registry.ReadValueAsBool("DebugDeviceMode", out boolResult))
+                {
+                    Options.DebugDeviceMode = boolResult;
+                }
+                if (registry.ReadValueAsBool("CaptureCallstacks", out boolResult))
+                {
+                    Options.CaptureCallstacks = boolResult;
+                }
+                if (registry.ReadValueAsBool("CaptureCallstacksOnlyDraws", out boolResult))
+                {
+                    Options.CaptureCallstacksOnlyDraws = boolResult;
+                }
+                if (registry.ReadValueAsInt("DelayForDebugger", out intResult))
+                {
+                    Options.DelayForDebugger = (UInt32)intResult;
+                }
+                if (registry.ReadValueAsBool("VerifyMapWrites", out boolResult))
+                {
+                    Options.VerifyMapWrites = boolResult;
+                }
+                if (registry.ReadValueAsBool("HookIntoChildren", out boolResult))
+                {
+                    Options.HookIntoChildren = boolResult;
+                }
+                if (registry.ReadValueAsBool("RefAllResources", out boolResult))
+                {
+                    Options.RefAllResources = boolResult;
+                }
+                if (registry.ReadValueAsBool("SaveAllInitials", out boolResult))
+                {
+                    Options.SaveAllInitials = boolResult;
+                }
+                if (registry.ReadValueAsBool("CaptureAllCmdLists", out boolResult))
+                {
+                    Options.CaptureAllCmdLists = boolResult;
+                }
+
+                registry.Close();
+            }
+
+            public void UpdateRegistry()
+            {
+                RegistryHelper registry = new RegistryHelper();
+
+                registry.Open(registryKey);
+
+                registry.WriteValueAsString("Executable", Executable);
+                registry.WriteValueAsString("WorkingDir", WorkingDir);
+                registry.WriteValueAsString("CmdLine", CmdLine);
+                registry.WriteValueAsBool("AllowVSync", Options.AllowVSync);
+                registry.WriteValueAsBool("AllowFullscreen", Options.AllowFullscreen);
+                registry.WriteValueAsBool("DebugDeviceMode", Options.DebugDeviceMode);
+                registry.WriteValueAsBool("CaptureCallstacks", Options.CaptureCallstacks);
+                registry.WriteValueAsBool("CaptureCallstacksOnlyDraws", Options.CaptureCallstacksOnlyDraws);
+                registry.WriteValueAsInt("DelayForDebugger", (int)Options.DelayForDebugger);
+                registry.WriteValueAsBool("VerifyMapWrites", Options.VerifyMapWrites);
+                registry.WriteValueAsBool("HookIntoChildren", Options.HookIntoChildren);
+                registry.WriteValueAsBool("RefAllResources", Options.RefAllResources);
+                registry.WriteValueAsBool("SaveAllInitials", Options.SaveAllInitials);
+                registry.WriteValueAsBool("CaptureAllCmdLists", Options.CaptureAllCmdLists);
+
+                registry.Close();
+            }
         }
 
         private bool workDirHint = true;
@@ -176,6 +272,7 @@ namespace renderdocui.Windows.Dialogs
 
             var defaults = new CaptureSettings();
             defaults.Inject = false;
+            defaults.UpdateFromRegistry();
             
             m_CaptureCallback = captureCallback;
             m_InjectCallback = injectCallback;
@@ -269,6 +366,8 @@ namespace renderdocui.Windows.Dialogs
                 workingDir = RealWorkDir;
 
             string cmdLine = cmdline.Text;
+
+            GetSettings().UpdateRegistry();
 
             var live = m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Options);
 

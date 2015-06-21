@@ -106,6 +106,7 @@
     <Compile Include="Code\Cameras.cs" />
     <Compile Include="Code\CommonPipelineState.cs" />
     <Compile Include="Code\FormatElement.cs" />
+    <Compile Include="Code\RegistryHelper.cs" />
     <Compile Include="Interop\Camera.cs" />
     <Compile Include="Interop\Formatter.cs" />
     <Compile Include="Code\Helpers.cs" />

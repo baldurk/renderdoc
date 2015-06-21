@@ -337,8 +337,12 @@ void DXBCFile::DisassembleHexDump()
 	m_Instructions.push_back(implicitRet);
 }
 
-void DXBCFile::MakeDisassembly()
+// Marked as const because it is only called by GetDisassembly which is semantically const
+// It computes m_Disassembly which is marked mutable
+void DXBCFile::MakeDisassembly() const
 {
+	RDCASSERT(m_Disassembly.size() == 0);
+
 	uint32_t *hash = (uint32_t *)&m_ShaderBlob[4]; // hash is 4 uints, starting after the FOURCC of 'DXBC'
 
 	m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n",
@@ -1898,7 +1902,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
 
 // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb219840(v=vs.85).aspx
 // for details of these opcodes
-size_t DXBCFile::NumOperands(OpcodeType op)
+size_t DXBCFile::NumOperands(OpcodeType op) const
 {
 	switch(op)
 	{

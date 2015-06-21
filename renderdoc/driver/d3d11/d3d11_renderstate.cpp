@@ -1509,10 +1509,10 @@ bool D3D11RenderState::shader::Used_CB(uint32_t slot) const
 	if(dxbc == NULL)
 		return true;
 
-	if(slot >= dxbc->m_CBuffers.size())
+	if(slot >= dxbc->GetCBuffers().size())
 		return false;
 
-	if(dxbc->m_CBuffers[slot].variables.empty())
+	if(dxbc->GetCBuffers()[slot].variables.empty())
 		return false;
 
 	return true;
@@ -1534,13 +1534,14 @@ bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
 	if(dxbc == NULL)
 		return true;
 
-	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
+	auto resources = dxbc->GetResources();
+	for(size_t i=0; i < resources.size(); i++)
 	{
-		if(dxbc->m_Resources[i].bindPoint == slot &&
-			(dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS)
+		if(resources[i].bindPoint == slot &&
+			(resources[i].type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS)
 		  )
 		{
 			return true;
@@ -1563,15 +1564,16 @@ bool D3D11RenderState::shader::Used_UAV(uint32_t slot) const
 	if(dxbc == NULL)
 		return true;
 
-	for(size_t i=0; i < dxbc->m_Resources.size(); i++)
+	auto resources = dxbc->GetResources();
+	for(size_t i=0; i < resources.size(); i++)
 	{
-		if(dxbc->m_Resources[i].bindPoint == slot &&
-			(dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER ||
-			 dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED)
+		if(resources[i].bindPoint == slot &&
+			(resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER ||
+			 resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED)
 		  )
 		{
 			return true;

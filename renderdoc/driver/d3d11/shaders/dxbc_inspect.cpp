@@ -458,12 +458,19 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
 
 DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 {
+	m_Ready = false;
 	m_DebugInfo = NULL;
 
 	RDCASSERT(ByteCodeLength < UINT32_MAX);
 
 	m_ShaderBlob.resize(ByteCodeLength);
 	memcpy(&m_ShaderBlob[0], ByteCode, m_ShaderBlob.size());
+
+}
+
+void DXBCFile::Initialize()
+{
+	m_Ready = true;
 
 	char *data = (char *)&m_ShaderBlob[0]; // just for convenience
 
@@ -472,7 +479,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 	if(header->fourcc != FOURCC_DXBC)
 		return;
 
-	if(header->fileLength != (uint32_t)ByteCodeLength)
+	if(header->fileLength != (uint32_t)m_ShaderBlob.size())
 		return;
 
 	// default to vertex shader to support blobs without RDEF chunks (e.g. used with
@@ -621,7 +628,6 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
 				cb.name = chunkContents + cbuf->nameOffset;
 
-				cb.descriptor.name = chunkContents + cbuf->nameOffset;
 				cb.descriptor.byteSize = cbuf->size;
 				cb.descriptor.type = (CBuffer::Descriptor::Type)cbuf->type;
 				cb.descriptor.flags = cbuf->flags;
@@ -644,7 +650,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 					{
 						RDEFCBufferVariable *var = (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + varStride);
 
-						if(var->nameOffset > ByteCodeLength)
+						if(var->nameOffset > m_ShaderBlob.size())
 						{
 							varStride += extraData;
 						}
@@ -655,7 +661,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 				{
 					RDEFCBufferVariable *var = (RDEFCBufferVariable *)(chunkContents + cbuf->variables.offset + vi*varStride);
 
-					RDCASSERT(var->nameOffset < ByteCodeLength);
+					RDCASSERT(var->nameOffset < m_ShaderBlob.size());
 
 					CBufferVariable v;
 
@@ -668,7 +674,6 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 						memcpy(&v.descriptor.defaultValue[0], chunkContents + var->defaultValueOffset, var->size);
 					}
 
-					v.descriptor.name = v.name;
 					//v.descriptor.bytesize = var->size; // size with cbuffer padding
 					v.descriptor.offset = var->startOffset;
 					v.descriptor.flags = var->flags;
@@ -706,7 +711,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 				}
 				else
 				{
-					RDCDEBUG("Unused information, buffer %d: %s", cb.descriptor.type, cb.descriptor.name.c_str());
+					RDCDEBUG("Unused information, buffer %d: %s", cb.descriptor.type, cb.name.c_str());
 				}
 			}
 		}
@@ -915,7 +920,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 		}
 	}
 
-	MakeDisassembly();
+	m_Disassembled = false;
 }
 
 void DXBCFile::GuessResources()
@@ -1130,7 +1135,6 @@ void DXBCFile::GuessResources()
 
 				cb.name = desc.name;
 
-				cb.descriptor.name = cb.name;
 				cb.descriptor.byteSize = numVecs*4;
 				cb.descriptor.type = CBuffer::Descriptor::TYPE_CBUFFER;
 				cb.descriptor.flags = 0;
@@ -1148,7 +1152,6 @@ void DXBCFile::GuessResources()
 
 					var.descriptor.defaultValue.resize(4*sizeof(float));
 
-					var.descriptor.name = var.name;
 					var.descriptor.offset = 4*sizeof(float)*v;
 					var.descriptor.flags = 0;
 

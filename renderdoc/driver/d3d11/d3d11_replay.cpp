@@ -1349,8 +1349,8 @@ void D3D11Replay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vec
 
 	RDCASSERT(dxbc);
 
-	if(cbufSlot < dxbc->m_CBuffers.size())
-		m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->m_CBuffers[cbufSlot].variables, outvars, false, data);
+	if(cbufSlot < dxbc->GetCBuffers().size())
+		m_pDevice->GetDebugManager()->FillCBufferVariables(dxbc->GetCBuffers()[cbufSlot].variables, outvars, false, data);
 	return;
 }
 
