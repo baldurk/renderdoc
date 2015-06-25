@@ -192,13 +192,15 @@ struct ShaderResource
 
 struct ShaderDebugChunk
 {
-	ShaderDebugChunk() : compileFlags(0) {}
+	ShaderDebugChunk() : compileFlags(0), entryFile(0) {}
 
 	rdctype::str entryFunc;
 
 	uint32_t compileFlags;
 
 	rdctype::array< rdctype::pair<rdctype::str, rdctype::str> > files; // <filename, source>
+
+	int32_t entryFile; // index in above array of 'main' file with entry point
 };
 
 struct ShaderReflection

@@ -373,6 +373,8 @@ namespace renderdoc
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public DebugFile[] files;
+
+        public Int32 entryFile;
     };
     
     [StructLayout(LayoutKind.Sequential)]

@@ -1867,7 +1867,9 @@ namespace renderdocui.Windows.PipelineState
             // Save Callback
             (ShaderViewer viewer, Dictionary<string, string> updatedfiles) =>
             {
-                string compileSource = updatedfiles.First().Value;
+                string compileSource = "";
+                foreach (var kv in updatedfiles)
+                    compileSource += kv.Value;
 
                 // invoke off to the ReplayRenderer to replace the log's shader
                 // with our edited one

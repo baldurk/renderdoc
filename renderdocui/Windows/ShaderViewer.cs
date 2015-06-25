@@ -521,6 +521,8 @@ namespace renderdocui.Windows
                 else
                     Text = String.Format("{0}()", shader.DebugInfo.entryFunc);
 
+                int fileIdx = 0;
+
                 DockContent sel = null;
                 foreach (var f in shader.DebugInfo.files)
                 {
@@ -540,8 +542,17 @@ namespace renderdocui.Windows
 
                     m_Scintillas.Add(scintilla1);
 
-                    if (f.filetext.Contains(shader.DebugInfo.entryFunc))
+                    if (shader.DebugInfo.entryFile >= 0 && shader.DebugInfo.entryFile < shader.DebugInfo.files.Length)
+                    {
+                        if (fileIdx == shader.DebugInfo.entryFile)
+                            sel = w;
+                    }
+                    else if (f.filetext.Contains(shader.DebugInfo.entryFunc))
+                    {
                         sel = w;
+                    }
+
+                    fileIdx++;
                 }
 
                 if (trace != null || sel == null)

@@ -749,6 +749,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 	refl.DebugInfo.entryFunc = "main";
 	refl.DebugInfo.compileFlags = 0;
 
+	refl.DebugInfo.entryFile = 0;
+
 	refl.Disassembly = "";
 
 	vector<ShaderResource> resources;

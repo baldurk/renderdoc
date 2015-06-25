@@ -212,7 +212,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
 	Serialise("", el.Interfaces);
 
-	SIZE_CHECK(ShaderReflection, 68);
+	SIZE_CHECK(ShaderReflection, 72);
 }
 
 template<>

@@ -225,15 +225,19 @@ namespace renderdocui.Windows.PipelineState
             {
                 string shaderfn = "";
 
+                int entryFile = shaderDetails.DebugInfo.entryFile;
+                if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
+                    entryFile = 0;
+
                 try
                 {
-                    shaderfn = Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+                    shaderfn = Path.GetFileName(shaderDetails.DebugInfo.files[entryFile].filename);
                 }
                 catch (ArgumentException)
                 {
                     // invalid path or similar, just try to go from last \ or / onwards
 
-                    shaderfn = shaderDetails.DebugInfo.files[0].filename;
+                    shaderfn = shaderDetails.DebugInfo.files[entryFile].filename;
                     int idx = shaderfn.LastIndexOfAny(new char[] { '/', '\\' });
                     if (idx > 0)
                         shaderfn = shaderfn.Substring(idx + 1);
@@ -1863,7 +1867,11 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var s in shaderDetails.DebugInfo.files)
                     files.Add(Path.GetFileName(s.filename), s.filetext);
 
-                mainfile = Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+                int entryFile = shaderDetails.DebugInfo.entryFile;
+                if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
+                    entryFile = 0;
+
+                mainfile = Path.GetFileName(shaderDetails.DebugInfo.files[entryFile].filename);
             }
             else
             {
@@ -1948,7 +1956,7 @@ namespace renderdocui.Windows.PipelineState
             // Save Callback
             (ShaderViewer viewer, Dictionary<string, string> updatedfiles) =>
             {
-                string compileSource = updatedfiles.First().Value;
+                string compileSource = updatedfiles[mainfile];
 
                 // try and match up #includes against the files that we have. This isn't always
                 // possible as fxc only seems to include the source for files if something in

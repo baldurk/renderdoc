@@ -888,11 +888,19 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 		ret->DebugInfo.entryFunc = dxbc->m_DebugInfo->GetEntryFunction();
 		ret->DebugInfo.compileFlags = dxbc->m_DebugInfo->GetShaderCompileFlags();
 
+		ret->DebugInfo.entryFile = -1;
+
 		create_array_uninit(ret->DebugInfo.files, dxbc->m_DebugInfo->Files.size());
 		for(size_t i=0; i < dxbc->m_DebugInfo->Files.size(); i++)
 		{
 			ret->DebugInfo.files[i].first = dxbc->m_DebugInfo->Files[i].first;
 			ret->DebugInfo.files[i].second = dxbc->m_DebugInfo->Files[i].second;
+
+			if(ret->DebugInfo.entryFile == -1 &&
+				 strstr(ret->DebugInfo.files[i].second.elems, ret->DebugInfo.entryFunc.elems))
+			{
+				ret->DebugInfo.entryFile = (int32_t)i;
+			}
 		}
 	}
 
