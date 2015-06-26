@@ -153,6 +153,7 @@
             this.variableRegs.Size = new System.Drawing.Size(183, 169);
             this.variableRegs.TabIndex = 1;
             this.variableRegs.Text = "treeListView1";
+            this.variableRegs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DebugKeys_KeyDown);
             this.variableRegs.Leave += new System.EventHandler(this.regsList_Leave);
             this.variableRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
@@ -188,6 +189,7 @@
             this.constantRegs.Size = new System.Drawing.Size(226, 171);
             this.constantRegs.TabIndex = 0;
             this.constantRegs.Text = "treeListView1";
+            this.constantRegs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DebugKeys_KeyDown);
             this.constantRegs.Leave += new System.EventHandler(this.regsList_Leave);
             this.constantRegs.MouseMove += new System.Windows.Forms.MouseEventHandler(this.regsList_MouseMove);
             // 
@@ -627,6 +629,7 @@
             this.watchRegs.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.watchRegs_AfterLabelEdit);
             this.watchRegs.Click += new System.EventHandler(this.watchRegs_Click);
             this.watchRegs.DoubleClick += new System.EventHandler(this.watchRegs_DoubleClick);
+            this.watchRegs.KeyDown += new System.Windows.Forms.KeyEventHandler(this.DebugKeys_KeyDown);
             this.watchRegs.KeyUp += new System.Windows.Forms.KeyEventHandler(this.watchRegs_KeyUp);
             this.watchRegs.Layout += new System.Windows.Forms.LayoutEventHandler(this.watchRegs_Layout);
             this.watchRegs.Leave += new System.EventHandler(this.regsList_Leave);

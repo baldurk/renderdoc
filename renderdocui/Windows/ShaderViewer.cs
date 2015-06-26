@@ -1364,6 +1364,14 @@ namespace renderdocui.Windows
             if (m_Trace == null || m_Trace.states == null)
                 return;
 
+            DebugKeys_KeyDown(sender, e);
+        }
+
+        void DebugKeys_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
             if (e.KeyCode == Keys.F10)
             {
                 if (e.Control)
