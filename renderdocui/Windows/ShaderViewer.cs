@@ -149,13 +149,15 @@ namespace renderdocui.Windows
             }
         }
 
-        private string FriendlyName(string disasm, string stem, ShaderConstant[] vars)
+        private string FriendlyName(string disasm, string stem, string prefix, ShaderConstant[] vars)
         {
             foreach (var v in vars)
             {
                 if (v.type.descriptor.rows == 0 && v.type.descriptor.cols == 0 && v.type.members.Length > 0)
                 {
-                    disasm = FriendlyName(disasm, stem, v.type.members);
+                    string subPrefix = prefix + v.name + ".";
+
+                    disasm = FriendlyName(disasm, stem, subPrefix, v.type.members);
                 }
                 else if (v.type.descriptor.rows > 0 && v.type.descriptor.cols > 0)
                 {
@@ -185,6 +187,8 @@ namespace renderdocui.Windows
                             }
 
                             var name = numRegs == 1 ? v.name : string.Format("{0}[{1}]", v.name, r);
+
+                            name = prefix + name;
 
                             var replacement = string.Format(", {0}{1}.{2}{3}",
                                                     match.Groups[1].Value, name, new string(swizzle), match.Groups[3].Value);
@@ -434,7 +438,7 @@ namespace renderdocui.Windows
                     if (cbuf.variables.Length == 0)
                         continue;
 
-                    disasm = FriendlyName(disasm, stem, cbuf.variables);
+                    disasm = FriendlyName(disasm, stem, "", cbuf.variables);
                 }
 
                 foreach (var r in m_ShaderDetails.Resources)
