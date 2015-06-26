@@ -719,7 +719,7 @@ namespace renderdocui.Windows
 
             string word = scintilla1.GetWordFromPosition(scintilla1.CurrentPos);
 
-            var match = Regex.Match(word, "^[rvog][0-9]+$");
+            var match = Regex.Match(word, "^[rvogst][0-9]+$");
 
             foreach (ScintillaNET.Range r in m_PrevRanges)
             {
@@ -728,16 +728,111 @@ namespace renderdocui.Windows
 
             m_PrevRanges.Clear();
 
+            bool highlighted = false;
+
             if (match.Success)
             {
+                if (word[0] == 'r' || word[0] == 'o' || word[0] == 'g')
+                {
+                    variableRegs.BeginUpdate();
+                    foreach (var n in variableRegs.Nodes)
+                    {
+                        if (Regex.Match(n[0].ToString(), @"\b" + word + @"\b").Success)
+                            n.BackColor = Color.LightGreen;
+                        else
+                            n.BackColor = Color.Transparent;
+                    }
+                    variableRegs.EndUpdate();
+
+                    constantRegs.BeginUpdate();
+                    foreach (var n in constantRegs.Nodes)
+                        n.BackColor = Color.Transparent;
+                    constantRegs.EndUpdate();
+
+                    highlighted = true;
+                }
+                else if (word[0] == 'v')
+                {
+                    constantRegs.BeginUpdate();
+                    foreach (var n in constantRegs.Nodes)
+                    {
+                        if (Regex.Match(n[0].ToString(), @"\b" + word + @"\b").Success)
+                            n.BackColor = Color.LightGreen;
+                        else
+                            n.BackColor = Color.Transparent;
+                    }
+                    constantRegs.EndUpdate();
+
+                    variableRegs.BeginUpdate();
+                    foreach (var n in variableRegs.Nodes)
+                        n.BackColor = Color.Transparent;
+                    variableRegs.EndUpdate();
+
+                    highlighted = true;
+                }
+
                 var matches = Regex.Matches(scintilla1.Text, word + "\\.[xyzwrgba]+");
 
-                foreach(Match m in matches)
+                foreach (Match m in matches)
                 {
                     var r = scintilla1.GetRange(m.Index, m.Index + m.Length);
                     m_PrevRanges.Add(r);
                     r.SetIndicator(4);
                 }
+            }
+            else if(m_Trace != null)
+            {
+                foreach (var cb in m_Trace.cbuffers)
+                {
+                    foreach (var c in cb.variables)
+                    {
+                        if ((c.rows > 0 || c.columns > 0) && Regex.Match(c.name.ToString(), @"\b" + word + @"\b").Success)
+                        {
+                            constantRegs.BeginUpdate();
+                            foreach (var n in constantRegs.Nodes)
+                            {
+                                if(n.Tag == c)
+                                    n.BackColor = Color.LightGreen;
+                                else
+                                    n.BackColor = Color.Transparent;
+                            }
+                            constantRegs.EndUpdate();
+
+                            variableRegs.BeginUpdate();
+                            foreach (var n in variableRegs.Nodes)
+                                n.BackColor = Color.Transparent;
+                            variableRegs.EndUpdate();
+
+                            var matches = Regex.Matches(scintilla1.Text, @"\b" + word + @"\b");
+
+                            foreach (Match m in matches)
+                            {
+                                var r = scintilla1.GetRange(m.Index, m.Index + m.Length);
+                                m_PrevRanges.Add(r);
+                                r.SetIndicator(4);
+                            }
+
+                            highlighted = true;
+                            break;
+                        }
+                    }
+
+                    if(highlighted)
+                        break;
+                }
+            }
+
+            if (!highlighted)
+            {
+                constantRegs.BeginUpdate();
+                foreach (var n in constantRegs.Nodes)
+                    n.BackColor = Color.Transparent;
+                constantRegs.EndUpdate();
+
+                variableRegs.BeginUpdate();
+                foreach (var n in variableRegs.Nodes)
+                    n.BackColor = Color.Transparent;
+                variableRegs.EndUpdate();
             }
         }
 
