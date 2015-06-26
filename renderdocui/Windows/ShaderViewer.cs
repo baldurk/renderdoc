@@ -159,7 +159,7 @@ namespace renderdocui.Windows
                 }
                 else if (v.type.descriptor.rows > 0 && v.type.descriptor.cols > 0)
                 {
-                    uint numRegs = v.type.descriptor.rows;
+                    uint numRegs = v.type.descriptor.rows * Math.Max(1, v.type.descriptor.elements);
 
                     for (uint r = 0; r < numRegs; r++)
                     {
