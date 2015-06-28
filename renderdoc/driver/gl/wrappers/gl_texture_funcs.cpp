@@ -1145,7 +1145,7 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
 		return;
 
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
-	Serialise_glTextureParameterivEXT(record->Resource.name, eGL_NONE, pname, params);
+	Serialise_glTextureParameterivEXT(record->Resource.name, target, pname, params);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
