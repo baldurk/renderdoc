@@ -236,9 +236,11 @@ void RenderDoc::Initialise()
 	}
 
 	if(IsReplayApp())
-		RDCLOG("RenderDoc v%s (%s) loaded in replay application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
+		RDCLOG("RenderDoc v%s %s (%s) loaded in replay application",
+		       RENDERDOC_VERSION_STRING, sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86", GIT_COMMIT_HASH);
 	else
-		RDCLOG("RenderDoc v%s (%s) capturing application", RENDERDOC_VERSION_STRING, GIT_COMMIT_HASH);
+		RDCLOG("RenderDoc v%s %s (%s) capturing application",
+		       RENDERDOC_VERSION_STRING, sizeof(uintptr_t) == sizeof(uint64_t) ? "x64" : "x86", GIT_COMMIT_HASH);
 
 	Keyboard::Init();
 	
