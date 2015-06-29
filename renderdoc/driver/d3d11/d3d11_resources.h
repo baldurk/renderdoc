@@ -27,7 +27,7 @@
 
 #include "driver/d3d11/d3d11_device.h"
 #include "driver/d3d11/d3d11_manager.h"
-#include "shaders/dxbc_inspect.h"
+#include "driver/shaders/dxbc/dxbc_inspect.h"
 #include <algorithm>
 
 enum ResourceType

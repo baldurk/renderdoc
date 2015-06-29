@@ -6,6 +6,7 @@
     <ClCompile Include="..\renderdoc\3rdparty\miniz\miniz.c">
       <Filter>3rdparty</Filter>
     </ClCompile>
+    <ClCompile Include="renderdoccmd_linux.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h">

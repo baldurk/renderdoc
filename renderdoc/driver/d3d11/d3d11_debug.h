@@ -35,7 +35,7 @@ using std::pair;
 
 #include "api/replay/renderdoc_replay.h"
 
-#include "driver/d3d11/shaders/dxbc_debug.h"
+#include "driver/shaders/dxbc/dxbc_debug.h"
 
 class Camera;
 class Vec3f;

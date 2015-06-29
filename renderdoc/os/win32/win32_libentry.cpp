@@ -33,11 +33,7 @@
 
 #include "core/core.h"
 
-void shutdown()
-{
-}
-
-BOOL add_hooks()
+static BOOL add_hooks()
 {
 	wchar_t curFile[512];
 	GetModuleFileNameW(NULL, curFile, 512);
@@ -82,29 +78,9 @@ BOOL APIENTRY DllMain( HMODULE hModule,
                        LPVOID lpReserved
 						)
 {
-	switch (ul_reason_for_call)
-	{
-		case DLL_PROCESS_ATTACH:
-		{
-			return add_hooks();
-			break;
-		}
-		case DLL_THREAD_ATTACH:
-		{
-			int thread_attach=0;
-			break;
-		}
-		case DLL_THREAD_DETACH:
-		{
-			int thread_detach=0;
-			break;
-		}
-		case DLL_PROCESS_DETACH:
-		{
-			shutdown();
-			break;
-		}
-	}
+	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
+		return add_hooks();
+
 	return TRUE;
 }
 

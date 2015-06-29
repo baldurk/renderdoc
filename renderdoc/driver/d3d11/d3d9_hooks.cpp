@@ -27,7 +27,7 @@
 
 #include "driver/d3d11/d3d11_device.h"
 
-#include "hooks.h"
+#include "hooks/hooks.h"
 
 #define DLL_NAME "d3d9.dll"
 

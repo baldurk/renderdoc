@@ -32,7 +32,7 @@
 #include "common/threading.h"
 #include "serialise/string_utils.h"
 
-#include "hooks.h"
+#include "hooks/hooks.h"
 
 namespace glEmulate { void EmulateUnsupportedFunctions(GLHookSet *hooks); }
 

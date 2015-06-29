@@ -27,7 +27,7 @@
 #include "d3d11_manager.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
-#include "shaders/dxbc_debug.h"
+#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "maths/formatpacking.h"
 #include "data/resource.h"
 #include "serialise/serialiser.h"

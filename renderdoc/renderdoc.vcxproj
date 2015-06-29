@@ -83,7 +83,7 @@
     <ExcludePath>$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(ExcludePath)</ExcludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x86;$(LibraryPath)</LibraryPath>
@@ -92,7 +92,7 @@
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IncludePath>$(ProgramFiles)\Windows Kits\8.1\Debuggers\inc;$(ProgramFiles)\Windows Kits\8.1\Include\um;$(ProgramFiles)\Windows Kits\8.1\Include\shared;$(VSInstallDir)\DIA SDK\include;$(SolutionDir)\breakpad;$(IncludePath)</IncludePath>
     <LibraryPath>$(ProgramFiles)\Windows Kits\8.1\lib\win8\um\x64;$(LibraryPath)</LibraryPath>
@@ -109,7 +109,7 @@
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;USE_BREAKPAD;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/wd4100 /wd4189 /wd4127 /DRENDERDOC_PLATFORM=win32 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd4127 /wd4189</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -123,6 +123,10 @@
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\breakpad_common.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\crash_generation_client.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\exception_handler.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -134,7 +138,7 @@
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;USE_BREAKPAD;WIN64;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/wd4100 /wd4189 /wd4127 /DRENDERDOC_PLATFORM=win32 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd4127 /wd4189</AdditionalOptions>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -148,6 +152,9 @@
       <ModuleDefinitionFile>$(ProjectDir)os\win32\comexport.def</ModuleDefinitionFile>
       <AdditionalDependencies>$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\breakpad_common.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\crash_generation_client.lib;$(SolutionDir)\renderdoc\3rdparty\breakpad\$(Platform)\$(Configuration)\exception_handler.lib;ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">
     <ClCompile>
@@ -159,7 +166,7 @@
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/wd4100 /wd4189 /wd4127 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd4127 /wd4189</AdditionalOptions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
@@ -177,6 +184,9 @@
       <AdditionalDependencies>ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">
     <ClCompile>
@@ -188,7 +198,7 @@
       <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM=win32;WIN64;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>
-      <AdditionalOptions>/wd4100 /wd4189 /wd4127 /DRENDERDOC_PLATFORM=win32 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4100 /wd4127 /wd4189</AdditionalOptions>
       <WholeProgramOptimization>false</WholeProgramOptimization>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <AdditionalIncludeDirectories>$(ProjectDir);$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
@@ -205,6 +215,9 @@
       <AdditionalDependencies>ws2_32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;psapi.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>Default</LinkTimeCodeGeneration>
     </Link>
+    <ProjectReference>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
@@ -234,38 +247,12 @@
     <ClInclude Include="core\replay_proxy.h" />
     <ClInclude Include="core\resource_manager.h" />
     <ClInclude Include="core\socket_helpers.h" />
+    <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\debuguniforms.h" />
     <ClInclude Include="data\glsl\texsample.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
     <ClInclude Include="data\version.h" />
-    <ClInclude Include="driver\d3d11\d3d11_common.h" />
-    <ClInclude Include="driver\d3d11\d3d11_context.h" />
-    <ClInclude Include="driver\d3d11\d3d11_debug.h" />
-    <ClInclude Include="driver\d3d11\d3d11_device.h" />
-    <ClInclude Include="driver\d3d11\d3d11_manager.h" />
-    <ClInclude Include="driver\d3d11\d3d11_renderstate.h" />
-    <ClInclude Include="driver\d3d11\d3d11_replay.h" />
-    <ClInclude Include="driver\d3d11\d3d11_resources.h" />
-    <ClInclude Include="driver\d3d11\shaders\dxbc_debug.h" />
-    <ClInclude Include="driver\d3d11\shaders\dxbc_disassemble.h" />
-    <ClInclude Include="driver\d3d11\shaders\dxbc_inspect.h" />
-    <ClInclude Include="driver\d3d11\shaders\dxbc_sdbg.h" />
-    <ClInclude Include="driver\d3d11\shaders\dxbc_spdb.h" />
-    <ClInclude Include="driver\dxgi\dxgi_wrapped.h" />
-    <ClInclude Include="driver\gl\gl_common.h" />
-    <ClInclude Include="driver\gl\gl_driver.h" />
-    <ClInclude Include="driver\gl\gl_enum.h" />
-    <ClInclude Include="driver\gl\gl_hookset.h" />
-    <ClInclude Include="driver\gl\gl_hookset_defs.h" />
-    <ClInclude Include="driver\gl\gl_manager.h" />
-    <ClInclude Include="driver\gl\gl_renderstate.h" />
-    <ClInclude Include="driver\gl\gl_replay.h" />
-    <ClInclude Include="driver\gl\gl_resources.h" />
-    <ClInclude Include="driver\gl\gl_shader_refl.h" />
-    <ClInclude Include="driver\gl\official\glcorearb.h" />
-    <ClInclude Include="driver\gl\official\glext.h" />
-    <ClInclude Include="driver\gl\official\wglext.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
     <ClInclude Include="maths\formatpacking.h" />
@@ -273,6 +260,7 @@
     <ClInclude Include="maths\matrix.h" />
     <ClInclude Include="maths\quat.h" />
     <ClInclude Include="maths\vec.h" />
+    <ClInclude Include="os\linux_specific.h" />
     <ClInclude Include="os\os_specific.h" />
     <ClInclude Include="os\win32\win32_hook.h" />
     <ClInclude Include="os\win32_specific.h" />
@@ -296,59 +284,32 @@
     <ClCompile Include="core\remote_replay.cpp" />
     <ClCompile Include="core\replay_proxy.cpp" />
     <ClCompile Include="core\resource_manager.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_analyse.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_common.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_context.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_context1_wrap.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_context2_wrap.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_context_wrap.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_counters.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_debug.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_device.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_device1_wrap.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_device_wrap.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_manager.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_renderstate.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_replay.cpp" />
-    <ClCompile Include="driver\d3d11\d3d11_resources.cpp" />
-    <ClCompile Include="driver\d3d11\shaders\dxbc_debug.cpp" />
-    <ClCompile Include="driver\d3d11\shaders\dxbc_disassemble.cpp" />
-    <ClCompile Include="driver\d3d11\shaders\dxbc_inspect.cpp" />
-    <ClCompile Include="driver\dxgi\dxgi_wrapped.cpp" />
-    <ClCompile Include="driver\gl\gl_common.cpp" />
-    <ClCompile Include="driver\gl\gl_counters.cpp" />
-    <ClCompile Include="driver\gl\gl_debug.cpp" />
-    <ClCompile Include="driver\gl\gl_driver.cpp" />
-    <ClCompile Include="driver\gl\gl_manager.cpp" />
-    <ClCompile Include="driver\gl\gl_renderstate.cpp" />
-    <ClCompile Include="driver\gl\gl_replay.cpp" />
-    <ClCompile Include="driver\gl\gl_replay_win32.cpp" />
-    <ClCompile Include="driver\gl\gl_resources.cpp" />
-    <ClCompile Include="driver\gl\gl_shader_refl.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_buffer_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_debug_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_draw_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_emulated.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_framebuffer_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_get_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_query_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_sampler_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_shader_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_state_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_texture_funcs.cpp" />
-    <ClCompile Include="driver\gl\wrappers\gl_uniform_funcs.cpp" />
-    <ClCompile Include="hooks\d3d11_hooks.cpp" />
-    <ClCompile Include="hooks\d3d9_hooks.cpp" />
-    <ClCompile Include="hooks\win32_libentry.cpp" />
-    <ClCompile Include="hooks\dxgi_hooks.cpp" />
-    <ClCompile Include="hooks\gl_win32_hooks.cpp" />
     <ClCompile Include="hooks\hooks.cpp" />
-    <ClCompile Include="hooks\sys_win32_hooks.cpp" />
     <ClCompile Include="maths\camera.cpp" />
     <ClCompile Include="maths\matrix.cpp" />
+    <ClCompile Include="os\linux\linux_callstack.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_libentry.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_network.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_process.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_stringio.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_threading.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\os_specific.cpp" />
+    <ClCompile Include="os\win32\sys_win32_hooks.cpp" />
     <ClCompile Include="os\win32\win32_callstack.cpp" />
     <ClCompile Include="os\win32\win32_hook.cpp" />
+    <ClCompile Include="os\win32\win32_libentry.cpp" />
     <ClCompile Include="os\win32\win32_network.cpp" />
     <ClCompile Include="os\win32\win32_process.cpp" />
     <ClCompile Include="os\win32\win32_shellext.cpp" />
@@ -387,6 +348,32 @@
     <None Include="data\hlsl\histogram.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="os\win32\comexport.def" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="driver\d3d11\renderdoc_d3d11.vcxproj">
+      <Project>{f1e59a05-60d4-4927-9e57-dd191eae90ef}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
+    <ProjectReference Include="driver\dxgi\renderdoc_dxgi.vcxproj">
+      <Project>{2a793574-bd3c-46d4-9788-c339d9550ce1}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
+    <ProjectReference Include="driver\gl\renderdoc_gl.vcxproj">
+      <Project>{f92fcda6-a261-4eec-9cd0-73a11fbcc459}</Project>
+      <Private>false</Private>
+      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
+      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
+      <LinkLibraryDependencies>true</LinkLibraryDependencies>
+      <UseLibraryDependencyInputs>true</UseLibraryDependencyInputs>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -24,8 +24,8 @@
 
 
 
-#include "driver/dxgi/dxgi_wrapped.h"
-#include "hooks.h"
+#include "dxgi_wrapped.h"
+#include "hooks/hooks.h"
 
 #define DLL_NAME "dxgi.dll"
 

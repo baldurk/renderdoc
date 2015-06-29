@@ -32,7 +32,7 @@
 
 #include <d3dcompiler.h>
 
-#include "shaders/dxbc_debug.h"
+#include "driver/shaders/dxbc/dxbc_debug.h"
 
 #include "serialise/string_utils.h"
 

@@ -16,26 +16,8 @@
     <Filter Include="Common\Maths">
       <UniqueIdentifier>{0e2454ca-656b-499c-bb19-07cf1da7e703}</UniqueIdentifier>
     </Filter>
-    <Filter Include="hooks">
-      <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="hooks\libs">
-      <UniqueIdentifier>{669b3fbf-5c6d-4c5a-b013-4e28ad5a01a7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{a9a0e0ca-e0e6-4ebb-a21e-f971943c46ba}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers">
-      <UniqueIdentifier>{358bfcbf-2408-42ff-b4b1-29de135a0fc4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\D3D11">
-      <UniqueIdentifier>{a8f3f549-4980-4c2f-8fa4-989c22755f07}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\D3D11\shaders">
-      <UniqueIdentifier>{fcdcbe00-6b01-4234-9a3b-cc019f88a8ed}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\DXGI">
-      <UniqueIdentifier>{a9f6ac9b-cc6a-4449-be40-a3fad76a0067}</UniqueIdentifier>
     </Filter>
     <Filter Include="OS">
       <UniqueIdentifier>{ffbf4a4f-115e-415f-a800-b372db445027}</UniqueIdentifier>
@@ -46,12 +28,6 @@
     <Filter Include="3rdparty">
       <UniqueIdentifier>{36ccf267-d6c1-41c9-87c3-92c1dfcbe88b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Drivers\OpenGL">
-      <UniqueIdentifier>{dfe56374-9726-4919-8529-123cf5ba6ef5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\OpenGL\ARB Headers">
-      <UniqueIdentifier>{92099e5e-bd1b-44f6-9556-4dd01c91c23f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\networking">
       <UniqueIdentifier>{1d17fb69-fd1a-44a6-a530-05642d97ddc6}</UniqueIdentifier>
     </Filter>
@@ -60,9 +36,6 @@
     </Filter>
     <Filter Include="Resources\glsl">
       <UniqueIdentifier>{889cc549-e49b-430b-9e9b-5a42e7c26b03}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\OpenGL\Function Wrappers">
-      <UniqueIdentifier>{5e7e0e62-aba4-4256-b0ec-a1a7fbcba715}</UniqueIdentifier>
     </Filter>
     <Filter Include="API">
       <UniqueIdentifier>{7d6b0f22-1180-4767-b284-cc87f54ec012}</UniqueIdentifier>
@@ -91,6 +64,12 @@
     <Filter Include="3rdparty\tinyexr">
       <UniqueIdentifier>{aadadb32-abbc-45b3-8f86-026eed994ba9}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Linux">
+      <UniqueIdentifier>{5168e1dc-8d41-4aff-b99c-1ffa2af33f95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -109,7 +88,7 @@
       <Filter>Resources</Filter>
     </ClInclude>
     <ClInclude Include="hooks\hooks.h">
-      <Filter>hooks</Filter>
+      <Filter>Hooks</Filter>
     </ClInclude>
     <ClInclude Include="common\common.h">
       <Filter>Common</Filter>
@@ -129,47 +108,8 @@
     <ClInclude Include="common\timing.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_spdb.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_debug.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_disassemble.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_inspect.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_sdbg.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_debug.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_device.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_manager.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_renderstate.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_resources.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_common.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_context.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
     <ClInclude Include="os\os_specific.h">
       <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_replay.h">
-      <Filter>Drivers\D3D11</Filter>
     </ClInclude>
     <ClInclude Include="os\win32_specific.h">
       <Filter>OS\Win32</Filter>
@@ -177,35 +117,8 @@
     <ClInclude Include="core\resource_manager.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_hookset.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_common.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\glcorearb.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\glext.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\wglext.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_manager.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_resources.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_replay.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="maths\formatpacking.h">
       <Filter>Common\Maths</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_driver.h">
-      <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="core\socket_helpers.h">
       <Filter>Core\networking</Filter>
@@ -216,9 +129,6 @@
     <ClInclude Include="core\crash_handler.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_enum.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="replay\type_helpers.h">
       <Filter>Replay</Filter>
     </ClInclude>
@@ -228,17 +138,11 @@
     <ClInclude Include="replay\replay_renderer.h">
       <Filter>Replay</Filter>
     </ClInclude>
-    <ClInclude Include="driver\dxgi\dxgi_wrapped.h">
-      <Filter>Drivers\DXGI</Filter>
-    </ClInclude>
     <ClInclude Include="core\core.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_hookset_defs.h">
-      <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
@@ -246,14 +150,8 @@
     <ClInclude Include="data\glsl\debuguniforms.h">
       <Filter>Resources\glsl</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_renderstate.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="os\win32\win32_hook.h">
       <Filter>OS\Win32</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_shader_refl.h">
-      <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="data\version.h">
       <Filter>Resources</Filter>
@@ -315,6 +213,12 @@
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h">
       <Filter>3rdparty\tinyexr</Filter>
     </ClInclude>
+    <ClInclude Include="os\linux_specific.h">
+      <Filter>OS\Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="data\embedded_files.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -326,62 +230,11 @@
     <ClCompile Include="serialise\serialiser.cpp">
       <Filter>Common\Serialise</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\d3d9_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
     <ClCompile Include="hooks\hooks.cpp">
-      <Filter>hooks</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\d3d11_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\dxgi_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\win32_libentry.cpp">
-      <Filter>hooks</Filter>
+      <Filter>Hooks</Filter>
     </ClCompile>
     <ClCompile Include="common\common.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_debug.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_disassemble.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_inspect.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_debug.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_manager.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_renderstate.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_resources.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_analyse.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_common.cpp">
-      <Filter>Drivers\D3D11</Filter>
     </ClCompile>
     <ClCompile Include="os\win32\win32_callstack.cpp">
       <Filter>OS\Win32</Filter>
@@ -392,15 +245,6 @@
     <ClCompile Include="os\os_specific.cpp">
       <Filter>OS</Filter>
     </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_replay.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context1_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device1_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\win32_threading.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
@@ -410,26 +254,11 @@
     <ClCompile Include="core\resource_manager.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_common.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_manager.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\win32_shellext.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
     <ClCompile Include="os\win32\win32_network.cpp">
       <Filter>OS\Win32</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_replay.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_resources.cpp">
-      <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="core\remote_access.cpp">
       <Filter>Core\networking</Filter>
@@ -452,65 +281,11 @@
     <ClCompile Include="replay\replay_renderer.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\gl_win32_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\dxgi\dxgi_wrapped.cpp">
-      <Filter>Drivers\DXGI</Filter>
-    </ClCompile>
     <ClCompile Include="core\core.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\sys_win32_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_replay_win32.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_debug.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_renderstate.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_buffer_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_debug_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_draw_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_framebuffer_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_sampler_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_shader_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_state_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_texture_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_uniform_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_get_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_query_funcs.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\win32_hook.cpp">
       <Filter>OS\Win32</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_shader_refl.cpp">
-      <Filter>Drivers\OpenGL</Filter>
     </ClCompile>
     <ClCompile Include="common\dds_readwrite.cpp">
       <Filter>Common\File Formats</Filter>
@@ -530,9 +305,6 @@
     <ClCompile Include="core\image_viewer.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context2_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
     <ClCompile Include="serialise\grisu2.cpp">
       <Filter>Common\Strings</Filter>
     </ClCompile>
@@ -545,14 +317,29 @@
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
       <Filter>3rdparty\tinyexr</Filter>
     </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_counters.cpp">
-      <Filter>Drivers\D3D11</Filter>
+    <ClCompile Include="os\win32\win32_libentry.cpp">
+      <Filter>OS\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_counters.cpp">
-      <Filter>Drivers\OpenGL</Filter>
+    <ClCompile Include="os\linux\linux_callstack.cpp">
+      <Filter>OS\Linux</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\wrappers\gl_emulated.cpp">
-      <Filter>Drivers\OpenGL\Function Wrappers</Filter>
+    <ClCompile Include="os\linux\linux_network.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_process.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_stringio.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_threading.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\linux\linux_libentry.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\win32\sys_win32_hooks.cpp">
+      <Filter>OS\Win32</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

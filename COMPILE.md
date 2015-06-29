@@ -1,3 +1,11 @@
+Drivers
+--------------
+
+Each RenderDoc back-end is called a 'driver' and is under the renderdoc/driver/ folder. If you don't have the SDK or don't care about a particular API you can remove a driver from building - in the Makefile by editing LIBS= in renderdoc/Makefile, in VS by removing the project and the reference on the renderdoc reference. Be aware of dependencies, such as D3D11 expecting DXGI to be loaded too.
+
+Some shared code for handling shader formats used in multiple APIs such as DXBC and SPIR-V are in renderdoc/driver/shaders/ folder.
+
+
 Windows
 --------------
 

@@ -26,7 +26,7 @@
 #include "driver/d3d11/d3d11_device.h"
 
 #include "driver/dxgi/dxgi_wrapped.h"
-#include "hooks.h"
+#include "hooks/hooks.h"
 
 #define DLL_NAME "d3d11.dll"
 

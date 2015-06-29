@@ -163,6 +163,9 @@
   <ItemGroup>
     <ClCompile Include="..\renderdoc\3rdparty\miniz\miniz.c" />
     <ClCompile Include="renderdoccmd.cpp" />
+    <ClCompile Include="renderdoccmd_linux.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="renderdoccmd_win32.cpp" />
   </ItemGroup>
   <ItemGroup>
