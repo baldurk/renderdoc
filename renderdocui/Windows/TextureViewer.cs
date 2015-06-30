@@ -1392,6 +1392,9 @@ namespace renderdocui.Windows
 
             UI_UpdateChannels();
 
+            if (autoFit.Checked)
+                AutoFitRange();
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 RT_UpdateVisualRange(r);
