@@ -880,12 +880,18 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
 		}
 		case TYPE_IMMEDIATE_CONSTANT_BUFFER:
 		{
-			RDCASSERT(indices[0]*4 + 4 < dxbc->m_Immediate.size());
-
 			v = s = ShaderVariable("", 0, 0, 0, 0);
 
-			if(indices[0]*4 + 4 < dxbc->m_Immediate.size())
-				memcpy(s.value.uv, &dxbc->m_Immediate[indices[0]*4], 16);
+			// if this Vec4f is entirely in the ICB
+			if(indices[0]*4 + 4 <= dxbc->m_Immediate.size())
+			{
+				memcpy(s.value.uv, &dxbc->m_Immediate[indices[0]*4], sizeof(Vec4f));
+			}
+			else
+			{
+				// ICBs are always a multiple of Vec4fs, so no need to do a partial read (like in a normal CB)
+				RDCWARN("Shader read off the end of an immediate constant buffer. Bug in shader or simulation? Clamping to 0s");
+			}
 
 			break;
 		}
