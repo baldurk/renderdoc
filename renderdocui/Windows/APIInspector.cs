@@ -275,8 +275,23 @@ namespace renderdocui.Windows
                     text += string.Format("{0,-5}  {1}" + Environment.NewLine, n[0].ToString(), n[1].ToString());
                 }
 
-                if (text.Length > 0)
-                    Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 
@@ -292,8 +307,23 @@ namespace renderdocui.Windows
                     text += n.ToString() + Environment.NewLine;
                 }
 
-                if (text.Length > 0)
-                    Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 

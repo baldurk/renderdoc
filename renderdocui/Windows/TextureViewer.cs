@@ -2293,7 +2293,21 @@ namespace renderdocui.Windows
             
             if (e.KeyCode == Keys.C && e.Control)
             {
-                Clipboard.SetText(texStatusDim.Text + " | " + statusLabel.Text);
+                try
+                {
+                    Clipboard.SetText(texStatusDim.Text + " | " + statusLabel.Text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        Clipboard.SetDataObject(texStatusDim.Text + " | " + statusLabel.Text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
 
             if (!m_Core.LogLoaded) return;

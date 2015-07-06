@@ -1694,8 +1694,23 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
 
-                if(text.Length > 0)
-                    Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 
