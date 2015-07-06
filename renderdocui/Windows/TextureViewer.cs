@@ -82,10 +82,10 @@ namespace renderdocui.Windows
                 return !(s1 == s2);
             }
 
-            public UInt32 GetFirstArraySlice(Core core)
-            {
-                // todo, implement this better for GL :(
+            // todo, implement these better for GL :(
 
+            public int GetHighestMip(Core core)
+            {
                 if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 {
                     D3D11PipelineState.ShaderStage.ResourceView view = null;
@@ -108,22 +108,52 @@ namespace renderdocui.Windows
                         view = core.CurD3D11PipelineState.m_PS.SRVs[index];
                     }
 
-                    return view != null ? view.FirstArraySlice : 0;
+                    return view != null ? (int)view.HighestMip : -1;
+                }
+
+                return -1;
+            }
+
+            public int GetFirstArraySlice(Core core)
+            {
+                if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+                {
+                    D3D11PipelineState.ShaderStage.ResourceView view = null;
+
+                    if (Type == FollowType.OutputColour)
+                    {
+                        view = core.CurD3D11PipelineState.m_OM.RenderTargets[index];
+                    }
+                    else if (Type == FollowType.OutputDepth)
+                    {
+                        view = core.CurD3D11PipelineState.m_OM.DepthTarget;
+                    }
+                    else if (Type == FollowType.ReadWriteRes)
+                    {
+                        if (index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
+                            view = core.CurD3D11PipelineState.m_OM.UAVs[index];
+                    }
+                    else if (Type == FollowType.PSResource)
+                    {
+                        view = core.CurD3D11PipelineState.m_PS.SRVs[index];
+                    }
+
+                    return view != null ? (int)view.FirstArraySlice : -1;
                 }
                 else
                 {
                     if (Type == FollowType.ReadWriteRes)
                     {
                         if(!core.CurGLPipelineState.Images[index].Layered)
-                            return core.CurGLPipelineState.Images[index].Layer;
+                            return (int)core.CurGLPipelineState.Images[index].Layer;
                     }
                     if (Type == FollowType.PSResource)
                     {
-                        return core.CurGLPipelineState.Textures[index].FirstSlice;
+                        return (int)core.CurGLPipelineState.Textures[index].FirstSlice;
                     }
                 }
 
-                return 0;
+                return -1;
             }
 
             public ResourceId GetResourceId(Core core)
@@ -1232,6 +1262,9 @@ namespace renderdocui.Windows
             texPanel.ResumeLayout();
         }
 
+        private int prevFirstArraySlice = -1;
+        private int prevHighestMip = -1;
+
         private void UI_OnTextureSelectionChanged()
         {
             FetchTexture tex = CurrentTexture;
@@ -1270,6 +1303,12 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
 
+            m_TexDisplay.mip = 0;
+            m_TexDisplay.sliceFace = 0;
+
+            bool usemipsettings = true;
+            bool useslicesettings = true;
+
             if (tex.msSamp > 1)
             {
                 for (int i = 0; i < tex.msSamp; i++)
@@ -1284,6 +1323,8 @@ namespace renderdocui.Windows
                     mipLevel.Items.Add("Average val");
 
                 mipLevelLabel.Text = "Sample";
+
+                mipLevel.SelectedIndex = 0;
             }
             else
             {
@@ -1291,11 +1332,22 @@ namespace renderdocui.Windows
                     mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
 
                 mipLevelLabel.Text = "Mip";
-            }
 
-            mipLevel.SelectedIndex = 0;
-            m_TexDisplay.mip = 0;
-            m_TexDisplay.sliceFace = 0;
+                int highestMip = m_Following.GetHighestMip(m_Core);
+                // assuming we get a valid mip for the highest mip, only switch to it
+                // if we've selected a new texture, or if it's different than the last mip.
+                // This prevents the case where the user has clicked on another mip and
+                // we don't want to snap their view back when stepping between events with the
+                // same mip used. But it does mean that if they are stepping between
+                // events with different mips used, then we will update in that case.
+                if (highestMip >= 0 && (newtex || highestMip != prevHighestMip))
+                {
+                    usemipsettings = false;
+                    mipLevel.SelectedIndex = Helpers.Clamp(highestMip, 0, (int)tex.mips - 1);
+                }
+
+                prevHighestMip = highestMip;
+            }
 
             if (tex.mips == 1 && tex.msSamp <= 1)
             {
@@ -1335,16 +1387,28 @@ namespace renderdocui.Windows
                     }
                 }
 
-                int firstArraySlice = (int)m_Following.GetFirstArraySlice(m_Core);
-                sliceFace.SelectedIndex = Helpers.Clamp(firstArraySlice, 0, (int)numSlices - 1);
+                int firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+                // see above with highestMip and prevHighestMip for the logic behind this
+                if (firstArraySlice >= 0 && (newtex || firstArraySlice != prevFirstArraySlice))
+                {
+                    useslicesettings = false;
+                    sliceFace.SelectedIndex = Helpers.Clamp(firstArraySlice, 0, (int)numSlices - 1);
+                }
+
+                prevFirstArraySlice = firstArraySlice;
             }
 
-            // mip and slice were reset to 0 above, we must restore any per-tex settings to apply
-            // even if we don't switch to a new texture
+            // because slice and mip are specially set above, we restore any per-tex settings to apply
+            // even if we don't switch to a new texture.
+            // Note that if the slice or mip was changed because that slice or mip is the selected one
+            // at the API level, we leave this alone.
             if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
             {
-                mipLevel.SelectedIndex = m_TextureSettings[tex.ID].mip;
-                sliceFace.SelectedIndex = m_TextureSettings[tex.ID].slice;
+                if (usemipsettings)
+                    mipLevel.SelectedIndex = m_TextureSettings[tex.ID].mip;
+
+                if (useslicesettings)
+                    sliceFace.SelectedIndex = m_TextureSettings[tex.ID].slice;
             }
 
             // handling for if we've switched to a new texture
