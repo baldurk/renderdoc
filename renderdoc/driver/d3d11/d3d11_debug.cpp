@@ -1940,10 +1940,13 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 
 	m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
 	
-	ID3D11UnorderedAccessView *uavs[D3D11_PS_CS_UAV_REGISTER_COUNT] = { 0 };
-	UINT UAV_keepcounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1 };
+	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { 0 };
+	UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
+	memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
+
+	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	uavs[0] = m_DebugRender.histogramUAV;
-	m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, uavs, UAV_keepcounts);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, UAV_keepcounts);
 
 	m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
 
@@ -2031,9 +2034,10 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	
 	m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
 	
-	ID3D11UnorderedAccessView *uavs[D3D11_PS_CS_UAV_REGISTER_COUNT] = { NULL };
+	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
+	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	uavs[intIdx] = m_DebugRender.tileResultUAV[intIdx];
-	m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, uavs, NULL);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, NULL);
 	
 	m_pImmediateContext->CSSetShaderResources(srvOffset, eTexType_Max, details.srv);
 
@@ -2221,10 +2225,12 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 	
 	m_pImmediateContext->CopyResource(srvResource, srcArray);
 
-	ID3D11UnorderedAccessView *uavs[D3D11_PS_CS_UAV_REGISTER_COUNT] = { NULL };
-	UINT uavCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1 };
+	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
+	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
+	memset(&uavCounts[0], 0xff, sizeof(uavCounts));
 
-	m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, uavs, uavCounts);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 	
 	m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 	m_pImmediateContext->PSSetShader(depth ? m_DebugRender.DepthCopyArrayToMSPS : m_DebugRender.CopyArrayToMSPS, NULL, 0);
@@ -2342,7 +2348,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 	ID3D11ShaderResourceView *srvs[8] = { NULL };
 	srvs[0] = srvArray;
 
-	m_pImmediateContext->PSSetShaderResources(0, D3D11_PS_CS_UAV_REGISTER_COUNT, srvs);
+	m_pImmediateContext->PSSetShaderResources(0, 8, srvs);
 	
 	// loop over every array slice in MS texture
 	for(UINT slice=0; slice < descMS.ArraySize; slice++)
@@ -2506,10 +2512,12 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 	
 	m_pImmediateContext->CopyResource(srvResource, srcMS);
 	
-	ID3D11UnorderedAccessView *uavs[D3D11_PS_CS_UAV_REGISTER_COUNT] = { NULL };
-	UINT uavCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1 };
+	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
+	UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
+	memset(&uavCounts[0], 0xff, sizeof(uavCounts));
+	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
-	m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, uavs, uavCounts);
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 	
 	m_pImmediateContext->VSSetShader(m_DebugRender.FullscreenVS, NULL, 0);
 	m_pImmediateContext->PSSetShader(depth ? m_DebugRender.DepthCopyMSToArrayPS : m_DebugRender.CopyMSToArrayPS, NULL, 0);
@@ -2629,7 +2637,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
 	srvs[srvIndex] = srvMS;
 	
-	m_pImmediateContext->PSSetShaderResources(0, D3D11_PS_CS_UAV_REGISTER_COUNT, srvs);
+	m_pImmediateContext->PSSetShaderResources(0, 8, srvs);
 
 	// loop over every array slice in MS texture
 	for(UINT slice=0; slice < descMS.ArraySize; slice++)
@@ -3538,10 +3546,12 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 			m_pImmediateContext->PSSetConstantBuffers(0, 1, &customBuff);
 		}
 		
-		ID3D11UnorderedAccessView *NullUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = { 0 };
-		UINT UAV_keepcounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1, (UINT)-1 };
+		ID3D11UnorderedAccessView *NullUAVs[D3D11_1_UAV_SLOT_COUNT] = { 0 };
+		UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
+		memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
+		const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
-		m_pImmediateContext->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, NullUAVs, UAV_keepcounts);
+		m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, NullUAVs, UAV_keepcounts);
 
 		m_pImmediateContext->PSSetShaderResources(srvOffset, eTexType_Max, details.srv);
 

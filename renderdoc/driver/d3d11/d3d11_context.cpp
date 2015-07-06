@@ -989,9 +989,9 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 	
 		if(s == 5)
 		{
-			for(int i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
-				if(pipe->CS.Used_UAV(i) && pipe->CS.UAVs[i])
-					m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->CS.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_CS_RWResource));
+			for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+				if(pipe->CS.Used_UAV(i) && pipe->CSUAVs[i])
+					m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->CSUAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_CS_RWResource));
 		}
 	}
 	
@@ -1005,7 +1005,7 @@ void WrappedID3D11DeviceContext::AddUsage(FetchDrawcall d)
 	//////////////////////////////
 	// OM
 
-	for(int i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
+	for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
 		if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i])
 			m_ResourceUses[((WrappedID3D11UnorderedAccessView *)pipe->OM.UAVs[i])->GetResourceResID()].push_back(EventUsage(e, eUsage_PS_RWResource));
 	

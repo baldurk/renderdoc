@@ -2740,7 +2740,7 @@ void WrappedID3D11DeviceContext::OMGetRenderTargetsAndUnorderedAccessViews(UINT 
 		return;
 	
 	ID3D11RenderTargetView *rtv[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
-	ID3D11UnorderedAccessView *uav[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+	ID3D11UnorderedAccessView *uav[D3D11_1_UAV_SLOT_COUNT] = {0};
 	ID3D11DepthStencilView *dsv = NULL;
 	m_pRealContext->OMGetRenderTargetsAndUnorderedAccessViews(NumRTVs, rtv, &dsv, UAVStartSlot, NumUAVs, uav);
 	
@@ -2876,8 +2876,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(UINT NumViews_, ID
 			m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.DepthView, pDepthStencilView);
 		}
 
-		ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
-		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
+		ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
+		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_1_UAV_SLOT_COUNT);
 	
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, NumViews);
 
@@ -2944,8 +2944,8 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews, ID3D11RenderT
 		}
 	}
 
-	ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
-	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
+	ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
+	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_1_UAV_SLOT_COUNT);
 	
 	for(UINT i=0; i < NumViews; i++)
 	{
@@ -3006,8 +3006,8 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
 
 	if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
 	{
-		UnorderedAccessViews = new ID3D11UnorderedAccessView *[D3D11_PS_CS_UAV_REGISTER_COUNT];
-		for(UINT i=0; i < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
+		UnorderedAccessViews = new ID3D11UnorderedAccessView *[D3D11_1_UAV_SLOT_COUNT];
+		for(UINT i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
 			UnorderedAccessViews[i] = NULL;
 	}
 
@@ -3050,7 +3050,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
 
 		if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
 		{
-			m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UnorderedAccessViews, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
+			m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UnorderedAccessViews, 0, D3D11_1_UAV_SLOT_COUNT);
 			m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
 		}
 
@@ -3104,7 +3104,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 	}
 
 	ID3D11RenderTargetView *RTs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
-	ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+	ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 	
 	for(UINT i=0; ppRenderTargetViews && i < NumRTVs; i++)
 		RTs[i] = ppRenderTargetViews[i];
@@ -3146,12 +3146,12 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 
 	if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
 	{
-		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_PS_CS_UAV_REGISTER_COUNT);
+		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0, D3D11_1_UAV_SLOT_COUNT);
 		m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
 	}
 	
 	// invalid case where UAV/RTV overlap, UAV seems to take precedence
-	bool UAVOverlap = (NumUAVs > 0 && NumUAVs <= D3D11_PS_CS_UAV_REGISTER_COUNT &&
+	bool UAVOverlap = (NumUAVs > 0 && NumUAVs <= D3D11_1_UAV_SLOT_COUNT &&
 								     NumRTVs > 0 && NumRTVs <= D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT &&
 										 StartSlot < NumRTVs);
 
@@ -3161,7 +3161,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(UINT 
 
 		// unset any RTs overlapping with the UAV range
 		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets, NullRTs, StartSlot,
-						RDCMIN(NumUAVs, D3D11_PS_CS_UAV_REGISTER_COUNT - StartSlot));
+						RDCMIN(NumUAVs, D3D11_1_UAV_SLOT_COUNT - StartSlot));
 	}
 
 	for(UINT i=0; ppRenderTargetViews && i < NumRTVs; i++)
@@ -3957,7 +3957,7 @@ void WrappedID3D11DeviceContext::CSGetUnorderedAccessViews(UINT StartSlot, UINT 
 {
 	if(ppUnorderedAccessViews)
 	{
-		ID3D11UnorderedAccessView *real[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+		ID3D11UnorderedAccessView *real[D3D11_1_UAV_SLOT_COUNT] = {0};
 		m_pRealContext->CSGetUnorderedAccessViews(StartSlot, NumUAVs, real);
 
 		for(UINT i=0; i < NumUAVs; i++)
@@ -3966,7 +3966,7 @@ void WrappedID3D11DeviceContext::CSGetUnorderedAccessViews(UINT StartSlot, UINT 
 			ppUnorderedAccessViews[i] = (ID3D11UnorderedAccessView *)m_pDevice->GetResourceManager()->GetWrapper(real[i]);
 			SAFE_ADDREF(ppUnorderedAccessViews[i]);
 
-			RDCASSERT(ppUnorderedAccessViews[i] == m_CurrentPipelineState->CS.UAVs[i+StartSlot]);
+			RDCASSERT(ppUnorderedAccessViews[i] == m_CurrentPipelineState->CSUAVs[i+StartSlot]);
 		}
 	}
 }
@@ -4185,7 +4185,7 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetUnorderedAccessViews(UINT StartS
 
 	if(m_State <= EXECUTING)
 	{
-		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CS.UAVs, UAVs, StartSlot, NumUAVs);
+		m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CSUAVs, UAVs, StartSlot, NumUAVs);
 
 		for(UINT i=0; i < NumUAVs; i++)
 			UAVs[i] = UNWRAP(WrappedID3D11UnorderedAccessView, UAVs[i]);
@@ -4216,7 +4216,7 @@ void WrappedID3D11DeviceContext::CSSetUnorderedAccessViews(UINT StartSlot, UINT 
 		m_ContextRecord->AddChunk(scope.Get());
 	}
 
-	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CS.UAVs, ppUnorderedAccessViews, StartSlot, NumUAVs);
+	m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->CSUAVs, ppUnorderedAccessViews, StartSlot, NumUAVs);
 	
 	ID3D11UnorderedAccessView *UAVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
 	for(UINT i=0; i < NumUAVs; i++)

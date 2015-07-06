@@ -506,7 +506,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global, DXBC::DXBCFile *dxbc, uint32_t UAVStartSlot, ID3D11UnorderedAccessView **UAVs, ID3D11ShaderResourceView **SRVs)
 {
-	for(int i=0; UAVs != NULL && i+UAVStartSlot < D3D11_PS_CS_UAV_REGISTER_COUNT; i++)
+	for(int i=0; UAVs != NULL && i+UAVStartSlot < D3D11_1_UAV_SLOT_COUNT; i++)
 	{
 		int dsti = i+UAVStartSlot;
 		if(UAVs[i])
@@ -1762,7 +1762,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	ShaderDebugTrace ret;
 		
 	GlobalState global;
-	CreateShaderGlobalState(global, dxbc, 0, rs->CS.UAVs, rs->CS.SRVs);
+	CreateShaderGlobalState(global, dxbc, 0, rs->CSUAVs, rs->CS.SRVs);
 	State initialState = CreateShaderDebugState(ret, -1, dxbc, cbufData);
 	
 	for(int i=0; i < 3; i++)
@@ -3340,10 +3340,11 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	}
 
 	ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
-	ID3D11UnorderedAccessView* prevUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+	ID3D11UnorderedAccessView* prevUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 	ID3D11DepthStencilView *prevDSV = NULL;
+	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
-																																 UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs);
+																																 UAVStartSlot, numUAVs-UAVStartSlot, prevUAVs);
 
 	m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(0, NULL, NULL, 0, 0, NULL, NULL);
 
@@ -3353,7 +3354,8 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	ID3D11Buffer *curCSCBuf[2] = {0};
 	ID3D11ShaderResourceView *curCSSRVs[10] = {0};
 	ID3D11UnorderedAccessView *curCSUAV[4] = {0};
-	UINT initCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, };
+	UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
+	memset(&initCounts[0], 0xff, sizeof(initCounts));
 
 	m_pImmediateContext->CSGetShader(&curCS, curCSInst, &curCSNumInst);
 	m_pImmediateContext->CSGetConstantBuffers(0, ARRAY_COUNT(curCSCBuf), curCSCBuf);
@@ -3411,7 +3413,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	m_pImmediateContext->CSSetUnorderedAccessViews(0, ARRAY_COUNT(curCSUAV), curCSUAV, initCounts);
 	
 	m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, prevDSV, UAVStartSlot,
-																																 D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs, initCounts);
+																																 numUAVs-UAVStartSlot, prevUAVs, initCounts);
 	
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 	{
@@ -4331,10 +4333,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			}
 
 			ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
-			ID3D11UnorderedAccessView* prevUAVs[D3D11_PS_CS_UAV_REGISTER_COUNT] = {0};
+			ID3D11UnorderedAccessView* prevUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 			ID3D11DepthStencilView *prevDSV = NULL;
+			const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 			m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
-			                                                               UAVStartSlot, D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs);
+			                                                               UAVStartSlot, numUAVs-UAVStartSlot, prevUAVs);
 
 			CopyPixelParams params = depthCopyParams;
 			params.depthbound = true;
@@ -4348,10 +4351,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
 
-			UINT initCounts[D3D11_PS_CS_UAV_REGISTER_COUNT] = { ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, };
+			UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
+			memset(&initCounts[0], 0xff, sizeof(initCounts));
 			
 			m_pImmediateContext->OMSetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, prevDSV, UAVStartSlot,
-			                                                               D3D11_PS_CS_UAV_REGISTER_COUNT-UAVStartSlot, prevUAVs, initCounts);
+			                                                               numUAVs-UAVStartSlot, prevUAVs, initCounts);
 			
 			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
 			{

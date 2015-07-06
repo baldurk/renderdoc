@@ -1190,7 +1190,7 @@ namespace renderdocui.Windows
             rtPanel.SuspendLayout();
             texPanel.SuspendLayout();
 
-            for (int i = 0; i < 64; i++)
+            for (int i = 0; i < 128; i++)
             {
                 var prev = new ResourcePreview(m_Core, m_Output);
                 prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;

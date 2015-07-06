@@ -80,7 +80,7 @@ struct GlobalState
 			ViewFmt format;
 
 			uint32_t hiddenCounter;
-		} uavs[8];
+		} uavs[64];
 		
 		struct
 		{

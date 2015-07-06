@@ -666,20 +666,20 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 				}
 			}
 
-			create_array_uninit(dst.UAVs, D3D11_PS_CS_UAV_REGISTER_COUNT);
-			for(size_t s=0; s < D3D11_PS_CS_UAV_REGISTER_COUNT; s++)
+			create_array(dst.UAVs, D3D11_1_UAV_SLOT_COUNT);
+			for(size_t s=0; dst.stage == eShaderStage_Compute && s < D3D11_1_UAV_SLOT_COUNT; s++)
 			{
 				D3D11PipelineState::ShaderStage::ResourceView &view = dst.UAVs[s];
 
-				view.View = rm->GetOriginalID(GetIDForResource(src.UAVs[s]));
+				view.View = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
 
 				if(view.View != ResourceId())
 				{
 					D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
-					src.UAVs[s]->GetDesc(&desc);
+					rs->CSUAVs[s]->GetDesc(&desc);
 
 					ID3D11Resource *res = NULL;
-					src.UAVs[s]->GetResource(&res);
+					rs->CSUAVs[s]->GetResource(&res);
 					
 					view.Structured = false;
 					view.BufferStructCount = 0;
@@ -688,7 +688,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 						(desc.Buffer.Flags & (D3D11_BUFFER_UAV_FLAG_APPEND|D3D11_BUFFER_UAV_FLAG_COUNTER)))
 					{
 						view.Structured = true;
-						view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(src.UAVs[s]);
+						view.BufferStructCount = m_pDevice->GetDebugManager()->GetStructCount(rs->CSUAVs[s]);
 					}
 
 					view.Resource = rm->GetOriginalID(GetIDForResource(res));
@@ -917,8 +917,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
 		ret.m_OM.UAVStartSlot = rs->OM.UAVStartSlot;
 		
-		create_array_uninit(ret.m_OM.UAVs, D3D11_PS_CS_UAV_REGISTER_COUNT);
-		for(size_t s=0; s < D3D11_PS_CS_UAV_REGISTER_COUNT; s++)
+		create_array_uninit(ret.m_OM.UAVs, D3D11_1_UAV_SLOT_COUNT);
+		for(size_t s=0; s < D3D11_1_UAV_SLOT_COUNT; s++)
 		{
 			D3D11PipelineState::ShaderStage::ResourceView view;
 

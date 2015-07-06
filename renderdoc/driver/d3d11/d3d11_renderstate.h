@@ -376,7 +376,6 @@ struct D3D11RenderState
 		UINT CBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 		UINT CBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
 		ID3D11ShaderResourceView *SRVs[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT];
-		ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT];
 		ID3D11SamplerState *Samplers[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT];
 		ID3D11ClassInstance *Instances[D3D11_SHADER_MAX_INTERFACES];
 		UINT NumInstances;
@@ -386,6 +385,8 @@ struct D3D11RenderState
 		bool Used_UAV(uint32_t slot) const;
 	} VS, HS, DS, GS, PS, CS;
 	
+	ID3D11UnorderedAccessView *CSUAVs[D3D11_1_UAV_SLOT_COUNT];
+
 	struct streamout
 	{
 		ID3D11Buffer *Buffers[D3D11_SO_BUFFER_SLOT_COUNT];
@@ -414,7 +415,7 @@ struct D3D11RenderState
 		ID3D11RenderTargetView *RenderTargets[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
 
 		UINT UAVStartSlot;
-		ID3D11UnorderedAccessView *UAVs[D3D11_PS_CS_UAV_REGISTER_COUNT];
+		ID3D11UnorderedAccessView *UAVs[D3D11_1_UAV_SLOT_COUNT];
 	} OM;
 
 	void SetSerialiser(Serialiser *ser) { m_pSerialiser = ser; }
