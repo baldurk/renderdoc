@@ -272,6 +272,12 @@ public:
 	ID3D11DeviceContext1* GetReal1() { return m_pRealContext1; }
 	ID3D11DeviceContext2* GetReal2() { return m_pRealContext2; }
 
+#if defined(INCLUDE_D3D_11_1)
+	bool IsFL11_1();
+#else
+	bool IsFL11_1() { return false; }
+#endif
+
 	void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);
 	void ReplayFakeContext(ResourceId id);
 	void ReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);

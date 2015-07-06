@@ -727,7 +727,7 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
 
 	// CS
 	context->CSGetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, CS.SRVs);
-	if(context->GetReal1())
+	if(context->IsFL11_1())
 		context->CSGetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, CSUAVs);
 	else
 		context->CSGetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, CSUAVs);
@@ -786,7 +786,7 @@ D3D11RenderState::D3D11RenderState(WrappedID3D11DeviceContext *context)
 		}
 	}
 	
-	if(context->GetReal1())
+	if(context->IsFL11_1())
 		context->OMGetRenderTargetsAndUnorderedAccessViews(OM.UAVStartSlot, OM.RenderTargets,
 															&OM.DepthView,
 															OM.UAVStartSlot, D3D11_1_UAV_SLOT_COUNT-OM.UAVStartSlot, OM.UAVs);
@@ -845,7 +845,7 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 	// CS
 	context->CSSetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, CS.SRVs);
 	context->CSSetSamplers(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, CS.Samplers);
-	if(context->GetReal1())
+	if(context->IsFL11_1())
 		context->CSSetUnorderedAccessViews(0, D3D11_1_UAV_SLOT_COUNT, CSUAVs, UAV_keepcounts);
 	else
 		context->CSSetUnorderedAccessViews(0, D3D11_PS_CS_UAV_REGISTER_COUNT, CSUAVs, UAV_keepcounts);
@@ -876,7 +876,7 @@ void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)
 	context->OMSetBlendState(OM.BlendState, OM.BlendFactor, OM.SampleMask);
 	context->OMSetDepthStencilState(OM.DepthStencilState, OM.StencRef);
 	
-	if(context->GetReal1())
+	if(context->IsFL11_1())
 		context->OMSetRenderTargetsAndUnorderedAccessViews(OM.UAVStartSlot, OM.RenderTargets,
 															OM.DepthView,
 															OM.UAVStartSlot, D3D11_1_UAV_SLOT_COUNT-OM.UAVStartSlot, OM.UAVs, UAV_keepcounts);

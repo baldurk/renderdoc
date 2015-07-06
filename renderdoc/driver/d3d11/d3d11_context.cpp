@@ -564,6 +564,11 @@ void WrappedID3D11DeviceContext::EndFrame()
 	m_pDevice->GetResourceManager()->FlushPendingDirty();
 }
 
+bool WrappedID3D11DeviceContext::IsFL11_1()
+{
+	return m_pDevice->GetFeatureLevel() >= D3D_FEATURE_LEVEL_11_1;
+}
+
 void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute)
 {
 	if(chunk < FIRST_CONTEXT_CHUNK && !forceExecute)

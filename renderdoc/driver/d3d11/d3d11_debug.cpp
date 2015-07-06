@@ -1944,7 +1944,7 @@ bool D3D11DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 	UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
 	memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
 
-	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	uavs[0] = m_DebugRender.histogramUAV;
 	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, UAV_keepcounts);
 
@@ -2035,7 +2035,7 @@ bool D3D11DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
 	m_pImmediateContext->CSSetConstantBuffers(0, 1, &cbuf);
 	
 	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
-	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	uavs[intIdx] = m_DebugRender.tileResultUAV[intIdx];
 	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, NULL);
 	
@@ -2226,7 +2226,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
 	m_pImmediateContext->CopyResource(srvResource, srcArray);
 
 	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
-	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
 	memset(&uavCounts[0], 0xff, sizeof(uavCounts));
 
@@ -2515,7 +2515,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 	ID3D11UnorderedAccessView *uavs[D3D11_1_UAV_SLOT_COUNT] = { NULL };
 	UINT uavCounts[D3D11_1_UAV_SLOT_COUNT];
 	memset(&uavCounts[0], 0xff, sizeof(uavCounts));
-	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
 	m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, uavs, uavCounts);
 	
@@ -3549,7 +3549,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 		ID3D11UnorderedAccessView *NullUAVs[D3D11_1_UAV_SLOT_COUNT] = { 0 };
 		UINT UAV_keepcounts[D3D11_1_UAV_SLOT_COUNT];
 		memset(&UAV_keepcounts[0], 0xff, sizeof(UAV_keepcounts));
-		const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+		const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 
 		m_pImmediateContext->CSSetUnorderedAccessViews(0, numUAVs, NullUAVs, UAV_keepcounts);
 

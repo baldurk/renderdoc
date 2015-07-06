@@ -3344,7 +3344,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 	ID3D11UnorderedAccessView* prevUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 	ID3D11DepthStencilView *prevDSV = NULL;
-	const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+	const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 	m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
 																																 UAVStartSlot, numUAVs-UAVStartSlot, prevUAVs);
 
@@ -4336,7 +4336,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			ID3D11RenderTargetView* prevRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 			ID3D11UnorderedAccessView* prevUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 			ID3D11DepthStencilView *prevDSV = NULL;
-			const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+			const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 			m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, prevRTVs, &prevDSV,
 			                                                               UAVStartSlot, numUAVs-UAVStartSlot, prevUAVs);
 
@@ -4461,7 +4461,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					ID3D11RenderTargetView* curRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 					ID3D11UnorderedAccessView* curUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
 					ID3D11DepthStencilView *curDSV = NULL;
-					const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+					const UINT numUAVs = m_WrappedContext->IsFL11_1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
 					m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, curRTVs, &curDSV,
 					                                                               UAVStartSlot, numUAVs-UAVStartSlot, curUAVs);
 
