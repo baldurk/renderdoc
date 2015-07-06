@@ -35,9 +35,8 @@
 
 #include "d3d11_common.h"
 
-#if defined(INCLUDE_D3D_11_1)
-#include <d3d11_1.h>
-#include <d3d11_2.h>
+#ifndef D3D11_1_UAV_SLOT_COUNT
+#define D3D11_1_UAV_SLOT_COUNT 64
 #endif
 
 #include "d3d11_manager.h"

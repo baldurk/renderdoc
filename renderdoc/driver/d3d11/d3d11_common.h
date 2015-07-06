@@ -33,6 +33,13 @@
 #include <dxgi.h>
 #include <d3d11.h>
 
+#if defined(INCLUDE_D3D_11_1)
+#include <d3d11_1.h>
+#include <d3d11_2.h>
+#else
+#define D3D11_1_UAV_SLOT_COUNT 64
+#endif
+
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 
@@ -126,10 +133,6 @@ public:
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) ret func; bool CONCAT(Serialise_, func);
 
 #include "serialise/serialiser.h"
-
-#if defined(INCLUDE_D3D_11_1)
-#include <d3d11_1.h>
-#endif
 
 // I don't really like this but it's not the end of the world - declare d3d specialisations to enforce
 // that this specialisation gets used.

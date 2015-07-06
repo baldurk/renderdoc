@@ -30,11 +30,6 @@
 
 #include "d3d11_common.h"
 
-#if defined(INCLUDE_D3D_11_1)
-#include <d3d11_1.h>
-#include <d3d11_2.h>
-#endif
-
 #include "d3d11_manager.h"
 
 #include <map>
@@ -274,6 +269,8 @@ public:
 	Serialiser *GetSerialiser() { return m_pSerialiser; }
 	ResourceId GetResourceID() { return m_ResourceID; }
 	ID3D11DeviceContext* GetReal() { return m_pRealContext; }
+	ID3D11DeviceContext1* GetReal1() { return m_pRealContext1; }
+	ID3D11DeviceContext2* GetReal2() { return m_pRealContext2; }
 
 	void ProcessChunk(uint64_t offset, D3D11ChunkType chunk, bool forceExecute);
 	void ReplayFakeContext(ResourceId id);
