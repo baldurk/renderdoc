@@ -1301,7 +1301,7 @@ bool D3D11DebugManager::InitStreamOut()
 		desc.DepthBiasClamp = 0.0f;
 		desc.DepthClipEnable = FALSE;
 		desc.FrontCounterClockwise = FALSE;
-		desc.MultisampleEnable = FALSE;
+		desc.MultisampleEnable = TRUE;
 		desc.ScissorEnable = FALSE;
 		desc.SlopeScaledDepthBias = 0.0f;
 		desc.FillMode = D3D11_FILL_WIREFRAME;
@@ -1721,7 +1721,7 @@ uint64_t D3D11DebugManager::MakeOutputWindow(void *w, bool depth)
 	outw.width = swapDesc.BufferDesc.Width = rect.right-rect.left;
 	outw.height = swapDesc.BufferDesc.Height = rect.bottom-rect.top;
 	swapDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	swapDesc.SampleDesc.Count = 1;
+	swapDesc.SampleDesc.Count = depth ? 4 : 1;
 	swapDesc.SampleDesc.Quality = 0;
 	swapDesc.OutputWindow = outw.wnd;
 	swapDesc.Windowed = TRUE;
