@@ -2781,7 +2781,7 @@ void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t las
 
 
 
-vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
+vector<PixelModification> GLReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	GLNOTIMP("GLReplay::PixelHistory");
 	return vector<PixelModification>();

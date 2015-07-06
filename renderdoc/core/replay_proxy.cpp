@@ -1143,7 +1143,7 @@ bool ProxySerialiser::Tick()
 			RenderOverlay(ResourceId(), eTexOverlay_None, 0, 0, vector<uint32_t>());
 			break;
 		case eCommand_PixelHistory:
-			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0, 0);
+			PixelHistory(0, vector<EventUsage>(), ResourceId(), 0, 0, 0, 0, 0);
 			break;
 		case eCommand_DebugVertex:
 			DebugVertex(0, 0, 0, 0, 0, 0, 0);
@@ -1882,7 +1882,7 @@ void ProxySerialiser::RemoveReplacement(ResourceId id)
 	}
 }
 
-vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
+vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	vector<PixelModification> ret;
 	
@@ -1891,11 +1891,13 @@ vector<PixelModification> ProxySerialiser::PixelHistory(uint32_t frameID, vector
 	m_ToReplaySerialiser->Serialise("", target);
 	m_ToReplaySerialiser->Serialise("", x);
 	m_ToReplaySerialiser->Serialise("", y);
+	m_ToReplaySerialiser->Serialise("", slice);
+	m_ToReplaySerialiser->Serialise("", mip);
 	m_ToReplaySerialiser->Serialise("", sampleIdx);
 
 	if(m_ReplayHost)
 	{
-		ret = m_Remote->PixelHistory(frameID, events, target, x, y, sampleIdx);
+		ret = m_Remote->PixelHistory(frameID, events, target, x, y, slice, mip, sampleIdx);
 	}
 	else
 	{

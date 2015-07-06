@@ -3305,6 +3305,8 @@ struct CopyPixelParams
 	bool uintTex;
 	bool intTex;
 	
+	UINT subres;
+
 	bool depthcopy; // are we copying depth or colour
 	bool depthbound; // if copying depth, was any depth bound (or should we write <-1,-1> marker)
 
@@ -3324,7 +3326,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 {
 	// perform a subresource copy if the real source tex couldn't be directly bound as SRV
 	if(p.sourceTex != p.srvTex && p.sourceTex && p.srvTex)
-		m_pImmediateContext->CopySubresourceRegion(p.srvTex, 0, 0, 0, 0, p.sourceTex, 0, NULL);
+		m_pImmediateContext->CopySubresourceRegion(p.srvTex, p.subres, 0, 0, 0, p.sourceTex, p.subres, NULL);
 
 	ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
 	m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, tmpViews, NULL);
@@ -3428,7 +3430,7 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 	for(size_t i=0; i < ARRAY_COUNT(curCSUAV); i++)  SAFE_RELEASE(curCSUAV[i]);
 }
 
-vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx)
+vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
 {
 	vector<PixelModification> history;
 
@@ -3636,8 +3638,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	D3D11_TEXTURE2D_DESC depthCopyD24S8Desc = {
 		details.texWidth,
 		details.texHeight,
-		1U,
-		1U,
+		details.texMips,
+		details.texArraySize,
 		DXGI_FORMAT_R24G8_TYPELESS,
 		{ details.sampleCount, details.sampleQuality },
 		D3D11_USAGE_DEFAULT,
@@ -3679,13 +3681,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	}
 
 	uint32_t srcxyData[8] = {
-		x, y, sampleIdx,
+		x, y, multisampled ? sampleIdx : mip, slice,
+
 		uint32_t(multisampled),
-	
 		uint32_t(floatTex),
 		uint32_t(uintTex),
 		uint32_t(intTex),
-		0,
 	};
 
 	ID3D11Buffer *srcxyCBuf = MakeCBuffer(sizeof(srcxyData));
@@ -3729,6 +3730,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	colourCopyParams.intTex = intTex;
 	colourCopyParams.srcxyCBuf = srcxyCBuf;
 	colourCopyParams.storexyCBuf = storexyCBuf;
+	colourCopyParams.subres = details.texArraySize * slice + mip;
 	
 	CopyPixelParams depthCopyParams = colourCopyParams;
 
@@ -4441,6 +4443,165 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 					mod.scissorClipped = true;
 
 				m_WrappedDevice->ReplayLog(frameID, 0, events[i].eventID, eReplay_WithoutDraw);
+
+				{
+					ID3D11RenderTargetView* tmpViews[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+					m_pImmediateContext->OMGetRenderTargets(D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT, tmpViews, NULL);
+
+					uint32_t UAVStartSlot = 0;
+					for(int v=0; v < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; v++)
+					{
+						if(tmpViews[v] != NULL)
+						{
+							UAVStartSlot  = v+1;
+							SAFE_RELEASE(tmpViews[v]);
+						}
+					}
+
+					ID3D11RenderTargetView* curRTVs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {0};
+					ID3D11UnorderedAccessView* curUAVs[D3D11_1_UAV_SLOT_COUNT] = {0};
+					ID3D11DepthStencilView *curDSV = NULL;
+					const UINT numUAVs = m_WrappedContext->GetReal1() ? D3D11_1_UAV_SLOT_COUNT : D3D11_PS_CS_UAV_REGISTER_COUNT;
+					m_pImmediateContext->OMGetRenderTargetsAndUnorderedAccessViews(UAVStartSlot, curRTVs, &curDSV,
+					                                                               UAVStartSlot, numUAVs-UAVStartSlot, curUAVs);
+
+					// check that this selected mip/slice is the one being rendered to here
+					if(events[i].usage == eUsage_ColourTarget)
+					{
+						bool used = false;
+						for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+						{
+							if(curRTVs[i])
+							{
+								ID3D11Resource *res = NULL;
+								curRTVs[i]->GetResource(&res);
+
+								if(res != targetres)
+									continue;
+
+								SAFE_RELEASE(res);
+
+								D3D11_RENDER_TARGET_VIEW_DESC desc;
+								curRTVs[i]->GetDesc(&desc);
+								if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D &&
+								   desc.Texture1D.MipSlice == mip)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY &&
+								        desc.Texture1DArray.MipSlice == mip &&
+												desc.Texture1DArray.FirstArraySlice <= slice &&
+												desc.Texture1DArray.FirstArraySlice+desc.Texture1DArray.ArraySize > slice)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D &&
+								        desc.Texture2D.MipSlice == mip)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY &&
+								        desc.Texture2DArray.MipSlice == mip &&
+												desc.Texture2DArray.FirstArraySlice <= slice &&
+												desc.Texture2DArray.FirstArraySlice+desc.Texture2DArray.ArraySize > slice)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DMS)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY &&
+												desc.Texture2DMSArray.FirstArraySlice <= slice &&
+												desc.Texture2DMSArray.FirstArraySlice+desc.Texture2DMSArray.ArraySize > slice)
+								{
+									used = true;
+									break;
+								}
+								else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D &&
+								        desc.Texture3D.MipSlice == mip &&
+												desc.Texture3D.FirstWSlice <= slice &&
+												desc.Texture3D.FirstWSlice+desc.Texture3D.WSize > slice)
+								{
+									used = true;
+									break;
+								}
+							}
+						}
+						if(!used) continue;
+					}
+					else if(events[i].usage == eUsage_DepthStencilTarget)
+					{
+						if(!curDSV) continue;
+
+						ID3D11Resource *res = NULL;
+						curDSV->GetResource(&res);
+
+						if(res != targetres)
+							continue;
+
+						SAFE_RELEASE(res);
+
+						D3D11_DEPTH_STENCIL_VIEW_DESC desc;
+						curDSV->GetDesc(&desc);
+
+						bool used = false;
+
+						if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D &&
+							desc.Texture1D.MipSlice == mip)
+						{
+							used = true;
+							break;
+						}
+						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY &&
+							desc.Texture1DArray.MipSlice == mip &&
+							desc.Texture1DArray.FirstArraySlice <= slice &&
+							desc.Texture1DArray.FirstArraySlice+desc.Texture1DArray.ArraySize > slice)
+						{
+							used = true;
+							break;
+						}
+						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D &&
+							desc.Texture2D.MipSlice == mip)
+						{
+							used = true;
+							break;
+						}
+						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY &&
+							desc.Texture2DArray.MipSlice == mip &&
+							desc.Texture2DArray.FirstArraySlice <= slice &&
+							desc.Texture2DArray.FirstArraySlice+desc.Texture2DArray.ArraySize > slice)
+						{
+							used = true;
+							break;
+						}
+						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMS)
+						{
+							used = true;
+							break;
+						}
+						else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY &&
+							desc.Texture2DMSArray.FirstArraySlice <= slice &&
+							desc.Texture2DMSArray.FirstArraySlice+desc.Texture2DMSArray.ArraySize > slice)
+						{
+							used = true;
+							break;
+						}
+
+						if(!used) continue;
+					}
+
+					for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+						SAFE_RELEASE(curRTVs[i]);
+					for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+						SAFE_RELEASE(curUAVs[i]);
+					SAFE_RELEASE(curDSV);
+				}
 
 				curNumScissors = curNumViews = 16;
 				m_pImmediateContext->RSGetViewports(&curNumViews, curViewports);

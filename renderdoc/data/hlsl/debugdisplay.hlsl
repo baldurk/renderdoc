@@ -415,13 +415,12 @@ float4 RENDERDOC_QOResolvePS(float4 vpos : SV_POSITION) : SV_Target0
 
 cbuffer cb0 : register(b0)
 {
-	uint3 src_coord; 
+	uint4 src_coord; // x, y, mip/sample, slice
+
 	bool multisampled;
-	
 	bool is_float;
 	bool is_uint;
 	bool is_int;
-	uint padding;
 };
 
 cbuffer cb1 : register(b1)
@@ -464,9 +463,9 @@ void RENDERDOC_PixelHistoryCopyPixel()
 	{
 		if(copy_depth || copy_stencil)
 		{
-			float2 val = float2(copyin_depth_ms.sample[src_coord.z][uint3(src_coord.xy, 0)].r, -1.0f);
+			float2 val = float2(copyin_depth_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)].r, -1.0f);
 
-			if(copy_stencil) val.g = (float)copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, 0)].g;
+			if(copy_stencil) val.g = (float)copyin_stencil_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)].g;
 
 			copyout_depth[dst_coord.xy].rg = val;
 		}
@@ -474,15 +473,15 @@ void RENDERDOC_PixelHistoryCopyPixel()
 		{
 			if(is_float)
 			{
-				copyout_float[dst_coord.xy] = copyin_float_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+				copyout_float[dst_coord.xy] = copyin_float_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 			else if(is_uint)
 			{
-				copyout_uint[dst_coord.xy] = copyin_uint_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+				copyout_uint[dst_coord.xy] = copyin_uint_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 			else if(is_int)
 			{
-				copyout_int[dst_coord.xy] = copyin_int_ms.sample[src_coord.z][uint3(src_coord.xy, 0)];
+				copyout_int[dst_coord.xy] = copyin_int_ms.sample[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 		}
 	}
@@ -490,9 +489,9 @@ void RENDERDOC_PixelHistoryCopyPixel()
 	{
 		if(copy_depth || copy_stencil)
 		{
-			float2 val = float2(copyin_depth[uint3(src_coord.xy, 0)].r, -1.0f);
+			float2 val = float2(copyin_depth.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)].r, -1.0f);
 
-			if(copy_stencil) val.g = (float)copyin_stencil[uint3(src_coord.xy, 0)].g;
+			if(copy_stencil) val.g = (float)copyin_stencil.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)].g;
 
 			copyout_depth[dst_coord.xy].rg = val;
 		}
@@ -500,15 +499,15 @@ void RENDERDOC_PixelHistoryCopyPixel()
 		{
 			if(is_float)
 			{
-				copyout_float[dst_coord.xy] = copyin_float[uint3(src_coord.xy, 0)];
+				copyout_float[dst_coord.xy] = copyin_float.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 			else if(is_uint)
 			{
-				copyout_uint[dst_coord.xy] = copyin_uint[uint3(src_coord.xy, 0)];
+				copyout_uint[dst_coord.xy] = copyin_uint.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 			else if(is_int)
 			{
-				copyout_int[dst_coord.xy] = copyin_int[uint3(src_coord.xy, 0)];
+				copyout_int[dst_coord.xy] = copyin_int.mips[src_coord.z][uint3(src_coord.xy, src_coord.w)];
 			}
 		}
 	}
