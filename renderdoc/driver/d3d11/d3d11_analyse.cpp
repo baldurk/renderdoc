@@ -3416,10 +3416,9 @@ void D3D11DebugManager::PixelHistoryCopyPixel(CopyPixelParams &p, uint32_t x, ui
 																																 numUAVs-UAVStartSlot, prevUAVs, initCounts);
 	
 	for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-	{
 		SAFE_RELEASE(prevRTVs[i]);
+	for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
 		SAFE_RELEASE(prevUAVs[i]);
-	}
 	SAFE_RELEASE(prevDSV);
 		
 	SAFE_RELEASE(curCS);
@@ -4358,10 +4357,9 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			                                                               numUAVs-UAVStartSlot, prevUAVs, initCounts);
 			
 			for(int i=0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
-			{
 				SAFE_RELEASE(prevRTVs[i]);
+			for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
 				SAFE_RELEASE(prevUAVs[i]);
-			}
 			SAFE_RELEASE(prevDSV);
 			
 			PixelHistoryCopyPixel(params, storex*pixstoreStride + 2, storey);
