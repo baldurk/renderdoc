@@ -1602,9 +1602,13 @@ bool WrappedID3D11Device::Serialise_InitialState(ID3D11DeviceChild *res)
 
 		SERIALISE_ELEMENT(uint32_t, numSubresources, desc.MipLevels*desc.ArraySize);
 
-		bool bigrt = ((desc.BindFlags & D3D11_BIND_RENDER_TARGET) != 0 ||
-					  (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) != 0 ||
-					  (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS) != 0) && (desc.Width > 64 && desc.Height > 64);
+		bool bigrt = (
+		               (desc.BindFlags & D3D11_BIND_RENDER_TARGET) != 0 ||
+		               (desc.BindFlags & D3D11_BIND_DEPTH_STENCIL) != 0 ||
+		               (desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS) != 0
+		             ) &&
+		             (desc.Width > 64 && desc.Height > 64) &&
+		             (desc.Width != desc.Height);
 
 		if(bigrt && m_ResourceManager->ReadBeforeWrite(Id))
 			bigrt = false;
