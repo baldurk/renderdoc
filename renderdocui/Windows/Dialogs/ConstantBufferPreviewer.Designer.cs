@@ -16,9 +16,9 @@
         private void InitializeComponent()
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(ConstantBufferPreviewer));
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("VarName", "Name")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("VarValue", "Value")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("VarType", "Type")));
+            TreelistView.TreeListColumn treeListColumn7 = new TreelistView.TreeListColumn("VarName", "Name");
+            TreelistView.TreeListColumn treeListColumn8 = new TreelistView.TreeListColumn("VarValue", "Value");
+            TreelistView.TreeListColumn treeListColumn9 = new TreelistView.TreeListColumn("VarType", "Type");
             this.tableLayout = new System.Windows.Forms.TableLayoutPanel();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.slotLabel = new System.Windows.Forms.ToolStripLabel();
@@ -28,6 +28,9 @@
             this.setFormat = new System.Windows.Forms.ToolStripButton();
             this.split = new System.Windows.Forms.SplitContainer();
             this.variables = new TreelistView.TreeListView();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            this.saveCSV = new System.Windows.Forms.ToolStripButton();
+            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
             this.tableLayout.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.split)).BeginInit();
@@ -60,7 +63,9 @@
             this.toolStripSeparator1,
             this.nameLabel,
             this.toolStripSeparator2,
-            this.setFormat});
+            this.setFormat,
+            this.toolStripSeparator3,
+            this.saveCSV});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.Size = new System.Drawing.Size(491, 25);
@@ -122,17 +127,17 @@
             // 
             // variables
             // 
-            treeListColumn1.AutoSizeMinSize = 0;
-            treeListColumn1.Width = 175;
-            treeListColumn2.AutoSize = true;
-            treeListColumn2.AutoSizeMinSize = 0;
-            treeListColumn2.Width = 50;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 70;
+            treeListColumn7.AutoSizeMinSize = 0;
+            treeListColumn7.Width = 175;
+            treeListColumn8.AutoSize = true;
+            treeListColumn8.AutoSizeMinSize = 0;
+            treeListColumn8.Width = 50;
+            treeListColumn9.AutoSizeMinSize = 0;
+            treeListColumn9.Width = 70;
             this.variables.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1,
-            treeListColumn2,
-            treeListColumn3});
+            treeListColumn7,
+            treeListColumn8,
+            treeListColumn9});
             this.variables.ColumnsOptions.LeftMargin = 0;
             this.variables.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.variables.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -144,6 +149,27 @@
             this.variables.TabIndex = 4;
             this.variables.Text = "treeListView1";
             this.variables.KeyDown += new System.Windows.Forms.KeyEventHandler(this.variables_KeyDown);
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
+            // 
+            // saveCSV
+            // 
+            this.saveCSV.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.saveCSV.Image = global::renderdocui.Properties.Resources.save;
+            this.saveCSV.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.saveCSV.Name = "saveCSV";
+            this.saveCSV.Size = new System.Drawing.Size(23, 22);
+            this.saveCSV.Text = "Save as CSV";
+            this.saveCSV.Click += new System.EventHandler(this.saveCSV_Click);
+            // 
+            // exportDialog
+            // 
+            this.exportDialog.DefaultExt = "csv";
+            this.exportDialog.Filter = "CSV Files (*.csv)|*.csv";
+            this.exportDialog.Title = "Export buffer data as CSV";
             // 
             // ConstantBufferPreviewer
             // 
@@ -177,6 +203,9 @@
 		private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
 		private System.Windows.Forms.SplitContainer split;
 		private TreelistView.TreeListView variables;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripButton saveCSV;
+        private System.Windows.Forms.SaveFileDialog exportDialog;
 
     }
 }

@@ -117,6 +117,8 @@ namespace renderdocui.Controls
 
             variables.EndUpdate();
             variables.Invalidate();
+
+            saveCSV.Enabled = false;
         }
 
         public void OnLogfileLoaded()
@@ -126,6 +128,8 @@ namespace renderdocui.Controls
 
             variables.EndUpdate();
             variables.Invalidate();
+
+            saveCSV.Enabled = false;
         }
 
         private void AddVariables(TreelistView.NodeCollection root, ShaderVariable[] vars)
@@ -160,8 +164,13 @@ namespace renderdocui.Controls
             variables.BeginUpdate();
             variables.Nodes.Clear();
 
-            if(vars != null && vars.Length > 0)
+            saveCSV.Enabled = false;
+
+            if (vars != null && vars.Length > 0)
+            {
                 AddVariables(variables.Nodes, vars);
+                saveCSV.Enabled = true;
+            }
 
             variables.EndUpdate();
             variables.Invalidate();
@@ -253,6 +262,47 @@ namespace renderdocui.Controls
             slotLabel.Text = Text;
         }
 
+        private void ExportCSV(StreamWriter sw, string prefix, TreelistView.NodeCollection nodes)
+        {
+            foreach (var n in nodes)
+            {
+                if (n.Nodes.IsEmpty())
+                {
+                    sw.WriteLine(prefix + n[0].ToString() + ",\"" + n[1].ToString() + "\"," + n[2].ToString());
+                }
+                else
+                {
+                    sw.WriteLine(prefix + n[0].ToString() + ",," + n[2].ToString());
+                    ExportCSV(sw, n[0].ToString() + ".", n.Nodes);
+                }
+            }
+        }
+
+        private void saveCSV_Click(object sender, EventArgs e)
+        {
+            if (!m_Core.LogLoaded || variables.Nodes.IsEmpty())
+            {
+                MessageBox.Show("Nothing to export!", "Nothing to export!", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                return;
+            }
+
+            DialogResult res = exportDialog.ShowDialog();
+
+            if (res == DialogResult.OK)
+            {
+                using (Stream s = new FileStream(exportDialog.FileName, FileMode.Create))
+                {
+                    StreamWriter sw = new StreamWriter(s);
+
+                    sw.WriteLine("Name,Value,Type");
+
+                    ExportCSV(sw, "", variables.Nodes);
+
+                    sw.Dispose();
+                }
+            }
+        }
+
         private void variables_KeyDown(object sender, KeyEventArgs e)
         {
             if (!m_Core.LogLoaded) return;
@@ -280,8 +330,23 @@ namespace renderdocui.Controls
                     text += string.Format(fmt, n[0], n[1], n[2]);
                 }
 
-                if (text.Length > 0)
-                    Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 
