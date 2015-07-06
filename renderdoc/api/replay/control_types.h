@@ -75,6 +75,10 @@ struct MeshDisplay
 	FloatVector prevMeshColour;
 	FloatVector currentMeshColour;
 
+	FloatVector minBounds;
+	FloatVector maxBounds;
+	bool32 showBBox;
+
 	SolidShadeMode solidShadeMode;
 	bool32 wireframeDraw;
 };

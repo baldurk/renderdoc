@@ -29,11 +29,12 @@
 #include "camera.h"
 #include "matrix.h"
 
-void Camera::Arcball(float dist, const Vec3f &rot)
+void Camera::Arcball(const Vec3f &p, float d, const Vec3f &rot)
 {
-	pos = Vec3f(0.0f, 0.0f, dist);
+	pos = p;
+	dist = d;
 
-	order = ORDER_ROT_TRANS;
+	type = eType_Arcball;
 
 	angles.x = rot.x;
 	angles.y = rot.y;
@@ -46,18 +47,26 @@ void Camera::fpsLook(const Vec3f &p, const Vec3f &rot)
 	angles.x = -rot.x;
 	angles.y = -rot.y;
 
-	order = ORDER_TRANS_ROT;
+	type = eType_FPSLook;
 }
 
 const Matrix4f Camera::GetMatrix() const
 {
-	Matrix4f p = Matrix4f::Translation(pos);
-	Matrix4f r = Matrix4f::RotationXYZ(angles);
+	if(type == eType_FPSLook)
+	{
+		Matrix4f p = Matrix4f::Translation(pos);
+		Matrix4f r = Matrix4f::RotationXYZ(angles);
 
-	if(order == ORDER_TRANS_ROT)
 		return r.Mul(p);
+	}
+	else
+	{
+		Matrix4f p = Matrix4f::Translation(-pos);
+		Matrix4f r = Matrix4f::RotationXYZ(angles);
+		Matrix4f d = Matrix4f::Translation(Vec3f(0.0f, 0.0f, dist));
 
-	return p.Mul(r);
+		return d.Mul(r.Mul(p));
+	}
 }
 
 const Vec3f Camera::GetPosition() const
@@ -73,4 +82,9 @@ const Vec3f Camera::GetForward() const
 const Vec3f Camera::GetRight() const
 {
 	return Matrix4f::RotationZYX(-angles).GetRight();
+}
+
+const Vec3f Camera::GetUp() const
+{
+	return Matrix4f::RotationZYX(-angles).GetUp();
 }

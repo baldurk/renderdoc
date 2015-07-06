@@ -1425,7 +1425,7 @@ bool D3D11DebugManager::InitStreamOut()
 		D3D11_BUFFER_DESC bdesc;
 		bdesc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
 		bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-		bdesc.ByteWidth = sizeof(Vec4f)*16;
+		bdesc.ByteWidth = sizeof(Vec4f)*24;
 		bdesc.MiscFlags = 0;
 		bdesc.Usage = D3D11_USAGE_DYNAMIC;
 
@@ -4559,7 +4559,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 	Camera cam;
 	if(cfg.arcballCamera)
-		cam.Arcball(cfg.cameraPos.x, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
+		cam.Arcball(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), cfg.cameraPos.w, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
 	else
 		cam.fpsLook(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
 
@@ -5354,6 +5354,70 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 		if(cfg.position.unproject)
 			m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
+	}
+
+	// bounding box
+	if(cfg.showBBox)
+	{
+		UINT strides[] = { sizeof(Vec4f) };
+		UINT offsets[] = { 0 };
+		D3D11_MAPPED_SUBRESOURCE mapped;
+
+		vertexData.SpriteSize = Vec2f();
+		vertexData.ModelViewProj = projMat.Mul(camMat);
+		FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
+		
+		HRESULT hr = m_pImmediateContext->Map(m_TriHighlightHelper, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+		
+		Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
+		Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);
+
+		Vec4f TLN = Vec4f(a.x, b.y, a.z, 1.0f); // TopLeftNear, etc...
+		Vec4f TRN = Vec4f(b.x, b.y, a.z, 1.0f);
+		Vec4f BLN = Vec4f(a.x, a.y, a.z, 1.0f);
+		Vec4f BRN = Vec4f(b.x, a.y, a.z, 1.0f);
+
+		Vec4f TLF = Vec4f(a.x, b.y, b.z, 1.0f);
+		Vec4f TRF = Vec4f(b.x, b.y, b.z, 1.0f);
+		Vec4f BLF = Vec4f(a.x, a.y, b.z, 1.0f);
+		Vec4f BRF = Vec4f(b.x, a.y, b.z, 1.0f);
+
+		// 12 frustum lines => 24 verts
+		Vec4f bbox[24] =
+		{
+			TLN, TRN,
+			TRN, BRN,
+			BRN, BLN,
+			BLN, TLN,
+
+			TLN, TLF,
+			TRN, TRF,
+			BLN, BLF,
+			BRN, BRF,
+
+			TLF, TRF,
+			TRF, BRF,
+			BRF, BLF,
+			BLF, TLF,
+		};
+
+		memcpy(mapped.pData, bbox, sizeof(bbox));
+		
+		m_pImmediateContext->Unmap(m_TriHighlightHelper, 0);
+		
+		// we want this to clip
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
+
+		m_pImmediateContext->IASetVertexBuffers(0, 1, &m_TriHighlightHelper, (UINT *)&strides, (UINT *)&offsets);
+		m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_LINELIST);
+		m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
+
+		pixelData.WireframeColour = Vec3f(0.2f, 0.2f, 1.0f);
+		FillCBuffer(m_DebugRender.GenericPSCBuffer, (float *)&pixelData, sizeof(DebugPixelCBufferData));
+
+		m_pImmediateContext->Draw(24, 0);
+
+		m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
 	}
 
 	// 'fake' helper frustum

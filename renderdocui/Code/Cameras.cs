@@ -91,15 +91,16 @@ namespace renderdocui.Code
 
         virtual public void MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
-            {
-                m_DragStartPos = e.Location;
-            }
+            m_DragStartPos = e.Location;
         }
 
         virtual public void MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.None)
+            {
+                m_DragStartPos = new Point(-1, -1);
+            }
+            else
             {
                 if (m_DragStartPos.X < 0)
                 {
@@ -107,10 +108,6 @@ namespace renderdocui.Code
                 }
 
                 m_DragStartPos = e.Location;
-            }
-            else
-            {
-                m_DragStartPos = new Point(-1, -1);
             }
         }
 
@@ -177,20 +174,25 @@ namespace renderdocui.Code
             m_Rotation = new Vec3f();
         }
 
+        public void SetDistance(float dist)
+        {
+            m_Distance = Math.Abs(dist);
+        }
+
         public override void Update()
         {
         }
 
         public override void Apply()
         {
-            m_Camera.Arcball(m_Distance, Rotation);
+            m_Camera.Arcball(LookAtPos, m_Distance, Rotation);
         }
 
         public override void MouseWheel(object sender, MouseEventArgs e)
         {
             float mod = (1.0f - (float)e.Delta / 2500.0f);
 
-            m_Distance = Math.Max(1.0f, m_Distance * mod);
+            m_Distance = Math.Max(1e-6f, m_Distance * mod);
 
             ((HandledMouseEventArgs)e).Handled = true;
 
@@ -199,12 +201,35 @@ namespace renderdocui.Code
 
         public override void MouseMove(object sender, MouseEventArgs e)
         {
-            if (DragStartPos.X > 0 && e.Button == MouseButtons.Left)
+            if (DragStartPos.X > 0)
             {
-                m_Rotation.y += (float)(e.X - DragStartPos.X) / 300.0f;
-                m_Rotation.x += (float)(e.Y - DragStartPos.Y) / 300.0f;
+                if (e.Button == MouseButtons.Middle ||
+                    (e.Button == MouseButtons.Left && (Control.ModifierKeys & Keys.Alt) == Keys.Alt)
+                    )
+                {
+                    float xdelta = (float)(e.X - DragStartPos.X) / 300.0f;
+                    float ydelta = (float)(e.Y - DragStartPos.Y) / 300.0f;
 
-                m_Dirty = true;
+                    xdelta *= Math.Max(1.0f, m_Distance);
+                    ydelta *= Math.Max(1.0f, m_Distance);
+
+                    LookAtPos.x -= m_Camera.Right.x * xdelta;
+                    LookAtPos.y -= m_Camera.Right.y * xdelta;
+                    LookAtPos.z -= m_Camera.Right.z * xdelta;
+
+                    LookAtPos.x += m_Camera.Up.x * ydelta;
+                    LookAtPos.y += m_Camera.Up.y * ydelta;
+                    LookAtPos.z += m_Camera.Up.z * ydelta;
+
+                    m_Dirty = true;
+                }
+                else if (e.Button == MouseButtons.Left)
+                {
+                    m_Rotation.y += (float)(e.X - DragStartPos.X) / 300.0f;
+                    m_Rotation.x += (float)(e.Y - DragStartPos.Y) / 300.0f;
+
+                    m_Dirty = true;
+                }
             }
 
             base.MouseMove(sender, e);
@@ -223,6 +248,9 @@ namespace renderdocui.Code
 
         private float m_Distance = 10.0f;
         private Vec3f m_Rotation = new Vec3f();
+
+        public Vec3f LookAtPos = new Vec3f();
+
         public override Vec3f Position { get { return m_Camera.Position; } }
         public override Vec3f Rotation { get { return m_Rotation; } }
     }

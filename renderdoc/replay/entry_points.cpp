@@ -41,14 +41,15 @@ extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f)
 	return ConvertToHalf(f);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right)
+extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(const FloatVector &lookat, float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up)
 {
 	Camera c;
-	c.Arcball(dist, Vec3f(rot.x, rot.y, rot.z));
+	c.Arcball(Vec3f(lookat.x, lookat.y, lookat.z), dist, Vec3f(rot.x, rot.y, rot.z));
 	
 	Vec3f p = c.GetPosition();
 	Vec3f f = c.GetForward();
 	Vec3f r = c.GetRight();
+	Vec3f u = c.GetUp();
 
 	pos->x = p.x;
 	pos->y = p.y;
@@ -61,9 +62,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(float dist, const
 	right->x = r.x;
 	right->y = r.y;
 	right->z = r.z;
+
+	up->x = u.x;
+	up->y = u.y;
+	up->z = u.z;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right)
+extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up)
 {
 	Camera c;
 	c.fpsLook(Vec3f(lookpos.x, lookpos.y, lookpos.z), Vec3f(rot.x, rot.y, rot.z));
@@ -71,6 +76,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector
 	Vec3f p = c.GetPosition();
 	Vec3f f = c.GetForward();
 	Vec3f r = c.GetRight();
+	Vec3f u = c.GetUp();
 
 	pos->x = p.x;
 	pos->y = p.y;
@@ -83,6 +89,10 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector
 	right->x = r.x;
 	right->y = r.y;
 	right->z = r.z;
+
+	up->x = u.x;
+	up->y = u.y;
+	up->z = u.z;
 }
 
 extern "C" RENDERDOC_API

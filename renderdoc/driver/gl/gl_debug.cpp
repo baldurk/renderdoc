@@ -490,7 +490,7 @@ void GLReplay::InitDebugData()
 	gl.glGenBuffers(1, &DebugData.triHighlightBuffer);
 	gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
 	
-	gl.glNamedBufferStorageEXT(DebugData.triHighlightBuffer, sizeof(Vec4f)*16, NULL, GL_DYNAMIC_STORAGE_BIT);
+	gl.glNamedBufferStorageEXT(DebugData.triHighlightBuffer, sizeof(Vec4f)*24, NULL, GL_DYNAMIC_STORAGE_BIT);
 	
 	gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
 	gl.glEnableVertexAttribArray(0);
@@ -3118,7 +3118,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 
 	Camera cam;
 	if(cfg.arcballCamera)
-		cam.Arcball(cfg.cameraPos.x, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
+		cam.Arcball(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), cfg.cameraPos.w, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
 	else
 		cam.fpsLook(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
 
@@ -3294,10 +3294,11 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 	gl.glEnableVertexAttribArray(0);
 	gl.glDisableVertexAttribArray(1);
 
+	gl.glEnable(eGL_DEPTH_TEST);
+
 	// solid render
 	if(cfg.solidShadeMode != eShade_None && topo != eGL_PATCHES)
 	{
-		gl.glEnable(eGL_DEPTH_TEST);
 		gl.glDepthFunc(eGL_LESS);
 
 		GLuint solidProg = prog;
@@ -3364,7 +3365,7 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		gl.glUseProgram(prog);
 	}
 	
-	gl.glDisable(eGL_DEPTH_TEST);
+	gl.glDepthFunc(eGL_ALWAYS);
 
 	// wireframe render
 	if(cfg.solidShadeMode == eShade_None || cfg.wireframeDraw || topo == eGL_PATCHES)
@@ -3403,6 +3404,60 @@ void GLReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshF
 		}
 	}
 	
+	if(cfg.showBBox)
+	{
+		Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
+		Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);
+
+		Vec4f TLN = Vec4f(a.x, b.y, a.z, 1.0f); // TopLeftNear, etc...
+		Vec4f TRN = Vec4f(b.x, b.y, a.z, 1.0f);
+		Vec4f BLN = Vec4f(a.x, a.y, a.z, 1.0f);
+		Vec4f BRN = Vec4f(b.x, a.y, a.z, 1.0f);
+
+		Vec4f TLF = Vec4f(a.x, b.y, b.z, 1.0f);
+		Vec4f TRF = Vec4f(b.x, b.y, b.z, 1.0f);
+		Vec4f BLF = Vec4f(a.x, a.y, b.z, 1.0f);
+		Vec4f BRF = Vec4f(b.x, a.y, b.z, 1.0f);
+
+		// 12 frustum lines => 24 verts
+		Vec4f bbox[24] =
+		{
+			TLN, TRN,
+			TRN, BRN,
+			BRN, BLN,
+			BLN, TLN,
+
+			TLN, TLF,
+			TRN, TRF,
+			BLN, BLF,
+			BRN, BRF,
+
+			TLF, TRF,
+			TRF, BRF,
+			BRF, BLF,
+			BLF, TLF,
+		};
+
+		gl.glBindBuffer(eGL_ARRAY_BUFFER, DebugData.triHighlightBuffer);
+		gl.glBufferSubData(eGL_ARRAY_BUFFER, 0, sizeof(bbox), &bbox[0]);
+
+		gl.glBindVertexArray(DebugData.triHighlightVAO);
+
+		float wireCol[] = { 0.2f, 0.2f, 1.0f, 1.0f };
+		gl.glUniform4fv(colLoc, 1, wireCol);
+
+		Matrix4f mvpMat = projMat.Mul(camMat);
+
+		gl.glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, mvpMat.Data());
+
+		// we want this to clip
+		gl.glDepthFunc(eGL_LESS);
+
+		gl.glDrawArrays(eGL_LINES, 0, 24);
+
+		gl.glDepthFunc(eGL_ALWAYS);
+	}
+
 	// draw axis helpers
 	if(!cfg.position.unproject)
 	{

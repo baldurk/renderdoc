@@ -33,10 +33,10 @@ class Camera
 {
 	public:
 		Camera()
-			: order(ORDER_TRANS_ROT), pos(), angles()
+			: type(eType_FPSLook), pos(), dist(0.0f), angles()
 		{ }
 
-		void Arcball(float dist, const Vec3f &rot);
+		void Arcball(const Vec3f &pos, float dist, const Vec3f &rot);
 		void fpsLook(const Vec3f &pos, const Vec3f &rot);
 
 		void SetPosition(const Vec3f &p) { pos = p; }
@@ -49,12 +49,13 @@ class Camera
 		const Matrix4f GetMatrix() const;
 
 	private:
-		enum OperationOrder
+		enum CameraType
 		{
-			ORDER_ROT_TRANS = 0,
-			ORDER_TRANS_ROT,
-		} order;
+			eType_Arcball = 0,
+			eType_FPSLook,
+		} type;
 
 		Vec3f pos;
+		float dist;
 		Vec3f angles;
 };

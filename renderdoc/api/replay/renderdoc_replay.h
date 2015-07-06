@@ -214,8 +214,8 @@ extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RemoteRenderer_CreatePr
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half);
 extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f);
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right);
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right);
+extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(const FloatVector &lookat, float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
+extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
 
 //////////////////////////////////////////////////////////////////////////
 // Create a replay renderer, for playback and analysis.

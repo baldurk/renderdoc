@@ -31,40 +31,44 @@ namespace renderdoc
     public class Camera
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Maths_CameraArcball(float dist, ref FloatVector rot, IntPtr pos, IntPtr fwd, IntPtr right);
+        private static extern void Maths_CameraArcball(ref FloatVector lookat, float dist, ref FloatVector rot, IntPtr pos, IntPtr fwd, IntPtr right, IntPtr up);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void Maths_CameraFPSLook(ref FloatVector lookpos, ref FloatVector rot, IntPtr pos, IntPtr fwd, IntPtr right);
+        private static extern void Maths_CameraFPSLook(ref FloatVector lookpos, ref FloatVector rot, IntPtr pos, IntPtr fwd, IntPtr right, IntPtr up);
 
-        public void Arcball(float dist, Vec3f rot)
+        public void Arcball(Vec3f pos, float dist, Vec3f rot)
         {
             IntPtr p = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr f = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr r = CustomMarshal.Alloc(typeof(FloatVector));
+            IntPtr u = CustomMarshal.Alloc(typeof(FloatVector));
 
             isarc = true;
-            parampos.x = dist;
-            parampos.y = 0.0f;
-            parampos.z = 0.0f;
+            paramdist = dist;
+            parampos = pos;
             paramrot = new Vec3f(rot);
 
             var rt = new FloatVector(rot);
+            var ps = new FloatVector(pos);
 
-            Maths_CameraArcball(dist, ref rt, p, f, r);
+            Maths_CameraArcball(ref ps, dist, ref rt, p, f, r, u);
 
             pos = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(p, typeof(FloatVector), false));
             fwd = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(f, typeof(FloatVector), false));
             right = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(r, typeof(FloatVector), false));
+            up = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(u, typeof(FloatVector), false));
 
             CustomMarshal.Free(p);
             CustomMarshal.Free(f);
             CustomMarshal.Free(r);
+            CustomMarshal.Free(u);
         }
         public void fpsLook(Vec3f lookpos, Vec3f lookrot)
         {
             IntPtr p = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr f = CustomMarshal.Alloc(typeof(FloatVector));
             IntPtr r = CustomMarshal.Alloc(typeof(FloatVector));
+            IntPtr u = CustomMarshal.Alloc(typeof(FloatVector));
 
             isarc = false;
             parampos = new Vec3f(lookpos);
@@ -73,31 +77,37 @@ namespace renderdoc
             var ps = new FloatVector(lookpos);
             var rt = new FloatVector(lookrot);
 
-            Maths_CameraFPSLook(ref ps, ref rt, p, f, r);
+            Maths_CameraFPSLook(ref ps, ref rt, p, f, r, u);
 
             pos = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(p, typeof(FloatVector), false));
             fwd = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(f, typeof(FloatVector), false));
             right = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(r, typeof(FloatVector), false));
+            up = new Vec3f((FloatVector)CustomMarshal.PtrToStructure(u, typeof(FloatVector), false));
 
             CustomMarshal.Free(p);
             CustomMarshal.Free(f);
             CustomMarshal.Free(r);
+            CustomMarshal.Free(u);
         }
 
         private Vec3f pos = new Vec3f(0.0f, 0.0f, 0.0f);
         private Vec3f fwd = new Vec3f(0.0f, 0.0f, 1.0f);
         private Vec3f right = new Vec3f(1.0f, 0.0f, 0.0f);
+        private Vec3f up = new Vec3f(0.0f, 1.0f, 0.0f);
 
         public Vec3f Position { get { return pos; } }
         public Vec3f Forward { get { return fwd; } }
         public Vec3f Right { get { return right; } }
+        public Vec3f Up { get { return up; } }
 
         private bool isarc = false;
         private Vec3f parampos = new Vec3f(0.0f, 0.0f, 0.0f);
+        private float paramdist = 0.0f;
         private Vec3f paramrot = new Vec3f(0.0f, 0.0f, 0.0f);
 
         public bool IsArcball { get { return isarc; } }
         public Vec3f PositionParam { get { return parampos; } }
+        public float DistanceParam { get { return paramdist; } }
         public Vec3f RotationParam { get { return paramrot; } }
     }
 }

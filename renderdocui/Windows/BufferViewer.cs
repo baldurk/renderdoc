@@ -123,8 +123,8 @@ namespace renderdocui.Windows
             public Thread m_DataParseThread = null;
             private Object m_ThreadLock = new Object();
 
-            public Vec3f m_MinBounds = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
-            public Vec3f m_MaxBounds = new Vec3f(-float.MaxValue, -float.MaxValue, -float.MaxValue);
+            public Vec3f[] m_MinBounds = null;
+            public Vec3f[] m_MaxBounds = null;
 
             public void AbortThread()
             {
@@ -1321,8 +1321,8 @@ namespace renderdocui.Windows
                 state.m_Stream = new Stream[d.Length];
                 state.m_Reader = new BinaryReader[d.Length];
 
-                state.m_MinBounds = new Vec3f(-1.0f, -1.0f, -1.0f);
-                state.m_MaxBounds = new Vec3f(1.0f, 1.0f, 1.0f);
+                state.m_MinBounds = null;
+                state.m_MaxBounds = null;
 
                 var bufferFormats = input.BufferFormats;
 
@@ -1387,8 +1387,14 @@ namespace renderdocui.Windows
                 var bufferFormats = input.BufferFormats;
                 var generics = input.GenericValues;
 
-                Vec3f minBounds = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
-                Vec3f maxBounds = new Vec3f(-float.MaxValue, -float.MaxValue, -float.MaxValue);
+                Vec3f[] minBounds = new Vec3f[bufferFormats.Length];
+                Vec3f[] maxBounds = new Vec3f[bufferFormats.Length];
+
+                for (int el = 0; el < bufferFormats.Length; el++)
+                {
+                    minBounds[el] = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
+                    maxBounds[el] = new Vec3f(-float.MaxValue, -float.MaxValue, -float.MaxValue);
+                }
 
                 while (!finished)
                 {
@@ -1483,7 +1489,7 @@ namespace renderdocui.Windows
                             if (bytes.Length != bytesToRead)
                                 continue;
 
-                            if (elname == "POSITION" || bufferFormats[el].systemValue == SystemAttribute.Position)
+                            // update min/max for this element
                             {
                                 for (int i = 0; i < fmt.compCount; i++)
                                 {
@@ -1510,18 +1516,18 @@ namespace renderdocui.Windows
 
                                     if (i == 0)
                                     {
-                                        minBounds.x = Math.Min(minBounds.x, val);
-                                        maxBounds.x = Math.Max(maxBounds.x, val);
+                                        minBounds[el].x = Math.Min(minBounds[el].x, val);
+                                        maxBounds[el].x = Math.Max(maxBounds[el].x, val);
                                     }
                                     else if (i == 1)
                                     {
-                                        minBounds.y = Math.Min(minBounds.y, val);
-                                        maxBounds.y = Math.Max(maxBounds.y, val);
+                                        minBounds[el].y = Math.Min(minBounds[el].y, val);
+                                        maxBounds[el].y = Math.Max(maxBounds[el].y, val);
                                     }
                                     else if (i == 2)
                                     {
-                                        minBounds.z = Math.Min(minBounds.z, val);
-                                        maxBounds.z = Math.Max(maxBounds.z, val);
+                                        minBounds[el].z = Math.Min(minBounds[el].z, val);
+                                        maxBounds[el].z = Math.Max(maxBounds[el].z, val);
                                     }
                                 }
                             }
@@ -1543,6 +1549,8 @@ namespace renderdocui.Windows
                 {
                     state.m_MinBounds = minBounds;
                     state.m_MaxBounds = maxBounds;
+
+                    UI_UpdateBoundingBox();
 
                     UI_ShowRows(state, horizScroll);
                 }));
@@ -1940,6 +1948,8 @@ namespace renderdocui.Windows
                 m_CurrentCamera = m_Flycam;
             }
 
+            UI_UpdateBoundingBox();
+
             m_CurrentCamera.Apply();
             render.Invalidate();
         }
@@ -1953,14 +1963,20 @@ namespace renderdocui.Windows
 
             var state = GetUIState(m_MeshDisplay.type);
 
-            Vec3f diag = state.m_MaxBounds.Sub(state.m_MinBounds);
-
-            if(diag.x < 0.0f || diag.y < 0.0f || diag.z < 0.0f || diag.Length() <= 0.00001f)
+            if (state.m_MinBounds == null || state.m_MaxBounds == null)
                 return;
 
-            Vec3f middle = new Vec3f(state.m_MinBounds.x + diag.x / 2.0f,
-                                     state.m_MinBounds.y + diag.y / 2.0f,
-                                     state.m_MinBounds.z + diag.z / 2.0f);
+            if (CurPosElement < 0 || CurPosElement >= state.m_MinBounds.Length || CurPosElement >= state.m_MaxBounds.Length)
+                return;
+
+            Vec3f diag = state.m_MaxBounds[CurPosElement].Sub(state.m_MinBounds[CurPosElement]);
+
+            if (diag.x < 0.0f || diag.y < 0.0f || diag.z < 0.0f || diag.Length() <= 1e-6f)
+                return;
+
+            Vec3f middle = new Vec3f(state.m_MinBounds[CurPosElement].x + diag.x / 2.0f,
+                                     state.m_MinBounds[CurPosElement].y + diag.y / 2.0f,
+                                     state.m_MinBounds[CurPosElement].z + diag.z / 2.0f);
 
             Vec3f pos = new Vec3f(middle);
 
@@ -1969,6 +1985,8 @@ namespace renderdocui.Windows
             m_Flycam.Reset(pos);
 
             camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
+
+            UI_UpdateBoundingBox();
 
             m_CurrentCamera.Apply();
             render.Invalidate();
@@ -2060,7 +2078,7 @@ namespace renderdocui.Windows
             if (m_Output == null) return;
 
             m_MeshDisplay.arcballCamera = m_Camera.IsArcball;
-            m_MeshDisplay.cameraPos = new FloatVector(m_Camera.PositionParam);
+            m_MeshDisplay.cameraPos = new FloatVector(m_Camera.PositionParam, m_Camera.DistanceParam);
             m_MeshDisplay.cameraRot = new FloatVector(m_Camera.RotationParam);
 
             m_Output.SetMeshDisplay(m_MeshDisplay);
@@ -2331,6 +2349,36 @@ namespace renderdocui.Windows
             }
         }
 
+        private void UI_UpdateBoundingBox()
+        {
+            var ui = GetUIState(m_MeshDisplay.type);
+
+            m_MeshDisplay.showBBox = false;
+            if (ui.m_Stage == MeshDataStage.VSIn &&
+                CurPosElement >= 0 &&
+                ui.m_MinBounds != null && CurPosElement < ui.m_MinBounds.Length &&
+                ui.m_MaxBounds != null && CurPosElement < ui.m_MaxBounds.Length)
+            {
+                m_MeshDisplay.showBBox = true;
+
+                m_MeshDisplay.minBounds = new FloatVector(ui.m_MinBounds[CurPosElement]);
+                m_MeshDisplay.maxBounds = new FloatVector(ui.m_MaxBounds[CurPosElement]);
+
+                Vec3f diag = ui.m_MaxBounds[CurPosElement].Sub(ui.m_MinBounds[CurPosElement]);
+
+                if (diag.x < 0.0f || diag.y < 0.0f || diag.z < 0.0f || diag.Length() <= 1e-6f)
+                    return;
+
+                m_Arcball.LookAtPos = new Vec3f(ui.m_MinBounds[CurPosElement].x + diag.x / 2.0f,
+                                         ui.m_MinBounds[CurPosElement].y + diag.y / 2.0f,
+                                         ui.m_MinBounds[CurPosElement].z + diag.z / 2.0f);
+                m_Arcball.SetDistance(diag.Length()*0.7f);
+
+                m_CurrentCamera.Apply();
+                render.Invalidate();
+            }
+        }
+
         private void UI_UpdateMeshRenderComponents()
         {
             var ui = GetUIState(m_MeshDisplay.type);
@@ -2433,6 +2481,8 @@ namespace renderdocui.Windows
                     m_MeshDisplay.position.unproject = pos.systemValue == SystemAttribute.Position;
                 }
             }
+
+            UI_UpdateBoundingBox();
 
             if (ui.m_Input == null || ui.m_Input.BufferFormats == null ||
                 CurSecondElement == -1 || CurSecondElement >= ui.m_Input.BufferFormats.Length)

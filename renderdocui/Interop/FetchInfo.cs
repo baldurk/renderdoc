@@ -67,6 +67,7 @@ namespace renderdoc
         public FloatVector(float X, float Y, float Z, float W) { x = X; y = Y; z = Z; w = W; }
         public FloatVector(float X, float Y, float Z) { x = X; y = Y; z = Z; w = 1; }
         public FloatVector(Vec3f v) { x = v.x; y = v.y; z = v.z; w = 1; }
+        public FloatVector(Vec3f v, float W) { x = v.x; y = v.y; z = v.z; w = W; }
 
         public float x, y, z, w;
     };
@@ -404,6 +405,10 @@ namespace renderdoc
 
         public FloatVector prevMeshColour = new FloatVector();
         public FloatVector currentMeshColour = new FloatVector();
+
+        public FloatVector minBounds = new FloatVector();
+        public FloatVector maxBounds = new FloatVector();
+        public bool showBBox = false;
 
         public SolidShadeMode solidShadeMode = SolidShadeMode.None;
         public bool wireframeDraw = true;
