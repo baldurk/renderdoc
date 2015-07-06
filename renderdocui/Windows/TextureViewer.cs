@@ -3001,9 +3001,12 @@ namespace renderdocui.Windows
             if(m_PickedPoint.X < 0 || m_PickedPoint.Y < 0)
                 return;
 
+            int x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
+            int y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.DebugPixel((UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y, m_TexDisplay.sampleIdx, uint.MaxValue);
+                trace = r.DebugPixel((UInt32)x, (UInt32)y, m_TexDisplay.sampleIdx, uint.MaxValue);
             });
 
             if (trace == null || trace.states.Length == 0)
@@ -3015,7 +3018,7 @@ namespace renderdocui.Windows
 
             this.BeginInvoke(new Action(() =>
             {
-                string debugContext = String.Format("Pixel {0},{1}", m_PickedPoint.X, m_PickedPoint.Y);
+                string debugContext = String.Format("Pixel {0},{1}", x, y);
 
                 ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace, debugContext);
 
