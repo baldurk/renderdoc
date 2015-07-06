@@ -1534,7 +1534,7 @@ namespace renderdocui.Windows
                         }
                     }
 
-                    finished = (elemsWithData > 0);
+                    finished = (elemsWithData == 0);
 
                     rownum++;
                 }
