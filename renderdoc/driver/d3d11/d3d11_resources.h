@@ -981,13 +981,11 @@ class WrappedView : public WrappedDeviceChild<NestedType>
 {
 protected:
 	ID3D11Resource *m_pResource;
-	D3D11ResourceRecord *m_pResourceRecord;
 	ResourceId m_ResourceResID;
 
 	WrappedView(NestedType* real, WrappedID3D11Device* device, ID3D11Resource* res)
 		:	WrappedDeviceChild(real, device),
-			m_pResource(res),
-			m_pResourceRecord(NULL)
+			m_pResource(res)
 	{
 		m_ResourceResID = GetIDForResource(m_pResource);
 		// cast is potentially invalid but functions in WrappedResource will be identical across each
@@ -1007,9 +1005,6 @@ protected:
 	}
 
 public:
-	D3D11ResourceRecord *GetResourceRecord() { return m_pResourceRecord; }
-	void SetResourceRecord(D3D11ResourceRecord *r) { m_pResourceRecord = r; }
-
 	ResourceId GetResourceResID() { return m_ResourceResID; }
 	
 	HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)

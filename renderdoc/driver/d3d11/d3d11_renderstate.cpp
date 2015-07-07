@@ -226,6 +226,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 			if(sh->SRVs[i])
 			{
 				sh->SRVs[i]->GetResource(&res);
+				ctx->MarkResourceReferenced(GetIDForResource(sh->SRVs[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
 				ctx->MarkResourceReferenced(GetIDForResource(res), initial ? eFrameRef_Unknown : eFrameRef_Read);
 				SAFE_RELEASE(res);
 			}
@@ -241,7 +242,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 		{
 			CSUAVs[i]->GetResource(&res);
 			ctx->m_MissingTracks.insert(GetIDForResource(res));
-			ctx->m_MissingTracks.insert(GetIDForResource(CSUAVs[i]));
 			// UAVs we always assume to be partial updates
 			ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
 			ctx->MarkResourceReferenced(GetIDForResource(CSUAVs[i]), initial ? eFrameRef_Unknown : eFrameRef_Write);
@@ -348,6 +348,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 		{
 			OM.RenderTargets[i]->GetResource(&res);
 			ctx->m_MissingTracks.insert(GetIDForResource(res));
+			ctx->MarkResourceReferenced(GetIDForResource(OM.RenderTargets[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
 			if(viewportScissorPartial)
 				ctx->MarkResourceReferenced(GetIDForResource(res), initial ? eFrameRef_Unknown : eFrameRef_Read);
 			ctx->MarkResourceReferenced(GetIDForResource(res), initial ? eFrameRef_Unknown : eFrameRef_Write);
@@ -361,7 +362,6 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 		if(OM.UAVs[i])
 		{
 			OM.UAVs[i]->GetResource(&res);
-			ctx->m_MissingTracks.insert(GetIDForResource(OM.UAVs[i]));
 			ctx->m_MissingTracks.insert(GetIDForResource(res));
 			// UAVs we always assume to be partial updates
 			ctx->MarkResourceReferenced(GetIDForResource(OM.UAVs[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
@@ -378,6 +378,7 @@ void D3D11RenderState::MarkReferenced(WrappedID3D11DeviceContext *ctx, bool init
 		{
 			OM.DepthView->GetResource(&res);
 			ctx->m_MissingTracks.insert(GetIDForResource(res));
+			ctx->MarkResourceReferenced(GetIDForResource(OM.DepthView), initial ? eFrameRef_Unknown : eFrameRef_Read);
 			if(viewportScissorPartial)
 				ctx->MarkResourceReferenced(GetIDForResource(res), initial ? eFrameRef_Unknown : eFrameRef_Read);
 			ctx->MarkResourceReferenced(GetIDForResource(res), initial ? eFrameRef_Unknown : eFrameRef_Write);

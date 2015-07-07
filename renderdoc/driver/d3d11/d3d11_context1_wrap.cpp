@@ -460,7 +460,6 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
 		ID3D11Resource *viewRes = NULL;
 		pView->GetResource(&viewRes);
 		
-		m_MissingTracks.insert(GetIDForResource(pView));
 		m_MissingTracks.insert(GetIDForResource(viewRes));
 
 		SAFE_RELEASE(viewRes);
@@ -472,13 +471,8 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
 		SCOPED_SERIALISE_CONTEXT(CLEAR_VIEW);
 		m_pSerialiser->Serialise("context", m_ResourceID);	
 		Serialise_ClearView(pView, Color, pRect, NumRects);
-		
-		ID3D11Resource *viewRes = NULL;
-		pView->GetResource(&viewRes);
-		ResourceId id = GetIDForResource(viewRes);
-		SAFE_RELEASE(viewRes);
 
-		D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(id);
+		D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pView));
 		RDCASSERT(record);
 
 		record->AddChunk(scope.Get());

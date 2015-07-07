@@ -3269,46 +3269,6 @@ bool WrappedID3D11Device::Serialise_ReleaseResource(ID3D11DeviceChild *res)
 		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(resource);
 		if(record)
 			record->Delete(m_ResourceManager);
-
-		switch(resourceType)
-		{
-			case Resource_RenderTargetView:
-			{
-				WrappedID3D11RenderTargetView* view = (WrappedID3D11RenderTargetView *)res;
-
-				D3D11ResourceRecord *viewRecord = view->GetResourceRecord();
-				if(viewRecord)
-					viewRecord->Delete(m_ResourceManager);
-				break;
-			}
-			case Resource_ShaderResourceView:
-			{
-				WrappedID3D11ShaderResourceView* view = (WrappedID3D11ShaderResourceView *)res;
-
-				D3D11ResourceRecord *viewRecord = view->GetResourceRecord();
-				if(viewRecord)
-					viewRecord->Delete(m_ResourceManager);
-				break;
-			}
-			case Resource_DepthStencilView:
-			{
-				WrappedID3D11DepthStencilView* view = (WrappedID3D11DepthStencilView *)res;
-
-				D3D11ResourceRecord *viewRecord = view->GetResourceRecord();
-				if(viewRecord)
-					viewRecord->Delete(m_ResourceManager);
-				break;
-			}
-			case Resource_UnorderedAccessView:
-			{
-				WrappedID3D11UnorderedAccessView* view = (WrappedID3D11UnorderedAccessView *)res;
-
-				D3D11ResourceRecord *viewRecord = view->GetResourceRecord();
-				if(viewRecord)
-					viewRecord->Delete(m_ResourceManager);
-				break;
-			}
-		}
 	}
 	if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
 	{
@@ -3339,8 +3299,6 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 
 	D3D11ResourceRecord *record = m_DeviceRecord;
 
-	bool removegpu = true;
-
 	if(m_State == WRITING_IDLE)
 	{
 		if(type == Resource_ShaderResourceView ||
@@ -3353,21 +3311,6 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 			type == Resource_Texture3D ||
 			type == Resource_CommandList)
 		{
-			if(type == Resource_ShaderResourceView ||
-				type == Resource_DepthStencilView ||
-				type == Resource_UnorderedAccessView ||
-				type == Resource_RenderTargetView
-				)
-			{
-				ID3D11View *view = (ID3D11View *)res;
-				ID3D11Resource *viewRes = NULL;
-				view->GetResource(&viewRes);
-				idx = GetIDForResource(viewRes);
-				SAFE_RELEASE(viewRes);
-
-				removegpu = false;
-			}
-
 			record = GetResourceManager()->GetResourceRecord(idx);
 			RDCASSERT(record);
 
@@ -3384,8 +3327,7 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
 		}
 	}
 
-	if(removegpu)
-		GetResourceManager()->MarkCleanResource(idx);
+	GetResourceManager()->MarkCleanResource(idx);
 
 	if(type == Resource_DeviceContext)
 	{

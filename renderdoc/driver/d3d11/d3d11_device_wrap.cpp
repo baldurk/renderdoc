@@ -694,16 +694,6 @@ bool WrappedID3D11Device::Serialise_CreateShaderResourceView(
 			GetResourceManager()->AddLiveResource(pView, ret);
 		}
 	}
-	else if(m_State >= WRITING)
-	{
-		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(Resource);
-
-		((WrappedID3D11ShaderResourceView *)*ppSRView)->SetResourceRecord(record);
-
-		RDCASSERT(record);
-
-		record->AddRef();
-	}
 
 	return true;
 }
@@ -740,8 +730,19 @@ HRESULT WrappedID3D11Device::CreateShaderResourceView(
 				WrappedID3D11Texture3D::IsAlloc(pResource) ||
 				WrappedID3D11Buffer::IsAlloc(pResource))
 			{
-				D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
-				RDCASSERT(record);
+				D3D11ResourceRecord *parent = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+
+				RDCASSERT(parent);
+
+				WrappedID3D11ShaderResourceView *view = (WrappedID3D11ShaderResourceView *)wrapped;
+				ResourceId id = view->GetResourceID();
+
+				RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+				D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+				record->Length = 0;
+
+				record->AddParent(parent);
 
 				record->AddChunk(chunk);
 			}
@@ -792,16 +793,6 @@ bool WrappedID3D11Device::Serialise_CreateUnorderedAccessView(
 			GetResourceManager()->AddLiveResource(pView, ret);
 		}
 	}
-	else if(m_State >= WRITING)
-	{
-		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(ResourceId(Resource));
-
-		((WrappedID3D11UnorderedAccessView *)*ppUAView)->SetResourceRecord(record);
-
-		RDCASSERT(record);
-
-		record->AddRef();
-	}
 
 	return true;
 }
@@ -838,9 +829,19 @@ HRESULT WrappedID3D11Device::CreateUnorderedAccessView(
 				WrappedID3D11Texture3D::IsAlloc(pResource) ||
 				WrappedID3D11Buffer::IsAlloc(pResource))
 			{
-				D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+				D3D11ResourceRecord *parent = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
-				RDCASSERT(record);
+				RDCASSERT(parent);
+
+				WrappedID3D11UnorderedAccessView *view = (WrappedID3D11UnorderedAccessView *)wrapped;
+				ResourceId id = view->GetResourceID();
+
+				RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+				D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+				record->Length = 0;
+
+				record->AddParent(parent);
 
 				record->AddChunk(chunk);
 			}
@@ -917,16 +918,6 @@ bool WrappedID3D11Device::Serialise_CreateRenderTargetView(
 			GetResourceManager()->AddLiveResource(pView, ret);
 		}
 	}
-	else if(m_State >= WRITING)
-	{
-		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(ResourceId(Resource));
-
-		RDCASSERT(record);
-
-		((WrappedID3D11RenderTargetView *)*ppRTView)->SetResourceRecord(record);
-
-		record->AddRef();
-	}
 
 	return true;
 }
@@ -963,9 +954,19 @@ HRESULT WrappedID3D11Device::CreateRenderTargetView(
 				WrappedID3D11Texture3D::IsAlloc(pResource) ||
 				WrappedID3D11Buffer::IsAlloc(pResource))
 			{
-				D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+				D3D11ResourceRecord *parent = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
-				RDCASSERT(record);
+				RDCASSERT(parent);
+
+				WrappedID3D11RenderTargetView *view = (WrappedID3D11RenderTargetView *)wrapped;
+				ResourceId id = view->GetResourceID();
+
+				RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+				D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+				record->Length = 0;
+
+				record->AddParent(parent);
 
 				record->AddChunk(chunk);
 			}
@@ -1015,16 +1016,6 @@ bool WrappedID3D11Device::Serialise_CreateDepthStencilView(
 			GetResourceManager()->AddLiveResource(pView, ret);
 		}
 	}
-	else if(m_State >= WRITING)
-	{
-		D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(ResourceId(Resource));
-
-		((WrappedID3D11DepthStencilView *)*ppDepthStencilView)->SetResourceRecord(record);
-
-		RDCASSERT(record);
-
-		record->AddRef();
-	}
 
 	return true;
 }
@@ -1061,9 +1052,19 @@ HRESULT WrappedID3D11Device::CreateDepthStencilView(
 				WrappedID3D11Texture3D::IsAlloc(pResource) ||
 				WrappedID3D11Buffer::IsAlloc(pResource))
 			{
-				D3D11ResourceRecord *record = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
+				D3D11ResourceRecord *parent = GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
 
-				RDCASSERT(record);
+				RDCASSERT(parent);
+
+				WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)wrapped;
+				ResourceId id = view->GetResourceID();
+
+				RDCASSERT(GetResourceManager()->GetResourceRecord(id) == NULL);
+
+				D3D11ResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+				record->Length = 0;
+
+				record->AddParent(parent);
 
 				record->AddChunk(chunk);
 			}
