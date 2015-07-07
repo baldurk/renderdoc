@@ -1135,6 +1135,8 @@ namespace renderdocui.Windows
 
             m_DisassemblyView.Invalidate();
 
+            hoverTimer_Tick(hoverTimer, new EventArgs());
+
             if (constantRegs.Nodes.IsEmpty())
             {
                 constantRegs.BeginUpdate();
