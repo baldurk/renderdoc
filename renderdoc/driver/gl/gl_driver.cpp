@@ -3952,6 +3952,7 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
 					}
 
 					uint32_t *texList = NULL;
+					int32_t listSize = 0;
 					
 					switch(refl[i]->Resources[r].resType)
 					{
@@ -3960,40 +3961,51 @@ void WrappedOpenGL::AddUsage(FetchDrawcall d)
 							break;
 						case eResType_Buffer:
 							texList = rs.TexBuffer;
+							listSize = sizeof(rs.TexBuffer);
 							break;
 						case eResType_Texture1D:
 							texList = rs.Tex1D;
+							listSize = sizeof(rs.Tex1D);
 							break;
 						case eResType_Texture1DArray:
 							texList = rs.Tex1DArray;
+							listSize = sizeof(rs.Tex1DArray);
 							break;
 						case eResType_Texture2D:
 							texList = rs.Tex2D;
+							listSize = sizeof(rs.Tex2D);
 							break;
 						case eResType_TextureRect:
 							texList = rs.TexRect;
+							listSize = sizeof(rs.TexRect);
 							break;
 						case eResType_Texture2DArray:
 							texList = rs.Tex2DArray;
+							listSize = sizeof(rs.Tex2DArray);
 							break;
 						case eResType_Texture2DMS:
 							texList = rs.Tex2DMS;
+							listSize = sizeof(rs.Tex2DMS);
 							break;
 						case eResType_Texture2DMSArray:
 							texList = rs.Tex2DMSArray;
+							listSize = sizeof(rs.Tex2DMSArray);
 							break;
 						case eResType_Texture3D:
 							texList = rs.Tex3D;
+							listSize = sizeof(rs.Tex3D);
 							break;
 						case eResType_TextureCube:
 							texList = rs.TexCube;
+							listSize = sizeof(rs.TexCube);
 							break;
 						case eResType_TextureCubeArray:
 							texList = rs.TexCubeArray;
+							listSize = sizeof(rs.TexCubeArray);
 							break;
 					}
 					
-					if(texList != NULL && texList[bind] != 0)
+					if(texList != NULL && bind >= 0 && bind < listSize && texList[bind] != 0)
 						m_ResourceUses[rm->GetID(TextureRes(ctx, texList[bind]))].push_back(res);
 				}
 			}
