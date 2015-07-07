@@ -1394,6 +1394,11 @@ namespace renderdocui.Windows
                 {
                     minBounds[el] = new Vec3f(float.MaxValue, float.MaxValue, float.MaxValue);
                     maxBounds[el] = new Vec3f(-float.MaxValue, -float.MaxValue, -float.MaxValue);
+
+                    if (bufferFormats[el].format.compCount == 1)
+                        minBounds[el].y = maxBounds[el].y = minBounds[el].z = maxBounds[el].z = 0.0f;
+                    if (bufferFormats[el].format.compCount == 2)
+                        minBounds[el].z = maxBounds[el].z = 0.0f;
                 }
 
                 while (!finished)
