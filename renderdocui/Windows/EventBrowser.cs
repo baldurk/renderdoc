@@ -69,6 +69,7 @@ namespace renderdocui.Windows
                 core.Config.PreferredFont;
 
             HideJumpAndFind();
+            ClearBookmarks();
 
             m_Core = core;
 
@@ -84,6 +85,7 @@ namespace renderdocui.Windows
             findEventButton.Enabled = false;
             jumpEventButton.Enabled = false;
             timeDraws.Enabled = false;
+            toggleBookmark.Enabled = false;
         }
 
         public class PersistData
@@ -363,9 +365,12 @@ namespace renderdocui.Windows
             m_FrameNodes.Clear();
             eventView.EndUpdate();
 
+            ClearBookmarks();
+
             findEventButton.Enabled = false;
             jumpEventButton.Enabled = false;
             timeDraws.Enabled = false;
+            toggleBookmark.Enabled = false;
         }
 
         public void OnLogfileLoaded()
@@ -375,6 +380,9 @@ namespace renderdocui.Windows
             findEventButton.Enabled = true;
             jumpEventButton.Enabled = true;
             timeDraws.Enabled = true;
+            toggleBookmark.Enabled = true;
+
+            ClearBookmarks();
 
             eventView.BeginUpdate();
 
@@ -422,7 +430,7 @@ namespace renderdocui.Windows
             eventView.EnsureVisible(n);
         }
 
-        private bool SelectEvent(ref TreelistView.Node found, TreelistView.NodeCollection nodes, UInt32 frameID, UInt32 eventID)
+        private bool FindEventNode(ref TreelistView.Node found, TreelistView.NodeCollection nodes, UInt32 frameID, UInt32 eventID)
         {
             foreach (var n in nodes)
             {
@@ -440,7 +448,7 @@ namespace renderdocui.Windows
 
                 if (n.Nodes.Count > 0)
                 {
-                    bool exact = SelectEvent(ref found, n.Nodes, frameID, eventID);
+                    bool exact = FindEventNode(ref found, n.Nodes, frameID, eventID);
                     if (exact) return true;
                 }
             }
@@ -453,7 +461,7 @@ namespace renderdocui.Windows
             if (eventView.Nodes.Count == 0) return false;
 
             TreelistView.Node found = null;
-            SelectEvent(ref found, eventView.Nodes[0].Nodes, frameID, eventID);
+            FindEventNode(ref found, eventView.Nodes[0].Nodes, frameID, eventID);
             if (found != null)
             {
                 eventView.FocusedNode = found;
@@ -469,7 +477,8 @@ namespace renderdocui.Windows
         {
             foreach (var n in nodes)
             {
-                n.Image = null;
+                if (!IsBookmarked((UInt32)n["EID"]))
+                    n.Image = null;
 
                 if (n.Nodes.Count > 0)
                 {
@@ -498,7 +507,8 @@ namespace renderdocui.Windows
                 {
                     if (n["Name"].ToString().ToUpperInvariant().Contains(filter))
                     {
-                        n.Image = global::renderdocui.Properties.Resources.find;
+                        if (!IsBookmarked((UInt32)n["EID"]))
+                            n.Image = global::renderdocui.Properties.Resources.find;
                         results++;
                     }
                 }
@@ -586,6 +596,8 @@ namespace renderdocui.Windows
         {
             SelectEvent(frameID, eventID);
 
+            HighlightBookmarks();
+
             Invalidate();
         }
 
@@ -600,6 +612,8 @@ namespace renderdocui.Windows
                 else
                     m_Core.SetEventID(this, 0, def.eventID);
             }
+
+            HighlightBookmarks();
         }
 
         private void EventBrowser_Shown(object sender, EventArgs e)
@@ -649,6 +663,23 @@ namespace renderdocui.Windows
 
             if(e.Control)
             {
+                Keys[] digits = { Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5,
+                                  Keys.D6, Keys.D7, Keys.D8, Keys.D9, Keys.D0 };
+                for (int i = 0; i < 10; i++)
+                {
+                    if (e.KeyCode == digits[i])
+                    {
+                        if (HasBookmark(i))
+                        {
+                            SelectEvent(0, GetBookmark(i));
+                        }
+                    }
+                }
+                if (e.KeyCode == Keys.B)
+                {
+                    ToggleBookmark(m_Core.CurEvent);
+                }
+
                 if (e.KeyCode == Keys.G)
                 {
                     ShowJump();
@@ -935,6 +966,25 @@ namespace renderdocui.Windows
                 ShowJump();
         }
 
+        private void bookmarkButton_Click(object sender, EventArgs e)
+        {
+            ToolStripButton but = sender as ToolStripButton;
+            if (but != null)
+            {
+                SelectEvent(0, (UInt32)but.Tag);
+            }
+        }
+
+        private void toggleBookmark_Click(object sender, EventArgs e)
+        {
+            DeferredEvent def = eventView.SelectedNode.Tag as DeferredEvent;
+
+            if (def != null)
+            {
+                ToggleBookmark(def.eventID);
+            }
+        }
+
         private void timeDraws_Click(object sender, EventArgs e)
         {
             TimeDrawcalls();
@@ -953,6 +1003,101 @@ namespace renderdocui.Windows
         private void EventBrowser_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
+        }
+
+        private List<UInt32> m_Bookmark = new List<UInt32>();
+        private List<ToolStripButton> m_BookmarkButtons = new List<ToolStripButton>();
+
+        private bool IsBookmarked(UInt32 EID)
+        {
+            return m_Bookmark.Contains(EID);
+        }
+
+        private bool HasBookmark(int index)
+        {
+            return index >= 0 && index < m_Bookmark.Count;
+        }
+
+        private UInt32 GetBookmark(int index)
+        {
+            if (!HasBookmark(index))
+                return 0;
+            return m_Bookmark[index];
+        }
+
+        private void HighlightBookmarks()
+        {
+            foreach (var b in m_BookmarkButtons)
+            {
+                UInt32 EID = (UInt32)b.Tag;
+                if (m_Core.CurEvent == EID)
+                    b.Checked = true;
+                else
+                    b.Checked = false;
+            }
+        }
+
+        private void ClearBookmarks()
+        {
+            foreach(var b in m_BookmarkButtons)
+                bookmarkStrip.Items.Remove(b);
+
+            m_Bookmark.Clear();
+            m_BookmarkButtons.Clear();
+
+            bookmarkStrip.Visible = false;
+        }
+
+        private void ToggleBookmark(UInt32 EID)
+        {
+            int index = m_Bookmark.IndexOf(EID);
+
+            TreelistView.Node found = null;
+            FindEventNode(ref found, eventView.Nodes[0].Nodes, m_Core.CurFrame, EID);
+
+            while (found.NextSibling != null && found.NextSibling.Tag is DeferredEvent)
+            {
+                DeferredEvent def = found.NextSibling.Tag as DeferredEvent;
+
+                if (def.eventID == EID)
+                    found = found.NextSibling;
+                else
+                    break;
+            }
+
+            if (index >= 0)
+            {
+                bookmarkStrip.Items.Remove(m_BookmarkButtons[index]);
+
+                m_Bookmark.RemoveAt(index);
+                m_BookmarkButtons.RemoveAt(index);
+
+                found.Image = null;
+            }
+            else
+            {
+                ToolStripButton but = new ToolStripButton();
+
+                but.DisplayStyle = ToolStripItemDisplayStyle.Text;
+                but.Name = "bookmarkButton" + EID.ToString();
+                but.Text = EID.ToString();
+                but.Tag = EID;
+                but.Size = new Size(23, 22);
+                but.Click += new EventHandler(this.bookmarkButton_Click);
+
+                but.Checked = true;
+
+                bookmarkStrip.Items.Add(but);
+
+                found.Image = global::renderdocui.Properties.Resources.asterisk_orange;
+
+                m_Bookmark.Add(EID);
+                m_BookmarkButtons.Add(but);
+            }
+
+            bookmarkStrip.Visible = m_BookmarkButtons.Count > 0;
+
+            eventView.Invalidate();
         }
     }
 }

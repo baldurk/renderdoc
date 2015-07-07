@@ -1000,16 +1000,22 @@ namespace TreelistView
 
 					Image icon = hoverNode != null && hoverNode == node ? GetHoverNodeBitmap(node) : GetNodeBitmap(node);
 
-                    if (icon == null &&
-			            (NodesSelection.Contains(node) || FocusedNode == node)
-                        )
-                    {
-                        icon = SelectedImage;
-                    }
-
                     Rectangle plusminusRect = glyphRect;
 
 					PaintCellBackground(dc, cellRect, node, col);
+
+                    if (SelectedImage != null && (NodesSelection.Contains(node) || FocusedNode == node))
+                    {
+                        // center the image vertically
+                        glyphRect.Y = cellRect.Y + (cellRect.Height / 2) - (SelectedImage.Height / 2);
+                        glyphRect.X = cellRect.X;
+                        glyphRect.Width = SelectedImage.Width;
+                        glyphRect.Height = SelectedImage.Height;
+
+                        PaintImage(dc, glyphRect, node, SelectedImage);
+                        cellRect.X += (glyphRect.Width + 2);
+                        cellRect.Width -= (glyphRect.Width + 2);
+                    }
 
 					if (icon != null)
 					{
