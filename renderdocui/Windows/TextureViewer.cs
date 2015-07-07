@@ -473,7 +473,7 @@ namespace renderdocui.Windows
                 data.panelLayout = File.ReadAllText(path, enc);
                 File.Delete(path);
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
                 // can't recover
                 return writer.ToString();
@@ -659,7 +659,7 @@ namespace renderdocui.Windows
                             });
                         });
                     }
-                    catch (System.Exception ex)
+                    catch (System.Exception)
                     {
                         // just continue, skip this file
                     }
@@ -710,7 +710,7 @@ namespace renderdocui.Windows
             {
                 File.WriteAllText(path, src);
             }
-            catch (System.Exception ex)
+            catch (System.Exception)
             {
                 // ignore this file
             }
