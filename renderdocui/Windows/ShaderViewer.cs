@@ -918,9 +918,9 @@ namespace renderdocui.Windows
 
             ListView list = sender as ListView;
 
-            if (m_HoverItem != null)
+            if (m_HoverItem != null && m_HoverItem.ListView != null)
                 variableHover.Hide(m_HoverItem.ListView);
-            if (m_HoverNode != null)
+            if (m_HoverNode != null && m_HoverNode.OwnerView != null)
                 variableHover.Hide(m_HoverNode.OwnerView);
 
             hoverTimer.Enabled = false;
