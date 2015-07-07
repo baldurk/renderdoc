@@ -26,65 +26,104 @@
 #include <string.h>
 #include <math.h>
 
+#include "common/common.h"
 #include "camera.h"
 #include "matrix.h"
 
-void Camera::Arcball(const Vec3f &p, float d, const Vec3f &rot)
+void Camera::ResetArcball()
 {
-	pos = p;
-	dist = d;
+	dirty = true;
 
-	type = eType_Arcball;
-
-	angles.x = rot.x;
-	angles.y = rot.y;
+	arcrot = Quatf::AxisAngle(Vec3f(1, 0, 0), 0.0f);
 }
 
-void Camera::fpsLook(const Vec3f &p, const Vec3f &rot)
+// https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
+void Camera::RotateArcball(const Vec2f &from, const Vec2f &to)
 {
-	pos = -p;
+	Vec3f a, b;
+
+	float az = from.x * from.x + from.y * from.y;
+	float bz = to.x * to.x + to.y * to.y;
+
+	// keep the controls stable by rejecting very small movements.
+	if(fabsf(az - bz) < 1e-5f)
+		return;
+
+	if(az < 1.0f)
+	{
+		a = Vec3f(from.x, from.y, sqrt(1.0f - az));
+	}
+	else
+	{
+		a = Vec3f(from.x, from.y, 0.0f);
+		a.Normalise();
+	}
+
+	if(bz < 1.0f)
+	{
+		b = Vec3f(to.x, to.y, sqrt(1.0f - bz));
+	}
+	else
+	{
+		b = Vec3f(to.x, to.y, 0.0f);
+		b.Normalise();
+	}
+
+	float angle = acosf(RDCMIN(1.0f, a.Dot(b)));
+
+	Vec3f axis = a.Cross(b);
+	axis.Normalise();
 	
-	angles.x = -rot.x;
-	angles.y = -rot.y;
+	dirty = true;
 
-	type = eType_FPSLook;
+	Quatf delta = Quatf::AxisAngle(axis, angle);
+	arcrot = arcrot * delta;
 }
 
-const Matrix4f Camera::GetMatrix() const
+void Camera::Update()
 {
+	if(!dirty) return;
+
 	if(type == eType_FPSLook)
 	{
-		Matrix4f p = Matrix4f::Translation(pos);
-		Matrix4f r = Matrix4f::RotationXYZ(angles);
+		Matrix4f p = Matrix4f::Translation(-pos);
+		Matrix4f r = Matrix4f::RotationXYZ(-angles);
 
-		return r.Mul(p);
+		mat = r.Mul(p);
+		basis = mat.Transpose();
 	}
 	else
 	{
 		Matrix4f p = Matrix4f::Translation(-pos);
-		Matrix4f r = Matrix4f::RotationXYZ(angles);
+		Matrix4f r = arcrot.GetMatrix();
 		Matrix4f d = Matrix4f::Translation(Vec3f(0.0f, 0.0f, dist));
 
-		return d.Mul(r.Mul(p));
+		mat = d.Mul(r.Mul(p));
 	}
 }
 
-const Vec3f Camera::GetPosition() const
+const Matrix4f Camera::GetMatrix()
 {
-	return GetMatrix().GetPosition();
+	Update();
+	return mat;
 }
 
-const Vec3f Camera::GetForward() const
+const Vec3f Camera::GetPosition()
 {
-	return Matrix4f::RotationZYX(-angles).GetForward();
+	return pos;
 }
 
-const Vec3f Camera::GetRight() const
+const Vec3f Camera::GetForward()
 {
-	return Matrix4f::RotationZYX(-angles).GetRight();
+	return basis.GetForward();
 }
 
-const Vec3f Camera::GetUp() const
+const Vec3f Camera::GetRight()
 {
-	return Matrix4f::RotationZYX(-angles).GetUp();
+	return basis.GetRight();
+}
+
+const Vec3f Camera::GetUp()
+{
+	return basis.GetUp();
 }

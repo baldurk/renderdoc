@@ -4589,13 +4589,7 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 
 	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth())/float(GetHeight()));
 
-	Camera cam;
-	if(cfg.arcballCamera)
-		cam.Arcball(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), cfg.cameraPos.w, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
-	else
-		cam.fpsLook(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
-
-	Matrix4f camMat = cam.GetMatrix();
+	Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
 	Matrix4f guessProjInv;
 
 	vertexData.ModelViewProj = projMat.Mul(camMat);

@@ -26,36 +26,55 @@
 #pragma once
 
 #include "vec.h"
+#include "quat.h"
 
 class Matrix4f;
 
 class Camera
 {
 	public:
-		Camera()
-			: type(eType_FPSLook), pos(), dist(0.0f), angles()
-		{ }
-
-		void Arcball(const Vec3f &pos, float dist, const Vec3f &rot);
-		void fpsLook(const Vec3f &pos, const Vec3f &rot);
-
-		void SetPosition(const Vec3f &p) { pos = p; }
-		void SetAngles(const Vec3f &r) { angles = r; }
-		
-		const Vec3f GetPosition() const;
-		const Vec3f GetForward() const;
-		const Vec3f GetRight() const;
-		const Vec3f GetUp() const;
-		const Matrix4f GetMatrix() const;
-
-	private:
 		enum CameraType
 		{
 			eType_Arcball = 0,
 			eType_FPSLook,
-		} type;
+		};
+
+		Camera(CameraType t)
+			: type(t), dirty(true), pos(), dist(0.0f), angles()
+		{
+			ResetArcball();
+		}
+
+		void SetPosition(const Vec3f &p) { dirty = true; pos = p; }
+
+		// Arcball functions
+		void ResetArcball();
+		void SetArcballDistance(float d) { dirty = true; dist = d; }
+		void RotateArcball(const Vec2f &from, const Vec2f &to);
+
+		// FPS look functions
+		void SetFPSRotation(const Vec3f &rot) { dirty = true; angles = rot; }
+		
+		const Vec3f GetPosition();
+		const Vec3f GetForward();
+		const Vec3f GetRight();
+		const Vec3f GetUp();
+		const Matrix4f GetMatrix();
+
+	private:
+		void Update();
+
+		CameraType type;
+
+		bool dirty;
+		Matrix4f mat, basis;
 
 		Vec3f pos;
+
+		// Arcball
+		Quatf arcrot;
 		float dist;
+
+		// FPS look
 		Vec3f angles;
 };

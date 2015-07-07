@@ -205,8 +205,6 @@ namespace renderdocui.Windows
         // Cameras
         private TimedUpdate m_Updater = null;
 
-        private Camera m_Camera = new Camera();
-
         private ArcballCamera m_Arcball = null;
         private FlyCamera m_Flycam = null;
         private CameraControls m_CurrentCamera = null;
@@ -300,8 +298,13 @@ namespace renderdocui.Windows
             m_MeshDisplay.currentMeshColour = new FloatVector(1, 0, 0, 1);
             m_MeshDisplay.prevMeshColour = new FloatVector(0, 0, 0, 1);
 
-            m_Arcball = new ArcballCamera(m_Camera);
-            m_Flycam = new FlyCamera(m_Camera);
+            if (m_Arcball != null)
+                m_Arcball.Camera.Shutdown();
+            if (m_Flycam != null)
+                m_Flycam.Camera.Shutdown();
+
+            m_Arcball = new ArcballCamera();
+            m_Flycam = new FlyCamera();
             m_CurrentCamera = m_Arcball;
             m_Updater = new TimedUpdate(10, TimerUpdate);
 
@@ -1930,32 +1933,17 @@ namespace renderdocui.Windows
 
         private void resetCam_Click(object sender, EventArgs e)
         {
-            m_Arcball.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
-
             if (m_MeshDisplay.type == MeshDataStage.VSIn)
-            {
-                m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
-                m_CurrentCamera = m_Arcball;
-            }
-            else if(m_MeshDisplay.type == MeshDataStage.VSOut)
-            {
-                if (m_Core.CurPipelineState.IsTessellationEnabled)
-                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
-                else
-                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
+                controlType.SelectedIndex = 0;
+            else
+                controlType.SelectedIndex = 1;
 
-                m_CurrentCamera = m_Flycam;
-            }
-            else if(m_MeshDisplay.type == MeshDataStage.GSOut)
-            {
-                m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
-
-                m_CurrentCamera = m_Flycam;
-            }
+            // make sure callback is called even if we're re-selecting same
+            // camera type
+            controlType_SelectedIndexChanged(sender, e);
 
             UI_UpdateBoundingBox();
 
-            m_CurrentCamera.Apply();
             render.Invalidate();
         }
 
@@ -1989,11 +1977,8 @@ namespace renderdocui.Windows
 
             m_Flycam.Reset(pos);
 
-            camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
-
             UI_UpdateBoundingBox();
 
-            m_CurrentCamera.Apply();
             render.Invalidate();
         }
 
@@ -2001,13 +1986,10 @@ namespace renderdocui.Windows
         {
             if (m_CurrentCamera == null) return;
 
-            m_CurrentCamera.Update();
-
-            if (m_CurrentCamera.Dirty)
-            {
-                m_CurrentCamera.Apply();
+            if (m_CurrentCamera.Update())
                 render.Invalidate();
-            }
+
+            render.Invalidate();
         }
 
         private void PickVert(Point p)
@@ -2055,11 +2037,15 @@ namespace renderdocui.Windows
         private void render_MouseWheel(object sender, MouseEventArgs e)
         {
             m_CurrentCamera.MouseWheel(sender, e);
+
+            render.Invalidate();
         }
 
         private void render_MouseMove(object sender, MouseEventArgs e)
         {
             m_CurrentCamera.MouseMove(sender, e);
+
+            render.Invalidate();
 
             if (e.Button == MouseButtons.Right)
                 PickVert(e.Location);
@@ -2068,6 +2054,8 @@ namespace renderdocui.Windows
         private void render_MouseClick(object sender, MouseEventArgs e)
         {
             m_CurrentCamera.MouseClick(sender, e);
+
+            render.Invalidate();
 
             if (e.Button == MouseButtons.Right)
                 PickVert(e.Location);
@@ -2085,30 +2073,38 @@ namespace renderdocui.Windows
 
         private void controlType_SelectedIndexChanged(object sender, EventArgs e)
         {
+            m_Arcball.Reset(new Vec3f(0.0f, 0.0f, 0.0f), 10.0f);
+            m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
+
             if (controlType.SelectedIndex == 0)
             {
                 m_CurrentCamera = m_Arcball;
-                m_CurrentCamera.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
+                m_Arcball.Reset(new Vec3f(0.0f, 0.0f, 0.0f), 10.0f);
             }
             else
             {
                 m_CurrentCamera = m_Flycam;
                 if (m_MeshDisplay.type == MeshDataStage.VSIn)
                 {
-                    m_CurrentCamera.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
+                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
                 }
-                else
+                else if (m_MeshDisplay.type == MeshDataStage.VSOut)
                 {
                     if (m_Core.CurPipelineState.IsTessellationEnabled)
-                        m_CurrentCamera.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
+                        m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
                     else
-                        m_CurrentCamera.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
+                        m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
+                }
+                else if (m_MeshDisplay.type == MeshDataStage.GSOut)
+                {
+                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
+
+                    m_CurrentCamera = m_Flycam;
                 }
             }
 
             UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
 
-            m_CurrentCamera.Apply();
             render.Invalidate();
         }
 
@@ -2120,9 +2116,7 @@ namespace renderdocui.Windows
         {
             if (m_Output == null) return;
 
-            m_MeshDisplay.arcballCamera = m_Camera.IsArcball;
-            m_MeshDisplay.cameraPos = new FloatVector(m_Camera.PositionParam, m_Camera.DistanceParam);
-            m_MeshDisplay.cameraRot = new FloatVector(m_Camera.RotationParam);
+            m_MeshDisplay.cam = m_CurrentCamera.Camera.Real;
 
             m_Output.SetMeshDisplay(m_MeshDisplay);
         }
@@ -2417,7 +2411,8 @@ namespace renderdocui.Windows
                                          ui.m_MinBounds[CurPosElement].z + diag.z / 2.0f);
                 m_Arcball.SetDistance(diag.Length()*0.7f);
 
-                m_CurrentCamera.Apply();
+                camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
+
                 render.Invalidate();
             }
         }

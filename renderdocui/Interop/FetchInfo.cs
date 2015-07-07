@@ -388,9 +388,7 @@ namespace renderdoc
     {
         public MeshDataStage type = MeshDataStage.Unknown;
 
-        public bool arcballCamera = true;
-        public FloatVector cameraPos = new FloatVector();
-        public FloatVector cameraRot = new FloatVector();
+        public IntPtr cam = IntPtr.Zero;
 
         public bool ortho = false;
         public float fov = 90.0f;

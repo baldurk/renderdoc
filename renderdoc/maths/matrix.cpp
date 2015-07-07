@@ -184,6 +184,16 @@ Matrix4f Matrix4f::Mul(const Matrix4f &o) const
 	return m;
 }
 
+Matrix4f Matrix4f::Transpose() const
+{
+	Matrix4f m;
+	for(size_t x=0; x < 4; x++)
+		for(size_t y=0; y < 4; y++)
+			m[matIdx(x,y)] = (*this)[matIdx(y,x)];
+
+	return m;
+}
+
 Matrix4f Matrix4f::Inverse() const
 {
     float a0 = (*this)[ 0]*(*this)[ 5] - (*this)[ 1]*(*this)[ 4];

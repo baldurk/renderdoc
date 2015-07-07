@@ -41,42 +41,52 @@ extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f)
 	return ConvertToHalf(f);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(const FloatVector &lookat, float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up)
+extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitArcball()
 {
-	Camera c;
-	c.Arcball(Vec3f(lookat.x, lookat.y, lookat.z), dist, Vec3f(rot.x, rot.y, rot.z));
-	
-	Vec3f p = c.GetPosition();
-	Vec3f f = c.GetForward();
-	Vec3f r = c.GetRight();
-	Vec3f u = c.GetUp();
-
-	pos->x = p.x;
-	pos->y = p.y;
-	pos->z = p.z;
-
-	fwd->x = f.x;
-	fwd->y = f.y;
-	fwd->z = f.z;
-
-	right->x = r.x;
-	right->y = r.y;
-	right->z = r.z;
-
-	up->x = u.x;
-	up->y = u.y;
-	up->z = u.z;
+	return new Camera(Camera::eType_Arcball);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up)
+extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitFPSLook()
 {
-	Camera c;
-	c.fpsLook(Vec3f(lookpos.x, lookpos.y, lookpos.z), Vec3f(rot.x, rot.y, rot.z));
-	
-	Vec3f p = c.GetPosition();
-	Vec3f f = c.GetForward();
-	Vec3f r = c.GetRight();
-	Vec3f u = c.GetUp();
+	return new Camera(Camera::eType_FPSLook);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_Shutdown(Camera *c)
+{
+	delete c;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetPosition(Camera *c, float x, float y, float z)
+{
+	c->SetPosition(Vec3f(x, y, z));
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetFPSRotation(Camera *c, float x, float y, float z)
+{
+	c->SetFPSRotation(Vec3f(x, y, z));
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetArcballDistance(Camera *c, float dist)
+{
+	c->SetArcballDistance(dist);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_ResetArcball(Camera *c)
+{
+	c->ResetArcball();
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float ax, float ay, float bx, float by)
+{
+	c->RotateArcball(Vec2f(ax, ay), Vec2f(bx, by));
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up)
+{
+	Vec3f p = c->GetPosition();
+	Vec3f f = c->GetForward();
+	Vec3f r = c->GetRight();
+	Vec3f u = c->GetUp();
 
 	pos->x = p.x;
 	pos->y = p.y;

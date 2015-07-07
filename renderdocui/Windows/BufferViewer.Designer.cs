@@ -291,18 +291,23 @@
             // camSpeed
             // 
             this.camSpeed.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.camSpeed.DecimalPlaces = 2;
+            this.camSpeed.DecimalPlaces = 4;
             this.camSpeed.Increment = new decimal(new int[] {
             1,
             0,
             0,
             65536});
             this.camSpeed.Location = new System.Drawing.Point(97, 3);
+            this.camSpeed.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
             this.camSpeed.Minimum = new decimal(new int[] {
             1,
             0,
             0,
-            131072});
+            196608});
             this.camSpeed.Name = "camSpeed";
             this.camSpeed.Size = new System.Drawing.Size(88, 20);
             this.camSpeed.TabIndex = 12;

@@ -70,7 +70,8 @@ class Matrix4f
 		{
 			return f[i];
 		}
-
+		
+		Matrix4f Transpose() const;
 		Matrix4f Inverse() const;
 		Matrix4f Mul(const Matrix4f &o) const;
 

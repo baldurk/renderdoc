@@ -209,14 +209,35 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteRenderer_RemoteSupportedRepla
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RemoteRenderer_CreateProxyRenderer(RemoteRenderer *remote, uint32_t proxyid, const char *logfile, float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
+// camera
+//////////////////////////////////////////////////////////////////////////
+
+#ifdef RENDERDOC_EXPORTS
+class Camera;
+#else
+class Camera { };
+#endif
+
+extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitArcball();
+extern "C" RENDERDOC_API Camera *RENDERDOC_CC Camera_InitFPSLook();
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_Shutdown(Camera *c);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetPosition(Camera *c, float x, float y, float z);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetFPSRotation(Camera *c, float x, float y, float z);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_SetArcballDistance(Camera *c, float dist);
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_ResetArcball(Camera *c);
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float ax, float ay, float bx, float by);
+
+extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
+
+//////////////////////////////////////////////////////////////////////////
 // Maths/format related exports
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half);
 extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraArcball(const FloatVector &lookat, float dist, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
-extern "C" RENDERDOC_API void RENDERDOC_CC Maths_CameraFPSLook(const FloatVector &lookpos, const FloatVector &rot, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
 
 //////////////////////////////////////////////////////////////////////////
 // Create a replay renderer, for playback and analysis.

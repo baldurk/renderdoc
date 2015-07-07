@@ -54,13 +54,13 @@ struct MeshFormat
 	float farPlane;
 };
 
+class Camera;
+
 struct MeshDisplay
 {
 	MeshDataStage type;
 
-	bool32 arcballCamera;
-	FloatVector cameraPos;
-	FloatVector cameraRot;
+	Camera *cam;
 
 	bool32 ortho;
 	float fov, aspect;
