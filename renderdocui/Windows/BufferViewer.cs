@@ -2005,6 +2005,38 @@ namespace renderdocui.Windows
             }
         }
 
+        private void PickVert(Point p)
+        {
+            if (!m_Core.LogLoaded)
+                return;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                UInt32 vertSelected = m_Output.PickVertex(m_Core.CurFrame, m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y);
+
+                if (vertSelected != UInt32.MaxValue)
+                {
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        var ui = GetUIState(m_MeshDisplay.type);
+
+                        int row = (int)vertSelected;
+
+                        if (row >= 0 && row < ui.m_GridView.RowCount)
+                        {
+                            if (ui.m_GridView.SelectedRows.Count == 0 || ui.m_GridView.SelectedRows[0] != ui.m_GridView.Rows[row])
+                            {
+                                ScrollToRow(ui.m_GridView, row);
+
+                                ui.m_GridView.ClearSelection();
+                                ui.m_GridView.Rows[row].Selected = true;
+                            }
+                        }
+                    }));
+                }
+            });
+        }
+
         void BufferViewer_KeyUp(object sender, KeyEventArgs e)
         {
             m_CurrentCamera.KeyUp(sender, e);
@@ -2023,11 +2055,17 @@ namespace renderdocui.Windows
         private void render_MouseMove(object sender, MouseEventArgs e)
         {
             m_CurrentCamera.MouseMove(sender, e);
+
+            if (e.Button == MouseButtons.Right)
+                PickVert(e.Location);
         }
 
         private void render_MouseClick(object sender, MouseEventArgs e)
         {
             m_CurrentCamera.MouseClick(sender, e);
+
+            if (e.Button == MouseButtons.Right)
+                PickVert(e.Location);
         }
 
         private void render_MouseDown(object sender, MouseEventArgs e)

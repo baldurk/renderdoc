@@ -102,6 +102,8 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_PickPixel(IntPtr real, ResourceId texID, bool customShader,
                                                                 UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outval);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern UInt32 ReplayOutput_PickVertex(IntPtr real, UInt32 frameID, UInt32 eventID, UInt32 x, UInt32 y);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -161,6 +163,11 @@ namespace renderdoc
             CustomMarshal.Free(mem);
 
             return ret;
+        }
+
+        public UInt32 PickVertex(UInt32 frameID, UInt32 eventID, UInt32 x, UInt32 y)
+        {
+            return ReplayOutput_PickVertex(m_Real, frameID, eventID,  x, y);
         }
 
     };

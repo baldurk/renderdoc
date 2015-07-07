@@ -1374,6 +1374,11 @@ ShaderDebugTrace D3D11Replay::DebugThread(uint32_t frameID, uint32_t eventID, ui
 	return m_pDevice->GetDebugManager()->DebugThread(frameID, eventID, groupid, threadid);
 }
 
+uint32_t D3D11Replay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+{
+	return m_pDevice->GetDebugManager()->PickVertex(frameID, eventID, cfg, x, y);
+}
+
 void D3D11Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
 	m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, pixel);

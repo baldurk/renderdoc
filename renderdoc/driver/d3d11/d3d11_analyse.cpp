@@ -24,6 +24,8 @@
 
 
 #include "maths/vec.h"
+#include "maths/matrix.h"
+#include "maths/camera.h"
 #include "d3d11_manager.h"
 #include "d3d11_context.h"
 #include "d3d11_debug.h"
@@ -570,7 +572,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			{
 				if(WrappedID3D11Buffer::IsAlloc(res))
 				{
-					global.uavs[dsti].data = GetBufferData((ID3D11Buffer *)res, 0, 0);
+					global.uavs[dsti].data = GetBufferData((ID3D11Buffer *)res, 0, 0, true);
 				}
 				else
 				{
@@ -753,7 +755,7 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 			{
 				if(WrappedID3D11Buffer::IsAlloc(res))
 				{
-					global.srvs[i].data = GetBufferData((ID3D11Buffer *)res, 0, 0);
+					global.srvs[i].data = GetBufferData((ID3D11Buffer *)res, 0, 0, true);
 				}
 			}
 
@@ -878,8 +880,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 		UINT i = *it;
 		if(rs->IA.VBs[i])
 		{
-			vertData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(vertOffset+idx), rs->IA.Strides[i]);
-			instData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(instOffset+instid), rs->IA.Strides[i]);
+			vertData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(vertOffset+idx), rs->IA.Strides[i], true);
+			instData[i] = GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i]*(instOffset+instid), rs->IA.Strides[i], true);
 		}
 	}
 
@@ -887,7 +889,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t frameID, uint32_t event
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->VS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->VS.ConstantBuffers[i], rs->VS.CBOffsets[i]*sizeof(Vec4f), 0);
+			cbufData[i] = GetBufferData(rs->VS.ConstantBuffers[i], rs->VS.CBOffsets[i]*sizeof(Vec4f), 0, true);
 
 	ShaderDebugTrace ret;
 	
@@ -1498,7 +1500,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->PS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->PS.ConstantBuffers[i], rs->PS.CBOffsets[i]*sizeof(Vec4f), 0);
+			cbufData[i] = GetBufferData(rs->PS.ConstantBuffers[i], rs->PS.CBOffsets[i]*sizeof(Vec4f), 0, true);
 
 	D3D11_COMPARISON_FUNC depthFunc = D3D11_COMPARISON_LESS;
 
@@ -1757,7 +1759,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 
 	for(int i=0; i < D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT; i++)
 		if(rs->CS.ConstantBuffers[i])
-			cbufData[i] = GetBufferData(rs->CS.ConstantBuffers[i], rs->CS.CBOffsets[i]*sizeof(Vec4f), 0);
+			cbufData[i] = GetBufferData(rs->CS.ConstantBuffers[i], rs->CS.CBOffsets[i]*sizeof(Vec4f), 0, true);
 	
 	ShaderDebugTrace ret;
 		
@@ -1788,6 +1790,211 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t frameID, uint32_t event
 	ret.states = states;
 
 	return ret;
+}
+
+uint32_t D3D11DebugManager::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+{
+	D3D11RenderStateTracker tracker(m_WrappedContext);
+
+	struct MeshPickData
+	{
+		Vec2f PickCoords;
+		Vec2f PickViewport;
+
+		Matrix4f PickMVP;
+
+		uint32_t PickIdx;
+		uint32_t PickNumVerts;
+		uint32_t PickPadding[2];
+	} cbuf;
+
+	cbuf.PickCoords = Vec2f((float)x, (float)y);
+	cbuf.PickViewport = Vec2f((float)GetWidth(), (float)GetHeight());
+	cbuf.PickIdx = cfg.position.idxByteWidth ? 1 : 0;
+	cbuf.PickNumVerts = cfg.position.numVerts;
+
+	Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth())/float(GetHeight()));
+
+	Camera cam;
+	if(cfg.arcballCamera)
+		cam.Arcball(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), cfg.cameraPos.w, Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
+	else
+		cam.fpsLook(Vec3f(cfg.cameraPos.x, cfg.cameraPos.y, cfg.cameraPos.z), Vec3f(cfg.cameraRot.x, cfg.cameraRot.y, cfg.cameraRot.z));
+
+	Matrix4f camMat = cam.GetMatrix();
+	cbuf.PickMVP = projMat.Mul(camMat);
+
+	ResourceFormat resFmt;
+	resFmt.compByteWidth = cfg.position.compByteWidth;
+	resFmt.compCount = cfg.position.compCount;
+	resFmt.compType = cfg.position.compType;
+	resFmt.special = false;
+	if(cfg.position.specialFormat != eSpecial_Unknown)
+	{
+		resFmt.special = true;
+		resFmt.specialFormat = cfg.position.specialFormat;
+	}
+
+	if(cfg.position.unproject)
+	{
+		// the derivation of the projection matrix might not be right (hell, it could be an
+		// orthographic projection). But it'll be close enough likely.
+		Matrix4f guessProj = Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+		if(cfg.ortho)
+			guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+
+		cbuf.PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+	}
+
+	ID3D11Buffer *vb, *ib;
+	DXGI_FORMAT ifmt = cfg.position.idxByteWidth == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+	{
+		auto it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.buf);
+
+		if(it != WrappedID3D11Buffer::m_BufferList.end())
+			vb = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+		it = WrappedID3D11Buffer::m_BufferList.find(cfg.position.idxbuf);
+
+		if(it != WrappedID3D11Buffer::m_BufferList.end())
+			ib = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+	}
+
+	// most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
+	// In the case of VB we also tightly pack and unpack the data. IB can just be
+	// read as R16 or R32 via the SRV so it is just a straight copy
+
+	if(cfg.position.idxByteWidth)
+	{
+		// resize up on demand
+		if(m_DebugRender.PickIBBuf == NULL || m_DebugRender.PickIBSize < cfg.position.numVerts*cfg.position.idxByteWidth)
+		{
+			SAFE_RELEASE(m_DebugRender.PickIBBuf);
+			SAFE_RELEASE(m_DebugRender.PickIBSRV);
+
+			D3D11_BUFFER_DESC desc = { cfg.position.numVerts*cfg.position.idxByteWidth, D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, 0 };
+
+			m_DebugRender.PickIBSize = cfg.position.numVerts*cfg.position.idxByteWidth;
+
+			m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickIBBuf);
+
+			D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
+			sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+			sdesc.Format = ifmt;
+			sdesc.Buffer.FirstElement = 0;
+			sdesc.Buffer.NumElements = cfg.position.numVerts;
+
+			m_pDevice->CreateShaderResourceView(m_DebugRender.PickIBBuf, &sdesc, &m_DebugRender.PickIBSRV);
+		}
+
+		// copy index data as-is, the view format will take care of the rest
+
+		D3D11_BOX box;
+		box.front = 0;
+		box.back = 1;
+		box.left = cfg.position.idxoffs;
+		box.right = cfg.position.idxoffs + cfg.position.numVerts*cfg.position.idxByteWidth;
+		box.top = 0;
+		box.bottom = 1;
+
+		m_pImmediateContext->CopySubresourceRegion(m_DebugRender.PickIBBuf, 0, 0, 0, 0, ib, 0, &box);
+	}
+
+	if(m_DebugRender.PickVBBuf == NULL || m_DebugRender.PickVBSize < cfg.position.numVerts*sizeof(Vec4f))
+	{
+		SAFE_RELEASE(m_DebugRender.PickVBBuf);
+		SAFE_RELEASE(m_DebugRender.PickVBSRV);
+
+		D3D11_BUFFER_DESC desc = { cfg.position.numVerts*sizeof(Vec4f), D3D11_USAGE_DEFAULT, D3D11_BIND_SHADER_RESOURCE, 0, 0, 0 };
+
+		m_DebugRender.PickVBSize = cfg.position.numVerts*sizeof(Vec4f);
+
+		m_pDevice->CreateBuffer(&desc, NULL, &m_DebugRender.PickVBBuf);
+
+		D3D11_SHADER_RESOURCE_VIEW_DESC sdesc;
+		sdesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
+		sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+		sdesc.Buffer.FirstElement = 0;
+		sdesc.Buffer.NumElements = cfg.position.numVerts;
+
+		m_pDevice->CreateShaderResourceView(m_DebugRender.PickVBBuf, &sdesc, &m_DebugRender.PickVBSRV);
+	}
+
+	// unpack and linearise the data
+	{
+		FloatVector *vbData = new FloatVector[cfg.position.numVerts];
+
+		vector<byte> oldData = GetBufferData(vb, cfg.position.offset, 0, false);
+
+		byte *data = &oldData[0];
+		byte *dataEnd = data + oldData.size();
+
+		bool valid;
+
+		for(uint32_t i=0; i < cfg.position.numVerts; i++)
+			vbData[i] = InterpretVertex(data, i, cfg, dataEnd, false, valid);
+
+		m_pImmediateContext->UpdateSubresource(m_DebugRender.PickVBBuf, 0, NULL, vbData, sizeof(Vec4f), sizeof(Vec4f));
+
+		delete[] vbData;
+	}
+
+	ID3D11ShaderResourceView *srvs[2] = { m_DebugRender.PickIBSRV, m_DebugRender.PickVBSRV };
+
+	ID3D11Buffer *buf = MakeCBuffer((float *)&cbuf, sizeof(cbuf));
+
+	m_pImmediateContext->CSSetConstantBuffers(0, 1, &buf);
+
+	m_pImmediateContext->CSSetShaderResources(0, 2, srvs);
+
+	UINT reset = 0;
+	m_pImmediateContext->CSSetUnorderedAccessViews(0, 1, &m_DebugRender.PickResultUAV, &reset);
+
+	m_pImmediateContext->CSSetShader(m_DebugRender.MeshPickCS, NULL, 0);
+
+	m_pImmediateContext->Dispatch(cfg.position.numVerts/1024 + 1, 1, 1);
+
+	m_pImmediateContext->CopyStructureCount(m_DebugRender.histogramBuff, 0, m_DebugRender.PickResultUAV);
+
+	vector<byte> results = GetBufferData(m_DebugRender.histogramBuff, 0, 0, false);
+
+	uint32_t numResults = *(uint32_t *)&results[0];
+
+	if(numResults > 0)
+	{
+		results = GetBufferData(m_DebugRender.PickResultBuf, 0, 0, false);
+
+		struct PickResult
+		{
+			uint32_t vertid; uint32_t idx; float len; float depth;
+		};
+
+		PickResult *pickResults = (PickResult *)&results[0];
+
+		PickResult *closest = pickResults;
+
+		// min with size of results buffer to protect against overflows
+		for(uint32_t i=1; i < RDCMIN(DebugRenderData::maxMeshPicks, numResults); i++)
+		{
+			// We need to keep the picking order consistent in the face
+			// of random buffer appends, when multiple vertices have the
+			// identical position (e.g. if UVs or normals are different).
+			//
+			// We could do something to try and disambiguate, but it's
+			// never going to be intuitive, it's just going to flicker
+			// confusingly.
+			if(pickResults[i].len < closest->len ||
+			   (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+			   (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth && pickResults[i].vertid < closest->vertid))
+				closest = pickResults+i;
+		}
+
+		return closest->vertid;
+	}
+
+	return ~0U;
 }
 
 void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])

@@ -58,6 +58,7 @@ public:
 	bool PickPixel(ResourceId texID, bool customShader, 
 					uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample,
 					PixelValue *val);
+	uint32_t PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y);
 private:
 	ReplayOutput(ReplayRenderer *parent, void *w);
 	~ReplayOutput();

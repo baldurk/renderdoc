@@ -50,6 +50,7 @@ data/glsl/generic.verto \
 data/glsl/mesh.verto \
 data/glsl/mesh.frago \
 data/glsl/mesh.geomo \
+data/glsl/mesh.compo \
 data/glsl/text.verto \
 data/glsl/text.frago \
 data/glsl/quadoverdraw.frago \

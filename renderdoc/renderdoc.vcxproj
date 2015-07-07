@@ -335,6 +335,7 @@
     <None Include="data\glsl\generic.frag" />
     <None Include="data\glsl\generic.vert" />
     <None Include="data\glsl\histogram.comp" />
+    <None Include="data\glsl\mesh.comp" />
     <None Include="data\glsl\mesh.frag" />
     <None Include="data\glsl\mesh.geom" />
     <None Include="data\glsl\mesh.vert" />
@@ -346,6 +347,7 @@
     <None Include="data\hlsl\debugdisplay.hlsl" />
     <None Include="data\hlsl\debugtext.hlsl" />
     <None Include="data\hlsl\histogram.hlsl" />
+    <None Include="data\hlsl\mesh.hlsl" />
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="os\win32\comexport.def" />
   </ItemGroup>

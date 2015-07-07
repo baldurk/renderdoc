@@ -307,6 +307,23 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 	return true;
 }
 
+uint32_t ReplayOutput::PickVertex(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+{
+	FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(eventID, 0);
+
+	if(!draw) return ~0U;
+	if(m_RenderData.meshDisplay.type == eMeshDataStage_Unknown) return ~0U;
+	if((draw->flags & eDraw_Drawcall) == 0) return ~0U;
+
+	MeshDisplay cfg = m_RenderData.meshDisplay;
+	cfg.position.buf = m_pDevice->GetLiveID(cfg.position.buf);
+	cfg.position.idxbuf = m_pDevice->GetLiveID(cfg.position.idxbuf);
+	cfg.second.buf = m_pDevice->GetLiveID(cfg.second.buf);
+	cfg.second.idxbuf = m_pDevice->GetLiveID(cfg.second.idxbuf);
+
+	return m_pDevice->PickVertex(m_FrameID, m_EventID, cfg, x, y);
+}
+
 bool ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
 {
 	m_ContextX = RDCMAX((float)x, 0.0f);
@@ -637,3 +654,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(Repl
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(ReplayOutput *output, ResourceId texID, bool32 customShader,
 														uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
 { return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val); }
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output, uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+{ return output->PickVertex(frameID, eventID, x, y); }

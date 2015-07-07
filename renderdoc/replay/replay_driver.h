@@ -147,4 +147,5 @@ class IReplayDriver : public IRemoteDriver
 		virtual void RenderHighlightBox(float w, float h, float scale) = 0;
 		
 		virtual void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4]) = 0;
+		virtual uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y) = 0;
 };

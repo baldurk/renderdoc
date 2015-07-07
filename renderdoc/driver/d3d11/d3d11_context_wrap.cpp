@@ -3789,7 +3789,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 		{
 			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
 
-			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t), true);
 			uint32_t *uargs = (uint32_t *)&args[0];
 
 			name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(uargs[0])
@@ -3864,7 +3864,7 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
 		{
 			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
 
-			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 4*sizeof(uint32_t));
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 4*sizeof(uint32_t), true);
 			uint32_t *uargs = (uint32_t *)&args[0];
 
 			name = "DrawInstancedIndirect(<" + ToStr::Get(uargs[0])
@@ -4555,7 +4555,7 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 		{
 			ID3D11Buffer *argBuffer = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(BufferForArgs);
 
-			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t));
+			vector<byte> args = m_pDevice->GetDebugManager()->GetBufferData(argBuffer, AlignedByteOffsetForArgs, 5*sizeof(uint32_t), true);
 			uint32_t *uargs = (uint32_t *)&args[0];
 
 			name = "DispatchIndirect(<" + ToStr::Get(uargs[0])

@@ -10,6 +10,7 @@
 #define RESOURCE_debugcommon_hlsl   104
 #define RESOURCE_histogram_hlsl     105
 #define RESOURCE_multisample_hlsl   106
+#define RESOURCE_mesh_hlsl          107
 
 #define RESOURCE_blit_vert          201
 #define RESOURCE_blit_frag          202
@@ -25,8 +26,9 @@
 #define RESOURCE_histogram_comp     212
 #define RESOURCE_mesh_frag          213
 #define RESOURCE_mesh_geom          214
-#define RESOURCE_arraymscopy_comp   215
-#define RESOURCE_quadoverdraw_frag  216
+#define RESOURCE_mesh_comp          215
+#define RESOURCE_arraymscopy_comp   216
+#define RESOURCE_quadoverdraw_frag  217
 
 #define RESOURCE_sourcecodepro_ttf  301
 

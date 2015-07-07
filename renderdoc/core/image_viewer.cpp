@@ -89,6 +89,8 @@ class ImageViewer : public IReplayDriver
 		bool RenderTexture(TextureDisplay cfg) { return m_Proxy->RenderTexture(cfg); }
 		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 		{ m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, pixel); }
+		uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
+		{ return m_Proxy->PickVertex(frameID, eventID, cfg, x, y); }
 		void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 		{ m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors); }
 		void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
