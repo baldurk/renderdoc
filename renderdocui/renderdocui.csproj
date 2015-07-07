@@ -252,6 +252,12 @@
     <Compile Include="Windows\Dialogs\TextureSaveDialog.Designer.cs">
       <DependentUpon>TextureSaveDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\TipsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TipsDialog.Designer.cs">
+      <DependentUpon>TipsDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\EventBrowser.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -371,6 +377,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\TextureSaveDialog.resx">
       <DependentUpon>TextureSaveDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TipsDialog.resx">
+      <DependentUpon>TipsDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\EventBrowser.resx">
       <DependentUpon>EventBrowser.cs</DependentUpon>
