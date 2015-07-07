@@ -1440,10 +1440,7 @@ namespace renderdocui.Windows
                 // reset the range if desired
                 if (m_Core.Config.TextureViewer_ResetRange)
                 {
-                    rangeHistogram.RangeMin = 0.0f;
-                    rangeHistogram.RangeMax = 1.0f;
-                    rangeHistogram.BlackPoint = 0.0f;
-                    rangeHistogram.WhitePoint = 1.0f;
+                    rangeHistogram.SetRange(0.0f, 1.0f);
                 }
             }
 
@@ -2748,8 +2745,7 @@ namespace renderdocui.Windows
 
             autoFit.Checked = false;
 
-            rangeHistogram.RangeMin = black;
-            rangeHistogram.RangeMax = white;
+            rangeHistogram.SetRange(black, white);
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
         }

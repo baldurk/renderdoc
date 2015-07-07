@@ -1267,8 +1267,6 @@
             this.rangeHistogram.MinimumSize = new System.Drawing.Size(200, 20);
             this.rangeHistogram.MinRangeSize = 1E-06F;
             this.rangeHistogram.Name = "rangeHistogram";
-            this.rangeHistogram.RangeMax = 1F;
-            this.rangeHistogram.RangeMin = 0F;
             this.rangeHistogram.Size = new System.Drawing.Size(200, 20);
             this.rangeHistogram.TabIndex = 2;
             this.rangeHistogram.WhitePoint = 1F;

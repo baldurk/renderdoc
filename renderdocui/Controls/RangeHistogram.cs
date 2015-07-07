@@ -183,13 +183,6 @@ namespace renderdocui.Controls
             {
                 return m_RangeMin;
             }
-            set
-            {
-                m_RangeMin = Math.Min(value, m_RangeMax - MinRangeSize);
-
-                Invalidate();
-                OnRangeUpdated(new RangeHistogramEventArgs(BlackPoint, WhitePoint));
-            }
         }
         [Browsable(false)]
         public float RangeMax
@@ -197,13 +190,6 @@ namespace renderdocui.Controls
             get
             {
                 return m_RangeMax;
-            }
-            set
-            {
-                m_RangeMax = Math.Max(value, m_RangeMin + MinRangeSize);
-
-                Invalidate();
-                OnRangeUpdated(new RangeHistogramEventArgs(BlackPoint, WhitePoint));
             }
         }
 
