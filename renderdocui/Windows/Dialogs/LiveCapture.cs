@@ -390,7 +390,15 @@ namespace renderdocui.Windows
             // This ensures that if the user deletes the saved path we can still open or re-save it.
             if (path.Length > 0)
             {
-                File.Copy(log.localpath, path, true);
+                try
+                {
+                    File.Copy(log.localpath, path, true);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + path + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
                 return true;
             }
 
@@ -445,10 +453,17 @@ namespace renderdocui.Windows
 
                 if (!log.saved)
                 {
-                    if (log.localpath == m_Core.LogFileName)
-                        m_Main.OwnTemporaryLog = true;
-                    else
-                        File.Delete(log.localpath);
+                    try
+                    {
+                        if (log.localpath == m_Core.LogFileName)
+                            m_Main.OwnTemporaryLog = true;
+                        else
+                            File.Delete(log.localpath);
+                    }
+                    catch (System.Exception)
+                    {
+                        // couldn't delete log - deleted from under us?
+                    }
                 }
             }
             captures.Items.Clear();
@@ -525,7 +540,14 @@ namespace renderdocui.Windows
                     m_Main.CloseLogfile();
                 }
 
-                File.Delete(log.localpath);
+                try
+                {
+                    File.Delete(log.localpath);
+                }
+                catch (System.Exception)
+                {
+                    // couldn't delete log - deleted from under us?
+                }
             }
 
             captures.Items.Remove(item);
@@ -545,7 +567,16 @@ namespace renderdocui.Windows
 
                 var temppath = m_Core.TempLogFilename(log.exe);
 
-                File.Copy(log.localpath, temppath);
+                try
+                {
+                    File.Copy(log.localpath, temppath);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save log to temporary location" + Environment.NewLine + ex.ToString(), "Cannot save temporary log",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 var process = new System.Diagnostics.Process();
                 process.StartInfo = new System.Diagnostics.ProcessStartInfo(Application.ExecutablePath, String.Format("--tempfile \"{0}\"", temppath));

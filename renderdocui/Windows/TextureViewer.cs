@@ -468,8 +468,16 @@ namespace renderdocui.Windows
             var enc = new UnicodeEncoding();
             var path = Path.GetTempFileName();
             dockPanel.SaveAsXml(path, "", enc);
-            data.panelLayout = File.ReadAllText(path, enc);
-            File.Delete(path);
+            try
+            {
+                data.panelLayout = File.ReadAllText(path, enc);
+                File.Delete(path);
+            }
+            catch (System.Exception ex)
+            {
+                // can't recover
+                return writer.ToString();
+            }
 
             data.darkBack = darkBack;
             data.lightBack = lightBack;
@@ -618,36 +626,43 @@ namespace renderdocui.Windows
 
                 if (!m_CustomShaders.ContainsKey(key))
                 {
-                    string source = File.ReadAllText(f);
-
-                    m_CustomShaders.Add(key, ResourceId.Null);
-                    m_CustomShadersBusy.Add(key);
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    try
                     {
-                        string errors = "";
+                        string source = File.ReadAllText(f);
 
-                        ResourceId id = r.BuildCustomShader("main", source, 0, ShaderStageType.Pixel, out errors);
-
-                        if (m_CustomShaderEditor.ContainsKey(key))
+                        m_CustomShaders.Add(key, ResourceId.Null);
+                        m_CustomShadersBusy.Add(key);
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                         {
+                            string errors = "";
+
+                            ResourceId id = r.BuildCustomShader("main", source, 0, ShaderStageType.Pixel, out errors);
+
+                            if (m_CustomShaderEditor.ContainsKey(key))
+                            {
+                                BeginInvoke((MethodInvoker)delegate
+                                {
+                                    m_CustomShaderEditor[key].ShowErrors(errors);
+                                });
+                            }
+
                             BeginInvoke((MethodInvoker)delegate
                             {
-                                m_CustomShaderEditor[key].ShowErrors(errors);
+                                customShader.Items.Add(fn);
+                                m_CustomShaders[key] = id;
+                                m_CustomShadersBusy.Remove(key);
+
+                                customShader.AutoCompleteSource = AutoCompleteSource.None;
+                                customShader.AutoCompleteSource = AutoCompleteSource.ListItems;
+
+                                UI_UpdateChannels();
                             });
-                        }
-
-                        BeginInvoke((MethodInvoker)delegate
-                        {
-                            customShader.Items.Add(fn);
-                            m_CustomShaders[key] = id;
-                            m_CustomShadersBusy.Remove(key);
-
-                            customShader.AutoCompleteSource = AutoCompleteSource.None;
-                            customShader.AutoCompleteSource = AutoCompleteSource.ListItems;
-
-                            UI_UpdateChannels();
                         });
-                    });
+                    }
+                    catch (System.Exception ex)
+                    {
+                        // just continue, skip this file
+                    }
                 }
             }
         }
@@ -691,8 +706,14 @@ namespace renderdocui.Windows
                     , Environment.NewLine);
             }
 
-            File.WriteAllText(path, src);
-
+            try
+            {
+                File.WriteAllText(path, src);
+            }
+            catch (System.Exception ex)
+            {
+                // ignore this file
+            }
 
             // auto-open edit window
             customEdit_Click(sender, e);
@@ -703,8 +724,21 @@ namespace renderdocui.Windows
             var filename = customShader.Text;
             var key = filename.ToUpperInvariant();
 
+            string src = "";
+
+            try
+            {
+                src = File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + m_Core.APIProps.ShaderExtension));
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show("Couldn't open file for shader " + filename + Environment.NewLine + ex.ToString(), "Cannot open shader",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
             var files = new Dictionary<string, string>();
-            files.Add(filename, File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + m_Core.APIProps.ShaderExtension)));
+            files.Add(filename, src);
             ShaderViewer s = new ShaderViewer(m_Core, true, "Custom Shader", files,
 
             // Save Callback
@@ -713,7 +747,16 @@ namespace renderdocui.Windows
                 foreach (var f in updatedfiles)
                 {
                     var path = Path.Combine(Core.ConfigDirectory, f.Key + m_Core.APIProps.ShaderExtension);
-                    File.WriteAllText(path, f.Value);
+                    try
+                    {
+                        File.WriteAllText(path, f.Value);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MessageBox.Show("Couldn't save file for shader " + filename + Environment.NewLine + ex.ToString(), "Cannot save shader",
+                                                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
                 }
             },
 

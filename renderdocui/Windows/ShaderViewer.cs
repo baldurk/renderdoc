@@ -690,7 +690,14 @@ namespace renderdocui.Windows
                 {
                     using (StreamReader reader = new StreamReader(stream))
                     {
-                        File.WriteAllText(syntaxpath, reader.ReadToEnd());
+                        try
+                        {
+                            File.WriteAllText(syntaxpath, reader.ReadToEnd());
+                        }
+                        catch (System.Exception)
+                        {
+                            // silently fail if we can't write to the path - syntax highlighting will just be broken
+                        }
                     }
                 }
             }

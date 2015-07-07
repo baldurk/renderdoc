@@ -409,7 +409,15 @@ namespace renderdocui.Windows.Dialogs
             string fn = ValidData(e.Data);
             if (fn.Length > 0)
             {
-                scriptEditor.Text = File.ReadAllText(fn);
+                try
+                {
+                    scriptEditor.Text = File.ReadAllText(fn);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't open file " + saveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot open script",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
 
                 mode_Changed(scriptMode, null);
             }
@@ -421,7 +429,15 @@ namespace renderdocui.Windows.Dialogs
 
             if (res == DialogResult.OK)
             {
-                scriptEditor.Text = File.ReadAllText(openDialog.FileName);
+                try
+                {
+                    scriptEditor.Text = File.ReadAllText(openDialog.FileName);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't load from " + openDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot open script",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -431,7 +447,15 @@ namespace renderdocui.Windows.Dialogs
 
             if (res == DialogResult.OK)
             {
-                File.WriteAllText(saveDialog.FileName, scriptEditor.Text);
+                try
+                {
+                    File.WriteAllText(saveDialog.FileName, scriptEditor.Text);
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + saveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save script",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 

@@ -204,30 +204,37 @@ namespace renderdocui.Windows.Dialogs
 
         private void SaveSettings(string filename)
         {
-            System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(CaptureSettings));
-            StreamWriter writer = File.CreateText(filename);
-            xs.Serialize(writer, GetSettings());
-            writer.Flush();
-            writer.Close();
+            try
+            {
+                System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(CaptureSettings));
+                StreamWriter writer = File.CreateText(filename);
+                xs.Serialize(writer, GetSettings());
+                writer.Flush();
+                writer.Close();
+            }
+            catch (System.IO.IOException ex)
+            {
+                // Can't recover, but let user know that we couldn't save their settings.
+                MessageBox.Show(String.Format("Error saving config file: {1}\n{0}", filename, ex.Message));
+            }
         }
 
         public void LoadSettings(string filename)
         {
             System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(CaptureSettings));
-            StreamReader reader = File.OpenText(filename);
             try
             {
+                StreamReader reader = File.OpenText(filename);
                 SetSettings((CaptureSettings)xs.Deserialize(reader));
+                reader.Close();
             }
             catch (System.Xml.XmlException)
             {
             }
-            catch (System.InvalidOperationException)
+            catch (System.Exception)
             {
                 MessageBox.Show(String.Format("Failed to load capture settings from file {0}", filename), "Failed to load settings", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
-            
-            reader.Close();
         }
 
         private void FillProcessList()
@@ -751,52 +758,66 @@ namespace renderdocui.Windows.Dialogs
 
                 var regfile = Path.Combine(Path.GetTempPath(), "RenderDoc_RestoreGlobalHook.reg");
 
-                if (Environment.Is64BitProcess)
+                try
                 {
-                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"),
-                                  path, "x86\\renderdocshim32.dll",
-                                  out prevAppInitWoW64Enabled, out prevAppInitWoW64);
-
-                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"),
-                                  path, "renderdocshim64.dll",
-                                  out prevAppInitEnabled, out prevAppInit);
-
-                    using (FileStream s = File.OpenWrite(regfile))
+                    if (Environment.Is64BitProcess)
                     {
-                        using(StreamWriter sw = new StreamWriter(s))
+                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE").CreateSubKey("Wow6432Node"),
+                                      path, "x86\\renderdocshim32.dll",
+                                      out prevAppInitWoW64Enabled, out prevAppInitWoW64);
+
+                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"),
+                                      path, "renderdocshim64.dll",
+                                      out prevAppInitEnabled, out prevAppInit);
+
+                        using (FileStream s = File.OpenWrite(regfile))
                         {
-                            sw.WriteLine("Windows Registry Editor Version 5.00");
-                            sw.WriteLine("");
-                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitWoW64Enabled));
-                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInitWoW64));
-                            sw.WriteLine("");
-                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
-                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
-                            sw.Flush();
+                            using (StreamWriter sw = new StreamWriter(s))
+                            {
+                                sw.WriteLine("Windows Registry Editor Version 5.00");
+                                sw.WriteLine("");
+                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitWoW64Enabled));
+                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInitWoW64));
+                                sw.WriteLine("");
+                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
+                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
+                                sw.Flush();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
+                        // don't need to handle that manually
+                        EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), path, "renderdocshim32.dll",
+                                        out prevAppInitEnabled, out prevAppInit);
+
+                        using (FileStream s = File.OpenWrite(regfile))
+                        {
+                            using (StreamWriter sw = new StreamWriter(s))
+                            {
+                                sw.WriteLine("Windows Registry Editor Version 5.00");
+                                sw.WriteLine("");
+                                sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
+                                sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
+                                sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
+                                sw.Flush();
+                            }
                         }
                     }
                 }
-                else
+                catch (System.Exception ex)
                 {
-                    // if this is a 64-bit OS, it will re-direct our request to Wow6432Node anyway, so we
-                    // don't need to handle that manually
-                    EnableAppInit(Registry.LocalMachine.CreateSubKey("SOFTWARE"), path, "renderdocshim32.dll",
-                                    out prevAppInitEnabled, out prevAppInit);
+                    MessageBox.Show("Aborting. Couldn't save backup .reg file to " + regfile + Environment.NewLine + ex.ToString(), "Cannot save registry backup",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
 
-                    using (FileStream s = File.OpenWrite(regfile))
-                    {
-                        using (StreamWriter sw = new StreamWriter(s))
-                        {
-                            sw.WriteLine("Windows Registry Editor Version 5.00");
-                            sw.WriteLine("");
-                            sw.WriteLine("[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows]");
-                            sw.WriteLine(String.Format("\"LoadAppInit_DLLs\"=dword:{0:X8}", prevAppInitEnabled));
-                            sw.WriteLine(String.Format("\"AppInit_DLLs\"=\"{0}\"", prevAppInit));
-                            sw.Flush();
-                        }
-                    }
+                    // won't recurse because it's not enabled yet
+                    toggleGlobalHook.Checked = false;
+
+                    toggleGlobalHook.Enabled = true;
+                    return;
                 }
 
                 ExitPipeThread();

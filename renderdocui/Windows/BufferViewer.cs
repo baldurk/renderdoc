@@ -2176,45 +2176,53 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.OK)
             {
-                StreamWriter writer = File.CreateText(csvSaveDialog.FileName);
-
-                if (MeshView)
+                try
                 {
-                    writer.Write("Vertex,");
-                    writer.Write("Index,");
-                }
-                else
-                {
-                    writer.Write("Row,");
-                }
+                    StreamWriter writer = File.CreateText(csvSaveDialog.FileName);
 
-                UIState ui = m_ContextUIState;
-                for (int i = 0; i < ui.m_Input.BufferFormats.Length; i++)
-                {
-                    for (int j = 0; j < ui.m_Input.BufferFormats[i].format.compCount - 1; j++)
-                        writer.Write(ui.m_Input.BufferFormats[i].name + " " + j + ",");
-                    writer.Write(ui.m_Input.BufferFormats[i].name + " " + (ui.m_Input.BufferFormats[i].format.compCount - 1));
-
-                    if (i < ui.m_Input.BufferFormats.Length - 1)
-                        writer.Write(",");
-                }
-
-                writer.Write(Environment.NewLine);
-
-                foreach (DataGridViewRow row in ui.m_GridView.Rows)
-                {
-                    for (int i = 0; i < row.Cells.Count; i++)
+                    if (MeshView)
                     {
-                        writer.Write(row.Cells[i].Value.ToString());
-                        if (i < row.Cells.Count - 1)
+                        writer.Write("Vertex,");
+                        writer.Write("Index,");
+                    }
+                    else
+                    {
+                        writer.Write("Row,");
+                    }
+
+                    UIState ui = m_ContextUIState;
+                    for (int i = 0; i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        for (int j = 0; j < ui.m_Input.BufferFormats[i].format.compCount - 1; j++)
+                            writer.Write(ui.m_Input.BufferFormats[i].name + " " + j + ",");
+                        writer.Write(ui.m_Input.BufferFormats[i].name + " " + (ui.m_Input.BufferFormats[i].format.compCount - 1));
+
+                        if (i < ui.m_Input.BufferFormats.Length - 1)
                             writer.Write(",");
                     }
 
                     writer.Write(Environment.NewLine);
-                }
 
-                writer.Flush();
-                writer.Close();
+                    foreach (DataGridViewRow row in ui.m_GridView.Rows)
+                    {
+                        for (int i = 0; i < row.Cells.Count; i++)
+                        {
+                            writer.Write(row.Cells[i].Value.ToString());
+                            if (i < row.Cells.Count - 1)
+                                writer.Write(",");
+                        }
+
+                        writer.Write(Environment.NewLine);
+                    }
+
+                    writer.Flush();
+                    writer.Close();
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + csvSaveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
@@ -2227,13 +2235,21 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.OK)
             {
-                FileStream writer = File.Create(rawSaveDialog.FileName);
+                try
+                {
+                    FileStream writer = File.Create(rawSaveDialog.FileName);
 
-                UIState ui = m_ContextUIState;
-                writer.Write(ui.m_RawData, 0, ui.m_RawData.Length);
+                    UIState ui = m_ContextUIState;
+                    writer.Write(ui.m_RawData, 0, ui.m_RawData.Length);
 
-                writer.Flush();
-                writer.Close();
+                    writer.Flush();
+                    writer.Close();
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + csvSaveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
