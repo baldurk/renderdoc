@@ -79,7 +79,10 @@ namespace TreelistView
 			get
 			{
 				if (m_children == null)
+				{
 					m_children = new NodeCollection(this);
+					m_children.OwnerView = OwnerView;
+				}
 				return m_children;
 			}
 		}
