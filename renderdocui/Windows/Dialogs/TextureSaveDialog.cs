@@ -102,7 +102,7 @@ namespace renderdocui.Windows.Dialogs
             for (int i = 0; i < tex.msSamp; i++)
                 sampleSelect.Items.Add(String.Format("Sample {0}", i));
 
-            sampleSelect.SelectedIndex = (saveData.sample.sampleIndex == ~0U ? 0 : (int)saveData.sample.sampleIndex);
+            sampleSelect.SelectedIndex = Math.Min((int)tex.msSamp, (saveData.sample.sampleIndex == ~0U ? 0 : (int)saveData.sample.sampleIndex));
 
             if (saveData.sample.sampleIndex == ~0U)
             {
