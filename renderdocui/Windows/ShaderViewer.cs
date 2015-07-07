@@ -966,6 +966,9 @@ namespace renderdocui.Windows
             Point hoverPoint = Point.Empty;
             IWin32Window hoverWin = null;
 
+            var item = m_HoverItem;
+            var node = m_HoverNode;
+
             if (m_HoverScintilla != null && m_HoverReg.Length > 0)
             {
                 var pt = m_HoverScintilla.PointToClient(Cursor.Position);
@@ -1003,30 +1006,30 @@ namespace renderdocui.Windows
                     }
                 }
             }
-            else if(m_HoverItem != null)
+            else if (item != null && item.ListView != null)
             {
-                var pt = m_HoverItem.ListView.PointToClient(Cursor.Position);
+                var pt = item.ListView.PointToClient(Cursor.Position);
 
-                if (m_HoverItem.ListView.ClientRectangle.Contains(pt))
+                if (item.ListView.ClientRectangle.Contains(pt))
                 {
-                    hoverPoint = new Point(m_HoverItem.ListView.ClientRectangle.Left + pt.X + 10, m_HoverItem.ListView.ClientRectangle.Top + pt.Y + 10);
-                    hoverVar = m_HoverItem.Tag as ShaderVariable;
-                    hoverWin = m_HoverItem.ListView;
+                    hoverPoint = new Point(item.ListView.ClientRectangle.Left + pt.X + 10, item.ListView.ClientRectangle.Top + pt.Y + 10);
+                    hoverVar = item.Tag as ShaderVariable;
+                    hoverWin = item.ListView;
                 }
             }
-            else if (m_HoverNode != null)
+            else if (node != null && node.OwnerView != null)
             {
-                var pt = m_HoverNode.OwnerView.PointToClient(Cursor.Position);
+                var pt = node.OwnerView.PointToClient(Cursor.Position);
 
-                if (m_HoverNode.OwnerView.ClientRectangle.Contains(pt))
+                if (node.OwnerView.ClientRectangle.Contains(pt))
                 {
-                    hoverPoint = new Point(m_HoverNode.OwnerView.ClientRectangle.Left + pt.X + 10, m_HoverNode.OwnerView.ClientRectangle.Top + pt.Y + 10);
-                    hoverVar = m_HoverNode.Tag as ShaderVariable;
-                    hoverWin = m_HoverNode.OwnerView;
+                    hoverPoint = new Point(node.OwnerView.ClientRectangle.Left + pt.X + 10, node.OwnerView.ClientRectangle.Top + pt.Y + 10);
+                    hoverVar = node.Tag as ShaderVariable;
+                    hoverWin = node.OwnerView;
                 }
             }
 
-            if(hoverVar != null)
+            if(hoverVar != null && hoverWin != null)
             {
                 var fmt =
                     @"{0}" + Environment.NewLine +
