@@ -1548,23 +1548,31 @@ HRESULT STDMETHODCALLTYPE RefCounter::QueryInterface(
 unsigned int RefCounter::SoftRef(WrappedID3D11Device *device)
 {
 	unsigned int ret = AddRef();
-	device->SoftRef();
+	if(device)
+		device->SoftRef();
+	else
+		RDCWARN("No device pointer, is a deleted resource being AddRef()d?");
 	return ret;
 }
 
 unsigned int RefCounter::SoftRelease(WrappedID3D11Device *device)
 {
 	unsigned int ret = Release();
-	device->SoftRelease();
+	if(device)
+		device->SoftRelease();
+	else
+		RDCWARN("No device pointer, is a deleted resource being Release()d?");
 	return ret;
 }
 
 void RefCounter::AddDeviceSoftref(WrappedID3D11Device *device)
 {
-	device->SoftRef();
+	if(device)
+		device->SoftRef();
 }
 
 void RefCounter::ReleaseDeviceSoftref(WrappedID3D11Device *device)
 {
-	device->SoftRelease();
+	if(device)
+		device->SoftRelease();
 }
