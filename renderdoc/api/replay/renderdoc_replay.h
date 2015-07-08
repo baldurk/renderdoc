@@ -189,7 +189,7 @@ struct IReplayRenderer
 	virtual ShaderReflection* GetShaderDetails(ResourceId shader) = 0;
 	virtual bool GetDebugMessages(rdctype::array<DebugMessage> *msgs) = 0;
 
-	virtual bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t sampleIdx, rdctype::array<PixelModification> *history) = 0;
+	virtual bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx, rdctype::array<PixelModification> *history) = 0;
 	virtual bool DebugVertex(uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace) = 0;
 	virtual bool DebugPixel(uint32_t x, uint32_t y, uint32_t sample, uint32_t primitive, ShaderDebugTrace *trace) = 0;
 	virtual bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace) = 0;
