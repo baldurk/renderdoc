@@ -1163,7 +1163,7 @@ uint32_t GLReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cf
 		PickResult *closest = pickResults;
 
 		// min with size of results buffer to protect against overflows
-		for(uint32_t i=1; i < RDCMIN(DebugRenderData::maxMeshPicks, numResults); i++)
+		for(uint32_t i=1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
 		{
 			// We need to keep the picking order consistent in the face
 			// of random buffer appends, when multiple vertices have the

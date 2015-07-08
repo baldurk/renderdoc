@@ -257,7 +257,7 @@ class GLReplay : public IReplayDriver
 			GLuint customTex;
 			ResourceId CustomShaderTexID;
 			
-			static const uint32_t maxMeshPicks = 500;
+			static const int maxMeshPicks = 500;
 
 			GLuint meshPickProgram;
 			GLuint pickIBBuf, pickVBBuf;
