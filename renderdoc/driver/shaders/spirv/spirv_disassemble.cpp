@@ -28,11 +28,24 @@
 
 #include "spirv_common.h"
 
+#include <utility>
+using std::pair;
+using std::make_pair;
+
 #undef min
 #undef max
 
 #include "3rdparty/glslang/SPIRV/spirv.h"
+#include "3rdparty/glslang/SPIRV/GLSL450Lib.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
+
+const char *GLSL_std_450_names[GLSL_STD_450::Count] = {0};
+
+template<typename EnumType>
+static string OptionalFlagString(EnumType e)
+{
+	return (int)e	? "[" + ToStr::Get(e) + "]" : "";
+}
 
 void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
 {
@@ -68,7 +81,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 	for(size_t i=0; i < ARRAY_COUNT(gens); i++) if(gens[i].magic == spirv[2])	gen = gens[i].name;
 	
 	disasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", spirv[1], spirv[2], gen);
-	disasm += StringFormat::Fmt("IDs up to <%u>\n", spirv[3]);
+	disasm += StringFormat::Fmt("IDs up to {%u}\n", spirv[3]);
 
 	uint32_t idbound = spirv[3];
 
@@ -76,13 +89,38 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 	disasm += "\n";
 
-	uint32_t opidx = 0;
-	bool infunc = false;
-
 	vector<string> resultnames;
 	resultnames.resize(idbound);
+	
+	vector< pair<uint32_t, const char **> > extensionSets;
+	extensionSets.reserve(2);
+	
+	vector< pair<uint32_t, string> > decorations;
 
-	// fetch names and things to be used in the second pass
+	// needs to be fleshed out, but this is enough for now
+	enum BaseType
+	{
+		eSPIRVTypeVoid,
+		eSPIRVTypeBool,
+		eSPIRVTypeFloat, // assuming floats are all 32-bit
+		eSPIRVTypeSInt32, // assuming ints are signed or unsigned 32-bit
+		eSPIRVTypeUInt32,
+	};
+
+	vector<BaseType> typeinfo;
+	typeinfo.resize(idbound);
+
+	vector<uint32_t> values;
+	values.resize(idbound);
+
+	// complete hack
+	vector<const char *> membernames;
+
+	// fetch names and things to be used in the second pass.
+	// could get away with one pass, just need to detect when function
+	// declarations/definitions start to fill out unnamed IDs. Or wrap
+	// it all up and give them anonymous <id> names on the fly (more
+	// likely).
 	size_t it = 5;
 	while(it < spirv.size())
 	{
@@ -90,14 +128,164 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 		spv::Op OpCode = spv::Op(spirv[it]&0xffff);
 
 		if(OpCode == spv::OpName)
+		{
 			resultnames[ spirv[it+1] ] = (const char *)&spirv[it+2];
+		}
+		else if(OpCode == spv::OpLabel)
+		{
+				resultnames[spirv[it+1]] = StringFormat::Fmt("Label%u", spirv[it+1]);
+		}
+		else if(OpCode == spv::OpMemberName)
+		{
+			uint32_t id = spirv[it+1];
+			uint32_t memberIdx = spirv[it+2];
+			const char *memberName = (const char *)&spirv[it+3];
+
+			// COMPLETE hack
+			membernames.resize( RDCMAX(membernames.size(), memberIdx+1) );
+			membernames[memberIdx] = memberName;
+		}
+		else if(OpCode == spv::OpDecorate)
+		{
+			uint32_t target = spirv[it+1];
+			spv::Decoration decoration = spv::Decoration(spirv[it+2]);
+
+			// TODO: decoration parameters here...
+
+			decorations.push_back( make_pair(target, ToStr::Get(decoration)) );
+		}
+		else if(OpCode == spv::OpTypeVoid)
+		{
+			resultnames[ spirv[it+1] ] = "void";
+			typeinfo[ spirv[it+1] ] = eSPIRVTypeVoid;
+		}
+		else if(OpCode == spv::OpTypeBool)
+		{
+			resultnames[ spirv[it+1] ] = "bool";
+			typeinfo[ spirv[it+1] ] = eSPIRVTypeBool;
+		}
+		else if(OpCode == spv::OpTypeInt)
+		{
+			resultnames[ spirv[it+1] ] = "int";
+			RDCASSERT( spirv[it+2] == 32 );
+			typeinfo[ spirv[it+1] ] = spirv[it+3] ? eSPIRVTypeSInt32 : eSPIRVTypeUInt32;
+		}
+		else if(OpCode == spv::OpTypeFloat)
+		{
+			resultnames[ spirv[it+1] ] = "float";
+			RDCASSERT( spirv[it+2] == 32 );
+			typeinfo[ spirv[it+1] ] = eSPIRVTypeFloat;
+		}
+		else if(OpCode == spv::OpTypeVector)
+		{
+			resultnames[ spirv[it+1] ] = StringFormat::Fmt("%s%u", resultnames[ spirv[it+2] ].c_str(), spirv[it+3]);
+			typeinfo[ spirv[it+1] ] = typeinfo[ spirv[it+2] ];
+		}
+		else if(OpCode == spv::OpTypeArray)
+		{
+			resultnames[ spirv[it+1] ] = StringFormat::Fmt("%s[%u]", resultnames[ spirv[it+2] ].c_str(), values[ spirv[it+3] ]);
+			typeinfo[ spirv[it+1] ] = typeinfo[ spirv[it+2] ];
+		}
+		else if(OpCode == spv::OpTypeStruct)
+		{
+			resultnames[ spirv[it+1] ] = "struct"; // don't need to decode this at all, we're not going to use the type info
+		}
+		else if(OpCode == spv::OpTypePointer)
+		{
+			uint32_t id = spirv[it+1];
+			spv::StorageClass storage = spv::StorageClass(spirv[it+2]);
+			uint32_t baseType = spirv[it+3];
+
+			// bit specific for where we need it (variable declarations), but all this data will be properly parsed & stored
+			// so each instruction can use it as it wishes
+			resultnames[id] = resultnames[baseType] + "*";
+		}
+		else if(OpCode == spv::OpTypeFunction)
+		{
+			// this name will just be used for the arguments in the function definition string, don't need to keep the type info
+			// or print the return type anywhere (as it must match the return type in the function definition opcode)
+			string args = "";
+
+			for(int i=3; i < WordCount; i++)
+			{
+				uint32_t typeId = spirv[it+i];
+
+				args += resultnames[typeId];
+
+				if(i+1 < WordCount)
+					args += ", ";
+			}
+
+			if(args.empty()) args = "void";
+
+			resultnames[ spirv[it+1] ] = args;
+		}
+		else if(OpCode == spv::OpConstant)
+		{
+			uint32_t typeId = spirv[it+1];
+			uint32_t id = spirv[it+2];
+
+			// hack - assuming only up to 32-bit values
+			values[id] = spirv[it+3];
+
+			BaseType type = typeinfo[typeId];
+			string lit = "";
+
+			if(type == eSPIRVTypeBool)
+				lit += values[id] ? "true" : "false";
+			else if(type == eSPIRVTypeFloat)
+				lit += StringFormat::Fmt("%f", *(float*)&values[id]);
+			else if(type == eSPIRVTypeSInt32)
+				lit += StringFormat::Fmt("%d", *(int32_t*)&values[id]);
+			else if(type == eSPIRVTypeUInt32)
+				lit += StringFormat::Fmt("%u", values[id]);
+
+			resultnames[id] = StringFormat::Fmt("%s(%s)", resultnames[typeId].c_str(), lit.c_str());
+		}
+		else if(OpCode == spv::OpConstantComposite)
+		{
+			uint32_t typeId = spirv[it+1];
+			uint32_t id = spirv[it+2];
+			
+			BaseType type = typeinfo[typeId];
+			string lits = "";
+
+			for(int i=3; i < WordCount; i++)
+			{
+				uint32_t val = spirv[it+i];
+
+				if(type == eSPIRVTypeBool)
+					lits += values[val] ? "true" : "false";
+				else if(type == eSPIRVTypeFloat)
+					lits += StringFormat::Fmt("%f", *(float*)&values[val]);
+				else if(type == eSPIRVTypeSInt32)
+					lits += StringFormat::Fmt("%d", *(int32_t*)&values[val]);
+				else if(type == eSPIRVTypeUInt32)
+					lits += StringFormat::Fmt("%u", values[val]);
+
+				if(i+1 < WordCount)
+					lits += ", ";
+			}
+
+			resultnames[id] = StringFormat::Fmt("%s(%s)", resultnames[typeId].c_str(), lits.c_str());
+		}
 		
 		it += WordCount;
 	}
 
 	for(size_t i=0; i < resultnames.size(); i++)
 		if(resultnames[i].empty())
-			resultnames[i] = StringFormat::Fmt("<%d>", i);
+			resultnames[i] = StringFormat::Fmt("{%d}", i);
+
+	const size_t tabSize = 2;
+
+	string indent;
+	indent.reserve(tabSize*6);
+
+	string funcname;
+	vector<uint32_t> flowstack;
+
+	bool variables = false;
 
 	it = 5;
 	while(it < spirv.size())
@@ -111,47 +299,383 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 		switch(OpCode)
 		{
 			case spv::OpSource:
-				body = StringFormat::Fmt("%s %d", ToStr::Get(spv::SourceLanguage(spirv[it+1])).c_str(), spirv[it+2]);
+			{
+				body = StringFormat::Fmt("Source %s %d", ToStr::Get(spv::SourceLanguage(spirv[it+1])).c_str(), spirv[it+2]);
 				break;
+			}
 			case spv::OpExtInstImport:
+			{
 				resultnames[ spirv[it+1] ] = (char *)&spirv[it+2];
-				body = StringFormat::Fmt("%s", (char *)&spirv[it+2]);
+				body = StringFormat::Fmt("ExtInstImport %s", (char *)&spirv[it+2]);
+
+				if(resultnames[ spirv[it+1] ] == "GLSL.std.450")
+				{
+					extensionSets.push_back( make_pair(spirv[it+1], GLSL_std_450_names) );
+
+					if(GLSL_std_450_names[0] == NULL)
+						GLSL_STD_450::GetDebugNames(GLSL_std_450_names);
+				}
+
 				break;
+			}
 			case spv::OpMemoryModel:
-				body = StringFormat::Fmt("%s Addressing, %s Memory model",
+			{
+				body = StringFormat::Fmt("MemoryModel %s Addressing, %s Memory model",
 					ToStr::Get(spv::AddressingModel(spirv[it+1])).c_str(),
 					ToStr::Get(spv::MemoryModel(spirv[it+2])).c_str());
 				break;
+			}
 			case spv::OpEntryPoint:
-				body = StringFormat::Fmt("%s (%s)",
+			{
+				body = StringFormat::Fmt("EntryPoint = %s (%s)",
 					resultnames[ spirv[it+2] ].c_str(),
 					ToStr::Get(spv::ExecutionModel(spirv[it+1])).c_str());
 				break;
+			}
+			case spv::OpVariable:
+			{
+				if(!variables)
+				{
+					variables = true;
+					disasm += "\n";
+				}
+
+				uint32_t retType = spirv[it+1];
+				uint32_t resultId = spirv[it+2];
+				spv::StorageClass control = spv::StorageClass(spirv[it+3]);
+
+				uint32_t initializer = ~0U;
+				if(WordCount > 4)
+					initializer = spirv[it+4];
+
+				string decorationsStr = "";
+
+				for(auto it=decorations.begin(); it != decorations.end(); ++it)
+				{
+					if(it->first == resultId)
+					{
+						decorationsStr += it->second + " ";
+					}
+				}
+
+				body = StringFormat::Fmt("%s%s %s %s",
+					decorationsStr.c_str(),
+					ToStr::Get(control).c_str(),
+					resultnames[ retType ].c_str(),
+					resultnames[ resultId ].c_str());
+
+				if(initializer < idbound)
+					body += StringFormat::Fmt(" = %s", resultnames[initializer].c_str());
+				break;
+			}
 			case spv::OpFunction:
-				infunc = true;
+			{
+				uint32_t retType = spirv[it+1];
+				uint32_t resultId = spirv[it+2];
+				spv::FunctionControlMask control = spv::FunctionControlMask(spirv[it+3]);
+				uint32_t funcType = spirv[it+4];
+
+				// add an extra newline
+				disasm += "\n";
+				body = StringFormat::Fmt("%s %s(%s) %s {",
+					resultnames[retType].c_str(),
+					resultnames[resultId].c_str(),
+					resultnames[funcType].c_str(),
+					OptionalFlagString(control).c_str());
+
+				funcname = resultnames[resultId];
+
 				break;
+			}
 			case spv::OpFunctionEnd:
-				infunc = false;
+			{
+				body = StringFormat::Fmt("} // end of %s", funcname.c_str());
+				funcname = "";
+				indent.resize(indent.size() - tabSize);
 				break;
+			}
+			case spv::OpAccessChain:
+			{
+				uint32_t retType = spirv[it+1];
+				uint32_t resultId = spirv[it+2];
+				uint32_t base = spirv[it+3];
+	
+				body = StringFormat::Fmt("%s %s = %s",
+					resultnames[retType].c_str(),
+					resultnames[resultId].c_str(),
+					resultnames[base].c_str());
+				
+				// this is a complete and utter hack
+				for(int i=4; i < WordCount; i++)
+				{
+					if(i == 4 && values[spirv[it+4]] < membernames.size())
+						body += StringFormat::Fmt(".%s", membernames[ values[spirv[it+4]] ]);
+					else
+						body += StringFormat::Fmt("[%s]", resultnames[ spirv[it+i] ].c_str());
+				}
+
+				break;
+			}
+			case spv::OpLoad:
+			{
+				uint32_t retType = spirv[it+1];
+				uint32_t resultId = spirv[it+2];
+				uint32_t pointer = spirv[it+3];
+
+				spv::MemoryAccessMask access = spv::MemoryAccessMaskNone;
+
+				for(int i=4; i < WordCount; i++)
+				{
+					if(i == WordCount-1)
+					{
+						access = spv::MemoryAccessMask(spirv[it+i]);
+					}
+					else
+					{
+						uint32_t lit = spirv[it+i];
+						// don't understand what these literals are - seems like OpAccessChain handles
+						// struct member/array access so it doesn't seem to be for array indices
+						RDCBREAK(); 
+					}
+				}
+
+				body = StringFormat::Fmt("%s %s = Load(%s) %s",
+					resultnames[retType].c_str(),
+					resultnames[resultId].c_str(),
+					resultnames[pointer].c_str(),
+					OptionalFlagString(access).c_str());
+				break;
+			}
+			case spv::OpStore:
+			case spv::OpCopyMemory:
+			{
+				uint32_t pointer = spirv[it+1];
+				uint32_t object = spirv[it+2];
+
+				spv::MemoryAccessMask access = spv::MemoryAccessMaskNone;
+
+				for(int i=3; i < WordCount; i++)
+				{
+					if(i == WordCount-1)
+					{
+						access = spv::MemoryAccessMask(spirv[it+i]);
+					}
+					else
+					{
+						uint32_t lit = spirv[it+i];
+						// don't understand what these literals are - seems like OpAccessChain handles
+						// struct member/array access so it doesn't seem to be for array indices
+						RDCBREAK(); 
+					}
+				}
+
+				if(OpCode == spv::OpStore)
+					body = StringFormat::Fmt("Store(%s) = %s %s",
+						resultnames[ pointer ].c_str(),
+						resultnames[ object ].c_str(),
+						OptionalFlagString(access).c_str());
+				if(OpCode == spv::OpCopyMemory)
+					body = StringFormat::Fmt("Copy(%s) = Load(%s) %s",
+						resultnames[ pointer ].c_str(),
+						resultnames[ object ].c_str(),
+						OptionalFlagString(access).c_str());
+				break;
+			}
 			case spv::OpName:
+			case spv::OpMemberName:
+			case spv::OpDecorate:
+			case spv::OpConstant:
+			case spv::OpConstantComposite:
+			case spv::OpTypeVoid:
+			case spv::OpTypeBool:
+			case spv::OpTypeInt:
+			case spv::OpTypeFloat:
+			case spv::OpTypeVector:
+			case spv::OpTypePointer:
+			case spv::OpTypeArray:
+			case spv::OpTypeStruct:
+			case spv::OpTypeFunction:
+			{
 				silent = true;
+				break;
+			}
+			case spv::OpIAdd:
+			case spv::OpIMul:
+			case spv::OpFAdd:
+			case spv::OpFMul:
+			case spv::OpSLessThan:
+			{
+				char op = '?';
+				switch(OpCode)
+				{
+					case spv::OpIAdd:
+					case spv::OpFAdd:
+						op = '+';
+						break;
+					case spv::OpIMul:
+					case spv::OpFMul:
+						op = '*';
+						break;
+					case spv::OpSLessThan:
+						op = '<';
+						break;
+				}
+
+				uint32_t retType = spirv[it+1];
+				uint32_t result = spirv[it+2];
+				uint32_t a = spirv[it+3];
+				uint32_t b = spirv[it+4];
+
+				body = StringFormat::Fmt("%s %s = %s %c %s",
+					resultnames[ retType ].c_str(),
+					resultnames[ result ].c_str(),
+					resultnames[ a ].c_str(),
+					op,
+					resultnames[ b ].c_str());
+				break;
+			}
+			case spv::OpExtInst:
+			{
+				uint32_t retType = spirv[it+1];
+				uint32_t result = spirv[it+2];
+				uint32_t extset = spirv[it+3];
+				uint32_t instruction = spirv[it+4];
+
+				string instructionName = "";
+
+				for(auto ext = extensionSets.begin(); ext != extensionSets.end(); ++ext)
+					if(ext->first == extset)
+						instructionName = ext->second[instruction];
+
+				if(instructionName.empty())
+					instructionName = StringFormat::Fmt("Unknown%u", instruction);
+
+				string args = "";
+
+				for(int i=5; i < WordCount; i++)
+				{
+					args += resultnames[ spirv[it+i] ];
+
+					if(i+1 < WordCount)
+						args += ", ";
+				}
+				
+				body = StringFormat::Fmt("%s %s = %s::%s(%s)",
+					resultnames[ retType ].c_str(),
+					resultnames[ result ].c_str(),
+					resultnames[ extset ].c_str(),
+					instructionName.c_str(),
+					args.c_str());
+
+				break;
+			}
+			case spv::OpReturn:
+			{
+				body = "Return";
+				break;
+			}
+			case spv::OpSelectionMerge:
+			{
+				uint32_t mergeLabel = spirv[it+1];
+				spv::SelectionControlMask control = spv::SelectionControlMask(spirv[it+2]);
+
+				flowstack.push_back(mergeLabel);
+				
+				body = StringFormat::Fmt("SelectionMerge %s %s", resultnames[ mergeLabel ].c_str(), OptionalFlagString(control).c_str());
+				break;
+			}
+			case spv::OpLoopMerge:
+			{
+				uint32_t mergeLabel = spirv[it+1];
+				spv::LoopControlMask control = spv::LoopControlMask(spirv[it+2]);
+
+				flowstack.push_back(mergeLabel);
+				
+				body = StringFormat::Fmt("LoopMerge %s %s", resultnames[ mergeLabel ].c_str(), OptionalFlagString(control).c_str());
+				break;
+			}
+			case spv::OpBranch:
+			{
+				body = StringFormat::Fmt("goto %s", resultnames[ spirv[it+1] ].c_str());
+				break;
+			}
+			case spv::OpBranchConditional:
+			{
+				uint32_t condition = spirv[it+1];
+				uint32_t truelabel = spirv[it+2];
+				uint32_t falselabel = spirv[it+3];
+
+				if(WordCount == 4)
+				{
+					body = StringFormat::Fmt("if(%s) goto %s, else goto %s",
+						resultnames[condition].c_str(),
+						resultnames[truelabel].c_str(),
+						resultnames[falselabel].c_str());
+				}
+				else
+				{
+					uint32_t weightA = spirv[it+4];
+					uint32_t weightB = spirv[it+5];
+
+					float a = float(weightA)/float(weightA+weightB);
+					float b = float(weightB)/float(weightA+weightB);
+
+					a *= 100.0f;
+					b *= 100.0f;
+
+					body = StringFormat::Fmt("if(%s) goto %.2f%% %s, else goto %.2f%% %s",
+						a,
+						resultnames[condition].c_str(),
+						resultnames[truelabel].c_str(),
+						b,
+						resultnames[falselabel].c_str());
+				}
+
+				break;
+			}
+			case spv::OpLabel:
+			{
+				body = resultnames[spirv[it+1]] + ":";
+
+				if(!flowstack.empty() && flowstack.back() == spirv[it+1])
+					indent.resize(indent.size() - tabSize);
+				break;
+			}
+			default:
+			{
+				body = "!" + ToStr::Get(OpCode);
+				for(uint16_t i=1; i < WordCount; i++)
+				{
+					if(spirv[it+i] <= idbound)
+						body += StringFormat::Fmt(" %u%s", spirv[it+i], i+1 < WordCount ? "," : "");
+					else
+						body += StringFormat::Fmt(" %#x%s", spirv[it+i], i+1 < WordCount ? "," : "");
+				}
+				break;
+			}
+		}
+		
+		if(!silent)
+			disasm += StringFormat::Fmt("%s%s\n", indent.c_str(), body.c_str());
+		
+		// post printing operations
+		switch(OpCode)
+		{
+			case spv::OpFunction:
+				indent.insert(indent.end(), tabSize, ' ');
+				break;
+			case spv::OpSelectionMerge:
+			case spv::OpLoopMerge:
+				indent.insert(indent.end(), tabSize, ' ');
 				break;
 			default:
 				break;
 		}
-		
-		if(infunc)
-		{
-			disasm += StringFormat::Fmt("% 4u: %s %s\n", opidx, ToStr::Get(OpCode).c_str(), body.c_str());
-			opidx++;
-		}
-		else if(!silent)
-		{
-			disasm += StringFormat::Fmt("      %s %s\n",        ToStr::Get(OpCode).c_str(), body.c_str());
-		}
 
 		it += WordCount;
 	}
+
+	return;
 }
 
 template<>
@@ -429,7 +953,7 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
 		default: break;
 	}
 	
-	return "Unrecognised";
+	return StringFormat::Fmt("Unrecognised{%u}", (uint32_t)el);
 }
 
 template<>
@@ -493,4 +1017,140 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
 	}
 	
 	return "Unrecognised";
+}
+
+template<>
+string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
+{
+	switch(el)
+	{
+    case spv::DecorationPrecisionLow:         return "PrecisionLow";
+    case spv::DecorationPrecisionMedium:      return "PrecisionMedium";
+    case spv::DecorationPrecisionHigh:        return "PrecisionHigh";
+    case spv::DecorationBlock:                return "Block";
+    case spv::DecorationBufferBlock:          return "BufferBlock";
+    case spv::DecorationRowMajor:             return "RowMajor";
+    case spv::DecorationColMajor:             return "ColMajor";
+    case spv::DecorationGLSLShared:           return "GLSLShared";
+    case spv::DecorationGLSLStd140:           return "GLSLStd140";
+    case spv::DecorationGLSLStd430:           return "GLSLStd430";
+    case spv::DecorationGLSLPacked:           return "GLSLPacked";
+    case spv::DecorationSmooth:               return "Smooth";
+    case spv::DecorationNoperspective:        return "Noperspective";
+    case spv::DecorationFlat:                 return "Flat";
+    case spv::DecorationPatch:                return "Patch";
+    case spv::DecorationCentroid:             return "Centroid";
+    case spv::DecorationSample:               return "Sample";
+    case spv::DecorationInvariant:            return "Invariant";
+    case spv::DecorationRestrict:             return "Restrict";
+    case spv::DecorationAliased:              return "Aliased";
+    case spv::DecorationVolatile:             return "Volatile";
+    case spv::DecorationConstant:             return "Constant";
+    case spv::DecorationCoherent:             return "Coherent";
+    case spv::DecorationNonwritable:          return "Nonwritable";
+    case spv::DecorationNonreadable:          return "Nonreadable";
+    case spv::DecorationUniform:              return "Uniform";
+    case spv::DecorationNoStaticUse:          return "NoStaticUse";
+    case spv::DecorationCPacked:              return "CPacked";
+    case spv::DecorationSaturatedConversion:  return "SaturatedConversion";
+    case spv::DecorationStream:               return "Stream";
+    case spv::DecorationLocation:             return "Location";
+    case spv::DecorationComponent:            return "Component";
+    case spv::DecorationIndex:                return "Index";
+    case spv::DecorationBinding:              return "Binding";
+    case spv::DecorationDescriptorSet:        return "DescriptorSet";
+    case spv::DecorationOffset:               return "Offset";
+    case spv::DecorationAlignment:            return "Alignment";
+    case spv::DecorationXfbBuffer:            return "XfbBuffer";
+    case spv::DecorationStride:               return "Stride";
+    case spv::DecorationBuiltIn:              return "BuiltIn";
+    case spv::DecorationFuncParamAttr:        return "FuncParamAttr";
+    case spv::DecorationFPRoundingMode:       return "FPRoundingMode";
+    case spv::DecorationFPFastMathMode:       return "FPFastMathMode";
+    case spv::DecorationLinkageAttributes:    return "LinkageAttributes";
+    case spv::DecorationSpecId:               return "SpecId";
+		default: break;
+	}
+	
+	return "Unrecognised";
+}
+
+template<>
+string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
+{
+	switch(el)
+	{
+    case spv::StorageClassUniformConstant:    return "UniformConstant";
+    case spv::StorageClassInput:              return "Input";
+    case spv::StorageClassUniform:            return "Uniform";
+    case spv::StorageClassOutput:             return "Output";
+    case spv::StorageClassWorkgroupLocal:     return "WorkgroupLocal";
+    case spv::StorageClassWorkgroupGlobal:    return "WorkgroupGlobal";
+    case spv::StorageClassPrivateGlobal:      return "PrivateGlobal";
+    case spv::StorageClassFunction:           return "Function";
+    case spv::StorageClassGeneric:            return "Generic";
+    case spv::StorageClassPrivate:            return "Private";
+    case spv::StorageClassAtomicCounter:      return "AtomicCounter";
+		default: break;
+	}
+	
+	return "Unrecognised";
+}
+
+template<>
+string ToStrHelper<false, spv::FunctionControlMask>::Get(const spv::FunctionControlMask &el)
+{
+	string ret;
+
+	if(el & spv::FunctionControlInlineMask)     ret += ", Inline";
+	if(el & spv::FunctionControlDontInlineMask) ret += ", DontInline";
+	if(el & spv::FunctionControlPureMask)       ret += ", Pure";
+	if(el & spv::FunctionControlConstMask)      ret += ", Const";
+	
+	if(!ret.empty())
+		ret = ret.substr(2);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, spv::SelectionControlMask>::Get(const spv::SelectionControlMask &el)
+{
+	string ret;
+
+	if(el & spv::SelectionControlFlattenMask)     ret += ", Flatten";
+	if(el & spv::SelectionControlDontFlattenMask) ret += ", DontFlatten";
+	
+	if(!ret.empty())
+		ret = ret.substr(2);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, spv::LoopControlMask>::Get(const spv::LoopControlMask &el)
+{
+	string ret;
+
+	if(el & spv::LoopControlUnrollMask)     ret += ", Unroll";
+	if(el & spv::LoopControlDontUnrollMask) ret += ", DontUnroll";
+	
+	if(!ret.empty())
+		ret = ret.substr(2);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, spv::MemoryAccessMask>::Get(const spv::MemoryAccessMask &el)
+{
+	string ret;
+	
+	if(el & spv::MemoryAccessVolatileMask)     ret += ", Volatile";
+	if(el & spv::MemoryAccessAlignedMask) ret += ", Aligned";
+	
+	if(!ret.empty())
+		ret = ret.substr(2);
+
+	return ret;
 }
