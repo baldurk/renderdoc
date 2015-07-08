@@ -47,7 +47,7 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\SymbolTable.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Linux\ossource.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Profile|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp" />
     <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp" />
