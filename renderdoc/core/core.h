@@ -153,6 +153,8 @@ class IReplayDriver;
 typedef ReplayCreateStatus (*RemoteDriverProvider)(const char *logfile, IRemoteDriver **driver);
 typedef ReplayCreateStatus (*ReplayDriverProvider)(const char *logfile, IReplayDriver **driver);
 
+typedef void (*ShutdownFunction)();
+
 // this class mediates everything and owns any 'global' resources such as the crash handler.
 //
 // It acts as a central hub that registers any driver providers and can be asked to create one
@@ -173,6 +175,8 @@ class RenderDoc
 
 		void Initialise();
 		void Shutdown();
+
+		void RegisterShutdownFunction(ShutdownFunction func) { m_ShutdownFunctions.insert(func); }
 
 		void SetReplayApp(bool replay) { m_Replay = replay; }
 		bool IsReplayApp() const { return m_Replay; }
@@ -317,6 +321,8 @@ class RenderDoc
 		map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
 		map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
 
+		set<ShutdownFunction> m_ShutdownFunctions;
+
 		struct FrameCap
 		{
 			FrameCap() : FrameCapturer(NULL), RefCount(1) {}
@@ -369,6 +375,7 @@ class RenderDoc
 		static void RemoteAccessClientThread(void *s);
 
 		ICrashHandler *m_ExHandler;
+		bool m_GLSLang;
 };
 
 struct DriverRegistration

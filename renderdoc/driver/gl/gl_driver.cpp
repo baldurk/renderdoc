@@ -26,6 +26,8 @@
 #include "common/common.h"
 #include "gl_driver.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 #include "serialise/string_utils.h"
 
 #include "replay/type_helpers.h"
@@ -766,6 +768,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 		m_DeviceRecord = m_ContextRecord = NULL;
 
 		TrackedResource::SetReplayResourceIDs();
+
+		InitSPIRVCompiler();
+		RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
 	}
 
 	m_FakeBB_FBO = 0;

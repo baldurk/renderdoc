@@ -28,6 +28,8 @@
 #include "../gl_driver.h"
 #include "../gl_shader_refl.h"
 
+#include "driver/shaders/spirv/spirv_common.h"
+
 #pragma region Shaders
 
 bool WrappedOpenGL::Serialise_glCreateShader(GLuint shader, GLenum type)
@@ -165,7 +167,13 @@ bool WrappedOpenGL::Serialise_glCompileShader(GLuint shader)
 		{
 			shadDetails.prog = sepProg;
 			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
-			
+
+			string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
+			if(!shadDetails.spirv.empty())
+				DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
+
+			shadDetails.reflection.Disassembly = s;
+
 			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 			for(size_t i=0; i < shadDetails.sources.size(); i++)
 			{
@@ -355,6 +363,12 @@ bool WrappedOpenGL::Serialise_glCreateShaderProgramv(GLuint program, GLenum type
 		shadDetails.sources.swap(src);
 		shadDetails.prog = sepprog;
 		MakeShaderReflection(m_Real, Type, real, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
+
+		string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
+		if(!shadDetails.spirv.empty())
+			DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
+
+		shadDetails.reflection.Disassembly = s;
 
 		create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 		for(size_t i=0; i < shadDetails.sources.size(); i++)
@@ -1162,6 +1176,12 @@ bool WrappedOpenGL::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei c
 			shadDetails.prog = sepProg;
 			MakeShaderReflection(m_Real, shadDetails.type, sepProg, shadDetails.reflection, pointSizeUsed, clipDistanceUsed);
 			
+			string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.sources, shadDetails.spirv);
+			if(!shadDetails.spirv.empty())
+				DisassembleSPIRV(SPIRVShaderStage(ShaderIdx(shadDetails.type)), shadDetails.spirv, s);
+
+			shadDetails.reflection.Disassembly = s;
+
 			create_array_uninit(shadDetails.reflection.DebugInfo.files, shadDetails.sources.size());
 			for(size_t i=0; i < shadDetails.sources.size(); i++)
 			{

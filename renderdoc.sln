@@ -64,6 +64,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "shaders", "shaders", "{DB2D
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "dxbc", "renderdoc\driver\shaders\dxbc\renderdoc_dxbc.vcxproj", "{C43FF27E-A155-4852-88EC-5CE9334C07A8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spirv", "renderdoc\driver\shaders\spirv\renderdoc_spirv.vcxproj", "{0AAE0AD1-371B-4A36-9ED1-80E10E960605}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Profile|Win32 = Profile|Win32
@@ -176,6 +178,14 @@ Global
 		{C43FF27E-A155-4852-88EC-5CE9334C07A8}.Release|Win32.Build.0 = Release|Win32
 		{C43FF27E-A155-4852-88EC-5CE9334C07A8}.Release|x64.ActiveCfg = Release|x64
 		{C43FF27E-A155-4852-88EC-5CE9334C07A8}.Release|x64.Build.0 = Release|x64
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Profile|Win32.ActiveCfg = Profile|Win32
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Profile|Win32.Build.0 = Profile|Win32
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Profile|x64.ActiveCfg = Profile|x64
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Profile|x64.Build.0 = Profile|x64
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|Win32.ActiveCfg = Release|Win32
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|Win32.Build.0 = Release|Win32
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|x64.ActiveCfg = Release|x64
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -198,5 +208,6 @@ Global
 		{F92FCDA6-A261-4EEC-9CD0-73A11FBCC459} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{DB2DDA74-A668-4AC7-A1D5-198C9F0BD242} = {864A44B0-5612-451A-857F-41E3EF785EF6}
 		{C43FF27E-A155-4852-88EC-5CE9334C07A8} = {DB2DDA74-A668-4AC7-A1D5-198C9F0BD242}
+		{0AAE0AD1-371B-4A36-9ED1-80E10E960605} = {DB2DDA74-A668-4AC7-A1D5-198C9F0BD242}
 	EndGlobalSection
 EndGlobal

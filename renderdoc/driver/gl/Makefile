@@ -39,12 +39,12 @@ all: rdoc_gl.a
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
-	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $< > $(OBJDIR)/$*.d
 
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
-	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $< > $(OBJDIR)/$*.d
 
 OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(OBJECTS))
 

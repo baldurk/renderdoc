@@ -34,4 +34,4 @@ bin/renderdoccmd: $(OBJDIR_OBJECTS) ../renderdoc/librenderdoc.so
 
 .PHONY: clean
 clean:
-	rm -rf bin/renderdoccmd $(OBJDIR)
+	rm -rf bin/ $(OBJDIR)

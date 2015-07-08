@@ -8,7 +8,7 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
-LIBS=driver/gl/rdoc_gl.a
+LIBS=driver/gl/rdoc_gl.a driver/shaders/spirv/rdoc_spirv.a
 OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
@@ -64,12 +64,12 @@ all: librenderdoc.so
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $$(dirname $@)
 	$(CPP) $(CFLAGS) $(CPPFLAGS) -c -o $@ $<
-	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $*.cpp > $(OBJDIR)/$*.d
+	@$(CPP) $(CFLAGS) $(CPPFLAGS) -MM -MT $(OBJDIR)/$*.o $< > $(OBJDIR)/$*.d
 
 $(OBJDIR)/%.o: %.c
 	@mkdir -p $$(dirname $@)
 	$(CC) $(CFLAGS) -c -o $@ $<
-	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $*.c > $(OBJDIR)/$*.d
+	@$(CC) $(CFLAGS) -MM -MT $(OBJDIR)/$*.o $< > $(OBJDIR)/$*.d
 
 # objcopy needs to be run in with paths in current directory
 # to produce the right symbol names
@@ -104,8 +104,13 @@ OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 
 -include $(OBJDIR_OBJECTS:.o=.d)
 
+.PHONY: driver/gl/rdoc_gl.a
 driver/gl/rdoc_gl.a:
 	cd driver/gl && make rdoc_gl.a
+
+.PHONY: driver/shaders/spirv/rdoc_spirv.a
+driver/shaders/spirv/rdoc_spirv.a:
+	cd driver/shaders/spirv && make rdoc_spirv.a
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 	$(CPP) -o librenderdoc.so $^ $(LDFLAGS)
@@ -114,3 +119,4 @@ librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 clean:
 	rm -rf librenderdoc.so $(OBJDIR)
 	cd driver/gl && make clean
+	cd driver/shaders/spirv && make clean

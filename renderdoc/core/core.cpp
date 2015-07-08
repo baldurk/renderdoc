@@ -268,6 +268,9 @@ RenderDoc::~RenderDoc()
 		UnloadCrashHandler();
 	}
 
+	for(auto it=m_ShutdownFunctions.begin(); it != m_ShutdownFunctions.end(); ++it)
+		(*it)();
+
 	for(size_t i=0; i < m_Captures.size(); i++)
 	{
 		if(m_Captures[i].retrieved)
