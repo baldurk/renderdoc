@@ -47,6 +47,10 @@ EventBrowser::EventBrowser(Core *core, QWidget *parent) :
   // becomes quickly infuriating to rearrange, just disable until that can be fixed.
   ui->events->header()->setSectionsMovable(false);
 
+  QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::hideFindJump);
+  QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::hideFindJump);
+  QObject::connect(ui->jumpToEID, &LineEditFocusWidget::leave, this, &EventBrowser::hideFindJump);
+  QObject::connect(ui->findEvent, &LineEditFocusWidget::leave, this, &EventBrowser::hideFindJump);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
@@ -88,6 +92,7 @@ void EventBrowser::on_find_clicked()
   ui->jumpStrip->hide();
   ui->findStrip->show();
   ui->bookmarkStrip->hide();
+  ui->findEvent->setFocus();
 }
 
 void EventBrowser::on_gotoEID_clicked()
@@ -95,6 +100,7 @@ void EventBrowser::on_gotoEID_clicked()
   ui->jumpStrip->show();
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
+  ui->jumpToEID->setFocus();
 }
 
 void EventBrowser::on_toolButton_clicked()
@@ -167,4 +173,25 @@ void EventBrowser::on_events_itemSelectionChanged()
     uint EID = ui->events->selectedItems()[0]->data(COL_EID, Qt::UserRole).toUInt();
 
     m_Core->SetEventID(this, 0, EID);
+}
+
+void EventBrowser::hideFindJump()
+{
+  ui->jumpStrip->hide();
+  ui->findStrip->hide();
+}
+
+void EventBrowser::on_jumpToEID_returnPressed()
+{
+  bool ok = false;
+  uint eid = ui->findEvent->text().toUInt(&ok);
+  if(ok)
+  {
+    //SelectEvent(0, eid);
+  }
+}
+
+void EventBrowser::on_findEvent_returnPressed()
+{
+
 }

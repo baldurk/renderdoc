@@ -32,6 +32,12 @@ class EventBrowser : public QFrame, public ILogViewerForm
 
     void on_toolButton_clicked();
 
+    void hideFindJump();
+
+    void on_jumpToEID_returnPressed();
+
+    void on_findEvent_returnPressed();
+
     private:
     Ui::EventBrowser *ui;
     Core *m_Core;

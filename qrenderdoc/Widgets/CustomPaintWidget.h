@@ -1,5 +1,4 @@
-#ifndef CUSTOMPAINTWIDGET_H
-#define CUSTOMPAINTWIDGET_H
+#pragma once
 
 #include <QWidget>
 
@@ -24,5 +23,3 @@ class CustomPaintWidget : public QWidget
 
     IReplayOutput *m_Output;
 };
-
-#endif // CUSTOMPAINTWIDGET_H

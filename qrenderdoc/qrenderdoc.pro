@@ -63,7 +63,8 @@ SOURCES += Code/main.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     Code/RenderManager.cpp \
-    Code/Core.cpp
+    Code/Core.cpp \
+    Widgets/LineEditFocusWidget.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -73,7 +74,8 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     Code/Core.h \
-    Code/RenderManager.h
+    Code/RenderManager.h \
+    Widgets/LineEditFocusWidget.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \

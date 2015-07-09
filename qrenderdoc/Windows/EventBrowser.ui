@@ -236,7 +236,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="jumpToEID">
+          <widget class="LineEditFocusWidget" name="jumpToEID">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -258,6 +258,23 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="closeJump">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../resources.qrc">
+          <normaloff>:/Resources/cross.png</normaloff>:/Resources/cross.png</iconset>
+        </property>
+        <property name="shortcut">
+         <string>Esc</string>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
        </widget>
       </item>
      </layout>
@@ -332,7 +349,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QLineEdit" name="findEvent">
+          <widget class="LineEditFocusWidget" name="findEvent">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -540,6 +557,13 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>LineEditFocusWidget</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/LineEditFocusWidget.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../resources.qrc"/>
  </resources>
