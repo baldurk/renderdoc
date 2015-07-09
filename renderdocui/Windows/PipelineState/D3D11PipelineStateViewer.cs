@@ -2255,6 +2255,31 @@ namespace renderdocui.Windows.PipelineState
                 uint.TryParse(threadY.Text, out ty) &&
                 uint.TryParse(threadZ.Text, out tz))
             {
+                uint[] groupdim = m_Core.CurDrawcall.dispatchDimension;
+                uint[] threadsdim = m_Core.CurDrawcall.dispatchThreadsDimension;
+
+                for (int i = 0; i < 3; i++)
+                    if (threadsdim[i] == 0)
+                        threadsdim[i] = m_Core.CurD3D11PipelineState.m_CS.ShaderDetails.DispatchThreadsDimension[i];
+
+                string debugContext = String.Format("Group [{0},{1},{2}] Thread [{3},{4},{5}]", gx, gy, gz, tx, ty, tz);
+
+                if (gx >= groupdim[0] ||
+                    gy >= groupdim[1] ||
+                    gz >= groupdim[2] ||
+                    tx >= threadsdim[0] ||
+                    ty >= threadsdim[1] ||
+                    tz >= threadsdim[2])
+                {
+                    string bounds = String.Format("Group Dimensions [{0},{1},{2}] Thread Dimensions [{3},{4},{5}]",
+                        groupdim[0], groupdim[1], groupdim[2],
+                        threadsdim[0], threadsdim[1], threadsdim[2]);
+
+                    MessageBox.Show(String.Format("{0} is out of bounds\n{1}", debugContext, bounds), "Couldn't debug compute shader.",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
                 ShaderDebugTrace trace = null;
 
                 ShaderReflection shaderDetails = m_Core.CurD3D11PipelineState.m_CS.ShaderDetails;
@@ -2273,8 +2298,6 @@ namespace renderdocui.Windows.PipelineState
 
                 this.BeginInvoke(new Action(() =>
                 {
-                    string debugContext = String.Format("Group [{0},{1},{2}] Thread [{3},{4},{5}]", gx, gy, gz, tx, ty, tz);
-
                     ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Compute, trace, debugContext);
 
                     s.Show(m_DockContent.DockPanel);

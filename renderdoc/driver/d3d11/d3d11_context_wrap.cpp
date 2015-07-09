@@ -4509,6 +4509,20 @@ bool WrappedID3D11DeviceContext::Serialise_Dispatch(UINT ThreadGroupCountX_, UIN
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
+		draw.dispatchDimension[0] = ThreadGroupCountX;
+		draw.dispatchDimension[1] = ThreadGroupCountY;
+		draw.dispatchDimension[2] = ThreadGroupCountZ;
+
+		if(ThreadGroupCountX == 0)
+			m_pDevice->AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has ThreadGroup count X=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean X=1?");
+		if(ThreadGroupCountY == 0)
+			m_pDevice->AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has ThreadGroup count Y=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Y=1?");
+		if(ThreadGroupCountZ == 0)
+			m_pDevice->AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has ThreadGroup count Z=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
+
 		AddDrawcall(draw, true);
 	}
 
@@ -4570,6 +4584,10 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
 			name = "DispatchIndirect(<" + ToStr::Get(uargs[0])
 							+ ", " + ToStr::Get(uargs[1]) + 
 							+ ", " + ToStr::Get(uargs[2]) + ">)";
+
+			draw.dispatchDimension[0] = uargs[0];
+			draw.dispatchDimension[1] = uargs[1];
+			draw.dispatchDimension[2] = uargs[2];
 		}
 
 		draw.name = name;

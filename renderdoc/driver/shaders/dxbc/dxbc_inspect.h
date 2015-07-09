@@ -344,6 +344,8 @@ class DXBCFile
 		vector<ASMOperation> m_Instructions;
 		string m_Disassembly;
 
+		uint32_t DispatchThreadsDimension[3];
+
 		vector<uint32_t> m_HexDump;
 		
 		vector<byte> m_ShaderBlob;

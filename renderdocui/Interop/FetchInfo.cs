@@ -331,6 +331,11 @@ namespace renderdoc
         public UInt32 vertexOffset;
         public UInt32 instanceOffset;
 
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 3)]
+        public UInt32[] dispatchDimension;
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 3)]
+        public UInt32[] dispatchThreadsDimension;
+
         public UInt32 indexByteWidth;
         public PrimitiveTopology topology;
 

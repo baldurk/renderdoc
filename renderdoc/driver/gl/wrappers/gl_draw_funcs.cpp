@@ -53,6 +53,20 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
+		draw.dispatchDimension[0] = X;
+		draw.dispatchDimension[1] = Y;
+		draw.dispatchDimension[2] = Z;
+
+		if(X == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups X=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean X=1?");
+		if(Y == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups Y=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Y=1?");
+		if(Z == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups Z=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
+
 		AddDrawcall(draw, true);
 	}
 
@@ -107,6 +121,33 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x,
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch;
 
+		draw.dispatchDimension[0] = X;
+		draw.dispatchDimension[1] = Y;
+		draw.dispatchDimension[2] = Z;
+		draw.dispatchThreadsDimension[0] = sX;
+		draw.dispatchThreadsDimension[1] = sY;
+		draw.dispatchThreadsDimension[2] = sZ;
+
+		if(X == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups X=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean X=1?");
+		if(Y == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups Y=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Y=1?");
+		if(Z == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Num Groups Z=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
+
+		if(sX == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Group Size X=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean X=1?");
+		if(sY == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Group Size Y=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Y=1?");
+		if(sZ == 0)
+			AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+				"Dispatch call has Group Size Z=0. This will do nothing, which is unusual for a non-indirect Dispatch. Did you mean Z=1?");
+
 		AddDrawcall(draw, true);
 	}
 
@@ -147,14 +188,18 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
 		m_Real.glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offs, sizeof(uint32_t)*3, groupSizes);
 
 		AddEvent(DISPATCH_COMPUTE_INDIRECT, desc);
-		string name = "glDispatchComputeIndirect(" +
+		string name = "glDispatchComputeIndirect(<" +
 						ToStr::Get(groupSizes[0]) + ", " +
 						ToStr::Get(groupSizes[1]) + ", " +
-						ToStr::Get(groupSizes[2]) + ")";
+						ToStr::Get(groupSizes[2]) + ">)";
 
 		FetchDrawcall draw;
 		draw.name = name;
 		draw.flags |= eDraw_Dispatch|eDraw_Indirect;
+
+		draw.dispatchDimension[0] = groupSizes[0];
+		draw.dispatchDimension[1] = groupSizes[1];
+		draw.dispatchDimension[2] = groupSizes[2];
 
 		AddDrawcall(draw, true);
 	}

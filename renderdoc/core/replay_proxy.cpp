@@ -201,6 +201,8 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 	Serialise("", el.DebugInfo.entryFunc);
 	Serialise("", el.DebugInfo.files);
 
+	Serialise<3>("", el.DispatchThreadsDimension);
+
 	Serialise("", el.Disassembly);
 	
 	Serialise("", el.InputSig);
@@ -212,7 +214,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
 	Serialise("", el.Interfaces);
 
-	SIZE_CHECK(ShaderReflection, 72);
+	SIZE_CHECK(ShaderReflection, 84);
 }
 
 template<>
@@ -764,7 +766,10 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.indexOffset);
 	Serialise("", el.vertexOffset);
 	Serialise("", el.instanceOffset);
-	
+
+	Serialise<3>("", el.dispatchDimension);
+	Serialise<3>("", el.dispatchThreadsDimension);
+
 	Serialise("", el.indexByteWidth);
 	Serialise("", el.topology);
 
@@ -780,7 +785,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.events);
 	Serialise("", el.children);
 
-	SIZE_CHECK(FetchDrawcall, 168);
+	SIZE_CHECK(FetchDrawcall, 192);
 }
 
 template<>

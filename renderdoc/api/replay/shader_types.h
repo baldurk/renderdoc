@@ -208,6 +208,8 @@ struct ShaderReflection
 	ShaderDebugChunk DebugInfo;
 	rdctype::str Disassembly;
 
+	uint32_t DispatchThreadsDimension[3];
+
 	rdctype::array<SigParameter> InputSig;
 	rdctype::array<SigParameter> OutputSig;
 	

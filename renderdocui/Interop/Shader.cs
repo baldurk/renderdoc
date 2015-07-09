@@ -386,6 +386,9 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string Disassembly;
 
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 3)]
+        public UInt32[] DispatchThreadsDimension;
+
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public SigParameter[] InputSig;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]

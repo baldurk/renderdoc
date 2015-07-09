@@ -188,6 +188,10 @@ struct FetchDrawcall
 		parent = 0;
 		previous = 0;
 		next = 0;
+
+		dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
+		dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
+
 		for(int i=0; i < 8; i++)
 			outputs[i] = ResourceId();
 	}
@@ -203,6 +207,9 @@ struct FetchDrawcall
 	uint32_t indexOffset;
 	uint32_t vertexOffset;
 	uint32_t instanceOffset;
+
+	uint32_t dispatchDimension[3];
+	uint32_t dispatchThreadsDimension[3];
 	
 	uint32_t indexByteWidth;
 	PrimitiveTopology topology;

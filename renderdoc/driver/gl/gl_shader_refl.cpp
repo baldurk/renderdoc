@@ -753,6 +753,15 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg, 
 
 	refl.Disassembly = "";
 
+	if(shadType == eGL_COMPUTE_SHADER)
+	{
+		gl.glGetProgramiv(sepProg, eGL_COMPUTE_WORK_GROUP_SIZE, (GLint *)refl.DispatchThreadsDimension);
+	}
+	else
+	{
+		RDCEraseEl(refl.DispatchThreadsDimension);
+	}
+
 	vector<ShaderResource> resources;
 
 	GLint numUniforms = 0;

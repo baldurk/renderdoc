@@ -1287,6 +1287,10 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 		retDecl.groupSize[2] = tokenStream[0];
 		tokenStream++;
 
+		DispatchThreadsDimension[0] = retDecl.groupSize[0];
+		DispatchThreadsDimension[1] = retDecl.groupSize[1];
+		DispatchThreadsDimension[2] = retDecl.groupSize[2];
+
 		char buf[64] = {0};
 		StringFormat::snprintf(buf, 63, "%u", retDecl.groupSize[0]);
 		retDecl.str += buf;
