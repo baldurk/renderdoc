@@ -219,4 +219,19 @@ class LambdaThread : public QObject
 		bool isRunning() { return m_Thread->isRunning(); }
 };
 
+// useful delegate for enforcing a given size
+#include <QItemDelegate>
+
+class SizeDelegate : public QItemDelegate
+{
+	private:
+    Q_OBJECT
+
+		QSize m_Size;
+	public:
+		SizeDelegate(QSize size) : m_Size(size) {}
+
+    QSize sizeHint(const QStyleOptionViewItem &option,const QModelIndex &index) const { return m_Size; }
+};
+
 #endif // CORE_H
