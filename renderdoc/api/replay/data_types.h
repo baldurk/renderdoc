@@ -246,11 +246,11 @@ struct CounterDescription
 
 struct CounterResult
 {
-	CounterResult()                            : eventID(0)  , u64(   0) {}
-	CounterResult(uint32_t EID, uint32_t c, float    data) : eventID(EID), counterID(c), f  (data) {}
-	CounterResult(uint32_t EID, uint32_t c, double   data) : eventID(EID), counterID(c), d  (data) {}
-	CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c), u32(data) {}
-	CounterResult(uint32_t EID, uint32_t c, uint64_t data) : eventID(EID), counterID(c), u64(data) {}
+	CounterResult() : eventID(0) { value.u64 = 0; }
+	CounterResult(uint32_t EID, uint32_t c, float    data) : eventID(EID), counterID(c) { value.f = data; }
+	CounterResult(uint32_t EID, uint32_t c, double   data) : eventID(EID), counterID(c) { value.d = data; }
+	CounterResult(uint32_t EID, uint32_t c, uint32_t data) : eventID(EID), counterID(c) { value.u32 = data; }
+	CounterResult(uint32_t EID, uint32_t c, uint64_t data) : eventID(EID), counterID(c) { value.u64 = data; }
 
 	uint32_t eventID;
 	uint32_t counterID;
@@ -260,7 +260,7 @@ struct CounterResult
 		double d;
 		uint32_t u32;
 		uint64_t u64;
-	};
+	} value;
 };
 
 struct PixelValue
