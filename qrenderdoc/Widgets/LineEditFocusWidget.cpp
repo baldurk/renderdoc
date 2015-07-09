@@ -11,12 +11,12 @@ LineEditFocusWidget::~LineEditFocusWidget()
 
 void LineEditFocusWidget::focusInEvent(QFocusEvent *e)
 {
-    QLineEdit::focusInEvent(e);
-    emit(enter());
+	QLineEdit::focusInEvent(e);
+	emit(enter());
 }
 
 void LineEditFocusWidget::focusOutEvent(QFocusEvent *e)
 {
-    QLineEdit::focusOutEvent(e);
-    emit(leave());
+	QLineEdit::focusOutEvent(e);
+	emit(leave());
 }

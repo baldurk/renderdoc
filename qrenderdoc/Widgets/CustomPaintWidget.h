@@ -6,20 +6,21 @@ struct IReplayOutput;
 
 class CustomPaintWidget : public QWidget
 {
-    Q_OBJECT
-  public:
-    explicit CustomPaintWidget(QWidget *parent = 0);
-    ~CustomPaintWidget();
+	private:
+		Q_OBJECT
+	public:
+		explicit CustomPaintWidget(QWidget *parent = 0);
+		~CustomPaintWidget();
 
-    void SetOutput(IReplayOutput *out) { m_Output = out; }
+		void SetOutput(IReplayOutput *out) { m_Output = out; }
 
-  signals:
+	signals:
 
-  public slots:
+	public slots:
 
-  protected:
-    void paintEvent(QPaintEvent *e);
-    QPaintEngine *paintEngine() const { return NULL; }
+	protected:
+		void paintEvent(QPaintEvent *e);
+		QPaintEngine *paintEngine() const { return NULL; }
 
-    IReplayOutput *m_Output;
+		IReplayOutput *m_Output;
 };

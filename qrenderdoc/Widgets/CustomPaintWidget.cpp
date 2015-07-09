@@ -5,8 +5,8 @@
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
-  m_Output = NULL;
-  setAttribute(Qt::WA_PaintOnScreen);
+	m_Output = NULL;
+	setAttribute(Qt::WA_PaintOnScreen);
 }
 
 CustomPaintWidget::~CustomPaintWidget()
@@ -16,6 +16,6 @@ CustomPaintWidget::~CustomPaintWidget()
 
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
-  if(m_Output) m_Output->Display();
+	if(m_Output) m_Output->Display();
 }
 

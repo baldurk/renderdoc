@@ -3,18 +3,19 @@
 
 class LineEditFocusWidget : public QLineEdit
 {
-    Q_OBJECT
-  public:
-    explicit LineEditFocusWidget(QWidget *parent = 0);
-    ~LineEditFocusWidget();
+	private:
+		Q_OBJECT
+	public:
+		explicit LineEditFocusWidget(QWidget *parent = 0);
+		~LineEditFocusWidget();
 
-  signals:
-    void enter();
-    void leave();
+	signals:
+		void enter();
+		void leave();
 
-  public slots:
+		public slots:
 
-  protected:
-    void focusInEvent(QFocusEvent *e);
-    void focusOutEvent(QFocusEvent *e);
+	protected:
+		void focusInEvent(QFocusEvent *e);
+		void focusOutEvent(QFocusEvent *e);
 };

@@ -16,53 +16,53 @@ class LambdaThread;
 
 class RenderManager
 {
-  public:
-    typedef std::function<void(IReplayRenderer*)> InvokeMethod;
+	public:
+		typedef std::function<void(IReplayRenderer*)> InvokeMethod;
 
-    RenderManager();
-    ~RenderManager();
+		RenderManager();
+		~RenderManager();
 
-    void Init(int proxyRenderer, QString replayHost, QString logfile, float *progress);
+		void Init(int proxyRenderer, QString replayHost, QString logfile, float *progress);
 
-    bool IsRunning();
-    ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
+		bool IsRunning();
+		ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
 
-    void AsyncInvoke(InvokeMethod m);
-    void BlockInvoke(InvokeMethod m);
+		void AsyncInvoke(InvokeMethod m);
+		void BlockInvoke(InvokeMethod m);
 
-    void CloseThread();
-  private:
+		void CloseThread();
+	private:
 
-    struct InvokeHandle
-    {
-        InvokeHandle(InvokeMethod m)
-        {
-            method = m;
-            processed = false;
-            selfdelete = true;
-        }
+		struct InvokeHandle
+		{
+			InvokeHandle(InvokeMethod m)
+			{
+				method = m;
+				processed = false;
+				selfdelete = true;
+			}
 
-        InvokeMethod method;
-        bool processed;
-        bool selfdelete;
-    };
+			InvokeMethod method;
+			bool processed;
+			bool selfdelete;
+		};
 
-    void run();
+		void run();
 
-    QMutex m_RenderLock;
-    QQueue<InvokeHandle *> m_RenderQueue;
-    QWaitCondition m_RenderCondition;
+		QMutex m_RenderLock;
+		QQueue<InvokeHandle *> m_RenderQueue;
+		QWaitCondition m_RenderCondition;
 
-    void PushInvoke(InvokeHandle *cmd);
+		void PushInvoke(InvokeHandle *cmd);
 
-    int m_ProxyRenderer;
-    QString m_ReplayHost;
-    QString m_Logfile;
-    float *m_Progress;
+		int m_ProxyRenderer;
+		QString m_ReplayHost;
+		QString m_Logfile;
+		float *m_Progress;
 
-    volatile bool m_Running;
-    LambdaThread *m_Thread;
-    ReplayCreateStatus m_CreateStatus;
+		volatile bool m_Running;
+		LambdaThread *m_Thread;
+		ReplayCreateStatus m_CreateStatus;
 };
 
 #endif // RENDERMANAGER_H
