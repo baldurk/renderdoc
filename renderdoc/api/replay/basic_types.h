@@ -63,11 +63,12 @@ struct array
 	}
 
 #ifdef RENDERDOC_EXPORTS
+	static void *allocate(size_t s) { return malloc(s); }
 	static void deallocate(const void *p) { free((void *)p); }
 #else
+	static void *allocate(size_t s) { return RENDERDOC_AllocArrayMem(s); }
 	static void deallocate(const void *p) { RENDERDOC_FreeArrayMem(p); }
 #endif
-	static void *allocate(size_t s) { return malloc(s); }
 
 	T &operator [](size_t i) { return elems[i]; }
 	const T &operator [](size_t i) const { return elems[i]; }

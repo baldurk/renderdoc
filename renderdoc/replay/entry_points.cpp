@@ -384,6 +384,12 @@ void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)
 }
 
 extern "C" RENDERDOC_API
+void *RENDERDOC_CC RENDERDOC_AllocArrayMem(size_t sz)
+{
+	return rdctype::array<char>::allocate(sz);
+}
+
+extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident)
 {
 	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
