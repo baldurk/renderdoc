@@ -142,7 +142,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			const char *memberName = (const char *)&spirv[it+3];
 
 			// COMPLETE hack
-			membernames.resize( RDCMAX(membernames.size(), memberIdx+1) );
+			membernames.resize( RDCMAX(membernames.size(), (size_t)memberIdx+1) );
 			membernames[memberIdx] = memberName;
 		}
 		else if(OpCode == spv::OpDecorate)
@@ -518,6 +518,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 						break;
 					case spv::OpSLessThan:
 						op = '<';
+						break;
+					default:
 						break;
 				}
 
