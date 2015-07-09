@@ -46,6 +46,10 @@ EventBrowser::EventBrowser(Core *core, QWidget *parent) :
   // Qt doesn't allow moving the column with the expand/collapse widgets, so this
   // becomes quickly infuriating to rearrange, just disable until that can be fixed.
   ui->events->header()->setSectionsMovable(false);
+
+  ui->jumpStrip->hide();
+  ui->findStrip->hide();
+  ui->bookmarkStrip->hide();
 }
 
 EventBrowser::~EventBrowser()
@@ -81,10 +85,23 @@ void EventBrowser::OnEventSelected(uint32_t frameID, uint32_t eventID)
 
 void EventBrowser::on_find_clicked()
 {
+  ui->jumpStrip->hide();
+  ui->findStrip->show();
+  ui->bookmarkStrip->hide();
 }
 
 void EventBrowser::on_gotoEID_clicked()
 {
+  ui->jumpStrip->show();
+  ui->findStrip->hide();
+  ui->bookmarkStrip->hide();
+}
+
+void EventBrowser::on_toolButton_clicked()
+{
+  ui->jumpStrip->hide();
+  ui->findStrip->hide();
+  ui->bookmarkStrip->show();
 }
 
 static void SetDrawcallTimes(QTreeWidgetItem *node, const rdctype::array<CounterResult> &results)

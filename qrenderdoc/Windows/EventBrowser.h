@@ -30,7 +30,9 @@ class EventBrowser : public QFrame, public ILogViewerForm
 
     void on_timeDraws_clicked();
 
-  private:
+    void on_toolButton_clicked();
+
+    private:
     Ui::EventBrowser *ui;
     Core *m_Core;
 };
