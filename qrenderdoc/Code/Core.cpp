@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QFileInfo>
 
 Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp)
 {
@@ -14,8 +15,18 @@ Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool
 
   memset(&m_APIProps, 0, sizeof(m_APIProps));
 
-  m_MainWindow = new MainWindow(this, paramFilename, remoteHost, remoteIdent, temp);
+  m_MainWindow = new MainWindow(this);
   m_MainWindow->show();
+
+  if(!paramFilename.isEmpty())
+  {
+      QFileInfo fi(paramFilename);
+
+      if(fi.suffix() == "rdc")
+      {
+          LoadLogfile(paramFilename, temp);
+      }
+  }
 }
 
 Core::~Core()

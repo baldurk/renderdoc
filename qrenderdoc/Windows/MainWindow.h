@@ -15,7 +15,7 @@ class MainWindow : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit MainWindow(Core *core, QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
+    explicit MainWindow(Core *core);
     ~MainWindow();
 
 private slots:

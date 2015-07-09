@@ -8,7 +8,7 @@
 
 #include "Code/Core.h"
 
-MainWindow::MainWindow(Core *core, QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp) :
+MainWindow::MainWindow(Core *core) :
   QMainWindow(NULL),
   ui(new Ui::MainWindow),
   m_Core(core)
