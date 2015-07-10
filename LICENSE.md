@@ -85,3 +85,7 @@ RenderDoc also uses several external libraries and components which include thei
 - [glslang](https://github.com/KhronosGroup/glslang)
   distributed under the New BSD License (3 Clause).
   Copyright 2002-2005 3Dlabs Inc. Ltd. 2012-2013 LunarG, Inc.
+
+- [Qt](http://www.qt.io/)
+  distributed under the GNU Lesser General Public License (LGPL) version 2.1
+  Copyright 2015 The Qt Company Ltd.

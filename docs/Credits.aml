@@ -134,7 +134,15 @@
 <linkUri>https://github.com/KhronosGroup/glslang</linkUri>
 </externalLink>
   </para></listItem>
-  
+
+  <listItem><para>
+  <externalLink>
+<linkText>Qt</linkText>
+<linkAlternateText>Used for QRenderDoc replay UI program</linkAlternateText>
+<linkUri>http://www.qt.io/</linkUri>
+</externalLink>
+  </para></listItem>
+
   <listItem><para>
   <externalLink>
 <linkText>Sandcastle Help File Builder</linkText>
