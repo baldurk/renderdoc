@@ -3067,8 +3067,8 @@ namespace renderdocui.Windows
 
             if (trace == null || trace.states.Length == 0)
             {
-                MessageBox.Show("Couldn't find pixel to debug.\nEnsure the relevant drawcall is selected for this pixel.", "No Pixel Found",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // if we couldn't debug the pixel on this event, open up a pixel history
+                pixelHistory_Click(sender, e);
                 return;
             }
 
