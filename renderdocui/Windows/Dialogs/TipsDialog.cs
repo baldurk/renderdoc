@@ -36,28 +36,48 @@ namespace renderdocui.Windows.Dialogs
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
+            ///////////////////////////////////////////////////////////
+            // This section of code is auto-generated. Modifications //
+            // will be lost if made by hand.                         //
+            //                                                       //
+            // If you have a tip you'd like to add, email it to me.  //
+            ///////////////////////////////////////////////////////////
+
+            // Tip 1
             m_Tips.Add(new Tip(
                 "Talk to me!",
-                "RenderDoc is a labour of love and developed entirely in my spare time. If you run into a bug, have a feature " +
-                "request or just have a question about it, please feel free to get in touch and I'm always happy to talk and " +
-                "help out in any way I can - baldurk@baldurk.org.",
+                "RenderDoc is a labour of love and developed entirely in my spare time. If you run into a bug, have a" +
+                "feature request or just have a question about it, please feel free to get in touch and I'm always" +
+                "happy to talk and help out in any way I can - baldurk@baldurk.org. " +
+                "",
                 null));
 
+            // Tip 2
             m_Tips.Add(new Tip(
                 "Quick channel toggling",
-                "You can quickly toggle between RGB and Alpha in the Texture Viewer by right clicking on A - alpha.\n\n" +
-                "In general right clicking on a channel will toggle between only showing that channel, and showing all other " +
-                "channels except it.",
+                "You can quickly toggle between RGB and Alpha in the Texture Viewer by right clicking on A - alpha." +
+                "In general right clicking on a channel will toggle between only showing that channel, and showing" +
+                "all other channels except it. " +
+                "",
                 null));
 
+            // Tip 3
             m_Tips.Add(new Tip(
                 "Quick autofit follow",
-                "If you right click on the 'autofit' wand in the texture viewer, it will be locked on until you right " +
-                "click again. This means when you change texture or step through events, it will re-fit the texture " +
-                "continuously.\n\n" +
-                "This can be useful if you are e.g. jumping between a texture with a very compressed range like a depth " +
-                "texture and a normal render target.",
-                global::renderdocui.Properties.Resources.topo_trilist));
+                "If you right click on the 'autofit' wand in the texture viewer, it will be locked on until you right" +
+                "click again. This means when you change texture or step through events, it will re-fit the texture" +
+                "continuously. This can be useful if you are e.g. jumping between a texture with a very compressed" +
+                "range like a depth texture and a normal render target. " +
+                "",
+                null));
+
+            ///////////////////////////////////////////////////////////
+            // This section of code is auto-generated. Modifications //
+            // will be lost if made by hand.                         //
+            //                                                       //
+            // If you have a tip you'd like to add, email it to me.  //
+            ///////////////////////////////////////////////////////////
+
         }
 
         private void LoadRandomTip(object sender, EventArgs e)
