@@ -82,6 +82,15 @@ class ToolWindowManager : public QWidget {
    *
    */
   Q_PROPERTY(int rubberBandLineWidth READ rubberBandLineWidth WRITE setRubberBandLineWidth)
+  /*!
+   * \brief Whether or not to allow floating windows to be created.
+   *
+   * Default value is to allow it.
+   *
+   * Access functions: allowFloatingWindow, setAllowFloatingWindow.
+   *
+   */
+  Q_PROPERTY(int allowFloatingWindow READ allowFloatingWindow WRITE setAllowFloatingWindow)
 
 public:
   /*!
@@ -217,6 +226,8 @@ public:
   void setBorderSensitivity(int pixels);
   void setRubberBandLineWidth(int pixels);
   int rubberBandLineWidth() { return m_rubberBandLineWidth; }
+  void setAllowFloatingWindow(bool pixels);
+  bool allowFloatingWindow() { return m_allowFloatingWindow; }
   /*! \endcond */
 
   /*!
@@ -249,6 +260,7 @@ private:
 
   QRubberBand* m_rectRubberBand; // placeholder objects used for displaying drop suggestions
   QRubberBand* m_lineRubberBand;
+  bool m_allowFloatingWindow; // Allow floating windows from this docking area
   QList<AreaReference> m_suggestions; //full list of suggestions for current cursor position
   int m_dropCurrentSuggestionIndex; // index of currently displayed drop suggestion
                                     // (e.g. always 0 if there is only one possible drop location)

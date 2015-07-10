@@ -65,6 +65,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
           this, SLOT(showNextDropSuggestion()));
   m_dropSuggestionSwitchTimer.setInterval(1000);
   m_dropCurrentSuggestionIndex = 0;
+  m_allowFloatingWindow = true;
 
   m_rectRubberBand = new QRubberBand(QRubberBand::Rectangle, this);
   m_lineRubberBand = new QRubberBand(QRubberBand::Line, this);
@@ -226,6 +227,10 @@ void ToolWindowManager::setBorderSensitivity(int pixels) {
 
 void ToolWindowManager::setRubberBandLineWidth(int pixels) {
   m_rubberBandLineWidth = pixels;
+}
+
+void ToolWindowManager::setAllowFloatingWindow(bool allow) {
+  m_allowFloatingWindow = allow;
 }
 
 QVariant ToolWindowManager::saveState() {
@@ -639,8 +644,8 @@ void ToolWindowManager::finishDrag() {
     return;
   }
   if (m_suggestions.isEmpty()) {
-    moveToolWindows(m_draggedToolWindows, NewFloatingArea);
-
+    if (m_allowFloatingWindow)
+      moveToolWindows(m_draggedToolWindows, NewFloatingArea);
   } else {
     if (m_dropCurrentSuggestionIndex >= m_suggestions.count()) {
       qWarning("invalid m_dropCurrentSuggestionIndex");
