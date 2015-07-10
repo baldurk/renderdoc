@@ -20,42 +20,46 @@ m_Core(core)
 
 	m_Core->AddLogViewer(this);
 
-	ui->framerender->SetOutput(NULL);
+	ui->render->SetOutput(NULL);
 	m_Output = NULL;
 
-	ui->dockarea->addToolWindow(ui->framerender, ToolWindowManager::EmptySpace);
-	ui->dockarea->setToolWindowProperties(ui->framerender, ToolWindowManager::DisallowUserDocking |
+	QWidget *renderContainer = ui->renderContainer;
+
+	ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
+	ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
 	                                                       ToolWindowManager::HideCloseButton |
 	                                                       ToolWindowManager::DisableDraggableTab);
+
+	ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, ui->dockarea->areaOf(renderContainer));
 
 	QWidget *lockedTabTest = new QWidget(this);
 	lockedTabTest->setWindowTitle(tr("Locked Tab #1"));
 
-	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	ui->dockarea->addToolWindow(lockedTabTest, ref);
 	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
 
 	lockedTabTest = new QWidget(this);
 	lockedTabTest->setWindowTitle(tr("Locked Tab #2"));
-
-	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	
+	ui->dockarea->addToolWindow(lockedTabTest, ref);
 	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
 
 	lockedTabTest = new QWidget(this);
 	lockedTabTest->setWindowTitle(tr("Locked Tab #3"));
-
-	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	
+	ui->dockarea->addToolWindow(lockedTabTest, ref);
 	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
 
 	lockedTabTest = new QWidget(this);
 	lockedTabTest->setWindowTitle(tr("Locked Tab #4"));
-
-	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	
+	ui->dockarea->addToolWindow(lockedTabTest, ref);
 	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
 
 	ui->dockarea->setAllowFloatingWindow(false);
 	ui->dockarea->setRubberBandLineWidth(50);
 
-	ui->framerender->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
+	renderContainer->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
 
 	QVBoxLayout *vertical = new QVBoxLayout(this);
 
@@ -87,10 +91,10 @@ TextureViewer::~TextureViewer()
 void TextureViewer::OnLogfileLoaded()
 {
 #if defined(WIN32)
-	HWND wnd = (HWND)ui->framerender->winId();
+	HWND wnd = (HWND)ui->render->winId();
 #elif defined(__linux__)
 	Display *display = QX11Info::display();
-	GLXDrawable drawable = (GLXDrawable)ui->framerender->winId();
+	GLXDrawable drawable = (GLXDrawable)ui->render->winId();
 
 	void *displayAndDrawable[2] = { (void *)display, (void *)drawable };
 	void *wnd = displayAndDrawable;
@@ -100,7 +104,7 @@ void TextureViewer::OnLogfileLoaded()
 
 	m_Core->Renderer()->BlockInvoke([wnd, this](IReplayRenderer *r) {
 		m_Output = r->CreateOutput(wnd);
-		ui->framerender->SetOutput(m_Output);
+		ui->render->SetOutput(m_Output);
 
 		OutputConfig c = { eOutputType_TexDisplay };
 		m_Output->SetOutputConfig(c);
@@ -110,7 +114,7 @@ void TextureViewer::OnLogfileLoaded()
 void TextureViewer::OnLogfileClosed()
 {
 	m_Output = NULL;
-	ui->framerender->SetOutput(NULL);
+	ui->render->SetOutput(NULL);
 }
 
 void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
@@ -141,6 +145,6 @@ void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 		d.Alpha = false;
 		m_Output->SetTextureDisplay(d);
 
-		GUIInvoke::call([this]() { ui->framerender->update(); });
+		GUIInvoke::call([this]() { ui->render->update(); });
 	});
 }

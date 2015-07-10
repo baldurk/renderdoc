@@ -16,6 +16,15 @@ CustomPaintWidget::~CustomPaintWidget()
 
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
-	if(m_Output) m_Output->Display();
+	if(m_Output)
+	{
+		m_Output->Display();
+	}
+	else
+	{
+		QPainter p(this);
+		p.setBrush(QBrush(Qt::black));
+		p.drawRect(rect());
+	}
 }
 
