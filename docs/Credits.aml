@@ -126,6 +126,14 @@
 <linkUri>https://github.com/syoyo/tinyexr</linkUri>
 </externalLink>
   </para></listItem>
+
+  <listItem><para>
+  <externalLink>
+<linkText>glslang</linkText>
+<linkAlternateText>Used for compiling GLSL to SPIR-V.</linkAlternateText>
+<linkUri>https://github.com/KhronosGroup/glslang</linkUri>
+</externalLink>
+  </para></listItem>
   
   <listItem><para>
   <externalLink>

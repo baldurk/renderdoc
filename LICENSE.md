@@ -81,3 +81,7 @@ RenderDoc also uses several external libraries and components which include thei
 - [tinyexr](https://github.com/syoyo/tinyexr)
   distributed under the New BSD License (3 Clause).
   Copyright 2014, Syoyo Fujita
+
+- [glslang](https://github.com/KhronosGroup/glslang)
+  distributed under the New BSD License (3 Clause).
+  Copyright 2002-2005 3Dlabs Inc. Ltd. 2012-2013 LunarG, Inc.
