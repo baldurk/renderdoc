@@ -4219,7 +4219,8 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				{
 					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_IF)
 						depth++;
-					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ELSE)
+					// only step out on an else if it's the matching depth to our starting if (depth == 1)
+					if(depth == 1 && s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ELSE)
 						depth--;
 					if(s.dxbc->m_Instructions[s.nextInstruction].operation == OPCODE_ENDIF)
 						depth--;
