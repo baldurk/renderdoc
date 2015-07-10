@@ -109,6 +109,8 @@ public:
     DisallowUserDocking = 0x1,
     //! Hides the close button on the tab for this tool window
     HideCloseButton = 0x2,
+    //! Disable the user being able to drag this tab in the tab bar, to rearrange
+    DisableDraggableTab = 0x4,
   };
 
   //! Type of AreaReference.

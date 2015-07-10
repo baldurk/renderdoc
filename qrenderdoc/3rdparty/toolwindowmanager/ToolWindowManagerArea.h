@@ -82,6 +82,9 @@ private:
                           // that can be considered as dragging current tab
                           // if the cursor will leave the tab bar area
 
+  bool m_inTabMoved; // if we're in the tabMoved() function (so if we call tabMove to cancel
+                     // the movement, we shouldn't re-check the tabMoved behaviour)
+
   QVariantMap saveState(); // dump contents to variable
   void restoreState(const QVariantMap& data); //restore contents from given variable
 
@@ -91,6 +94,8 @@ private:
   friend class ToolWindowManager;
   friend class ToolWindowManagerWrapper;
 
+private slots:
+  void tabMoved(int from, int to);
 };
 
 #endif // TOOLWINDOWMANAGERAREA_H

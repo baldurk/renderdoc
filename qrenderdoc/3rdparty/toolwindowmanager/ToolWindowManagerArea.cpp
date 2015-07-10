@@ -34,11 +34,14 @@ ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget
 {
   m_dragCanStart = false;
   m_tabDragCanStart = false;
+  m_inTabMoved = false;
   setMovable(true);
   setTabsClosable(true);
   setDocumentMode(true);
   tabBar()->installEventFilter(this);
   m_manager->m_areas << this;
+
+  QObject::connect(tabBar(), &QTabBar::tabMoved, this, &ToolWindowManagerArea::tabMoved);
 }
 
 ToolWindowManagerArea::~ToolWindowManagerArea() {
@@ -100,9 +103,18 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
   if (object == tabBar()) {
     if (event->type() == QEvent::MouseButtonPress &&
         qApp->mouseButtons() == Qt::LeftButton) {
+
+      int tabIndex = tabBar()->tabAt(static_cast<QMouseEvent*>(event)->pos());
+
       // can start tab drag only if mouse is at some tab, not at empty tabbar space
-      if (tabBar()->tabAt(static_cast<QMouseEvent*>(event)->pos()) >= 0 ) {
+      if (tabIndex >= 0) {
         m_tabDragCanStart = true;
+
+        if (m_manager->toolWindowProperties(widget(tabIndex)) & ToolWindowManager::DisableDraggableTab) {
+          setMovable(false);
+        } else {
+          setMovable(true);
+        }
       } else {
         m_dragCanStart = true;
       }
@@ -191,5 +203,22 @@ void ToolWindowManagerArea::check_mouse_move() {
       }
     }
     m_manager->startDrag(toolWindows);
+  }
+}
+
+void ToolWindowManagerArea::tabMoved(int from, int to) {
+  if(m_inTabMoved) return;
+
+  QWidget *a = widget(from);
+  QWidget *b = widget(to);
+
+  if(!a || !b) return;
+
+  if(m_manager->toolWindowProperties(a) & ToolWindowManager::DisableDraggableTab ||
+     m_manager->toolWindowProperties(b) & ToolWindowManager::DisableDraggableTab)
+  {
+    m_inTabMoved = true;
+    tabBar()->moveTab(to, from);
+    m_inTabMoved = false;
   }
 }
