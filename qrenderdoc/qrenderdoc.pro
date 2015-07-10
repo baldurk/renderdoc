@@ -22,6 +22,8 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/../renderdoc/api/replay
 
 # For ToolWindowManager
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/toolwindowmanager
+# For FlowLayout
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 
 # Different output folders per platform
 win32 {
@@ -64,7 +66,8 @@ SOURCES += Code/main.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     Code/RenderManager.cpp \
     Code/Core.cpp \
-    Widgets/LineEditFocusWidget.cpp
+    Widgets/LineEditFocusWidget.cpp \
+    3rdparty/flowlayout/FlowLayout.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -75,7 +78,8 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     Code/Core.h \
     Code/RenderManager.h \
-    Widgets/LineEditFocusWidget.h
+    Widgets/LineEditFocusWidget.h \
+    3rdparty/flowlayout/FlowLayout.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
