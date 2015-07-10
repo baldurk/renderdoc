@@ -1,6 +1,8 @@
 #include "TextureViewer.h"
 #include "ui_TextureViewer.h"
 
+#include "FlowLayout.h"
+
 #include "Code/Core.h"
 
 #if defined(__linux__)
@@ -20,8 +22,6 @@ m_Core(core)
 
 	ui->framerender->SetOutput(NULL);
 	m_Output = NULL;
-
-	ui->verticalLayout->removeWidget(ui->framerender);
 
 	ui->dockarea->addToolWindow(ui->framerender, ToolWindowManager::EmptySpace);
 	ui->dockarea->setToolWindowProperties(ui->framerender, ToolWindowManager::DisallowUserDocking |
@@ -56,6 +56,26 @@ m_Core(core)
 	ui->dockarea->setRubberBandLineWidth(50);
 
 	ui->framerender->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
+
+	QVBoxLayout *vertical = new QVBoxLayout(this);
+
+	vertical->setSpacing(3);
+	vertical->setContentsMargins(0, 0, 0, 0);
+
+	FlowLayout *flow1 = new FlowLayout(this);
+	FlowLayout *flow2 = new FlowLayout(this);
+
+	flow1->addWidget(ui->channelsToolbar);
+	flow1->addWidget(ui->subresourceToolbar);
+	flow1->addWidget(ui->actionToolbar);
+
+	flow2->addWidget(ui->zoomToolbar);
+	flow2->addWidget(ui->overlayToolbar);
+	flow2->addWidget(ui->rangeToolbar);
+
+	vertical->addItem(flow1);
+	vertical->addItem(flow2);
+	vertical->addWidget(ui->dockarea);
 }
 
 TextureViewer::~TextureViewer()
