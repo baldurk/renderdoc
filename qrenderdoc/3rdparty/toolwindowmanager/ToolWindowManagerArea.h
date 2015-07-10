@@ -57,6 +57,11 @@ public:
    */
   QList<QWidget*> toolWindows();
 
+  /*!
+   * Updates the \a toolWindow to its current properties and title.
+   */
+  void updateToolWindow(QWidget* toolWindow);
+
 protected:
   //! Reimplemented from QTabWidget::mousePressEvent.
   virtual void mousePressEvent(QMouseEvent *);

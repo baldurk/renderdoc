@@ -80,6 +80,17 @@ ToolWindowManager::~ToolWindowManager() {
   }
 }
 
+void ToolWindowManager::setToolWindowProperties(QWidget* toolWindow, ToolWindowManager::ToolWindowProperty properties) {
+  m_toolWindowProperties[toolWindow] = properties;
+  ToolWindowManagerArea *area = areaOf(toolWindow);
+  if(area)
+    area->updateToolWindow(toolWindow);
+}
+
+ToolWindowManager::ToolWindowProperty ToolWindowManager::toolWindowProperties(QWidget* toolWindow) {
+  return m_toolWindowProperties[toolWindow];
+}
+
 void ToolWindowManager::addToolWindow(QWidget *toolWindow, const AreaReference &area) {
   addToolWindows(QList<QWidget*>() << toolWindow, area);
 }
@@ -97,6 +108,8 @@ void ToolWindowManager::addToolWindows(QList<QWidget *> toolWindows, const ToolW
     toolWindow->hide();
     toolWindow->setParent(0);
     m_toolWindows << toolWindow;
+    m_toolWindowProperties[toolWindow] = ToolWindowProperty(0);
+    QObject::connect(toolWindow, &QWidget::windowTitleChanged, this, &ToolWindowManager::windowTitleChanged);
   }
   moveToolWindows(toolWindows, area);
 }
@@ -211,6 +224,7 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
   }
   moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
+  m_toolWindowProperties.remove(toolWindow);
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
@@ -372,6 +386,9 @@ void ToolWindowManager::startDrag(const QList<QWidget *> &toolWindows) {
   if (dragInProgress()) {
     qWarning("ToolWindowManager::execDrag: drag is already in progress");
     return;
+  }
+  foreach(QWidget* toolWindow, toolWindows) {
+    if(toolWindowProperties(toolWindow) & DisallowUserDocking) { return; }
   }
   if (toolWindows.isEmpty()) { return; }
   m_draggedToolWindows = toolWindows;
@@ -673,6 +690,17 @@ void ToolWindowManager::tabCloseRequested(int index) {
     return;
   }
   hideToolWindow(toolWindow);
+}
+
+void ToolWindowManager::windowTitleChanged(const QString &title) {
+  QWidget* toolWindow = qobject_cast<QWidget*>(sender());
+  if(!toolWindow) {
+    return;
+  }
+  ToolWindowManagerArea *area = areaOf(toolWindow);
+  if(area) {
+    area->updateToolWindow(toolWindow);
+  }
 }
 
 QSplitter *ToolWindowManager::createSplitter() {

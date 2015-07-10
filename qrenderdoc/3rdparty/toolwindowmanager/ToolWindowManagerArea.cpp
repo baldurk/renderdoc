@@ -53,6 +53,9 @@ void ToolWindowManagerArea::addToolWindows(const QList<QWidget *> &toolWindows) 
   int index = 0;
   foreach(QWidget* toolWindow, toolWindows) {
     index = addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
+    if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
+      tabBar()->tabButton(index, QTabBar::RightSide)->resize(0, 0);
+    }
   }
   setCurrentIndex(index);
   m_manager->m_lastUsedArea = this;
@@ -64,6 +67,18 @@ QList<QWidget *> ToolWindowManagerArea::toolWindows() {
     result << widget(i);
   }
   return result;
+}
+
+void ToolWindowManagerArea::updateToolWindow(QWidget* toolWindow) {
+  int index = indexOf(toolWindow);
+  if(index >= 0) {
+    if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
+      tabBar()->tabButton(index, QTabBar::RightSide)->resize(0, 0);
+    } else {
+      tabBar()->tabButton(index, QTabBar::RightSide)->resize(16, 16);
+    }
+    tabBar()->setTabText(index, toolWindow->windowTitle());
+  }
 }
 
 void ToolWindowManagerArea::mousePressEvent(QMouseEvent *) {

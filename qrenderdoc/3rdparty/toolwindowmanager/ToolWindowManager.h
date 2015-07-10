@@ -103,6 +103,14 @@ public:
    */
   virtual ~ToolWindowManager();
 
+  //! Toolwindow properties
+  enum ToolWindowProperty {
+    //! Disables all drag/docking ability by the user
+    DisallowUserDocking = 0x1,
+    //! Hides the close button on the tab for this tool window
+    HideCloseButton = 0x2,
+  };
+
   //! Type of AreaReference.
   enum AreaReferenceType {
     //! The area tool windows has been added to most recently.
@@ -156,6 +164,16 @@ public:
    * \a area. This function is a shortcut for ToolWindowManager::addToolWindows.
    */
   void addToolWindow(QWidget* toolWindow, const AreaReference& area);
+
+  /*!
+   * Sets the set of \a properties on \a toolWindow that is already added to the manager.
+   */
+  void setToolWindowProperties(QWidget* toolWindow, ToolWindowProperty properties);
+
+  /*!
+   * Returns the set of \a properties on \a toolWindow.
+   */
+  ToolWindowProperty toolWindowProperties(QWidget* toolWindow);
 
   /*!
    * \brief Adds \a toolWindows to the manager and moves it to the position specified by
@@ -250,6 +268,7 @@ signals:
 
 private:
   QList<QWidget*> m_toolWindows; // all added tool windows
+  QHash<QWidget*, ToolWindowProperty> m_toolWindowProperties; // all tool window properties
   QList<ToolWindowManagerArea*> m_areas; // all areas for this manager
   QList<ToolWindowManagerWrapper*> m_wrappers; // all wrappers for this manager
   int m_borderSensitivity;
@@ -309,7 +328,11 @@ protected:
 private slots:
   void showNextDropSuggestion();
   void tabCloseRequested(int index);
+  void windowTitleChanged(const QString &title);
 
 };
+
+inline ToolWindowManager::ToolWindowProperty operator|(ToolWindowManager::ToolWindowProperty a, ToolWindowManager::ToolWindowProperty b)
+{ return ToolWindowManager::ToolWindowProperty(int(a) | int(b)); }
 
 #endif // TOOLWINDOWMANAGER_H
