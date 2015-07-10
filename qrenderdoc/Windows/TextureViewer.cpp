@@ -20,6 +20,42 @@ m_Core(core)
 
 	ui->framerender->SetOutput(NULL);
 	m_Output = NULL;
+
+	ui->verticalLayout->removeWidget(ui->framerender);
+
+	ui->dockarea->addToolWindow(ui->framerender, ToolWindowManager::EmptySpace);
+	ui->dockarea->setToolWindowProperties(ui->framerender, ToolWindowManager::DisallowUserDocking |
+	                                                       ToolWindowManager::HideCloseButton |
+	                                                       ToolWindowManager::DisableDraggableTab);
+
+	QWidget *lockedTabTest = new QWidget(this);
+	lockedTabTest->setWindowTitle(tr("Locked Tab #1"));
+
+	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
+
+	lockedTabTest = new QWidget(this);
+	lockedTabTest->setWindowTitle(tr("Locked Tab #2"));
+
+	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
+
+	lockedTabTest = new QWidget(this);
+	lockedTabTest->setWindowTitle(tr("Locked Tab #3"));
+
+	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
+
+	lockedTabTest = new QWidget(this);
+	lockedTabTest->setWindowTitle(tr("Locked Tab #4"));
+
+	ui->dockarea->addToolWindow(lockedTabTest, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->framerender)));
+	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
+
+	ui->dockarea->setAllowFloatingWindow(false);
+	ui->dockarea->setRubberBandLineWidth(50);
+
+	ui->framerender->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
 }
 
 TextureViewer::~TextureViewer()
