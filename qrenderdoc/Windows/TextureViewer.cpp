@@ -21,6 +21,7 @@ m_Core(core)
 	m_Core->AddLogViewer(this);
 
 	ui->render->SetOutput(NULL);
+	ui->pixelContext->SetOutput(NULL);
 	m_Output = NULL;
 
 	QWidget *renderContainer = ui->renderContainer;
@@ -55,19 +56,38 @@ m_Core(core)
 	
 	ui->dockarea->addToolWindow(lockedTabTest, ref);
 	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
-
+	
+	ui->dockarea->addToolWindow(ui->resourceThumbs, ToolWindowManager::AreaReference(ToolWindowManager::RightOf, ui->dockarea->areaOf(renderContainer)));
+	ui->dockarea->setToolWindowProperties(ui->resourceThumbs, ToolWindowManager::HideCloseButton);
+	
+	ui->dockarea->addToolWindow(ui->targetThumbs, ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->dockarea->areaOf(ui->resourceThumbs)));
+	ui->dockarea->setToolWindowProperties(ui->targetThumbs, ToolWindowManager::HideCloseButton);
+	
+	// need to add a way to make this less than 50% programmatically
+	ui->dockarea->addToolWindow(ui->pixelContextLayout, ToolWindowManager::AreaReference(ToolWindowManager::BottomOf, ui->dockarea->areaOf(ui->targetThumbs)));
+	ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
+	
 	ui->dockarea->setAllowFloatingWindow(false);
 	ui->dockarea->setRubberBandLineWidth(50);
 
 	renderContainer->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
+	ui->pixelContextLayout->setWindowTitle(tr("Pixel Context"));
+	ui->targetThumbs->setWindowTitle(tr("OM Targets"));
+	ui->resourceThumbs->setWindowTitle(tr("PS Resources"));
 
 	QVBoxLayout *vertical = new QVBoxLayout(this);
 
 	vertical->setSpacing(3);
 	vertical->setContentsMargins(0, 0, 0, 0);
 
-	FlowLayout *flow1 = new FlowLayout(this);
-	FlowLayout *flow2 = new FlowLayout(this);
+	QWidget *flow1widget = new QWidget(this);
+	QWidget *flow2widget = new QWidget(this);
+
+	FlowLayout *flow1 = new FlowLayout(flow1widget, 0, 3, 3);
+	FlowLayout *flow2 = new FlowLayout(flow2widget, 0, 3, 3);
+
+	flow1widget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+	flow2widget->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
 
 	flow1->addWidget(ui->channelsToolbar);
 	flow1->addWidget(ui->subresourceToolbar);
@@ -77,9 +97,13 @@ m_Core(core)
 	flow2->addWidget(ui->overlayToolbar);
 	flow2->addWidget(ui->rangeToolbar);
 
-	vertical->addItem(flow1);
-	vertical->addItem(flow2);
+	vertical->addWidget(flow1widget);
+	vertical->addWidget(flow2widget);
 	vertical->addWidget(ui->dockarea);
+
+	Ui_TextureViewer *u = ui;
+	u->pixelcontextgrid->setAlignment(u->pushButton, Qt::AlignCenter);
+	u->pixelcontextgrid->setAlignment(u->pushButton_2, Qt::AlignCenter);
 }
 
 TextureViewer::~TextureViewer()
