@@ -24,7 +24,7 @@ m_Core(core)
 
 	m_Core->AddLogViewer(this);
 
-	ui->events->header()->resizeSection(COL_EID, 80);
+	ui->events->header()->resizeSection(COL_EID, 45);
 
 	ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Stretch);
 	ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
