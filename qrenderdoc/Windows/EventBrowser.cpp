@@ -186,7 +186,6 @@ void EventBrowser::on_timeDraws_clicked()
 
 		GUIInvoke::blockcall([this, results]() {
 			SetDrawcallTimes(ui->events->topLevelItem(0), results);
-			_CrtCheckMemory();
 		});
 	});
 }

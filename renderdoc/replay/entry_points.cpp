@@ -384,9 +384,9 @@ void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem)
 }
 
 extern "C" RENDERDOC_API
-void *RENDERDOC_CC RENDERDOC_AllocArrayMem(size_t sz)
+void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 {
-	return rdctype::array<char>::allocate(sz);
+	return rdctype::array<char>::allocate((size_t)sz);
 }
 
 extern "C" RENDERDOC_API

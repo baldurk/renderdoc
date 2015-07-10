@@ -60,8 +60,8 @@ typedef uint32_t bool32;
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeArrayMem(const void *mem);
 typedef void (RENDERDOC_CC *pRENDERDOC_FreeArrayMem)(const void *mem);
 
-extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(size_t sz);
-typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(size_t sz);
+extern "C" RENDERDOC_API void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz);
+typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
 
 #include "basic_types.h"
 
