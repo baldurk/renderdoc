@@ -670,11 +670,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	// sorts are identical so we can do the intersection easily
 	std::sort(globalExts.begin(), globalExts.end());
 
-#if !defined(_RELEASE)
-	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
-	opts.RefAllResources = true;
-#endif
-
 	m_Replay.SetDriver(this);
 
 	m_FrameCounter = 0;
