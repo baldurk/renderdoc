@@ -134,6 +134,9 @@ TBuiltInResource DefaultResources =
 
 string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &sources, vector<uint32_t> &spirv)
 {
+#if defined(RELEASE)
+	return "SPIR-V disassembly disabled due to glslang instability";
+#else
 	if(shadType >= eSPIRVInvalid)
 		return "Invalid shader stage specified";
 
@@ -202,4 +205,5 @@ string CompileSPIRV(SPIRVShaderStage shadType, const std::vector<std::string> &s
 	delete[] strs;
 
 	return errors;
+#endif
 }

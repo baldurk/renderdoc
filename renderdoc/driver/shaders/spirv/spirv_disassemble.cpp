@@ -49,6 +49,9 @@ static string OptionalFlagString(EnumType e)
 
 void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
 {
+#if defined(RELEASE)
+	return;
+#else
 	if(shadType >= eSPIRVInvalid)
 		return;
 
@@ -678,6 +681,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 	}
 
 	return;
+#endif
 }
 
 template<>
