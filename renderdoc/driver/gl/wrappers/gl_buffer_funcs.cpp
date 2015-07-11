@@ -271,8 +271,6 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 			Serialise_glVertexArrayElementBuffer(vao, buffer);
 
 			cd.m_VertexArrayRecord->AddChunk(scope.Get());
-
-			cd.m_VertexArrayRecord->AddParent(r);
 		}
 		
 		// store as transform feedback record state
@@ -2719,8 +2717,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2752,8 +2748,6 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2818,8 +2812,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2851,8 +2843,6 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2917,8 +2907,6 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -2950,8 +2938,6 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(bufrecord) r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3680,9 +3666,6 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(buffer != 0)
-				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3735,9 +3718,6 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(buffer != 0)
-				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3768,9 +3748,6 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 
 				r->AddChunk(scope.Get());
 			}
-
-			if(buffer != 0)
-				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3854,14 +3831,16 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
 				r->AddChunk(scope.Get());
 			}
 
-			for(GLsizei i=0; i < count; i++)
+			if(m_State == WRITING_CAPFRAME)
 			{
-				if(buffers[i] != 0)
+				for(GLsizei i=0; i < count; i++)
 				{
-					GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
-					r->AddParent(bufrecord);
-					if(m_State == WRITING_CAPFRAME && bufrecord)
-						GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+					if(buffers[i] != 0)
+					{
+						GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
+						if(bufrecord)
+							GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+					}
 				}
 			}
 		}
@@ -3891,15 +3870,17 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 
 				r->AddChunk(scope.Get());
 			}
-
-			for(GLsizei i=0; i < count; i++)
+			
+			if(m_State == WRITING_CAPFRAME)
 			{
-				if(buffers[i] != 0)
+				for(GLsizei i=0; i < count; i++)
 				{
-					GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
-					r->AddParent(bufrecord);
-					if(m_State == WRITING_CAPFRAME && bufrecord)
-						GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+					if(buffers[i] != 0)
+					{
+						GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
+						if(bufrecord)
+							GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+					}
 				}
 			}
 		}
