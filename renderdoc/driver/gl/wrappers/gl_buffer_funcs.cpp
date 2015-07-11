@@ -2656,6 +2656,12 @@ void WrappedOpenGL::glEndTransformFeedback()
 
 #pragma region Vertex Arrays
 
+// NOTE: In each of the vertex array object functions below, we might not have the live buffer resource
+// if it's is a pre-capture chunk, and the buffer was never referenced at all in the actual frame.
+// The reason for this is that the VAO record doesn't add a parent of the buffer record - because that
+// parent tracking quickly becomes stale with high traffic VAOs ignoring updates etc, so we don't rely
+// on the parent connection and manually reference the buffer wherever it is actually uesd.
+
 bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buffer, GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, GLintptr offset)
 {
 	SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -2670,7 +2676,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, G
 	if(m_State < WRITING)
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
-		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
+		buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid)) ? GetResourceManager()->GetLiveResource(bid).name : 0;
 		
 		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
 		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
@@ -2765,7 +2771,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, 
 	if(m_State < WRITING)
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
-		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
+		buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid)) ? GetResourceManager()->GetLiveResource(bid).name : 0;
 		
 		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
 		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
@@ -2860,7 +2866,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, 
 	if(m_State < WRITING)
 	{
 		vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
-		buffer = (bid != ResourceId()) ? GetResourceManager()->GetLiveResource(bid).name : 0;
+		buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid)) ? GetResourceManager()->GetLiveResource(bid).name : 0;
 
 		// seems buggy when mixed and matched with new style vertex attrib binding, which we use for VAO initial states.
 		// Since the spec defines how this function should work in terms of new style bindings, just do that ourselves.
@@ -3628,7 +3634,9 @@ bool WrappedOpenGL::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint bu
 		if(vid != ResourceId()) vaobj = GetResourceManager()->GetLiveResource(vid).name;
 
 		buffer = 0;
-		if(bid != ResourceId()) buffer = GetResourceManager()->GetLiveResource(bid).name;
+		// might not have the live resource if this is a pre-capture chunk, and the buffer was never referenced
+		// at all in the actual frame
+		if(bid != ResourceId() && GetResourceManager()->HasLiveResource(bid)) buffer = GetResourceManager()->GetLiveResource(bid).name;
 		
 		// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
 		// we are running without ARB_dsa support, these functions are emulated in the obvious way. This is
@@ -3683,7 +3691,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLu
 		vaobj = (vid != ResourceId()) ? GetResourceManager()->GetLiveResource(vid).name : m_FakeVAO;
 
 		GLuint live = 0;
-		if(id != ResourceId())
+		if(id != ResourceId() && GetResourceManager()->HasLiveResource(id))
 			live = GetResourceManager()->GetLiveResource(id).name;
 
 		m_Real.glVertexArrayBindVertexBufferEXT(vaobj, idx, live, (GLintptr)offs, (GLsizei)str);
@@ -3777,7 +3785,7 @@ bool WrappedOpenGL::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint fi
 		
 		if(m_State <= EXECUTING)
 		{
-			if(id != ResourceId())
+			if(id != ResourceId() && GetResourceManager()->HasLiveResource(id))
 				bufs[i] = GetResourceManager()->GetLiveResource(id).name;
 			else
 				bufs[i] = 0;
