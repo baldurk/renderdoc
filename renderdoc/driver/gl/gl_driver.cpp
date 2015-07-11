@@ -3919,7 +3919,6 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk, bool
 	else if(context->m_State == READING && chunk == END_EVENT)
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-		RDCASSERT(context->m_DrawcallStack.size() > 1);
 		if(context->m_DrawcallStack.size() > 1)
 			context->m_DrawcallStack.pop_back();
 	}
