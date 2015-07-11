@@ -2129,13 +2129,13 @@ void Builder::dumpInstructions(std::vector<unsigned int>& out, const std::vector
 
 void MissingFunctionality(const char* fun)
 {
-    printf("Missing functionality: %s\n", fun);
-    exit(1);
+    //printf("Missing functionality: %s\n", fun);
+    //exit(1);
 }
 
 void ValidationError(const char* error)
 {
-    printf("Validation Error: %s\n", error);
+    //printf("Validation Error: %s\n", error);
 }
 
 }; // end spv namespace

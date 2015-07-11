@@ -817,6 +817,8 @@ bool TGlslangToSpvTraverser::visitAggregate(glslang::TVisit visit, glslang::TInt
             glslang::TConstUnionArray emptyConsts;
             int nextConst = 0;
             result = createSpvConstant(node->getType(), emptyConsts, nextConst);
+            if(! result)
+                return false;
         }
         builder.clearAccessChain();
         builder.setAccessChainRValue(result);
