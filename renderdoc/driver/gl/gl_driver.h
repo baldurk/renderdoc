@@ -157,6 +157,12 @@ class WrappedOpenGL : public IFrameCapturer
 		GLResourceManager *m_ResourceManager;
 
 		uint32_t m_FrameCounter;
+		uint32_t m_FailedFrame;
+		CaptureFailReason m_FailedReason;
+		uint32_t m_Failures;
+
+		CaptureFailReason m_FailureReason;
+		bool m_SuccessfulCapture;
 
 		uint64_t m_CurFileSize;
 
@@ -316,12 +322,15 @@ class WrappedOpenGL : public IFrameCapturer
 		void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
 		
 		void Serialise_CaptureScope(uint64_t offset);
-		bool HasSuccessfulCapture();
+		bool HasSuccessfulCapture(CaptureFailReason &reason) { reason = m_FailureReason; return m_SuccessfulCapture && m_ContextRecord->NumChunks() > 3; }
 		void AttemptCapture();
 		bool Serialise_BeginCaptureFrame(bool applyInitialState);
 		void BeginCaptureFrame();
 		void FinishCapture();
 		void ContextEndFrame();
+
+		void CleanupCapture();
+		void FreeCaptureData();
 
 		struct ContextData
 		{

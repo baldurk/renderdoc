@@ -673,6 +673,11 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_Replay.SetDriver(this);
 
 	m_FrameCounter = 0;
+	m_FailedFrame = 0;
+	m_FailedReason = CaptureSucceeded;
+	m_Failures = 0;
+	m_SuccessfulCapture = true;
+	m_FailureReason = CaptureSucceeded;
 
 	m_FrameTimer.Restart();
 
@@ -1970,6 +1975,8 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 	
+	GetResourceManager()->FlushPendingDirty();
+
 	ContextData &ctxdata = GetCtxData();
 	
 	// we only handle context-window associations here as it's too common to
@@ -2121,6 +2128,21 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 					}
 				}
 
+				if(m_FailedFrame > 0)
+				{
+					const char *reasonString = "Unknown reason";
+					switch(m_FailedReason)
+					{
+						case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+						default: break;
+					}
+
+					RenderOverlayText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);
+					y += 1.0f;
+					RenderOverlayText(0.0f, y, "    %s\n", reasonString);
+					y += 1.0f;
+				}
+
 #if !defined(RELEASE)
 				RenderOverlayText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(), float(Chunk::TotalMem())/1024.0f/1024.0f);
 				y += 1.0f;
@@ -2200,9 +2222,17 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 {
+	if(m_State != WRITING_IDLE) return;
+
+	RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
+
 	m_State = WRITING_CAPFRAME;
 
 	m_AppControlledCapture = true;
+
+	m_Failures = 0;
+	m_FailedFrame = 0;
+	m_FailedReason = CaptureSucceeded;
 
 	GLWindowingData &prevctx = m_ActiveContexts[Threading::GetCurrentID()];
 
@@ -2223,6 +2253,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 	GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
 	GetResourceManager()->PrepareInitialContents();
 
+	FreeCaptureData();
+
 	AttemptCapture();
 	BeginCaptureFrame();
 
@@ -2238,9 +2270,13 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 	
 	CaptureFailReason reason = CaptureSucceeded;
 
-	//if(HasSuccessfulCapture(reason))
+	if(HasSuccessfulCapture(reason))
 	{
 		RDCLOG("Finished capture, Frame %u", m_FrameCounter);
+
+		m_Failures = 0;
+		m_FailedFrame = 0;
+		m_FailedReason = CaptureSucceeded;
 
 		ContextEndFrame();
 		FinishCapture();
@@ -2392,9 +2428,73 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
 		return true;
 	}
-	//else
+	else
 	{
-		// failed to capture
+		RDCLOG("Failed to capture, frame %u", m_FrameCounter);
+
+		m_Failures++;
+
+		if((RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled))
+		{
+			ContextData &ctxdata = GetCtxData();
+
+			RenderTextState textState;
+
+			textState.Push(m_Real, ctxdata.Modern());
+
+			const char *reasonString = "Unknown reason";
+			switch(reason)
+			{
+				case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+				default: break;
+			}
+
+			RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
+
+			textState.Pop(m_Real, ctxdata.Modern());
+
+			// swallow all errors we might have inadvertantly caused. This is
+			// better than letting an error propagate and maybe screw up the
+			// app (although it means we might swallow an error from before the
+			// SwapBuffers call, it can't be helped.
+			if(ctxdata.Legacy() && m_Real.glGetError)
+			{
+				GLenum err = m_Real.glGetError();
+				while(err) err = m_Real.glGetError();
+			}
+		}
+
+		m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;
+
+		CleanupCapture();
+
+		GetResourceManager()->ClearReferencedResources();
+
+		if(m_Failures > 5) // failed too many times
+		{
+			FinishCapture();
+
+			m_FrameRecord.pop_back();
+
+			FreeCaptureData();
+
+			m_FailedFrame = m_FrameCounter;
+			m_FailedReason = reason;
+
+			m_State = WRITING_IDLE;
+
+			GetResourceManager()->MarkUnwrittenResources();
+		}
+		else
+		{
+			GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+			GetResourceManager()->PrepareInitialContents();
+
+			AttemptCapture();
+			BeginCaptureFrame();
+		}
+
+		return false;
 	}
 }
 
@@ -2443,6 +2543,36 @@ void WrappedOpenGL::ContextEndFrame()
 	m_ContextRecord->AddChunk(scope.Get());
 }
 
+void WrappedOpenGL::CleanupCapture()
+{
+	m_SuccessfulCapture = true;
+	m_FailureReason = CaptureSucceeded;
+
+	m_ContextRecord->LockChunks();
+	while(m_ContextRecord->HasChunks())
+	{
+		Chunk *chunk = m_ContextRecord->GetLastChunk();
+
+		SAFE_DELETE(chunk);
+		m_ContextRecord->PopChunk();
+	}
+	m_ContextRecord->UnlockChunks();
+
+	m_ContextRecord->FreeParents(GetResourceManager());
+
+	for(auto it=m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
+	{
+		if(GetResourceManager()->HasResourceRecord(*it))
+			GetResourceManager()->MarkDirtyResource(*it);
+	}
+
+	m_MissingTracks.clear();
+}
+
+void WrappedOpenGL::FreeCaptureData()
+{
+}
+
 void WrappedOpenGL::QueuePrepareInitialState(GLResource res, byte *blob)
 {
 	QueuedInitialStateFetch fetch;
@@ -2462,7 +2592,8 @@ void WrappedOpenGL::AttemptCapture()
 	{
 		RDCDEBUG("GL Context %llu Attempting capture", GetContextResourceID());
 
-		//m_SuccessfulCapture = true;
+		m_SuccessfulCapture = true;
+		m_FailureReason = CaptureSucceeded;
 
 		m_ContextRecord->LockChunks();
 		while(m_ContextRecord->HasChunks())
