@@ -347,6 +347,12 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
 	manager->MarkResourceFrameReferenced(ProgramRes(ctx, Program), initial ? eFrameRef_Unknown : eFrameRef_Read);
 	manager->MarkResourceFrameReferenced(ProgramPipeRes(ctx, Pipeline), initial ? eFrameRef_Unknown : eFrameRef_Read);
 
+	// the pipeline correctly has program parents, but we must also mark the programs as frame referenced so that their
+	// initial contents will be serialised.
+	GLResourceRecord *record = manager->GetResourceRecord(ProgramPipeRes(ctx, Pipeline));
+	if(record)
+		record->MarkParentsReferenced(manager, initial ? eFrameRef_Unknown : eFrameRef_Read);
+
 	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
 		manager->MarkResourceFrameReferenced(BufferRes(ctx, BufferBindings[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
 

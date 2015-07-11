@@ -105,6 +105,12 @@ struct ResourceRecord
 			mgr->MarkDirtyResource((*it)->GetResourceID());
 	}
 
+	void MarkParentsReferenced(ResourceRecordHandler *mgr, FrameRefType refType)
+	{
+		for(auto it = Parents.begin(); it != Parents.end(); ++it)
+			mgr->MarkResourceFrameReferenced((*it)->GetResourceID(), refType);
+	}
+
 	void FreeParents(ResourceRecordHandler *mgr)
 	{
 		for(auto it = Parents.begin(); it != Parents.end(); ++it)
