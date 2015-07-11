@@ -233,6 +233,7 @@ void WrappedOpenGL::glBindTexture(GLenum target, GLuint texture)
 		}
 		
 		m_ContextRecord->AddChunk(chunk);
+		GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 	}
 	else if(m_State < WRITING)
 	{
@@ -321,6 +322,10 @@ void WrappedOpenGL::glBindTextures(GLuint first, GLsizei count, const GLuint *te
 		Serialise_glBindTextures(first, count, textures);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		for(GLsizei i=0; i < count; i++)
+			if(textures[i])
+				GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]), eFrameRef_Read);
 	}
 
 	if(m_State >= WRITING)
@@ -386,6 +391,7 @@ void WrappedOpenGL::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint 
 		}
 		
 		m_ContextRecord->AddChunk(chunk);
+		GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 	}
 	else if(m_State < WRITING)
 	{
@@ -460,6 +466,7 @@ void WrappedOpenGL::glBindTextureUnit(GLuint unit, GLuint texture)
 		Serialise_glBindTextureUnit(unit, texture);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 	}
 
 	if(m_State >= WRITING)
@@ -512,6 +519,7 @@ void WrappedOpenGL::glBindImageTexture(GLuint unit, GLuint texture, GLint level,
 		}
 		
 		m_ContextRecord->AddChunk(chunk);
+		GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 	}
 }
 
@@ -562,6 +570,10 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
 		Serialise_glBindImageTextures(first, count, textures);
 		
 		m_ContextRecord->AddChunk(scope.Get());
+
+		for(GLsizei i=0; i < count; i++)
+			if(textures[i])
+				GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]), eFrameRef_Read);
 	}
 }
 
@@ -675,6 +687,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 		
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else if(m_State == WRITING_IDLE)
 	{
@@ -817,6 +830,8 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(dstrecord->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(srcrecord->GetResourceID(), eFrameRef_Read);
 	}
 	else if(m_State == WRITING_IDLE)
 	{
@@ -862,6 +877,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 }
 
@@ -937,6 +953,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, 
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 }
 
@@ -1014,6 +1031,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, 
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 }
 
@@ -1080,6 +1098,7 @@ void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLen
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -1160,6 +1179,7 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -1240,6 +1260,7 @@ void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GL
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -1320,6 +1341,7 @@ void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, G
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -1397,6 +1419,7 @@ void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLen
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -1477,6 +1500,7 @@ void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLe
 	if(m_State == WRITING_CAPFRAME)
 	{
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	else
 	{
@@ -2698,6 +2722,7 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 
 	if(level == 0)
@@ -2807,6 +2832,7 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
 
 		m_ContextRecord->AddChunk(scope.Get());
 		m_MissingTracks.insert(record->GetResourceID());
+		GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 	
 	if(level == 0)
@@ -3460,6 +3486,7 @@ void WrappedOpenGL::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLen
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -3615,6 +3642,7 @@ void WrappedOpenGL::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLen
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -3772,6 +3800,7 @@ void WrappedOpenGL::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLen
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -3907,6 +3936,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *re
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -4044,6 +4074,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *re
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -4183,6 +4214,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *re
 		{
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 		}
 		else
 		{
@@ -4293,9 +4325,13 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
+			ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
 			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
-			m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+			m_MissingTracks.insert(bufid);
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
 		}
 		else
 		{
@@ -4400,9 +4436,13 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target, G
 
 		if(m_State == WRITING_CAPFRAME)
 		{
-			m_ContextRecord->AddChunk(chunk);
+			ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
+			m_ContextRecord->AddChunk(scope.Get());
 			m_MissingTracks.insert(record->GetResourceID());
-			m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+			m_MissingTracks.insert(bufid);
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
 		}
 		else
 		{

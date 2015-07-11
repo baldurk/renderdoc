@@ -822,6 +822,7 @@ void WrappedOpenGL::glUseProgram(GLuint program)
 		Serialise_glUseProgram(program);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
 	}
 }
 
@@ -1072,6 +1073,7 @@ void WrappedOpenGL::glBindProgramPipeline(GLuint pipeline)
 		Serialise_glBindProgramPipeline(pipeline);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(ProgramPipeRes(GetCtx(), pipeline), eFrameRef_Read);
 	}
 }
 

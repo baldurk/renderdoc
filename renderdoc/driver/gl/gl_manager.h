@@ -171,6 +171,13 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 			return ResourceManager::GetResourceRecord(GetID(res));
 		}
 
+		using ResourceManager::MarkResourceFrameReferenced;
+
+		void MarkResourceFrameReferenced(GLResource res, FrameRefType refType)
+		{
+			ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
+		}
+
 		using ResourceManager::MarkDirtyResource;
 
 		void MarkDirtyResource(GLResource res)

@@ -536,6 +536,12 @@ bool ResourceManager<ResourceType, RecordType>::MarkReferenced(map<ResourceId, F
 		{
 			// nothing
 		}
+		else if(refType == eFrameRef_ReadBeforeWrite)
+		{
+			// special case, explicitly set to ReadBeforeWrite for when
+			// we know that this use will likely be a partial-write
+			refs[id] = eFrameRef_ReadBeforeWrite;
+		}
 		else if(refs[id] == eFrameRef_Unknown)
 		{
 			if(refType == eFrameRef_ReadBeforeWrite)

@@ -159,6 +159,7 @@ void WrappedOpenGL::glBindSampler(GLuint unit, GLuint sampler)
 		Serialise_glBindSampler(unit, sampler);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
 	}
 }
 
@@ -203,6 +204,8 @@ void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *sa
 		Serialise_glBindSamplers(first, count, samplers);
 		
 		m_ContextRecord->AddChunk(scope.Get());
+		for(GLsizei i=0; i < count; i++)
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]), eFrameRef_Read);
 	}
 }
 
@@ -231,9 +234,14 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 		Serialise_glSamplerParameteri(sampler, pname, param);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 
@@ -262,9 +270,14 @@ void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat pa
 		Serialise_glSamplerParameterf(sampler, pname, param);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 
@@ -296,9 +309,14 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 		Serialise_glSamplerParameteriv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 
@@ -330,9 +348,14 @@ void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLf
 		Serialise_glSamplerParameterfv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 
@@ -364,9 +387,14 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 		Serialise_glSamplerParameterIiv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 
@@ -398,9 +426,14 @@ void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const G
 		Serialise_glSamplerParameterIuiv(sampler, pname, params);
 
 		if(m_State == WRITING_IDLE)
+		{
 			GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+		}
 		else
+		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+		}
 	}
 }
 

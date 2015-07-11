@@ -279,6 +279,7 @@ void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 		Serialise_glBeginQuery(target, id);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
 	}
 }
 
@@ -308,6 +309,7 @@ void WrappedOpenGL::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
 		Serialise_glBeginQueryIndexed(target, index, id);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
 	}
 }
 
@@ -392,6 +394,7 @@ void WrappedOpenGL::glBeginConditionalRender(GLuint id, GLenum mode)
 		Serialise_glBeginConditionalRender(id, mode);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
 	}
 }
 
@@ -443,6 +446,7 @@ void WrappedOpenGL::glQueryCounter(GLuint query, GLenum target)
 		Serialise_glQueryCounter(query, target);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), query), eFrameRef_Read);
 	}
 }
 

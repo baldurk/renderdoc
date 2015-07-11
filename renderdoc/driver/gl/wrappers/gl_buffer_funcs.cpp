@@ -209,7 +209,7 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 				target == eGL_PIXEL_PACK_BUFFER ||
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-				refType = eFrameRef_Write;
+				refType = eFrameRef_ReadBeforeWrite;
 
 			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
 		}
@@ -355,6 +355,7 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
 			record->AddChunk(chunk);
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
+			record->DataInSerialiser = true;
 		}
 
 		// We immediately map the whole range with appropriate flags, to be copied into whenever we
@@ -456,7 +457,9 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr siz
 	}
 	else if(m_State >= WRITING)
 	{
-		GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
+		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+		record->DataInSerialiser = true;
+		record->SetDataOffset(offs - Bytesize);
 	}
 
 	return true;
@@ -561,6 +564,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		{
 			// we could perhaps substitute this for a 'fake' glBufferSubData chunk?
 			m_ContextRecord->AddChunk(chunk);
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
 		}
 		else
 		{
@@ -568,6 +572,7 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
 			record->usage = usage;
+			record->DataInSerialiser = true;
 		}
 	}
 	else
@@ -687,6 +692,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 		{
 			// we could perhaps substitute this for a 'fake' glBufferSubData chunk?
 			m_ContextRecord->AddChunk(chunk);
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
 		}
 		else
 		{
@@ -694,6 +700,7 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 			record->SetDataPtr(chunk->GetData());
 			record->Length = (int32_t)size;
 			record->usage = usage;
+			record->DataInSerialiser = true;
 		}
 	}
 	else
@@ -743,6 +750,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 		{
 			m_ContextRecord->AddChunk(chunk);
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -787,6 +795,7 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 		{
 			m_ContextRecord->AddChunk(chunk);
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -851,6 +860,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 		{
 			m_ContextRecord->AddChunk(chunk);
 			m_MissingTracks.insert(writerecord->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -905,6 +915,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		{
 			m_ContextRecord->AddChunk(chunk);
 			m_MissingTracks.insert(writerecord->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(writerecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -968,7 +979,7 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 				target == eGL_PIXEL_PACK_BUFFER ||
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-				refType = eFrameRef_Write;
+				refType = eFrameRef_ReadBeforeWrite;
 
 			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
 		}
@@ -1073,7 +1084,7 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 				target == eGL_PIXEL_PACK_BUFFER ||
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-				refType = eFrameRef_Write;
+				refType = eFrameRef_ReadBeforeWrite;
 
 			GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(), refType);
 		}
@@ -1188,14 +1199,14 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 				target == eGL_PIXEL_PACK_BUFFER ||
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-				refType = eFrameRef_Write;
+				refType = eFrameRef_ReadBeforeWrite;
 			
 			for(GLsizei i=0; i < count; i++)
 			{
 				if(buffers[i])
 				{
 					ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
-					GetResourceManager()->MarkResourceFrameReferenced(id, refType);
+					GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
 					m_MissingTracks.insert(id);
 				}
 			}
@@ -1330,14 +1341,14 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 				target == eGL_PIXEL_PACK_BUFFER ||
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-				refType = eFrameRef_Write;
-
+				refType = eFrameRef_ReadBeforeWrite;
+			
 			for(GLsizei i=0; i < count; i++)
 			{
 				if(buffers[i])
 				{
 					ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
-					GetResourceManager()->MarkResourceFrameReferenced(id, refType);
+					GetResourceManager()->MarkResourceFrameReferenced(id, eFrameRef_ReadBeforeWrite);
 					m_MissingTracks.insert(id);
 				}
 			}
@@ -1983,7 +1994,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 		auto status = record->Map.status;
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
+		}
 
 		GLboolean ret = GL_TRUE;
 
@@ -2164,6 +2178,7 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 		if(record)
 		{
 			m_MissingTracks.insert(record->GetResourceID());
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			if(record->Map.status == GLResourceRecord::Unmapped)
 			{
@@ -2423,6 +2438,7 @@ void WrappedOpenGL::glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLui
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer), eFrameRef_ReadBeforeWrite);
 		}
 		else if(xfb != 0)
 		{
@@ -2473,6 +2489,7 @@ void WrappedOpenGL::glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLu
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(BufferRes(GetCtx(), buffer), eFrameRef_ReadBeforeWrite);
 		}
 		else if(xfb != 0)
 		{
@@ -2506,15 +2523,17 @@ void WrappedOpenGL::glBindTransformFeedback(GLenum target, GLuint id)
 {
 	m_Real.glBindTransformFeedback(target, id);
 
+	GLResourceRecord *record = NULL;
+
 	if(m_State >= WRITING)
 	{
 		if(id == 0)
 		{
-			GetCtxData().m_FeedbackRecord = NULL;
+			GetCtxData().m_FeedbackRecord = record = NULL;
 		}
 		else
 		{
-			GetCtxData().m_FeedbackRecord = GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), id));
+			GetCtxData().m_FeedbackRecord = record = GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), id));
 		}
 	}
 
@@ -2524,6 +2543,9 @@ void WrappedOpenGL::glBindTransformFeedback(GLenum target, GLuint id)
 		Serialise_glBindTransformFeedback(target, id);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		if(record)
+				GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 }
 
@@ -2681,7 +2703,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
@@ -2711,7 +2735,9 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
@@ -2776,7 +2802,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
@@ -2806,7 +2834,9 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
@@ -2871,7 +2901,9 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLPOINTER);
@@ -2901,7 +2933,9 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLPOINTER);
@@ -2944,7 +2978,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
@@ -2971,7 +3005,7 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
@@ -3017,7 +3051,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attr
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
@@ -3044,7 +3078,7 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
@@ -3089,7 +3123,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
@@ -3116,7 +3150,7 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
@@ -3161,7 +3195,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
@@ -3188,7 +3222,7 @@ void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
@@ -3243,7 +3277,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint ind
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
@@ -3270,7 +3304,7 @@ void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
@@ -3322,7 +3356,7 @@ void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
@@ -3349,7 +3383,7 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
@@ -3401,7 +3435,7 @@ void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
@@ -3428,7 +3462,7 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
@@ -3566,15 +3600,17 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 {
 	m_Real.glBindVertexArray(array);
 
+	GLResourceRecord *record = NULL;
+
 	if(m_State >= WRITING)
 	{
 		if(array == 0)
 		{
-			GetCtxData().m_VertexArrayRecord = NULL;
+			GetCtxData().m_VertexArrayRecord = record = NULL;
 		}
 		else
 		{
-			GetCtxData().m_VertexArrayRecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
+			GetCtxData().m_VertexArrayRecord = record = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
 		}
 	}
 
@@ -3584,6 +3620,8 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 		Serialise_glBindVertexArray(array);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		if(record)
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 	}
 }
 
@@ -3617,6 +3655,7 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
+		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
@@ -3625,7 +3664,9 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
@@ -3635,7 +3676,7 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 			}
 
 			if(buffer != 0)
-				r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3669,6 +3710,7 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *varecord = GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), vaobj));
+		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
@@ -3677,7 +3719,9 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
@@ -3687,7 +3731,7 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 			}
 
 			if(buffer != 0)
-				r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3699,6 +3743,7 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+		GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
 		GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
 
@@ -3707,7 +3752,9 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+			if(m_State == WRITING_CAPFRAME && bufrecord)
+				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
@@ -3717,7 +3764,7 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 			}
 
 			if(buffer != 0)
-				r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+				r->AddParent(bufrecord);
 		}
 	}
 }
@@ -3792,7 +3839,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
@@ -3804,7 +3851,12 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
 			for(GLsizei i=0; i < count; i++)
 			{
 				if(buffers[i] != 0)
-					r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i])));
+				{
+					GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
+					r->AddParent(bufrecord);
+					if(m_State == WRITING_CAPFRAME && bufrecord)
+						GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+				}
 			}
 		}
 	}
@@ -3825,7 +3877,7 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
@@ -3837,7 +3889,12 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 			for(GLsizei i=0; i < count; i++)
 			{
 				if(buffers[i] != 0)
-					r->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i])));
+				{
+					GLResourceRecord *bufrecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
+					r->AddParent(bufrecord);
+					if(m_State == WRITING_CAPFRAME && bufrecord)
+						GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+				}
 			}
 		}
 	}
@@ -3874,7 +3931,7 @@ void WrappedOpenGL::glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bi
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
@@ -3901,7 +3958,7 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
