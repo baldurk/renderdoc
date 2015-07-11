@@ -35,6 +35,12 @@ There's no configuration or cmake setup, it assumes gcc/g++ (this can be overwri
 
 Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 along with the 'x11extras' package.
 
+This is the apt-get line you'd need to install the requirements on Ubuntu 15.04:
+
+```
+sudo apt-get install libx11-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev
+```
+
 Builds
 --------------
 
