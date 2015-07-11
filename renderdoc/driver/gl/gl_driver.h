@@ -152,7 +152,7 @@ class WrappedOpenGL : public IFrameCapturer
 		ResourceId m_ContextResourceID;
 		GLResourceRecord *m_ContextRecord;
 
-		GLResourceRecord *m_DisplayListRecord;
+		set<ResourceId> m_MissingTracks;
 
 		GLResourceManager *m_ResourceManager;
 

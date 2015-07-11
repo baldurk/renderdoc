@@ -289,13 +289,14 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
 		}
 		
 		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-		if(m_State == WRITING_IDLE &&
-			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		if(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
 			 target == eGL_SHADER_STORAGE_BUFFER ||
 			 target == eGL_ATOMIC_COUNTER_BUFFER)
-			)
 		{
-			GetResourceManager()->MarkDirtyResource(r->GetResourceID());
+			if(m_State == WRITING_IDLE)
+				GetResourceManager()->MarkDirtyResource(r->GetResourceID());
+			else
+				m_MissingTracks.insert(r->GetResourceID());
 		}
 	}
 	else
@@ -741,6 +742,7 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(chunk);
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -782,7 +784,10 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
 		Chunk *chunk = scope.Get();
 
 		if(m_State == WRITING_CAPFRAME)
+		{
 			m_ContextRecord->AddChunk(chunk);
+			m_MissingTracks.insert(record->GetResourceID());
+		}
 		else
 		{
 			record->AddChunk(chunk);
@@ -845,6 +850,7 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(chunk);
+			m_MissingTracks.insert(writerecord->GetResourceID());
 		}
 		else
 		{
@@ -898,6 +904,7 @@ void WrappedOpenGL::glCopyBufferSubData(GLenum readTarget, GLenum writeTarget, G
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(chunk);
+			m_MissingTracks.insert(writerecord->GetResourceID());
 		}
 		else
 		{
@@ -995,13 +1002,14 @@ void WrappedOpenGL::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 		}
 
 		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-		if(m_State == WRITING_IDLE &&
-			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-			target == eGL_SHADER_STORAGE_BUFFER ||
-			target == eGL_ATOMIC_COUNTER_BUFFER)
-			)
+		if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+						 target == eGL_SHADER_STORAGE_BUFFER ||
+						 target == eGL_ATOMIC_COUNTER_BUFFER))
 		{
-			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(r->GetResourceID());
+			else
+				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 		}
 
 		if(m_State == WRITING_CAPFRAME)
@@ -1097,15 +1105,16 @@ void WrappedOpenGL::glBindBufferRange(GLenum target, GLuint index, GLuint buffer
 
 			cd.m_FeedbackRecord->AddChunk(scope.Get());
 		}
-
+		
 		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-		if(m_State == WRITING_IDLE &&
-			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-			target == eGL_SHADER_STORAGE_BUFFER ||
-			target == eGL_ATOMIC_COUNTER_BUFFER)
-			)
+		if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		         target == eGL_SHADER_STORAGE_BUFFER ||
+		         target == eGL_ATOMIC_COUNTER_BUFFER))
 		{
-			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(r->GetResourceID());
+			else
+				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
 		}
 
 		if(m_State == WRITING_CAPFRAME)
@@ -1162,10 +1171,12 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 	{
 		size_t idx = BufferIdx(target);
 
+		GLResourceRecord *r = NULL;
+
 		if(buffers[0] == 0)
-			cd.m_BufferRecord[idx] = NULL;
+			r = cd.m_BufferRecord[idx] = NULL;
 		else
-			cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
+			r = cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[0]));
 		
 		if(m_State == WRITING_CAPFRAME)
 		{
@@ -1178,10 +1189,16 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 				target == eGL_SHADER_STORAGE_BUFFER ||
 				target == eGL_TRANSFORM_FEEDBACK_BUFFER)
 				refType = eFrameRef_Write;
-
+			
 			for(GLsizei i=0; i < count; i++)
+			{
 				if(buffers[i])
-					GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
+				{
+					ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
+					GetResourceManager()->MarkResourceFrameReferenced(id, refType);
+					m_MissingTracks.insert(id);
+				}
+			}
 		}
 
 		for(int i=0; i < count; i++)
@@ -1219,16 +1236,17 @@ void WrappedOpenGL::glBindBuffersBase(GLenum target, GLuint first, GLsizei count
 				cd.m_FeedbackRecord->AddChunk(scope.Get());
 			}
 		}
-
+		
 		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-		if(m_State == WRITING_IDLE &&
-			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-			target == eGL_SHADER_STORAGE_BUFFER ||
-			target == eGL_ATOMIC_COUNTER_BUFFER)
-			)
+		if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		         target == eGL_SHADER_STORAGE_BUFFER ||
+		         target == eGL_ATOMIC_COUNTER_BUFFER))
 		{
-			for(int i=0; i < count; i++)
-				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+			if(m_State == WRITING_IDLE)
+			{
+				for(int i=0; i < count; i++)
+					GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+			}
 		}
 
 		if(m_State == WRITING_CAPFRAME)
@@ -1315,27 +1333,35 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 				refType = eFrameRef_Write;
 
 			for(GLsizei i=0; i < count; i++)
-				if(buffers[i])
-					GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])), refType);
-		}
-
-		for(int i=0; i < count; i++)
-		{
-			GLResourceRecord *r = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
-
-			// it's legal to re-type buffers, generate another BindBuffer chunk to rename
-			if(r->datatype != target)
 			{
-				Chunk *chunk = NULL;
-
+				if(buffers[i])
 				{
-					SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-					Serialise_glBindBuffer(target, buffers[i]);
-
-					chunk = scope.Get();
+					ResourceId id = GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]));
+					GetResourceManager()->MarkResourceFrameReferenced(id, refType);
+					m_MissingTracks.insert(id);
 				}
+			}
+		}
+		else
+		{
+			for(int i=0; i < count; i++)
+			{
+				GLResourceRecord *r = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
 
-				r->AddChunk(chunk);
+				// it's legal to re-type buffers, generate another BindBuffer chunk to rename
+				if(r->datatype != target)
+				{
+					Chunk *chunk = NULL;
+
+					{
+						SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+						Serialise_glBindBuffer(target, buffers[i]);
+
+						chunk = scope.Get();
+					}
+
+					r->AddChunk(chunk);
+				}
 			}
 		}
 
@@ -1354,16 +1380,17 @@ void WrappedOpenGL::glBindBuffersRange(GLenum target, GLuint first, GLsizei coun
 				cd.m_FeedbackRecord->AddChunk(scope.Get());
 			}
 		}
-
+		
 		// immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-		if(m_State == WRITING_IDLE &&
-			(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
-			target == eGL_SHADER_STORAGE_BUFFER ||
-			target == eGL_ATOMIC_COUNTER_BUFFER)
-			)
+		if(target == eGL_TRANSFORM_FEEDBACK_BUFFER ||
+		   target == eGL_SHADER_STORAGE_BUFFER ||
+		   target == eGL_ATOMIC_COUNTER_BUFFER)
 		{
-			for(int i=0; i < count; i++)
-				GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+			if(m_State == WRITING_IDLE)
+			{
+				for(int i=0; i < count; i++)
+					GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffers[i]));
+			}
 		}
 
 		if(m_State == WRITING_CAPFRAME)
@@ -1382,14 +1409,18 @@ void WrappedOpenGL::glInvalidateBufferData(GLuint buffer)
 
 	if(m_State == WRITING_IDLE)
 		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+	else
+		m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 }
 
 void WrappedOpenGL::glInvalidateBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr length)
 {
 	m_Real.glInvalidateBufferSubData(buffer, offset, length);
-
+	
 	if(m_State == WRITING_IDLE)
 		GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+	else
+		m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 }
 
 #pragma endregion
@@ -1950,7 +1981,10 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 		auto status = record->Map.status;
-		
+
+		if(m_State == WRITING_CAPFRAME)
+			m_MissingTracks.insert(record->GetResourceID());
+
 		GLboolean ret = GL_TRUE;
 
 		switch(status)
@@ -1963,7 +1997,11 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
 				break;
 			case GLResourceRecord::Mapped_Ignore_Real:
 				if(m_State == WRITING_CAPFRAME)
-					RDCERR("Failed to cap frame - uncapped Map/Unmap");
+				{
+					RDCERR("Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding Map() for");
+					m_SuccessfulCapture = false;
+					m_FailureReason = CaptureFailed_UncappedUnmap;
+				}
 				// need to do the real unmap
 				ret = m_Real.glUnmapNamedBufferEXT(buffer);
 				break;
@@ -2125,13 +2163,17 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
 	{
 		if(record)
 		{
+			m_MissingTracks.insert(record->GetResourceID());
+
 			if(record->Map.status == GLResourceRecord::Unmapped)
 			{
 				RDCWARN("Unmapped buffer being flushed, ignoring");
 			}
 			else if(record->Map.status == GLResourceRecord::Mapped_Ignore_Real)
 			{
-				RDCERR("Failed to cap frame - uncapped Map/Unmap being flushed");
+				RDCERR("Failed to cap frame - we saw an FlushMappedBuffer() that we didn't capture the corresponding Map() for");
+				m_SuccessfulCapture = false;
+				m_FailureReason = CaptureFailed_UncappedUnmap;
 			}
 			else if(record->Map.status == GLResourceRecord::Mapped_Write)
 			{

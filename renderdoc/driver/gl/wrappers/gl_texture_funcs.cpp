@@ -674,6 +674,7 @@ void WrappedOpenGL::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, 
 		Serialise_glGenerateTextureMipmapEXT(record->Resource.name, target);
 		
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 	else if(m_State == WRITING_IDLE)
 	{
@@ -719,6 +720,8 @@ void WrappedOpenGL::glInvalidateTexImage(GLuint texture, GLint level)
 
 	if(m_State == WRITING_IDLE)
 		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+	else
+		m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 }
 
 void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset, GLint yoffset, GLint zoffset, GLsizei width, GLsizei height, GLsizei depth)
@@ -727,6 +730,8 @@ void WrappedOpenGL::glInvalidateTexSubImage(GLuint texture, GLint level, GLint x
 
 	if(m_State == WRITING_IDLE)
 		GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
+	else
+		m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
 }
 
 bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX, GLint srcY, GLint srcZ,
@@ -811,6 +816,7 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
 												         srcWidth, srcHeight, srcDepth);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(dstrecord->GetResourceID());
 	}
 	else if(m_State == WRITING_IDLE)
 	{
@@ -855,6 +861,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, 
 		Serialise_glCopyTextureSubImage1DEXT(record->Resource.name, target, level, xoffset, x, y, width);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 }
 
@@ -929,6 +936,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, 
 		Serialise_glCopyTextureSubImage2DEXT(record->Resource.name, target, level, xoffset, yoffset, x, y, width, height);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 }
 
@@ -997,6 +1005,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, 
 	if(m_State == WRITING_IDLE)
 	{
 		GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 	else if(m_State == WRITING_CAPFRAME)
 	{
@@ -1004,6 +1013,7 @@ void WrappedOpenGL::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, 
 		Serialise_glCopyTextureSubImage3DEXT(record->Resource.name, target, level, xoffset, yoffset, zoffset, x, y, width, height);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 }
 
@@ -1682,7 +1692,7 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
 		{
@@ -1698,6 +1708,11 @@ void WrappedOpenGL::Common_glTextureImage1DEXT(ResourceId texId, GLenum target, 
 
 			// illegal to re-type textures
 			record->VerifyDataType(target);
+
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
+				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
 
@@ -1860,7 +1875,7 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 		   m_Textures[record->GetResourceID()].height == height &&
 			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
@@ -1877,8 +1892,10 @@ void WrappedOpenGL::Common_glTextureImage2DEXT(ResourceId texId, GLenum target, 
 			
 			// illegal to re-type textures
 			record->VerifyDataType(target);
-
-			if(fromunpackbuf)
+			
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
@@ -2021,7 +2038,7 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 		   m_Textures[record->GetResourceID()].height == height &&
 		   m_Textures[record->GetResourceID()].depth == depth &&
@@ -2040,7 +2057,9 @@ void WrappedOpenGL::Common_glTextureImage3DEXT(ResourceId texId, GLenum target, 
 			// illegal to re-type textures
 			record->VerifyDataType(target);
 
-			if(fromunpackbuf)
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
@@ -2187,7 +2206,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
 		{
@@ -2204,7 +2223,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage1DEXT(ResourceId texId, GLenu
 			// illegal to re-type textures
 			record->VerifyDataType(target);
 
-			if(fromunpackbuf)
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
@@ -2374,7 +2395,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 		   m_Textures[record->GetResourceID()].height == height &&
 			 m_Textures[record->GetResourceID()].internalFormat == (GLenum)internalformat)
@@ -2392,7 +2413,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage2DEXT(ResourceId texId, GLenu
 			// illegal to re-type textures
 			record->VerifyDataType(target);
 
-			if(fromunpackbuf)
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
@@ -2541,7 +2564,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
 		// so we need to attempt to catch the case where glTexImage is called to re-upload data, not actually re-create it.
 		// Ideally we'd check for non-zero levels, but that would complicate the condition
 		// if we're uploading new data but otherwise everything is identical, ignore this chunk and simply mark the texture dirty
-		if(record->AlreadyDataType(target) && level == 0 &&
+		if(m_State == WRITING_IDLE && record->AlreadyDataType(target) && level == 0 &&
 		   m_Textures[record->GetResourceID()].width == width &&
 		   m_Textures[record->GetResourceID()].height == height &&
 		   m_Textures[record->GetResourceID()].depth == depth &&
@@ -2560,7 +2583,9 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
 			// illegal to re-type textures
 			record->VerifyDataType(target);
 
-			if(fromunpackbuf)
+			if(m_State == WRITING_CAPFRAME)
+				m_MissingTracks.insert(record->GetResourceID());
+			else if(fromunpackbuf)
 				GetResourceManager()->MarkDirtyResource(record->GetResourceID());
 		}
 	}
@@ -2672,6 +2697,7 @@ void WrappedOpenGL::Common_glCopyTextureImage1DEXT(GLResourceRecord *record, GLe
 		Serialise_glCopyTextureImage1DEXT(record->Resource.name, target, level, internalformat, x, y, width, border);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 
 	if(level == 0)
@@ -2780,6 +2806,7 @@ void WrappedOpenGL::Common_glCopyTextureImage2DEXT(GLResourceRecord *record, GLe
 		Serialise_glCopyTextureImage2DEXT(record->Resource.name, target, level, internalformat, x, y, width, height, border);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		m_MissingTracks.insert(record->GetResourceID());
 	}
 	
 	if(level == 0)
@@ -3432,6 +3459,7 @@ void WrappedOpenGL::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLen
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -3586,6 +3614,7 @@ void WrappedOpenGL::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLen
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -3742,6 +3771,7 @@ void WrappedOpenGL::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLen
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -3876,6 +3906,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *re
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -4012,6 +4043,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *re
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -4150,6 +4182,7 @@ void WrappedOpenGL::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *re
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
 		}
 		else
 		{
@@ -4261,6 +4294,8 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(scope.Get());
+			m_MissingTracks.insert(record->GetResourceID());
+			m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 		}
 		else
 		{
@@ -4366,6 +4401,8 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target, G
 		if(m_State == WRITING_CAPFRAME)
 		{
 			m_ContextRecord->AddChunk(chunk);
+			m_MissingTracks.insert(record->GetResourceID());
+			m_MissingTracks.insert(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 		}
 		else
 		{

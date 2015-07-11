@@ -696,8 +696,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_ActiveConditional = false;
 	m_ActiveFeedback = false;
 	
-	m_DisplayListRecord = NULL;
-	
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
 #else
