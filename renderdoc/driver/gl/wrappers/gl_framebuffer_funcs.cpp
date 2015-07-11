@@ -1037,7 +1037,7 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 		Serialise_glBindFramebuffer(target, framebuffer);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_Read);
 	}
 
 	if(framebuffer == 0 && m_State < WRITING)
@@ -1396,8 +1396,8 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
 		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_ReadBeforeWrite);
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_Read);
 	}
 	
 	// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
@@ -1422,8 +1422,8 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
 		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_ReadBeforeWrite);
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_Read);
 	}
 	
 	m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
