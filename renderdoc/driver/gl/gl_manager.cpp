@@ -644,6 +644,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 			Prepare_InitialState(res, (byte *)data);
 		}
 	}
+	else if(res.Namespace == eResRenderbuffer)
+	{
+		//
+	}
 	else
 	{
 		RDCERR("Unexpected type of resource requiring initial state");
@@ -1209,6 +1213,11 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 			SetInitialContents(Id, InitialContentData(GLResource(MakeNullResource), 0, blob));
 		}
 	}
+	else if(res.Namespace == eResRenderbuffer)
+	{
+		RDCWARN("Technically you could try and readback the contents of a RenderBuffer via pixel copy.");
+		RDCWARN("Currently we don't support that though, and initial contents will be uninitialised.");
+	}
 	else
 	{
 		RDCERR("Unexpected type of resource requiring initial state");
@@ -1227,7 +1236,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
 	{
 		GLNOTIMP("Need to set initial default state for vertex array objects without an initial state");
 	}
-	else if(live.Namespace != eResBuffer)
+	else if(live.Namespace != eResBuffer && live.Namespace != eResProgram && live.Namespace != eResRenderbuffer)
 	{
 		RDCUNIMPLEMENTED("Expect all initial states to be created & not skipped, presently");
 	}
@@ -1550,6 +1559,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			gl.glBindVertexArray(VAO);
 		}
+	}
+	else if(live.Namespace == eResRenderbuffer)
+	{
 	}
 	else
 	{
