@@ -490,6 +490,9 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 				memcpy(record->GetDataPtr(), data, (size_t)size);
 			else
 				memset(record->GetDataPtr(), 0xbe, (size_t)size);
+
+			SAFE_DELETE_ARRAY(dummy);
+
 			return;
 		}
 		
@@ -616,6 +619,9 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 				memcpy(record->GetDataPtr(), data, (size_t)size);
 			else
 				memset(record->GetDataPtr(), 0xbe, (size_t)size);
+
+			SAFE_DELETE_ARRAY(dummy);
+
 			return;
 		}
 
