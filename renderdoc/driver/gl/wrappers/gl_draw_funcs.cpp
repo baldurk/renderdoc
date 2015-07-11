@@ -85,6 +85,15 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 		Serialise_glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -166,6 +175,15 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 		Serialise_glDispatchComputeGroupSizeARB(num_groups_x, num_groups_y, num_groups_z, group_size_x, group_size_y, group_size_z);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -219,6 +237,15 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 		Serialise_glDispatchComputeIndirect(indirect);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -363,6 +390,15 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 		Serialise_glDrawTransformFeedback(mode, id);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -419,6 +455,15 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 		Serialise_glDrawTransformFeedbackInstanced(mode, id, instancecount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -475,6 +520,15 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 		Serialise_glDrawTransformFeedbackStream(mode, id, stream);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -532,6 +586,15 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 		Serialise_glDrawTransformFeedbackStreamInstanced(mode, id, stream, instancecount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -589,6 +652,15 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 		Serialise_glDrawArrays(mode, first, count);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -648,6 +720,15 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 		Serialise_glDrawArraysIndirect(mode, indirect);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -706,6 +787,15 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 		Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -766,6 +856,15 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 		Serialise_glDrawArraysInstancedBaseInstance(mode, first, count, instancecount, baseinstance);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -905,6 +1004,15 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 		Serialise_glDrawElements(mode, count, type, indices);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -973,6 +1081,15 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 		Serialise_glDrawElementsIndirect(mode, type, indirect);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1043,6 +1160,15 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 		Serialise_glDrawRangeElements(mode, start, end, count, type, indices);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1115,6 +1241,15 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 		Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1185,6 +1320,15 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 		Serialise_glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1255,6 +1399,15 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 		Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1327,6 +1480,15 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 		Serialise_glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1399,6 +1561,15 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 		Serialise_glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1473,6 +1644,15 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 		Serialise_glDrawElementsInstancedBaseVertexBaseInstance(mode, count, type, indices, instancecount, basevertex, baseinstance);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1595,6 +1775,15 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 		Serialise_glMultiDrawArrays(mode, first, count, drawcount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1741,6 +1930,15 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 		Serialise_glMultiDrawElements(mode, count, type, indices, drawcount);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -1898,6 +2096,15 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
 		Serialise_glMultiDrawElementsBaseVertex(mode, count, type, indices, drawcount, basevertex);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -2043,6 +2250,15 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 		Serialise_glMultiDrawArraysIndirect(mode, indirect, drawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -2198,6 +2414,15 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 		Serialise_glMultiDrawElementsIndirect(mode, type, indirect, drawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -2355,6 +2580,15 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indi
 		Serialise_glMultiDrawArraysIndirectCountARB(mode, indirect, drawcount, maxdrawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -2521,6 +2755,15 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 		Serialise_glMultiDrawElementsIndirectCountARB(mode, type, indirect, drawcount, maxdrawcount, stride);
 
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 
@@ -2626,6 +2869,15 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 		Serialise_glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
 		
 		m_ContextRecord->AddChunk(scope.Get());
+
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.FetchState(GetCtx(), this);
+		state.MarkReferenced(this, false);
+	}
+	else if(m_State == WRITING_IDLE)
+	{
+		GLRenderState state(&m_Real, m_pSerialiser, m_State);
+		state.MarkDirty(GetResourceManager(), GetCtx(), this);
 	}
 }
 

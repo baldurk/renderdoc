@@ -61,6 +61,9 @@ struct GLRenderState
 	void Clear();
 	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 
+	void MarkReferenced(WrappedOpenGL *gl, bool initial) const;
+	void MarkDirty(GLResourceManager *manager, void *ctx, WrappedOpenGL *gl);
+
 	enum
 	{
 		// eEnabled_Blend // handled below with blend values

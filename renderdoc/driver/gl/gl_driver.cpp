@@ -2485,6 +2485,8 @@ bool WrappedOpenGL::Serialise_BeginCaptureFrame(bool applyInitialState)
 	if(m_State >= WRITING)
 	{
 		state.FetchState(GetCtx(), this);
+
+		state.MarkReferenced(this, true);
 	}
 
 	state.Serialise(m_State, GetCtx(), this);
