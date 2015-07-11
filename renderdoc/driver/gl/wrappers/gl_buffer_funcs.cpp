@@ -827,6 +827,16 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 		GLResourceRecord *writerecord = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), writeBuffer));
 		RDCASSERT(readrecord && writerecord);
 
+		if(m_HighTrafficResources.find(writerecord->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
+			return;
+
+		if(GetResourceManager()->IsResourceDirty(readrecord->GetResourceID()) && m_State != WRITING_CAPFRAME)
+		{
+			m_HighTrafficResources.insert(writerecord->GetResourceID());
+			GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
+			return;
+		}
+
 		SCOPED_SERIALISE_CONTEXT(COPYBUFFERSUBDATA);
 		Serialise_glNamedCopyBufferSubDataEXT(readBuffer, writeBuffer, readOffset, writeOffset, size);
 
@@ -840,6 +850,13 @@ void WrappedOpenGL::glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeB
 		{
 			writerecord->AddChunk(chunk);
 			writerecord->AddParent(readrecord);
+			writerecord->UpdateCount++;
+
+			if(writerecord->UpdateCount > 60)
+			{
+				m_HighTrafficResources.insert(writerecord->GetResourceID());
+				GetResourceManager()->MarkDirtyResource(writerecord->GetResourceID());
+			}
 		}
 	}
 }
