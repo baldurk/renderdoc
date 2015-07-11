@@ -701,18 +701,12 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	m_ActiveConditional = false;
 	m_ActiveFeedback = false;
 	
-#if defined(RELEASE)
-	const bool debugSerialiser = false;
-#else
-	const bool debugSerialiser = true;
-#endif
-
 	if(RenderDoc::Inst().IsReplayApp())
 	{
 		m_State = READING;
 		if(logfile)
 		{
-			m_pSerialiser = new Serialiser(logfile, Serialiser::READING, debugSerialiser);
+			m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
 		}
 		else
 		{
@@ -729,7 +723,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	else
 	{
 		m_State = WRITING_IDLE;
-		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
 	}
 
 	m_DeviceRecord = NULL;
