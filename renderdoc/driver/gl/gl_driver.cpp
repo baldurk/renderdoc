@@ -2208,10 +2208,6 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 	if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
 		EndFrameCapture(ctxdata.ctx, windowHandle);
 	
-	// for now, only allow one captured frame at all
-	if(!m_FrameRecord.empty())
-		return;
-	
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
 		StartFrameCapture(ctxdata.ctx, windowHandle);
