@@ -432,14 +432,6 @@ bool WrappedOpenGL::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr siz
 
 	SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
 	
-	if(m_State == WRITING_CAPFRAME && id.id == 22)
-	{
-		uint32_t *debug = (uint32_t *)data;
-		RDCLOG("Serialised glBufferData for 22: %08x %08x %08x %08x %08x %08x %08x %08x",
-			debug[0], debug[1], debug[2], debug[3],
-			debug[4], debug[5], debug[6], debug[7]);
-	}
-
 	uint64_t offs = m_pSerialiser->GetOffset();
 
 	SERIALISE_ELEMENT(GLenum, Usage, usage);
