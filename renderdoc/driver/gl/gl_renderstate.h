@@ -62,7 +62,7 @@ struct GLRenderState
 	void Serialise(LogState state, void *ctx, WrappedOpenGL *gl);
 
 	void MarkReferenced(WrappedOpenGL *gl, bool initial) const;
-	void MarkDirty(GLResourceManager *manager, void *ctx, WrappedOpenGL *gl);
+	void MarkDirty(WrappedOpenGL *gl);
 
 	enum
 	{

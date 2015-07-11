@@ -290,6 +290,231 @@ GLRenderState::~GLRenderState()
 {
 }
 
+void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
+{
+	GLResourceManager *manager = gl->GetResourceManager();
+
+	void *ctx = gl->GetCtx();
+
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
+	{
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex1D[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2D[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex3D[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex1DArray[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2DArray[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, TexCubeArray[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, TexRect[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, TexBuffer[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, TexCube[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2DMS[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2DMSArray[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		manager->MarkResourceFrameReferenced(SamplerRes(ctx, Samplers[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+	}
+
+	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Images); i++)
+	{
+		manager->MarkResourceFrameReferenced(TextureRes(ctx, Images[i].name), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+		gl->AddMissingTrack(manager->GetID(TextureRes(ctx, Images[i].name)));
+	}
+	
+	manager->MarkResourceFrameReferenced(VertexArrayRes(ctx, VAO), initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+	// we need to find all the buffers bound to the VAO and mark them referenced to. The reason for this
+	// is that say a VAO became high traffic and we stopped serialising buffer binds, but then it is never
+	// modified in this frame and none of the buffers are ever referenced. They would be eliminated from
+	// the log and the VAO initial state that tries to bind them would fail.
+	// Normally this would be handled by record parenting, but that would be a nightmare to track for VAOs.
+	if(VAO)
+	{
+		GLint numVBufferBindings = 16;
+		gl->glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+
+		for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
+		{
+			GLuint buffer = GetBoundVertexBuffer(*m_Real, i);
+
+			manager->MarkResourceFrameReferenced(BufferRes(ctx, buffer), initial ? eFrameRef_Unknown : eFrameRef_Read);
+		}
+
+		GLuint ibuffer = 0;
+		gl->glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, ibuffer), initial ? eFrameRef_Unknown : eFrameRef_Read);
+	}
+
+	manager->MarkResourceFrameReferenced(FeedbackRes(ctx, FeedbackObj), initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+	manager->MarkResourceFrameReferenced(ProgramRes(ctx, Program), initial ? eFrameRef_Unknown : eFrameRef_Read);
+	manager->MarkResourceFrameReferenced(ProgramPipeRes(ctx, Pipeline), initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+	for(size_t i=0; i < ARRAY_COUNT(BufferBindings); i++)
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, BufferBindings[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+	for(size_t i=0; i < ARRAY_COUNT(AtomicCounter); i++)
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, AtomicCounter[i].name), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+
+	for(size_t i=0; i < ARRAY_COUNT(ShaderStorage); i++)
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, ShaderStorage[i].name), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+
+	for(size_t i=0; i < ARRAY_COUNT(TransformFeedback); i++)
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, TransformFeedback[i].name), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
+
+	for(size_t i=0; i < ARRAY_COUNT(UniformBinding); i++)
+		manager->MarkResourceFrameReferenced(BufferRes(ctx, UniformBinding[i].name), initial ? eFrameRef_Unknown : eFrameRef_Read);
+	
+	GLint numCols = 8;
+	gl->glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+	// for the same reason as VAOs above, we need to find all the renderbuffers/textures bound to the FBOs
+	GLuint fbos[] = { ReadFBO, DrawFBO };
+	GLenum tgts[] = { eGL_READ_FRAMEBUFFER, eGL_DRAW_FRAMEBUFFER };
+	FrameRefType refs[] = { eFrameRef_Read, eFrameRef_ReadBeforeWrite };
+
+	// if same FBO is bound to both targets, treat it as draw only
+	if(ReadFBO == DrawFBO)
+		fbos[0] = 0;
+
+	for(size_t i=0; i < ARRAY_COUNT(fbos); i++)
+	{
+		manager->MarkResourceFrameReferenced(FramebufferRes(ctx, fbos[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
+
+		if(fbos[i])
+		{
+			GLenum type = eGL_TEXTURE;
+			GLuint name = 0;
+
+			for(int c=0; c < numCols; c++)
+			{
+				gl->glGetFramebufferAttachmentParameteriv(tgts[i], GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+				gl->glGetFramebufferAttachmentParameteriv(tgts[i], GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+				if(type == eGL_RENDERBUFFER)
+					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+				else
+					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+			}
+
+			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+			if(name)
+			{
+				if(type == eGL_RENDERBUFFER)
+					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+				else
+					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+			}
+
+			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+			if(name)
+			{
+				if(type == eGL_RENDERBUFFER)
+					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+				else
+					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
+			}
+		}
+	}
+}
+
+void GLRenderState::MarkDirty(WrappedOpenGL *gl)
+{
+	GLResourceManager *manager = gl->GetResourceManager();
+
+	void *ctx = gl->GetCtx();
+
+	GLint maxCount = 0;
+	m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
+	
+	GLuint name = 0;
+
+	for(GLint i=0; i < maxCount; i++)
+	{
+		name = 0;
+
+		m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint*)&name);
+		
+		if(name)
+			manager->MarkDirtyResource(TextureRes(ctx, name));
+	}
+
+	m_Real->glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+	for(GLint i=0; i < maxCount; i++)
+	{
+		m_Real->glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint*)&name);
+		
+		if(name)
+			manager->MarkDirtyResource(BufferRes(ctx, name));
+	}
+	
+	m_Real->glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
+
+	for(GLint i=0; i < maxCount; i++)
+	{
+		m_Real->glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint*)&name);
+		
+		if(name)
+			manager->MarkDirtyResource(BufferRes(ctx, name));
+	}
+	
+	m_Real->glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
+
+	for(GLint i=0; i < maxCount; i++)
+	{
+		m_Real->glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&name);
+		
+		if(name)
+			manager->MarkDirtyResource(BufferRes(ctx, name));
+	}
+
+	m_Real->glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &maxCount);
+
+	m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&name);
+
+	if(name)
+	{
+		GLenum type = eGL_TEXTURE;
+		for(GLint i=0; i < maxCount; i++)
+		{
+			m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+			m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+			if(name)
+			{
+				if(type == eGL_RENDERBUFFER)
+					manager->MarkDirtyResource(RenderbufferRes(ctx, name));
+				else
+					manager->MarkDirtyResource(TextureRes(ctx, name));
+			}
+		}
+
+		m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+		m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(name)
+		{
+			if(type == eGL_RENDERBUFFER)
+				manager->MarkDirtyResource(RenderbufferRes(ctx, name));
+			else
+				manager->MarkDirtyResource(TextureRes(ctx, name));
+		}
+
+		m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+		m_Real->glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(name)
+		{
+			if(type == eGL_RENDERBUFFER)
+				manager->MarkDirtyResource(RenderbufferRes(ctx, name));
+			else
+				manager->MarkDirtyResource(TextureRes(ctx, name));
+		}
+	}
+}
+
 void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 {
 	GLint boolread = 0;
@@ -362,7 +587,20 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 	}
 
 	m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
-	
+
+	RDCCOMPILE_ASSERT(sizeof(Tex1D) == sizeof(Tex2D) &&
+		sizeof(Tex2D) == sizeof(Tex3D) &&
+		sizeof(Tex3D) == sizeof(Tex1DArray) &&
+		sizeof(Tex1DArray) == sizeof(Tex2DArray) &&
+		sizeof(Tex2DArray) == sizeof(TexCubeArray) &&
+		sizeof(TexCubeArray) == sizeof(TexRect) &&
+		sizeof(TexRect) == sizeof(TexBuffer) &&
+		sizeof(TexBuffer) == sizeof(TexCube) &&
+		sizeof(TexCube) == sizeof(Tex2DMS) &&
+		sizeof(Tex2DMS) == sizeof(Tex2DMSArray) &&
+		sizeof(Tex2DMSArray) == sizeof(Samplers),
+		"All texture arrays should be identically sized");
+
 	for(GLuint i=0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
 	{
 		m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));

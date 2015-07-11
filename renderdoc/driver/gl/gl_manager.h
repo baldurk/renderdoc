@@ -175,6 +175,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 
 		void MarkResourceFrameReferenced(GLResource res, FrameRefType refType)
 		{
+			if(res.name == 0) return;
 			ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
 		}
 

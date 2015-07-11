@@ -93,7 +93,7 @@ void WrappedOpenGL::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, 
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -183,7 +183,7 @@ void WrappedOpenGL::glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint nu
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -245,7 +245,7 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -398,7 +398,7 @@ void WrappedOpenGL::glDrawTransformFeedback(GLenum mode, GLuint id)
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -463,7 +463,7 @@ void WrappedOpenGL::glDrawTransformFeedbackInstanced(GLenum mode, GLuint id, GLs
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -528,7 +528,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStream(GLenum mode, GLuint id, GLuint
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -594,7 +594,7 @@ void WrappedOpenGL::glDrawTransformFeedbackStreamInstanced(GLenum mode, GLuint i
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -660,7 +660,7 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -728,7 +728,7 @@ void WrappedOpenGL::glDrawArraysIndirect(GLenum mode, const void *indirect)
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -795,7 +795,7 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -864,7 +864,7 @@ void WrappedOpenGL::glDrawArraysInstancedBaseInstance(GLenum mode, GLint first, 
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1012,7 +1012,7 @@ void WrappedOpenGL::glDrawElements(GLenum mode, GLsizei count, GLenum type, cons
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1089,7 +1089,7 @@ void WrappedOpenGL::glDrawElementsIndirect(GLenum mode, GLenum type, const void 
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1168,7 +1168,7 @@ void WrappedOpenGL::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, G
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1249,7 +1249,7 @@ void WrappedOpenGL::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLu
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1328,7 +1328,7 @@ void WrappedOpenGL::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum 
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1407,7 +1407,7 @@ void WrappedOpenGL::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum t
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1488,7 +1488,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei cou
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1569,7 +1569,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1652,7 +1652,7 @@ void WrappedOpenGL::glDrawElementsInstancedBaseVertexBaseInstance(GLenum mode, G
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1783,7 +1783,7 @@ void WrappedOpenGL::glMultiDrawArrays(GLenum mode, const GLint *first, const GLs
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -1938,7 +1938,7 @@ void WrappedOpenGL::glMultiDrawElements(GLenum mode, const GLsizei *count, GLenu
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2104,7 +2104,7 @@ void WrappedOpenGL::glMultiDrawElementsBaseVertex(GLenum mode, const GLsizei *co
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2258,7 +2258,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirect(GLenum mode, const void *indirect,
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2422,7 +2422,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirect(GLenum mode, GLenum type, const 
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2588,7 +2588,7 @@ void WrappedOpenGL::glMultiDrawArraysIndirectCountARB(GLenum mode, GLintptr indi
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2763,7 +2763,7 @@ void WrappedOpenGL::glMultiDrawElementsIndirectCountARB(GLenum mode, GLenum type
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
@@ -2877,7 +2877,7 @@ void WrappedOpenGL::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
 	else if(m_State == WRITING_IDLE)
 	{
 		GLRenderState state(&m_Real, m_pSerialiser, m_State);
-		state.MarkDirty(GetResourceManager(), GetCtx(), this);
+		state.MarkDirty(this);
 	}
 }
 
