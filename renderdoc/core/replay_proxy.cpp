@@ -550,7 +550,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Rasterizer &el)
 	Serialise("", el.Scissors);
 	Serialise("", el.m_State);
 
-	SIZE_CHECK(GLPipelineState::FrameBuffer, 128);
+	SIZE_CHECK(GLPipelineState::Rasterizer, 104);
 }
 
 template<>
@@ -625,6 +625,8 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
 	Serialise("", el.m_DrawFBO.Obj);
 	Serialise("", el.m_DrawFBO.Color);
+	Serialise("", el.m_ReadFBO.Layer);
+	Serialise("", el.m_ReadFBO.Mip);
 	Serialise("", el.m_DrawFBO.Depth);
 	Serialise("", el.m_DrawFBO.Stencil);
 	Serialise("", el.m_DrawFBO.DrawBuffers);
@@ -632,6 +634,8 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
 	Serialise("", el.m_ReadFBO.Obj);
 	Serialise("", el.m_ReadFBO.Color);
+	Serialise("", el.m_ReadFBO.Layer);
+	Serialise("", el.m_ReadFBO.Mip);
 	Serialise("", el.m_ReadFBO.Depth);
 	Serialise("", el.m_ReadFBO.Stencil);
 	Serialise("", el.m_ReadFBO.DrawBuffers);
@@ -639,7 +643,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
 	Serialise("", el.m_Blending);
 
-	SIZE_CHECK(GLPipelineState::FrameBuffer, 128);
+	SIZE_CHECK(GLPipelineState::FrameBuffer, 160);
 }
 
 template<>
@@ -673,7 +677,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
 	Serialise("", el.m_Hints);
 
-	SIZE_CHECK(GLPipelineState, 952);
+	SIZE_CHECK(GLPipelineState, 984);
 }
 
 #pragma endregion OpenGL pipeline state

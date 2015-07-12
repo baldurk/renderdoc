@@ -282,6 +282,8 @@ struct GLPipelineState
 			FBO() : Obj(), Depth(), Stencil() {}
 			ResourceId Obj;
 			rdctype::array<ResourceId> Color;
+			rdctype::array<uint32_t> Layer;
+			rdctype::array<uint32_t> Mip;
 			ResourceId Depth;
 			ResourceId Stencil;
 

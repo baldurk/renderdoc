@@ -320,6 +320,10 @@ namespace renderdoc
 
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public ResourceId[] Color;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public UInt32[] Layer;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public UInt32[] Mip;
                 public ResourceId Depth;
                 public ResourceId Stencil;
 
