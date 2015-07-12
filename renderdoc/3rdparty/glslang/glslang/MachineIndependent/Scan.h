@@ -106,7 +106,7 @@ public:
                 }
                 --ch;
               }
-              loc[currentSource].column = currentChar - ch;
+              loc[currentSource].column = (int)(currentChar - ch);
             }
         } else {
             do {
@@ -139,7 +139,7 @@ protected:
     void advance()
     {
         ++currentChar;
-        if (currentChar >= static_cast<int>(lengths[currentSource])) {
+        if (currentChar >= static_cast<size_t>(lengths[currentSource])) {
             ++currentSource;
             if (currentSource < numSources) {
                 loc[currentSource].string = loc[currentSource - 1].string + 1;

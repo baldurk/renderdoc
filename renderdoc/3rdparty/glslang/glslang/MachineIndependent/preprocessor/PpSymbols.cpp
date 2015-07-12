@@ -100,7 +100,7 @@ TPpContext::Symbol* TPpContext::NewSymbol(int atom)
 {
     Symbol* lSymb;
     char* pch;
-    int ii;
+    size_t ii;
 
     lSymb = (Symbol *) mem_Alloc(pool, sizeof(Symbol));
     lSymb->atom = atom;

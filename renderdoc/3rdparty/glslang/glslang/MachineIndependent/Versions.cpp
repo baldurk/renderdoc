@@ -457,6 +457,8 @@ bool TParseContext::extensionsTurnedOn(int numExtensions, const char* const exte
         case EBhRequire:
         case EBhWarn:
             return true;
+        default:
+            break;
         }
     }
 

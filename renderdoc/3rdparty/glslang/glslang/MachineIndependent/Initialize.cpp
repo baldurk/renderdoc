@@ -1054,7 +1054,7 @@ void TBuiltIns::initialize(int version, EProfile profile)
     //
     //============================================================================
     bool esBarrier = (profile == EEsProfile && version >= 310);
-    if (profile != EEsProfile && version >= 150 || esBarrier)
+    if ((profile != EEsProfile && version >= 150) || esBarrier)
         stageBuiltins[EShLangTessControl].append(
             "void barrier();"
             );

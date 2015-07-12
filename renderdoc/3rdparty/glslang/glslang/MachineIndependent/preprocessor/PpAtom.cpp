@@ -186,7 +186,7 @@ void TPpContext::InitAtomTable()
     }
 
     // Add multiple character scanner tokens :
-    for (int ii = 0; ii < sizeof(tokens)/sizeof(tokens[0]); ii++)
+    for (size_t ii = 0; ii < sizeof(tokens)/sizeof(tokens[0]); ii++)
         AddAtomFixed(tokens[ii].str, tokens[ii].val);
 
     nextAtom = CPP_FIRST_USER_TOKEN_SY;

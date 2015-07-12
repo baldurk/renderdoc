@@ -1101,9 +1101,9 @@ bool TGlslangToSpvTraverser::visitSwitch(glslang::TVisit /* visit */, glslang::T
     for (glslang::TIntermSequence::iterator c = sequence.begin(); c != sequence.end(); ++c) {
         TIntermNode* child = *c;
         if (child->getAsBranchNode() && child->getAsBranchNode()->getFlowOp() == glslang::EOpDefault)
-            defaultSegment = codeSegments.size();
+            defaultSegment = (int)codeSegments.size();
         else if (child->getAsBranchNode() && child->getAsBranchNode()->getFlowOp() == glslang::EOpCase) {
-            valueIndexToSegment[caseValues.size()] = codeSegments.size();
+            valueIndexToSegment[caseValues.size()] = (int)codeSegments.size();
             caseValues.push_back(child->getAsBranchNode()->getExpression()->getAsConstantUnion()->getConstArray()[0].getIConst());
         } else
             codeSegments.push_back(child);
@@ -1117,7 +1117,7 @@ bool TGlslangToSpvTraverser::visitSwitch(glslang::TVisit /* visit */, glslang::T
 
     // make the switch statement
     std::vector<spv::Block*> segmentBlocks; // returned, as the blocks allocated in the call
-    builder.makeSwitch(selector, codeSegments.size(), caseValues, valueIndexToSegment, defaultSegment, segmentBlocks);
+    builder.makeSwitch(selector, (int)codeSegments.size(), caseValues, valueIndexToSegment, defaultSegment, segmentBlocks);
 
     // emit all the code in the segments
     breakForLoop.push(false);
@@ -1347,7 +1347,7 @@ spv::Id TGlslangToSpvTraverser::convertGlslangToSpvType(const glslang::TType& ty
 
                     // built-in variable decorations
                     int builtIn = TranslateBuiltInDecoration(glslangType.getQualifier().builtIn);
-                    if (builtIn != spv::BadValue)
+                    if ((unsigned int)builtIn != spv::BadValue)
                         builder.addMemberDecoration(spvType, member, spv::DecorationBuiltIn, builtIn);
                 }
             }
@@ -2434,7 +2434,7 @@ spv::Id TGlslangToSpvTraverser::getSymbolId(const glslang::TIntermSymbol* symbol
 
     // built-in variable decorations
     int builtIn = TranslateBuiltInDecoration(symbol->getQualifier().builtIn);
-    if (builtIn != spv::BadValue)
+    if ((unsigned int)builtIn != spv::BadValue)
         builder.addDecoration(id, spv::DecorationBuiltIn, builtIn);
 
     if (linkageOnly)

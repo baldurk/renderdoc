@@ -51,10 +51,6 @@
     #include <cstdio>
 #endif
 
-#ifdef _MSC_VER
-    #pragma warning(disable : 4267) // conversion, possible loss of data
-#endif
-
 namespace spv {
 
 const int SpvBuilderMagic = 0xBB;
@@ -708,7 +704,7 @@ void Builder::closeMain()
 Function* Builder::makeFunctionEntry(Id returnType, const char* name, std::vector<Id>& paramTypes, Block **entry)
 {
     Id typeId = makeFunctionType(returnType, paramTypes);
-    Id firstParamId = paramTypes.size() == 0 ? 0 : getUniqueIds(paramTypes.size());
+    Id firstParamId = paramTypes.size() == 0 ? 0 : getUniqueIds((int)paramTypes.size());
     Function* function = new Function(getUniqueId(), returnType, typeId, firstParamId, module);
 
     if (entry) {
@@ -1035,7 +1031,7 @@ Id Builder::createRvalueSwizzle(Id typeId, Id source, std::vector<unsigned>& cha
 // Comments in header
 Id Builder::createLvalueSwizzle(Id typeId, Id target, Id source, std::vector<unsigned>& channels)
 {
-    assert(getNumComponents(source) == channels.size());
+    assert(getNumComponents(source) == (int)channels.size());
     if (channels.size() == 1 && getNumComponents(source) == 1)
         return createCompositeInsert(source, target, typeId, channels.front());
 
@@ -1179,7 +1175,7 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool proj, co
 Id Builder::createTextureQueryCall(Op opCode, const TextureParameters& parameters)
 {
     // Figure out the result type
-    Id resultType;
+    Id resultType = NoType;
     switch (opCode) {
     case OpTextureQuerySize:
     case OpTextureQuerySizeLod:
@@ -1474,7 +1470,7 @@ Id Builder::createCompare(Decoration precision, Id value1, Id value2, bool equal
 // OpCompositeConstruct
 Id Builder::createCompositeConstruct(Id typeId, std::vector<Id>& constituents)
 {
-    assert(isAggregateType(typeId) || getNumTypeComponents(typeId) > 1 && getNumTypeComponents(typeId) == constituents.size());
+    assert((isAggregateType(typeId) || getNumTypeComponents(typeId) > 1) && getNumTypeComponents(typeId) == (int)constituents.size());
 
     Instruction* op = new Instruction(getUniqueId(), typeId, OpCompositeConstruct);
     for (int c = 0; c < (int)constituents.size(); ++c)
@@ -1947,7 +1943,7 @@ Id Builder::accessChainLoad(Decoration /*precision*/)
         // static swizzle
         Id resultType = componentType;
         if (accessChain.swizzle.size() > 1)
-            resultType = makeVectorType(componentType, accessChain.swizzle.size());
+            resultType = makeVectorType(componentType, (int)accessChain.swizzle.size());
         id = createRvalueSwizzle(resultType, id, accessChain.swizzle);
     }
 

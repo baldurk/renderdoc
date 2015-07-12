@@ -446,7 +446,7 @@ int TPpContext::tStringInput::scan(TPpToken* ppToken)
                 const unsigned remainderMaxInt = 0xFFFFFFFFu - 10 * oneTenthMaxInt;
                 for (int i = 0; i < numericLen; i++) {
                     ch = ppToken->name[i] - '0';
-                    if ((ival > oneTenthMaxInt) || (ival == oneTenthMaxInt && ch > remainderMaxInt)) {
+                    if ((ival > oneTenthMaxInt) || (ival == oneTenthMaxInt && (unsigned)ch > remainderMaxInt)) {
                         pp->parseContext.error(ppToken->loc, "numeric literal too big", "", "");
                         ival = 0xFFFFFFFFu;
                         break;

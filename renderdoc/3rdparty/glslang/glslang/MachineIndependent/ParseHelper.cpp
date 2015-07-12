@@ -3461,13 +3461,13 @@ void TParseContext::setLayoutQualifier(TSourceLoc loc, TPublicType& publicType, 
             // the implementation-dependent constant gl_MaxTransformFeedbackBuffers."
             if (value >= resources.maxTransformFeedbackBuffers)
                 error(loc, "buffer is too large:", id.c_str(), "gl_MaxTransformFeedbackBuffers is %d", resources.maxTransformFeedbackBuffers);                
-            if (value >= TQualifier::layoutXfbBufferEnd)
+            if (value >= (int)TQualifier::layoutXfbBufferEnd)
                 error(loc, "buffer is too large:", id.c_str(), "internal max is %d", TQualifier::layoutXfbBufferEnd-1);
             else
                 publicType.qualifier.layoutXfbBuffer = value;
             return;
         } else if (id == "xfb_offset") {
-            if (value >= TQualifier::layoutXfbOffsetEnd)
+            if (value >= (int)TQualifier::layoutXfbOffsetEnd)
                 error(loc, "offset is too large:", id.c_str(), "internal max is %d", TQualifier::layoutXfbOffsetEnd-1);
             else
                 publicType.qualifier.layoutXfbOffset = value;
@@ -3477,9 +3477,9 @@ void TParseContext::setLayoutQualifier(TSourceLoc loc, TPublicType& publicType, 
             // implementation-dependent constant gl_MaxTransformFeedbackInterleavedComponents."
             if (value > 4 * resources.maxTransformFeedbackInterleavedComponents)
                 error(loc, "1/4 stride is too large:", id.c_str(), "gl_MaxTransformFeedbackInterleavedComponents is %d", resources.maxTransformFeedbackInterleavedComponents);
-            else if (value >= TQualifier::layoutXfbStrideEnd)
+            else if (value >= (int)TQualifier::layoutXfbStrideEnd)
                 error(loc, "stride is too large:", id.c_str(), "internal max is %d", TQualifier::layoutXfbStrideEnd-1);
-            if (value < TQualifier::layoutXfbStrideEnd)
+            if (value < (int)TQualifier::layoutXfbStrideEnd)
                 publicType.qualifier.layoutXfbStride = value;
             return;
         }
@@ -4827,7 +4827,7 @@ void TParseContext::fixBlockLocations(TSourceLoc loc, TQualifier& qualifier, TTy
                 TQualifier& memberQualifier = typeList[member].type->getQualifier();
                 TSourceLoc memberLoc = typeList[member].loc;
                 if (! memberQualifier.hasLocation()) {
-                    if (nextLocation >= TQualifier::layoutLocationEnd)
+                    if (nextLocation >= (int)TQualifier::layoutLocationEnd)
                         error(memberLoc, "location is too large", "location", "");
                     memberQualifier.layoutLocation = nextLocation;
                     memberQualifier.layoutComponent = 0;

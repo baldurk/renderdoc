@@ -685,7 +685,7 @@ int TScanContext::tokenizeIdentifier()
         return keyword;
 
     case ATOMIC_UINT:
-        if (parseContext.profile == EEsProfile && parseContext.version >= 310 ||
+        if ((parseContext.profile == EEsProfile && parseContext.version >= 310) ||
             parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_atomic_counters))
             return keyword;
         return es30ReservedFromGLSL(420);

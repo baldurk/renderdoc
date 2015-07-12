@@ -353,6 +353,7 @@ enum TOperator {
     // Texture operations
     //
 
+    ETextureGuardBegin,
     ETextureQuerySize,
     ETextureQueryLod,
     ETextureQueryLevels,
@@ -374,6 +375,7 @@ enum TOperator {
     ETextureGather,
     ETextureGatherOffset,
     ETextureGatherOffsets,
+    ETextureGuardEnd,
 };
 
 class TIntermTraverser;
@@ -484,10 +486,10 @@ public:
         terminal(aTerminal),
         first(testFirst) { }
     virtual void traverse(TIntermTraverser*);
-    TIntermNode*  getBody() { return body; }
-    TIntermTyped* getTest() { return test; }
-    TIntermTyped* getTerminal() { return terminal; }
-    bool testFirst() { return first; }
+    TIntermNode*  getBody() const { return body; }
+    TIntermTyped* getTest() const { return test; }
+    TIntermTyped* getTerminal() const { return terminal; }
+    bool testFirst() const { return first; }
 protected:
     TIntermNode* body;       // code to loop over
     TIntermTyped* test;      // exit condition associated with loop, could be 0 for 'for' loops
@@ -506,8 +508,8 @@ public:
     virtual       TIntermBranch* getAsBranchNode()       { return this; }
     virtual const TIntermBranch* getAsBranchNode() const { return this; }
     virtual void traverse(TIntermTraverser*);
-    TOperator getFlowOp() { return flowOp; }
-    TIntermTyped* getExpression() { return expression; }
+    TOperator getFlowOp() const { return flowOp; }
+    TIntermTyped* getExpression() const { return expression; }
 protected:
     TOperator flowOp;
     TIntermTyped* expression;
@@ -578,7 +580,7 @@ class TIntermOperator : public TIntermTyped {
 public:
     virtual       TIntermOperator* getAsOperator()       { return this; }
     virtual const TIntermOperator* getAsOperator() const { return this; }
-    TOperator getOp() { return op; }
+    TOperator getOp() const { return op; }
     bool modifiesState() const;
     bool isConstructor() const;
     virtual bool promote() { return true; }
@@ -650,8 +652,8 @@ public:
     virtual const TQualifierList& getQualifierList() const { return qualifier; }
     void setOptimize(bool o) { optimize = o; }
     void setDebug(bool d) { debug = d; }
-    bool getOptimize() { return optimize; }
-    bool getDebug() { return debug; }
+    bool getOptimize() const { return optimize; }
+    bool getDebug() const { return debug; }
     void addToPragmaTable(const TPragmaTable& pTable);
     const TPragmaTable& getPragmaTable() const { return *pragmaTable; }
 protected:

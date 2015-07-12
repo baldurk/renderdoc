@@ -56,8 +56,6 @@
     #pragma warning(disable : 4786) // Don't warn about too long identifiers
     #pragma warning(disable : 4514) // unused inline method
     #pragma warning(disable : 4201) // nameless union
-
-    #pragma warning(disable : 4267) // conversion, possible loss of data
 #endif
 
 #include <set>
