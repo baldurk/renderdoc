@@ -3890,10 +3890,16 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		uint32_t(intTex),
 	};
 
+	uint32_t shadoutsrcxyData[8];
+	memcpy(shadoutsrcxyData, srcxyData, sizeof(srcxyData));
+	srcxyData[2] = multisampled ? sampleIdx : 0;
+
 	ID3D11Buffer *srcxyCBuf = MakeCBuffer(sizeof(srcxyData));
+	ID3D11Buffer *shadoutsrcxyCBuf = MakeCBuffer(sizeof(shadoutsrcxyData));
 	ID3D11Buffer *storexyCBuf = MakeCBuffer(sizeof(srcxyData));
 
 	FillCBuffer(srcxyCBuf, (float *)srcxyData, sizeof(srcxyData));
+	FillCBuffer(shadoutsrcxyCBuf, (float *)srcxyData, sizeof(shadoutsrcxyData));
 
 	// so we do:
 	// per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy--> pixstoreDepth
@@ -4085,6 +4091,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		SAFE_RELEASE(depthCopyD16_DepthSRV);
 
 		SAFE_RELEASE(srcxyCBuf);
+		SAFE_RELEASE(shadoutsrcxyCBuf);
 		SAFE_RELEASE(storexyCBuf);
 
 		return history;
@@ -5338,6 +5345,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	shadoutCopyParams.sourceTex = shadoutCopyParams.srvTex = shadOutput;
 	shadoutCopyParams.srv[0] = shadOutputSRV;
 	shadoutCopyParams.uav = shadoutStoreUAV;
+	shadoutCopyParams.srcxyCBuf = shadoutsrcxyCBuf;
 	
 	depthCopyParams.sourceTex = depthCopyParams.srvTex = shaddepthOutput;
 	depthCopyParams.srv[0] = shaddepthOutputDepthSRV;
@@ -5861,6 +5869,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	SAFE_RELEASE(depthCopyD16_DepthSRV);
 
 	SAFE_RELEASE(srcxyCBuf);
+	SAFE_RELEASE(shadoutsrcxyCBuf);
 	SAFE_RELEASE(storexyCBuf);
 
 	return history;
