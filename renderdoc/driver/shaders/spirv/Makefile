@@ -12,8 +12,11 @@ OBJDIR=.obj
 
 VPATH=../../../3rdparty
 
-# VPATH above takes care of finding these within the 3rdparty directory
-GLSLANG_OBJECTS=glslang/OGLCompilersDLL/InitializeDll.o \
+# VPATH above takes care of finding the glslang files within the 3rdparty directory
+OBJECTS=spirv_common.o \
+spirv_compile.o \
+spirv_disassemble.o \
+glslang/OGLCompilersDLL/InitializeDll.o \
 glslang/SPIRV/GlslangToSpv.o \
 glslang/SPIRV/SpvBuilder.o \
 glslang/glslang/GenericCodeGen/CodeGen.o \
@@ -45,18 +48,9 @@ glslang/glslang/MachineIndependent/preprocessor/PpSymbols.o \
 glslang/glslang/MachineIndependent/preprocessor/PpTokens.o \
 glslang/glslang/OSDependent/Linux/ossource.o
 
-OBJECTS=spirv_common.o \
-spirv_compile.o \
-spirv_disassemble.o \
-$(GLSLANG_OBJECTS)
 
 .PHONY: all
 all: rdoc_spirv.a
-
-# glslang needs -Wno-error added :(
-GLSLANG_OBJDIR_OBJECTS=$(addprefix $(OBJDIR)/, $(GLSLANG_OBJECTS))
-
-$(GLSLANG_OBJDIR_OBJECTS): CPPFLAGS += -Wno-error
 
 $(OBJDIR)/%.o: %.cpp
 	@mkdir -p $$(dirname $@)
