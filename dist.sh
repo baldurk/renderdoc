@@ -45,6 +45,9 @@ cp dist/ReleasePDBs64/renderdocui.pdb dist/Release64/
 # Remove any build associated files that might have gotten dumped in the folders
 rm -f dist/Release{32,64}/*.{exp,lib,metagen,xml} dist/Release{32,64}/*.vshost.*
 
+# Delete all but xml files from PDB folder as well (large files, and not useful)
+rm -f dist/ReleasePDBs{32,64}/*.{exp,lib,metagen} dist/Release{32,64}/*.vshost.*
+
 # In the 64bit release folder, make an x86 subfolder and copy in renderdoc 32bit
 mkdir -p dist/Release64/x86
 rm -rf dist/Release32/pdblocate/x64 dist/ReleasePDBs32/pdblocate/x64
