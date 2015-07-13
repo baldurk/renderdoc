@@ -1227,6 +1227,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	}
 
 	vector<string> floatInputs;
+	vector< pair<string, pair<uint32_t, uint32_t> > > arrays; // name, pair<start semantic index, end semantic index>
 
 	uint32_t nextreg = 0;
 
@@ -1244,6 +1245,20 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 		{
 			extractHlsl += "//";
 			included = false;
+		}
+
+		bool arrayElem = false;
+
+		for(size_t a=0; a < arrays.size(); a++)
+		{
+			if(arrays[a].first == dxbc->m_InputSig[i].semanticName.elems &&
+				arrays[a].second.first <= dxbc->m_InputSig[i].semanticIndex &&
+				arrays[a].second.second >= dxbc->m_InputSig[i].semanticIndex)
+			{
+				extractHlsl += "//";
+				included = false;
+				arrayElem = true;
+			}
 		}
 
 		int missingreg = int(dxbc->m_InputSig[i].regIndex) - int(nextreg);
@@ -1321,11 +1336,79 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			structureStride += 4*numCols;
 
 		string name = dxbc->m_InputSig[i].semanticIdxName.elems;
+
+		// arrays of interpolators are handled really weirdly. They use cbuffer
+		// packing rules where each new value is in a new register (rather than
+		// e.g. 2 x float2 in a single register), but that's pointless because
+		// you can't dynamically index into input registers.
+		// If we declare those elements as a non-array, the float2s or floats
+		// will be packed into registers and won't match up to the previous
+		// shader.
+		// HOWEVER to add an extra bit of fun, fxc will happily pack other
+		// parameters not in the array into spare parts of the registers.
+		//
+		// So I think the upshot is that we can detect arrays reliably by
+		// whenever we encounter a float or float2 at the start of a register,
+		// search forward to see if the next register has an element that is the
+		// same semantic name and one higher semantic index. If so, there's an
+		// array, so keep searching to enumerate its length.
+		// I think this should be safe if the packing just happens to place those
+		// registers together.
+
+		int arrayLength = 0;
+
+		if(included && numCols <= 2 && dxbc->m_InputSig[i].regChannelMask <= 0x3)
+		{
+			uint32_t nextIdx = dxbc->m_InputSig[i].semanticIndex+1;
+
+			for(size_t j=i+1; j < dxbc->m_InputSig.size(); j++)
+			{
+				// if we've found the 'next' semantic
+				if(!strcmp(dxbc->m_InputSig[i].semanticName.elems, dxbc->m_InputSig[j].semanticName.elems) &&
+					nextIdx == dxbc->m_InputSig[j].semanticIndex)
+				{
+					int jNumCols = 
+						(dxbc->m_InputSig[i].regChannelMask & 0x1 ? 1 : 0) +
+						(dxbc->m_InputSig[i].regChannelMask & 0x2 ? 1 : 0) +
+						(dxbc->m_InputSig[i].regChannelMask & 0x4 ? 1 : 0) +
+						(dxbc->m_InputSig[i].regChannelMask & 0x8 ? 1 : 0);
+
+					// if it's the same size, and it's at the start of the next register
+					if(jNumCols == numCols && dxbc->m_InputSig[j].regChannelMask <= 0x3)
+					{
+						if(arrayLength == 0)
+							arrayLength = 2;
+						else
+							arrayLength++;
+
+						// continue searching now
+						nextIdx++;
+						j = i+1; continue;
+					}
+				}
+			}
+
+			if(arrayLength > 0)
+				arrays.push_back(std::make_pair(dxbc->m_InputSig[i].semanticName.elems, std::make_pair(dxbc->m_InputSig[i].semanticIndex, nextIdx-1)));
+		}
+
+		extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name;
+		if(arrayLength > 0)
+			extractHlsl += "[" + ToStr::Get(arrayLength) + "]";
+		extractHlsl += " : " + name;
 		
-		extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name + " : " + name;
-		
-		if(dxbc->m_InputSig[i].compType == eCompType_Float)
-			floatInputs.push_back("input_" + name);
+		if(included && dxbc->m_InputSig[i].compType == eCompType_Float)
+		{
+			if(arrayLength == 0)
+			{
+				floatInputs.push_back("input_" + name);
+			}
+			else
+			{
+				for(int a=0; a < arrayLength; a++)
+					floatInputs.push_back("input_" + name + "[" + ToStr::Get(a) + "]");
+			}
+		}
 
 		extractHlsl += ";\n";
 		
@@ -1336,7 +1419,22 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			dxbc->m_InputSig[i].regChannelMask & 0x8 ? 3 :
 			-1;
 
-		initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue, included));
+		// arrays get added all at once (because in the struct data, they are contiguous even if
+		// in the input signature they're not).
+		if(!arrayElem)
+		{
+			if(arrayLength == 0)
+			{
+				initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex, firstElem, numCols, dxbc->m_InputSig[i].systemValue, included));
+			}
+			else
+			{
+				for(int a=0; a < arrayLength; a++)
+				{
+					initialValues.push_back(DataOutput(dxbc->m_InputSig[i].regIndex + a, firstElem, numCols, dxbc->m_InputSig[i].systemValue, included));
+				}
+			}
+		}
 	}
 
 	extractHlsl += "};\n\n";
