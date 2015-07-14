@@ -251,6 +251,7 @@ namespace renderdocui.Windows
             renderContainer.MouseMove += render_MouseMove;
 
             render.KeyHandler = render_KeyDown;
+            pixelContext.KeyHandler = render_KeyDown;
 
             rangeHistogram.RangeUpdated += new EventHandler<RangeHistogramEventArgs>(rangeHistogram_RangeUpdated);
 
@@ -2489,6 +2490,11 @@ namespace renderdocui.Windows
             }
 
             UI_UpdateStatusText();
+        }
+
+        private void pixelContext_MouseClick(object sender, MouseEventArgs e)
+        {
+            pixelContext.Focus();
         }
 
         private void render_MouseClick(object sender, MouseEventArgs e)

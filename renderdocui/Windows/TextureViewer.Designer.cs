@@ -1176,6 +1176,7 @@
             this.pixelContext.Size = new System.Drawing.Size(209, 121);
             this.pixelContext.TabIndex = 6;
             this.pixelContext.Paint += new System.Windows.Forms.PaintEventHandler(this.pixelContext_Paint);
+            this.pixelContext.MouseClick += new System.Windows.Forms.MouseEventHandler(this.pixelContext_MouseClick);
             // 
             // debugPixelContext
             // 
