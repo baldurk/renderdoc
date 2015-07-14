@@ -703,14 +703,20 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
 	}
 }
 
-ShaderVariable State::DDX(State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const
+ShaderVariable State::DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const
 {
 	ShaderVariable ret;
 
 	VarType optype = OperationType(op.operation);
 
-	// left pixel in the quad
-	if(quadIndex % 2 == 0)
+	if(!fine)
+	{
+		// use top-left pixel's neighbours
+		ret = 
+			sub(quad[1].GetSrc(oper, op), quad[0].GetSrc(oper, op), optype);
+	}
+	// find direct neighbours - left pixel in the quad
+	else if(quadIndex % 2 == 0)
 	{
 		ret = 
 			sub(quad[quadIndex+1].GetSrc(oper, op), quad[quadIndex].GetSrc(oper, op), optype);
@@ -724,14 +730,20 @@ ShaderVariable State::DDX(State quad[4], const DXBC::ASMOperand &oper, const DXB
 	return ret;
 }
 
-ShaderVariable State::DDY(State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const
+ShaderVariable State::DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const
 {
 	ShaderVariable ret;
 
 	VarType optype = OperationType(op.operation);
-
-	// top pixel in the quad
-	if(quadIndex / 2 == 0)
+	
+	if(!fine)
+	{
+		// use top-left pixel's neighbours
+		ret = 
+			sub(quad[2].GetSrc(oper, op), quad[0].GetSrc(oper, op), optype);
+	}
+	// find direct neighbours - top pixel in the quad
+	else if(quadIndex / 2 == 0)
 	{
 		ret = 
 			sub(quad[quadIndex+2].GetSrc(oper, op), quad[quadIndex].GetSrc(oper, op), optype);
@@ -1861,7 +1873,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if(quad == NULL)
 				RDCERR("Attempt to use derivative instruction not in pixel shader. Undefined results will occur!");
 			else
-				s.SetDst(op.operands[0], op, s.DDX(quad, op.operands[1], op));
+				s.SetDst(op.operands[0], op, s.DDX(op.operation == OPCODE_DERIV_RTX_FINE, quad, op.operands[1], op));
 			break;
 		case OPCODE_DERIV_RTY:
 		case OPCODE_DERIV_RTY_COARSE:
@@ -1869,7 +1881,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			if(quad == NULL)
 				RDCERR("Attempt to use derivative instruction not in pixel shader. Undefined results will occur!");
 			else
-				s.SetDst(op.operands[0], op, s.DDY(quad, op.operands[1], op));
+				s.SetDst(op.operands[0], op, s.DDY(op.operation == OPCODE_DERIV_RTY_FINE, quad, op.operands[1], op));
 			break;
 			
 		/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3539,8 +3551,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 				}
 				else
 				{
-					ddxCalc = s.DDX(quad, op.operands[1], op);
-					ddyCalc = s.DDY(quad, op.operands[1], op);
+					// texture samples use coarse derivatives
+					ddxCalc = s.DDX(false, quad, op.operands[1], op);
+					ddyCalc = s.DDY(false, quad, op.operands[1], op);
 				}
 			}
 			else if(op.operation == OPCODE_SAMPLE_D)

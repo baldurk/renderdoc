@@ -1451,7 +1451,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	if(rtView != NULL)
 		uavslot = 1;
 
-	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint sample; uint covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; };\n\n";
+	extractHlsl += "struct PSInitialData { uint hit; float3 pos; uint prim; uint fface; uint sample; uint covge; float derivValid; PSInput IN; PSInput INddx; PSInput INddy; PSInput INddxfine; PSInput INddyfine; };\n\n";
 	extractHlsl += "RWStructuredBuffer<PSInitialData> PSInitialBuffer : register(u" + ToStr::Get(uavslot) + ");\n\n";
 	extractHlsl += "void ExtractInputsPS(PSInput IN, float4 debug_pixelPos : SV_Position, uint prim : SV_PrimitiveID, uint sample : SV_SampleIndex, uint covge : SV_Coverage, bool fface : SV_IsFrontFace)\n{\n";
 	extractHlsl += "  uint idx = " + ToStr::Get(overdrawLevels) + ";\n";
@@ -1467,11 +1467,16 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	extractHlsl += "  PSInitialBuffer[idx].derivValid = ddx(debug_pixelPos.x);\n";
 	extractHlsl += "  PSInitialBuffer[idx].INddx = (PSInput)0;\n";
 	extractHlsl += "  PSInitialBuffer[idx].INddy = (PSInput)0;\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddxfine = (PSInput)0;\n";
+	extractHlsl += "  PSInitialBuffer[idx].INddyfine = (PSInput)0;\n";
+
 	for(size_t i=0; i < floatInputs.size(); i++)
 	{
 		const string &name = floatInputs[i];
 		extractHlsl += "  PSInitialBuffer[idx].INddx." + name + " = ddx(IN." + name + ");\n";
 		extractHlsl += "  PSInitialBuffer[idx].INddy." + name + " = ddy(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddxfine." + name + " = ddx_fine(IN." + name + ");\n";
+		extractHlsl += "  PSInitialBuffer[idx].INddyfine." + name + " = ddy_fine(IN." + name + ");\n";
 	}
 	extractHlsl += "\n}";
 
@@ -1484,7 +1489,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 												+ sizeof(uint32_t)    // uint sample;
 												+ sizeof(uint32_t)    // uint covge;
 												+ sizeof(float)       // float derivValid;
-												+ structureStride*3;  // PSInput IN, INddx, INddy;
+												+ structureStride*5;  // PSInput IN, INddx, INddy, INddxfine, INddyfine;
 
 	HRESULT hr = S_OK;
 	
@@ -1588,6 +1593,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 	State quad[4];
 
 	// figure out the TL pixel's coords. Assume even top left (towards 0,0)
+	// this isn't spec'd but is a reasonable assumption.
 	int xTL = x&(~1);
 	int yTL = y&(~1);
 
@@ -1734,6 +1740,32 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 				quad[i].SetHelper();
 		}
 
+		// We make the assumption that the coarse derivatives are
+		// generated from (0,0) in the quad, and fine derivatives
+		// are generated from the destination index and its
+		// neighbours in X and Y.
+		// This isn't spec'd but we must assume something and this
+		// will hopefully get us closest to reproducing actual
+		// results.
+		//
+		// For debugging, we need members of the quad to be able
+		// to generate coarse and fine derivatives.
+		//
+		// For (0,0) we only need the coarse derivatives to get
+		// our neighbours (1,0) and (0,1) which will give us
+		// coarse and fine derivatives being identical.
+		//
+		// For the others we will need to use a combination of
+		// coarse and fine derivatives to get the diagonal element
+		// in the quad. E.g. for (1,1):
+		// 
+		// (1,0) = (1,1) - ddx_fine
+		// (0,1) = (1,1) - ddy_fine
+		// (0,0) = (1,1) - ddy_fine - ddx_coarse
+		//
+		// This only works if coarse and fine are calculated as we
+		// are assuming.
+
 		ddx = (float *)data;
 
 		for(size_t i=0; i < initialValues.size(); i++)
@@ -1742,8 +1774,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 			if(initialValues[i].reg >= 0)
 			{
-				// left
-				if(destIdx == 0 || destIdx == 2)
+				if(destIdx == 0)
 				{
 					for(int w=0; w < initialValues[i].numwords; w++)
 					{
@@ -1751,12 +1782,26 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 						traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddx[w];
 					}
 				}
-				else
+				else if(destIdx == 1)
 				{
 					for(int w=0; w < initialValues[i].numwords; w++)
 					{
 						traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddx[w];
 						traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddx[w];
+					}
+				}
+				else if(destIdx == 2)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddx[w];
+					}
+				}
+				else if(destIdx == 3)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddx[w];
 					}
 				}
 			}
@@ -1772,8 +1817,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 
 			if(initialValues[i].reg >= 0)
 			{
-				// top
-				if(destIdx == 0 || destIdx == 1)
+				if(destIdx == 0)
 				{
 					for(int w=0; w < initialValues[i].numwords; w++)
 					{
@@ -1781,7 +1825,14 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 						traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddy[w];
 					}
 				}
-				else
+				else if(destIdx == 1)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddy[w];
+					}
+				}
+				else if(destIdx == 2)
 				{
 					for(int w=0; w < initialValues[i].numwords; w++)
 					{
@@ -1792,6 +1843,61 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t frameID, uint32_t eventI
 			}
 
 			ddy += initialValues[i].numwords;
+		}
+
+		float *ddxfine = ddy;
+
+		for(size_t i=0; i < initialValues.size(); i++)
+		{
+			if(!initialValues[i].included) continue;
+
+			if(initialValues[i].reg >= 0)
+			{
+				if(destIdx == 2)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddxfine[w];
+					}
+				}
+				else if(destIdx == 3)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[2].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddxfine[w];
+					}
+				}
+			}
+
+			ddxfine += initialValues[i].numwords;
+		}
+
+		float *ddyfine = ddxfine;
+
+		for(size_t i=0; i < initialValues.size(); i++)
+		{
+			if(!initialValues[i].included) continue;
+
+			if(initialValues[i].reg >= 0)
+			{
+				if(destIdx == 1)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[3].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] += ddyfine[w];
+					}
+				}
+				else if(destIdx == 3)
+				{
+					for(int w=0; w < initialValues[i].numwords; w++)
+					{
+						traces[1].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddyfine[w];
+						traces[0].inputs[initialValues[i].reg].value.fv[initialValues[i].elem+w] -= ddyfine[w];
+					}
+				}
+			}
+
+			ddyfine += initialValues[i].numwords;
 		}
 	}
 	

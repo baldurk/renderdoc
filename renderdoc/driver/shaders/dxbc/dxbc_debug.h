@@ -163,8 +163,8 @@ class State : public ShaderDebugState
 		// negation/abs functions
 		ShaderVariable GetSrc(const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
 
-		ShaderVariable DDX(State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
-		ShaderVariable DDY(State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
+		ShaderVariable DDX(bool fine, State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
+		ShaderVariable DDY(bool fine, State quad[4], const DXBC::ASMOperand &oper, const DXBC::ASMOperation &op) const;
 
 		VarType OperationType(const DXBC::OpcodeType &op) const;
 
