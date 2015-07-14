@@ -338,6 +338,7 @@ namespace renderdocui.Code
             public int InstanceRate;
             public ResourceFormat Format;
             public object[] GenericValue;
+            public bool Used;
         };
 
         public VertexInputAttribute[] GetVertexInputs()
@@ -380,6 +381,20 @@ namespace renderdocui.Code
                         ret[i].InstanceRate = (int)layouts[i].InstanceDataStepRate;
                         ret[i].Format = layouts[i].Format;
                         ret[i].GenericValue = null;
+                        ret[i].Used = false;
+
+                        if (m_D3D11.m_IA.Bytecode != null)
+                        {
+                            for (int ia = 0; ia < m_D3D11.m_IA.Bytecode.InputSig.Length; ia++)
+                            {
+                                if (m_D3D11.m_IA.Bytecode.InputSig[ia].semanticName.ToUpperInvariant() == layouts[i].SemanticName.ToUpperInvariant() &&
+                                    m_D3D11.m_IA.Bytecode.InputSig[ia].semanticIndex == layouts[i].SemanticIndex)
+                                {
+                                    ret[i].Used = true;
+                                    break;
+                                }
+                            }
+                        }
                     }
 
                     return ret;
@@ -412,6 +427,7 @@ namespace renderdocui.Code
                         ret[a].PerInstance = m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor > 0;
                         ret[a].InstanceRate = (int)m_GL.m_VtxIn.vbuffers[attrs[i].BufferSlot].Divisor;
                         ret[a].Format = attrs[i].Format;
+                        ret[a].Used = true;
 
                         if (m_GL.m_VS.BindpointMapping != null && m_GL.m_VS.ShaderDetails != null)
                         {

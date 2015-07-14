@@ -827,9 +827,19 @@ namespace renderdocui.Windows
 
                 ret.GenericValues = new object[vinputs.Length][];
 
+                int numinputs = vinputs.Length;
+
                 int i = 0;
                 foreach (var a in vinputs)
                 {
+                    if (!a.Used)
+                    {
+                        numinputs--;
+                        Array.Resize(ref f, numinputs);
+                        Array.Resize(ref ret.GenericValues, numinputs);
+                        continue;
+                    }
+
                     f[i] = new FormatElement(a.Name,
                                              a.VertexBuffer,
                                              a.RelativeByteOffset,

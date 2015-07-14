@@ -705,6 +705,26 @@ namespace renderdocui.Windows.PipelineState
 
                     layoutOffs[l.InputSlot] += l.Format.compByteWidth * l.Format.compCount;
 
+                    bool iaUsed = false;
+
+                    if (state.m_IA.Bytecode != null)
+                    {
+                        for (int ia = 0; ia < state.m_IA.Bytecode.InputSig.Length; ia++)
+                        {
+                            if (state.m_IA.Bytecode.InputSig[ia].semanticName.ToUpperInvariant() == l.SemanticName.ToUpperInvariant() &&
+                                state.m_IA.Bytecode.InputSig[ia].semanticIndex == l.SemanticIndex)
+                            {
+                                iaUsed = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    i++;
+
+                    if(!iaUsed && !showDisabled.Checked)
+                        continue;
+
                     var node = inputLayouts.Nodes.Add(new object[] {
                                               i, l.SemanticName, l.SemanticIndex.ToString(), l.Format, l.InputSlot.ToString(), byteOffs,
                                               l.PerInstance ? "PER_INSTANCE" : "PER_VERTEX", l.InstanceDataStepRate.ToString() });
@@ -714,7 +734,8 @@ namespace renderdocui.Windows.PipelineState
                     node.Image = global::renderdocui.Properties.Resources.action;
                     node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
 
-                    i++;
+                    if (!iaUsed)
+                        InactiveRow(node);
                 }
             }
             inputLayouts.NodesSelection.Clear();
