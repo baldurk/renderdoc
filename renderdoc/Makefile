@@ -34,6 +34,7 @@ os/os_specific.o \
 3rdparty/lz4/lz4.o \
 3rdparty/stb/stb_impl.o \
 3rdparty/tinyexr/tinyexr.o \
+os/linux/linux_libentry.o \
 os/linux/linux_callstack.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
