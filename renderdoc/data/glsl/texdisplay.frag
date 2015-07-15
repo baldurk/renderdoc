@@ -100,9 +100,11 @@ void main(void)
 	vec4 pre_range_col = col;
 
 	col = ((col - RangeMinimum)*InverseRangeSize);
-
-	col = mix(vec4(0,0,0,1), col, Channels);
-	pre_range_col = mix(vec4(0,0,0,1), pre_range_col, Channels);
+	
+	if(Channels.x < 0.5f) col.x = pre_range_col.x = 0.0f;
+	if(Channels.y < 0.5f) col.y = pre_range_col.y = 0.0f;
+	if(Channels.z < 0.5f) col.z = pre_range_col.z = 0.0f;
+	if(Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f;
 	
 	// show nans, infs and negatives
 	if((OutputDisplayFormat & TEXDISPLAY_NANS) > 0)

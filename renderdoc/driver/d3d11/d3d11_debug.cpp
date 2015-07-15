@@ -3301,6 +3301,8 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 	DebugVertexCBuffer vertexData;
 	DebugPixelCBufferData pixelData;
 
+	pixelData.AlwaysZero = 0.0f;
+
 	float x = cfg.offx;
 	float y = cfg.offy;
 	
@@ -3689,6 +3691,8 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 	FillCBuffer(m_DebugRender.GenericVSCBuffer, (float *)&vertexData, sizeof(DebugVertexCBuffer));
 
 	DebugPixelCBufferData pixelData;
+
+	pixelData.AlwaysZero = 0.0f;
 
 	pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
 	pixelData.WireframeColour = dark;
@@ -4596,6 +4600,8 @@ void D3D11DebugManager::RenderMesh(uint32_t frameID, uint32_t eventID, const vec
 	vertexData.SpriteSize = Vec2f();
 
 	DebugPixelCBufferData pixelData;
+
+	pixelData.AlwaysZero = 0.0f;
 
 	pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
 	pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);

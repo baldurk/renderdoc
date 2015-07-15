@@ -87,7 +87,7 @@ cbuffer DebugPixelCBufferData REG(b0)
 	float Slice;
 	float ScalePS;
 	int SampleIdx;
-	int Padding;
+	float AlwaysZero;
 
 	int RawOutput;
 	float3 TextureResolutionPS;

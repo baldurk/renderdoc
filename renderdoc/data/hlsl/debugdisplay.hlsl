@@ -120,8 +120,13 @@ float4 RENDERDOC_TexDisplayPS(v2f IN) : SV_Target0
 
 	col = ((col - RangeMinimum)*InverseRangeSize);
 
-	col = lerp(float4(0,0,0,1), col, Channels);
-	pre_range_col = lerp(float4(0,0,0,1), pre_range_col, Channels);
+	// workaround for D3DCompiler bug. For some reason it assumes texture samples can
+	// never come back as NaN, so involving a cbuffer value like this here ensures
+	// the below isnan()s don't get optimised out.
+	if(Channels.x < 0.5f) col.x = pre_range_col.x = AlwaysZero;
+	if(Channels.y < 0.5f) col.y = pre_range_col.y = AlwaysZero;
+	if(Channels.z < 0.5f) col.z = pre_range_col.z = AlwaysZero;
+	if(Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f-AlwaysZero;
 
 	// show nans, infs and negatives
 	if(OutputDisplayFormat & TEXDISPLAY_NANS)
