@@ -1013,12 +1013,12 @@ namespace renderdocui.Windows
             return m_Bookmark.Contains(EID);
         }
 
-        private bool HasBookmark(int index)
+        public bool HasBookmark(int index)
         {
             return index >= 0 && index < m_Bookmark.Count;
         }
 
-        private UInt32 GetBookmark(int index)
+        public UInt32 GetBookmark(int index)
         {
             if (!HasBookmark(index))
                 return 0;

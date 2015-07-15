@@ -1119,6 +1119,32 @@ namespace renderdocui.Windows
             return false;
         }
 
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            // bookmark keys are handled globally
+            if ((keyData & Keys.Control) == Keys.Control)
+            {
+                Keys[] digits = { Keys.D1, Keys.D2, Keys.D3, Keys.D4, Keys.D5,
+                                  Keys.D6, Keys.D7, Keys.D8, Keys.D9, Keys.D0 };
+
+                for (int i = 0; i < digits.Length; i++)
+                {
+                    if ((keyData & digits[i]) == digits[i])
+                    {
+                        EventBrowser eb = m_Core.GetEventBrowser();
+
+                        if (eb.Visible && eb.HasBookmark(i))
+                        {
+                            m_Core.SetEventID(null, m_Core.CurFrame, eb.GetBookmark(i));
+
+                            return true;
+                        }
+                    }
+                }
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
+
         private void MainWindow_FormClosing(object sender, FormClosingEventArgs e)
         {
             foreach (var live in m_LiveCaptures)
