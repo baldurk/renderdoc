@@ -418,6 +418,8 @@ bool ReplayOutput::Display()
 
 			color[0] = 0.4f;
 			m_pDevice->ClearOutputWindowColour(m_Thumbnails[i].outputID, color);
+
+			m_pDevice->RenderCheckerboard(Vec3f(0.6f, 0.6f, 0.7f), Vec3f(0.5f, 0.5f, 0.6f));
 		
 			m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
 			continue;
