@@ -234,6 +234,9 @@ namespace renderdocui.Windows
             mipLevel.Enabled = false;
             sliceFace.Enabled = false;
 
+            rangeBlack.ResizeToFit = false;
+            rangeWhite.ResizeToFit = false;
+
             PixelPicked = false;
 
             mainLayout.Dock = DockStyle.Fill;
@@ -2938,19 +2941,46 @@ namespace renderdocui.Windows
             }
         }
 
-        private void rangePoint_KeyDown(object sender, KeyEventArgs e)
+        bool rangePoint_Dirty = false;
+
+        private void rangePoint_Changed(object sender, EventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            rangePoint_Dirty = true;
+        }
+
+        private void rangePoint_Update()
+        {
+            float black = rangeHistogram.BlackPoint;
+            float white = rangeHistogram.WhitePoint;
+
+            float.TryParse(rangeBlack.Text, out black);
+            float.TryParse(rangeWhite.Text, out white);
+
+            rangeHistogram.SetRange(black, white);
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+        }
+
+        private void rangePoint_Leave(object sender, EventArgs e)
+        {
+            if (!rangePoint_Dirty) return;
+
+            rangePoint_Update();
+
+            rangePoint_Dirty = false;
+        }
+
+        private void rangePoint_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // escape key
+            if (e.KeyChar == '\0')
             {
-                float black = rangeHistogram.BlackPoint;
-                float white = rangeHistogram.WhitePoint;
-
-                float.TryParse(rangeBlack.Text, out black);
-                float.TryParse(rangeWhite.Text, out white);
-
-                rangeHistogram.SetRange(black, white);
-
-                m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+                rangePoint_Dirty = false;
+                rangeHistogram.SetRange(rangeHistogram.BlackPoint, rangeHistogram.WhitePoint);
+            }
+            if (e.KeyChar == '\n' || e.KeyChar == '\r')
+            {
+                rangePoint_Update();
             }
         }
 

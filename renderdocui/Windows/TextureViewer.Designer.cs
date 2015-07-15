@@ -89,8 +89,8 @@
             this.sliceFaceLabel = new System.Windows.Forms.ToolStripLabel();
             this.sliceFace = new System.Windows.Forms.ToolStripComboBox();
             this.rangeStrip = new System.Windows.Forms.ToolStrip();
-            this.rangeBlack = new System.Windows.Forms.ToolStripTextBox();
-            this.rangeWhite = new System.Windows.Forms.ToolStripTextBox();
+            this.rangeBlack = new renderdocui.Controls.ToolStripSpringTextBox();
+            this.rangeWhite = new renderdocui.Controls.ToolStripSpringTextBox();
             this.zoomRange = new System.Windows.Forms.ToolStripButton();
             this.autoFit = new System.Windows.Forms.ToolStripButton();
             this.reset01 = new System.Windows.Forms.ToolStripButton();
@@ -635,14 +635,20 @@
             this.rangeBlack.Name = "rangeBlack";
             this.rangeBlack.Size = new System.Drawing.Size(50, 25);
             this.rangeBlack.Text = "0.0";
-            this.rangeBlack.KeyDown += new System.Windows.Forms.KeyEventHandler(this.rangePoint_KeyDown);
+            this.rangeBlack.ResizeToFit = false;
+            this.rangeBlack.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rangePoint_KeyPress);
+            this.rangeBlack.Leave += new System.EventHandler(this.rangePoint_Leave);
+            this.rangeBlack.TextChanged += new System.EventHandler(this.rangePoint_Changed);
             // 
             // rangeWhite
             // 
             this.rangeWhite.Name = "rangeWhite";
             this.rangeWhite.Size = new System.Drawing.Size(50, 25);
             this.rangeWhite.Text = "1.0";
-            this.rangeWhite.KeyDown += new System.Windows.Forms.KeyEventHandler(this.rangePoint_KeyDown);
+            this.rangeWhite.ResizeToFit = false;
+            this.rangeWhite.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rangePoint_KeyPress);
+            this.rangeWhite.Leave += new System.EventHandler(this.rangePoint_Leave);
+            this.rangeWhite.TextChanged += new System.EventHandler(this.rangePoint_Changed);
             // 
             // zoomRange
             // 
@@ -1412,8 +1418,8 @@
         private System.Windows.Forms.ToolStripMenuItem closeTab;
         private System.Windows.Forms.ToolStripMenuItem closeOtherTabs;
         private System.Windows.Forms.ToolStripMenuItem closeTabsToRight;
-        private System.Windows.Forms.ToolStripTextBox rangeBlack;
-        private System.Windows.Forms.ToolStripTextBox rangeWhite;
+        private renderdocui.Controls.ToolStripSpringTextBox rangeBlack;
+        private renderdocui.Controls.ToolStripSpringTextBox rangeWhite;
         private System.Windows.Forms.ToolStripButton zoomRange;
         private System.Windows.Forms.ToolStripButton reset01;
         private System.Windows.Forms.ToolStripButton autoFit;
