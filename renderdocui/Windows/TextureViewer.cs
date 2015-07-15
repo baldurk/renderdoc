@@ -2542,6 +2542,11 @@ namespace renderdocui.Windows
         private void pixelContext_MouseClick(object sender, MouseEventArgs e)
         {
             pixelContext.Focus();
+
+            if (e.Button == MouseButtons.Right)
+            {
+                pixelContextMenu.Show(pixelContext, e.Location);
+            }
         }
 
         private void render_MouseClick(object sender, MouseEventArgs e)
@@ -3436,11 +3441,11 @@ namespace renderdocui.Windows
                 OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
         }
 
-        #endregion
-
         private void TextureViewer_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
         }
+
+        #endregion
    }
 }
