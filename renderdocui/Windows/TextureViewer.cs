@@ -1204,6 +1204,11 @@ namespace renderdocui.Windows
                         if (t.ID == Texs[i])
                             tex = t;
 
+                    FetchBuffer buf = null;
+                    foreach (var b in m_Core.CurBuffers)
+                        if (b.ID == Texs[i])
+                            buf = b;
+
                     if (tex != null)
                     {
                         prev.Init(!tex.customName && bindName.Length > 0 ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
@@ -1212,6 +1217,15 @@ namespace renderdocui.Windows
                         m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                         {
                             m_Output.AddThumbnail(handle, id);
+                        });
+                    }
+                    else if (buf != null)
+                    {
+                        prev.Init(!buf.customName && bindName.Length > 0 ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
+                        IntPtr handle = prev.ThumbnailHandle;
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                        {
+                            m_Output.AddThumbnail(handle, ResourceId.Null);
                         });
                     }
                     else
