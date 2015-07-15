@@ -883,6 +883,8 @@ namespace renderdocui.Windows
 
             m_TextureSettings.Clear();
 
+            m_PrevArea = 0.0f;
+
             saveTex.Enabled = false;
 
             rtPanel.ClearThumbnails();
@@ -1326,6 +1328,8 @@ namespace renderdocui.Windows
         private int prevFirstArraySlice = -1;
         private int prevHighestMip = -1;
 
+        private float m_PrevArea = 0.0f;
+
         private void UI_OnTextureSelectionChanged()
         {
             FetchTexture tex = CurrentTexture;
@@ -1357,6 +1361,32 @@ namespace renderdocui.Windows
             m_CurPixelValue = null;
             m_CurRealValue = null;
 
+            // try to maintain the pan in the new texture. If the new texture
+            // is an integer multiple of the old texture, this will keep the
+            // top left pixel the same. Due to the difference in scale, the rest
+            // of the image will be out though. This is useful for downsample chains and
+            // things where you're flipping back and forth between overlapping
+            // textures, but really needs a mode where the zoom level is changed
+            // to compensate as well.
+            float curArea = (float)CurrentTexture.width * (float)CurrentTexture.height;
+
+            if(m_PrevArea > 0.0f)
+            {
+                float prevX = m_TexDisplay.offx;
+                float prevY = m_TexDisplay.offy;
+
+                // this scale factor is arbitrary really, only intention is to have
+                // integer scales come out precisely, other 'similar' sizes will be
+                // similar ish
+                float scaleFactor = (float)(Math.Sqrt(curArea) / Math.Sqrt(m_PrevArea));
+
+                m_TexDisplay.offx = prevX * scaleFactor;
+                m_TexDisplay.offy = prevY * scaleFactor;
+            }
+
+            m_PrevArea = curArea;
+
+            // refresh scroll position
             ScrollPosition = ScrollPosition;
 
             UI_UpdateStatusText();
