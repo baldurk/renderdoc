@@ -637,7 +637,7 @@
             // rangeBlack
             // 
             this.rangeBlack.Name = "rangeBlack";
-            this.rangeBlack.Size = new System.Drawing.Size(100, 25);
+            this.rangeBlack.Size = new System.Drawing.Size(50, 25);
             this.rangeBlack.Text = "0.0";
             this.rangeBlack.Leave += new System.EventHandler(this.rangePoint_Leave);
             this.rangeBlack.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rangePoint_KeyPress);
@@ -646,7 +646,7 @@
             // rangeWhite
             // 
             this.rangeWhite.Name = "rangeWhite";
-            this.rangeWhite.Size = new System.Drawing.Size(100, 25);
+            this.rangeWhite.Size = new System.Drawing.Size(50, 25);
             this.rangeWhite.Text = "1.0";
             this.rangeWhite.Leave += new System.EventHandler(this.rangePoint_Leave);
             this.rangeWhite.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rangePoint_KeyPress);
