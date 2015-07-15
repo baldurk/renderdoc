@@ -105,6 +105,8 @@ class IRemoteDriver
 		virtual ResourceId RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents) = 0;
 			
 		virtual bool IsRenderOutput(ResourceId id) = 0;
+
+		virtual void FileChanged() = 0;
 	
 		virtual void InitCallstackResolver() = 0;
 		virtual bool HasCallstacks() = 0;

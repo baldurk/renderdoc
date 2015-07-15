@@ -373,6 +373,8 @@ class ProxySerialiser : public IReplayDriver, Callstack::StackResolver
 		void ReplaceResource(ResourceId from, ResourceId to);
 		void RemoveReplacement(ResourceId id);
 
+		void FileChanged() {}
+
 		// will never be used
 		ResourceId CreateProxyTexture(FetchTexture templateTex)
 		{

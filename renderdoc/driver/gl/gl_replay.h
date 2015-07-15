@@ -177,6 +177,8 @@ class GLReplay : public IReplayDriver
 		void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
 		bool IsRenderOutput(ResourceId id);
+
+		void FileChanged() {}
 		
 		void InitCallstackResolver();
 		bool HasCallstacks();

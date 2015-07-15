@@ -58,6 +58,8 @@ namespace renderdocui.Code
 
         private bool m_LogLoaded = false;
 
+        private FileSystemWatcher m_LogWatcher = null;
+
         private string m_LogFile = "";
 
         private UInt32 m_FrameID = 0;
@@ -529,6 +531,13 @@ namespace renderdocui.Code
             m_LogLoaded = true;
             progressThread = false;
 
+            m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
+            m_LogWatcher.EnableRaisingEvents = true;
+            m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
+            m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
+            m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
+            m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+
             List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
             logviewers.AddRange(m_LogViewers);
 
@@ -566,6 +575,17 @@ namespace renderdocui.Code
                 p.LogfileProgress(1.0f);
         }
 
+        void OnLogfileChanged(object sender, FileSystemEventArgs e)
+        {
+            m_Renderer.Invoke((ReplayRenderer r) =>
+            {
+                r.FileChanged();
+                r.SetFrameEvent(m_FrameID, m_EventID > 0 ? m_EventID-1 : 1);
+            });
+
+            SetEventID(null, CurFrame, CurEvent);
+        }
+
         public void CloseLogfile()
         {
             if (!m_LogLoaded) return;
@@ -589,6 +609,10 @@ namespace renderdocui.Code
             UnreadMessageCount = 0;
 
             m_LogLoaded = false;
+
+            if (m_LogWatcher != null)
+                m_LogWatcher.EnableRaisingEvents = false;
+            m_LogWatcher = null;
 
             foreach (var logviewer in m_LogViewers)
             {

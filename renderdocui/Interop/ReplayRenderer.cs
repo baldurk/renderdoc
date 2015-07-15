@@ -186,6 +186,9 @@ namespace renderdoc
         private static extern void ReplayRenderer_ShutdownOutput(IntPtr real, IntPtr replayOutput);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayRenderer_FileChanged(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_HasCallstacks(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_InitResolver(IntPtr real);
@@ -300,6 +303,9 @@ namespace renderdoc
 
             return new ReplayOutput(ret);
         }
+
+        public void FileChanged()
+        { ReplayRenderer_FileChanged(m_Real); }
 
         public bool HasCallstacks()
         { return ReplayRenderer_HasCallstacks(m_Real); }

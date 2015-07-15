@@ -45,6 +45,10 @@ D3D11Replay::D3D11Replay()
 
 void D3D11Replay::Shutdown()
 {
+	for(size_t i=0; i < m_ProxyResources.size(); i++)
+		m_ProxyResources[i]->Release();
+	m_ProxyResources.clear();
+
 	m_pDevice->Release();
 	
 	D3D11DebugManager::PostDeviceShutdownCounters();
@@ -1547,6 +1551,8 @@ ResourceId D3D11Replay::CreateProxyTexture(FetchTexture templateTex)
 		SetDebugName(resource, templateTex.name.elems);
 	}
 
+	m_ProxyResources.push_back(resource);
+
 	return ret;
 }
 
@@ -1693,6 +1699,8 @@ ResourceId D3D11Replay::CreateProxyBuffer(FetchBuffer templateBuf)
 		string name = templateBuf.name.elems;
 		SetDebugName(resource, templateBuf.name.elems);
 	}
+
+	m_ProxyResources.push_back(resource);
 
 	return ret;
 }

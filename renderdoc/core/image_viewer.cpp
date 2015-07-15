@@ -33,8 +33,10 @@
 class ImageViewer : public IReplayDriver
 {
 	public:
-		ImageViewer(IReplayDriver *proxy, const char *filename, ResourceId texID)
+		ImageViewer(IReplayDriver *proxy, const char *filename)
 			: m_Proxy(proxy)
+			, m_Filename(filename)
+			, m_TextureID()
 		{
 			if(m_Proxy == NULL) RDCERR("Unexpectedly NULL proxy at creation of ImageViewer");
 
@@ -54,11 +56,13 @@ class ImageViewer : public IReplayDriver
 			d.name = filename;
 
 			record.drawcallList.push_back(d);
-			
-			create_array_uninit(m_PipelineState.m_OM.RenderTargets, 1);
-			m_PipelineState.m_OM.RenderTargets[0].Resource = texID;
 
 			m_FrameRecord.push_back(record);
+
+			RefreshFile();
+
+			create_array_uninit(m_PipelineState.m_OM.RenderTargets, 1);
+			m_PipelineState.m_OM.RenderTargets[0].Resource = m_TextureID;
 		}
 
 		virtual ~ImageViewer()
@@ -83,22 +87,22 @@ class ImageViewer : public IReplayDriver
 		void RenderCheckerboard(Vec3f light, Vec3f dark) { m_Proxy->RenderCheckerboard(light, dark); }
 		void RenderHighlightBox(float w, float h, float scale) { m_Proxy->RenderHighlightBox(w, h, scale); }
 		bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float *minval, float *maxval) 
-		{ return m_Proxy->GetMinMax(texid, sliceFace, mip, sample, minval, maxval); }
+		{ return m_Proxy->GetMinMax(m_TextureID, sliceFace, mip, sample, minval, maxval); }
 		bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
-		{ return m_Proxy->GetHistogram(texid, sliceFace, mip, sample, minval, maxval, channels, histogram); }
-		bool RenderTexture(TextureDisplay cfg) { return m_Proxy->RenderTexture(cfg); }
+		{ return m_Proxy->GetHistogram(m_TextureID, sliceFace, mip, sample, minval, maxval, channels, histogram); }
+		bool RenderTexture(TextureDisplay cfg) { cfg.texid = m_TextureID; return m_Proxy->RenderTexture(cfg); }
 		void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
-		{ m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, pixel); }
+		{ m_Proxy->PickPixel(m_TextureID, x, y, sliceFace, mip, sample, pixel); }
 		uint32_t PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
 		{ return m_Proxy->PickVertex(frameID, eventID, cfg, x, y); }
 		void BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 		{ m_Proxy->BuildCustomShader(source, entry, compileFlags, type, id, errors); }
 		void FreeCustomShader(ResourceId id) { m_Proxy->FreeTargetResource(id); }
-		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip) { return m_Proxy->ApplyCustomShader(shader, texid, mip); }
+		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip) { return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip); }
 		vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
-		FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(id); }
+		FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
 		byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool resolve, bool forceRGBA8unorm, float blackPoint, float whitePoint, size_t &dataSize)
-		{ return m_Proxy->GetTextureData(tex, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize); }
+		{ return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize); }
 
 		// handle a couple of operations ourselves to return a simple fake log
 		APIProperties GetAPIProperties() { return m_Props; }
@@ -166,11 +170,21 @@ class ImageViewer : public IReplayDriver
 			RDCERR("Calling proxy-render functions on an image viewer");
 		}
 
+		void FileChanged()
+		{
+			RefreshFile();
+		}
+
 	private:
+		void RefreshFile();
+
 		APIProperties m_Props;
 		vector<FetchFrameRecord> m_FrameRecord;
 		D3D11PipelineState m_PipelineState;
 		IReplayDriver *m_Proxy;
+		string m_Filename;
+		ResourceId m_TextureID;
+		FetchTexture m_TexDetails;
 };
 
 ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
@@ -179,7 +193,112 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 
 	if(!f)
 		return eReplayCreate_FileIOFailed;
+
+	// make sure the file is a type we recognise before going further
+	if(is_exr_file(f))
+	{
+		FileIO::fseek64(f, 0, SEEK_SET);
+
+		const char *err = NULL;
+
+		float *data = NULL;
+		int dummy;
+
+		int ret = LoadEXRFP(&data, &dummy, &dummy, f, &err);
+
+		if(data) free(data);
+
+		// could be an unsupported form of EXR, like deep image or other
+		if(ret != 0)
+		{
+			FileIO::fclose(f);
+
+			RDCERR("EXR file detected, but couldn't load with LoadEXR %d: '%s'", ret, err);
+			return eReplayCreate_APIUnsupported;
+		}
+	}
+	else if(stbi_is_hdr_from_file(f))
+	{
+		FileIO::fseek64(f, 0, SEEK_SET);
+
+		int ignore = 0;
+		float *data = stbi_loadf_from_file(f, &ignore, &ignore, &ignore, 4);
+
+		if(!data)
+		{
+			FileIO::fclose(f);
+			RDCERR("HDR file recognised, but couldn't load with stbi_loadf_from_file");
+			return eReplayCreate_FileCorrupted;
+		}
+
+		free(data);
+	}
+	else if(is_dds_file(f))
+	{
+		FileIO::fseek64(f, 0, SEEK_SET);
+		dds_data read_data = load_dds_from_file(f);
+
+		if(read_data.subdata == NULL)
+		{
+			FileIO::fclose(f);
+			RDCERR("DDS file recognised, but couldn't load");
+			return eReplayCreate_FileCorrupted;
+		}
+
+		for(int i=0; i < read_data.slices*read_data.mips; i++)
+			delete[] read_data.subdata[i];
+
+		delete[] read_data.subdata;
+		delete[] read_data.subsizes;
+	}
+	else
+	{
+		int width = 0, height = 0;
+		int ignore = 0;
+		int ret = stbi_info_from_file(f, &width, &height, &ignore);
+
+		// just in case (we shouldn't have come in here if this weren't true), make sure
+		// the format is supported
+		if(ret == 0 ||
+			 width == 0 || width == ~0U ||
+			 height == 0 || height == ~0U)
+		{
+			FileIO::fclose(f);
+			return eReplayCreate_APIUnsupported;
+		}
+
+		byte *data = stbi_load_from_file(f, &ignore, &ignore, &ignore, 4);
+
+		if(!data)
+		{
+			FileIO::fclose(f);
+			RDCERR("File recognised, but couldn't load with stbi_load_from_file");
+			return eReplayCreate_FileCorrupted;
+		}
 		
+		free(data);
+	}
+
+	FileIO::fclose(f);
+
+	IReplayDriver *proxy = NULL;
+	auto status = RenderDoc::Inst().CreateReplayDriver(RDC_Unknown, NULL, &proxy);
+
+	if(status != eReplayCreate_Success || !proxy)
+	{
+		if(proxy) proxy->Shutdown();
+		return status;
+	}
+
+	*driver = new ImageViewer(proxy, logfile);
+
+	return eReplayCreate_Success;
+}
+
+void ImageViewer::RefreshFile()
+{
+	FILE *f = FileIO::fopen(m_Filename.c_str(), "rb");
+
 	FetchTexture texDetails;
 
 	ResourceFormat rgba8_unorm;
@@ -195,16 +314,19 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 	texDetails.creationFlags = eTextureCreate_SwapBuffer|eTextureCreate_RTV;
 	texDetails.cubemap = false;
 	texDetails.customName = true;
-	texDetails.name = logfile;
-	texDetails.ID = ResourceId();
+	texDetails.name = m_Filename;
+	texDetails.ID = m_TextureID;
 	texDetails.byteSize = 0;
 	texDetails.msQual = 0;
 	texDetails.msSamp = 1;
+	texDetails.format = rgba8_unorm;
 
-	// reasonable defaults for everything but dds
+	// reasonable defaults
 	texDetails.numSubresources = 1;
 	texDetails.dimension = 2;
 	texDetails.arraysize = 1;
+	texDetails.width = 1;
+	texDetails.height = 1;
 	texDetails.depth = 1;
 	texDetails.mips = 1;
 
@@ -229,7 +351,8 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 		{
 			if(data) free(data);
 			RDCERR("EXR file detected, but couldn't load with LoadEXR %d: '%s'", ret, err);
-			return eReplayCreate_APIUnsupported;
+			FileIO::fclose(f);
+			return;
 		}
 	}
 	else if(stbi_is_hdr_from_file(f))
@@ -257,7 +380,8 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 			 texDetails.width == 0 || texDetails.width == ~0U ||
 			 texDetails.height == 0 || texDetails.height == ~0U)
 		{
-			return eReplayCreate_APIUnsupported;
+			FileIO::fclose(f);
+			return;
 		}
 
 		texDetails.format = rgba8_unorm;
@@ -270,36 +394,21 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 	// file was corrupted and we failed to load it
 	if(!dds && data == NULL)
 	{
-		return eReplayCreate_FileCorrupted;
-	}
-	
-	IReplayDriver *proxy = NULL;
-	auto status = RenderDoc::Inst().CreateReplayDriver(RDC_Unknown, NULL, &proxy);
-	
-	if(status != eReplayCreate_Success || !proxy)
-	{
-		if(proxy) proxy->Shutdown();
-		return status;
+		FileIO::fclose(f);
+		return;
 	}
 
-	ResourceId id;
+	dds_data read_data;
 
-	if(!dds)
-	{
-		id = proxy->CreateProxyTexture(texDetails);
-
-		proxy->SetProxyTextureData(id, 0, 0, data, datasize);
-		free(data);
-	}
-	else
+	if(dds)
 	{
 		FileIO::fseek64(f, 0, SEEK_SET);
 		dds_data read_data = load_dds_from_file(f);
 		
 		if(read_data.subdata == NULL)
 		{
-			proxy->Shutdown();
-			return eReplayCreate_FileCorrupted;
+			FileIO::fclose(f);
+			return;
 		}
 
 		texDetails.cubemap = read_data.cubemap;
@@ -313,12 +422,42 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 		                         texDetails.dimension = 1;
 		if(texDetails.width > 1) texDetails.dimension = 2;
 		if(texDetails.depth > 1) texDetails.dimension = 3;
+	}
 
-		id = proxy->CreateProxyTexture(texDetails);
+	// recreate proxy texture if necessary.
+	// we rewrite the texture IDs so that the
+	// outside world doesn't need to know about this
+	// (we only ever have one texture in the image
+	// viewer so we can just set all texture IDs
+	// used to that).
+	if(m_TextureID != ResourceId())
+	{
+		if(m_TexDetails.width != texDetails.width ||
+		   m_TexDetails.height != texDetails.height ||
+		   m_TexDetails.depth != texDetails.depth ||
+		   m_TexDetails.cubemap != texDetails.cubemap ||
+		   m_TexDetails.mips != texDetails.mips ||
+		   m_TexDetails.arraysize != texDetails.arraysize ||
+		   m_TexDetails.width != texDetails.width ||
+			 m_TexDetails.format != texDetails.format)
+		{
+			m_TextureID = ResourceId();
+		}
+	}
 
+	if(m_TextureID == ResourceId())
+		m_TextureID = m_Proxy->CreateProxyTexture(texDetails);
+
+	if(!dds)
+	{
+		m_Proxy->SetProxyTextureData(m_TextureID, 0, 0, data, datasize);
+		free(data);
+	}
+	else
+	{
 		for(uint32_t i=0; i < texDetails.numSubresources; i++)
 		{
-			proxy->SetProxyTextureData(id, i/texDetails.mips, i%texDetails.mips, read_data.subdata[i], (size_t)read_data.subsizes[i]);
+			m_Proxy->SetProxyTextureData(m_TextureID, i/texDetails.mips, i%texDetails.mips, read_data.subdata[i], (size_t)read_data.subsizes[i]);
 
 			delete[] read_data.subdata[i];
 		}
@@ -327,11 +466,7 @@ ReplayCreateStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **d
 		delete[] read_data.subsizes;
 	}
 
-	*driver = new ImageViewer(proxy, logfile, id);
-
 	FileIO::fclose(f);
-
-	return eReplayCreate_Success;
 }
 
 static DriverRegistration IMGDriverRegistration(RDC_Image, "Image", &IMG_CreateReplayDevice);

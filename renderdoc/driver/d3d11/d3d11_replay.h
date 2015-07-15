@@ -129,6 +129,8 @@ class D3D11Replay : public IReplayDriver
 		ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip);
 			
 		bool IsRenderOutput(ResourceId id);
+
+		void FileChanged() {}
 		
 		void InitCallstackResolver();
 		bool HasCallstacks();
@@ -138,6 +140,8 @@ class D3D11Replay : public IReplayDriver
 
 		bool m_WARP;
 		bool m_Proxy;
+
+		vector<ID3D11Resource*> m_ProxyResources;
 
 		WrappedID3D11Device *m_pDevice;
 

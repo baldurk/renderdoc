@@ -133,7 +133,9 @@ struct ReplayRenderer : public IReplayRenderer
 
 		ReplayCreateStatus CreateDevice(const char *logfile);
 		ReplayCreateStatus SetDevice(IReplayDriver *device);
-		
+
+		void FileChanged();
+
 		bool HasCallstacks();
 		bool InitResolver();
 		

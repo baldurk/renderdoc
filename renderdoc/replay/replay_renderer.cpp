@@ -1475,6 +1475,11 @@ FetchDrawcall *ReplayRenderer::SetupDrawcallPointers(FetchFrameInfo frame, rdcty
 	return ret;
 }
 
+void ReplayRenderer::FileChanged()
+{
+	m_pDevice->FileChanged();
+}
+
 bool ReplayRenderer::HasCallstacks()
 {
 	return m_pDevice->HasCallstacks();
@@ -1522,6 +1527,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(ReplayRendere
 { rend->Shutdown(); }
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(ReplayRenderer *rend, ReplayOutput *output)
 { rend->ShutdownOutput(output); }
+
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FileChanged(ReplayRenderer *rend)
+{ rend->FileChanged(); }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_HasCallstacks(ReplayRenderer *rend)
 { return rend->HasCallstacks(); }
