@@ -1926,12 +1926,36 @@ namespace renderdocui.Windows
 
         #region Camera Controls
 
+        private bool RasterizedOutputStage
+        {
+            get
+            {
+                if (m_MeshDisplay.type == MeshDataStage.VSIn)
+                {
+                    return false;
+                }
+                else if (m_MeshDisplay.type == MeshDataStage.VSOut)
+                {
+                    if(m_Core.LogLoaded && m_Core.CurPipelineState.IsTessellationEnabled)
+                        return false;
+
+                    return true;
+                }
+                else if (m_MeshDisplay.type == MeshDataStage.GSOut)
+                {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+
         private void enableCameraControls()
         {
-            if (m_MeshDisplay.type == MeshDataStage.VSIn)
-                aspectGuess.Enabled = nearGuess.Enabled = farGuess.Enabled = false;
-            else
+            if (RasterizedOutputStage)
                 aspectGuess.Enabled = nearGuess.Enabled = farGuess.Enabled = true;
+            else
+                aspectGuess.Enabled = nearGuess.Enabled = farGuess.Enabled = false;
         }
 
         private void configureCam_CheckedChanged(object sender, EventArgs e)
@@ -1943,10 +1967,10 @@ namespace renderdocui.Windows
 
         private void resetCam_Click(object sender, EventArgs e)
         {
-            if (m_MeshDisplay.type == MeshDataStage.VSIn)
-                controlType.SelectedIndex = 0;
-            else
+            if (RasterizedOutputStage)
                 controlType.SelectedIndex = 1;
+            else
+                controlType.SelectedIndex = 0;
 
             // make sure callback is called even if we're re-selecting same
             // camera type
@@ -2094,23 +2118,10 @@ namespace renderdocui.Windows
             else
             {
                 m_CurrentCamera = m_Flycam;
-                if (m_MeshDisplay.type == MeshDataStage.VSIn)
-                {
-                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
-                }
-                else if (m_MeshDisplay.type == MeshDataStage.VSOut)
-                {
-                    if (m_Core.CurPipelineState.IsTessellationEnabled)
-                        m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
-                    else
-                        m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
-                }
-                else if (m_MeshDisplay.type == MeshDataStage.GSOut)
-                {
+                if (RasterizedOutputStage)
                     m_Flycam.Reset(new Vec3f(0.0f, 0.0f, 0.0f));
-
-                    m_CurrentCamera = m_Flycam;
-                }
+                else
+                    m_Flycam.Reset(new Vec3f(0.0f, 0.0f, -10.0f));
             }
 
             UpdateHighlightVerts(GetUIState(m_MeshDisplay.type));
@@ -2276,25 +2287,22 @@ namespace renderdocui.Windows
 
             UI_UpdateMeshRenderComponents();
 
-            if (previewTab.SelectedIndex == 0)
-            {
-                controlType.SelectedIndex = 0;
-            }
-            else if (previewTab.SelectedIndex == 1)
-            {
-                if (m_Core.CurPipelineState.IsTessellationEnabled)
-                    controlType.SelectedIndex = 0;
-                else
-                    controlType.SelectedIndex = 1;
-            }
-            else if (previewTab.SelectedIndex == 2)
+            if (RasterizedOutputStage)
             {
                 controlType.SelectedIndex = 1;
+                fitScreen.Enabled = false;
+            }
+            else
+            {
+                controlType.SelectedIndex = 0;
+                fitScreen.Enabled = true;
             }
 
             enableCameraControls();
 
             controlType_SelectedIndexChanged(sender, e);
+
+            UI_UpdateBoundingBox();
 
             previewTable.Parent = previewTab.SelectedTab;
         }
@@ -2417,7 +2425,7 @@ namespace renderdocui.Windows
             var ui = GetUIState(m_MeshDisplay.type);
 
             m_MeshDisplay.showBBox = false;
-            if (ui.m_Stage == MeshDataStage.VSIn &&
+            if (!RasterizedOutputStage &&
                 CurPosElement >= 0 &&
                 ui.m_MinBounds != null && CurPosElement < ui.m_MinBounds.Length &&
                 ui.m_MaxBounds != null && CurPosElement < ui.m_MaxBounds.Length)
@@ -2540,7 +2548,7 @@ namespace renderdocui.Windows
                 m_MeshDisplay.position.unproject = false;
                 // near and far plane handled elsewhere
 
-                if ((ui.m_Stage == MeshDataStage.VSOut && !m_Core.CurPipelineState.IsTessellationEnabled) || ui.m_Stage == MeshDataStage.GSOut)
+                if (RasterizedOutputStage)
                 {
                     m_MeshDisplay.position.unproject = pos.systemValue == SystemAttribute.Position;
                 }
