@@ -381,11 +381,14 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_RotateArcball(Camera *c, float
 extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVector *pos, FloatVector *fwd, FloatVector *right, FloatVector *up);
 
 //////////////////////////////////////////////////////////////////////////
-// Maths/format related exports
+// Maths/format/misc related exports
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half);
 extern "C" RENDERDOC_API uint16_t RENDERDOC_CC Maths_FloatToHalf(float f);
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(PrimitiveTopology topology);
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTopology topology, uint32_t primitive);
 
 //////////////////////////////////////////////////////////////////////////
 // Create a replay renderer, for playback and analysis.

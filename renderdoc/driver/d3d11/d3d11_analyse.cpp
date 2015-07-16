@@ -3881,10 +3881,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 	ID3D11Query *testQueries[6] = {0}; // one query for each test we do per-drawcall
 
-	uint32_t pixstoreStride = 3;
+	uint32_t pixstoreStride = 4;
 	
 	// reserve 3 pixels per draw (worst case all events). This is used for Pre value, Post value and
-	// # frag overdraw. It's reused later to retrieve per-fragment post values.
+	// # frag overdraw (with & without original shader). It's reused later to retrieve per-fragment post values.
 	uint32_t pixstoreSlots = (uint32_t)(events.size() * pixstoreStride);
 
 	// need UAV compatible format, so switch B8G8R8A8 for R8G8B8A8, everything will
@@ -4712,8 +4712,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
 
 		m_pImmediateContext->End(occl[ev]);
-		
-		m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
 
 		// determine how many fragments returned from the shader
 		if(!uavOutput)
@@ -4762,7 +4760,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 
 			m_pImmediateContext->OMSetRenderTargets(0, NULL, shaddepthOutputDSV);
 
+			// replay first with overlay shader. This is guaranteed to count all fragments
 			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+			PixelHistoryCopyPixel(params, storex*pixstoreStride + 2, storey);
+
+			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
+
+			m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_STENCIL, 1.0f, 0);
+
+			// now replay with original shader. Some fragments may discard and not be counted
+			m_WrappedDevice->ReplayLog(frameID, 0, events[ev].eventID, eReplay_OnlyDraw);
+			PixelHistoryCopyPixel(params, storex*pixstoreStride + 3, storey);
 
 			UINT initCounts[D3D11_1_UAV_SLOT_COUNT];
 			memset(&initCounts[0], 0xff, sizeof(initCounts));
@@ -4775,8 +4783,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			for(int i=0; i < D3D11_1_UAV_SLOT_COUNT; i++)
 				SAFE_RELEASE(prevUAVs[i]);
 			SAFE_RELEASE(prevDSV);
-			
-			PixelHistoryCopyPixel(params, storex*pixstoreStride + 2, storey);
+		}
+		else
+		{
+			m_pImmediateContext->PSSetShader(curPS, curInst, curNumInst);
 		}
 
 		m_pImmediateContext->RSSetState(curRS);
@@ -5504,7 +5514,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			mod.postMod.stencil = int32_t(data[3]);
 			
 			// data[4] unused
-			mod.shaderOut.col.value_i[0] = int32_t(data[5]); // fragments writing to the pixel in this event
+			mod.shaderOut.col.value_i[0] = int32_t(data[5]); // fragments writing to the pixel in this event with overlay shader
+
+			// data[6] unused
+			mod.shaderOut.col.value_i[1] = int32_t(data[7]); // fragments writing to the pixel in this event with original shader
 		}
 	}
 	
@@ -5518,6 +5531,11 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	for(size_t h=0; h < history.size(); )
 	{
 		int32_t frags = RDCMAX(1, history[h].shaderOut.col.value_i[0]);
+		int32_t fragsClipped = RDCCLAMP(history[h].shaderOut.col.value_i[1], 1, frags);
+
+		// if we have fewer fragments with the original shader, some discarded
+		// so we need to do a thorough check to see which fragments discarded
+		bool someFragsClipped = (fragsClipped < frags);
 
 		PixelModification mod = history[h];
 
@@ -5525,7 +5543,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			history.insert(history.begin()+h+1, mod);
 
 		for(int32_t f=0; f < frags; f++)
+		{
 			history[h+f].fragIndex = f;
+			history[h+f].primitiveID = someFragsClipped;
+		}
 
 		h += frags;
 	}
@@ -5781,6 +5802,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 	shadColSlot = 0;
 	depthSlot = 0;
 
+	prev = 0;
+
+	// this is used to track if any previous fragments in the current draw
+	// discarded. If so, the shader output values will be off-by-one in the
+	// shader output storage due to stencil counting errors, and we need to
+	// offset.
+	uint32_t discardedOffset = 0;
+
 	for(size_t h=0; h < history.size(); h++)
 	{
 		const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
@@ -5879,22 +5908,37 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 		{
 			history[h].preMod = history[h-1].postMod;
 		}
+
+		// reset discarded offset every event
+		if(h > 0 && history[h].eventID != history[h-1].eventID)
+		{
+			discardedOffset = 0;
+		}
 		
 		// fetch shader output value
 		{
 			// colour
 			{
 				// shader output is always 4 32bit components, so we can copy straight
-				byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (shadColSlot/2048);
-				byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
+				// Note that because shader output values are interleaved with
+				// primitive IDs, the discardedOffset is doubled when looking at
+				// shader output values
+				uint32_t offsettedSlot = (shadColSlot - discardedOffset*2);
+				RDCASSERT(discardedOffset*2 <= shadColSlot);
+
+				byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (offsettedSlot/2048);
+				byte *data = rowdata + 4 * sizeof(float) * (offsettedSlot%2048);
 
 				memcpy(&history[h].shaderOut.col.value_u[0], data, 4*sizeof(float));
 			}
 
 			// depth
 			{
-				byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * (depthSlot/2048);
-				float *data = (float *)(rowdata + 2 * sizeof(float) * (depthSlot%2048));
+				uint32_t offsettedSlot = (depthSlot - discardedOffset);
+				RDCASSERT(discardedOffset <= depthSlot);
+
+				byte *rowdata = pixstoreDepthData + mappedDepth.RowPitch * (offsettedSlot/2048);
+				float *data = (float *)(rowdata + 2 * sizeof(float) * (offsettedSlot%2048));
 
 				history[h].shaderOut.depth = data[0];
 				if(history[h].postMod.stencil == -1)
@@ -5912,10 +5956,110 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(uint32_t frameID, vect
 			// shader output is always 4 32bit components, so we can copy straight
 			byte *rowdata = shadoutStoreData + mappedShadout.RowPitch * (shadColSlot/2048);
 			byte *data = rowdata + 4 * sizeof(float) * (shadColSlot%2048);
+
+			bool someFragsClipped = history[h].primitiveID != 0;
 			
 			memcpy(&history[h].primitiveID, data, sizeof(uint32_t));
 
 			shadColSlot++;
+
+			// if some fragments clipped in this draw, we need to check to see if this
+			// primitive ID was one of the ones that clipped.
+			// Currently the way we do that is by drawing only that primitive
+			// and doing a 
+			if(someFragsClipped)
+			{
+				// don't need to worry about trashing state, since at this point we don't need to restore it anymore
+				if(prev != history[h].eventID)
+				{
+					m_WrappedDevice->ReplayLog(frameID, 0, history[h].eventID, eReplay_WithoutDraw);
+
+					//////////////////////////////////////////////////////////////
+					// Set up an identical raster state, but with scissor enabled.
+					// This matches the setup when we were originally fetching the
+					// number of fragments.
+					m_pImmediateContext->RSGetState(&curRS);
+
+					D3D11_RASTERIZER_DESC rsDesc = {
+						/*FillMode =*/ D3D11_FILL_SOLID,
+						/*CullMode =*/ D3D11_CULL_BACK,
+						/*FrontCounterClockwise =*/ FALSE,
+						/*DepthBias =*/ D3D11_DEFAULT_DEPTH_BIAS,
+						/*DepthBiasClamp =*/ D3D11_DEFAULT_DEPTH_BIAS_CLAMP,
+						/*SlopeScaledDepthBias =*/ D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+						/*DepthClipEnable =*/ TRUE,
+						/*ScissorEnable =*/ FALSE,
+						/*MultisampleEnable =*/ FALSE,
+						/*AntialiasedLineEnable =*/ FALSE,
+					};
+
+					if(curRS)
+						curRS->GetDesc(&rsDesc);
+
+					SAFE_RELEASE(curRS);
+
+					rsDesc.ScissorEnable = TRUE;
+
+					// scissor to our pixel
+					newScissors[0].left = LONG(x);
+					newScissors[0].top = LONG(y);
+					newScissors[0].right = newScissors[0].left+1;
+					newScissors[0].bottom = newScissors[0].top+1;
+
+					m_pImmediateContext->RSSetScissorRects(1, newScissors);
+
+					m_pDevice->CreateRasterizerState(&rsDesc, &newRS);
+
+					m_pImmediateContext->RSSetState(newRS);
+
+					// other states can just be set to always pass, we already know this primitive ID renders
+					m_pImmediateContext->OMSetBlendState(m_DebugRender.NopBlendState, blendFactor, sampleMask);
+					m_pImmediateContext->OMSetRenderTargets(0, NULL, shaddepthOutputDSV);
+					m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.AllPassDepthState, 0);
+
+					SAFE_RELEASE(newRS);
+				}
+				prev = history[h].eventID;
+
+				m_pImmediateContext->ClearDepthStencilView(shaddepthOutputDSV, D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL, 0.0f, 0);
+
+				m_pImmediateContext->Begin(testQueries[0]);
+
+				// do draw
+				const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(frameID, history[h].eventID);
+				if(draw->flags & eDraw_UseIBuffer)
+				{
+					// TODO once pixel history distinguishes between instances, draw only the instance for this fragment
+					m_pImmediateContext->DrawIndexedInstanced(Topology_NumVerticesPerPrimitive(draw->topology),
+						RDCMAX(1U, draw->numInstances),
+						draw->indexOffset + Topology_VertexOffset(draw->topology, history[h].primitiveID),
+						draw->vertexOffset, draw->instanceOffset);
+				}
+				else
+				{
+					m_pImmediateContext->DrawInstanced(Topology_NumVerticesPerPrimitive(draw->topology),
+						RDCMAX(1U, draw->numInstances),
+						draw->vertexOffset + Topology_VertexOffset(draw->topology, history[h].primitiveID),
+						draw->instanceOffset);
+				}
+
+				m_pImmediateContext->End(testQueries[0]);
+
+				do
+				{
+					hr = m_pImmediateContext->GetData(testQueries[0], &occlData, sizeof(occlData), 0);
+				} while(hr == S_FALSE);
+				RDCASSERT(hr == S_OK);
+
+				if(occlData == 0)
+				{
+					history[h].shaderDiscarded = true;
+					discardedOffset++;
+					RDCEraseEl(history[h].shaderOut);
+					history[h].shaderOut.depth = -1.0f;
+					history[h].shaderOut.stencil = -1;
+				}
+			}
 		}
 	}
 

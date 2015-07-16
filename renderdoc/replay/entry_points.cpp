@@ -31,6 +31,134 @@
 #include "replay/replay_renderer.h"
 #include "api/replay/renderdoc_replay.h"
 
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(PrimitiveTopology topology)
+{
+	// strips/loops/fans have the same number of indices for a single primitive
+	// as their list friends
+	switch(topology)
+	{
+		default:
+		case eTopology_Unknown:
+			break;
+		case eTopology_PointList:
+			return 1;
+		case eTopology_LineList:
+		case eTopology_LineStrip:
+		case eTopology_LineLoop:
+			return 2;
+		case eTopology_TriangleList:
+		case eTopology_TriangleStrip:
+		case eTopology_TriangleFan:
+			return 3;
+		case eTopology_LineList_Adj:
+		case eTopology_LineStrip_Adj:
+			return 4;
+		case eTopology_TriangleList_Adj:
+		case eTopology_TriangleStrip_Adj:
+			return 6;
+		case eTopology_PatchList_1CPs:
+		case eTopology_PatchList_2CPs:
+		case eTopology_PatchList_3CPs:
+		case eTopology_PatchList_4CPs:
+		case eTopology_PatchList_5CPs:
+		case eTopology_PatchList_6CPs:
+		case eTopology_PatchList_7CPs:
+		case eTopology_PatchList_8CPs:
+		case eTopology_PatchList_9CPs:
+		case eTopology_PatchList_10CPs:
+		case eTopology_PatchList_11CPs:
+		case eTopology_PatchList_12CPs:
+		case eTopology_PatchList_13CPs:
+		case eTopology_PatchList_14CPs:
+		case eTopology_PatchList_15CPs:
+		case eTopology_PatchList_16CPs:
+		case eTopology_PatchList_17CPs:
+		case eTopology_PatchList_18CPs:
+		case eTopology_PatchList_19CPs:
+		case eTopology_PatchList_20CPs:
+		case eTopology_PatchList_21CPs:
+		case eTopology_PatchList_22CPs:
+		case eTopology_PatchList_23CPs:
+		case eTopology_PatchList_24CPs:
+		case eTopology_PatchList_25CPs:
+		case eTopology_PatchList_26CPs:
+		case eTopology_PatchList_27CPs:
+		case eTopology_PatchList_28CPs:
+		case eTopology_PatchList_29CPs:
+		case eTopology_PatchList_30CPs:
+		case eTopology_PatchList_31CPs:
+		case eTopology_PatchList_32CPs:
+			return uint32_t(topology - eTopology_PatchList_1CPs + 1);
+	}
+
+	return 0;
+}
+
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTopology topology, uint32_t primitive)
+{
+	// strips/loops/fans have the same number of indices for a single primitive
+	// as their list friends
+	switch(topology)
+	{
+		default:
+		case eTopology_Unknown:
+		case eTopology_PointList:
+		case eTopology_LineList:
+		case eTopology_TriangleList:
+		case eTopology_LineList_Adj:
+		case eTopology_TriangleList_Adj:
+		case eTopology_PatchList_1CPs:
+		case eTopology_PatchList_2CPs:
+		case eTopology_PatchList_3CPs:
+		case eTopology_PatchList_4CPs:
+		case eTopology_PatchList_5CPs:
+		case eTopology_PatchList_6CPs:
+		case eTopology_PatchList_7CPs:
+		case eTopology_PatchList_8CPs:
+		case eTopology_PatchList_9CPs:
+		case eTopology_PatchList_10CPs:
+		case eTopology_PatchList_11CPs:
+		case eTopology_PatchList_12CPs:
+		case eTopology_PatchList_13CPs:
+		case eTopology_PatchList_14CPs:
+		case eTopology_PatchList_15CPs:
+		case eTopology_PatchList_16CPs:
+		case eTopology_PatchList_17CPs:
+		case eTopology_PatchList_18CPs:
+		case eTopology_PatchList_19CPs:
+		case eTopology_PatchList_20CPs:
+		case eTopology_PatchList_21CPs:
+		case eTopology_PatchList_22CPs:
+		case eTopology_PatchList_23CPs:
+		case eTopology_PatchList_24CPs:
+		case eTopology_PatchList_25CPs:
+		case eTopology_PatchList_26CPs:
+		case eTopology_PatchList_27CPs:
+		case eTopology_PatchList_28CPs:
+		case eTopology_PatchList_29CPs:
+		case eTopology_PatchList_30CPs:
+		case eTopology_PatchList_31CPs:
+		case eTopology_PatchList_32CPs:
+			// for all lists, it's just primitive * Topology_NumVerticesPerPrimitive(topology)
+			break;
+		case eTopology_LineStrip:
+		case eTopology_LineLoop:
+		case eTopology_TriangleStrip:
+		case eTopology_LineStrip_Adj:
+			// for strips, each new vertex creates a new primitive
+			return primitive;
+		case eTopology_TriangleStrip_Adj:
+			// triangle strip with adjacency is a special case as every other
+			// vert is purely for adjacency so it's doubled
+			return primitive*2;
+		case eTopology_TriangleFan:
+			RDCERR("Cannot get VertexOffset for triangle fan!");
+			break;
+	}
+
+	return primitive * Topology_NumVerticesPerPrimitive(topology);
+}
+
 extern "C" RENDERDOC_API float RENDERDOC_CC Maths_HalfToFloat(uint16_t half)
 {
 	return ConvertFromHalf(half);

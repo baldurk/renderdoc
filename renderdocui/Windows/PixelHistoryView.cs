@@ -284,6 +284,9 @@ namespace renderdocui.Windows
             {
                 string name = String.Format("Primitive {0}\n", mod.primitiveID);
 
+                if (mod.shaderDiscarded)
+                    name += FailureString(mod);
+
                 ResourceFormat fmt = new ResourceFormat(floatTex ? FormatComponentType.Float : texture.format.compType, 4, 4);
 
                 string shadOutVal = "Shader Out\n\n" + ModificationValueString(mod.shaderOut, fmt, depth);
@@ -293,6 +296,9 @@ namespace renderdocui.Windows
                     return null;
 
                 node = new TreelistView.Node(new object[] { name, shadOutVal, "", postModVal, "" });
+
+                if (mod.shaderDiscarded)
+                    node.DefaultBackColor = Color.FromArgb(255, 235, 235);
             }
 
             node.Tag = new EventTag(mod.eventID, mod.uavWrite ? uint.MaxValue : mod.primitiveID);
@@ -368,9 +374,11 @@ namespace renderdocui.Windows
             }
             else
             {
-                name += String.Format("EID {0}\n{1}{2}\n{3} Fragments touching pixel\n", mods[0].eventID, drawcall.name, FailureString(mods[0]), nodes.Count);
+                passed = mods.Any(m => m.EventPassed());
 
-                passed = mods[0].EventPassed();
+                string failure = passed ? "" : FailureString(mods[0]);
+
+                name += String.Format("EID {0}\n{1}{2}\n{3} Fragments touching pixel\n", mods[0].eventID, drawcall.name, failure, nodes.Count);
             }
 
             string preModVal = "Tex Before\n\n" + ModificationValueString(mods.First().preMod, texture.format, depth);
