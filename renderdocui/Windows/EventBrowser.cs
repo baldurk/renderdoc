@@ -294,7 +294,7 @@ namespace renderdocui.Windows
                     drawNode.Tag = drawNode.Nodes.LastNode.Tag;
             }
 
-            if (drawNode.Nodes.IsEmpty() && (drawcall.flags & DrawcallFlags.PushMarker) != 0)
+            if (drawNode.Nodes.IsEmpty() && (drawcall.flags & DrawcallFlags.PushMarker) != 0 && m_Core.Config.EventBrowser_HideEmpty)
                 return null;
 
             root.Nodes.Add(drawNode);
