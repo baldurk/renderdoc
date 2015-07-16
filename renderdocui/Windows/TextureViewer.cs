@@ -57,6 +57,8 @@ namespace renderdocui.Windows
 
         private FileSystemWatcher m_FSWatcher = null;
 
+        private int m_HighWaterStatusLength = 0;
+
         public enum FollowType { OutputColour, OutputDepth, ReadWriteRes, PSResource }
         struct Following
         {
@@ -833,6 +835,8 @@ namespace renderdocui.Windows
             rtPanel.ClearThumbnails();
             texPanel.ClearThumbnails();
 
+            m_HighWaterStatusLength = 0;
+
             IntPtr contextHandle = pixelContext.Handle;
             IntPtr renderHandle = render.Handle;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
@@ -884,6 +888,7 @@ namespace renderdocui.Windows
             m_TextureSettings.Clear();
 
             m_PrevArea = 0.0f;
+            m_HighWaterStatusLength = 0;
 
             saveTex.Enabled = false;
 
@@ -1333,6 +1338,9 @@ namespace renderdocui.Windows
         private void UI_OnTextureSelectionChanged()
         {
             FetchTexture tex = CurrentTexture;
+
+            // reset high-water mark
+            m_HighWaterStatusLength = 0;
 
             if (tex == null) return;
 
@@ -1868,6 +1876,16 @@ namespace renderdocui.Windows
 
                 PixelPicked = false;
             }
+
+            // try and keep status text consistent by sticking to the high water mark
+            // of length (prevents nasty oscillation when the length of the string is
+            // just popping over/under enough to overflow onto the next line).
+
+            if (statusText.Length > m_HighWaterStatusLength)
+                m_HighWaterStatusLength = statusText.Length;
+
+            if (statusText.Length < m_HighWaterStatusLength)
+                statusText += new String(' ', m_HighWaterStatusLength - statusText.Length);
 
             statusLabel.Text = statusText;
         }
