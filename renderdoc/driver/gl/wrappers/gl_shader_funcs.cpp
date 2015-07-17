@@ -251,6 +251,7 @@ void WrappedOpenGL::glAttachShader(GLuint program, GLuint shader)
 		GLResourceRecord *progRecord = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
 		GLResourceRecord *shadRecord = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
 		RDCASSERT(progRecord && shadRecord);
+		if(progRecord && shadRecord)
 		{
 			SCOPED_SERIALISE_CONTEXT(ATTACHSHADER);
 			Serialise_glAttachShader(program, shader);
