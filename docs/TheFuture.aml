@@ -9,6 +9,14 @@
         and for reference if you have a new feature request - it might be on here already!
       </para>
       <para>
+        For more detail and a more up to date list, check the
+        <externalLink>
+<linkText>GitHub wiki</linkText>
+<linkAlternateText>wiki on GitHub</linkAlternateText>
+<linkUri>https://github.com/baldurk/renderdoc/wiki</linkUri>
+</externalLink>.
+      </para>
+      <para>
         Also note that none of these features are guaranteed. In an ideal world they would all
         happen but since work hasn't started on any of them some may turn out to be impractical
         or delayed indefinitely.
@@ -26,8 +34,8 @@
 			  <listItem><para>Perfkit/PerfHUD integration for vendor-specific detailed
 			  performance timers.</para></listItem>
 			  <listItem><para>Multiple frames in a single capture/logfile.</para></listItem>
-			  <listItem><para>D3D9, D3D12, Mantle and glNext support.</para></listItem>
-			  <listItem><para>Linux/OS X UI.</para></listItem>
+			  <listItem><para>D3D12 and Vulkan support.</para></listItem>
+			  <listItem><para>Further work on Qt UI.</para></listItem>
 			  <listItem><para>Diffing events in a given frame.</para></listItem>
 			  <listItem><para>Modifying the pipeline on the fly to change state.</para></listItem>
 			  <listItem><para>Highlighting redundant state-setting.</para></listItem>
