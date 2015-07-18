@@ -105,6 +105,13 @@
     recommended that you manually check for updates as new versions will be made available regularly with bugfixes.</para></entry>
     <entry><para>Enabled</para></entry>
   </row>
+  <row>
+    <entry><para>Prefer monospaced fonts in UI</para></entry>
+    <entry><para>This option will use a monospaced font for every place in the UI where any data or output
+    is displayed.</para>
+    <para>Changing this option will need the UI to be restarted before it takes effect.</para></entry>
+    <entry><para>Enabled</para></entry>
+  </row>
 </table>
 
       </content>
