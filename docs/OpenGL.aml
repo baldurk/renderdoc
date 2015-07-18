@@ -56,16 +56,10 @@
         </para>
         
 <list class="bullet">
-  <listItem><para>Multiple frame capture is not supported - after one capture is made, the application
-  must be restarted before you can capture again.</para></listItem>
   <listItem><para>Full &amp; complete support for multiple threads feeding GL simultaneously, or
   multiple contexts that don't share with each other (or only share within defined groups).</para></listItem>
   <listItem><para>Shader debugging is not supported on any shader stage.</para></listItem>
   <listItem><para>Pixel history is not implemented.</para></listItem>
-  <listItem><para>Logfiles currently contain every live resource at the time of capture, and they are
-  not 'trimmed' down to only the resources referenced.</para></listItem>
-  <listItem><para>Some initial contents aren't properly fetched or stored, so in some cases changes
-  from a previous frame would not be saved at capture time.</para></listItem>
 </list>
 
       </content>
@@ -74,7 +68,8 @@
       <title>Linux and OS X</title>
       <content>
       	<para>Linux and OS X support follows naturally when thinking about OpenGL support. Currently
-      	there is full support for capturing and replaying on linux, however there is no UI as yet.
+      	there is full support for capturing and replaying on linux, however the Qt UI is still
+      	heavily work in progress.
       	The recommended method is to capture on linux, and then replay on windows.</para>
       </content>
     </section>
