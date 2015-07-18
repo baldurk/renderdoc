@@ -121,6 +121,16 @@
     <Tokens Include="Tokens.tokens" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="imgs\Screenshots\BookmarksBar.png">
+      <ImageId>BookmarksBar</ImageId>
+      <AlternateText>Bookmarks Bar</AlternateText>
+      <ImageId>BookmarksBar</ImageId>
+      <AlternateText>Bookmarks Bar in Event Browser</AlternateText>
+    </Image>
+    <Image Include="imgs\icons\asterisk_orange.png">
+      <ImageId>asterisk_orange</ImageId>
+      <AlternateText>asterisk orange</AlternateText>
+    </Image>
     <Image Include="imgs\Screenshots\pythonshell.png">
       <ImageId>pythonshell</ImageId>
       <AlternateText>Python Shell</AlternateText>

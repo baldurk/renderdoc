@@ -92,6 +92,20 @@ D3DPERF_EndEvent();
 </alert>
       </content>
     </section>
+    <section address="bookmarks">
+      <title>Bookmarks</title>
+      <content>
+        <para>The <mediaLinkInline><image xlink:href="asterisk_orange"/></mediaLinkInline> bookmark button will
+        allow you to bookmark an event, the shortcut key is <command>CTRL-B</command>.</para>
+<mediaLink>
+<caption placement="after" lead="Bookmarks bar">The bookmarks bar with several EIDs bookmarks.</caption>
+<image xlink:href="BookmarksBar"/>
+</mediaLink>
+        <para>A list of bookmarked events will show up on a toolbar at the top of the event browser, they and
+        the shortcut keys <command>CTRL-1</command> to <command>CTRL-0</command> will jump to the
+        respective bookmarked EID. These shortcuts will work anywhere in the application.</para>
+      </content>
+    </section>
     <section address="searching">
       <title>Searching and Jumping</title>
       <content>
