@@ -3,7 +3,7 @@
   <developerConceptualDocument xmlns="http://ddue.schemas.microsoft.com/authoring/2003/5" xmlns:xlink="http://www.w3.org/1999/xlink">
     <introduction>
       <autoOutline />
-      <para>The Capture Dialog (which doubles as the attach-to-process dialog) is the
+      <para>The Capture Dialog (which doubles as the inject-into-process dialog) is the
       single point where programs are launched and logfiles are captured to disk.</para>
       <para>After launching a capture a connection dialog will open to allow you to manage
       and open any captures you take. See <link xlink:href="6f4dad92-3db3-448f-9f1a-79af65f74492" /> for more details.</para>
@@ -44,23 +44,23 @@
 
       </content>
     </section>
-    <section address="attaching">
+    <section address="injecting">
       <title>Inject into Process</title>
       <content>
         <para>When invoked through <command>Inject into Process</command> the capture dialog modifies itself
         to give a list of processes running on the target system.</para>
         <para>A list of processes is fetched once when the dialog is opened, but this can be refreshed
-        by clicking on the refresh button below the list. Select the process you would like to attach to
-        and click Attach.</para>
+        by clicking on the refresh button below the list. Select the process you would like to inject into
+        and click Inject.</para>
         <mediaLink>
-<caption placement="after" lead="Attaching">Attaching to an already-running process via RenderDoc.</caption>
-<image xlink:href="Attaching"/>
+<caption placement="after" lead="Injecting">Injecting into an already-running process via RenderDoc.</caption>
+<image xlink:href="Injecting"/>
 </mediaLink>
         
 <alert class="caution">
   <para>The process <legacyBold>must not</legacyBold> have invoked or initialised the API to be used,
   as this will be too late for RenderDoc to hook and capture it. At best RenderDoc will not capture, at worst
-  it may cause crashes or undefined behaviour. Only attach to processes you can guarantee are early
+  it may cause crashes or undefined behaviour. Only inject to processes you can guarantee are early
   enough in their initialisation that they have not used the graphics API.</para>
 </alert>
       </content>

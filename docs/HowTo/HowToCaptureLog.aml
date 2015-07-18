@@ -36,28 +36,28 @@
 
       </content>
     </section>
-    <section address="attaching">
-      <title>Attaching to a Process</title>
+    <section address="injecting">
+      <title>Injecting into a Process</title>
       <content>
-        <para>It is possible to attach to an already running process. By selecting the "Attach to Process"
+        <para>It is possible to inject to an already running process. By selecting the "Inject to Process"
         entry in the File menu, the capture dialog will modify to list the running processes rather than
         asking for an executable and command line parameters.</para>
         <para>This can be useful if launching your application from a single exe is non-trivial and it's
-        easier to attach to the process after it has been launched.</para>
+        easier to inject into the process after it has been launched.</para>
         <mediaLink>
-<caption placement="after" lead="Attaching">Attaching to a selected existing process.</caption>
-<image xlink:href="Attaching"/>
+<caption placement="after" lead="Injecting">Injecting to a selected existing process.</caption>
+<image xlink:href="Injecting"/>
 </mediaLink>
 
 <alert class="caution">
-  <para>The important thing to note about attaching is that RenderDoc can only attach to processes that
+  <para>The important thing to note about injecting is that RenderDoc can only inject to processes that
   <legacyBold>have not initialised or used the target API</legacyBold>. If this is the case RenderDoc can
   insert its hooks before any use of the API and work as normal. If the API has been used or initialised
   the results are undefined and likely RenderDoc will simply not function as it's too late to hook in.</para>
 </alert>
 
 <alert class="note">
-  <para>If RenderDoc is not running as administrator, it cannot attach to processes that are running with
+  <para>If RenderDoc is not running as administrator, it cannot inject into processes that are running with
   elevated permissions. In this case you can either run RenderDoc as administrator (not recommended unless
   necessary), or re-run the process as the normal user running RenderDoc.</para>
 </alert>
