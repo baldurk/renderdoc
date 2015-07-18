@@ -119,9 +119,9 @@
           what is supported in <link xlink:href="D1612D25-C8BA-4349-9CE2-1E57D60F98C5">its own page</link>.
         </para>
         <para>
-          In future API support is planned for at D3D9 when time and scheduling allows. glNext will
-          be developed once there is something to write against.
-          Support for Mantle and D3D12 are currently under development also.
+          In future API support is planned for at D3D9 when time and scheduling allows. Higher priority are
+          the new APIs coming - Vulkan and D3D12. Mantle support will likely not happen as the API is not
+          planned to be publically available anymore.
         </para>
       </content>
     </section>
