@@ -1499,6 +1499,11 @@ namespace renderdocui.Windows
                 }
                 e.Handled = true;
             }
+            if (e.KeyCode == Keys.F5 && !e.Control && e.Shift && !e.Alt)
+            {
+                RunBack();
+                e.Handled = true;
+            }
             if (e.KeyCode == Keys.F5 && !e.Control && !e.Shift && !e.Alt)
             {
                 Run();
