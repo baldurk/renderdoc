@@ -45,20 +45,19 @@
       <content>
         <para>Pixel debugging is launched from the texture viewer. For more details on selecting
         the pixel to debug see <link xlink:href="F1C1E449-55ED-46FE-BBFD-11D1A0511501" />.</para>
-        <para>When a given pixel is selected you can either choose the debug icon on the
-        toolbar, <mediaLinkInline><image xlink:href="wrench"/></mediaLinkInline>
-        or click the debug button underneath the pixel context. Each of these will
-        launch the shader viewer with the selected pixel being debugged. The
+        <para>When a given pixel is selected you can 
+        click the debug button underneath the pixel context. This will
+        launch the shader viewer with the selected pixel and sample being debugged. The
         inputs to the pixel will be automatically filled in.</para>
-        <para>There are currently several things to note while pixel debugging:</para>
+        <para>There are a couple of things to note while pixel debugging:</para>
 
 <list class="bullet">
-  <listItem><para>There is no pixel history at the moment, so the drawcall that you wish to debug
-  must be selected as the current even when you attempt to debug the pixel.</para></listItem>
+  <listItem><para>If the drawcall selected doesn't write to the pixel you have highligted, a pixel
+  history window will open to let you choose which draw call to debug.</para></listItem>
   <listItem><para>If a drawcall overdraws the same pixel several times then the results of debugging
-  may not be accurate - RenderDoc attempts to pick the fragment that last passed the depth test but this
-  isn't guaranteed and may not be perfect. There's also no way to choose a different fragment in the case
-  of blending being used, or sample-frequency rendering.</para></listItem>
+  will come from the last fragment that passed the depth test. If you wish to choose a particular
+  fragment from the list then first launch the pixel history and choose which fragment to debug
+  from the list there.</para></listItem>
 </list>
 
       </content>
@@ -115,6 +114,8 @@
   <para>The highlighted instruction at any given point indicates the <legacyItalic>next</legacyItalic>
   instruction to be executed - not the instruction that was just executed.</para>
 </alert>
+		<para>Hovering over a register in either the disassembly or in the view windows will open
+		a tooltip showing the value in different interpretations.</para>
 
         <para>There is also a toggle available to control the 'default' interpretation of temporary
         register values - float or int. Since registers are typeless typically they are interpreted as
