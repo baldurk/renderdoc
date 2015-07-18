@@ -325,6 +325,11 @@
           dds files RenderDoc supports all DXGI formats, compressed formats, arrays and mips -
 	      all of which will display as expected.
         </para>
+        <para>
+          Any modifications to the image while open in RenderDoc will be refreshed in the viewer.
+          However if the image metadata changes (dimension, format, etc) then this will likely cause
+          artifacts.
+        </para>
       </content>
     </section>
     <section address="FAQ15">
