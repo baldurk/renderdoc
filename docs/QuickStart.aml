@@ -104,7 +104,7 @@
   the 'picked' pixel value which can be inspected by right clicking anywhere on the texture display.</para></listItem>
   
   <listItem><para>Further to this, there is a small zoomed section of context around the last picked pixel available
-  in the bottom right of the texture viewer window. From here you can also launch the pixel debugger, with the provisos
+  in the bottom right of the texture viewer window. From here you can also launch the pixel history or debugger, as
   detailed in <link xlink:href="8a7568ca-6b2c-4873-b8eb-d1ad2aff9629" />.</para></listItem>
   
   <listItem><para>The last thing we will highlight is the range control. This is a fairly flexible tool that allows
@@ -220,8 +220,10 @@
                 Both raw data in a grid view and 3D inspection is possible. The tabs in the preview window allow you to
                 choose at which part of the pipeline you'd like to visualise the data.</para>
                 <para>When in the VS Input tab (or VS Output if tessellating), you can select to solid shader the object with
-                either flat shading or a UV Co-ordinate/Colour shading, which can be useful for visually inspecting
-                the geometry data.</para>
+                either flat shading or a secondary shading, which lets you right click on any column to select it as
+                colour data to render on the mesh.</para>
+                <para>You can hold or click the right mouse button on the mesh preview to select the vertex in
+                the mesh data tables.</para>
                 <para>When in the VS/GS/DS Output tabs there is the option to show the context leading up to this
                 drawcall by showing everything since the last clear. The default view (which you can reset to with the
                 reset button <mediaLinkInline><image xlink:href="UndoArrow"/></mediaLinkInline>) shows the camera at the
