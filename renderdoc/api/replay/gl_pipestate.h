@@ -277,15 +277,20 @@ struct GLPipelineState
 		bool32 FramebufferSRGB;
 		bool32 Dither;
 
+		struct Attachment
+		{
+			ResourceId Obj;
+			uint32_t Layer;
+			uint32_t Mip;
+		};
+
 		struct FBO
 		{
 			FBO() : Obj(), Depth(), Stencil() {}
 			ResourceId Obj;
-			rdctype::array<ResourceId> Color;
-			rdctype::array<uint32_t> Layer;
-			rdctype::array<uint32_t> Mip;
-			ResourceId Depth;
-			ResourceId Stencil;
+			rdctype::array<Attachment> Color;
+			Attachment Depth;
+			Attachment Stencil;
 
 			rdctype::array<int32_t> DrawBuffers;
 			int32_t ReadBuffer;

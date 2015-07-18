@@ -312,6 +312,14 @@ namespace renderdoc
         public class FrameBuffer
         {
             public bool FramebufferSRGB;
+            
+            [StructLayout(LayoutKind.Sequential)]
+            public class Attachment
+            {
+                public ResourceId Obj;
+                public UInt32 Layer;
+                public UInt32 Mip;
+            };
 
             [StructLayout(LayoutKind.Sequential)]
             public class FBO
@@ -319,13 +327,9 @@ namespace renderdoc
                 public ResourceId Obj;
 
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-                public ResourceId[] Color;
-                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-                public UInt32[] Layer;
-                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-                public UInt32[] Mip;
-                public ResourceId Depth;
-                public ResourceId Stencil;
+                public Attachment[] Color;
+                public Attachment Depth;
+                public Attachment Stencil;
 
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public Int32[] DrawBuffers;

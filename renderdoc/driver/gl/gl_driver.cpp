@@ -714,6 +714,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 			m_pSerialiser = new Serialiser(4, dummy, false);
 		}
 
+		// once GL driver is more tested, this can be disabled
 		if(m_Real.glDebugMessageCallback)
 		{
 			m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);

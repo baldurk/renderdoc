@@ -618,6 +618,16 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Blend
 }
 
 template<>
+void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Attachment &el)
+{
+	Serialise("", el.Obj);
+	Serialise("", el.Layer);
+	Serialise("", el.Mip);
+
+	SIZE_CHECK(GLPipelineState::FrameBuffer::Attachment, 16);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 {
 	Serialise("", el.FramebufferSRGB);
@@ -625,8 +635,6 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
 	Serialise("", el.m_DrawFBO.Obj);
 	Serialise("", el.m_DrawFBO.Color);
-	Serialise("", el.m_ReadFBO.Layer);
-	Serialise("", el.m_ReadFBO.Mip);
 	Serialise("", el.m_DrawFBO.Depth);
 	Serialise("", el.m_DrawFBO.Stencil);
 	Serialise("", el.m_DrawFBO.DrawBuffers);
@@ -634,8 +642,6 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
 	Serialise("", el.m_ReadFBO.Obj);
 	Serialise("", el.m_ReadFBO.Color);
-	Serialise("", el.m_ReadFBO.Layer);
-	Serialise("", el.m_ReadFBO.Mip);
 	Serialise("", el.m_ReadFBO.Depth);
 	Serialise("", el.m_ReadFBO.Stencil);
 	Serialise("", el.m_ReadFBO.DrawBuffers);

@@ -1324,7 +1324,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     ResourceId p = ResourceId.Null;
 
-                    if (db >= 0) p = state.m_FB.m_DrawFBO.Color[db];
+                    if (db >= 0) p = state.m_FB.m_DrawFBO.Color[db].Obj;
 
                     if (p != ResourceId.Null || showEmpty.Checked)
                     {
@@ -1384,7 +1384,7 @@ namespace renderdocui.Windows.PipelineState
 
             {
                 int i = 0;
-                foreach (ResourceId depthstencil in new ResourceId[] { state.m_FB.m_DrawFBO.Depth, state.m_FB.m_DrawFBO.Stencil })
+                foreach (ResourceId depthstencil in new ResourceId[] { state.m_FB.m_DrawFBO.Depth.Obj, state.m_FB.m_DrawFBO.Stencil.Obj })
                 {
                     if (depthstencil != ResourceId.Null || showEmpty.Checked)
                     {

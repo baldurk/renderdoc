@@ -112,6 +112,21 @@ namespace renderdocui.Windows
 
                     return view != null ? (int)view.HighestMip : -1;
                 }
+                else
+                {
+                    if (Type == FollowType.OutputColour)
+                    {
+                        return (int)core.CurGLPipelineState.m_FB.m_DrawFBO.Color[index].Mip;
+                    }
+                    else if (Type == FollowType.OutputDepth)
+                    {
+                        return (int)core.CurGLPipelineState.m_FB.m_DrawFBO.Depth.Mip;
+                    }
+                    else if (Type == FollowType.ReadWriteRes)
+                    {
+                        return (int)core.CurGLPipelineState.Images[index].Level;
+                    }
+                }
 
                 return -1;
             }
@@ -144,12 +159,20 @@ namespace renderdocui.Windows
                 }
                 else
                 {
-                    if (Type == FollowType.ReadWriteRes)
+                    if (Type == FollowType.OutputColour)
+                    {
+                        return (int)core.CurGLPipelineState.m_FB.m_DrawFBO.Color[index].Layer;
+                    }
+                    else if (Type == FollowType.OutputDepth)
+                    {
+                        return (int)core.CurGLPipelineState.m_FB.m_DrawFBO.Depth.Layer;
+                    }
+                    else if (Type == FollowType.ReadWriteRes)
                     {
                         if(!core.CurGLPipelineState.Images[index].Layered)
                             return (int)core.CurGLPipelineState.Images[index].Layer;
                     }
-                    if (Type == FollowType.PSResource)
+                    else if (Type == FollowType.PSResource)
                     {
                         return (int)core.CurGLPipelineState.Textures[index].FirstSlice;
                     }
