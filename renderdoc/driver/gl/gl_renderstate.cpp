@@ -317,30 +317,8 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
 		manager->MarkResourceFrameReferenced(TextureRes(ctx, Images[i].name), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
 		gl->AddMissingTrack(manager->GetID(TextureRes(ctx, Images[i].name)));
 	}
-	
-	manager->MarkResourceFrameReferenced(VertexArrayRes(ctx, VAO), initial ? eFrameRef_Unknown : eFrameRef_Read);
 
-	// we need to find all the buffers bound to the VAO and mark them referenced to. The reason for this
-	// is that say a VAO became high traffic and we stopped serialising buffer binds, but then it is never
-	// modified in this frame and none of the buffers are ever referenced. They would be eliminated from
-	// the log and the VAO initial state that tries to bind them would fail.
-	// Normally this would be handled by record parenting, but that would be a nightmare to track for VAOs.
-	if(VAO)
-	{
-		GLint numVBufferBindings = 16;
-		gl->glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
-
-		for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
-		{
-			GLuint buffer = GetBoundVertexBuffer(*m_Real, i);
-
-			manager->MarkResourceFrameReferenced(BufferRes(ctx, buffer), initial ? eFrameRef_Unknown : eFrameRef_Read);
-		}
-
-		GLuint ibuffer = 0;
-		gl->glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
-		manager->MarkResourceFrameReferenced(BufferRes(ctx, ibuffer), initial ? eFrameRef_Unknown : eFrameRef_Read);
-	}
+	manager->MarkVAOReferenced(VertexArrayRes(ctx, VAO), initial ? eFrameRef_Unknown : eFrameRef_Read);
 
 	manager->MarkResourceFrameReferenced(FeedbackRes(ctx, FeedbackObj), initial ? eFrameRef_Unknown : eFrameRef_Read);
 
@@ -367,62 +345,12 @@ void GLRenderState::MarkReferenced(WrappedOpenGL *gl, bool initial) const
 
 	for(size_t i=0; i < ARRAY_COUNT(UniformBinding); i++)
 		manager->MarkResourceFrameReferenced(BufferRes(ctx, UniformBinding[i].name), initial ? eFrameRef_Unknown : eFrameRef_Read);
-	
-	GLint numCols = 8;
-	gl->glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
-	// for the same reason as VAOs above, we need to find all the renderbuffers/textures bound to the FBOs
-	GLuint fbos[] = { ReadFBO, DrawFBO };
-	GLenum tgts[] = { eGL_READ_FRAMEBUFFER, eGL_DRAW_FRAMEBUFFER };
-	FrameRefType refs[] = { eFrameRef_Read, eFrameRef_ReadBeforeWrite };
+	manager->MarkFBOReferenced(FramebufferRes(ctx, DrawFBO), initial ? eFrameRef_Unknown : eFrameRef_ReadBeforeWrite);
 
 	// if same FBO is bound to both targets, treat it as draw only
-	if(ReadFBO == DrawFBO)
-		fbos[0] = 0;
-
-	for(size_t i=0; i < ARRAY_COUNT(fbos); i++)
-	{
-		manager->MarkResourceFrameReferenced(FramebufferRes(ctx, fbos[i]), initial ? eFrameRef_Unknown : eFrameRef_Read);
-
-		if(fbos[i])
-		{
-			GLenum type = eGL_TEXTURE;
-			GLuint name = 0;
-
-			for(int c=0; c < numCols; c++)
-			{
-				gl->glGetFramebufferAttachmentParameteriv(tgts[i], GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
-				gl->glGetFramebufferAttachmentParameteriv(tgts[i], GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
-
-				if(type == eGL_RENDERBUFFER)
-					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-				else
-					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-			}
-
-			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
-			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
-
-			if(name)
-			{
-				if(type == eGL_RENDERBUFFER)
-					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-				else
-					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-			}
-
-			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
-			gl->glGetFramebufferAttachmentParameteriv(tgts[i], eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
-
-			if(name)
-			{
-				if(type == eGL_RENDERBUFFER)
-					manager->MarkResourceFrameReferenced(RenderbufferRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-				else
-					manager->MarkResourceFrameReferenced(TextureRes(ctx, name), initial ? eFrameRef_Unknown : refs[i]);
-			}
-		}
-	}
+	if(ReadFBO != DrawFBO)
+		manager->MarkFBOReferenced(FramebufferRes(ctx, ReadFBO), initial ? eFrameRef_Unknown : eFrameRef_Read);
 }
 
 void GLRenderState::MarkDirty(WrappedOpenGL *gl)

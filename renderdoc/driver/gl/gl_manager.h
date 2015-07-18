@@ -211,6 +211,14 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		{
 			return m_SyncIDs[sync];
 		}
+		
+		// we need to find all the children bound to VAOs/FBOs and mark them referenced. The reason for this
+		// is that say a VAO became high traffic and we stopped serialising buffer binds, but then it is never
+		// modified in a frame and none of the buffers are ever referenced. They would be eliminated from
+		// the log and the VAO initial state that tries to bind them would fail.
+		// Normally this would be handled by record parenting, but that would be a nightmare to track.
+		void MarkVAOReferenced(GLResource res, FrameRefType ref);
+		void MarkFBOReferenced(GLResource res, FrameRefType ref);
 
 		bool Prepare_InitialState(GLResource res, byte *blob);
 		bool Serialise_InitialState(GLResource res);

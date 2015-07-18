@@ -194,7 +194,8 @@ void WrappedOpenGL::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum atta
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -250,7 +251,8 @@ void WrappedOpenGL::glFramebufferTexture(GLenum target, GLenum attachment, GLuin
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -322,7 +324,8 @@ void WrappedOpenGL::glNamedFramebufferTexture1DEXT(GLuint framebuffer, GLenum at
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -378,7 +381,8 @@ void WrappedOpenGL::glFramebufferTexture1D(GLenum target, GLenum attachment, GLe
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -450,7 +454,8 @@ void WrappedOpenGL::glNamedFramebufferTexture2DEXT(GLuint framebuffer, GLenum at
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -506,7 +511,8 @@ void WrappedOpenGL::glFramebufferTexture2D(GLenum target, GLenum attachment, GLe
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -579,7 +585,8 @@ void WrappedOpenGL::glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum at
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -635,7 +642,8 @@ void WrappedOpenGL::glFramebufferTexture3D(GLenum target, GLenum attachment, GLe
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -696,7 +704,8 @@ void WrappedOpenGL::glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(RenderbufferRes(GetCtx(), renderbuffer), eFrameRef_Read);
 		}
 	}
 }
@@ -743,7 +752,8 @@ void WrappedOpenGL::glFramebufferRenderbuffer(GLenum target, GLenum attachment, 
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(RenderbufferRes(GetCtx(), renderbuffer), eFrameRef_Read);
 		}
 	}
 }
@@ -815,7 +825,8 @@ void WrappedOpenGL::glNamedFramebufferTextureLayerEXT(GLuint framebuffer, GLenum
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -871,7 +882,8 @@ void WrappedOpenGL::glFramebufferTextureLayer(GLenum target, GLenum attachment, 
 		else
 		{
 			m_ContextRecord->AddChunk(scope.Get());
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+			GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
 		}
 	}
 }
@@ -972,7 +984,7 @@ void WrappedOpenGL::glFramebufferReadBufferEXT(GLuint framebuffer, GLenum buf)
 		Serialise_glFramebufferReadBufferEXT(framebuffer, buf);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
 	}
 	else if(m_State == WRITING_IDLE && framebuffer != 0)
 	{
@@ -996,7 +1008,7 @@ void WrappedOpenGL::glReadBuffer(GLenum mode)
 
 			m_ContextRecord->AddChunk(scope.Get());
 			if(readrecord)
-				GetResourceManager()->MarkResourceFrameReferenced(readrecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkFBOReferenced(readrecord->Resource, eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -1037,7 +1049,7 @@ void WrappedOpenGL::glBindFramebuffer(GLenum target, GLuint framebuffer)
 		Serialise_glBindFramebuffer(target, framebuffer);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_Read);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
 	}
 
 	if(framebuffer == 0 && m_State < WRITING)
@@ -1088,7 +1100,7 @@ void WrappedOpenGL::glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 		Serialise_glFramebufferDrawBufferEXT(framebuffer, buf);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
 	}
 	else if(m_State == WRITING_IDLE && framebuffer != 0)
 	{
@@ -1112,7 +1124,7 @@ void WrappedOpenGL::glDrawBuffer(GLenum buf)
 
 			m_ContextRecord->AddChunk(scope.Get());
 			if(drawrecord)
-				GetResourceManager()->MarkResourceFrameReferenced(drawrecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkFBOReferenced(drawrecord->Resource, eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -1159,7 +1171,7 @@ void WrappedOpenGL::glFramebufferDrawBuffersEXT(GLuint framebuffer, GLsizei n, c
 		Serialise_glFramebufferDrawBuffersEXT(framebuffer, n, bufs);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer), eFrameRef_ReadBeforeWrite);
 	}
 	else if(m_State == WRITING_IDLE && framebuffer != 0)
 	{
@@ -1186,7 +1198,7 @@ void WrappedOpenGL::glDrawBuffers(GLsizei n, const GLenum *bufs)
 
 			m_ContextRecord->AddChunk(scope.Get());
 			if(drawrecord)
-				GetResourceManager()->MarkResourceFrameReferenced(drawrecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkFBOReferenced(drawrecord->Resource, eFrameRef_ReadBeforeWrite);
 		}
 		else
 		{
@@ -1396,8 +1408,8 @@ void WrappedOpenGL::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFr
 		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_Read);
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_Read);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_ReadBeforeWrite);
 	}
 	
 	// use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
@@ -1422,8 +1434,8 @@ void WrappedOpenGL::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLi
 		Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
 		
 		m_ContextRecord->AddChunk(scope.Get());
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_Read);
-		GetResourceManager()->MarkResourceFrameReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_Read);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer), eFrameRef_ReadBeforeWrite);
+		GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer), eFrameRef_ReadBeforeWrite);
 	}
 	
 	m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);

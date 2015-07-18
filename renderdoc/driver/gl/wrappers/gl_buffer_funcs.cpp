@@ -2705,7 +2705,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribOffsetEXT(GLuint vaobj, GLuint buff
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2735,7 +2735,7 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2800,7 +2800,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buf
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2830,7 +2830,7 @@ void WrappedOpenGL::glVertexAttribIPointer(GLuint index, GLint size, GLenum type
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2895,7 +2895,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLOffsetEXT(GLuint vaobj, GLuint buf
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2925,7 +2925,7 @@ void WrappedOpenGL::glVertexAttribLPointer(GLuint index, GLint size, GLenum type
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -2968,7 +2968,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribBindingEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
@@ -2995,7 +2995,7 @@ void WrappedOpenGL::glVertexAttribBinding(GLuint attribindex, GLuint bindinginde
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBBINDING);
@@ -3041,7 +3041,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribFormatEXT(GLuint vaobj, GLuint attr
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
@@ -3068,7 +3068,7 @@ void WrappedOpenGL::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum 
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
@@ -3113,7 +3113,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
@@ -3140,7 +3140,7 @@ void WrappedOpenGL::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
@@ -3185,7 +3185,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint att
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
@@ -3212,7 +3212,7 @@ void WrappedOpenGL::glVertexAttribLFormat(GLuint attribindex, GLint size, GLenum
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBLFORMAT);
@@ -3267,7 +3267,7 @@ void WrappedOpenGL::glVertexArrayVertexAttribDivisorEXT(GLuint vaobj, GLuint ind
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
@@ -3294,7 +3294,7 @@ void WrappedOpenGL::glVertexAttribDivisor(GLuint index, GLuint divisor)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIVISOR);
@@ -3346,7 +3346,7 @@ void WrappedOpenGL::glEnableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
@@ -3373,7 +3373,7 @@ void WrappedOpenGL::glEnableVertexAttribArray(GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
@@ -3425,7 +3425,7 @@ void WrappedOpenGL::glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
@@ -3452,7 +3452,7 @@ void WrappedOpenGL::glDisableVertexAttribArray(GLuint index)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
@@ -3611,7 +3611,7 @@ void WrappedOpenGL::glBindVertexArray(GLuint array)
 
 		m_ContextRecord->AddChunk(scope.Get());
 		if(record)
-			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+				GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
 	}
 }
 
@@ -3656,7 +3656,7 @@ void WrappedOpenGL::glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -3708,7 +3708,7 @@ void WrappedOpenGL::glVertexArrayBindVertexBufferEXT(GLuint vaobj, GLuint bindin
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -3738,7 +3738,7 @@ void WrappedOpenGL::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLint
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 			if(m_State == WRITING_CAPFRAME && bufrecord)
 				GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
@@ -3822,7 +3822,7 @@ void WrappedOpenGL::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsiz
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
@@ -3862,7 +3862,7 @@ void WrappedOpenGL::glBindVertexBuffers(GLuint first, GLsizei count, const GLuin
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFERS);
@@ -3918,7 +3918,7 @@ void WrappedOpenGL::glVertexArrayVertexBindingDivisorEXT(GLuint vaobj, GLuint bi
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);
@@ -3945,7 +3945,7 @@ void WrappedOpenGL::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
 			if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
 				return;
 			if(m_State == WRITING_CAPFRAME && varecord)
-				GetResourceManager()->MarkResourceFrameReferenced(varecord->GetResourceID(), eFrameRef_ReadBeforeWrite);
+				GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
 			{
 				SCOPED_SERIALISE_CONTEXT(VERTEXBINDINGDIVISOR);

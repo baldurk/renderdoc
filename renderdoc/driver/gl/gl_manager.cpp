@@ -65,11 +65,36 @@ struct FeedbackInitialData
 	uint64_t Size[4];
 };
 
+struct FramebufferAttachmentData
+{
+	bool renderbuffer;
+	bool layered;
+	int32_t layer;
+	int32_t level;
+	ResourceId obj;
+};
+
 struct FramebufferInitialData
 {
 	bool valid;
+	FramebufferAttachmentData Attachments[10];
 	GLenum DrawBuffers[8];
 	GLenum ReadBuffer;
+
+	static const GLenum attachmentNames[10];
+};
+
+const GLenum FramebufferInitialData::attachmentNames[10] = {
+	eGL_COLOR_ATTACHMENT0,
+	eGL_COLOR_ATTACHMENT1,
+	eGL_COLOR_ATTACHMENT2,
+	eGL_COLOR_ATTACHMENT3,
+	eGL_COLOR_ATTACHMENT4,
+	eGL_COLOR_ATTACHMENT5,
+	eGL_COLOR_ATTACHMENT6,
+	eGL_COLOR_ATTACHMENT7,
+	eGL_DEPTH_ATTACHMENT,
+	eGL_STENCIL_ATTACHMENT,
 };
 
 template<>
@@ -106,11 +131,24 @@ void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, FramebufferAttachmentData &el)
+{
+	ScopedContext scope(this, this, name, "FramebufferAttachmentData", 0, true);
+	Serialise("renderbuffer", el.renderbuffer);
+	Serialise("layered", el.layered);
+	Serialise("layer", el.layer);
+	Serialise("level", el.level);
+	Serialise("obj", el.obj);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, FramebufferInitialData &el)
 {
 	ScopedContext scope(this, this, name, "FramebufferInitialData", 0, true);
 	Serialise("valid", el.valid);
 	Serialise<8>("DrawBuffers", el.DrawBuffers);
+	for(size_t i=0; i < ARRAY_COUNT(el.Attachments); i++)
+		Serialise("Attachments", el.Attachments[i]);
 	Serialise("ReadBuffer", el.ReadBuffer);
 }
 
@@ -156,6 +194,79 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 	Serialise("texBufSize", el.texBufSize);
 }
 
+void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref)
+{
+	const GLHookSet &gl = m_GL->m_Real;
+
+	if(res.name)
+	{
+		MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
+
+		GLint numVBufferBindings = 16;
+		gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
+
+		for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
+		{
+			GLuint buffer = GetBoundVertexBuffer(gl, i);
+
+			MarkResourceFrameReferenced(BufferRes(res.Context, buffer), ref);
+		}
+
+		GLuint ibuffer = 0;
+		gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&ibuffer);
+		MarkResourceFrameReferenced(BufferRes(res.Context, ibuffer), ref);
+	}
+}
+
+void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
+{
+	if(res.name == 0)
+		return;
+	
+	MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
+
+	const GLHookSet &gl = m_GL->m_Real;
+
+	GLint numCols = 8;
+	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+	GLenum type = eGL_TEXTURE;
+	GLuint name = 0;
+
+	for(int c=0; c < numCols; c++)
+	{
+		gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0+c), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+		gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, GLenum(eGL_COLOR_ATTACHMENT0+c), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+		if(type == eGL_RENDERBUFFER)
+			MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+		else
+			MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+	}
+
+	gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+	gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+	if(name)
+	{
+		if(type == eGL_RENDERBUFFER)
+			MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+		else
+			MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+	}
+
+	gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&name);
+	gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+
+	if(name)
+	{
+		if(type == eGL_RENDERBUFFER)
+			MarkResourceFrameReferenced(RenderbufferRes(res.Context, name), ref);
+		else
+			MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
+	}
+}
+
 bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *record)
 {
 	if(id == m_GL->GetContextResourceID())
@@ -184,6 +295,25 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
 
 		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, res.name);
 		gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
+
+		//need to serialise out which objects are bound
+		GLenum type;
+		GLuint object;
+		GLint layered;
+		for(int i=0; i < (int)ARRAY_COUNT(data->Attachments); i++)
+		{
+			FramebufferAttachmentData &a = data->Attachments[i];
+
+			gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&object);
+			gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint*)&type);
+			gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
+			gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
+			gl.glGetNamedFramebufferAttachmentParameterivEXT(res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
+
+			a.layered = (layered != 0);
+			a.renderbuffer = (type == eGL_RENDERBUFFER);
+			a.obj = GetID(a.renderbuffer ? RenderbufferRes(res.Context, object) : TextureRes(res.Context, object));
+		}
 
 		for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
 			gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&data->DrawBuffers[i]);
@@ -1475,6 +1605,29 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
 			gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, live.name);
 			gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, live.name);
+
+			for(int i=0; i < (int)ARRAY_COUNT(data->Attachments); i++)
+			{
+				FramebufferAttachmentData &a = data->Attachments[i];
+
+				GLuint obj = a.obj == ResourceId() ? 0 : GetLiveResource(a.obj).name;
+
+				if(a.renderbuffer && obj)
+				{
+					gl.glNamedFramebufferRenderbufferEXT(live.name, data->attachmentNames[i], eGL_RENDERBUFFER, obj);
+				}
+				else
+				{
+					if(a.layered && obj)
+					{
+						gl.glNamedFramebufferTextureLayerEXT(live.name, data->attachmentNames[i], obj, a.level, a.layer);
+					}
+					else
+					{
+						gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, a.level);
+					}
+				}
+			}
 
 			// set invalid caps to GL_COLOR_ATTACHMENT0
 			for(int i=0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
