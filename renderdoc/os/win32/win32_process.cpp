@@ -426,7 +426,12 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
 	PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine);
 
 	if(pi.dwProcessId == 0)
+	{
+		RDCERR("Couldn't launch process '%s'", app);
 		return 0;
+	}
+
+	RDCLOG("Launched process '%s' with '%s'", app, cmdLine);
 
 	ResumeThread(pi.hThread);
 	CloseHandle(pi.hThread);
