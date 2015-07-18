@@ -1108,6 +1108,82 @@ bool GLResourceManager::Serialise_InitialState(GLResource res)
 				SERIALISE_ELEMENT(int, mips, 0);
 				SERIALISE_ELEMENT(bool, isCompressed, false);
 
+				// if number of mips isn't sufficient, make sure to initialise
+				// the lower levels - this could happen if e.g. a texture is
+				// init'd with glTexImage(level = 0), then after we stop tracking
+				// it glGenerateMipmap is called
+				{
+					GLuint live = GetLiveResource(Id).name;
+
+					GLsizei w = (GLsizei)width;
+					GLsizei h = (GLsizei)height;
+					GLsizei d = (GLsizei)depth;
+
+					int liveMips = GetNumMips(gl, textype, live, width, height, depth);
+
+					GLenum targets[] = {
+						eGL_TEXTURE_CUBE_MAP_POSITIVE_X,
+						eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+						eGL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+						eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+						eGL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+						eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+					};
+
+					int count = ARRAY_COUNT(targets);
+
+					if(textype != eGL_TEXTURE_CUBE_MAP)
+					{
+						targets[0] = textype;
+						count = 1;
+					}
+
+					for(int m = 1; m < mips; m++)
+					{
+						w = RDCMAX(1, w >> 1);
+						h = RDCMAX(1, h >> 1);
+						d = RDCMAX(1, d >> 1);
+
+						if(textype == eGL_TEXTURE_CUBE_MAP_ARRAY ||
+							textype == eGL_TEXTURE_1D_ARRAY ||
+							textype == eGL_TEXTURE_2D_ARRAY)
+							d = (GLsizei)depth;
+
+						if(m >= liveMips)
+						{
+							for(int t=0; t < count; t++)
+							{
+								if(isCompressed)
+								{
+									GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalformat, m);
+
+									vector<byte> dummy;
+									dummy.resize(compSize);
+
+									if(dim == 1)
+										gl.glCompressedTextureImage1DEXT(live, targets[t], m, internalformat, w, 0, compSize, &dummy[0]);
+									else if(dim == 2)
+										gl.glCompressedTextureImage2DEXT(live, targets[t], m, internalformat, w, h, 0, compSize, &dummy[0]);
+									else if(dim == 3)
+										gl.glCompressedTextureImage3DEXT(live, targets[t], m, internalformat, w, h, d, 0, compSize, &dummy[0]);
+								}
+								else
+								{
+									if(dim == 1)
+										gl.glTextureImage1DEXT(live, targets[t], m, internalformat, (GLsizei)w, 0,
+																					 GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+									else if(dim == 2)
+										gl.glTextureImage2DEXT(live, targets[t], m, internalformat, (GLsizei)w, (GLsizei)h, 0,
+																					 GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+									else if(dim == 3)
+										gl.glTextureImage3DEXT(live, targets[t], m, internalformat, (GLsizei)w, (GLsizei)h, (GLsizei)d, 0,
+																					 GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+								}
+							}
+						}
+					}
+				}
+
 				GLuint tex = 0;
 
 				if(textype != eGL_TEXTURE_BUFFER)

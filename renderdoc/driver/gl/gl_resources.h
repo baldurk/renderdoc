@@ -31,6 +31,7 @@
 
 struct GLHookSet;
 
+size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalformat, int mip);
 size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
