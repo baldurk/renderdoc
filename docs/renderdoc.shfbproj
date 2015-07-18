@@ -121,6 +121,12 @@
     <Tokens Include="Tokens.tokens" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="imgs\Screenshots\PixelHistoryTimeline.png">
+      <ImageId>PixelHistoryTimeline</ImageId>
+      <AlternateText>Pixel History Timeline</AlternateText>
+      <AlternateText>Pixel history events displayed in timeline bar</AlternateText>
+      <ImageId>PixelHistoryTimeline</ImageId>
+    </Image>
     <Image Include="imgs\Screenshots\BookmarksBar.png">
       <ImageId>BookmarksBar</ImageId>
       <AlternateText>Bookmarks Bar</AlternateText>

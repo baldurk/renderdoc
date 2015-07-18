@@ -77,5 +77,16 @@
 </mediaLink>
       </content>
     </section>
+    <section address="pixelhistory">
+      <title>Pixel history event Display</title>
+      <content>
+        <para>When a pixel history window is focussed, the timeline bar will show the results over each EID
+        with a red triangle to show rejected pixels and green triangles to show passed pixels.</para>
+        <mediaLink>
+<caption placement="after" lead="Pixel History Results">The timeline bar shows the results of a pixel's history.</caption>
+<image xlink:href="PixelHistoryTimeline"/>
+</mediaLink>
+      </content>
+    </section>
   </developerConceptualDocument>
 </topic>
