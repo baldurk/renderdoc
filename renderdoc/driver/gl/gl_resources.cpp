@@ -374,6 +374,26 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 {
 	switch(internalFormat)
 	{
+		// pick sized format ourselves for generic formats
+		case eGL_COMPRESSED_RED:
+			return eGL_COMPRESSED_RED_RGTC1;
+		case eGL_COMPRESSED_RG:
+			return eGL_COMPRESSED_RG_RGTC2;
+		case eGL_COMPRESSED_RGB:
+			return eGL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+		case eGL_COMPRESSED_RGBA:
+			return eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+		case eGL_COMPRESSED_SRGB:
+			return eGL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+		case eGL_COMPRESSED_SRGB_ALPHA:
+			return eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+
+		// only one sized format for SRGB
+		case eGL_SRGB:
+			return eGL_SRGB8;
+		case eGL_SRGB_ALPHA:
+			return eGL_SRGB8_ALPHA8;
+
 		case eGL_RED:
 		case eGL_RG:
 		case eGL_RGB:
