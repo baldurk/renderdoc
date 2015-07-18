@@ -395,7 +395,7 @@
 		  time of writing only RenderDoc implements this as I've only just proposed the
 		  extension publicly, but in future you can use the queries described in that spec.
 <alert class="note">
-  <para>Alert text</para> Until enumerants are assigned (if that ever happens):
+  <para>It's unlikely the extension will ever be 'made official', so these enumerants can be used:</para>
  <code language="cpp">
  #define GL_DEBUG_TOOL_EXT                 0x6789
  #define GL_DEBUG_TOOL_NAME_EXT            0x678A
