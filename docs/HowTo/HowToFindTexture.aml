@@ -25,6 +25,8 @@ d3dDevice->CreateTexture2D(&amp;descriptor, NULL, &amp;tex2d);
 tex2d->SetPrivateData(WKPDID_D3DDebugObjectName, "Example Texture", sizeof("Example Texture"));
 </code>
 
+		<para>In OpenGL this can be done with GL_KHR_debug - glObjectLabel.</para>
+
 		<para>When this texture is bound to the pipeline it will be listed like so:</para>
         <mediaLink>
 <caption placement="after" lead="Named Texture">The example texture bound with name displayed.</caption>

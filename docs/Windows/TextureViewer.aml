@@ -105,7 +105,7 @@
 </mediaLink>
 		<para>From here, once you have selected a pixel, you can also launch the
 		<link xlink:href="8a7568ca-6b2c-4873-b8eb-d1ad2aff9629">pixel debugger</link> if you have
-		the drawcall that yo uwant to debug selected. You can also launch the
+		the drawcall that you want to debug selected. You can also launch the
 		<link xlink:href="F1C1E449-55ED-46FE-BBFD-11D1A0511501">pixel history</link> view which shows all
 		modifications that have happened to the texture since the start of the frame to the currently selected
 		event.</para>
