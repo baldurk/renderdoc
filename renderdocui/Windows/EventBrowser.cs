@@ -456,12 +456,30 @@ namespace renderdocui.Windows
             return false;
         }
 
+        private bool FindEventNode(ref TreelistView.Node found, UInt32 frameID, UInt32 eventID)
+        {
+            bool ret = FindEventNode(ref found, eventView.Nodes[0].Nodes, frameID, eventID);
+
+            while (found != null && found.NextSibling != null && found.NextSibling.Tag is DeferredEvent)
+            {
+                DeferredEvent def = found.NextSibling.Tag as DeferredEvent;
+
+                if (def.eventID == eventID)
+                    found = found.NextSibling;
+                else
+                    break;
+            }
+
+            return ret;
+        }
+
         private bool SelectEvent(UInt32 frameID, UInt32 eventID)
         {
             if (eventView.Nodes.Count == 0) return false;
 
             TreelistView.Node found = null;
-            FindEventNode(ref found, eventView.Nodes[0].Nodes, frameID, eventID);
+            FindEventNode(ref found, frameID, eventID);
+
             if (found != null)
             {
                 eventView.FocusedNode = found;
@@ -1053,17 +1071,7 @@ namespace renderdocui.Windows
             int index = m_Bookmark.IndexOf(EID);
 
             TreelistView.Node found = null;
-            FindEventNode(ref found, eventView.Nodes[0].Nodes, m_Core.CurFrame, EID);
-
-            while (found.NextSibling != null && found.NextSibling.Tag is DeferredEvent)
-            {
-                DeferredEvent def = found.NextSibling.Tag as DeferredEvent;
-
-                if (def.eventID == EID)
-                    found = found.NextSibling;
-                else
-                    break;
-            }
+            FindEventNode(ref found, m_Core.CurFrame, EID);
 
             if (index >= 0)
             {
