@@ -1129,7 +1129,7 @@ namespace renderdocui.Windows
 
                 for (int i = 0; i < digits.Length; i++)
                 {
-                    if ((keyData & digits[i]) == digits[i])
+                    if (keyData == (Keys.Control|digits[i]))
                     {
                         EventBrowser eb = m_Core.GetEventBrowser();
 
