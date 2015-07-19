@@ -268,7 +268,7 @@ class Serialiser
 		}
 
 		// assumes buffer head is sitting before a chunk (ie. pushcontext will be valid)
-		void SkipToChunk(uint32_t chunkIdx)
+		void SkipToChunk(uint32_t chunkIdx, uint32_t *idx = NULL)
 		{
 			do
 			{
@@ -288,6 +288,8 @@ class Serialiser
 					SkipCurrentChunk();
 					PopContext(NULL, 1);
 				}
+
+				if(idx) (*idx)++;
 
 			} while(!AtEnd());
 		}

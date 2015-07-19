@@ -2830,9 +2830,11 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 	m_pSerialiser->Rewind();
 
+	uint32_t captureChunkIdx = 0;
+
 	while(!m_pSerialiser->AtEnd())
 	{
-		m_pSerialiser->SkipToChunk(CAPTURE_SCOPE);
+		m_pSerialiser->SkipToChunk(CAPTURE_SCOPE, &captureChunkIdx);
 
 		// found a capture chunk
 		if(!m_pSerialiser->AtEnd())
@@ -2878,7 +2880,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 
 		m_pSerialiser->PopContext(NULL, context);
 		
-		RenderDoc::Inst().SetProgress(FileInitialRead, float(m_pSerialiser->GetOffset())/float(m_pSerialiser->GetSize()));
+		RenderDoc::Inst().SetProgress(FileInitialRead, float(chunkIdx)/float(captureChunkIdx));
 
 		if(context == CAPTURE_SCOPE)
 		{
@@ -3820,6 +3822,8 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	GetResourceManager()->MarkInFrame(true);
 
+	uint64_t startOffset = m_pSerialiser->GetOffset();
+
 	while(1)
 	{
 		if(m_State == EXECUTING && m_CurEventID > endEventID)
@@ -3834,7 +3838,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		ContextProcessChunk(offset, chunktype, false);
 		
-		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
+		RenderDoc::Inst().SetProgress(FrameEventsRead, float(offset - startOffset)/float(m_pSerialiser->GetSize()));
 		
 		// for now just abort after capture scope. Really we'd need to support multiple frames
 		// but for now this will do.

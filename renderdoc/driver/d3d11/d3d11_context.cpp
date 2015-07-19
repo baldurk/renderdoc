@@ -1217,6 +1217,8 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 	m_pDevice->GetResourceManager()->MarkInFrame(true);
 
+	uint64_t startOffset = m_pSerialiser->GetOffset();
+
 	while(1)
 	{
 		if(m_State == EXECUTING && m_CurEventID > endEventID)
@@ -1231,7 +1233,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
 		ProcessChunk(offset, chunktype, false);
 		
-		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
+		RenderDoc::Inst().SetProgress(FrameEventsRead, float(offset - startOffset)/float(m_pSerialiser->GetSize()));
 		
 		// for now just abort after capture scope. Really we'd need to support multiple frames
 		// but for now this will do.

@@ -746,8 +746,9 @@ void RenderDoc::SetProgress(LoadProgressSection section, float delta)
 	float weights[NumSections];
 
 	// must sum to 1.0
-	weights[DebugManagerInit] = 0.4f;
-	weights[FileInitialRead] = 0.6f;
+	weights[DebugManagerInit] = 0.1f;
+	weights[FileInitialRead] = 0.75f;
+	weights[FrameEventsRead] = 0.15f;
 
 	float progress = 0.0f;
 	for(int i=0; i < section; i++)

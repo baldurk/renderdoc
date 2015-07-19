@@ -146,6 +146,7 @@ enum LoadProgressSection
 {
 	DebugManagerInit,
 	FileInitialRead,
+	FrameEventsRead,
 	NumSections,
 };
 

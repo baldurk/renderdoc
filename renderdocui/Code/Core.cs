@@ -420,7 +420,7 @@ namespace renderdocui.Code
                 {
                     Thread.Sleep(2);
 
-                    float progress = 0.5f * m_Renderer.LoadProgress + 0.49f * postloadProgress + 0.01f;
+                    float progress = 0.8f * m_Renderer.LoadProgress + 0.19f * postloadProgress + 0.01f;
 
                     modal.LogfileProgress(progress);
 
