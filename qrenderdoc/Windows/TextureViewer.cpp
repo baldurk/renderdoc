@@ -148,7 +148,7 @@ void TextureViewer::OnEventSelected(uint32_t frameID, uint32_t eventID)
 		if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
 			d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
 		else
-			d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0];
+			d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
 		d.mip = 0;
 		d.sampleIdx = ~0U;
 		d.overlay = eTexOverlay_None;
