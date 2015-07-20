@@ -107,11 +107,11 @@ OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 
 .PHONY: driver/gl/rdoc_gl.a
 driver/gl/rdoc_gl.a:
-	cd driver/gl && make rdoc_gl.a
+	cd driver/gl && $(MAKE) rdoc_gl.a
 
 .PHONY: driver/shaders/spirv/rdoc_spirv.a
 driver/shaders/spirv/rdoc_spirv.a:
-	cd driver/shaders/spirv && make rdoc_spirv.a
+	cd driver/shaders/spirv && $(MAKE) rdoc_spirv.a
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 	$(CPP) -o librenderdoc.so $^ $(LDFLAGS)
@@ -119,5 +119,5 @@ librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 .PHONY: clean
 clean:
 	rm -rf librenderdoc.so $(OBJDIR)
-	cd driver/gl && make clean
-	cd driver/shaders/spirv && make clean
+	cd driver/gl && $(MAKE) clean
+	cd driver/shaders/spirv && $(MAKE) clean
