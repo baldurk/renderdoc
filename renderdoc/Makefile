@@ -105,13 +105,14 @@ OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 
 -include $(OBJDIR_OBJECTS:.o=.d)
 
-.PHONY: driver/gl/rdoc_gl.a
-driver/gl/rdoc_gl.a:
+driver/gl/rdoc_gl.a: force_look
 	cd driver/gl && $(MAKE) rdoc_gl.a
 
-.PHONY: driver/shaders/spirv/rdoc_spirv.a
-driver/shaders/spirv/rdoc_spirv.a:
+driver/shaders/spirv/rdoc_spirv.a: force_look
 	cd driver/shaders/spirv && $(MAKE) rdoc_spirv.a
+
+force_look:
+	true
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 	$(CPP) -o librenderdoc.so $^ $(LDFLAGS)
