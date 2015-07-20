@@ -398,12 +398,12 @@ void ImageViewer::RefreshFile()
 		return;
 	}
 
-	dds_data read_data;
+	dds_data read_data = {0};
 
 	if(dds)
 	{
 		FileIO::fseek64(f, 0, SEEK_SET);
-		dds_data read_data = load_dds_from_file(f);
+		read_data = load_dds_from_file(f);
 		
 		if(read_data.subdata == NULL)
 		{
