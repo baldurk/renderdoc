@@ -2445,7 +2445,14 @@ namespace renderdocui.Windows
                                          ui.m_MinBounds[CurPosElement].z + diag.z / 2.0f);
                 m_Arcball.SetDistance(diag.Length()*0.7f);
 
-                camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
+                try
+                {
+                    camSpeed.Value = Helpers.Clamp((decimal)(diag.Length() / 200.0f), camSpeed.Minimum, camSpeed.Maximum);
+                }
+                catch (OverflowException)
+                {
+                    camSpeed.Value = (decimal)1.0f;
+                }
 
                 render.Invalidate();
             }
