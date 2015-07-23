@@ -1062,7 +1062,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
 	m_Real->glMinSampleShading(MinSampleShading);
 
-	if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+	if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample] && m_Real->glRasterSamplesEXT)
 		m_Real->glRasterSamplesEXT(RasterSamples, RasterFixed);
 
 	m_Real->glLogicOp(LogicOp);
@@ -1074,7 +1074,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
 	m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
 
 	m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
-	if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp])
+	if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp] && m_Real->glPolygonOffsetClampEXT)
 		m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
 	else
 		m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
