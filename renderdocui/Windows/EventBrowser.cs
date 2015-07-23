@@ -271,7 +271,8 @@ namespace renderdocui.Windows
                 {
                     AddDrawcall(drawcall.children[i], drawNode);
 
-                    if (i > 0 && (drawcall.children[i-1].flags & DrawcallFlags.SetMarker) > 0)
+                    if (i > 0 && drawNode.Nodes.Count >= 2 &&
+                        (drawcall.children[i - 1].flags & DrawcallFlags.SetMarker) > 0)
                     {
                         drawNode.Nodes[drawNode.Nodes.Count - 2].Tag = drawNode.Nodes.LastNode.Tag;
                     }
