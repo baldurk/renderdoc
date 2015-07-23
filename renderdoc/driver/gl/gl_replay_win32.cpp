@@ -412,11 +412,12 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	}
 
 	PFNGLGETINTEGERVPROC getInt = (PFNGLGETINTEGERVPROC)GetProcAddress(lib, "glGetIntegerv");
-	PFNGLGETSTRINGIPROC getStr = (PFNGLGETSTRINGIPROC)wglGetProc("glGetStringi");
+	PFNGLGETSTRINGPROC getStr = (PFNGLGETSTRINGPROC)GetProcAddress(lib, "glGetString");
+	PFNGLGETSTRINGIPROC getStri = (PFNGLGETSTRINGIPROC)wglGetProc("glGetStringi");
 
-	if(getInt == NULL || getStr == NULL)
+	if(getInt == NULL || getStr == NULL || getStri == NULL)
 	{
-		RDCERR("Couldn't get glGetIntegerv (%p) or glGetStringi (%p) entry points", getInt, getStr);
+		RDCERR("Couldn't get glGetIntegerv (%p), glGetString (%p) or glGetStringi (%p) entry points", getInt, getStr, getStri);
 		wglMakeCurrentProc(NULL, NULL);
 		wglDeleteRC(rc);
 		ReleaseDC(w, dc);
@@ -429,16 +430,20 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		// now we just require it.
 		bool found = false;
 
+		if(getStr)
+			RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER), getStr(eGL_VERSION));
+
 		GLint numExts = 0;
 		getInt(eGL_NUM_EXTENSIONS, &numExts);
 		for(GLint e=0; e < numExts; e++)
 		{
-			const char *ext = (const char *)getStr(eGL_EXTENSIONS, (GLuint)e);
+			const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
+
+			RDCLOG("Extension % 3d: %s", e, ext);
 
 			if(!strcmp(ext, "GL_EXT_direct_state_access"))
 			{
 				found = true;
-				break;
 			}
 		}
 
