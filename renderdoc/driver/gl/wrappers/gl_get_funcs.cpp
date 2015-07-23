@@ -570,6 +570,11 @@ void WrappedOpenGL::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei buf
 	m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
 }
 
+void WrappedOpenGL::glGetObjectLabelEXT(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label)
+{
+	m_Real.glGetObjectLabelEXT(identifier, name, bufSize, length, label);
+}
+
 void WrappedOpenGL::glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label)
 {
 	m_Real.glGetObjectPtrLabel(ptr, bufSize, length, label);

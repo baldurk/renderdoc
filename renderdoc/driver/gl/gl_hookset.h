@@ -161,7 +161,8 @@ struct GLHookSet
 	PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC glGetProgramResourceLocationIndex;
 	PFNGLGETPROGRAMSTAGEIVPROC glGetProgramStageiv;
 	PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus; // aliases glGetGraphicsResetStatusARB
-	PFNGLGETOBJECTLABELPROC glGetObjectLabel; // aliases glGetObjectLabelEXT
+	PFNGLGETOBJECTLABELPROC glGetObjectLabel;
+	PFNGLGETOBJECTLABELEXTPROC glGetObjectLabelEXT;
 	PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;
 	PFNGLGETDEBUGMESSAGELOGPROC glGetDebugMessageLog; // aliases glGetDebugMessageLogARB
 	PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC glGetFramebufferAttachmentParameteriv; // aliases glGetFramebufferAttachmentParameterivEXT
@@ -270,7 +271,8 @@ struct GLHookSet
 	PFNGLDEBUGMESSAGEINSERTPROC glDebugMessageInsert; // aliases glDebugMessageInsertARB
 	PFNGLPUSHDEBUGGROUPPROC glPushDebugGroup;
 	PFNGLPOPDEBUGGROUPPROC glPopDebugGroup;
-	PFNGLOBJECTLABELPROC glObjectLabel; // aliases glLabelObjectEXT
+	PFNGLOBJECTLABELPROC glObjectLabel;
+	PFNGLLABELOBJECTEXTPROC glLabelObjectEXT;
 	PFNGLOBJECTPTRLABELPROC glObjectPtrLabel;
 	PFNGLENABLEIPROC glEnablei; // aliases glEnableIndexedEXT
 	PFNGLDISABLEIPROC glDisablei; // aliases glDisableIndexedEXT

@@ -616,6 +616,7 @@ class WrappedOpenGL : public IFrameCapturer
 		GLenum glCheckFramebufferStatus(GLenum target);
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length, const GLchar *label));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label));
 
 		IMPLEMENT_FUNCTION_SERIALISED(void, glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam));
@@ -928,6 +929,7 @@ class WrappedOpenGL : public IFrameCapturer
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetNamedStringivARB(GLint namelen, const GLchar *name, GLenum pname, GLint *params));
 		IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetGraphicsResetStatus());
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label));
+		IMPLEMENT_FUNCTION_SERIALISED(void, glGetObjectLabelEXT(GLenum identifier, GLuint name, GLsizei bufSize, GLsizei *length, GLchar *label));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length, GLchar *label));
 		IMPLEMENT_FUNCTION_SERIALISED(GLuint, glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum *sources, GLenum *types, GLuint *ids, GLenum *severities, GLsizei *lengths, GLchar *messageLog));
 		IMPLEMENT_FUNCTION_SERIALISED(void, glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment, GLenum pname, GLint *params));

@@ -31,6 +31,8 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 {
 	ResourceId liveid;
 
+	bool extvariant = false;
+
 	string Label;
 	if(m_State >= WRITING)
 	{
@@ -44,27 +46,33 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 			case eGL_TEXTURE:
 				liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name));
 				break;
-			case eGL_BUFFER:
 			case eGL_BUFFER_OBJECT_EXT:
+				extvariant = true;
+			case eGL_BUFFER:
 				liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name));
 				break;
 			case eGL_PROGRAM_OBJECT_EXT:
+				extvariant = true;
 			case eGL_PROGRAM:
 				liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name));
 				break;
 			case eGL_PROGRAM_PIPELINE_OBJECT_EXT:
+				extvariant = true;
 			case eGL_PROGRAM_PIPELINE:
 				liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
 				break;
 			case eGL_VERTEX_ARRAY_OBJECT_EXT:
+				extvariant = true;
 			case eGL_VERTEX_ARRAY:
 				liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
 				break;
-			case eGL_SHADER:
 			case eGL_SHADER_OBJECT_EXT:
+				extvariant = true;
+			case eGL_SHADER:
 				liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name));
 				break;
 			case eGL_QUERY_OBJECT_EXT:
+				extvariant = true;
 			case eGL_QUERY:
 				liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name));
 				break;
@@ -95,10 +103,27 @@ bool WrappedOpenGL::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsi
 	if(m_State == READING && GetResourceManager()->HasLiveResource(id))
 	{
 		GLResource res = GetResourceManager()->GetLiveResource(id);
-		m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
+
+		if(extvariant && m_Real.glLabelObjectEXT)
+			m_Real.glLabelObjectEXT(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
+		else
+			m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
 	}
 
 	return true;
+}
+
+void WrappedOpenGL::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
+{
+	m_Real.glLabelObjectEXT(identifier, name, length, label);
+
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
+		Serialise_glObjectLabel(identifier, name, length, label);
+
+		m_DeviceRecord->AddChunk(scope.Get());
+	}
 }
 
 void WrappedOpenGL::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)

@@ -804,9 +804,7 @@
     HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
-    HookExtensionAlias(PFNGLOBJECTLABELPROC, glObjectLabel, glLabelObjectEXT); \
     HookExtension(PFNGLGETOBJECTLABELPROC, glGetObjectLabel); \
-    HookExtensionAlias(PFNGLGETOBJECTLABELPROC, glGetObjectLabel, glGetObjectLabelEXT); \
     HookExtension(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
     HookExtension(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
     HookExtension(PFNGLBUFFERSTORAGEPROC, glBufferStorage); \
@@ -973,6 +971,8 @@
     HookExtension(PFNGLGETNAMEDSTRINGARBPROC, glGetNamedStringARB); \
     HookExtension(PFNGLGETNAMEDSTRINGIVARBPROC, glGetNamedStringivARB); \
     HookExtension(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
+    HookExtension(PFNGLLABELOBJECTEXTPROC, glLabelObjectEXT); \
+    HookExtension(PFNGLGETOBJECTLABELEXTPROC, glGetObjectLabelEXT); \
     HookExtension(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
     HookExtension(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
     HookExtension(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
@@ -1815,6 +1815,8 @@
     HookWrapper5(void, glGetNamedStringARB, GLint, namelen, const GLchar *, name, GLsizei, bufSize, GLint *, stringlen, GLchar *, string); \
     HookWrapper4(void, glGetNamedStringivARB, GLint, namelen, const GLchar *, name, GLenum, pname, GLint *, params); \
     HookWrapper0(void, glBlendBarrierKHR); \
+    HookWrapper4(void, glLabelObjectEXT, GLenum, type, GLuint, object, GLsizei, length, const GLchar *, label); \
+    HookWrapper5(void, glGetObjectLabelEXT, GLenum, type, GLuint, object, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper0(void, glPopGroupMarkerEXT); \
