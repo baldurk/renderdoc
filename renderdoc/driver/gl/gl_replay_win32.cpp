@@ -428,7 +428,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	{
 		// eventually we want to emulate EXT_dsa on replay if it isn't present, but for
 		// now we just require it.
-		bool found = false;
+		bool dsa = false;
+		bool bufstorage = false;
 
 		if(getStr)
 			RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER), getStr(eGL_VERSION));
@@ -441,15 +442,18 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 
 			RDCLOG("Extension % 3d: %s", e, ext);
 
-			if(!strcmp(ext, "GL_EXT_direct_state_access"))
-			{
-				found = true;
-			}
+			if(!strcmp(ext, "GL_EXT_direct_state_access")) dsa = true;
+			if(!strcmp(ext, "GL_ARB_buffer_storage")) bufstorage = true;
 		}
 
-		if(!found)
-		{
+		if(!dsa)
 			RDCERR("RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try updating your drivers.");
+
+		if(!bufstorage)
+			RDCERR("RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try updating your drivers.");
+
+		if(!dsa || !bufstorage)
+		{
 			wglMakeCurrentProc(NULL, NULL);
 			wglDeleteRC(rc);
 			ReleaseDC(w, dc);
@@ -483,7 +487,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 #define CHECK_PRESENT(func) \
 	if(!real.func) \
 	{ \
-		RDCERR("Missing function %s, required for replay. RenderDoc requires a 4.3 context and EXT_direct_state_access", #func); \
+		RDCERR("Missing function %s, required for replay. RenderDoc requires a 4.3 context, EXT_direct_state_access and ARB_buffer_storage", #func); \
 		wglMakeCurrentProc(NULL, NULL); \
 		wglDeleteRC(rc); \
 		ReleaseDC(w, dc); \
@@ -721,7 +725,8 @@ CHECK_PRESENT(glViewport)
 CHECK_PRESENT(glViewportArrayv)
 CHECK_PRESENT(glViewportIndexedf)
 
-// these functions should be present as part of EXT_direct_state_access, let's verify
+// these functions should be present as part of EXT_direct_state_access,
+// and ARB_buffer_storage. Let's verify
 CHECK_PRESENT(glCompressedTextureImage1DEXT)
 CHECK_PRESENT(glCompressedTextureImage2DEXT)
 CHECK_PRESENT(glCompressedTextureImage3DEXT)
@@ -737,12 +742,11 @@ CHECK_PRESENT(glGetTextureParameterfvEXT)
 CHECK_PRESENT(glGetTextureParameterivEXT)
 CHECK_PRESENT(glMapNamedBufferEXT)
 CHECK_PRESENT(glNamedBufferDataEXT)
-CHECK_PRESENT(glNamedBufferStorageEXT)
+CHECK_PRESENT(glNamedBufferStorageEXT) // needs ARB_buffer_storage as well
 CHECK_PRESENT(glNamedBufferSubDataEXT)
 CHECK_PRESENT(glNamedFramebufferRenderbufferEXT)
 CHECK_PRESENT(glNamedFramebufferTextureEXT)
 CHECK_PRESENT(glNamedFramebufferTextureLayerEXT)
-CHECK_PRESENT(glTextureBufferRangeEXT)
 CHECK_PRESENT(glTextureImage1DEXT)
 CHECK_PRESENT(glTextureImage2DEXT)
 CHECK_PRESENT(glTextureImage3DEXT)

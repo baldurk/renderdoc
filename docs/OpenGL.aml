@@ -30,7 +30,8 @@
         </para>
         <para>
           RenderDoc assumes your hardware/software configuration is able to create a core 4.3 context
-          for replay, and also that EXT_direct_state_access is available, both on replay and in capture.
+          for replay, and also that EXT_direct_state_access and ARB_buffer_storage are available, both
+          on replay and in capture.
         </para>
         <para>
           Regarding multiple contexts and multithreading, RenderDoc assumes that all GL commands (with

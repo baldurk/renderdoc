@@ -180,8 +180,8 @@
         </para>
         <para>
           For OpenGL RenderDoc will only capture core profile applications, in general, and expects
-          to be able to create a core 4.3 context which includes EXT_direct_state_access. For more
-          details see the <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">OpenGL</link> page.
+          to be able to create a core 4.3 context which includes EXT_direct_state_access and ARB_buffer_storage.
+          For more details see the <link xlink:href="11ea4311-b9ea-450a-8c80-b510ffc8b1a6">OpenGL</link> page.
         </para>
       </content>
     </section>
