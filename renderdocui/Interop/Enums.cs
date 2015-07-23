@@ -283,6 +283,7 @@ namespace renderdoc
         GeneralPerformance,
         GCNPerformance,
         RuntimeWarning,
+        UnsupportedConfiguration,
     };
 
     public enum DebugMessageCategory
@@ -467,6 +468,7 @@ namespace renderdoc
                 case DebugMessageSource.GeneralPerformance: return "General Performance issues";
                 case DebugMessageSource.GCNPerformance: return "GCN (AMD) Performance issues";
                 case DebugMessageSource.RuntimeWarning: return "Issues raised while debugging";
+                case DebugMessageSource.UnsupportedConfiguration: return "Unsupported Software or Hardware Configuration";
             }
 
             return "Unknown Source";

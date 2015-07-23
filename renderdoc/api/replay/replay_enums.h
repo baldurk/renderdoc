@@ -313,6 +313,7 @@ enum DebugMessageSource
 	eDbgSource_GeneralPerformance,
 	eDbgSource_GCNPerformance,
 	eDbgSource_RuntimeWarning,
+	eDbgSoruce_UnsupportedConfiguration,
 };
 
 enum ResourceUsage
