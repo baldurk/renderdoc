@@ -176,17 +176,20 @@ namespace renderdoc
 
         private static CustomMarshalAsAttribute GetCustomAttr(Type t, FieldInfo[] fields, int fieldIdx)
         {
-            if (!m_CustomAttrCache.ContainsKey(t))
+            lock (m_CustomAttrCache)
             {
-                var arr = new CustomMarshalAsAttribute[fields.Length];
+                if (!m_CustomAttrCache.ContainsKey(t))
+                {
+                    var arr = new CustomMarshalAsAttribute[fields.Length];
 
-                for (int i = 0; i < fields.Length; i++)
-                    arr[i] = GetCustomAttr(fields[i]);
+                    for (int i = 0; i < fields.Length; i++)
+                        arr[i] = GetCustomAttr(fields[i]);
 
-                m_CustomAttrCache.Add(t, arr);
+                    m_CustomAttrCache.Add(t, arr);
+                }
+
+                return m_CustomAttrCache[t][fieldIdx];
             }
-
-            return m_CustomAttrCache[t][fieldIdx];
         }
 
         private static CustomMarshalAsAttribute GetCustomAttr(FieldInfo field)
@@ -275,28 +278,31 @@ namespace renderdoc
                 (structureType.IsArray && structureType.GetElementType().IsPrimitive))
                 return Marshal.SizeOf(structureType);
 
-            if (m_SizeCache.ContainsKey(structureType))
-                return m_SizeCache[structureType];
-
-            // Get instance fields of the structure type. 
-            FieldInfo[] fieldInfo = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-
-            long size = 0;
-
-            int a = 0;
-
-            foreach (FieldInfo field in fieldInfo)
+            lock (m_SizeCache)
             {
-                AddFieldSize(field, ref size);
-                a = Math.Max(a, AlignOf(field));
+                if (m_SizeCache.ContainsKey(structureType))
+                    return m_SizeCache[structureType];
+
+                // Get instance fields of the structure type. 
+                FieldInfo[] fieldInfo = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+
+                long size = 0;
+
+                int a = 0;
+
+                foreach (FieldInfo field in fieldInfo)
+                {
+                    AddFieldSize(field, ref size);
+                    a = Math.Max(a, AlignOf(field));
+                }
+
+                int alignment = (int)size % a;
+                if (alignment != 0) size += a - alignment;
+
+                m_SizeCache.Add(structureType, (int)size);
+
+                return (int)size;
             }
-
-            int alignment = (int)size % a;
-            if (alignment != 0) size += a - alignment;
-
-            m_SizeCache.Add(structureType, (int)size);
-
-            return (int)size;
         }
 
         // caching the offset to the nth field from a base pointer to the type
@@ -310,40 +316,43 @@ namespace renderdoc
             if (fieldInfo.Length == 0)
                 return ptr;
 
-            if (!m_OffsetAlignCache.ContainsKey(structureType))
+            lock (m_OffsetCache)
             {
-                Int64[] cacheOffsets = new Int64[fieldInfo.Length];
-                int initialAlign = AlignOf(fieldInfo[0]);
-
-                Int64 p = 0;
-
-                for (int i = 0; i < fieldInfo.Length; i++)
+                if (!m_OffsetAlignCache.ContainsKey(structureType))
                 {
-                    FieldInfo field = fieldInfo[i];
+                    Int64[] cacheOffsets = new Int64[fieldInfo.Length];
+                    int initialAlign = AlignOf(fieldInfo[0]);
 
-                    int a = AlignOf(field);
+                    Int64 p = 0;
+
+                    for (int i = 0; i < fieldInfo.Length; i++)
+                    {
+                        FieldInfo field = fieldInfo[i];
+
+                        int a = AlignOf(field);
+                        int alignment = (int)p % a;
+                        if (alignment != 0) p += a - alignment;
+
+                        cacheOffsets[i] = p;
+
+                        AddFieldSize(field, ref p);
+                    }
+
+                    m_OffsetAlignCache.Add(structureType, initialAlign);
+                    m_OffsetCache.Add(structureType, cacheOffsets);
+                }
+
+                {
+                    var p = ptr.ToInt64();
+
+                    int a = m_OffsetAlignCache[structureType];
                     int alignment = (int)p % a;
                     if (alignment != 0) p += a - alignment;
 
-                    cacheOffsets[i] = p;
+                    p += m_OffsetCache[structureType][idx];
 
-                    AddFieldSize(field, ref p);
+                    return new IntPtr(p);
                 }
-
-                m_OffsetAlignCache.Add(structureType, initialAlign);
-                m_OffsetCache.Add(structureType, cacheOffsets);
-            }
-
-            {
-                var p = ptr.ToInt64();
-
-                int a = m_OffsetAlignCache[structureType];
-                int alignment = (int)p % a;
-                if (alignment != 0) p += a - alignment;
-
-                p += m_OffsetCache[structureType][idx];
-
-                return new IntPtr(p);
             }
         }
 
