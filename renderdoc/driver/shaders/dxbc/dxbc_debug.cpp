@@ -2255,7 +2255,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 			}
 
 			if(!data ||
-				 (!texData && offset + elemIdx >= numElems) ||
+				 (!texData && elemIdx >= numElems) ||
 				 (texData && texOffset >= global.uavs[resIndex].data.size())
 				)
 			{
