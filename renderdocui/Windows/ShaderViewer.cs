@@ -530,7 +530,7 @@ namespace renderdocui.Windows
                 DockContent sel = null;
                 foreach (var f in shader.DebugInfo.files)
                 {
-                    var name = Path.GetFileName(f.filename);
+                    var name = f.BaseFilename;
 
                     ScintillaNET.Scintilla scintilla1 = MakeEditor("scintilla" + name, f.filetext, true);
                     scintilla1.IsReadOnly = true;

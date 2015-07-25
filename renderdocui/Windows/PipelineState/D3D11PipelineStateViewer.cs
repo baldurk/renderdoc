@@ -229,19 +229,7 @@ namespace renderdocui.Windows.PipelineState
                 if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
                     entryFile = 0;
 
-                try
-                {
-                    shaderfn = Path.GetFileName(shaderDetails.DebugInfo.files[entryFile].filename);
-                }
-                catch (ArgumentException)
-                {
-                    // invalid path or similar, just try to go from last \ or / onwards
-
-                    shaderfn = shaderDetails.DebugInfo.files[entryFile].filename;
-                    int idx = shaderfn.LastIndexOfAny(new char[] { '/', '\\' });
-                    if (idx > 0)
-                        shaderfn = shaderfn.Substring(idx + 1);
-                }
+                shaderfn = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
 
                 shader.Text = shaderDetails.DebugInfo.entryFunc + "()" + " - " + shaderfn;
             }
@@ -1901,13 +1889,13 @@ namespace renderdocui.Windows.PipelineState
                 entryFunc = shaderDetails.DebugInfo.entryFunc;
 
                 foreach (var s in shaderDetails.DebugInfo.files)
-                    files.Add(Path.GetFileName(s.filename), s.filetext);
+                    files.Add(s.BaseFilename, s.filetext);
 
                 int entryFile = shaderDetails.DebugInfo.entryFile;
                 if (entryFile < 0 || entryFile >= shaderDetails.DebugInfo.files.Length)
                     entryFile = 0;
 
-                mainfile = Path.GetFileName(shaderDetails.DebugInfo.files[entryFile].filename);
+                mainfile = shaderDetails.DebugInfo.files[entryFile].BaseFilename;
             }
             else
             {
@@ -2728,7 +2716,7 @@ namespace renderdocui.Windows.PipelineState
 
                 if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
                     shadername = shaderDetails.DebugInfo.entryFunc + "()" + " - " +
-                                    Path.GetFileName(shaderDetails.DebugInfo.files[0].filename);
+                                    shaderDetails.DebugInfo.files[0].BaseFilename;
 
                 writer.WriteStartElement("p");
                 writer.WriteString(shadername);

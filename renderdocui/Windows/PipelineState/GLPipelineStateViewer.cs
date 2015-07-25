@@ -1872,7 +1872,7 @@ namespace renderdocui.Windows.PipelineState
 
             var files = new Dictionary<string, string>();
             foreach (var s in shaderDetails.DebugInfo.files)
-                files.Add(Path.GetFileName(s.filename), s.filetext);
+                files.Add(s.BaseFilename, s.filetext);
 
             if (files.Count == 0)
                 return;
