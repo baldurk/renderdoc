@@ -47,6 +47,103 @@ static string OptionalFlagString(EnumType e)
 	return (int)e	? "[" + ToStr::Get(e) + "]" : "";
 }
 
+struct SPVOperation
+{
+  spv::Op opcode;
+
+  ~SPVOperation()
+  {
+  }
+
+  int indentChange()
+  {
+    return 0;
+  }
+
+  bool useIndent()
+  {
+    return opcode != spv::OpLabel;
+  }
+
+  string str;
+  vector<uint32_t> arguments;
+};
+
+struct SPVExtInstSet;
+struct SPVOperation;
+struct SPVTypeData;
+struct SPVFunction;
+struct SPVBlock;
+struct SPVConstant;
+struct SPVVariable;
+
+struct SPVModule
+{
+  ~SPVModule()
+  {
+    for(size_t i=0; i < operations.size(); i++)
+      delete operations[i];
+    operations.clear();
+  }
+
+  // base set of all operations
+  vector<SPVOperation*> operations;
+
+  uint32_t moduleVersion;
+  string generator;
+  string sourceLang; uint32_t sourceVer;
+  spv::AddressingModel addrModel; spv::MemoryModel memModel;
+  SPVFunction *entryPoint;
+
+  vector<uint32_t> globals; // IDs of global variables
+  vector<uint32_t> funcs; // IDs of functions
+
+  union IDData
+  {
+    SPVExtInstSet *ext; // this ID is an extended instruction set
+    SPVOperation *op; // this ID is the result of an operation
+    SPVTypeData *type; // this ID names a type
+    SPVFunction *func; // this ID names a function
+		SPVBlock *block; // this is the ID of a label
+    SPVConstant *constant; // this ID is a constant value
+    SPVVariable *var; // this ID is a variable
+  };
+
+  vector<IDData> ids; // data pointers that depend on what the ID is
+
+  string Disassemble()
+  {
+    // add global props
+    //
+    // add global variables
+    //
+    // add func pre-declares(?)
+    //
+    // for each func:
+    //   declare instructino list
+    //   push variable declares
+    //
+    //   for each block:
+    //     for each instruction:
+    //       add to list
+    //       if instruction takes params:
+    //         if params instructions complexity are low enough
+    //           take param instructions out of list
+    //           incr. this instruction's complexity
+    //           mark params to be melded
+    //           aggressively meld function call parameters, remove variable declares
+    //
+    //   do magic secret sauce to analyse ifs and loops
+    //
+    //   for instructions in list:
+    //     mark line num to all 'child' instructions, for stepping
+    //     output combined line
+    //     if instruction pair is goto then label, skip
+    //
+    //
+  }
+};
+
 void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
 {
 #if defined(RELEASE)
