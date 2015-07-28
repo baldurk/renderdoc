@@ -39,7 +39,12 @@ using std::make_pair;
 #include "3rdparty/glslang/SPIRV/GLSL450Lib.h"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
-const char *GLSL_std_450_names[GLSL_STD_450::Count] = {0};
+const char *GLSL_STD_450_names[GLSL_STD_450::Count] = {0};
+
+// list of known generators, just for kicks
+struct { uint32_t magic; const char *name; } KnownGenerators[] = {
+	{ 0x051a00bb, "glslang" },
+};
 
 template<typename EnumType>
 static string OptionalFlagString(EnumType e)
@@ -79,69 +84,96 @@ struct SPVVariable;
 
 struct SPVModule
 {
-  ~SPVModule()
-  {
-    for(size_t i=0; i < operations.size(); i++)
-      delete operations[i];
-    operations.clear();
-  }
+	~SPVModule()
+	{
+		for(size_t i=0; i < operations.size(); i++)
+			delete operations[i];
+		operations.clear();
+	}
 
-  // base set of all operations
-  vector<SPVOperation*> operations;
+	// base set of all operations
+	vector<SPVOperation*> operations;
 
-  uint32_t moduleVersion;
-  string generator;
-  string sourceLang; uint32_t sourceVer;
-  spv::AddressingModel addrModel; spv::MemoryModel memModel;
-  SPVFunction *entryPoint;
+	SPIRVShaderStage shadType;
+	uint32_t moduleVersion;
+	uint32_t generator;
+	string sourceLang; uint32_t sourceVer;
+	spv::AddressingModel addrModel; spv::MemoryModel memModel;
+	SPVFunction *entryPoint;
 
-  vector<uint32_t> globals; // IDs of global variables
-  vector<uint32_t> funcs; // IDs of functions
+	vector<uint32_t> globals; // IDs of global variables
+	vector<uint32_t> funcs; // IDs of functions
 
-  union IDData
-  {
-    SPVExtInstSet *ext; // this ID is an extended instruction set
-    SPVOperation *op; // this ID is the result of an operation
-    SPVTypeData *type; // this ID names a type
-    SPVFunction *func; // this ID names a function
+	union IDData
+	{
+		SPVExtInstSet *ext; // this ID is an extended instruction set
+		SPVOperation *op; // this ID is the result of an operation
+		SPVTypeData *type; // this ID names a type
+		SPVFunction *func; // this ID names a function
 		SPVBlock *block; // this is the ID of a label
-    SPVConstant *constant; // this ID is a constant value
-    SPVVariable *var; // this ID is a variable
-  };
+		SPVConstant *constant; // this ID is a constant value
+		SPVVariable *var; // this ID is a variable
+	};
 
-  vector<IDData> ids; // data pointers that depend on what the ID is
+	vector<IDData> ids; // data pointers that depend on what the ID is
 
-  string Disassemble()
-  {
-    // add global props
-    //
-    // add global variables
-    //
-    // add func pre-declares(?)
-    //
-    // for each func:
-    //   declare instructino list
-    //   push variable declares
-    //
-    //   for each block:
-    //     for each instruction:
-    //       add to list
-    //       if instruction takes params:
-    //         if params instructions complexity are low enough
-    //           take param instructions out of list
-    //           incr. this instruction's complexity
-    //           mark params to be melded
-    //           aggressively meld function call parameters, remove variable declares
-    //
-    //   do magic secret sauce to analyse ifs and loops
-    //
-    //   for instructions in list:
-    //     mark line num to all 'child' instructions, for stepping
-    //     output combined line
-    //     if instruction pair is goto then label, skip
-    //
-    //
-  }
+	string Disassemble()
+	{
+		string disasm;
+
+		// temporary function until we build our own structure from the SPIR-V
+		const char *header[] = {
+			"Vertex Shader",
+			"Tessellation Control Shader",
+			"Tessellation Evaluation Shader",
+			"Geometry Shader",
+			"Fragment Shader",
+			"Compute Shader",
+		};
+
+		disasm = header[(int)shadType];
+		disasm += " SPIR-V:\n\n";
+
+		const char *gen = "Unrecognised";
+
+		for(size_t i=0; i < ARRAY_COUNT(KnownGenerators); i++) if(KnownGenerators[i].magic == generator)	gen = KnownGenerators[i].name;
+
+		disasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", moduleVersion, generator, gen);
+		disasm += StringFormat::Fmt("IDs up to {%u}\n", (uint32_t)ids.size());
+
+		disasm += "\n";
+
+		// add global props
+		//
+		// add global variables
+		//
+		// add func pre-declares(?)
+		//
+		// for each func:
+		//   declare instructino list
+		//   push variable declares
+		//
+		//   for each block:
+		//     for each instruction:
+		//       add to list
+		//       if instruction takes params:
+		//         if params instructions complexity are low enough
+		//           take param instructions out of list
+		//           incr. this instruction's complexity
+		//           mark params to be melded
+		//           aggressively meld function call parameters, remove variable declares
+		//
+		//   do magic secret sauce to analyse ifs and loops
+		//
+		//   for instructions in list:
+		//     mark line num to all 'child' instructions, for stepping
+		//     output combined line
+		//     if instruction pair is goto then label, skip
+		//
+		//
+
+		return disasm;
+	}
 };
 
 void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
@@ -152,42 +184,23 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 	if(shadType >= eSPIRVInvalid)
 		return;
 
-	// temporary function until we build our own structure from the SPIR-V
-	const char *header[] = {
-		"Vertex Shader",
-		"Tessellation Control Shader",
-		"Tessellation Evaluation Shader",
-		"Geometry Shader",
-		"Fragment Shader",
-		"Compute Shader",
-	};
+	SPVModule module;
 
-	disasm = header[(int)shadType];
-	disasm += " SPIR-V:\n\n";
+	module.shadType = shadType;
 
 	if(spirv[0] != (uint32_t)spv::MagicNumber)
 	{
-		disasm += StringFormat::Fmt("Unrecognised magic number %08x", spirv[0]);
+		disasm = StringFormat::Fmt("Unrecognised magic number %08x", spirv[0]);
 		return;
 	}
-
-	const char *gen = "Unrecognised";
-
-	// list of known generators, just for kicks
-	struct { uint32_t magic; const char *name; } gens[] = {
-		{ 0x051a00bb, "glslang" },
-	};
-
-	for(size_t i=0; i < ARRAY_COUNT(gens); i++) if(gens[i].magic == spirv[2])	gen = gens[i].name;
 	
-	disasm += StringFormat::Fmt("Version %u, Generator %08x (%s)\n", spirv[1], spirv[2], gen);
-	disasm += StringFormat::Fmt("IDs up to {%u}\n", spirv[3]);
+	module.moduleVersion = spirv[1];
+	module.generator = spirv[2];
+	module.ids.resize(spirv[3]);
 
 	uint32_t idbound = spirv[3];
 
-	if(spirv[4] != 0) disasm += "Reserved word 4 is non-zero\n";
-
-	disasm += "\n";
+	RDCASSERT(spirv[4] == 0);
 
 	vector<string> resultnames;
 	resultnames.resize(idbound);
@@ -410,10 +423,10 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				if(resultnames[ spirv[it+1] ] == "GLSL.std.450")
 				{
-					extensionSets.push_back( make_pair(spirv[it+1], GLSL_std_450_names) );
+					extensionSets.push_back( make_pair(spirv[it+1], GLSL_STD_450_names) );
 
-					if(GLSL_std_450_names[0] == NULL)
-						GLSL_STD_450::GetDebugNames(GLSL_std_450_names);
+					if(GLSL_STD_450_names[0] == NULL)
+						GLSL_STD_450::GetDebugNames(GLSL_STD_450_names);
 				}
 
 				break;
