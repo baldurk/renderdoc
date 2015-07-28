@@ -80,7 +80,10 @@ struct SPVTypeData;
 struct SPVFunction;
 struct SPVBlock;
 struct SPVConstant;
-struct SPVVariable;
+
+struct SPVVariable
+{
+};
 
 struct SPVModule
 {
@@ -88,6 +91,8 @@ struct SPVModule
 	{
 		for(size_t i=0; i < operations.size(); i++)
 			delete operations[i];
+		for(size_t i=0; i < ids.size(); i++)
+			SAFE_DELETE(ids[i].var);
 		operations.clear();
 	}
 
@@ -97,7 +102,7 @@ struct SPVModule
 	SPIRVShaderStage shadType;
 	uint32_t moduleVersion;
 	uint32_t generator;
-	string sourceLang; uint32_t sourceVer;
+	struct { spv::SourceLanguage lang; uint32_t ver; } source;
 	spv::AddressingModel addrModel; spv::MemoryModel memModel;
 	SPVFunction *entryPoint;
 
@@ -202,6 +207,37 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 	RDCASSERT(spirv[4] == 0);
 
+	size_t it = 5;
+	while(it < spirv.size())
+	{
+		uint16_t WordCount = spirv[it]>>16;
+
+		module.operations.push_back(new SPVOperation());
+		SPVOperation &op = *module.operations.back();
+
+		op.opcode = spv::Op(spirv[it]&0xffff);
+
+		switch(op.opcode)
+		{
+			case spv::OpSource:
+			{
+				module.source.lang = spv::SourceLanguage(spirv[it+1]);
+				module.source.ver = spirv[it+2];
+				break;
+			}
+			case spv::OpMemoryModel:
+			{
+				module.addrModel = spv::AddressingModel(spirv[it+1]);
+				module.memModel = spv::MemoryModel(spirv[it+2]);
+				break;
+			}
+			default:
+				break;
+		}
+
+		it += WordCount;
+	}
+
 	vector<string> resultnames;
 	resultnames.resize(idbound);
 	
@@ -234,7 +270,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 	// declarations/definitions start to fill out unnamed IDs. Or wrap
 	// it all up and give them anonymous <id> names on the fly (more
 	// likely).
-	size_t it = 5;
+	it = 5;
 	while(it < spirv.size())
 	{
 		uint16_t WordCount = spirv[it]>>16;
