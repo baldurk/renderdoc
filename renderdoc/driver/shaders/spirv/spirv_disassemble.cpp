@@ -52,6 +52,8 @@ static string OptionalFlagString(EnumType e)
 	return (int)e	? "[" + ToStr::Get(e) + "]" : "";
 }
 
+struct SPVInstruction;
+
 struct SPVDecoration
 {
 	SPVDecoration() : decoration(spv::DecorationPrecisionLow), val(0) {}
@@ -128,13 +130,17 @@ struct SPVTypeData
 	uint32_t arraySize;
 };
 
-struct SPVInstruction;
-
 struct SPVOperation
 {
 	SPVOperation() : type(NULL), complexity(0) {}
 
 	SPVTypeData *type;
+
+	// OpLoad/OpStore/OpCopyMemory
+	spv::MemoryAccessMask access;
+	
+	// OpAccessChain
+	vector<uint32_t> literals;
 
 	// this is modified on the fly, it's used as a measure of whether we
 	// can combine multiple statements into one line when displaying the
@@ -177,16 +183,31 @@ struct SPVVariable
 
 struct SPVFlowControl
 {
+	SPVFlowControl() : selControl(spv::SelectionControlMaskNone), condition(NULL) {}
+
+	union
+	{
+		spv::SelectionControlMask selControl;
+		spv::LoopControlMask loopControl;
+	};
+	
+	SPVInstruction *condition;
+
+	// branch weights or switch cases
+	vector<uint32_t> literals;
+
+	// flow control can reference future IDs, so we index
+	vector<uint32_t> targets;
 };
 
 struct SPVBlock
 {
 	SPVBlock() : mergeFlow(NULL), exitFlow(NULL) {}
 	
-	vector<SPVOperation *> operations;
+	vector<SPVInstruction *> instructions;
 
-	SPVFlowControl *mergeFlow;
-	SPVFlowControl *exitFlow;
+	SPVInstruction *mergeFlow;
+	SPVInstruction *exitFlow;
 };
 
 struct SPVFunction
@@ -196,8 +217,8 @@ struct SPVFunction
 	SPVTypeData *retType;
 	SPVTypeData *funcType;
 	spv::FunctionControlMask control;
-	vector<SPVBlock *> blocks;
-	vector<SPVVariable *> variables;
+	vector<SPVInstruction *> blocks;
+	vector<SPVInstruction *> variables;
 };
 
 struct SPVInstruction
@@ -205,6 +226,7 @@ struct SPVInstruction
 	SPVInstruction()
 	{
 		opcode = spv::OpNop;
+		id = 0;
 
 		ext = NULL;
 		entry = NULL;
@@ -245,6 +267,7 @@ struct SPVInstruction
   }
 	
   spv::Op opcode;
+	uint32_t id;
 
 	// line number in disassembly (used for stepping when debugging)
 	int line;
@@ -435,12 +458,15 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 						GLSL_STD_450::GetDebugNames(GLSL_STD_450_names);
 				}
 
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
 			case spv::OpString:
 			{
 				op.str = (const char *)&spirv[it+2];
+
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -450,7 +476,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			{
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::eVoid;
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -458,7 +485,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			{
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::eBool;
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -467,7 +495,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				op.type = new SPVTypeData();
 				op.type->type = spirv[it+3] ? SPVTypeData::eSInt : SPVTypeData::eUInt;
 				op.type->bitCount = spirv[it+2];
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -476,7 +505,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				op.type = new SPVTypeData();
 				op.type->type = SPVTypeData::eFloat;
 				op.type->bitCount = spirv[it+2];
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -490,7 +520,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				op.type->baseType = baseTypeInst->type;
 				op.type->vectorSize = spirv[it+3];
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -504,7 +535,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				op.type->baseType = baseTypeInst->type;
 				op.type->arraySize = spirv[it+3];
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -521,7 +553,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 					// names might come later from OpMemberName instructions
 					op.type->children.push_back(make_pair(memberInst->type, ""));
 				}
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -535,7 +568,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				op.type->baseType = baseTypeInst->type;
 				op.type->storage = spv::StorageClass(spirv[it+2]);
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -558,7 +592,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				// return type
 				op.type->baseType = baseTypeInst->type;
-
+				
+				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -584,7 +619,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 					op.constant->u64 = lo | (hi<<32);
 				}
-
+				
+				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 				break;
 			}
@@ -603,7 +639,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 					op.constant->children.push_back(constInst->constant);
 				}
-
+				
+				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 
 				break;
@@ -622,7 +659,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				op.func->retType = retTypeInst->type;
 				op.func->funcType = typeInst->type;
 				op.func->control = spv::FunctionControlMask(spirv[it+3]);
-
+				
+				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 
 				curFunc = op.func;
@@ -652,19 +690,202 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 					op.var->initialiser = initInst->constant;
 				}
 
-				if(curFunc) curFunc->variables.push_back(op.var);
+				if(curFunc) curFunc->variables.push_back(&op);
 				else module.globals.push_back(&op);
-
+				
+				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
+				break;
+			}
+			//////////////////////////////////////////////////////////////////////
+			// Branching/flow control
+			case spv::OpLabel:
+			{
+				op.block = new SPVBlock();
+
+				RDCASSERT(curFunc);
+
+				curFunc->blocks.push_back(&op);
+				curBlock = op.block;
+				
+				curBlock->instructions.push_back(&op);
+				
+				op.id = spirv[it+1];
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpKill:
+			case spv::OpUnreachable:
+			case spv::OpReturn:
+			{
+				op.flow = new SPVFlowControl();
+				
+				curBlock->exitFlow = &op;
+				curBlock->instructions.push_back(&op);
+				curBlock = NULL;
+				break;
+			}
+			case spv::OpReturnValue:
+			{
+				op.flow = new SPVFlowControl();
+				
+				op.flow->targets.push_back(spirv[it+1]);
+
+				curBlock->exitFlow = &op;
+				curBlock->instructions.push_back(&op);
+				curBlock = NULL;
+				break;
+			}
+			case spv::OpBranch:
+			{
+				op.flow = new SPVFlowControl();
+				
+				op.flow->targets.push_back(spirv[it+1]);
+				
+				curBlock->exitFlow = &op;
+				curBlock->instructions.push_back(&op);
+				curBlock = NULL;
+				break;
+			}
+			case spv::OpBranchConditional:
+			{
+				op.flow = new SPVFlowControl();
+				
+				SPVInstruction *condInst = module.ids[spirv[it+1]];
+				RDCASSERT(condInst);
+
+				op.flow->condition = condInst;
+				op.flow->targets.push_back(spirv[it+2]);
+				op.flow->targets.push_back(spirv[it+3]);
+
+				if(WordCount == 6)
+				{
+					op.flow->literals.push_back(spirv[it+4]);
+					op.flow->literals.push_back(spirv[it+5]);
+				}
+				
+				curBlock->exitFlow = &op;
+				curBlock->instructions.push_back(&op);
+				curBlock = NULL;
+				break;
+			}
+			case spv::OpSelectionMerge:
+			{
+				op.flow = new SPVFlowControl();
+				
+				op.flow->targets.push_back(spirv[it+1]);
+				op.flow->selControl = spv::SelectionControlMask(spirv[it+2]);
+				
+				curBlock->mergeFlow = &op;
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpLoopMerge:
+			{
+				op.flow = new SPVFlowControl();
+				
+				op.flow->targets.push_back(spirv[it+1]);
+				op.flow->loopControl = spv::LoopControlMask(spirv[it+2]);
+				
+				curBlock->mergeFlow = &op;
+				curBlock->instructions.push_back(&op);
 				break;
 			}
 			//////////////////////////////////////////////////////////////////////
 			// Operations with special parameters
 			case spv::OpAccessChain:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				SPVInstruction *structInst = module.ids[spirv[it+3]];
+				RDCASSERT(structInst);
+
+				op.op->arguments.push_back(structInst);
+	
+				for(int i=4; i < WordCount; i++)
+					op.op->literals.push_back(spirv[it+i]);
+				
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
 			case spv::OpLoad:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				SPVInstruction *ptrInst = module.ids[spirv[it+3]];
+				RDCASSERT(ptrInst);
+
+				op.op->arguments.push_back(ptrInst);
+
+				op.op->access = spv::MemoryAccessMaskNone;
+
+				for(int i=4; i < WordCount; i++)
+				{
+					if(i == WordCount-1)
+					{
+						op.op->access = spv::MemoryAccessMask(spirv[it+i]);
+					}
+					else
+					{
+						uint32_t lit = spirv[it+i];
+						// don't understand what these literals are - seems like OpAccessChain handles
+						// struct member/array access so it doesn't seem to be for array indices
+						RDCBREAK(); 
+					}
+				}
+				
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				
+				curBlock->instructions.push_back(&op);
+				break;
+			}
 			case spv::OpStore:
 			case spv::OpCopyMemory:
+			{
+				op.op = new SPVOperation();
+				op.op->type = NULL;
+				
+				SPVInstruction *ptrInst = module.ids[spirv[it+1]];
+				RDCASSERT(ptrInst);
+				
+				SPVInstruction *valInst = module.ids[spirv[it+2]];
+				RDCASSERT(valInst);
+
+				op.op->arguments.push_back(ptrInst);
+				op.op->arguments.push_back(valInst);
+
+				op.op->access = spv::MemoryAccessMaskNone;
+
+				for(int i=3; i < WordCount; i++)
+				{
+					if(i == WordCount-1)
+					{
+						op.op->access = spv::MemoryAccessMask(spirv[it+i]);
+					}
+					else
+					{
+						uint32_t lit = spirv[it+i];
+						// don't understand what these literals are - seems like OpAccessChain handles
+						// struct member/array access so it doesn't seem to be for array indices
+						RDCBREAK(); 
+					}
+				}
+				
+				curBlock->instructions.push_back(&op);
 				break;
+			}
 			//////////////////////////////////////////////////////////////////////
 			// Easy to handle opcodes with just some number of ID parameters
 			case spv::OpIAdd:
@@ -687,10 +908,11 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 					op.op->arguments.push_back(argInst);
 				}
-
+				
+				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
-
-				curBlock->operations.push_back(op.op);
+				
+				curBlock->instructions.push_back(&op);
 				break;
 			}
 			default:
