@@ -52,39 +52,38 @@ static string OptionalFlagString(EnumType e)
 	return (int)e	? "[" + ToStr::Get(e) + "]" : "";
 }
 
+struct SPVDecoration
+{
+	SPVDecoration() : decoration(spv::DecorationPrecisionLow), val(0) {}
+
+	spv::Decoration decoration;
+
+	uint32_t val;
+};
+
 struct SPVExtInstSet
 {
+	SPVExtInstSet() : instructions(NULL) {}
+
 	string setname;
 	const char **instructions;
 };
 
 struct SPVEntryPoint
 {
+	SPVEntryPoint() : func(0), model(spv::ExecutionModelVertex) {}
+
 	// entry point will come before declaring instruction,
 	// so we reference the function by ID
 	uint32_t func;
 	spv::ExecutionModel model;
 };
 
-struct SPVOperation
-{
-	// this is modified on the fly, it's used as a measure of whether we
-	// can combine multiple statements into one line when displaying the
-	// disassembly.
-	int complexity;
-
-	// arguments always reference IDs that already exist (branch/flow
-	// control type statements aren't SPVOperations)
-	vector<SPVOperation*> arguments;
-};
-
-struct SPVFlowControl
-{
-};
-
 struct SPVTypeData
 {
-	SPVTypeData() : bitCount(32), vectorSize(1), matrixSize(1), arraySize(1) {}
+	SPVTypeData() :
+		baseType(NULL), storage(spv::StorageClassUniformConstant),
+		bitCount(32), vectorSize(1), matrixSize(1), arraySize(1) {}
 
 	enum
 	{
@@ -111,6 +110,10 @@ struct SPVTypeData
 
 	SPVTypeData *baseType;
 
+	string name;
+	
+	vector<SPVDecoration> decorations;
+
 	// struct/function
 	vector< pair<SPVTypeData *, string> > children;
 
@@ -125,29 +128,84 @@ struct SPVTypeData
 	uint32_t arraySize;
 };
 
-struct SPVFunction {};
-struct SPVBlock {};
+struct SPVInstruction;
+
+struct SPVOperation
+{
+	SPVOperation() : type(NULL), complexity(0) {}
+
+	SPVTypeData *type;
+
+	// this is modified on the fly, it's used as a measure of whether we
+	// can combine multiple statements into one line when displaying the
+	// disassembly.
+	int complexity;
+
+	// arguments always reference IDs that already exist (branch/flow
+	// control type statements aren't SPVOperations)
+	vector<SPVInstruction*> arguments;
+};
 
 struct SPVConstant
 {
+	SPVConstant() : type(NULL), u64(0) {}
+
 	SPVTypeData *type;
-	uint32_t value[16];
+	union
+	{
+		uint64_t u64;
+		uint32_t u32;
+		uint16_t u16;
+		int64_t i64;
+		int32_t i32;
+		int16_t i16;
+		float f;
+		double d;
+	};
+
+	vector<SPVConstant *> children;
 };
 
 struct SPVVariable
 {
+	SPVVariable() : type(NULL), storage(spv::StorageClassUniformConstant), initialiser(NULL) {}
+
 	SPVTypeData *type;
+	spv::StorageClass storage;
+	SPVConstant *initialiser;
+};
+
+struct SPVFlowControl
+{
+};
+
+struct SPVBlock
+{
+	SPVBlock() : mergeFlow(NULL), exitFlow(NULL) {}
+	
+	vector<SPVOperation *> operations;
+
+	SPVFlowControl *mergeFlow;
+	SPVFlowControl *exitFlow;
+};
+
+struct SPVFunction
+{
+	SPVFunction() : retType(NULL), funcType(NULL), control(spv::FunctionControlMaskNone) {}
+
+	SPVTypeData *retType;
+	SPVTypeData *funcType;
+	spv::FunctionControlMask control;
+	vector<SPVBlock *> blocks;
+	vector<SPVVariable *> variables;
 };
 
 struct SPVInstruction
 {
-  spv::Op opcode;
-
-	// line number in disassembly (used for stepping when debugging)
-	int line;
-
 	SPVInstruction()
 	{
+		opcode = spv::OpNop;
+
 		ext = NULL;
 		entry = NULL;
 		op = NULL;
@@ -159,6 +217,8 @@ struct SPVInstruction
 		var = NULL;
 
 		line = -1;
+
+		source.col = source.line = 0;
 	}
 
   ~SPVInstruction()
@@ -183,8 +243,17 @@ struct SPVInstruction
   {
     return opcode != spv::OpLabel;
   }
+	
+  spv::Op opcode;
+
+	// line number in disassembly (used for stepping when debugging)
+	int line;
+
+	struct { string filename; uint32_t line; uint32_t col; } source;
 
   string str;
+
+	vector<SPVDecoration> decorations;
 
 	// zero or one of these pointers might be set
 	SPVExtInstSet *ext; // this ID is an extended instruction set
@@ -200,6 +269,15 @@ struct SPVInstruction
 
 struct SPVModule
 {
+	SPVModule()
+	{
+		shadType = eSPIRVInvalid;
+		moduleVersion = 0;
+		generator = 0;
+		source.lang = spv::SourceLanguageUnknown; source.ver = 0;
+		model.addr = spv::AddressingModelLogical; model.mem = spv::MemoryModelSimple;
+	}
+
 	~SPVModule()
 	{
 		for(size_t i=0; i < operations.size(); i++)
@@ -306,6 +384,9 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 	RDCASSERT(spirv[4] == 0);
 
+	SPVFunction *curFunc = NULL;
+	SPVBlock *curBlock = NULL;
+
 	size_t it = 5;
 	while(it < spirv.size())
 	{
@@ -354,6 +435,12 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 						GLSL_STD_450::GetDebugNames(GLSL_STD_450_names);
 				}
 
+				module.ids[spirv[it+1]] = &op;
+				break;
+			}
+			case spv::OpString:
+			{
+				op.str = (const char *)&spirv[it+2];
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
@@ -475,6 +562,137 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				module.ids[spirv[it+1]] = &op;
 				break;
 			}
+			//////////////////////////////////////////////////////////////////////
+			// Constants
+			case spv::OpConstant:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.constant = new SPVConstant();
+				op.constant->type = typeInst->type;
+
+				op.constant->u32 = spirv[it+3];
+
+				if(WordCount > 3)
+				{
+					// only handle 32-bit or 64-bit constants
+					RDCASSERT(WordCount <= 4);
+
+					uint64_t lo = spirv[it+3];
+					uint64_t hi = spirv[it+4];
+
+					op.constant->u64 = lo | (hi<<32);
+				}
+
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
+			case spv::OpConstantComposite:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.constant = new SPVConstant();
+				op.constant->type = typeInst->type;
+
+				for(int i=3; i < WordCount; i++)
+				{
+					SPVInstruction *constInst = module.ids[spirv[it+i]];
+					RDCASSERT(constInst && constInst->constant);
+
+					op.constant->children.push_back(constInst->constant);
+				}
+
+				module.ids[spirv[it+2]] = &op;
+
+				break;
+			}
+			//////////////////////////////////////////////////////////////////////
+			// Functions
+			case spv::OpFunction:
+			{
+				SPVInstruction *retTypeInst = module.ids[spirv[it+1]];
+				RDCASSERT(retTypeInst && retTypeInst->type);
+
+				SPVInstruction *typeInst = module.ids[spirv[it+4]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.func = new SPVFunction();
+				op.func->retType = retTypeInst->type;
+				op.func->funcType = typeInst->type;
+				op.func->control = spv::FunctionControlMask(spirv[it+3]);
+
+				module.ids[spirv[it+2]] = &op;
+
+				curFunc = op.func;
+
+				break;
+			}
+			case spv::OpFunctionEnd:
+			{
+				curFunc = NULL;
+				break;
+			}
+			//////////////////////////////////////////////////////////////////////
+			// Variables
+			case spv::OpVariable:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.var = new SPVVariable();
+				op.var->type = typeInst->type;
+				op.var->storage = spv::StorageClass(spirv[it+3]);
+
+				if(WordCount > 4)
+				{
+					SPVInstruction *initInst = module.ids[spirv[it+4]];
+					RDCASSERT(initInst && initInst->constant);
+					op.var->initialiser = initInst->constant;
+				}
+
+				if(curFunc) curFunc->variables.push_back(op.var);
+				else module.globals.push_back(&op);
+
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
+			//////////////////////////////////////////////////////////////////////
+			// Operations with special parameters
+			case spv::OpAccessChain:
+			case spv::OpLoad:
+			case spv::OpStore:
+			case spv::OpCopyMemory:
+				break;
+			//////////////////////////////////////////////////////////////////////
+			// Easy to handle opcodes with just some number of ID parameters
+			case spv::OpIAdd:
+			case spv::OpIMul:
+			case spv::OpFAdd:
+			case spv::OpFMul:
+			case spv::OpSLessThan:
+			case spv::OpExtInst:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+				
+				for(int i=3; i < WordCount; i++)
+				{
+					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				module.ids[spirv[it+2]] = &op;
+
+				curBlock->operations.push_back(op.op);
+				break;
+			}
 			default:
 				break;
 		}
@@ -504,17 +722,47 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			case spv::OpMemberName:
 			{
 				SPVInstruction *varInst = module.ids[spirv[it+1]];
-				RDCASSERT(varInst && varInst->type && varInst->type->type == eStruct);
+				RDCASSERT(varInst && varInst->type && varInst->type->type == SPVTypeData::eStruct);
 				uint32_t memIdx = spirv[it+2];
 				RDCASSERT(memIdx < varInst->type->children.size());
 				varInst->type->children[memIdx].second = (const char *)&spirv[it+3];
 				break;
 			}
+			case spv::OpLine:
+			{
+				SPVInstruction *varInst = module.ids[spirv[it+1]];
+				RDCASSERT(varInst);
+
+				SPVInstruction *fileInst = module.ids[spirv[it+2]];
+				RDCASSERT(fileInst);
+
+				varInst->source.filename = fileInst->str;
+				varInst->source.line = spirv[it+3];
+				varInst->source.col = spirv[it+4];
+				break;
+			}
 			case spv::OpDecorate:
+			{
+				SPVInstruction *inst = module.ids[spirv[it+1]];
+				RDCASSERT(inst);
+
+				SPVDecoration d;
+				d.decoration = spv::Decoration(spirv[it+2]);
+				
+				// TODO this isn't enough for all decorations
+				RDCASSERT(WordCount <= 3);
+				if(WordCount > 2)
+					d.val = spirv[it+3];
+
+				inst->decorations.push_back(d);
+				break;
+			}
 			case spv::OpMemberDecorate:
 			case spv::OpGroupDecorate:
 			case spv::OpGroupMemberDecorate:
 			case spv::OpDecorationGroup:
+				// TODO
+				RDCBREAK();
 				break;
 		}
 
