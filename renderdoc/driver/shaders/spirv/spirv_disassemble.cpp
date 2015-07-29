@@ -751,6 +751,7 @@ struct SPVInstruction
 			case spv::OpIMul:
 			case spv::OpFAdd:
 			case spv::OpFMul:
+			case spv::OpVectorTimesScalar:
 			case spv::OpSLessThan:
 			{
 				RDCASSERT(op);
@@ -764,6 +765,7 @@ struct SPVInstruction
 					break;
 				case spv::OpIMul:
 				case spv::OpFMul:
+				case spv::OpVectorTimesScalar:
 					c = '*';
 					break;
 				case spv::OpSLessThan:
@@ -1708,6 +1710,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			case spv::OpIMul:
 			case spv::OpFAdd:
 			case spv::OpFMul:
+			case spv::OpVectorTimesScalar:
 			case spv::OpSLessThan:
 			{
 				SPVInstruction *typeInst = module.ids[spirv[it+1]];
