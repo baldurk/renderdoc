@@ -474,11 +474,10 @@ struct SPVInstruction
 			{
 				RDCASSERT(!inlineOp);
 
+				// we don't output the targets since that is handled specially
+
 				if(flow->literals.empty())
-					return StringFormat::Fmt("if(%s) goto Label%u, else goto Label%u",
-								flow->condition->Disassemble(ids, true).c_str(),
-								flow->targets[0],
-								flow->targets[1]);
+					return flow->condition->Disassemble(ids, true);
 
 				uint32_t weightA = flow->literals[0];
 				uint32_t weightB = flow->literals[1];
@@ -489,12 +488,7 @@ struct SPVInstruction
 				a *= 100.0f;
 				b *= 100.0f;
 
-				return StringFormat::Fmt("if(%s) goto %.2f%% %s, else goto %.2f%% %s",
-					flow->condition->Disassemble(ids, true).c_str(),
-					a,
-					flow->targets[0],
-					b,
-					flow->targets[1]);
+				return StringFormat::Fmt("%s [true: %.2f%%, false: %.2f%%]", flow->condition->Disassemble(ids, true).c_str(), a, b);
 			}
 			case spv::OpSelectionMerge:
 			{
@@ -1255,11 +1249,127 @@ struct SPVModule
 			if(!vars.empty())
 				disasm += "\n";
 
+			vector<uint32_t> selectionstack;
+			vector<uint32_t> elsestack;
+
+			vector<uint32_t> loopheadstack;
+			vector<uint32_t> loopstartstack;
+			vector<uint32_t> loopmergestack;
+
 			for(size_t o=0; o < funcops.size(); o++)
 			{
 				if(funcops[o]->opcode == spv::OpLabel)
 				{
-					disasm += funcops[o]->Disassemble(ids, false) + "\n";
+					if(!elsestack.empty() && elsestack.back() == funcops[o]->id)
+					{
+						// handle meeting an else block
+						disasm += string(indent - tabSize, ' ');
+						disasm += "} else {\n";
+						elsestack.pop_back();
+					}
+					else if(!selectionstack.empty() && selectionstack.back() == funcops[o]->id)
+					{
+						// handle meeting a selection merge block
+						indent -= tabSize;
+
+						disasm += string(indent, ' ');
+						disasm += "}\n";
+						selectionstack.pop_back();
+					}
+					else if(!loopmergestack.empty() && loopmergestack.back() == funcops[o]->id)
+					{
+						// handle meeting a loop merge block
+						indent -= tabSize;
+
+						disasm += string(indent, ' ');
+						disasm += "}\n";
+						loopmergestack.pop_back();
+					}
+					else if(!loopstartstack.empty() && loopstartstack.back() == funcops[o]->id)
+					{
+						// completely skip a label at the start of the loop. It's implicit from braces
+					}
+					else if(funcops[o]->block->mergeFlow && funcops[o]->block->mergeFlow->opcode == spv::OpLoopMerge)
+					{
+						// this block is a loop header
+						// TODO handle if the loop header condition expression isn't sufficiently in-lined.
+						// We need to force inline it.
+						disasm += string(indent, ' ');
+						disasm += "while(" + funcops[o]->block->exitFlow->flow->condition->Disassemble(ids, true) + ") {\n";
+
+						loopheadstack.push_back(funcops[o]->id);
+						loopstartstack.push_back(funcops[o]->block->exitFlow->flow->targets[0]);
+						loopmergestack.push_back(funcops[o]->block->mergeFlow->flow->targets[0]);
+
+						// false from the condition should jump straight to merge block
+						RDCASSERT(funcops[o]->block->exitFlow->flow->targets[1] == funcops[o]->block->mergeFlow->flow->targets[0]);
+
+						indent += tabSize;
+					}
+					else
+					{
+						disasm += funcops[o]->Disassemble(ids, false) + "\n";
+					}
+				}
+				else if(funcops[o]->opcode == spv::OpBranch)
+				{
+					if(!selectionstack.empty() && funcops[o]->flow->targets[0] == selectionstack.back())
+					{
+						// if we're at the end of a true if path there will be a goto to
+						// the merge block before the false path label. Don't output it
+					}
+					else if(!loopheadstack.empty() && funcops[o]->flow->targets[0] == loopheadstack.back())
+					{
+						if(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
+							funcops[o+1]->id == loopmergestack.back())
+						{
+							// skip any gotos at the end of a loop jumping back to the header
+							// block to do another loop
+						}
+						else
+						{
+							// if we're skipping to the header of the loop before the end, this is a continue
+							disasm += string(indent, ' ');
+							disasm += "continue;\n";
+						}
+					}
+					else if(!loopmergestack.empty() && funcops[o]->flow->targets[0] == loopmergestack.back())
+					{
+						// if we're skipping to the merge of the loop without going through the
+						// branch conditional, this is a break
+						disasm += string(indent, ' ');
+						disasm += "break;\n";
+					}
+					else
+					{
+						disasm += string(indent, ' ');
+						disasm += funcops[o]->Disassemble(ids, false) + ";\n";
+					}
+				}
+				else if(funcops[o]->opcode == spv::OpLoopMerge)
+				{
+					// handled above when this block started
+					o++; // skip the branch conditional op
+				}
+				else if(funcops[o]->opcode == spv::OpSelectionMerge)
+				{
+					selectionstack.push_back(funcops[o]->flow->targets[0]);
+
+					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpBranchConditional);
+					o++;
+
+					disasm += string(indent, ' ');
+					disasm += "if(" + funcops[o]->Disassemble(ids, false) + ") {\n";
+
+					indent += tabSize;
+
+					// does the branch have an else case
+					if(funcops[o]->flow->targets[1] != selectionstack.back())
+						elsestack.push_back(funcops[o]->flow->targets[1]);
+
+					RDCASSERT(o+1 < funcops.size() && funcops[o+1]->opcode == spv::OpLabel &&
+						  funcops[o+1]->id == funcops[o]->flow->targets[0]);
+					o++; // skip outputting this label, it becomes our { essentially
 				}
 				else
 				{
