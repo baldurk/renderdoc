@@ -1227,6 +1227,12 @@ struct SPVModule
 							funcops.erase(funcops.begin()+l);
 							continue;
 						}
+						else
+						{
+							// if it is refd, we can at least remove the goto
+							funcops.erase(funcops.begin()+l);
+							continue;
+						}
 					}
 				}
 
