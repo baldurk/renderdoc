@@ -967,9 +967,10 @@ struct SPVModule
 							SPVInstruction *arg = instr->op->arguments[a];
 
 							// don't fold up too complex an operation
-							if(instr->op)
+							if(arg->op)
 							{
-								if(instr->op->complexity > 1 || instr->op->arguments.size() > 2)
+								// allow access chains to have multiple arguments
+								if(arg->op->complexity > 1 || (arg->op->arguments.size() > 2 && arg->opcode != spv::OpAccessChain))
 									continue;
 							}
 
