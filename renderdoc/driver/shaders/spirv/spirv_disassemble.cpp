@@ -59,6 +59,19 @@ static string DefaultIDName(uint32_t ID)
 	return StringFormat::Fmt("{%u}", ID);
 }
 
+template<typename T>
+static bool erase_item(std::vector<T> &vec, const T& elem)
+{
+	auto it = std::find(vec.begin(), vec.end(), elem);
+	if(it != vec.end())
+	{
+		vec.erase(it);
+		return true;
+	}
+
+	return false;
+}
+
 struct SPVInstruction;
 
 struct SPVDecoration
@@ -429,6 +442,13 @@ struct SPVInstruction
 	{
 		switch(opcode)
 		{
+			case spv::OpConstant:
+			case spv::OpConstantComposite:
+			case spv::OpVariable:
+			case spv::OpFunctionParameter:
+			{
+				return GetIDName();
+			}
 			case spv::OpLabel:
 			{
 				RDCASSERT(!inlineOp);
@@ -443,7 +463,7 @@ struct SPVInstruction
 			{
 				RDCASSERT(!inlineOp);
 
-				string arg = ids[flow->targets[0]]->GetIDName();
+				string arg = ids[flow->targets[0]]->Disassemble(ids, true);
 
 				return StringFormat::Fmt("Return %s", arg.c_str());
 			}
@@ -715,7 +735,9 @@ struct SPVInstruction
 							lastvec = vec;
 							if(i > 0)
 								ret += ", ";
-							ret += op->arguments[0]->GetIDName();
+							string arg;
+							op->GetArg(ids, 0, arg);
+							ret += arg;
 							ret += ".";
 						}
 
@@ -909,17 +931,55 @@ struct SPVModule
 			{
 				SPVInstruction *block = func->blocks[b];
 
-				funcops.push_back(block); // OpLabel
+				// don't push first label in a function
+				if(b > 0)
+					funcops.push_back(block); // OpLabel
 
 				for(size_t i=0; i < block->block->instructions.size(); i++)
 				{
-					funcops.push_back(block->block->instructions[i]);
+					SPVInstruction *instr = block->block->instructions[i];
+					funcops.push_back(instr);
+
+					if(instr->op)
+					{
+						for(size_t a=0; a < instr->op->arguments.size(); a++)
+						{
+							SPVInstruction *arg = instr->op->arguments[a];
+
+							// don't fold up too complex an operation
+							if(instr->op)
+							{
+								if(instr->op->complexity > 1 || instr->op->arguments.size() > 2)
+									continue;
+							}
+
+							erase_item(funcops, arg);
+
+							instr->op->inlineArgs |= (1<<a);
+						}
+
+						instr->op->complexity++;
+					}
 				}
 
 				if(block->block->mergeFlow)
 					funcops.push_back(block->block->mergeFlow);
 				if(block->block->exitFlow)
+				{
+					// branch conditions are inlined
+					if(block->block->exitFlow->flow->condition)
+							erase_item(funcops, block->block->exitFlow->flow->condition);
+
+					// return values are inlined
+					if(block->block->exitFlow->opcode == spv::OpReturnValue)
+					{
+						SPVInstruction *arg = ids[block->block->exitFlow->flow->targets[0]];
+
+						erase_item(funcops, arg);
+					}
+
 					funcops.push_back(block->block->exitFlow);
+				}
 			}
 
 			size_t tabSize = 2;
