@@ -955,10 +955,14 @@ struct SPVModule
 				if(b > 0)
 					funcops.push_back(block); // OpLabel
 
+				set<SPVInstruction *> ignore_items;
+
 				for(size_t i=0; i < block->block->instructions.size(); i++)
 				{
 					SPVInstruction *instr = block->block->instructions[i];
-					funcops.push_back(instr);
+
+					if(ignore_items.find(instr) == ignore_items.end())
+						funcops.push_back(instr);
 
 					if(instr->op)
 					{
@@ -980,6 +984,188 @@ struct SPVModule
 						}
 
 						instr->op->complexity++;
+
+						// special handling for function call to inline temporary pointer variables
+						// created for passing parameters
+						if(instr->opcode == spv::OpFunctionCall)
+						{
+							for(size_t a=0; a < instr->op->arguments.size(); a++)
+							{
+								SPVInstruction *arg = instr->op->arguments[a];
+
+								// if this argument has
+								//  - only one usage as a store target before the function call
+								//  = then it's an in parameter, and we can fold it in.
+								//
+								//  - only one usage as a load target after the function call
+								//  = then it's an out parameter, we can fold it in as long as
+								//    the usage after is in a Store(a) = Load(param) case
+								//
+								//  - exactly one usage as store before, and load after, such that
+								//    it is Store(param) = Load(a) .... Store(a) = Load(param)
+								//  = then it's an inout parameter, and we can fold it in
+
+								bool canReplace = true;
+								SPVInstruction *storeBefore = NULL;
+								SPVInstruction *loadAfter = NULL;
+								size_t storeIdx = block->block->instructions.size();
+								size_t loadIdx = block->block->instructions.size();
+
+								for(size_t j=0; j < i; j++)
+								{
+									SPVInstruction *searchInst = block->block->instructions[j];
+									for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+									{
+										if(searchInst->op->arguments[aa]->id == arg->id)
+										{
+											if(searchInst->opcode == spv::OpStore)
+											{
+												// if it's used in multiple stores, it can't be folded
+												if(storeBefore)
+												{
+													canReplace = false;
+													break;
+												}
+												storeBefore = searchInst;
+												storeIdx = j;
+											}
+											else
+											{
+												// if it's used in anything but a store, it can't be folded
+												canReplace = false;
+												break;
+											}
+										}
+									}
+
+									// if it's used in a condition, it can't be folded
+									if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
+										canReplace = false;
+
+									if(!canReplace)
+										break;
+								}
+
+								for(size_t j=i+1; j < block->block->instructions.size(); j++)
+								{
+									SPVInstruction *searchInst = block->block->instructions[j];
+									for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+									{
+										if(searchInst->op->arguments[aa]->id == arg->id)
+										{
+											if(searchInst->opcode == spv::OpLoad)
+											{
+												// if it's used in multiple load, it can't be folded
+												if(loadAfter)
+												{
+													canReplace = false;
+													break;
+												}
+												loadAfter = searchInst;
+												loadIdx = j;
+											}
+											else
+											{
+												// if it's used in anything but a load, it can't be folded
+												canReplace = false;
+												break;
+											}
+										}
+									}
+
+									// if it's used in a condition, it can't be folded
+									if(searchInst->flow && searchInst->flow->condition && searchInst->flow->condition->id == arg->id)
+										canReplace = false;
+
+									if(!canReplace)
+										break;
+								}
+
+								if(canReplace)
+								{
+									// in parameter
+									if(storeBefore && !loadAfter)
+									{
+										erase_item(funcops, storeBefore);
+
+										// pass function parameter directly from where the store was coming from
+										instr->op->arguments[a] = storeBefore->op->arguments[1];
+									}
+
+									// out or inout parameter
+									if(loadAfter)
+									{
+										// need to check the load afterwards is only ever used in a store operation
+
+										SPVInstruction *storeUse = NULL;
+										
+										for(size_t j=loadIdx+1; j < block->block->instructions.size(); j++)
+										{
+											SPVInstruction *searchInst = block->block->instructions[j];
+
+											for(size_t aa=0; searchInst->op && aa < searchInst->op->arguments.size(); aa++)
+											{
+												if(searchInst->op->arguments[aa] == loadAfter)
+												{
+													if(searchInst->opcode == spv::OpStore)
+													{
+														// if it's used in multiple stores, it can't be folded
+														if(storeUse)
+														{
+															canReplace = false;
+															break;
+														}
+														storeUse = searchInst;
+													}
+													else
+													{
+														// if it's used in anything but a store, it can't be folded
+														canReplace = false;
+														break;
+													}
+												}
+											}
+											
+											// if it's used in a condition, it can't be folded
+											if(searchInst->flow && searchInst->flow->condition == loadAfter)
+												canReplace = false;
+
+											if(!canReplace)
+												break;
+										}
+										
+										if(canReplace && storeBefore != NULL)
+										{
+											// for the inout parameter case, we also need to verify that
+											// the Store() before the function call comes from a Load(),
+											// and that the variable being Load()'d is identical to the
+											// variable in the Store() in storeUse that we've found
+
+											if(storeBefore->op->arguments[1]->opcode == spv::OpLoad &&
+												storeBefore->op->arguments[1]->op->arguments[0]->id ==
+												storeUse->op->arguments[0]->id)
+											{
+												erase_item(funcops, storeBefore);
+											}
+											else
+											{
+												canReplace = false;
+											}
+										}
+
+										if(canReplace)
+										{
+											// we haven't reached this store instruction yet, so need to mark that
+											// it has been folded and should be skipped
+											ignore_items.insert(storeUse);
+
+											// pass argument directly
+											instr->op->arguments[a] = storeUse->op->arguments[0];
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 
