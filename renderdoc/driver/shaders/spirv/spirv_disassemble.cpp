@@ -1088,6 +1088,8 @@ struct SPVModule
 									{
 										erase_item(funcops, storeBefore);
 
+										erase_item(vars, instr->op->arguments[a]);
+
 										// pass function parameter directly from where the store was coming from
 										instr->op->arguments[a] = storeBefore->op->arguments[1];
 									}
@@ -1158,6 +1160,8 @@ struct SPVModule
 											// we haven't reached this store instruction yet, so need to mark that
 											// it has been folded and should be skipped
 											ignore_items.insert(storeUse);
+
+											erase_item(vars, instr->op->arguments[a]);
 
 											// pass argument directly
 											instr->op->arguments[a] = storeUse->op->arguments[0];
