@@ -982,6 +982,50 @@ struct SPVModule
 				}
 			}
 
+			// find redundant branch/label pairs
+			for(size_t l=0; l < funcops.size()-1;)
+			{
+				if(funcops[l]->opcode == spv::OpBranch)
+				{
+					if(funcops[l+1]->opcode == spv::OpLabel && funcops[l]->flow->targets[0] == funcops[l+1]->id)
+					{
+						uint32_t label = funcops[l+1]->id;
+
+						bool refd = false;
+
+						// see if this label is a target anywhere else
+						for(size_t b=0; b < funcops.size(); b++)
+						{
+							if(l == b) continue;
+
+							if(funcops[b]->flow)
+							{
+								for(size_t t=0; t < funcops[b]->flow->targets.size(); t++)
+								{
+									if(funcops[b]->flow->targets[t] == label)
+									{
+										refd = true;
+										break;
+									}
+								}
+
+								if(refd)
+									break;
+							}
+						}
+
+						if(!refd)
+						{
+							funcops.erase(funcops.begin()+l);
+							funcops.erase(funcops.begin()+l);
+							continue;
+						}
+					}
+				}
+
+				l++;
+			}
+
 			size_t tabSize = 2;
 			size_t indent = tabSize;
 
