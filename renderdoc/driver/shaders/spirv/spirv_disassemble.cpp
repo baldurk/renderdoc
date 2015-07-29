@@ -23,12 +23,14 @@
  ******************************************************************************/
 
 #include "common/common.h"
+#include "maths/formatpacking.h"
 
 #include "serialise/serialiser.h"
 
 #include "spirv_common.h"
 
 #include <utility>
+#include <algorithm>
 using std::pair;
 using std::make_pair;
 
@@ -49,7 +51,12 @@ struct { uint32_t magic; const char *name; } KnownGenerators[] = {
 template<typename EnumType>
 static string OptionalFlagString(EnumType e)
 {
-	return (int)e	? "[" + ToStr::Get(e) + "]" : "";
+	return (int)e ? " [" + ToStr::Get(e) + "]" : "";
+}
+
+static string DefaultIDName(uint32_t ID)
+{
+	return StringFormat::Fmt("{%u}", ID);
 }
 
 struct SPVInstruction;
@@ -108,12 +115,70 @@ struct SPVTypeData
 		eSampler,
 		eFilter,
 
+		eTypeCount,
 	} type;
 
 	SPVTypeData *baseType;
 
 	string name;
-	
+
+	bool IsBasicInt() const
+	{
+		return type == eUInt || type == eSInt;
+	}
+
+	const string &GetName()
+	{
+		if(name.empty())
+		{
+			if(type == eVoid)
+			{
+				name = "void";
+			}
+			else if(type == eBool)
+			{
+				name = "bool";
+			}
+			else if(type == eFloat)
+			{
+				RDCASSERT(bitCount == 64 || bitCount == 32 || bitCount == 16);
+				name =    bitCount == 64 ? "double"
+					: bitCount == 32 ? "float"
+					: "half";
+			}
+			else if(type == eSInt)
+			{
+				RDCASSERT(bitCount == 64 || bitCount == 32 || bitCount == 16 || bitCount == 8);
+				name =    bitCount == 64 ? "long"
+					: bitCount == 32 ? "int"
+					: bitCount == 16 ? "short"
+					: "byte";
+			}
+			else if(type == eUInt)
+			{
+				RDCASSERT(bitCount == 64 || bitCount == 32 || bitCount == 16 || bitCount == 8);
+				name =    bitCount == 64 ? "ulong"
+					: bitCount == 32 ? "uint"
+					: bitCount == 16 ? "ushort"
+					: "ubyte";
+			}
+			else if(type == eVector)
+			{
+				name = StringFormat::Fmt("%s%u", baseType->GetName().c_str(), vectorSize);
+			}
+			else if(type == eMatrix)
+			{
+				name = StringFormat::Fmt("%s%ux%u", baseType->GetName().c_str(), vectorSize, matrixSize);
+			}
+			else if(type == ePointer)
+			{
+				name = StringFormat::Fmt("%s*", baseType->GetName().c_str());
+			}
+		}
+
+		return name;
+	}
+
 	vector<SPVDecoration> decorations;
 
 	// struct/function
@@ -132,24 +197,32 @@ struct SPVTypeData
 
 struct SPVOperation
 {
-	SPVOperation() : type(NULL), complexity(0) {}
+	SPVOperation() : type(NULL), complexity(0), inlineArgs(0) {}
 
 	SPVTypeData *type;
 
 	// OpLoad/OpStore/OpCopyMemory
 	spv::MemoryAccessMask access;
-	
-	// OpAccessChain
+
+	// OpExtInst
 	vector<uint32_t> literals;
+
+	// OpFunctionCall
+	uint32_t funcCall;
 
 	// this is modified on the fly, it's used as a measure of whether we
 	// can combine multiple statements into one line when displaying the
 	// disassembly.
 	int complexity;
 
+	// bitfield indicating which arguments should be inlined
+	uint32_t inlineArgs;
+
 	// arguments always reference IDs that already exist (branch/flow
 	// control type statements aren't SPVOperations)
 	vector<SPVInstruction*> arguments;
+
+	void GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg);
 };
 
 struct SPVConstant
@@ -162,14 +235,74 @@ struct SPVConstant
 		uint64_t u64;
 		uint32_t u32;
 		uint16_t u16;
+		uint8_t u8;
 		int64_t i64;
 		int32_t i32;
 		int16_t i16;
+		int8_t i8;
 		float f;
 		double d;
 	};
 
 	vector<SPVConstant *> children;
+
+	string GetValString()
+	{
+		RDCASSERT(children.empty());
+
+		if(type->type == SPVTypeData::eFloat)
+		{
+			if(type->bitCount == 64)
+				return StringFormat::Fmt("%lf", d);
+			if(type->bitCount == 32)
+				return StringFormat::Fmt("%f", f);
+			if(type->bitCount == 16)
+				return StringFormat::Fmt("%f", ConvertFromHalf(u16));
+		}
+		else if(type->type == SPVTypeData::eSInt)
+		{
+			if(type->bitCount == 64)
+				return StringFormat::Fmt("%lli", i64);
+			if(type->bitCount == 32)
+				return StringFormat::Fmt("%i", i32);
+			if(type->bitCount == 16)
+				return StringFormat::Fmt("%hi", i16);
+			if(type->bitCount == 8)
+				return StringFormat::Fmt("%hhi", i8);
+		}
+		else if(type->type == SPVTypeData::eSInt)
+		{
+			if(type->bitCount == 64)
+				return StringFormat::Fmt("%llu", u64);
+			if(type->bitCount == 32)
+				return StringFormat::Fmt("%u", u32);
+			if(type->bitCount == 16)
+				return StringFormat::Fmt("%hu", u16);
+			if(type->bitCount == 8)
+				return StringFormat::Fmt("%hhu", u8);
+		}
+		else if(type->type == SPVTypeData::eBool)
+			return u32 ? "true" : "false";
+
+		return StringFormat::Fmt("!%u!", u32);
+	}
+
+	string GetIDName()
+	{
+		string ret = type->GetName();
+		ret += "(";
+		if(children.empty())
+			ret += GetValString();
+		for(size_t i=0; i < children.size(); i++)
+		{
+			ret += children[i]->GetValString();
+			if(i+1 < children.size())
+				ret += ", ";
+		}
+		ret += ")";
+
+		return ret;
+	}
 };
 
 struct SPVVariable
@@ -216,7 +349,10 @@ struct SPVFunction
 
 	SPVTypeData *retType;
 	SPVTypeData *funcType;
+	vector<SPVInstruction *> arguments;
+
 	spv::FunctionControlMask control;
+
 	vector<SPVInstruction *> blocks;
 	vector<SPVInstruction *> variables;
 };
@@ -243,7 +379,7 @@ struct SPVInstruction
 		source.col = source.line = 0;
 	}
 
-  ~SPVInstruction()
+	~SPVInstruction()
 	{
 		SAFE_DELETE(ext);
 		SAFE_DELETE(entry);
@@ -256,17 +392,17 @@ struct SPVInstruction
 		SAFE_DELETE(var);
 	}
 
-  int indentChange()
-  {
-    return 0;
-  }
+	int indentChange()
+	{
+		return 0;
+	}
 
-  bool useIndent()
-  {
-    return opcode != spv::OpLabel;
-  }
-	
-  spv::Op opcode;
+	bool useIndent()
+	{
+		return opcode != spv::OpLabel;
+	}
+
+	spv::Op opcode;
 	uint32_t id;
 
 	// line number in disassembly (used for stepping when debugging)
@@ -274,7 +410,374 @@ struct SPVInstruction
 
 	struct { string filename; uint32_t line; uint32_t col; } source;
 
-  string str;
+	string str;
+
+	const string &GetIDName()
+	{
+		if(str.empty())
+		{
+			if(constant)
+				str = constant->GetIDName();
+			else
+				str = DefaultIDName(id);
+		}
+
+		return str;
+	}
+
+	string Disassemble(const vector<SPVInstruction *> &ids, bool inlineOp)
+	{
+		switch(opcode)
+		{
+			case spv::OpLabel:
+			{
+				RDCASSERT(!inlineOp);
+				return StringFormat::Fmt("Label%u:", id);
+			}
+			case spv::OpReturn:
+			{
+				RDCASSERT(!inlineOp);
+				return "Return";
+			}
+			case spv::OpReturnValue:
+			{
+				RDCASSERT(!inlineOp);
+
+				string arg = ids[flow->targets[0]]->GetIDName();
+
+				return StringFormat::Fmt("Return %s", arg.c_str());
+			}
+			case spv::OpBranch:
+			{
+				RDCASSERT(!inlineOp);
+				return StringFormat::Fmt("goto Label%u", flow->targets[0]);
+			}
+			case spv::OpBranchConditional:
+			{
+				RDCASSERT(!inlineOp);
+
+				if(flow->literals.empty())
+					return StringFormat::Fmt("if(%s) goto Label%u, else goto Label%u",
+								flow->condition->Disassemble(ids, true).c_str(),
+								flow->targets[0],
+								flow->targets[1]);
+
+				uint32_t weightA = flow->literals[0];
+				uint32_t weightB = flow->literals[1];
+
+				float a = float(weightA)/float(weightA+weightB);
+				float b = float(weightB)/float(weightA+weightB);
+
+				a *= 100.0f;
+				b *= 100.0f;
+
+				return StringFormat::Fmt("if(%s) goto %.2f%% %s, else goto %.2f%% %s",
+					flow->condition->Disassemble(ids, true).c_str(),
+					a,
+					flow->targets[0],
+					b,
+					flow->targets[1]);
+			}
+			case spv::OpSelectionMerge:
+			{
+				RDCASSERT(!inlineOp);
+				return StringFormat::Fmt("SelectionMerge Label%u%s", flow->targets[0], OptionalFlagString(flow->selControl).c_str());
+			}
+			case spv::OpLoopMerge:
+			{
+				RDCASSERT(!inlineOp);
+				return StringFormat::Fmt("LoopMerge Label%u%s", flow->targets[0], OptionalFlagString(flow->loopControl).c_str());
+			}
+			case spv::OpStore:
+			{
+				RDCASSERT(op);
+
+				string arg;
+				op->GetArg(ids, 1, arg);
+
+				// inlined only in function parameters, just return argument
+				if(inlineOp)
+					return arg;
+
+				return StringFormat::Fmt("Store(%s%s) = %s", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str());
+			}
+			case spv::OpCopyMemory:
+			{
+				RDCASSERT(!inlineOp && op);
+
+				string arg;
+				op->GetArg(ids, 1, arg);
+
+				return StringFormat::Fmt("Copy(%s%s) = Load(%s%s)", op->arguments[0]->GetIDName().c_str(), OptionalFlagString(op->access).c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+			}
+			case spv::OpLoad:
+			{
+				RDCASSERT(op);
+
+				string arg;
+				op->GetArg(ids, 0, arg);
+
+				if(inlineOp)
+					return StringFormat::Fmt("Load(%s%s)", arg.c_str(), OptionalFlagString(op->access).c_str());
+
+				return StringFormat::Fmt("%s %s = Load(%s%s)", op->type->GetName().c_str(), GetIDName().c_str(), arg.c_str(), OptionalFlagString(op->access).c_str());
+			}
+			case spv::OpAccessChain:
+			{
+				RDCASSERT(op);
+
+				string ret = "";
+
+				if(!inlineOp)
+					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				ret += op->arguments[0]->GetIDName();
+
+				SPVTypeData *type = op->arguments[0]->var->type;
+				if(type->type == SPVTypeData::ePointer)
+					type = type->baseType;
+
+				for(size_t i=1; i < op->arguments.size(); i++)
+				{
+					int32_t idx = -1;
+					if(op->arguments[i]->constant)
+					{
+						RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
+						idx = op->arguments[i]->constant->i32;
+					}
+					RDCASSERT(type);
+					if(!type)
+						break;
+
+					if(type->type == SPVTypeData::eStruct)
+					{
+						// Assuming you can't dynamically index into a structure
+						RDCASSERT(op->arguments[i]->constant);
+						const pair<SPVTypeData*,string> &child = type->children[idx];
+						if(child.second.empty())
+							ret += StringFormat::Fmt("._member%u", idx);
+						else
+							ret += StringFormat::Fmt(".%s", child.second.c_str());
+						type = child.first;
+						continue;
+					}
+					else if(type->type == SPVTypeData::eArray)
+					{
+						if(op->arguments[i]->constant)
+						{
+							ret += StringFormat::Fmt("[%u]", idx);
+						}
+						else
+						{
+							// dynamic indexing into this array
+							string arg;
+							op->GetArg(ids, i, arg);
+							ret += StringFormat::Fmt("[%s]", arg.c_str());
+						}
+						type = type->baseType;
+						continue;
+					}
+					else if(type->type == SPVTypeData::eMatrix)
+					{
+						if(op->arguments[i]->constant)
+						{
+							ret += StringFormat::Fmt("[%u]", idx);
+						}
+						else
+						{
+							// dynamic indexing into this array
+							string arg;
+							op->GetArg(ids, i, arg);
+							ret += StringFormat::Fmt("[%s]", arg.c_str());
+						}
+
+						// fall through to vector if we have another index
+						if(i == op->arguments.size()-1)
+							break;
+
+						i++;
+						// assuming can't dynamically index into a vector (would be a OpVectorShuffle)
+						RDCASSERT(op->arguments[i]->constant && op->arguments[i]->constant->type->IsBasicInt());
+						idx = op->arguments[i]->constant->i32;
+					}
+
+					// vector (or matrix + extra)
+					{
+						char swizzle[] = "xyzw";
+						if(idx < 4)
+							ret += StringFormat::Fmt(".%c", swizzle[idx]);
+						else
+							ret += StringFormat::Fmt("._%u", idx);
+
+						// must be the last index, we're down to scalar granularity
+						type = NULL;
+						RDCASSERT(i == op->arguments.size()-1);
+					}
+				}
+
+				return ret;
+			}
+			case spv::OpExtInst:
+			{
+				RDCASSERT(op);
+
+				string ret = "";
+
+				if(!inlineOp)
+					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				ret += op->arguments[0]->ext->setname + "::";
+				ret += op->arguments[0]->ext->instructions[op->literals[0]];
+				ret += "(";
+
+				for(size_t i=1; i < op->arguments.size(); i++)
+				{
+					string arg;
+					op->GetArg(ids, i, arg);
+
+					ret += arg;
+					if(i+1 < op->arguments.size())
+						ret += ", ";
+				}
+
+				ret += ")";
+
+				return ret;
+			}
+			case spv::OpFunctionCall:
+			{
+				RDCASSERT(op);
+
+				string ret = "";
+
+				if(!inlineOp)
+					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				ret += ids[op->funcCall]->GetIDName() + "(";
+
+				for(size_t i=0; i < op->arguments.size(); i++)
+				{
+					string arg;
+					op->GetArg(ids, i, arg);
+
+					ret += arg;
+					if(i+1 < op->arguments.size())
+						ret += ", ";
+				}
+
+				ret += ")";
+
+				return ret;
+			}
+			case spv::OpVectorShuffle:
+			{
+				RDCASSERT(op);
+
+				string ret = "";
+
+				if(!inlineOp)
+					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
+
+				SPVTypeData *vec1type = op->arguments[0]->op->type;
+				SPVTypeData *vec2type = op->arguments[1]->op->type;
+
+				RDCASSERT(vec1type->type == SPVTypeData::eVector && vec2type->type == SPVTypeData::eVector);
+
+				uint32_t maxShuffle = 0;
+				for(size_t i=0; i < op->literals.size(); i++)
+				{
+					uint32_t s = op->literals[i];
+					if(s > vec1type->vectorSize)
+						s -= vec1type->vectorSize;
+					maxShuffle = RDCMAX(maxShuffle, op->literals[i]);
+				}
+
+				ret += op->type->GetName() + "(";
+
+				// sane path for 4-vectors or less
+				if(maxShuffle < 4)
+				{
+					char swizzle[] = "xyzw";
+
+					int lastvec = -1;
+					for(size_t i=0; i < op->literals.size(); i++)
+					{
+						int vec = 0;
+						uint32_t s = op->literals[i];
+						if(s > vec1type->vectorSize)
+						{
+							s -= vec1type->vectorSize;
+							vec = 1;
+						}
+
+						if(vec != lastvec)
+						{
+							lastvec = vec;
+							if(i > 0)
+								ret += ", ";
+							ret += op->arguments[0]->GetIDName();
+							ret += ".";
+						}
+
+						ret += swizzle[s];
+					}
+				}
+
+				ret += ")";
+
+				return ret;
+			}
+			case spv::OpIAdd:
+			case spv::OpIMul:
+			case spv::OpFAdd:
+			case spv::OpFMul:
+			case spv::OpSLessThan:
+			{
+				RDCASSERT(op);
+
+				char c = '?';
+				switch(opcode)
+				{
+				case spv::OpIAdd:
+				case spv::OpFAdd:
+					c = '+';
+					break;
+				case spv::OpIMul:
+				case spv::OpFMul:
+					c = '*';
+					break;
+				case spv::OpSLessThan:
+					c = '<';
+					break;
+				default:
+					break;
+				}
+
+				string a, b;
+				op->GetArg(ids, 0, a);
+				op->GetArg(ids, 1, b);
+
+				if(inlineOp)
+					return StringFormat::Fmt("%s %c %s", a.c_str(), c, b.c_str());
+
+				return StringFormat::Fmt("%s %s = %s %c %s", op->type->GetName().c_str(), GetIDName().c_str(), a.c_str(), c, b.c_str());
+			}
+			default:
+				break;
+		}
+
+		string ret;
+
+		ret = GetIDName() + " <=> " + ToStr::Get(opcode) + " ";
+		for(size_t a=0; op && a < op->arguments.size(); a++)
+		{
+			ret += op->arguments[a]->GetIDName();
+			if(a+1 < op->arguments.size())
+				ret += " ";
+		}
+
+		return ret;
+	}
 
 	vector<SPVDecoration> decorations;
 
@@ -289,6 +792,14 @@ struct SPVInstruction
 	SPVConstant *constant; // this ID is a constant value
 	SPVVariable *var; // this ID is a variable
 };
+
+void SPVOperation::GetArg(const vector<SPVInstruction *> &ids, size_t idx, string &arg)
+{
+	if(inlineArgs & (1<<idx))
+		arg = arguments[idx]->Disassemble(ids, true);
+	else
+		arg = arguments[idx]->GetIDName();
+}
 
 struct SPVModule
 {
@@ -348,12 +859,93 @@ struct SPVModule
 
 		disasm += "\n";
 
-		// add global props
-		//
-		// add global variables
-		//
-		// add func pre-declares(?)
-		//
+		for(size_t i=0; i < entries.size(); i++)
+		{
+			RDCASSERT(entries[i]->entry);
+			uint32_t func = entries[i]->entry->func;
+			RDCASSERT(ids[func]);
+			disasm += StringFormat::Fmt("Entry point '%s' (%s)\n", ids[func]->str.c_str(), ToStr::Get(entries[i]->entry->model).c_str());
+		}
+
+		disasm += "\n";
+
+		for(size_t i=0; i < globals.size(); i++)
+		{
+			RDCASSERT(globals[i]->var && globals[i]->var->type);
+			disasm += StringFormat::Fmt("%s %s %s\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->GetName().c_str(), globals[i]->str.c_str());
+		}
+
+		disasm += "\n";
+
+		for(size_t f=0; f < funcs.size(); f++)
+		{
+			SPVFunction *func = funcs[f]->func;
+			RDCASSERT(func && func->retType && func->funcType);
+
+			string args = "";
+
+			for(size_t a=0; a < func->funcType->children.size(); a++)
+			{
+				const pair<SPVTypeData *,string> &arg = func->funcType->children[a];
+				RDCASSERT(a < func->arguments.size());
+				const SPVInstruction *argname = func->arguments[a];
+
+				if(argname->str.empty())
+					args += arg.first->GetName();
+				else
+					args += StringFormat::Fmt("%s %s", arg.first->GetName().c_str(), argname->str.c_str());
+
+				if(a+1 < func->funcType->children.size())
+					args += ", ";
+			}
+
+			disasm += StringFormat::Fmt("%s %s(%s)%s {\n", func->retType->GetName().c_str(), funcs[f]->str.c_str(), args.c_str(), OptionalFlagString(func->control).c_str());
+
+			// local copy of variables vector
+			vector<SPVInstruction *> vars = func->variables;
+			vector<SPVInstruction *> funcops;
+
+			for(size_t b=0; b < func->blocks.size(); b++)
+			{
+				SPVInstruction *block = func->blocks[b];
+
+				funcops.push_back(block); // OpLabel
+
+				for(size_t i=0; i < block->block->instructions.size(); i++)
+				{
+					funcops.push_back(block->block->instructions[i]);
+				}
+
+				if(block->block->mergeFlow)
+					funcops.push_back(block->block->mergeFlow);
+				if(block->block->exitFlow)
+					funcops.push_back(block->block->exitFlow);
+			}
+
+			size_t tabSize = 2;
+			size_t indent = tabSize;
+
+			for(size_t v=0; v < vars.size(); v++)
+			{
+				RDCASSERT(vars[v]->var && vars[v]->var->type);
+				disasm += StringFormat::Fmt("%s%s %s\n", string(indent, ' ').c_str(), vars[v]->var->type->GetName().c_str(), vars[v]->str.c_str());
+			}
+
+			if(!vars.empty())
+				disasm += "\n";
+
+			for(size_t o=0; o < funcops.size(); o++)
+			{
+				if(funcops[o]->useIndent())
+					disasm += string(indent, ' ');
+				indent += tabSize*funcops[o]->indentChange();
+				disasm += funcops[o]->Disassemble(ids, false) + "\n";
+				funcops[o]->line = (int)o;
+			}
+
+			disasm += StringFormat::Fmt("} // %s\n\n", funcs[f]->str.c_str());
+		}
+
 		// for each func:
 		//   declare instructino list
 		//   push variable declares
@@ -599,6 +1191,21 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			}
 			//////////////////////////////////////////////////////////////////////
 			// Constants
+			case spv::OpConstantTrue:
+			case spv::OpConstantFalse:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.constant = new SPVConstant();
+				op.constant->type = typeInst->type;
+
+				op.constant->u32 = op.opcode == spv::OpConstantTrue ? 1 : 0;
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
 			case spv::OpConstant:
 			{
 				SPVInstruction *typeInst = module.ids[spirv[it+1]];
@@ -619,7 +1226,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 					op.constant->u64 = lo | (hi<<32);
 				}
-				
+
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 				break;
@@ -639,7 +1246,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 					op.constant->children.push_back(constInst->constant);
 				}
-				
+
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 
@@ -659,7 +1266,9 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				op.func->retType = retTypeInst->type;
 				op.func->funcType = typeInst->type;
 				op.func->control = spv::FunctionControlMask(spirv[it+3]);
-				
+
+				module.funcs.push_back(&op);
+
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 
@@ -692,7 +1301,23 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				if(curFunc) curFunc->variables.push_back(&op);
 				else module.globals.push_back(&op);
-				
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+				break;
+			}
+			case spv::OpFunctionParameter:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.var = new SPVVariable();
+				op.var->type = typeInst->type;
+				op.var->storage = spv::StorageClassFunction;
+
+				RDCASSERT(curFunc);
+				curFunc->arguments.push_back(&op);
+
 				op.id = spirv[it+2];
 				module.ids[spirv[it+2]] = &op;
 				break;
@@ -707,9 +1332,7 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 				curFunc->blocks.push_back(&op);
 				curBlock = op.block;
-				
-				curBlock->instructions.push_back(&op);
-				
+
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
 				break;
@@ -719,38 +1342,35 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			case spv::OpReturn:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				curBlock->exitFlow = &op;
-				curBlock->instructions.push_back(&op);
 				curBlock = NULL;
 				break;
 			}
 			case spv::OpReturnValue:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				op.flow->targets.push_back(spirv[it+1]);
 
 				curBlock->exitFlow = &op;
-				curBlock->instructions.push_back(&op);
 				curBlock = NULL;
 				break;
 			}
 			case spv::OpBranch:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				op.flow->targets.push_back(spirv[it+1]);
-				
+
 				curBlock->exitFlow = &op;
-				curBlock->instructions.push_back(&op);
 				curBlock = NULL;
 				break;
 			}
 			case spv::OpBranchConditional:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				SPVInstruction *condInst = module.ids[spirv[it+1]];
 				RDCASSERT(condInst);
 
@@ -763,58 +1383,33 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 					op.flow->literals.push_back(spirv[it+4]);
 					op.flow->literals.push_back(spirv[it+5]);
 				}
-				
+
 				curBlock->exitFlow = &op;
-				curBlock->instructions.push_back(&op);
 				curBlock = NULL;
 				break;
 			}
 			case spv::OpSelectionMerge:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				op.flow->targets.push_back(spirv[it+1]);
 				op.flow->selControl = spv::SelectionControlMask(spirv[it+2]);
-				
+
 				curBlock->mergeFlow = &op;
-				curBlock->instructions.push_back(&op);
 				break;
 			}
 			case spv::OpLoopMerge:
 			{
 				op.flow = new SPVFlowControl();
-				
+
 				op.flow->targets.push_back(spirv[it+1]);
 				op.flow->loopControl = spv::LoopControlMask(spirv[it+2]);
-				
+
 				curBlock->mergeFlow = &op;
-				curBlock->instructions.push_back(&op);
 				break;
 			}
 			//////////////////////////////////////////////////////////////////////
 			// Operations with special parameters
-			case spv::OpAccessChain:
-			{
-				SPVInstruction *typeInst = module.ids[spirv[it+1]];
-				RDCASSERT(typeInst && typeInst->type);
-
-				op.op = new SPVOperation();
-				op.op->type = typeInst->type;
-				
-				SPVInstruction *structInst = module.ids[spirv[it+3]];
-				RDCASSERT(structInst);
-
-				op.op->arguments.push_back(structInst);
-	
-				for(int i=4; i < WordCount; i++)
-					op.op->literals.push_back(spirv[it+i]);
-				
-				op.id = spirv[it+2];
-				module.ids[spirv[it+2]] = &op;
-				
-				curBlock->instructions.push_back(&op);
-				break;
-			}
 			case spv::OpLoad:
 			{
 				SPVInstruction *typeInst = module.ids[spirv[it+1]];
@@ -886,14 +1481,100 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				curBlock->instructions.push_back(&op);
 				break;
 			}
+			case spv::OpFunctionCall:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+
+				op.op->funcCall = spirv[it+3];
+
+				for(int i=4; i < WordCount; i++)
+				{
+					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpVectorShuffle:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+
+				{
+					SPVInstruction *argInst = module.ids[spirv[it+3]];
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				{
+					SPVInstruction *argInst = module.ids[spirv[it+4]];
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				for(int i=5; i < WordCount; i++)
+					op.op->literals.push_back(spirv[it+i]);
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
+				curBlock->instructions.push_back(&op);
+				break;
+			}
+			case spv::OpExtInst:
+			{
+				SPVInstruction *typeInst = module.ids[spirv[it+1]];
+				RDCASSERT(typeInst && typeInst->type);
+
+				op.op = new SPVOperation();
+				op.op->type = typeInst->type;
+
+				{
+					SPVInstruction *setInst = module.ids[spirv[it+3]];
+					RDCASSERT(setInst);
+
+					op.op->arguments.push_back(setInst);
+				}
+
+				op.op->literals.push_back(spirv[it+4]);
+
+				for(int i=5; i < WordCount; i++)
+				{
+					SPVInstruction *argInst = module.ids[spirv[it+i]];
+					RDCASSERT(argInst);
+
+					op.op->arguments.push_back(argInst);
+				}
+
+				op.id = spirv[it+2];
+				module.ids[spirv[it+2]] = &op;
+
+				curBlock->instructions.push_back(&op);
+				break;
+			}
 			//////////////////////////////////////////////////////////////////////
 			// Easy to handle opcodes with just some number of ID parameters
+			case spv::OpAccessChain:
 			case spv::OpIAdd:
 			case spv::OpIMul:
 			case spv::OpFAdd:
 			case spv::OpFMul:
 			case spv::OpSLessThan:
-			case spv::OpExtInst:
 			{
 				SPVInstruction *typeInst = module.ids[spirv[it+1]];
 				RDCASSERT(typeInst && typeInst->type);
@@ -915,8 +1596,21 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				curBlock->instructions.push_back(&op);
 				break;
 			}
-			default:
+			case spv::OpName:
+			case spv::OpMemberName:
+			case spv::OpLine:
+			case spv::OpDecorate:
+			case spv::OpMemberDecorate:
+			case spv::OpGroupDecorate:
+			case spv::OpGroupMemberDecorate:
+			case spv::OpDecorationGroup:
+				// Handled in second pass once all IDs are in place
 				break;
+			default:
+			{
+				RDCERR("Unhandled opcode %s - result ID will be missing", ToStr::Get(op.opcode).c_str());
+				break;
+			}
 		}
 
 		it += WordCount;
@@ -935,10 +1629,19 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 			{
 				SPVInstruction *varInst = module.ids[spirv[it+1]];
 				RDCASSERT(varInst);
+
+				varInst->str = (const char *)&spirv[it+2];
+
+				// strip any 'encoded type' information from function names
+				if(varInst->opcode == spv::OpFunction)
+				{
+					size_t bracket = varInst->str.find('(');
+					if(bracket != string::npos)
+						varInst->str = varInst->str.substr(0, bracket);
+				}
+
 				if(varInst->type)
-					varInst->type->name = (const char *)&spirv[it+2];
-				else
-					varInst->str = (const char *)&spirv[it+2];
+					varInst->type->name = varInst->str;
 				break;
 			}
 			case spv::OpMemberName:
@@ -986,10 +1689,27 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				// TODO
 				RDCBREAK();
 				break;
+			default:
+				break;
 		}
 
 		it += WordCount;
 	}
+
+	struct SortByVarClass
+	{
+		bool operator () (const SPVInstruction *a, const SPVInstruction *b)
+		{
+			RDCASSERT(a->var && b->var);
+
+			return a->var->storage < b->var->storage;
+		}
+	};
+
+	std::sort(module.globals.begin(), module.globals.end(), SortByVarClass());
+
+	///////////////////////////////////////////////////////////////////////////////
+	// Old direct-to-string (ref) disassembly
 
 	vector<string> resultnames;
 	resultnames.resize(idbound);
@@ -1578,6 +2298,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 
 		it += WordCount;
 	}
+
+	disasm += "\n\n--------------\n\n" + module.Disassemble();
 
 	return;
 #endif
