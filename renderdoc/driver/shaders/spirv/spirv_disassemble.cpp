@@ -668,7 +668,7 @@ struct SPVInstruction
 
 				string ret = "";
 
-				if(!inlineOp)
+				if(!inlineOp && op->type->type != SPVTypeData::eVoid)
 					ret = StringFormat::Fmt("%s %s = ", op->type->GetName().c_str(), GetIDName().c_str());
 
 				ret += ids[op->funcCall]->GetIDName() + "(";
