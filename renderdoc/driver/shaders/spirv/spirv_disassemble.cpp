@@ -140,6 +140,14 @@ struct SPVTypeData
 		return type == eUInt || type == eSInt;
 	}
 
+	string DeclareVariable(const string &varName)
+	{
+		if(type == eArray)
+			return StringFormat::Fmt("%s %s[%u]", baseType->GetName().c_str(), varName.c_str(), arraySize);
+
+		return StringFormat::Fmt("%s %s", GetName().c_str(), varName.c_str());
+	}
+
 	const string &GetName()
 	{
 		if(name.empty())
@@ -403,16 +411,6 @@ struct SPVInstruction
 		SAFE_DELETE(block);
 		SAFE_DELETE(constant);
 		SAFE_DELETE(var);
-	}
-
-	int indentChange()
-	{
-		return 0;
-	}
-
-	bool useIndent()
-	{
-		return opcode != spv::OpLabel;
 	}
 
 	spv::Op opcode;
@@ -854,6 +852,7 @@ struct SPVModule
 	vector<SPVInstruction*> entries; // entry points
 	vector<SPVInstruction*> globals; // global variables
 	vector<SPVInstruction*> funcs; // functions
+	vector<SPVInstruction*> structs; // struct types
 
 	string Disassemble()
 	{
@@ -891,10 +890,29 @@ struct SPVModule
 
 		disasm += "\n";
 
+		for(size_t i=0; i < structs.size(); i++)
+		{
+			disasm += StringFormat::Fmt("struct %s {\n", structs[i]->type->GetName().c_str());
+			for(size_t c=0; c < structs[i]->type->children.size(); c++)
+			{
+				auto member = structs[i]->type->children[c];
+
+				string varName = member.second;
+
+				if(varName.empty())
+					varName = StringFormat::Fmt("member%u", c);
+
+				disasm += StringFormat::Fmt("  %s;\n", member.first->DeclareVariable(varName).c_str());
+			}
+			disasm += StringFormat::Fmt("}; // struct %s\n", structs[i]->type->GetName().c_str());
+		}
+
+		disasm += "\n";
+
 		for(size_t i=0; i < globals.size(); i++)
 		{
 			RDCASSERT(globals[i]->var && globals[i]->var->type);
-			disasm += StringFormat::Fmt("%s %s %s\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->GetName().c_str(), globals[i]->str.c_str());
+			disasm += StringFormat::Fmt("%s %s %s;\n", ToStr::Get(globals[i]->var->storage).c_str(), globals[i]->var->type->GetName().c_str(), globals[i]->str.c_str());
 		}
 
 		disasm += "\n";
@@ -1032,7 +1050,7 @@ struct SPVModule
 			for(size_t v=0; v < vars.size(); v++)
 			{
 				RDCASSERT(vars[v]->var && vars[v]->var->type);
-				disasm += StringFormat::Fmt("%s%s %s\n", string(indent, ' ').c_str(), vars[v]->var->type->GetName().c_str(), vars[v]->str.c_str());
+				disasm += StringFormat::Fmt("%s%s %s;\n", string(indent, ' ').c_str(), vars[v]->var->type->GetName().c_str(), vars[v]->str.c_str());
 			}
 
 			if(!vars.empty())
@@ -1040,10 +1058,16 @@ struct SPVModule
 
 			for(size_t o=0; o < funcops.size(); o++)
 			{
-				if(funcops[o]->useIndent())
+				if(funcops[o]->opcode == spv::OpLabel)
+				{
+					disasm += funcops[o]->Disassemble(ids, false) + "\n";
+				}
+				else
+				{
 					disasm += string(indent, ' ');
-				indent += tabSize*funcops[o]->indentChange();
-				disasm += funcops[o]->Disassemble(ids, false) + "\n";
+					disasm += funcops[o]->Disassemble(ids, false) + ";\n";
+				}
+
 				funcops[o]->line = (int)o;
 			}
 
@@ -1230,7 +1254,11 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 				RDCASSERT(baseTypeInst && baseTypeInst->type);
 
 				op.type->baseType = baseTypeInst->type;
-				op.type->arraySize = spirv[it+3];
+
+				SPVInstruction *sizeInst = module.ids[spirv[it+3]];
+				RDCASSERT(sizeInst && sizeInst->constant && sizeInst->constant->type->IsBasicInt());
+
+				op.type->arraySize = sizeInst->constant->u32;
 				
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
@@ -1249,6 +1277,8 @@ void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, 
 					// names might come later from OpMemberName instructions
 					op.type->children.push_back(make_pair(memberInst->type, ""));
 				}
+
+				module.structs.push_back(&op);
 				
 				op.id = spirv[it+1];
 				module.ids[spirv[it+1]] = &op;
