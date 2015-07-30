@@ -1858,7 +1858,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
 		case OPCODE_IMM_ATOMIC_CONSUME:
 		{
-			uint32_t count = global.uavs[srcOpers[0].value.u.x].hiddenCounter--;
+			uint32_t count = --global.uavs[srcOpers[0].value.u.x].hiddenCounter;
 			s.SetDst(op.operands[0], op, ShaderVariable("", count, count, count, count));
 			break;
 		}
