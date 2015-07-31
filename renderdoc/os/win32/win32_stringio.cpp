@@ -160,6 +160,16 @@ namespace FileIO
 		selfName = StringFormat::Wide2UTF8(wstring(curFile));
 	}
 
+	string GetFullPathname(const string &filename)
+	{
+		wstring wfn = StringFormat::UTF82Wide(filename);
+
+		wchar_t path[512] = {0};
+		GetFullPathNameW(wfn.c_str(), ARRAY_COUNT(path)-1, path, NULL);
+
+		return StringFormat::Wide2UTF8(wstring(path));
+	}
+
 	string GetReplayAppFilename()
 	{
 		HMODULE hModule = NULL;
@@ -251,7 +261,7 @@ namespace FileIO
 		logging_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
 	}
 
-	string GetAppFolderFilename(string filename)
+	string GetAppFolderFilename(const string &filename)
 	{
 		PWSTR appDataPath;
 		SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST|KF_FLAG_DONT_UNEXPAND, NULL, &appDataPath);
@@ -268,9 +278,9 @@ namespace FileIO
 		return ret;
 	}
 
-	uint64_t GetModifiedTimestamp(const char *filename)
+	uint64_t GetModifiedTimestamp(const string &filename)
 	{
-		wstring wfn = StringFormat::UTF82Wide(string(filename));
+		wstring wfn = StringFormat::UTF82Wide(filename);
 
 		struct _stat st;
 		int res = _wstat(wfn.c_str(), &st);

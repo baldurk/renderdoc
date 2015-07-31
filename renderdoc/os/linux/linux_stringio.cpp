@@ -133,7 +133,7 @@ namespace Keyboard
 
 namespace FileIO
 {
-	string GetAppFolderFilename(string filename)
+	string GetAppFolderFilename(const string &filename)
 	{
 		passwd *pw = getpwuid(getuid());
 		const char *homedir = pw->pw_dir;
@@ -143,6 +143,14 @@ namespace FileIO
 		mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
 		return ret + filename;
+	}
+
+	string GetFullPathname(const string &filename)
+	{
+		char path[512] = {0};
+		readlink(filename.c_str(), path, 511);
+
+		return string(path);
 	}
 
 	void GetExecutableFilename(string &selfName)
@@ -238,10 +246,10 @@ namespace FileIO
 		logging_filename = string(temp_filename);
 	}
 	
-	uint64_t GetModifiedTimestamp(const char *filename)
+	uint64_t GetModifiedTimestamp(const string &filename)
 	{
 		struct ::stat st;
-		int res = stat(filename, &st);
+		int res = stat(filename.c_str(), &st);
 
 		if(res == 0)
 		{

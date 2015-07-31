@@ -174,12 +174,14 @@ namespace Callstack
 namespace FileIO
 {
 	void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename, string &target);
-	string GetAppFolderFilename(string filename);
+	string GetAppFolderFilename(const string &filename);
 	string GetReplayAppFilename();
+
+	string GetFullPathname(const string &filename);
 
 	void GetExecutableFilename(string &selfName);
 	
-	uint64_t GetModifiedTimestamp(const char *filename);
+	uint64_t GetModifiedTimestamp(const string &filename);
 	
 	void Copy(const char *from, const char *to, bool allowOverwrite);
 	void Delete(const char *path);

@@ -120,9 +120,11 @@ void RenderDoc::RemoteAccessClientThread(void *s)
 
 			packetType = ePacket_NewCapture;
 
+			std::string path = FileIO::GetFullPathname(captures.back().path);
+
 			ser.Serialise("", idx);
 			ser.Serialise("", captures.back().timestamp);
-			ser.Serialise("", captures.back().path);
+			ser.Serialise("", path);
 
 			uint32_t len = 0;
 			RENDERDOC_GetThumbnail(captures.back().path.c_str(), NULL, len);
