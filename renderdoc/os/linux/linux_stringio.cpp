@@ -145,6 +145,30 @@ namespace FileIO
 		return ret + filename;
 	}
 
+	void CreateParentDirectory(const string &filename)
+	{
+		string fn = dirname(filename);
+
+		// want trailing slash so that we create all directories
+		fn.push_back('/');
+
+		if(fn[0] != '/')
+			return;
+
+		size_t offs = fn.find('/', 1);
+
+		while(offs != string::npos)
+		{
+			// create directory path from 0 to offs by NULLing the
+			// / at offs, mkdir, then set it back
+			fn[offs] = 0;
+			mkdir(fn.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+			fn[offs] = '/';
+
+			offs = fn.find_first_of('/', offs+1);
+		}
+	}
+
 	string GetFullPathname(const string &filename)
 	{
 		char path[512] = {0};

@@ -736,6 +736,8 @@ void RenderDoc::SetLogFile(const char *logFile)
 
 	if(m_LogFile.substr(m_LogFile.length()-4) == ".rdc")
 		m_LogFile = m_LogFile.substr(0, m_LogFile.length()-4);
+
+	FileIO::CreateParentDirectory(m_LogFile);
 }
 
 void RenderDoc::SetProgress(LoadProgressSection section, float delta)

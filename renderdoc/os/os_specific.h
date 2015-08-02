@@ -177,6 +177,8 @@ namespace FileIO
 	string GetAppFolderFilename(const string &filename);
 	string GetReplayAppFilename();
 
+	void CreateParentDirectory(const string &filename);
+
 	string GetFullPathname(const string &filename);
 
 	void GetExecutableFilename(string &selfName);

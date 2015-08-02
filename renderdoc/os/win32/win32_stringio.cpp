@@ -170,6 +170,20 @@ namespace FileIO
 		return StringFormat::Wide2UTF8(wstring(path));
 	}
 
+	void CreateParentDirectory(const string &filename)
+	{
+		wstring wfn = StringFormat::UTF82Wide(filename);
+
+		wfn = dirname(wfn);
+
+		// This function needs \\s not /s. So stupid!
+		for(size_t i=0; i < wfn.size(); i++)
+			if(wfn[i] == L'/')
+				wfn[i] = L'\\';
+
+		SHCreateDirectoryExW(NULL, wfn.c_str(), NULL);
+	}
+
 	string GetReplayAppFilename()
 	{
 		HMODULE hModule = NULL;
