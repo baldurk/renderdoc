@@ -2183,10 +2183,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 			// app (although it means we might swallow an error from before the
 			// SwapBuffers call, it can't be helped.
 			if(ctxdata.Legacy() && m_Real.glGetError)
-			{
-				GLenum err = m_Real.glGetError();
-				while(err) err = m_Real.glGetError();
-			}
+				ClearGLErrors(m_Real);
 		}
 	}
 	
@@ -2449,10 +2446,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 			// app (although it means we might swallow an error from before the
 			// SwapBuffers call, it can't be helped.
 			if(ctxdata.Legacy() && m_Real.glGetError)
-			{
-				GLenum err = m_Real.glGetError();
-				while(err) err = m_Real.glGetError();
-			}
+				ClearGLErrors(m_Real);
 		}
 
 		m_FrameRecord.back().frameInfo.frameNumber = m_FrameCounter+1;

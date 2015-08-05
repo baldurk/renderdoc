@@ -113,8 +113,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 	if(gl.glGetError && gl.glGetIntegeri_v)
 	{
 		// clear all error flags.
-		GLenum err = gl.glGetError();
-		while(err != eGL_NONE) err = gl.glGetError();
+		GLenum err = eGL_NONE;
+		ClearGLErrors(gl);
 
 		GLint dummy = 0;
 		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, 0, &dummy);
@@ -177,8 +177,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 	if(gl.glGetIntegerv && gl.glGetError)
 	{
 		// clear all error flags.
-		GLenum err = gl.glGetError();
-		while(err != eGL_NONE) err = gl.glGetError();
+		GLenum err = eGL_NONE;
+		ClearGLErrors(gl);
 
 		GLint dummy[2] = {0};
 		gl.glGetIntegerv(eGL_POLYGON_MODE, dummy);
@@ -209,8 +209,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
 		
 		// clear all error flags.
-		GLenum err = gl.glGetError();
-		while(err != eGL_NONE) err = gl.glGetError();
+		GLenum err = eGL_NONE;
+		ClearGLErrors(gl);
 
 		gl.glCopyImageSubData(texs[0], eGL_TEXTURE_2D, 0,  0, 0, 0, texs[1], eGL_TEXTURE_2D, 0,  0, 0, 0,  1, 1, 1);
 		
@@ -227,7 +227,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		gl.glBindTexture(eGL_TEXTURE_2D, 0);
 		gl.glDeleteTextures(2, texs);
 
-		while(gl.glGetError());
+		ClearGLErrors(gl);
 
 		//////////////////////////////////////////////////////////////////////////
 		// Check copying cubemaps
@@ -294,7 +294,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, 0);
 		gl.glDeleteTextures(2, texs);
 
-		while(gl.glGetError());
+		ClearGLErrors(gl);
 	}
 
 	if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines && gl.glGetProgramPipelineiv)
@@ -303,8 +303,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 		gl.glGenProgramPipelines(1, &pipe);
 		
 		// clear all error flags.
-		GLenum err = gl.glGetError();
-		while(err != eGL_NONE) err = gl.glGetError();
+		GLenum err = eGL_NONE;
+		ClearGLErrors(gl);
 
 		GLint dummy = 0;
 		gl.glGetProgramPipelineiv(pipe, eGL_COMPUTE_SHADER, &dummy);
@@ -512,6 +512,22 @@ GLenum ShaderEnum(size_t idx)
 		return enums[idx];
 
 	return eGL_NONE;
+}
+
+void ClearGLErrors(const GLHookSet &gl)
+{
+	int i=0;
+	GLenum err = gl.glGetError();
+	while(err)
+	{
+		err = gl.glGetError();
+		i++;
+		if(i > 100)
+		{
+			RDCERR("Couldn't clear GL errors - something very wrong!");
+			return;
+		}
+	}
 }
 
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint i)

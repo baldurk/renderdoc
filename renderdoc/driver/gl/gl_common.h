@@ -98,6 +98,8 @@ GLenum MakeGLPrimitiveTopology(PrimitiveTopology Topo);
 const char *BlendString(GLenum blendenum);
 const char *SamplerString(GLenum smpenum);
 
+void ClearGLErrors(const GLHookSet &gl);
+
 GLuint GetBoundVertexBuffer(const GLHookSet &gl, GLuint idx);
 
 void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, ShaderReflection *refl, ShaderBindpointMapping &mapping);
