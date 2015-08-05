@@ -1967,6 +1967,10 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 {
 	if(m_State == WRITING_IDLE)
 		RenderDoc::Inst().Tick();
+
+	// don't do anything if no context is active.
+	if(GetCtx() == NULL)
+		return;
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
 	

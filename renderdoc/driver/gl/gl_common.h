@@ -38,6 +38,8 @@
 
 struct GLWindowingData
 {
+	GLWindowingData() { DC = NULL; ctx = NULL; wnd = NULL; }
+
 	void SetCtx(void *c) { ctx = (HGLRC)c; }
 	HDC DC;
 	HGLRC ctx;
@@ -54,6 +56,8 @@ struct GLWindowingData
 
 struct GLWindowingData
 {
+	GLWindowingData() { dpy = NULL; ctx = NULL; wnd = NULL; }
+
 	void SetCtx(void *c) { ctx = (GLXContext)c; }
 	Display *dpy;
 	GLXContext ctx;
