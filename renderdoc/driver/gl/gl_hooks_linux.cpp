@@ -312,7 +312,7 @@ class OpenGLHook : LibraryHook
 		
 		GLWindowingData MakeContext(GLWindowingData share)
 		{
-			GLWindowingData ret = {0};
+			GLWindowingData ret;
 			if(glXCreateContextAttribsARB_real)
 			{
 				const int attribs[] = {
