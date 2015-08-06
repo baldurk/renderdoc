@@ -56,7 +56,7 @@ struct GLWindowingData
 
 struct GLWindowingData
 {
-	GLWindowingData() { dpy = NULL; ctx = NULL; wnd = NULL; }
+	GLWindowingData() { dpy = NULL; ctx = NULL; wnd = 0; }
 
 	void SetCtx(void *c) { ctx = (GLXContext)c; }
 	Display *dpy;
