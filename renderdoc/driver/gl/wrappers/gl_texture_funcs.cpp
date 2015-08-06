@@ -2598,7 +2598,7 @@ void WrappedOpenGL::Common_glCompressedTextureImage3DEXT(ResourceId texId, GLenu
 		}
 		else
 		{
-			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D);
+			SCOPED_SERIALISE_CONTEXT(TEXIMAGE3D_COMPRESSED);
 			Serialise_glCompressedTextureImage3DEXT(record->Resource.name,
 																			target, level, internalformat, width, height, depth, border, imageSize, fromunpackbuf ? NULL : pixels);
 
