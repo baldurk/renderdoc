@@ -3012,7 +3012,9 @@ void WrappedOpenGL::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target
 	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
-	
+
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
@@ -3105,7 +3107,9 @@ void WrappedOpenGL::Common_glTextureStorage3DEXT(ResourceId texId, GLenum target
 	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
-	
+
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
@@ -3199,7 +3203,9 @@ void WrappedOpenGL::Common_glTextureStorage2DMultisampleEXT(ResourceId texId, GL
 	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
-	
+
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
@@ -3308,7 +3314,9 @@ void WrappedOpenGL::Common_glTextureStorage3DMultisampleEXT(ResourceId texId, GL
 	
 	// proxy formats are used for querying texture capabilities, don't serialise these
 	if(IsProxyTarget(target) || internalformat == 0) return;
-	
+
+	internalformat = GetSizedFormat(m_Real, target, internalformat);
+
 	if(m_State >= WRITING)
 	{
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
