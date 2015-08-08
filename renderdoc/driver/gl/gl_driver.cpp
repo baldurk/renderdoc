@@ -1305,6 +1305,7 @@ struct RenderTextState
 	GLuint prog;
 	GLuint pipe;
 	GLuint VAO;
+	GLuint drawFBO;
 
 	// if this context wasn't created with CreateContextAttribs we
 	// do an immediate mode render, so fewer states are pushed/popped.
@@ -1396,6 +1397,9 @@ struct RenderTextState
 		prog = 0;
 		gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
 
+		drawFBO = 0;
+		gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
+
 		// since we will use the fixed function pipeline, also need to check for
 		// program pipeline bindings (if we weren't, our program would override)
 		pipe = 0;
@@ -1456,6 +1460,9 @@ struct RenderTextState
 		gl.glActiveTexture(eGL_TEXTURE0);
 		gl.glBindTexture(eGL_TEXTURE_2D, tex0);
 		gl.glActiveTexture(ActiveTexture);
+
+		if(drawFBO != 0 && gl.glBindFramebuffer)
+			gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFBO);
 
 		if(modern)
 		{
@@ -1591,6 +1598,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 		gl.glDisable(eGL_STENCIL_TEST);
 		gl.glDisable(eGL_CULL_FACE);
 
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+
 		// set viewport & scissor
 		gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
 		gl.glDisablei(eGL_SCISSOR_TEST, 0);
@@ -1651,6 +1660,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
 		gl.glActiveTexture(eGL_TEXTURE0);
 		gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
 		gl.glEnable(eGL_TEXTURE_2D);
+
+		gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
 		// just in case, try to disable the programmable pipeline
 		if(gl.glUseProgram)
