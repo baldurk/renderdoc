@@ -211,9 +211,3 @@ struct GLResourceRecord : public ResourceRecord
 private:
 	byte *ShadowPtr[2];
 };
-
-namespace TrackedResource
-{
-	ResourceId GetNewUniqueID();
-	void SetReplayResourceIDs();
-};

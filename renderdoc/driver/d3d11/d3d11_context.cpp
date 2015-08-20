@@ -127,7 +127,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device* real
 	}
 
 	// create a temporary and grab its resource ID
-	m_ResourceID = TrackedResource().GetResourceID();
+	m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
 	m_ContextRecord = NULL;
 

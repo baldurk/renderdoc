@@ -25,6 +25,21 @@
 
 #include "resource_manager.h"
 
+namespace ResourceIDGen
+{
+	static volatile int64_t globalIDCounter = 1;
+
+	ResourceId GetNewUniqueID()
+	{
+		return ResourceId(Atomic::Inc64(&globalIDCounter), true);
+	}
+
+	void SetReplayResourceIDs()
+	{
+		globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter|0x1000000000000000ULL));
+	}
+};
+
 void ResourceRecord::MarkResourceFrameReferenced(ResourceId id, FrameRefType refType)
 {
 	ResourceManager<void*,ResourceRecord>::MarkReferenced(m_FrameRefs, id, refType);

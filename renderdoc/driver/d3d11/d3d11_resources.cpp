@@ -56,8 +56,6 @@ WRAPPED_POOL_INST(WrappedID3D11RasterizerState1);
 WRAPPED_POOL_INST(WrappedID3D11BlendState1);
 #endif
 
-volatile LONGLONG TrackedResource::globalIDCounter = 1;
-
 map<ResourceId,WrappedID3D11Texture1D::TextureEntry> WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC>::m_TextureList;
 map<ResourceId,WrappedID3D11Texture2D::TextureEntry> WrappedTexture<ID3D11Texture2D, D3D11_TEXTURE2D_DESC>::m_TextureList;
 map<ResourceId,WrappedID3D11Texture3D::TextureEntry> WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC>::m_TextureList;

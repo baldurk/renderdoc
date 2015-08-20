@@ -95,28 +95,15 @@ class TrackedResource
 	public:
 		TrackedResource()
 		{
-			m_ID = GetNewUniqueID();
+			m_ID = ResourceIDGen::GetNewUniqueID();
 		}
 
 		ResourceId GetResourceID() { return m_ID; }
-
-		static void SetReplayResourceIDs()
-		{
-			globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter|0x1000000000000000ULL));
-		}
 		
 	private:
 		TrackedResource(const TrackedResource &);
 		TrackedResource &operator =(const TrackedResource &);
-
-		ResourceId GetNewUniqueID()
-		{
-			uint64_t newID = (uint64_t)InterlockedIncrement64(&globalIDCounter);
-
-			return ResourceId(newID, true); // bool to make explicit
-		}
 		
-		static volatile LONGLONG globalIDCounter;
 		ResourceId m_ID;
 };
 

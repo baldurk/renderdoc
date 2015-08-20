@@ -777,7 +777,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	{
 		m_DeviceRecord = m_ContextRecord = NULL;
 
-		TrackedResource::SetReplayResourceIDs();
+		ResourceIDGen::SetReplayResourceIDs();
 
 		InitSPIRVCompiler();
 		RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);

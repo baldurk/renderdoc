@@ -310,7 +310,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_pSerialiser = NULL;
 		m_pDebugSerialiser = NULL;
 
-		TrackedResource::SetReplayResourceIDs();
+		ResourceIDGen::SetReplayResourceIDs();
 	}
 	else
 	{
@@ -330,7 +330,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 		m_pSerialiser->SetChunkNameLookup(&GetChunkName);
 	
 	// create a temporary and grab its resource ID
-	m_ResourceID = TrackedResource().GetResourceID();
+	m_ResourceID = ResourceIDGen::GetNewUniqueID();
 
 	m_DeviceRecord = NULL;
 

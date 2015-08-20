@@ -55,6 +55,12 @@ enum FrameRefType
 	eFrameRef_ReadBeforeWrite,
 };
 
+namespace ResourceIDGen
+{
+	ResourceId GetNewUniqueID();
+	void SetReplayResourceIDs();
+};
+
 class ResourceRecordHandler
 {
 	public:

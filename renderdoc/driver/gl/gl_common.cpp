@@ -28,21 +28,6 @@
 #include "gl_common.h"
 #include "gl_driver.h"
 
-namespace TrackedResource
-{
-	static volatile int64_t globalIDCounter = 0;
-
-	ResourceId GetNewUniqueID()
-	{
-		return ResourceId(Atomic::Inc64(&globalIDCounter), true);
-	}
-
-	void SetReplayResourceIDs()
-	{
-		globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter|0x1000000000000000ULL));
-	}
-};
-
 bool ExtensionSupported[ExtensionSupported_Count];
 bool VendorCheck[VendorCheck_Count];
 

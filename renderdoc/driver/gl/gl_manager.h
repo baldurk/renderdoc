@@ -107,7 +107,7 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 
 		ResourceId RegisterResource(GLResource res)
 		{
-			ResourceId id = TrackedResource::GetNewUniqueID();
+			ResourceId id = ResourceIDGen::GetNewUniqueID();
 			m_CurrentResourceIds[res] = id;
 			AddCurrentResource(id, res);
 			return id;
