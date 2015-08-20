@@ -190,6 +190,16 @@ class Serialiser
 			return m_AlignedData;
 		}
 
+		bool IsReading() const
+		{
+			return m_Mode == READING;
+		}
+
+		bool IsWriting() const
+		{
+			return !IsReading();
+		}
+
 		uint64_t GetOffset() const
 		{
 			if(m_HasError)
