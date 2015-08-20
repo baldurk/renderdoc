@@ -373,11 +373,14 @@ class Serialiser
 
 			Num = (size_t)numElems;
 			
+			// disable since this requires a ToStr implementation for any array element
+			/*
 			if(name != NULL && m_DebugTextWriting)
 			{
 				for(size_t i=0; i < Num; i++)
 					DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
 			}
+			*/
 		}
 
 		// serialise a single element
