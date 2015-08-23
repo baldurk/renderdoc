@@ -338,7 +338,8 @@ bool WrappedID3D11DeviceContext::Serialise_BeginCaptureFrame(bool applyInitialSt
 			SERIALISE_ELEMENT(ResourceId, id, ResourceId());
 			SERIALISE_ELEMENT(uint64_t, hiddenCounter, 0);
 			
-			m_StreamOutCounters[m_pDevice->GetResourceManager()->GetLiveID(id)].numPrims = hiddenCounter;
+			if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+				m_StreamOutCounters[m_pDevice->GetResourceManager()->GetLiveID(id)].numPrims = hiddenCounter;
 		}
 	}
 
