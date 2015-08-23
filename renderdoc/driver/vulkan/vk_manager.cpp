@@ -390,7 +390,9 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 bool VulkanResourceManager::Force_InitialState(VkResource res)
 {
-	return (res.Namespace == eResDescriptorSet);
+	return false;
+	// VKTODO might need this
+	//return (res.Namespace == eResDescriptorSet);
 }
 
 bool VulkanResourceManager::Need_InitialStateChunk(VkResource res)

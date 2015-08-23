@@ -1128,7 +1128,8 @@ VkResult WrappedVulkan::vkMapMemory(
 	{
 		ResourceId id = GetResourceManager()->GetID(MakeRes(mem));
 
-		if(m_State >= WRITING_CAPFRAME)
+		// VKTODO shouldn't track maps unless capframe, dirty otherwise
+		if(m_State >= WRITING)
 		{
 			auto it = m_MemoryInfo.find(id);
 			if(it == m_MemoryInfo.end())
@@ -3564,7 +3565,8 @@ void WrappedVulkan::vkCmdCopyImage(
 
 		record->AddChunk(scope.Get());
 
-		record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destImage)));
+		// VKTODO init states not implemented yet...
+		//record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destImage)));
 	}
 }
 
