@@ -1110,7 +1110,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkRenderPassBeginInfo", 0, true);
 	
-	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO);
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO);
 	SerialiseNext(this, el.pNext);
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
