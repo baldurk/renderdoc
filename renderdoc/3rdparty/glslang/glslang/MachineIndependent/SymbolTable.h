@@ -200,7 +200,7 @@ public:
         TSymbol(name),
         mangledName(*name + '('),
         op(tOp),
-        defined(false), prototyped(false) { returnType.shallowCopy(retType); }    
+        defined(false), prototyped(false) { returnType.shallowCopy(retType); }
     virtual TFunction* clone() const;
     virtual ~TFunction();
 
@@ -486,8 +486,8 @@ public:
     //
 protected:
     static const int globalLevel = 3;
-    bool isSharedLevel(int level)  { return level <= 1; }    // exclude all per-compile levels
-    bool isBuiltInLevel(int level) { return level <= 2; }    // exclude user globals
+    bool isSharedLevel(int level)  { return level <= 1; }              // exclude all per-compile levels
+    bool isBuiltInLevel(int level) { return level <= 2; }              // exclude user globals
     bool isGlobalLevel(int level)  { return level <= globalLevel; }    // include user globals
 public:
     bool isEmpty() { return table.size() == 0; }

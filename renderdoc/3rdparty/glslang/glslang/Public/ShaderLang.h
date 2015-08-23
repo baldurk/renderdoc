@@ -129,6 +129,9 @@ enum EShMessages {
     EShMsgRelaxedErrors    = (1 << 0),  // be liberal in accepting input
     EShMsgSuppressWarnings = (1 << 1),  // suppress all warnings, except those required by the specification
     EShMsgAST              = (1 << 2),  // print the AST intermediate representation
+    EShMsgSpvRules         = (1 << 3),  // issue messages for SPIR-V generation
+    EShMsgVulkanRules      = (1 << 4),  // issue messages for Vulkan-requirements of GLSL for SPIR-V
+    EShMsgOnlyPreprocessor = (1 << 5),  // only print out errors produced by the preprocessor
 };
 
 //
@@ -246,6 +249,7 @@ SH_IMPORT_EXPORT int ShGetUniformLocation(const ShHandle uniformMap, const char*
 
 #include <list>
 #include <string>
+#include <utility>
 
 class TCompiler;
 class TInfoSink;
@@ -266,7 +270,8 @@ bool InitializeProcess();
 void FinalizeProcess();
 
 // Make one TShader per shader that you will link into a program.  Then provide
-// the shader through setStrings(), then call parse(), then query the info logs.
+// the shader through setStrings() or setStringsWithLengths(), then call parse(),
+// then query the info logs.
 // Optionally use setPreamble() to set a special shader string that will be
 // processed before all others but won't affect the validity of #version.
 //
@@ -279,16 +284,40 @@ class TShader {
 public:
     explicit TShader(EShLanguage);
     virtual ~TShader();
-    void setStrings(const char* const* s, int n) { strings = s; numStrings = n; }
+    void setStrings(const char* const* s, int n);
+    void setStringsWithLengths(const char* const* s, const int* l, int n);
+    void setStringsWithLengthsAndNames(
+        const char* const* s, const int* l, const char* const* names, int n);
     void setPreamble(const char* s) { preamble = s; }
-    bool parse(const TBuiltInResource*, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile, bool forwardCompatible, EShMessages);
+
+    // Interface to #include handlers.
+    class Includer {
+    public:
+        // On success, returns the full path and content of the file with the given
+        // filename that replaces "#include filename". On failure, returns an empty
+        // string and an error message.
+        virtual std::pair<std::string, std::string> include(const char* filename) const = 0;
+    };
+
+    // Returns an error message for any #include directive.
+    class ForbidInclude : public Includer {
+    public:
+        std::pair<std::string, std::string> include(const char* filename) const override
+        {
+            return std::make_pair<std::string, std::string>("", "unexpected include directive");
+        }
+    };
+
+    bool parse(const TBuiltInResource*, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
+               bool forwardCompatible, EShMessages, const Includer& = ForbidInclude());
+
     // Equivalent to parse() without a default profile and without forcing defaults.
     // Provided for backwards compatibility.
     bool parse(const TBuiltInResource*, int defaultVersion, bool forwardCompatible, EShMessages);
     bool preprocess(const TBuiltInResource* builtInResources,
                     int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-                    bool forwardCompatible,
-                    EShMessages message, std::string* outputString);
+                    bool forwardCompatible, EShMessages message, std::string* outputString,
+                    const TShader::Includer& includer);
 
     const char* getInfoLog();
     const char* getInfoDebugLog();
@@ -301,7 +330,18 @@ protected:
     TCompiler* compiler;
     TIntermediate* intermediate;
     TInfoSink* infoSink;
+    // strings and lengths follow the standard for glShaderSource:
+    //     strings is an array of numStrings pointers to string data.
+    //     lengths can be null, but if not it is an array of numStrings
+    //         integers containing the length of the associated strings.
+    //         if lengths is null or lengths[n] < 0  the associated strings[n] is
+    //         assumed to be null-terminated.
+    // stringNames is the optional names for all the strings. If stringNames
+    // is null, then none of the strings has name. If a certain element in
+    // stringNames is null, then the corresponding string does not have name.
     const char* const* strings;
+    const int* lengths;
+    const char* const* stringNames;
     const char* preamble;
     int numStrings;
 

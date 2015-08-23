@@ -36,6 +36,7 @@
 
 namespace glslang {
 
+void GetSpirvVersion(std::string&);
 void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv);
 void OutputSpv(const std::vector<unsigned int>& spirv, const char* baseName);
 

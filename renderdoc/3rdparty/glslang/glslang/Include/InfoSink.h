@@ -95,10 +95,11 @@ public:
         default:                   append("UNKOWN ERROR: ");   break;
         }
     }
-    void location(TSourceLoc loc) {
-	    const int maxSize = 24;
+    void location(const TSourceLoc& loc) {
+        const int maxSize = 24;
         char locText[maxSize];
-        snprintf(locText, maxSize, "%d:%d", loc.string, loc.line);
+        snprintf(locText, maxSize, ":%d", loc.line);
+        append(loc.getStringNameOrNum(false).c_str());
         append(locText);
         append(": ");
     }
@@ -107,7 +108,7 @@ public:
         append(s);
         append("\n");
     }
-    void message(TPrefixType message, const char* s, TSourceLoc loc) {
+    void message(TPrefixType message, const char* s, const TSourceLoc& loc) {
         prefix(message);
         location(loc);
         append(s);

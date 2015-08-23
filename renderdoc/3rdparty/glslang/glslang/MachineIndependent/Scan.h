@@ -40,16 +40,30 @@
 
 namespace glslang {
 
+// Use a global end-of-input character, so no tranlation is needed across
+// layers of encapsulation.  Characters are all 8 bit, and positive, so there is
+// no aliasing of character 255 onto -1, for example.
+const int EndOfInput = -1;
+
 //
 // A character scanner that seamlessly, on read-only strings, reads across an
 // array of strings without assuming null termination.
 //
 class TInputScanner {
 public:
-    TInputScanner(int n, const char* const s[], size_t L[], int b = 0, int f = 0) : 
-        numSources(n), sources(s), lengths(L), currentSource(0), currentChar(0), stringBias(b), finale(f)
+    TInputScanner(int n, const char* const s[], size_t L[], const char* const* names = nullptr, int b = 0, int f = 0) :
+        numSources(n),
+        sources(reinterpret_cast<const unsigned char* const *>(s)), // up to this point, common usage is "char*", but now we need positive 8-bit characters
+        lengths(L), currentSource(0), currentChar(0), stringBias(b), finale(f)
     {
         loc = new TSourceLoc[numSources];
+        for (int i = 0; i < numSources; ++i) {
+            loc[i].init();
+        }
+        if (names != nullptr) {
+            for (int i = 0; i < numSources; ++i)
+                loc[i].name = names[i];
+        }
         loc[currentSource].string = -stringBias;
         loc[currentSource].line = 1;
         loc[currentSource].column = 0;
@@ -60,16 +74,13 @@ public:
         delete [] loc;
     }
 
-    // return of -1 means end of strings,
-    // anything else is the next character
-
     // retrieve the next character and advance one character
     int get()
     {
         if (currentSource >= numSources)
-            return -1;
+            return EndOfInput;
 
-        int ret = sources[currentSource][currentChar];
+        int ret = peek();
         ++loc[currentSource].column;
         if (ret == '\n') {
             ++loc[currentSource].line;
@@ -84,9 +95,21 @@ public:
     int peek()
     {
         if (currentSource >= numSources)
-            return -1;
+            return EndOfInput;
+        // Make sure we do not read off the end of a string.
+        // N.B. Sources can have a length of 0.
+        int sourceToRead = currentSource;
+        size_t charToRead = currentChar;
+        while(charToRead >= lengths[sourceToRead]) {
+            charToRead = 0;
+            sourceToRead += 1;
+            if (sourceToRead >= numSources) {
+                return EndOfInput;
+            }
+        }
 
-        return sources[currentSource][currentChar];
+        // Here, we care about making negative valued characters positive
+        return sources[sourceToRead][charToRead];
     }
 
     // go back one character
@@ -96,17 +119,17 @@ public:
             --currentChar;
             --loc[currentSource].column;
             if (loc[currentSource].column < 0) {
-              // We've moved back past a new line. Find the
-              // previous newline (or start of the file) to compute
-              // the column count on the now current line.
-              size_t ch = currentChar;
-              while(ch > 0) {
-                if (sources[currentSource][ch] == '\n') {
-                  break;
+                // We've moved back past a new line. Find the
+                // previous newline (or start of the file) to compute
+                // the column count on the now current line.
+                size_t chIndex = currentChar;
+                while (chIndex > 0) {
+                    if (sources[currentSource][chIndex] == '\n') {
+                        break;
+                    }
+                    --chIndex;
                 }
-                --ch;
-              }
-              loc[currentSource].column = (int)(currentChar - ch);
+                loc[currentSource].column = (int)(currentChar - chIndex);
             }
         } else {
             do {
@@ -123,10 +146,20 @@ public:
     }
 
     // for #line override
-    void setLine(int newLine) { loc[currentSource].line = newLine; }
-    void setString(int newString) { loc[currentSource].string = newString; }
+    void setLine(int newLine) { loc[getLastValidSourceIndex()].line = newLine; }
+    void setFile(const char* filename) { loc[getLastValidSourceIndex()].name = filename; }
+    void setString(int newString)
+    {
+        loc[getLastValidSourceIndex()].string = newString;
+        loc[getLastValidSourceIndex()].name = nullptr;
+    }
+
+    // for #include content indentation
+    void setColumn(int col) { loc[getLastValidSourceIndex()].column = col; }
 
     const TSourceLoc& getSourceLoc() const { return loc[std::max(0, std::min(currentSource, numSources - finale - 1))]; }
+    // Returns the index (starting from 0) of the most recent valid source string we are reading from.
+    int getLastValidSourceIndex() const { return std::min(currentSource, numSources - 1); }
 
     void consumeWhiteSpace(bool& foundNonSpaceTab);
     bool consumeComment();
@@ -139,7 +172,7 @@ protected:
     void advance()
     {
         ++currentChar;
-        if (currentChar >= static_cast<size_t>(lengths[currentSource])) {
+        if (currentChar >= lengths[currentSource]) {
             ++currentSource;
             if (currentSource < numSources) {
                 loc[currentSource].string = loc[currentSource - 1].string + 1;
@@ -158,9 +191,9 @@ protected:
         }
     }
 
-    int numSources;             // number of strings in source
-    const char* const *sources; // array of strings
-    const size_t *lengths;      // length of each string
+    int numSources;                      // number of strings in source
+    const unsigned char* const *sources; // array of strings; must be converted to positive values on use, to avoid aliasing with -1 as EndOfInput
+    const size_t *lengths;               // length of each string
     int currentSource;
     size_t currentChar;
 

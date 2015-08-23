@@ -130,7 +130,7 @@ bool InitializeSymbolTable(const TString& builtIns, int version, EProfile profil
     TIntermediate intermediate(language, version, profile);
     
     TParseContext parseContext(symbolTable, intermediate, true, version, profile, language, infoSink);
-    TPpContext ppContext(parseContext);
+    TPpContext ppContext(parseContext, TShader::ForbidInclude());
     TScanContext scanContext(parseContext);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
@@ -450,6 +450,7 @@ bool ProcessDeferred(
     const char* const shaderStrings[],
     const int numStrings,
     const int* inputLengths,
+    const char* const stringNames[],
     const char* customPreamble,
     const EShOptimizationLevel optLevel,
     const TBuiltInResource* resources,
@@ -462,7 +463,8 @@ bool ProcessDeferred(
     EShMessages messages,       // warnings/errors/AST; things to print out
     TIntermediate& intermediate, // returned tree, etc.
     ProcessingContext& processingContext,
-    bool requireNonempty
+    bool requireNonempty,
+    const TShader::Includer& includer
     )
 {
     if (! InitThread())
@@ -485,14 +487,23 @@ bool ProcessDeferred(
     //   string numStrings+2:     "int;"
     const int numPre = 2;
     const int numPost = requireNonempty? 1 : 0;
-    size_t* lengths = new size_t[numStrings + numPre + numPost];
-    const char** strings = new const char*[numStrings + numPre + numPost];
+    const int numTotal = numPre + numStrings + numPost;
+    size_t* lengths = new size_t[numTotal];
+    const char** strings = new const char*[numTotal];
+    const char** names = new const char*[numTotal];
     for (int s = 0; s < numStrings; ++s) {
         strings[s + numPre] = shaderStrings[s];
         if (inputLengths == 0 || inputLengths[s] < 0)
             lengths[s + numPre] = strlen(shaderStrings[s]);
         else
             lengths[s + numPre] = inputLengths[s];
+    }
+    if (stringNames != nullptr) {
+        for (int s = 0; s < numStrings; ++s)
+            names[s + numPre] = stringNames[s];
+    } else {
+        for (int s = 0; s < numStrings; ++s)
+            names[s + numPre] = nullptr;
     }
 
     // First, without using the preprocessor or parser, find the #version, so we know what
@@ -505,7 +516,7 @@ bool ProcessDeferred(
     bool versionNotFirst = userInput.scanVersion(version, profile, versionNotFirstToken);
     bool versionNotFound = version == 0;
     if (forceDefaultVersionAndProfile) {
-        if (!(messages & EShMsgSuppressWarnings) && !versionNotFound &&
+        if (! (messages & EShMsgSuppressWarnings) && ! versionNotFound &&
             (version != defaultVersion || profile != defaultProfile)) {
             compiler->infoSink.info << "Warning, (version, profile) forced to be ("
                                     << defaultVersion << ", " << ProfileName(defaultProfile)
@@ -555,7 +566,7 @@ bool ProcessDeferred(
 
     TParseContext parseContext(symbolTable, intermediate, false, version, profile, compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
     glslang::TScanContext scanContext(parseContext);
-    TPpContext ppContext(parseContext);
+    TPpContext ppContext(parseContext, includer);
     parseContext.setScanContext(&scanContext);
     parseContext.setPpContext(&ppContext);
     parseContext.setLimits(*resources);
@@ -573,14 +584,18 @@ bool ProcessDeferred(
     // Fill in the strings as outlined above.
     strings[0] = parseContext.getPreamble();
     lengths[0] = strlen(strings[0]);
+    names[0] = nullptr;
     strings[1] = customPreamble;
     lengths[1] = strlen(strings[1]);
+    names[1] = nullptr;
     assert(2 == numPre);
     if (requireNonempty) {
-        strings[numStrings + numPre] = "\n int;";
-        lengths[numStrings + numPre] = strlen(strings[numStrings + numPre]);
+        const int postIndex = numStrings + numPre;
+        strings[postIndex] = "\n int;";
+        lengths[postIndex] = strlen(strings[numStrings + numPre]);
+        names[postIndex] = nullptr;
     }
-    TInputScanner fullInput(numStrings + numPre + numPost, strings, lengths, numPre, numPost);
+    TInputScanner fullInput(numStrings + numPre + numPost, strings, lengths, names, numPre, numPost);
 
     // Push a new symbol allocation scope that will get used for the shader's globals.
     symbolTable.push();
@@ -595,9 +610,72 @@ bool ProcessDeferred(
 
     delete [] lengths;
     delete [] strings;
+    delete [] names;
 
     return success;
 }
+
+// Responsible for keeping track of the most recent source string and line in
+// the preprocessor and outputting newlines appropriately if the source string
+// or line changes.
+class SourceLineSynchronizer {
+public:
+    SourceLineSynchronizer(const std::function<int()>& lastSourceIndex,
+                           std::stringstream* output)
+      : getLastSourceIndex(lastSourceIndex), output(output), lastSource(-1), lastLine(0) {}
+//    SourceLineSynchronizer(const SourceLineSynchronizer&) = delete;
+//    SourceLineSynchronizer& operator=(const SourceLineSynchronizer&) = delete;
+
+    // Sets the internally tracked source string index to that of the most
+    // recently read token. If we switched to a new source string, returns
+    // true and inserts a newline. Otherwise, returns false and outputs nothing.
+    bool syncToMostRecentString() {
+        if (getLastSourceIndex() != lastSource) {
+            // After switching to a new source string, we need to reset lastLine
+            // because line number resets every time a new source string is
+            // used. We also need to output a newline to separate the output
+            // from the previous source string (if there is one).
+            if (lastSource != -1 || lastLine != 0)
+                *output << std::endl;
+            lastSource = getLastSourceIndex();
+            lastLine = -1;
+            return true;
+        }
+        return false;
+    }
+
+    // Calls syncToMostRecentString() and then sets the internally tracked line
+    // number to tokenLine. If we switched to a new line, returns true and inserts
+    // newlines appropriately. Otherwise, returns false and outputs nothing.
+    bool syncToLine(int tokenLine) {
+        syncToMostRecentString();
+        const bool newLineStarted = lastLine < tokenLine;
+        for (; lastLine < tokenLine; ++lastLine) {
+            if (lastLine > 0) *output << std::endl;
+        }
+        return newLineStarted;
+    }
+
+    // Sets the internally tracked line number to newLineNum.
+    void setLineNum(int newLineNum) { lastLine = newLineNum; }
+
+private:
+    // A function for getting the index of the last valid source string we've
+    // read tokens from.
+    const std::function<int()> getLastSourceIndex;
+    // output stream for newlines.
+    std::stringstream* output;
+    // lastSource is the source string index (starting from 0) of the last token
+    // processed. It is tracked in order for newlines to be inserted when a new
+    // source string starts. -1 means we haven't started processing any source
+    // string.
+    int lastSource;
+    // lastLine is the line number (starting from 1) of the last token processed.
+    // It is tracked in order for newlines to be inserted when a token appears
+    // on a new line. 0 means we haven't started processing any line in the
+    // current source string.
+    int lastLine;
+};
 
 // DoPreprocessing is a valid ProcessingContext template argument,
 // which only performs the preprocessing step of compilation.
@@ -614,95 +692,82 @@ struct DoPreprocessing {
         static const std::string noSpaceBeforeTokens = ",";
         glslang::TPpToken token;
 
-        std::stringstream outputStream;
-        int lastLine = -1; // lastLine is the line number of the last token
-        // processed. It is tracked in order for new-lines to be inserted when
-        // a token appears on a new line.
-        int lastToken = -1;
         parseContext.setScanner(&input);
         ppContext.setInput(input, versionWillBeError);
 
-        // Inserts newlines and incremnets lastLine until
-        // lastLine >= line.
-        auto adjustLine = [&lastLine, &outputStream](int line) {
-            int tokenLine = line - 1;
-            while(lastLine < tokenLine) {
-                if (lastLine >= 0) {
-                     outputStream << std::endl;
-                }
-                ++lastLine;
-            }
-        };
+        std::stringstream outputStream;
+        SourceLineSynchronizer lineSync(
+            std::bind(&TInputScanner::getLastValidSourceIndex, &input), &outputStream);
 
-        parseContext.setExtensionCallback([&adjustLine, &outputStream](
+        parseContext.setExtensionCallback([&lineSync, &outputStream](
             int line, const char* extension, const char* behavior) {
-                adjustLine(line);
+                lineSync.syncToLine(line);
                 outputStream << "#extension " << extension << " : " << behavior;
         });
-        parseContext.setLineCallback([&lastLine, &outputStream](
-            int line, bool hasSource, int sourceNum) {
+
+        parseContext.setLineCallback([&lineSync, &outputStream, &parseContext](
+            int curLineNum, int newLineNum, bool hasSource, int sourceNum, const char* sourceName) {
             // SourceNum is the number of the source-string that is being parsed.
-            if (lastLine != -1) {
-                outputStream << std::endl;
-            }
-            outputStream << "#line " << line;
+            lineSync.syncToLine(curLineNum);
+            outputStream << "#line " << newLineNum;
             if (hasSource) {
-                outputStream << " " << sourceNum;
+                outputStream << " ";
+                if (sourceName != nullptr) {
+                    outputStream << "\"" << sourceName << "\"";
+                } else {
+                    outputStream << sourceNum;
+                }
+            }
+            if (parseContext.lineDirectiveShouldSetNextLine()) {
+                // newLineNum is the new line number for the line following the #line
+                // directive. So the new line number for the current line is
+                newLineNum -= 1;
             }
             outputStream << std::endl;
-            lastLine = std::max(line - 1, 1);
+            // And we are at the next line of the #line directive now.
+            lineSync.setLineNum(newLineNum + 1);
         });
 
-
         parseContext.setVersionCallback(
-            [&adjustLine, &lastLine, &outputStream](int line, int version, const char* str) {
-                adjustLine(line);
+            [&lineSync, &outputStream](int line, int version, const char* str) {
+                lineSync.syncToLine(line);
                 outputStream << "#version " << version;
                 if (str) {
                     outputStream << " " << str;
                 }
-                outputStream << std::endl;
-                ++lastLine;
             });
 
-        parseContext.setPragmaCallback([&adjustLine, &outputStream](
+        parseContext.setPragmaCallback([&lineSync, &outputStream](
             int line, const glslang::TVector<glslang::TString>& ops) {
-                adjustLine(line);
+                lineSync.syncToLine(line);
                 outputStream << "#pragma ";
                 for(size_t i = 0; i < ops.size(); ++i) {
                     outputStream << ops[i];
                 }
         });
 
-        parseContext.setErrorCallback([&adjustLine, &outputStream](
+        parseContext.setErrorCallback([&lineSync, &outputStream](
             int line, const char* errorMessage) {
-                adjustLine(line);
+                lineSync.syncToLine(line);
                 outputStream << "#error " << errorMessage;
         });
+
+        int lastToken = EndOfInput; // lastToken records the last token processed.
         while (const char* tok = ppContext.tokenize(&token)) {
-            int tokenLine = token.loc.line - 1;  // start at 0;
-            bool newLine = false;
-            while (lastLine < tokenLine) {
-                if (lastLine > -1) {
-                    outputStream << std::endl;
-                    newLine = true;
-                }
-                ++lastLine;
-                if (lastLine == tokenLine) {
-                    // Don't emit whitespace onto empty lines.
-                    // Copy any whitespace characters at the start of a line
-                    // from the input to the output.
-                    for(int i = 0; i < token.loc.column - 1; ++i) {
-                        outputStream << " ";
-                    }
-                }
+            bool isNewString = lineSync.syncToMostRecentString();
+            bool isNewLine = lineSync.syncToLine(token.loc.line);
+
+            if (isNewLine) {
+                // Don't emit whitespace onto empty lines.
+                // Copy any whitespace characters at the start of a line
+                // from the input to the output.
+                outputStream << std::string(token.loc.column - 1, ' ');
             }
 
             // Output a space in between tokens, but not at the start of a line,
             // and also not around special tokens. This helps with readability
             // and consistency.
-            if (!newLine &&
-                lastToken != -1 &&
+            if (!isNewString && !isNewLine && lastToken != EndOfInput &&
                 (unNeededSpaceTokens.find((char)token.token) == std::string::npos) &&
                 (unNeededSpaceTokens.find((char)lastToken) == std::string::npos) &&
                 (noSpaceBeforeTokens.find((char)token.token) == std::string::npos)) {
@@ -714,7 +779,13 @@ struct DoPreprocessing {
         outputStream << std::endl;
         *outputString = outputStream.str();
 
-        return true;
+        bool success = true;
+        if (parseContext.getNumErrors() > 0) {
+            success = false;
+            parseContext.infoSink.info.prefix(EPrefixError);
+            parseContext.infoSink.info << parseContext.getNumErrors() << " compilation errors.  No code generated.\n\n";
+        }
+        return success;
     }
     std::string* outputString;
 };
@@ -759,6 +830,7 @@ bool PreprocessDeferred(
     const char* const shaderStrings[],
     const int numStrings,
     const int* inputLengths,
+    const char* const stringNames[],
     const char* preamble,
     const EShOptimizationLevel optLevel,
     const TBuiltInResource* resources,
@@ -767,13 +839,16 @@ bool PreprocessDeferred(
     bool forceDefaultVersionAndProfile,
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
+    const TShader::Includer& includer,
     TIntermediate& intermediate, // returned tree, etc.
     std::string* outputString)
 {
     DoPreprocessing parser(outputString);
-    return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths,
-                           preamble, optLevel, resources, defaultVersion, defaultProfile, forceDefaultVersionAndProfile,
-                           forwardCompatible, messages, intermediate, parser, false);
+    return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
+                           preamble, optLevel, resources, defaultVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
+                           forwardCompatible, messages, intermediate, parser,
+                           false, includer);
 }
 
 
@@ -793,6 +868,7 @@ bool CompileDeferred(
     const char* const shaderStrings[],
     const int numStrings,
     const int* inputLengths,
+    const char* const stringNames[],
     const char* preamble,
     const EShOptimizationLevel optLevel,
     const TBuiltInResource* resources,
@@ -801,12 +877,15 @@ bool CompileDeferred(
     bool forceDefaultVersionAndProfile,
     bool forwardCompatible,     // give errors for use of deprecated features
     EShMessages messages,       // warnings/errors/AST; things to print out
-    TIntermediate& intermediate) // returned tree, etc.
+    TIntermediate& intermediate,// returned tree, etc.
+    const TShader::Includer& includer)
 {
     DoFullParse parser;
-    return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths,
-                           preamble, optLevel, resources, defaultVersion, defaultProfile, forceDefaultVersionAndProfile,
-                           forwardCompatible, messages, intermediate, parser, true);
+    return ProcessDeferred(compiler, shaderStrings, numStrings, inputLengths, stringNames,
+                           preamble, optLevel, resources, defaultVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
+                           forwardCompatible, messages, intermediate, parser,
+                           true, includer);
 }
 
 } // end anonymous namespace for local functions
@@ -948,7 +1027,9 @@ int ShCompile(
     compiler->infoSink.debug.erase();
 
     TIntermediate intermediate(compiler->getLanguage());
-    bool success = CompileDeferred(compiler, shaderStrings, numStrings, inputLengths, "", optLevel, resources, defaultVersion, ENoProfile, false, forwardCompatible, messages, intermediate);
+    bool success = CompileDeferred(compiler, shaderStrings, numStrings, inputLengths, nullptr,
+                                   "", optLevel, resources, defaultVersion, ENoProfile, false,
+                                   forwardCompatible, messages, intermediate, TShader::ForbidInclude());
 
     //
     // Call the machine dependent compiler
@@ -1207,7 +1288,7 @@ public:
 };
 
 TShader::TShader(EShLanguage s) 
-    : pool(0), stage(s), preamble("")
+    : pool(0), stage(s), lengths(nullptr), stringNames(nullptr), preamble("")
 {
     infoSink = new TInfoSink;
     compiler = new TDeferredCompiler(stage, *infoSink);
@@ -1222,13 +1303,36 @@ TShader::~TShader()
     delete pool;
 }
 
+void TShader::setStrings(const char* const* s, int n)
+{
+    strings = s;
+    numStrings = n;
+    lengths = nullptr;
+}
+
+void TShader::setStringsWithLengths(const char* const* s, const int* l, int n)
+{
+    strings = s;
+    numStrings = n;
+    lengths = l;
+}
+
+void TShader::setStringsWithLengthsAndNames(
+    const char* const* s, const int* l, const char* const* names, int n)
+{
+    strings = s;
+    numStrings = n;
+    lengths = l;
+    stringNames = names;
+}
+
 //
 // Turn the shader strings into a parse tree in the TIntermediate.
 //
 // Returns true for success.
 //
 bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-                    bool forwardCompatible, EShMessages messages)
+                    bool forwardCompatible, EShMessages messages, const Includer& includer)
 {
     if (! InitThread())
         return false;
@@ -1238,7 +1342,10 @@ bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion
     if (! preamble)
         preamble = "";
 
-    return CompileDeferred(compiler, strings, numStrings, nullptr, preamble, EShOptNone, builtInResources, defaultVersion, defaultProfile, forceDefaultVersionAndProfile, forwardCompatible, messages, *intermediate);
+    return CompileDeferred(compiler, strings, numStrings, lengths, stringNames,
+                           preamble, EShOptNone, builtInResources, defaultVersion,
+                           defaultProfile, forceDefaultVersionAndProfile,
+                           forwardCompatible, messages, *intermediate, includer);
 }
 
 bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion, bool forwardCompatible, EShMessages messages)
@@ -1249,9 +1356,11 @@ bool TShader::parse(const TBuiltInResource* builtInResources, int defaultVersion
 // Fill in a string with the result of preprocessing ShaderStrings
 // Returns true if all extensions, pragmas and version strings were valid.
 bool TShader::preprocess(const TBuiltInResource* builtInResources,
-                         int defaultVersion, EProfile defaultProfile, bool forceDefaultVersionAndProfile,
-                         bool forwardCompatible,
-                         EShMessages message, std::string* output_string)
+                         int defaultVersion, EProfile defaultProfile,
+                         bool forceDefaultVersionAndProfile,
+                         bool forwardCompatible, EShMessages message,
+                         std::string* output_string,
+                         const TShader::Includer& includer)
 {
     if (! InitThread())
         return false;
@@ -1261,10 +1370,10 @@ bool TShader::preprocess(const TBuiltInResource* builtInResources,
     if (! preamble)
         preamble = "";
 
-    return PreprocessDeferred(compiler, strings, numStrings,
-                              nullptr, preamble, EShOptNone, builtInResources,
-                              defaultVersion, defaultProfile, forceDefaultVersionAndProfile, forwardCompatible, message,
-                              *intermediate, output_string);
+    return PreprocessDeferred(compiler, strings, numStrings, lengths, stringNames, preamble,
+                              EShOptNone, builtInResources, defaultVersion,
+                              defaultProfile, forceDefaultVersionAndProfile,
+                              forwardCompatible, message, includer, *intermediate, output_string);
 }
 
 const char* TShader::getInfoLog()

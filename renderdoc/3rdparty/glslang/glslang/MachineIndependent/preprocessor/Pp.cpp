@@ -83,6 +83,7 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <sstream>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -94,32 +95,6 @@ namespace glslang {
 
 int TPpContext::InitCPP()
 {
-    // Add various atoms needed by the CPP line scanner:
-    bindAtom = LookUpAddString("bind");
-    constAtom = LookUpAddString("const");
-    defaultAtom = LookUpAddString("default");
-    defineAtom = LookUpAddString("define");
-    definedAtom = LookUpAddString("defined");
-    elifAtom = LookUpAddString("elif");
-    elseAtom = LookUpAddString("else");
-    endifAtom = LookUpAddString("endif");
-    ifAtom = LookUpAddString("if");
-    ifdefAtom = LookUpAddString("ifdef");
-    ifndefAtom = LookUpAddString("ifndef");
-    includeAtom = LookUpAddString("include");
-    lineAtom = LookUpAddString("line");
-    pragmaAtom = LookUpAddString("pragma");
-    texunitAtom = LookUpAddString("texunit");
-    undefAtom = LookUpAddString("undef");
-    errorAtom = LookUpAddString("error");
-    __LINE__Atom = LookUpAddString("__LINE__");
-    __FILE__Atom = LookUpAddString("__FILE__");
-    __VERSION__Atom = LookUpAddString("__VERSION__");
-    versionAtom = LookUpAddString("version");
-    coreAtom = LookUpAddString("core");
-    compatibilityAtom = LookUpAddString("compatibility");
-    esAtom = LookUpAddString("es");
-    extensionAtom = LookUpAddString("extension");
     pool = mem_CreatePool(0, 0);
 
     return 1;
@@ -133,16 +108,17 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
 
     // get macro name
     int token = scanToken(ppToken);
-    if (token != CPP_IDENTIFIER) {
-        parseContext.error(ppToken->loc, "must be followed by macro name", "#define", "");
+    if (token != PpAtomIdentifier) {
+        parseContext.ppError(ppToken->loc, "must be followed by macro name", "#define", "");
         return token;
     }
-    int atom = ppToken->atom;
-    const char* definedName = GetAtomString(atom);
     if (ppToken->loc.string >= 0) {
         // We are in user code; check for reserved name use:
-        parseContext.reservedPpErrorCheck(ppToken->loc, definedName, "#define");
+        parseContext.reservedPpErrorCheck(ppToken->loc, ppToken->name, "#define");
     }
+
+    // save the original atom
+    const int defAtom = ppToken->atom;
 
     // gather parameters to the macro, between (...)
     token = scanToken(ppToken);
@@ -153,8 +129,8 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
             token = scanToken(ppToken);
             if (argc == 0 && token == ')') 
                 break;
-            if (token != CPP_IDENTIFIER) {
-                parseContext.error(ppToken->loc, "bad argument", "#define", "");
+            if (token != PpAtomIdentifier) {
+                parseContext.ppError(ppToken->loc, "bad argument", "#define", "");
 
                 return token;
             }
@@ -162,7 +138,7 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
             bool duplicate = false;
             for (int a = 0; a < argc; ++a) {
                 if (args[a] == ppToken->atom) {
-                    parseContext.error(ppToken->loc, "duplicate macro parameter", "#define", "");
+                    parseContext.ppError(ppToken->loc, "duplicate macro parameter", "#define", "");
                     duplicate = true;
                     break;
                 }
@@ -171,12 +147,12 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
                 if (argc < maxMacroArgs)
                     args[argc++] = ppToken->atom;
                 else
-                    parseContext.error(ppToken->loc, "too many macro parameters", "#define", "");                    
+                    parseContext.ppError(ppToken->loc, "too many macro parameters", "#define", "");
             }
             token = scanToken(ppToken);
         } while (token == ',');
-        if (token != ')') {            
-            parseContext.error(ppToken->loc, "missing parenthesis", "#define", "");
+        if (token != ')') {
+            parseContext.ppError(ppToken->loc, "missing parenthesis", "#define", "");
 
             return token;
         }
@@ -189,7 +165,7 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
     // record the definition of the macro
     TSourceLoc defineLoc = ppToken->loc; // because ppToken is going to go to the next line before we report errors
     mac.body = new TokenStream;
-    while (token != '\n') {
+    while (token != '\n' && token != EndOfInput) {
         RecordToken(mac.body, token, ppToken);
         token = scanToken(ppToken);
         if (token != '\n' && ppToken->space)
@@ -197,18 +173,18 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
     }
 
     // check for duplicate definition
-    symb = LookUpSymbol(atom);
+    symb = LookUpSymbol(defAtom);
     if (symb) {
         if (! symb->mac.undef) {
             // Already defined -- need to make sure they are identical:
             // "Two replacement lists are identical if and only if the preprocessing tokens in both have the same number,
             // ordering, spelling, and white-space separation, where all white-space separations are considered identical."
             if (symb->mac.argc != mac.argc)
-                parseContext.error(defineLoc, "Macro redefined; different number of arguments:", "#define", GetAtomString(atom));
+                parseContext.ppError(defineLoc, "Macro redefined; different number of arguments:", "#define", GetAtomString(defAtom));
             else {
                 for (int argc = 0; argc < mac.argc; argc++) {
                     if (symb->mac.args[argc] != mac.args[argc])
-                        parseContext.error(defineLoc, "Macro redefined; different argument names:", "#define", GetAtomString(atom));
+                        parseContext.ppError(defineLoc, "Macro redefined; different argument names:", "#define", GetAtomString(defAtom));
                 }
                 RewindTokenStream(symb->mac.body);
                 RewindTokenStream(mac.body);
@@ -220,14 +196,14 @@ int TPpContext::CPPdefine(TPpToken* ppToken)
                     oldToken = ReadToken(symb->mac.body, &oldPpToken);
                     newToken = ReadToken(mac.body, &newPpToken);
                     if (oldToken != newToken || oldPpToken != newPpToken) {
-                        parseContext.error(defineLoc, "Macro redefined; different substitutions:", "#define", GetAtomString(atom));
+                        parseContext.ppError(defineLoc, "Macro redefined; different substitutions:", "#define", GetAtomString(defAtom));
                         break; 
                     }
                 } while (newToken > 0);
             }
         }
     } else
-        symb = AddSymbol(atom);
+        symb = AddSymbol(defAtom);
 
     delete symb->mac.body;
     symb->mac = mac;
@@ -240,14 +216,13 @@ int TPpContext::CPPundef(TPpToken* ppToken)
 {
     int token = scanToken(ppToken);
     Symbol *symb;
-    if (token != CPP_IDENTIFIER) {
-        parseContext.error(ppToken->loc, "must be followed by macro name", "#undef", "");
+    if (token != PpAtomIdentifier) {
+        parseContext.ppError(ppToken->loc, "must be followed by macro name", "#undef", "");
 
         return token;
     }
 
-    const char* name = GetAtomString(ppToken->atom); // TODO preprocessor simplification: the token text should have been built into the ppToken during scanToken()
-    parseContext.reservedPpErrorCheck(ppToken->loc, name, "#undef");
+    parseContext.reservedPpErrorCheck(ppToken->loc, ppToken->name, "#undef");
 
     symb = LookUpSymbol(ppToken->atom);
     if (symb) {
@@ -255,7 +230,7 @@ int TPpContext::CPPundef(TPpToken* ppToken)
     }
     token = scanToken(ppToken);
     if (token != '\n')
-        parseContext.error(ppToken->loc, "can only be followed by a single macro name", "#undef", "");
+        parseContext.ppError(ppToken->loc, "can only be followed by a single macro name", "#undef", "");
 
     return token;
 }
@@ -271,27 +246,27 @@ int TPpContext::CPPelse(int matchelse, TPpToken* ppToken)
     int depth = 0;
     int token = scanToken(ppToken);
 
-    while (token != EOF) {
+    while (token != EndOfInput) {
         if (token != '#') {
-            while (token != '\n' && token != EOF)
+            while (token != '\n' && token != EndOfInput)
                 token = scanToken(ppToken);
             
-            if (token == EOF)
-                return EOF;
+            if (token == EndOfInput)
+                return token;
 
             token = scanToken(ppToken);
             continue;
         }
 
-        if ((token = scanToken(ppToken)) != CPP_IDENTIFIER)
+        if ((token = scanToken(ppToken)) != PpAtomIdentifier)
             continue;
 
         atom = ppToken->atom;
-        if (atom == ifAtom || atom == ifdefAtom || atom == ifndefAtom) {
+        if (atom == PpAtomIf || atom == PpAtomIfdef || atom == PpAtomIfndef) {
             depth++; 
             ifdepth++; 
             elsetracker++;
-        } else if (atom == endifAtom) {
+        } else if (atom == PpAtomEndif) {
             token = extraTokenCheck(atom, ppToken, scanToken(ppToken));
             elseSeen[elsetracker] = false;
             --elsetracker;
@@ -304,14 +279,14 @@ int TPpContext::CPPelse(int matchelse, TPpToken* ppToken)
             --depth;
             --ifdepth;
         } else if (matchelse && depth == 0) {
-            if (atom == elseAtom) {
+            if (atom == PpAtomElse) {
                 elseSeen[elsetracker] = true;
                 token = extraTokenCheck(atom, ppToken, scanToken(ppToken));
                 // found the #else we are looking for
                 break;
-            } else if (atom == elifAtom) {
+            } else if (atom == PpAtomElif) {
                 if (elseSeen[elsetracker])
-                    parseContext.error(ppToken->loc, "#elif after #else", "#elif", "");
+                    parseContext.ppError(ppToken->loc, "#elif after #else", "#elif", "");
                 /* we decrement ifdepth here, because CPPif will increment
                 * it and we really want to leave it alone */
                 if (ifdepth) {
@@ -322,15 +297,15 @@ int TPpContext::CPPelse(int matchelse, TPpToken* ppToken)
 
                 return CPPif(ppToken);
             }
-        } else if (atom == elseAtom) {
+        } else if (atom == PpAtomElse) {
             if (elseSeen[elsetracker])
-                parseContext.error(ppToken->loc, "#else after #else", "#else", "");
+                parseContext.ppError(ppToken->loc, "#else after #else", "#else", "");
             else
                 elseSeen[elsetracker] = true;
             token = extraTokenCheck(atom, ppToken, scanToken(ppToken));
-        } else if (atom == elifAtom) {
+        } else if (atom == PpAtomElif) {
             if (elseSeen[elsetracker])
-                parseContext.error(ppToken->loc, "#elif after #else", "#elif", "");
+                parseContext.ppError(ppToken->loc, "#elif after #else", "#elif", "");
         }
     }
 
@@ -340,29 +315,29 @@ int TPpContext::CPPelse(int matchelse, TPpToken* ppToken)
 // Call when there should be no more tokens left on a line.
 int TPpContext::extraTokenCheck(int atom, TPpToken* ppToken, int token)
 {
-    if (token != '\n') {
+    if (token != '\n' && token != EndOfInput) {
         static const char* message = "unexpected tokens following directive";
 
         const char* label;
-        if (atom == elseAtom)
+        if (atom == PpAtomElse)
             label = "#else";
-        else if (atom == elifAtom)
+        else if (atom == PpAtomElif)
             label = "#elif";
-        else if (atom == endifAtom)
+        else if (atom == PpAtomEndif)
             label = "#endif";
-        else if (atom == ifAtom)
+        else if (atom == PpAtomIf)
             label = "#if";
-        else if (atom == lineAtom)
+        else if (atom == PpAtomLine)
             label = "#line";
         else
             label = "";
 
-        if (parseContext.messages & EShMsgRelaxedErrors)
-            parseContext.warn(ppToken->loc, message, label, "");
+        if (parseContext.relaxedErrors())
+            parseContext.ppWarn(ppToken->loc, message, label, "");
         else
-            parseContext.error(ppToken->loc, message, label, "");
+            parseContext.ppError(ppToken->loc, message, label, "");
 
-        while (token != '\n')
+        while (token != '\n' && token != EndOfInput)
             token = scanToken(ppToken);
     }
 
@@ -405,19 +380,19 @@ namespace {
 struct TBinop {
     int token, precedence, (*op)(int, int);
 } binop[] = {
-    { CPP_OR_OP, LOGOR, op_logor },
-    { CPP_AND_OP, LOGAND, op_logand },
+    { PpAtomOr, LOGOR, op_logor },
+    { PpAtomAnd, LOGAND, op_logand },
     { '|', OR, op_or },
     { '^', XOR, op_xor },
     { '&', AND, op_and },
-    { CPP_EQ_OP, EQUAL, op_eq },
-    { CPP_NE_OP, EQUAL, op_ne },
+    { PpAtomEQ, EQUAL, op_eq },
+    { PpAtomNE, EQUAL, op_ne },
     { '>', RELATION, op_gt },
-    { CPP_GE_OP, RELATION, op_ge },
+    { PpAtomGE, RELATION, op_ge },
     { '<', RELATION, op_lt },
-    { CPP_LE_OP, RELATION, op_le },
-    { CPP_LEFT_OP, SHIFT, op_shl },
-    { CPP_RIGHT_OP, SHIFT, op_shr },
+    { PpAtomLE, RELATION, op_le },
+    { PpAtomLeft, SHIFT, op_shl },
+    { PpAtomRight, SHIFT, op_shr },
     { '+', ADD, op_add },
     { '-', ADD, op_sub },
     { '*', MUL, op_mul },
@@ -439,16 +414,16 @@ struct TUnop {
 int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, bool& err, TPpToken* ppToken)
 {
     TSourceLoc loc = ppToken->loc;  // because we sometimes read the newline before reporting the error
-    if (token == CPP_IDENTIFIER) {
-        if (ppToken->atom == definedAtom) {
+    if (token == PpAtomIdentifier) {
+        if (ppToken->atom == PpAtomDefined) {
             bool needclose = 0;
             token = scanToken(ppToken);
             if (token == '(') {
                 needclose = true;
                 token = scanToken(ppToken);
             }
-            if (token != CPP_IDENTIFIER) {
-                parseContext.error(loc, "incorrect directive, expected identifier", "preprocessor evaluation", "");
+            if (token != PpAtomIdentifier) {
+                parseContext.ppError(loc, "incorrect directive, expected identifier", "preprocessor evaluation", "");
                 err = true;
                 res = 0;
 
@@ -459,7 +434,7 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = scanToken(ppToken);
             if (needclose) {
                 if (token != ')') {
-                    parseContext.error(loc, "expected ')'", "preprocessor evaluation", "");
+                    parseContext.ppError(loc, "expected ')'", "preprocessor evaluation", "");
                     err = true;
                     res = 0;
 
@@ -471,7 +446,7 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = evalToToken(token, shortCircuit, res, err, ppToken);
             return eval(token, precedence, shortCircuit, res, err, ppToken);
         }
-    } else if (token == CPP_INTCONSTANT) {
+    } else if (token == PpAtomConstInt) {
         res = ppToken->ival;
         token = scanToken(ppToken);
     } else if (token == '(') {
@@ -479,7 +454,7 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         token = eval(token, MIN_PRECEDENCE, shortCircuit, res, err, ppToken);
         if (! err) {
             if (token != ')') {
-                parseContext.error(loc, "expected ')'", "preprocessor evaluation", "");
+                parseContext.ppError(loc, "expected ')'", "preprocessor evaluation", "");
                 err = true;
                 res = 0;
 
@@ -488,8 +463,8 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = scanToken(ppToken);
         }
     } else {
-        int op;
-        for (op = NUM_ELEMENTS(unop) - 1; op >= 0; op--) {
+        int op = NUM_ELEMENTS(unop) - 1;
+        for (; op >= 0; op--) {
             if (unop[op].token == token)
                 break;
         }
@@ -498,7 +473,7 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
             token = eval(token, UNARY, shortCircuit, res, err, ppToken);
             res = unop[op].op(res);
         } else {
-            parseContext.error(loc, "bad expression", "preprocessor evaluation", "");
+            parseContext.ppError(loc, "bad expression", "preprocessor evaluation", "");
             err = true;
             res = 0;
 
@@ -524,13 +499,20 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
         // Setup short-circuiting, needed for ES, unless already in a short circuit.
         // (Once in a short-circuit, can't turn off again, until that whole subexpression is done.
         if (! shortCircuit) {
-            if ((token == CPP_OR_OP  && leftSide == 1) ||
-                (token == CPP_AND_OP && leftSide == 0))
+            if ((token == PpAtomOr  && leftSide == 1) ||
+                (token == PpAtomAnd && leftSide == 0))
                 shortCircuit = true;
         }
 
         token = scanToken(ppToken);
         token = eval(token, binop[op].precedence, shortCircuit, res, err, ppToken);
+
+        if (binop[op].op == op_div || binop[op].op == op_mod) {
+            if (res == 0) {
+                parseContext.ppError(loc, "division by 0", "preprocessor evaluation", "");
+                res = 1;
+            }
+        }
         res = binop[op].op(leftSide, res);
     }
 
@@ -540,10 +522,10 @@ int TPpContext::eval(int token, int precedence, bool shortCircuit, int& res, boo
 // Expand macros, skipping empty expansions, to get to the first real token in those expansions.
 int TPpContext::evalToToken(int token, bool shortCircuit, int& res, bool& err, TPpToken* ppToken)
 {
-    while (token == CPP_IDENTIFIER && ppToken->atom != definedAtom) {
+    while (token == PpAtomIdentifier && ppToken->atom != PpAtomDefined) {
         int macroReturn = MacroExpand(ppToken->atom, ppToken, true, false);
         if (macroReturn == 0) {
-            parseContext.error(ppToken->loc, "can't evaluate expression", "preprocessor evaluation", "");
+            parseContext.ppError(ppToken->loc, "can't evaluate expression", "preprocessor evaluation", "");
             err = true;
             res = 0;
             token = scanToken(ppToken);
@@ -552,11 +534,10 @@ int TPpContext::evalToToken(int token, bool shortCircuit, int& res, bool& err, T
         if (macroReturn == -1) {
             if (! shortCircuit && parseContext.profile == EEsProfile) {
                 const char* message = "undefined macro in expression not allowed in es profile";
-                const char* name = GetAtomString(ppToken->atom);
-                if (parseContext.messages & EShMsgRelaxedErrors)
-                    parseContext.warn(ppToken->loc, message, "preprocessor evaluation", name);
+                if (parseContext.relaxedErrors())
+                    parseContext.ppWarn(ppToken->loc, message, "preprocessor evaluation", ppToken->name);
                 else
-                    parseContext.error(ppToken->loc, message, "preprocessor evaluation", name);
+                    parseContext.ppError(ppToken->loc, message, "preprocessor evaluation", ppToken->name);
             }
         }
         token = scanToken(ppToken);
@@ -570,16 +551,15 @@ int TPpContext::CPPif(TPpToken* ppToken)
 {
     int token = scanToken(ppToken);
     elsetracker++;
-    if (! ifdepth++)
-        ifloc = ppToken->loc;
+    ifdepth++;
     if (ifdepth > maxIfNesting) {
-        parseContext.error(ppToken->loc, "maximum nesting depth exceeded", "#if", "");
+        parseContext.ppError(ppToken->loc, "maximum nesting depth exceeded", "#if", "");
         return 0;
     }
     int res = 0;
     bool err = false;
     token = eval(token, MIN_PRECEDENCE, false, res, err, ppToken);
-    token = extraTokenCheck(ifAtom, ppToken, token);
+    token = extraTokenCheck(PpAtomIf, ppToken, token);
     if (!res && !err)
         token = CPPelse(1, ppToken);
 
@@ -592,27 +572,66 @@ int TPpContext::CPPifdef(int defined, TPpToken* ppToken)
     int token = scanToken(ppToken);
     int name = ppToken->atom;
     if (++ifdepth > maxIfNesting) {
-        parseContext.error(ppToken->loc, "maximum nesting depth exceeded", "#ifdef", "");
+        parseContext.ppError(ppToken->loc, "maximum nesting depth exceeded", "#ifdef", "");
         return 0;
     }
     elsetracker++;
-    if (token != CPP_IDENTIFIER) {
+    if (token != PpAtomIdentifier) {
         if (defined)
-            parseContext.error(ppToken->loc, "must be followed by macro name", "#ifdef", "");
+            parseContext.ppError(ppToken->loc, "must be followed by macro name", "#ifdef", "");
         else 
-            parseContext.error(ppToken->loc, "must be followed by macro name", "#ifndef", "");
+            parseContext.ppError(ppToken->loc, "must be followed by macro name", "#ifndef", "");
     } else {
         Symbol *s = LookUpSymbol(name);
         token = scanToken(ppToken);
         if (token != '\n') {
-            parseContext.error(ppToken->loc, "unexpected tokens following #ifdef directive - expected a newline", "#ifdef", "");
-            while (token != '\n')
+            parseContext.ppError(ppToken->loc, "unexpected tokens following #ifdef directive - expected a newline", "#ifdef", "");
+            while (token != '\n' && token != EndOfInput)
                 token = scanToken(ppToken);
         }
         if (((s && !s->mac.undef) ? 1 : 0) != defined)
             token = CPPelse(1, ppToken);
     }
 
+    return token;
+}
+
+// Handle #include
+int TPpContext::CPPinclude(TPpToken* ppToken)
+{
+    const TSourceLoc directiveLoc = ppToken->loc;
+    int token = scanToken(ppToken);
+    if (token != PpAtomConstString) {
+        // TODO: handle angle brackets.
+        parseContext.ppError(directiveLoc, "must be followed by a file designation", "#include", "");
+    } else {
+        // Make a copy of the name because it will be overwritten by the next token scan.
+        const std::string filename = ppToken->name;
+        token = scanToken(ppToken);
+        if (token != '\n' && token != EndOfInput) {
+            parseContext.ppError(ppToken->loc, "extra content after file designation", "#include", "");
+        } else {
+            std::pair<std::string, std::string> inc = includer.include(filename.c_str());
+            const std::string &sourceName = inc.first;
+            const std::string &replacement = inc.second;
+            if (!sourceName.empty()) {
+                if (!replacement.empty()) {
+                    const bool forNextLine = parseContext.lineDirectiveShouldSetNextLine();
+                    std::ostringstream content;
+                    content << "#line " << forNextLine << " " << "\"" << sourceName << "\"\n";
+                    content << replacement << (replacement.back() == '\n' ? "" : "\n");
+                    content << "#line " << directiveLoc.line + forNextLine << " " << directiveLoc.getStringNameOrNum() << "\n";
+                    pushInput(new TokenizableString(directiveLoc, content.str(), this));
+                }
+                // At EOF, there's no "current" location anymore.
+                if (token != EndOfInput) parseContext.setCurrentColumn(0);
+                // Don't accidentally return EndOfInput, which will end all preprocessing.
+                return '\n';
+            } else {
+                parseContext.ppError(directiveLoc, replacement.c_str(), "#include", "");
+            }
+        }
+    }
     return token;
 }
 
@@ -624,15 +643,17 @@ int TPpContext::CPPline(TPpToken* ppToken)
     // "#line line source-string-number"
 
     int token = scanToken(ppToken);
+    const TSourceLoc directiveLoc = ppToken->loc;
     if (token == '\n') {
-        parseContext.error(ppToken->loc, "must by followed by an integral literal", "#line", "");
+        parseContext.ppError(ppToken->loc, "must by followed by an integral literal", "#line", "");
         return token;
     }
 
     int lineRes = 0; // Line number after macro expansion.
     int lineToken = 0;
-    int fileRes = 0; // Source file number after macro expansion.
     bool hasFile = false;
+    int fileRes = 0; // Source file number after macro expansion.
+    const char* sourceName = nullptr; // Optional source file name.
     bool lineErr = false;
     bool fileErr = false;
     token = eval(token, MIN_PRECEDENCE, false, lineRes, lineErr, ppToken);
@@ -641,28 +662,33 @@ int TPpContext::CPPline(TPpToken* ppToken)
         if (token == '\n')
             ++lineRes;
 
-        // Desktop, pre-version 3.30:  "After processing this directive
-        // (including its new-line), the implementation will behave as if it is compiling at line number line+1 and
-        // source string number source-string-number."
-        //
-        // Desktop, version 3.30 and later, and ES:  "After processing this directive
-        // (including its new-line), the implementation will behave as if it is compiling at line number line and
-        // source string number source-string-number.
-        if (parseContext.profile == EEsProfile || parseContext.version >= 330)
+        if (parseContext.lineDirectiveShouldSetNextLine())
             --lineRes;
         parseContext.setCurrentLine(lineRes);
 
         if (token != '\n') {
-            token = eval(token, MIN_PRECEDENCE, false, fileRes, fileErr, ppToken);
-            if (! fileErr)
-                parseContext.setCurrentString(fileRes);
+            if (token == PpAtomConstString) {
+                parseContext.ppRequireExtensions(directiveLoc, 1, &E_GL_GOOGLE_cpp_style_line_directive, "filename-based #line");
+                // We need to save a copy of the string instead of pointing
+                // to the name field of the token since the name field
+                // will likely be overwritten by the next token scan.
+                sourceName = GetAtomString(LookUpAddString(ppToken->name));
+                parseContext.setCurrentSourceName(sourceName);
                 hasFile = true;
+                token = scanToken(ppToken);
+            } else {
+                token = eval(token, MIN_PRECEDENCE, false, fileRes, fileErr, ppToken);
+                if (! fileErr) {
+                    parseContext.setCurrentString(fileRes);
+                    hasFile = true;
+                }
+            }
         }
     }
     if (!fileErr && !lineErr) {
-      parseContext.notifyLineDirective(lineToken, hasFile, fileRes);
+        parseContext.notifyLineDirective(directiveLoc.line, lineToken, hasFile, fileRes, sourceName);
     }
-    token = extraTokenCheck(lineAtom, ppToken, token);
+    token = extraTokenCheck(PpAtomLine, ppToken, token);
 
     return token;
 }
@@ -674,12 +700,12 @@ int TPpContext::CPPerror(TPpToken* ppToken)
     std::string message;
     TSourceLoc loc = ppToken->loc;
 
-    while (token != '\n') {
-        if (token == CPP_INTCONSTANT || token == CPP_UINTCONSTANT ||
-            token == CPP_FLOATCONSTANT || token == CPP_DOUBLECONSTANT) {
+    while (token != '\n' && token != EndOfInput) {
+        if (token == PpAtomConstInt || token == PpAtomConstUint ||
+            token == PpAtomConstFloat || token == PpAtomConstDouble) {
                 message.append(ppToken->name);
-        } else if (token == CPP_IDENTIFIER || token == CPP_STRCONSTANT) {
-            message.append(GetAtomString(ppToken->atom));
+        } else if (token == PpAtomIdentifier || token == PpAtomConstString) {
+            message.append(ppToken->name);
         } else {
             message.append(GetAtomString(token));
         }
@@ -688,7 +714,7 @@ int TPpContext::CPPerror(TPpToken* ppToken)
     }
     parseContext.notifyErrorDirective(loc.line, message.c_str());
     //store this msg into the shader's information log..set the Compile Error flag!!!!
-    parseContext.error(loc, message.c_str(), "#error", "");
+    parseContext.ppError(loc, message.c_str(), "#error", "");
 
     return '\n';
 }
@@ -697,23 +723,18 @@ int TPpContext::CPPerror(TPpToken* ppToken)
 int TPpContext::CPPpragma(TPpToken* ppToken)
 {
     char SrcStrName[2];
-    const char* SrcStr;
     TVector<TString> tokens;
 
     TSourceLoc loc = ppToken->loc;  // because we go to the next line before processing
     int token = scanToken(ppToken);
-    while (token != '\n' && token != EOF) {
+    while (token != '\n' && token != EndOfInput) {
         switch (token) {
-        case CPP_IDENTIFIER:
-            SrcStr = GetAtomString(ppToken->atom);
-            tokens.push_back(SrcStr);
-            break;
-        case CPP_INTCONSTANT:
-        case CPP_UINTCONSTANT:
-        case CPP_FLOATCONSTANT:
-        case CPP_DOUBLECONSTANT:
-            SrcStr = ppToken->name;
-            tokens.push_back(SrcStr);
+        case PpAtomIdentifier:
+        case PpAtomConstInt:
+        case PpAtomConstUint:
+        case PpAtomConstFloat:
+        case PpAtomConstDouble:
+            tokens.push_back(ppToken->name);
             break;
         default:
             SrcStrName[0] = (char)token;
@@ -723,8 +744,8 @@ int TPpContext::CPPpragma(TPpToken* ppToken)
         token = scanToken(ppToken);
     }
 
-    if (token == EOF)
-        parseContext.error(loc, "directive must end with a newline", "#pragma", "");
+    if (token == EndOfInput)
+        parseContext.ppError(loc, "directive must end with a newline", "#pragma", "");
     else
         parseContext.handlePragma(loc, tokens);
 
@@ -737,17 +758,17 @@ int TPpContext::CPPversion(TPpToken* ppToken)
     int token = scanToken(ppToken);
 
     if (errorOnVersion || versionSeen)
-        parseContext.error(ppToken->loc, "must occur first in shader", "#version", "");
+        parseContext.ppError(ppToken->loc, "must occur first in shader", "#version", "");
     versionSeen = true;
 
     if (token == '\n') {
-        parseContext.error(ppToken->loc, "must be followed by version number", "#version", "");
+        parseContext.ppError(ppToken->loc, "must be followed by version number", "#version", "");
 
         return token;
     }
 
-    if (token != CPP_INTCONSTANT)
-        parseContext.error(ppToken->loc, "must be followed by version number", "#version", "");
+    if (token != PpAtomConstInt)
+        parseContext.ppError(ppToken->loc, "must be followed by version number", "#version", "");
 
     ppToken->ival = atoi(ppToken->name);
     int versionNumber = ppToken->ival;
@@ -758,17 +779,17 @@ int TPpContext::CPPversion(TPpToken* ppToken)
         parseContext.notifyVersion(line, versionNumber, nullptr);
         return token;
     } else {
-        if (ppToken->atom != coreAtom &&
-            ppToken->atom != compatibilityAtom &&
-            ppToken->atom != esAtom)
-            parseContext.error(ppToken->loc, "bad profile name; use es, core, or compatibility", "#version", "");
-        parseContext.notifyVersion(line, versionNumber, GetAtomString(ppToken->atom));
+        if (ppToken->atom != PpAtomCore &&
+            ppToken->atom != PpAtomCompatibility &&
+            ppToken->atom != PpAtomEs)
+            parseContext.ppError(ppToken->loc, "bad profile name; use es, core, or compatibility", "#version", "");
+        parseContext.notifyVersion(line, versionNumber, ppToken->name);
         token = scanToken(ppToken);
 
         if (token == '\n')
             return token;
         else
-            parseContext.error(ppToken->loc, "bad tokens following profile -- expected newline", "#version", "");
+            parseContext.ppError(ppToken->loc, "bad tokens following profile -- expected newline", "#version", "");
     }
 
     return token;
@@ -779,37 +800,39 @@ int TPpContext::CPPextension(TPpToken* ppToken)
 {
     int line = ppToken->loc.line;
     int token = scanToken(ppToken);
-    char extensionName[80];
+    char extensionName[MaxTokenLength + 1];
 
     if (token=='\n') {
-        parseContext.error(ppToken->loc, "extension name not specified", "#extension", "");
+        parseContext.ppError(ppToken->loc, "extension name not specified", "#extension", "");
         return token;
     }
 
-    if (token != CPP_IDENTIFIER)
-        parseContext.error(ppToken->loc, "extension name expected", "#extension", "");
+    if (token != PpAtomIdentifier)
+        parseContext.ppError(ppToken->loc, "extension name expected", "#extension", "");
 
-    strcpy(extensionName, GetAtomString(ppToken->atom));
+    assert(strlen(ppToken->name) <= MaxTokenLength);
+    strcpy(extensionName, ppToken->name);
 
     token = scanToken(ppToken);
     if (token != ':') {
-        parseContext.error(ppToken->loc, "':' missing after extension name", "#extension", "");
+        parseContext.ppError(ppToken->loc, "':' missing after extension name", "#extension", "");
         return token;
     }
 
     token = scanToken(ppToken);
-    if (token != CPP_IDENTIFIER) {
-        parseContext.error(ppToken->loc, "behavior for extension not specified", "#extension", "");
+    if (token != PpAtomIdentifier) {
+        parseContext.ppError(ppToken->loc, "behavior for extension not specified", "#extension", "");
         return token;
     }
 
-    parseContext.updateExtensionBehavior(line, extensionName, GetAtomString(ppToken->atom));
+    parseContext.updateExtensionBehavior(line, extensionName, ppToken->name);
+    parseContext.notifyExtensionDirective(line, extensionName, ppToken->name);
 
     token = scanToken(ppToken);
     if (token == '\n')
         return token;
     else
-        parseContext.error(ppToken->loc,  "extra tokens -- expected newline", "#extension","");
+        parseContext.ppError(ppToken->loc,  "extra tokens -- expected newline", "#extension","");
 
     return token;
 }
@@ -817,63 +840,80 @@ int TPpContext::CPPextension(TPpToken* ppToken)
 int TPpContext::readCPPline(TPpToken* ppToken)
 {
     int token = scanToken(ppToken);
-    bool isVersion = false;
 
-    if (token == CPP_IDENTIFIER) {
-        if (ppToken->atom == defineAtom) {
+    if (token == PpAtomIdentifier) {
+        switch (ppToken->atom) {
+        case PpAtomDefine:
             token = CPPdefine(ppToken);
-        } else if (ppToken->atom == elseAtom) {
+            break;
+        case PpAtomElse:
             if (elsetracker[elseSeen])
-                parseContext.error(ppToken->loc, "#else after #else", "#else", "");
+                parseContext.ppError(ppToken->loc, "#else after #else", "#else", "");
             elsetracker[elseSeen] = true;
             if (! ifdepth)
-                parseContext.error(ppToken->loc, "mismatched statements", "#else", "");
-            token = extraTokenCheck(elseAtom, ppToken, scanToken(ppToken));
+                parseContext.ppError(ppToken->loc, "mismatched statements", "#else", "");
+            token = extraTokenCheck(PpAtomElse, ppToken, scanToken(ppToken));
             token = CPPelse(0, ppToken);
-        } else if (ppToken->atom == elifAtom) {
+            break;
+        case PpAtomElif:
             if (! ifdepth)
-                parseContext.error(ppToken->loc, "mismatched statements", "#elif", "");
+                parseContext.ppError(ppToken->loc, "mismatched statements", "#elif", "");
             if (elseSeen[elsetracker])
-                parseContext.error(ppToken->loc, "#elif after #else", "#elif", "");
+                parseContext.ppError(ppToken->loc, "#elif after #else", "#elif", "");
             // this token is really a dont care, but we still need to eat the tokens
             token = scanToken(ppToken); 
-            while (token != '\n')
+            while (token != '\n' && token != EndOfInput)
                 token = scanToken(ppToken);
             token = CPPelse(0, ppToken);
-        } else if (ppToken->atom == endifAtom) {
+            break;
+        case PpAtomEndif:
             elseSeen[elsetracker] = false;
             --elsetracker;
             if (! ifdepth)
-                parseContext.error(ppToken->loc, "mismatched statements", "#endif", "");
+                parseContext.ppError(ppToken->loc, "mismatched statements", "#endif", "");
             else
                 --ifdepth;
-            token = extraTokenCheck(endifAtom, ppToken, scanToken(ppToken));
-        } else if (ppToken->atom == ifAtom) {
-            token = CPPif (ppToken);
-        } else if (ppToken->atom == ifdefAtom) {
+            token = extraTokenCheck(PpAtomEndif, ppToken, scanToken(ppToken));
+            break;
+        case PpAtomIf:
+            token = CPPif(ppToken);
+            break;
+        case PpAtomIfdef:
             token = CPPifdef(1, ppToken);
-        } else if (ppToken->atom == ifndefAtom) {
+            break;
+        case PpAtomIfndef:
             token = CPPifdef(0, ppToken);
-        } else if (ppToken->atom == lineAtom) {
+            break;
+        case PpAtomInclude:
+            parseContext.ppRequireExtensions(ppToken->loc, 1, &E_GL_GOOGLE_include_directive, "#include");
+            token = CPPinclude(ppToken);
+            break;
+        case PpAtomLine:
             token = CPPline(ppToken);
-        } else if (ppToken->atom == pragmaAtom) {
+            break;
+        case PpAtomPragma:
             token = CPPpragma(ppToken);
-        } else if (ppToken->atom == undefAtom) {
+            break;
+        case PpAtomUndef:
             token = CPPundef(ppToken);
-        } else if (ppToken->atom == errorAtom) {
+            break;
+        case PpAtomError:
             token = CPPerror(ppToken);
-        } else if (ppToken->atom == versionAtom) {
+            break;
+        case PpAtomVersion:
             token = CPPversion(ppToken);
-            isVersion = true;
-        } else if (ppToken->atom == extensionAtom) {
+            break;
+        case PpAtomExtension:
             token = CPPextension(ppToken);
-        } else {
-            parseContext.error(ppToken->loc, "invalid directive:", "#", GetAtomString(ppToken->atom));
+            break;
+        default:
+            parseContext.ppError(ppToken->loc, "invalid directive:", "#", ppToken->name);
+            break;
         }
-    } else if (token != '\n' && token != EOF)
-        parseContext.error(ppToken->loc, "invalid directive", "#", "");
+    } else if (token != '\n' && token != EndOfInput)
+        parseContext.ppError(ppToken->loc, "invalid directive", "#", "");
 
-    while (token != '\n' && token != 0 && token != EOF)
+    while (token != '\n' && token != EndOfInput)
         token = scanToken(ppToken);
 
     return token;
@@ -886,18 +926,18 @@ TPpContext::TokenStream* TPpContext::PrescanMacroArg(TokenStream* a, TPpToken* p
     RewindTokenStream(a);
     do {
         token = ReadToken(a, ppToken);
-        if (token == CPP_IDENTIFIER && LookUpSymbol(ppToken->atom))
+        if (token == PpAtomIdentifier && LookUpSymbol(ppToken->atom))
             break;
-    } while (token != tInput::endOfInput);
+    } while (token != EndOfInput);
 
-    if (token == tInput::endOfInput)
+    if (token == EndOfInput)
         return a;
 
     n = new TokenStream;
     pushInput(new tMarkerInput(this));
     pushTokenStreamInput(a);
     while ((token = scanToken(ppToken)) != tMarkerInput::marker) {
-        if (token == CPP_IDENTIFIER && MacroExpand(ppToken->atom, ppToken, false, newLineOkay) != 0)
+        if (token == PpAtomIdentifier && MacroExpand(ppToken->atom, ppToken, false, newLineOkay) != 0)
             continue;
         RecordToken(n, token, ppToken);
     }
@@ -918,7 +958,7 @@ int TPpContext::tMacroInput::scan(TPpToken* ppToken)
     } while (token == ' ');  // handle white space in macro
 
     // TODO: preprocessor:  properly handle whitespace (or lack of it) between tokens when expanding
-    if (token == CPP_IDENTIFIER) {
+    if (token == PpAtomIdentifier) {
         int i;
         for (i = mac->argc - 1; i >= 0; i--)
             if (mac->args[i] == ppToken->atom) 
@@ -930,24 +970,24 @@ int TPpContext::tMacroInput::scan(TPpToken* ppToken)
         }
     }
 
-    if (token == endOfInput)
+    if (token == EndOfInput)
         mac->busy = 0;
         
     return token;
 }
 
-// return a zero, for scanning a macro that was never defined
+// return a textual zero, for scanning a macro that was never defined
 int TPpContext::tZeroInput::scan(TPpToken* ppToken)
 {
     if (done)
-        return endOfInput;
+        return EndOfInput;
 
     strcpy(ppToken->name, "0");
     ppToken->ival = 0;
     ppToken->space = false;
     done = true;
 
-    return CPP_INTCONSTANT;
+    return PpAtomConstInt;
 }
 
 //
@@ -960,34 +1000,35 @@ int TPpContext::tZeroInput::scan(TPpToken* ppToken)
 //
 int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool newLineOkay)
 {
+    ppToken->space = false;
+    switch (atom) {
+    case PpAtomLineMacro:
+        ppToken->ival = parseContext.getCurrentLoc().line;
+        sprintf(ppToken->name, "%d", ppToken->ival);
+        UngetToken(PpAtomConstInt, ppToken);
+        return 1;
+
+    case PpAtomFileMacro: {
+        if (parseContext.getCurrentLoc().name)
+            parseContext.ppRequireExtensions(ppToken->loc, 1, &E_GL_GOOGLE_cpp_style_line_directive, "filename-based __FILE__");
+        sprintf(ppToken->name, "%s", ppToken->loc.getStringNameOrNum().c_str());
+        UngetToken(PpAtomConstInt, ppToken);
+        return 1;
+    }
+
+    case PpAtomVersionMacro:
+        ppToken->ival = parseContext.version;
+        sprintf(ppToken->name, "%d", ppToken->ival);
+        UngetToken(PpAtomConstInt, ppToken);
+        return 1;
+
+    default:
+        break;
+    }
+
     Symbol *sym = LookUpSymbol(atom);
     int token;
     int depth = 0;
-
-    ppToken->space = false;
-    if (atom == __LINE__Atom) {
-        ppToken->ival = parseContext.getCurrentLoc().line;
-        sprintf(ppToken->name, "%d", ppToken->ival);
-        UngetToken(CPP_INTCONSTANT, ppToken);
-
-        return 1;
-    }
-
-    if (atom == __FILE__Atom) {
-        ppToken->ival = parseContext.getCurrentLoc().string;
-        sprintf(ppToken->name, "%d", ppToken->ival);
-        UngetToken(CPP_INTCONSTANT, ppToken);
-
-        return 1;
-    }
-
-    if (atom == __VERSION__Atom) {
-        ppToken->ival = parseContext.version;
-        sprintf(ppToken->name, "%d", ppToken->ival);
-        UngetToken(CPP_INTCONSTANT, ppToken);
-
-        return 1;
-    }
 
     // no recursive expansions
     if (sym && sym->mac.busy)
@@ -1014,7 +1055,7 @@ int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool 
                 token = scanToken(ppToken);
         }
         if (token != '(') {
-            parseContext.error(loc, "expected '(' following", "macro expansion", GetAtomString(atom));
+            parseContext.ppError(loc, "expected '(' following", "macro expansion", GetAtomString(atom));
             UngetToken(token, ppToken);
             ppToken->atom = atom;
 
@@ -1030,21 +1071,21 @@ int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool 
             depth = 0;
             while (1) {
                 token = scanToken(ppToken);
-                if (token == EOF) {
-                    parseContext.error(loc, "EOF in macro", "macro expansion", GetAtomString(atom));
+                if (token == EndOfInput) {
+                    parseContext.ppError(loc, "End of input in macro", "macro expansion", GetAtomString(atom));
                     delete in;
                     return 0;
                 }
                 if (token == '\n') {
                     if (! newLineOkay) {
-                        parseContext.error(loc, "end of line in macro substitution:", "macro expansion", GetAtomString(atom));
+                        parseContext.ppError(loc, "End of line in macro substitution:", "macro expansion", GetAtomString(atom));
                         delete in;
                         return 0;
                     }
                     continue;
                 }
                 if (token == '#') {
-                    parseContext.error(ppToken->loc, "unexpected '#'", "macro expansion", GetAtomString(atom));
+                    parseContext.ppError(ppToken->loc, "unexpected '#'", "macro expansion", GetAtomString(atom));
                     delete in;
                     return 0;
                 }
@@ -1069,10 +1110,10 @@ int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool 
         } while (arg < in->mac->argc);
 
         if (arg < in->mac->argc)
-            parseContext.error(loc, "Too few args in Macro", "macro expansion", GetAtomString(atom));
+            parseContext.ppError(loc, "Too few args in Macro", "macro expansion", GetAtomString(atom));
         else if (token != ')') {
             depth=0;
-            while (token != EOF && (depth > 0 || token != ')')) {
+            while (token != EndOfInput && (depth > 0 || token != ')')) {
                 if (token == ')')
                     depth--;
                 token = scanToken(ppToken);
@@ -1080,12 +1121,12 @@ int TPpContext::MacroExpand(int atom, TPpToken* ppToken, bool expandUndef, bool 
                     depth++;
             }
 
-            if (token == EOF) {
-                parseContext.error(loc, "EOF in macro", "macro expansion", GetAtomString(atom));
+            if (token == EndOfInput) {
+                parseContext.ppError(loc, "End of input in macro", "macro expansion", GetAtomString(atom));
                 delete in;
                 return 0;
             }
-            parseContext.error(loc, "Too many args in macro", "macro expansion", GetAtomString(atom));
+            parseContext.ppError(loc, "Too many args in macro", "macro expansion", GetAtomString(atom));
         }
         for (int i = 0; i < in->mac->argc; i++)
             in->args[i] = PrescanMacroArg(in->args[i], ppToken, newLineOkay);

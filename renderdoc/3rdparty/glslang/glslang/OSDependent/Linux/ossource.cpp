@@ -62,6 +62,9 @@ void DetachThreadLinux(void *)
 // 
 void OS_CleanupThreadData(void)
 {
+#ifdef __ANDROID__
+  DetachThread();
+#else
 	int old_cancel_state, old_cancel_type;
 	void *cleanupArg = NULL;
 
@@ -85,6 +88,7 @@ void OS_CleanupThreadData(void)
 	// Restore the thread's previous cancellation mode.
 	//
 	pthread_setcanceltype(old_cancel_state, NULL);
+#endif
 }
 
 

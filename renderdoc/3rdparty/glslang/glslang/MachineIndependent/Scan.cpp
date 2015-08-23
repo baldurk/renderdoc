@@ -39,6 +39,8 @@
 //
 
 #include <string.h>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "../Include/Types.h"
 #include "SymbolTable.h"
@@ -79,10 +81,10 @@ bool TInputScanner::consumeComment()
         get();  // consume the second '/'
         c = get();
         do {
-            while (c > 0 && c != '\\' && c != '\r' && c != '\n')
+            while (c != EndOfInput && c != '\\' && c != '\r' && c != '\n')
                 c = get();
 
-            if (c <= 0 || c == '\r' || c == '\n') {
+            if (c == EndOfInput || c == '\r' || c == '\n') {
                 while (c == '\r' || c == '\n')
                     c = get();
 
@@ -102,7 +104,7 @@ bool TInputScanner::consumeComment()
         } while (true);
 
         // put back the last non-comment character
-        if (c > 0)
+        if (c != EndOfInput)
             unget();
 
         return true;
@@ -112,7 +114,7 @@ bool TInputScanner::consumeComment()
         get();  // consume the '*'
         c = get();
         do {
-            while (c > 0 && c != '*')
+            while (c != EndOfInput && c != '*')
                 c = get();
             if (c == '*') {
                 c = get();
@@ -140,7 +142,7 @@ void TInputScanner::consumeWhitespaceComment(bool& foundNonSpaceTab)
  
         // if not starting a comment now, then done
         int c = peek();
-        if (c != '/' || c < 0)
+        if (c != '/' || c == EndOfInput)
             return;
 
         // skip potential comment 
@@ -186,10 +188,10 @@ bool TInputScanner::scanVersion(int& version, EProfile& profile, bool& notFirstT
             } else
                 do {
                     c = get();
-                } while (c > 0 && c != '\n' && c != '\r');
+                } while (c != EndOfInput && c != '\n' && c != '\r');
                 while (peek() == '\n' || peek() == '\r')
                     get();
-                if (peek() < 0)
+                if (peek() == EndOfInput)
                     return true;
         }
         lookingInMiddle = true;
@@ -247,12 +249,12 @@ bool TInputScanner::scanVersion(int& version, EProfile& profile, bool& notFirstT
         char profileString[maxProfileLength];
         int profileLength;
         for (profileLength = 0; profileLength < maxProfileLength; ++profileLength) {
-            if (c < 0 || c == ' ' || c == '\t' || c == '\n' || c == '\r')
+            if (c == EndOfInput || c == ' ' || c == '\t' || c == '\n' || c == '\r')
                 break;
             profileString[profileLength] = (char)c;
             c = get();
         }
-        if (c > 0 && c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+        if (c != EndOfInput && c != ' ' && c != '\t' && c != '\n' && c != '\r') {
             versionNotFirst = true;
             continue;
         }
@@ -293,8 +295,8 @@ namespace {
 
 // A single global usable by all threads, by all versions, by all languages.
 // After a single process-level initialization, this is read only and thread safe
-std::map<std::string, int>* KeywordMap = 0;
-std::set<std::string>* ReservedSet = 0;
+std::unordered_map<std::string, int>* KeywordMap = nullptr;
+std::unordered_set<std::string>* ReservedSet = nullptr;
 
 };
 
@@ -302,12 +304,12 @@ namespace glslang {
 
 void TScanContext::fillInKeywordMap()
 {
-    if (KeywordMap != 0) {
+    if (KeywordMap != nullptr) {
         // this is really an error, as this should called only once per process
         // but, the only risk is if two threads called simultaneously
         return;
     }
-    KeywordMap = new std::map<std::string, int>;
+    KeywordMap = new std::unordered_map<std::string, int>;
 
     (*KeywordMap)["const"] =                   CONST;
     (*KeywordMap)["uniform"] =                 UNIFORM;
@@ -476,7 +478,7 @@ void TScanContext::fillInKeywordMap()
     (*KeywordMap)["resource"] =                RESOURCE;
     (*KeywordMap)["superp"] =                  SUPERP;
 
-    ReservedSet = new std::set<std::string>;
+    ReservedSet = new std::unordered_set<std::string>;
     
     ReservedSet->insert("common");
     ReservedSet->insert("partition");
@@ -520,9 +522,9 @@ void TScanContext::fillInKeywordMap()
 void TScanContext::deleteKeywordMap()
 {
     delete KeywordMap;
-    KeywordMap = 0;
+    KeywordMap = nullptr;
     delete ReservedSet;
-    ReservedSet = 0;
+    ReservedSet = nullptr;
 }
 
 int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
@@ -531,7 +533,7 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
         parserToken = &token;
         TPpToken ppToken;
         tokenText = pp->tokenize(&ppToken);
-        if (tokenText == 0)
+        if (tokenText == nullptr)
             return 0;
 
         loc = ppToken.loc;
@@ -565,36 +567,41 @@ int TScanContext::tokenize(TPpContext* pp, TParserToken& token)
             parseContext.error(loc, "illegal use of escape character", "\\", "");
             break;
 
-        case CPP_AND_OP:                return AND_OP;
-        case CPP_SUB_ASSIGN:            return SUB_ASSIGN;
-        case CPP_MOD_ASSIGN:            return MOD_ASSIGN;
-        case CPP_ADD_ASSIGN:            return ADD_ASSIGN;
-        case CPP_DIV_ASSIGN:            return DIV_ASSIGN;
-        case CPP_MUL_ASSIGN:            return MUL_ASSIGN;
-        case CPP_EQ_OP:                 return EQ_OP;
-        case CPP_XOR_OP:                return XOR_OP;
-        case CPP_GE_OP:                 return GE_OP;
-        case CPP_RIGHT_OP:              return RIGHT_OP;
-        case CPP_LE_OP:                 return LE_OP;
-        case CPP_LEFT_OP:               return LEFT_OP;
-        case CPP_DEC_OP:                return DEC_OP;
-        case CPP_NE_OP:                 return NE_OP;
-        case CPP_OR_OP:                 return OR_OP;
-        case CPP_INC_OP:                return INC_OP;
-        case CPP_RIGHT_ASSIGN:          return RIGHT_ASSIGN;
-        case CPP_LEFT_ASSIGN:           return LEFT_ASSIGN;
-        case CPP_AND_ASSIGN:            return AND_ASSIGN;
-        case CPP_OR_ASSIGN:             return OR_ASSIGN;
-        case CPP_XOR_ASSIGN:            return XOR_ASSIGN;
-                                   
-        case CPP_INTCONSTANT:           parserToken->sType.lex.i = ppToken.ival;       return INTCONSTANT;
-        case CPP_UINTCONSTANT:          parserToken->sType.lex.i = ppToken.ival;       return UINTCONSTANT;
-        case CPP_FLOATCONSTANT:         parserToken->sType.lex.d = ppToken.dval;       return FLOATCONSTANT;
-        case CPP_DOUBLECONSTANT:        parserToken->sType.lex.d = ppToken.dval;       return DOUBLECONSTANT;
-        case CPP_IDENTIFIER:            return tokenizeIdentifier();
+        case PpAtomAdd:                return ADD_ASSIGN;
+        case PpAtomSub:                return SUB_ASSIGN;
+        case PpAtomMul:                return MUL_ASSIGN;
+        case PpAtomDiv:                return DIV_ASSIGN;
+        case PpAtomMod:                return MOD_ASSIGN;
 
-        case EOF:                       return 0;
+        case PpAtomRight:              return RIGHT_OP;
+        case PpAtomLeft:               return LEFT_OP;
+
+        case PpAtomRightAssign:        return RIGHT_ASSIGN;
+        case PpAtomLeftAssign:         return LEFT_ASSIGN;
+        case PpAtomAndAssign:          return AND_ASSIGN;
+        case PpAtomOrAssign:           return OR_ASSIGN;
+        case PpAtomXorAssign:          return XOR_ASSIGN;
+
+        case PpAtomAnd:                return AND_OP;
+        case PpAtomOr:                 return OR_OP;
+        case PpAtomXor:                return XOR_OP;
+
+        case PpAtomEQ:                 return EQ_OP;
+        case PpAtomGE:                 return GE_OP;
+        case PpAtomNE:                 return NE_OP;
+        case PpAtomLE:                 return LE_OP;
+
+        case PpAtomDecrement:          return DEC_OP;
+        case PpAtomIncrement:          return INC_OP;
                                    
+        case PpAtomConstInt:           parserToken->sType.lex.i = ppToken.ival;       return INTCONSTANT;
+        case PpAtomConstUint:          parserToken->sType.lex.i = ppToken.ival;       return UINTCONSTANT;
+        case PpAtomConstFloat:         parserToken->sType.lex.d = ppToken.dval;       return FLOATCONSTANT;
+        case PpAtomConstDouble:        parserToken->sType.lex.d = ppToken.dval;       return DOUBLECONSTANT;
+        case PpAtomIdentifier:         return tokenizeIdentifier();
+
+        case EndOfInput:               return 0;
+
         default:
             char buf[2];
             buf[0] = (char)ppToken.token;
@@ -610,7 +617,7 @@ int TScanContext::tokenizeIdentifier()
     if (ReservedSet->find(tokenText) != ReservedSet->end())
         return reservedWord();
 
-    std::map<std::string, int>::const_iterator it = KeywordMap->find(tokenText);
+    auto it = KeywordMap->find(tokenText);
     if (it == KeywordMap->end()) {
         // Should have an identifier of some sort
         return identifierOrType();
@@ -686,7 +693,7 @@ int TScanContext::tokenizeIdentifier()
 
     case ATOMIC_UINT:
         if ((parseContext.profile == EEsProfile && parseContext.version >= 310) ||
-            parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_atomic_counters))
+            parseContext.extensionTurnedOn(E_GL_ARB_shader_atomic_counters))
             return keyword;
         return es30ReservedFromGLSL(420);
 
@@ -696,12 +703,12 @@ int TScanContext::tokenizeIdentifier()
     case WRITEONLY:
         if (parseContext.profile == EEsProfile && parseContext.version >= 310)
             return keyword;
-        return es30ReservedFromGLSL(parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_image_load_store) ? 130 : 420);
+        return es30ReservedFromGLSL(parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store) ? 130 : 420);
 
     case VOLATILE:
         if (parseContext.profile == EEsProfile && parseContext.version >= 310)
             return keyword;
-        if (! parseContext.symbolTable.atBuiltInLevel() && (parseContext.profile == EEsProfile || (parseContext.version < 420 && ! parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_image_load_store))))
+        if (! parseContext.symbolTable.atBuiltInLevel() && (parseContext.profile == EEsProfile || (parseContext.version < 420 && ! parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))))
             reservedWord();
         return keyword;
 
@@ -725,12 +732,16 @@ int TScanContext::tokenizeIdentifier()
     case PATCH:
         if (parseContext.symbolTable.atBuiltInLevel() ||
             (parseContext.profile == EEsProfile && parseContext.extensionsTurnedOn(Num_AEP_tessellation_shader, AEP_tessellation_shader)) ||
-            (parseContext.profile != EEsProfile && parseContext.extensionsTurnedOn(1, &E_GL_ARB_tessellation_shader)))
+            (parseContext.profile != EEsProfile && parseContext.extensionTurnedOn(E_GL_ARB_tessellation_shader)))
             return keyword;
 
         return es30ReservedFromGLSL(400);
 
     case SAMPLE:
+        if (parseContext.extensionsTurnedOn(1, &E_GL_OES_shader_multisample_interpolation))
+            return keyword;
+        return es30ReservedFromGLSL(400);
+
     case SUBROUTINE:
         return es30ReservedFromGLSL(400);
 
@@ -774,9 +785,15 @@ int TScanContext::tokenizeIdentifier()
     case IMAGE2DRECT:
     case IIMAGE2DRECT:
     case UIMAGE2DRECT:
+        afterType = true;
+        return firstGenerationImage(false);
+
     case IMAGEBUFFER:
     case IIMAGEBUFFER:
     case UIMAGEBUFFER:
+        afterType = true;
+        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+            return keyword;
         return firstGenerationImage(false);
 
     case IMAGE2D:
@@ -791,17 +808,24 @@ int TScanContext::tokenizeIdentifier()
     case IMAGE2DARRAY:
     case IIMAGE2DARRAY:
     case UIMAGE2DARRAY:
+        afterType = true;
         return firstGenerationImage(true);
 
     case IMAGECUBEARRAY:
     case IIMAGECUBEARRAY:
-    case UIMAGECUBEARRAY:        
+    case UIMAGECUBEARRAY:
+        afterType = true;
+        if (parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
+            return keyword;
+        return secondGenerationImage();
+
     case IMAGE2DMS:
     case IIMAGE2DMS:
     case UIMAGE2DMS:
     case IMAGE2DMSARRAY:
     case IIMAGE2DMSARRAY:
     case UIMAGE2DMSARRAY:
+        afterType = true;
         return secondGenerationImage();
 
     case DOUBLE:
@@ -818,7 +842,9 @@ int TScanContext::tokenizeIdentifier()
     case ISAMPLERCUBEARRAY:
     case USAMPLERCUBEARRAY:
         afterType = true;
-        if (parseContext.profile == EEsProfile || (parseContext.version < 400 && ! parseContext.extensionsTurnedOn(1, &E_GL_ARB_texture_cube_map_array)))
+        if (parseContext.extensionsTurnedOn(Num_AEP_texture_cube_map_array, AEP_texture_cube_map_array))
+            return keyword;
+        if (parseContext.profile == EEsProfile || (parseContext.version < 400 && ! parseContext.extensionTurnedOn(E_GL_ARB_texture_cube_map_array)))
             reservedWord();
         return keyword;
 
@@ -827,7 +853,6 @@ int TScanContext::tokenizeIdentifier()
     case SAMPLER1DARRAYSHADOW:
     case USAMPLER1D:
     case USAMPLER1DARRAY:
-    case SAMPLERBUFFER:
         afterType = true;
         return es30ReservedFromGLSL(130);
 
@@ -851,9 +876,20 @@ int TScanContext::tokenizeIdentifier()
         
     case ISAMPLER2DRECT:
     case USAMPLER2DRECT:
+        afterType = true;
+        return es30ReservedFromGLSL(140);
+
+    case SAMPLERBUFFER:
+        afterType = true;
+        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+            return keyword;
+        return es30ReservedFromGLSL(130);
+
     case ISAMPLERBUFFER:
     case USAMPLERBUFFER:
         afterType = true;
+        if (parseContext.extensionsTurnedOn(Num_AEP_texture_buffer, AEP_texture_buffer))
+            return keyword;
         return es30ReservedFromGLSL(140);
         
     case SAMPLER2DMS:
@@ -868,6 +904,8 @@ int TScanContext::tokenizeIdentifier()
     case ISAMPLER2DMSARRAY:
     case USAMPLER2DMSARRAY:
         afterType = true;
+        if (parseContext.extensionsTurnedOn(1, &E_GL_OES_texture_storage_multisample_2d_array))
+            return keyword;
         return es30ReservedFromGLSL(150);
 
     case SAMPLER1D:
@@ -880,7 +918,7 @@ int TScanContext::tokenizeIdentifier()
     case SAMPLER3D:
         afterType = true;
         if (parseContext.profile == EEsProfile && parseContext.version < 300) {
-            if (! parseContext.extensionsTurnedOn(1, &E_GL_OES_texture_3D))
+            if (! parseContext.extensionTurnedOn(E_GL_OES_texture_3D))
                 reservedWord();
         }
         return keyword;
@@ -896,8 +934,8 @@ int TScanContext::tokenizeIdentifier()
         afterType = true;
         if (parseContext.profile == EEsProfile)
             reservedWord();
-        else if (parseContext.version < 140 && ! parseContext.symbolTable.atBuiltInLevel() && ! parseContext.extensionsTurnedOn(1, &E_GL_ARB_texture_rectangle)) {
-            if (parseContext.messages & EShMsgRelaxedErrors)
+        else if (parseContext.version < 140 && ! parseContext.symbolTable.atBuiltInLevel() && ! parseContext.extensionTurnedOn(E_GL_ARB_texture_rectangle)) {
+            if (parseContext.relaxedErrors())
                 parseContext.requireExtensions(loc, 1, &E_GL_ARB_texture_rectangle, "texture-rectangle sampler keyword");
             else
                 reservedWord();
@@ -915,7 +953,7 @@ int TScanContext::tokenizeIdentifier()
 
     case SAMPLEREXTERNALOES:
         afterType = true;
-        if (parseContext.symbolTable.atBuiltInLevel() || parseContext.extensionsTurnedOn(1, &E_GL_OES_EGL_image_external))
+        if (parseContext.symbolTable.atBuiltInLevel() || parseContext.extensionTurnedOn(E_GL_OES_EGL_image_external))
             return keyword;
         return identifierOrType();
 
@@ -941,12 +979,14 @@ int TScanContext::tokenizeIdentifier()
         return keyword;
 
     case PRECISE:
-        if (parseContext.profile == EEsProfile && parseContext.version >= 310)
+        if ((parseContext.profile == EEsProfile && parseContext.extensionsTurnedOn(Num_AEP_gpu_shader5, AEP_gpu_shader5)) || 
+            (parseContext.profile != EEsProfile && parseContext.version >= 400))
+            return keyword;
+        if (parseContext.profile == EEsProfile && parseContext.version == 310) {
             reservedWord();
-        else if (parseContext.profile == EEsProfile ||
-            (parseContext.profile != EEsProfile && parseContext.version < 400))
-            return identifierOrType();
-        return keyword;
+            return keyword;
+        }
+        return identifierOrType();
 
     case INVARIANT:
         if (parseContext.profile != EEsProfile && parseContext.version < 120)
@@ -1104,10 +1144,8 @@ int TScanContext::dMat()
 
 int TScanContext::firstGenerationImage(bool inEs310)
 {
-    afterType = true;
-
     if (parseContext.symbolTable.atBuiltInLevel() || 
-        (parseContext.profile != EEsProfile && (parseContext.version >= 420 || parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_image_load_store))) ||                                                     
+        (parseContext.profile != EEsProfile && (parseContext.version >= 420 || parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))) ||
         (inEs310 && parseContext.profile == EEsProfile && parseContext.version >= 310))
         return keyword;
 
@@ -1126,8 +1164,6 @@ int TScanContext::firstGenerationImage(bool inEs310)
 
 int TScanContext::secondGenerationImage()
 {
-    afterType = true;
-
     if (parseContext.profile == EEsProfile && parseContext.version >= 310) {
         reservedWord();
         return keyword;
@@ -1135,7 +1171,7 @@ int TScanContext::secondGenerationImage()
 
     if (parseContext.symbolTable.atBuiltInLevel() || 
         (parseContext.profile != EEsProfile && 
-         (parseContext.version >= 420 || parseContext.extensionsTurnedOn(1, &E_GL_ARB_shader_image_load_store))))
+         (parseContext.version >= 420 || parseContext.extensionTurnedOn(E_GL_ARB_shader_image_load_store))))
         return keyword;
 
     if (parseContext.forwardCompatible)

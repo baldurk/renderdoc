@@ -78,9 +78,14 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PPCONTEXT_H
 #define PPCONTEXT_H
 
+#include <unordered_map>
+
 #include "../ParseHelper.h"
 
-#pragma warning(disable : 4127)
+/* windows only pragma */
+#ifdef _MSC_VER
+    #pragma warning(disable : 4127)
+#endif
 
 namespace glslang {
 
@@ -100,15 +105,13 @@ public:
     }
     bool operator!=(const TPpToken& right) { return ! operator==(right); }
 
-    static const int maxTokenLength = 1024;
-
     TSourceLoc loc;
     int    token;
     bool   space;  // true if a space (for white space or a removed comment) should also be recognized, in front of the token returned
     int    ival;
     double dval;
     int    atom;
-    char   name[maxTokenLength+1];
+    char   name[MaxTokenLength + 1];
 };
 
 class TInputScanner;
@@ -118,7 +121,7 @@ class TInputScanner;
 // Don't expect too much in terms of OO design.
 class TPpContext {
 public:
-    TPpContext(TParseContext&);
+    TPpContext(TParseContext&, const TShader::Includer&);
     virtual ~TPpContext();
 
     void setPreamble(const char* preamble, size_t length);
@@ -134,8 +137,10 @@ public:
         virtual int getch() = 0;
         virtual void ungetch() = 0;
 
-        static const int endOfInput = -2;
-
+        // Will be called when we start reading tokens from this instance
+        virtual void notifyActivated() {}
+        // Will be called when we do not read tokens from this instance anymore
+        virtual void notifyDeleted() {}
     protected:
         bool done;
         TPpContext* pp;
@@ -146,9 +151,11 @@ public:
     void pushInput(tInput* in)
     {
         inputStack.push_back(in);
+        in->notifyActivated();
     }
     void popInput()
     {
+        inputStack.back()->notifyDeleted();
         delete inputStack.back();
         inputStack.pop_back();
     }
@@ -190,7 +197,7 @@ public:
     };
 
     MemoryPool *pool;
-    typedef std::map<int, Symbol*> TSymbolMap;
+    typedef TMap<int, Symbol*> TSymbolMap;
     TSymbolMap symbols; // this has light use... just defined macros
 
 protected:
@@ -210,20 +217,17 @@ protected:
 
     // Get the next token from *stack* of input sources, popping input sources
     // that are out of tokens, down until an input sources is found that has a token.
-    // Return EOF when there are no more tokens to be found by doing this.
+    // Return EndOfInput when there are no more tokens to be found by doing this.
     int scanToken(TPpToken* ppToken)
     {
-        int token = EOF;
+        int token = EndOfInput;
 
         while (! inputStack.empty()) {
             token = inputStack.back()->scan(ppToken);
-            if (token != tInput::endOfInput)
+            if (token != EndOfInput)
                 break;
             popInput();
         }
-
-        if (token == tInput::endOfInput)
-            return EOF;
 
         return token;
     }
@@ -236,7 +240,6 @@ protected:
     int ifdepth;                  // current #if-#else-#endif nesting in the cpp.c file (pre-processor)    
     bool elseSeen[maxIfNesting];  // Keep a track of whether an else has been seen at a particular depth
     int elsetracker;              // #if-#else and #endif constructs...Counter.
-    const char* ErrMsg;
 
     class tMacroInput : public tInput {
     public:
@@ -248,7 +251,7 @@ protected:
         }
 
         virtual int scan(TPpToken*);
-        virtual int getch() { assert(0); return endOfInput; }
+        virtual int getch() { assert(0); return EndOfInput; }
         virtual void ungetch() { assert(0); }
         MacroSymbol *mac;
         TVector<TokenStream*> args;
@@ -260,12 +263,12 @@ protected:
         virtual int scan(TPpToken*)
         {
             if (done)
-                return endOfInput;
+                return EndOfInput;
             done = true;
 
             return marker;
         }
-        virtual int getch() { assert(0); return endOfInput; }
+        virtual int getch() { assert(0); return EndOfInput; }
         virtual void ungetch() { assert(0); }
         static const int marker = -3;
     };
@@ -274,7 +277,7 @@ protected:
     public:
         tZeroInput(TPpContext* pp) : tInput(pp) { }
         virtual int scan(TPpToken*);
-        virtual int getch() { assert(0); return endOfInput; }
+        virtual int getch() { assert(0); return EndOfInput; }
         virtual void ungetch() { assert(0); }
     };
 
@@ -285,32 +288,9 @@ protected:
     //
     // from Pp.cpp
     //
-    int bindAtom;
-    int constAtom;
-    int defaultAtom;
-    int defineAtom;
-    int definedAtom;
-    int elseAtom;
-    int elifAtom;
-    int endifAtom;
-    int ifAtom;
-    int ifdefAtom;
-    int ifndefAtom;
-    int includeAtom;
-    int lineAtom;
-    int pragmaAtom;
-    int texunitAtom;
-    int undefAtom;
-    int errorAtom;
-    int __LINE__Atom;
-    int __FILE__Atom;
-    int __VERSION__Atom;
-    int versionAtom;
-    int coreAtom;
-    int compatibilityAtom;
-    int esAtom;
-    int extensionAtom;
-    TSourceLoc ifloc; /* outermost #if */
+
+    // Used to obtain #include content.
+    const TShader::Includer& includer;
 
     int InitCPP();
     int CPPdefine(TPpToken * ppToken);
@@ -321,6 +301,7 @@ protected:
     int evalToToken(int token, bool shortCircuit, int& res, bool& err, TPpToken * ppToken);
     int CPPif (TPpToken * ppToken); 
     int CPPifdef(int defined, TPpToken * ppToken);
+    int CPPinclude(TPpToken * ppToken);
     int CPPline(TPpToken * ppToken); 
     int CPPerror(TPpToken * ppToken); 
     int CPPpragma(TPpToken * ppToken);
@@ -353,7 +334,7 @@ protected:
     public:
         tTokenInput(TPpContext* pp, TokenStream* t) : tInput(pp), tokens(t) { }
         virtual int scan(TPpToken *);
-        virtual int getch() { assert(0); return endOfInput; }
+        virtual int getch() { assert(0); return EndOfInput; }
         virtual void ungetch() { assert(0); }
     protected:
         TokenStream *tokens;
@@ -363,7 +344,7 @@ protected:
     public:
         tUngotTokenInput(TPpContext* pp, int t, TPpToken* p) : tInput(pp), token(t), lval(*p) { }
         virtual int scan(TPpToken *);
-        virtual int getch() { assert(0); return endOfInput; }
+        virtual int getch() { assert(0); return EndOfInput; }
         virtual void ungetch() { assert(0); }
     protected:
         int token;
@@ -408,7 +389,7 @@ protected:
             // handle any non-escaped newline
             if (ch == '\r' || ch == '\n') {
                 if (ch == '\r' && input->peek() == '\n')
-                    ch = input->get();
+                    input->get();
                 return '\n';
             }
 
@@ -449,6 +430,51 @@ protected:
         TInputScanner* input;
     };
 
+    // Holds a string that can be tokenized via the tInput interface.
+    class TokenizableString : public tInput {
+    public:
+        // Copies str, which must be non-empty.
+        TokenizableString(const TSourceLoc& startLoc, const std::string& str, TPpContext* pp)
+            : tInput(pp),
+              str_(str),
+              strings(str_.data()),
+              length(str_.size()),
+              scanner(1, &strings, &length),
+              prevScanner(nullptr),
+              stringInput(pp, scanner) {
+                  scanner.setLine(startLoc.line);
+                  scanner.setString(startLoc.string);
+                  scanner.setFile(startLoc.name);
+        }
+
+        // tInput methods:
+        int scan(TPpToken* t) override { return stringInput.scan(t); }
+        int getch() override { return stringInput.getch(); }
+        void ungetch() override { stringInput.ungetch(); }
+
+        void notifyActivated() override
+        {
+            prevScanner = pp->parseContext.getScanner();
+            pp->parseContext.setScanner(&scanner);
+        }
+        void notifyDeleted() override { pp->parseContext.setScanner(prevScanner); }
+
+    private:
+        // Stores the titular string.
+        const std::string str_;
+        // Will point to str_[0] and be passed to scanner constructor.
+        const char* const strings;
+        // Length of str_, passed to scanner constructor.
+        size_t length;
+        // Scans over str_.
+        TInputScanner scanner;
+        // The previous effective scanner before the scanner in this instance
+        // has been activated.
+        TInputScanner* prevScanner;
+        // Delegate object implementing the tInput interface.
+        tStringInput stringInput;
+    };
+
     int InitScanner();
     int ScanFromString(char* s);
     void missingEndifCheck();
@@ -459,13 +485,13 @@ protected:
     //
     // From PpAtom.cpp
     //
-    typedef std::map<const TString, int> TAtomMap;
+    typedef TUnorderedMap<TString, int> TAtomMap;
     typedef TVector<const TString*> TStringMap;
     TAtomMap atomMap;
     TStringMap stringMap;
     int nextAtom;
     void InitAtomTable();
-    int AddAtomFixed(const char* s, int atom);
+    void AddAtomFixed(const char* s, int atom);
     int LookUpAddString(const char* s);
     const char* GetAtomString(int atom);
 

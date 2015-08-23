@@ -27,6 +27,9 @@
 
 namespace GLSL_STD_450 {
 
+const int Version = 99;
+const int Revision = 1;
+
 enum Entrypoints {
     Round = 0,
     RoundEven = 1,

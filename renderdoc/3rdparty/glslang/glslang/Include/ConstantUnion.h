@@ -419,13 +419,13 @@ class TConstUnionArray {
 public:
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
 
-    TConstUnionArray() : unionArray(0) { }
+    TConstUnionArray() : unionArray(nullptr) { }
     virtual ~TConstUnionArray() { }
 
     explicit TConstUnionArray(int size)
     {
         if (size == 0)
-            unionArray = 0;
+            unionArray = nullptr;
         else
             unionArray =  new TConstUnionVector(size);
     }
@@ -473,7 +473,7 @@ public:
         return sum;
     }
 
-    bool empty() const { return unionArray == 0; }
+    bool empty() const { return unionArray == nullptr; }
 
 protected:
     typedef TVector<TConstUnion> TConstUnionVector;

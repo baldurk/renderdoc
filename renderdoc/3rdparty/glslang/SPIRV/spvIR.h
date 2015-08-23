@@ -50,7 +50,7 @@
 #ifndef spvIR_H
 #define spvIR_H
 
-#include "spirv.h"
+#include "spirv.hpp"
 
 #include <vector>
 #include <iostream>

@@ -50,6 +50,7 @@ namespace spv {
 
 const int MagicNumber = 0x07230203;
 const int Version = 99;
+const int Revision = 30;
 
 typedef unsigned int Id;
 
@@ -679,6 +680,7 @@ enum Op {
 
 const int SpvMagicNumber = 0x07230203;
 const int SpvVersion = 99;
+const int SpvRevision = 30;
 
 typedef unsigned int SpvId;
 

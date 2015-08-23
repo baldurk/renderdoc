@@ -108,6 +108,7 @@ public:
 protected:
     friend class glslang::TLiveTraverser;
 
+    // Need a TString hash: typedef std::unordered_map<TString, int> TNameToIndex;
     typedef std::map<TString, int> TNameToIndex;
     typedef std::vector<TObjectReflection> TMapIndexToReflection;
 

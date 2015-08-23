@@ -45,6 +45,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <unordered_set>
+
 #include "SpvBuilder.h"
 
 #ifndef _WIN32
@@ -293,31 +295,54 @@ Id Builder::makeFunctionType(Id returnType, std::vector<Id>& paramTypes)
     return type->getResultId();
 }
 
-Id Builder::makeSampler(Id sampledType, Dim dim, samplerContent content, bool arrayed, bool shadow, bool ms)
+Id Builder::makeImageType(Id sampledType, Dim dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format)
 {
     // try to find it
     Instruction* type;
-    for (int t = 0; t < (int)groupedTypes[OpTypeSampler].size(); ++t) {
-        type = groupedTypes[OpTypeSampler][t];
+    for (int t = 0; t < (int)groupedTypes[OpTypeImage].size(); ++t) {
+        type = groupedTypes[OpTypeImage][t];
         if (type->getIdOperand(0) == sampledType &&
             type->getImmediateOperand(1) == (unsigned int)dim &&
-            type->getImmediateOperand(2) == (unsigned int)content &&
+            type->getImmediateOperand(2) == (  depth ? 1u : 0u) &&
             type->getImmediateOperand(3) == (arrayed ? 1u : 0u) &&
-            type->getImmediateOperand(4) == ( shadow ? 1u : 0u) &&
-            type->getImmediateOperand(5) == (     ms ? 1u : 0u))
+            type->getImmediateOperand(4) == (     ms ? 1u : 0u) &&
+            type->getImmediateOperand(5) == sampled &&
+            type->getImmediateOperand(6) == (unsigned int)format)
             return type->getResultId();
     }
 
     // not found, make it
-    type = new Instruction(getUniqueId(), NoType, OpTypeSampler);
+    type = new Instruction(getUniqueId(), NoType, OpTypeImage);
     type->addIdOperand(sampledType);
     type->addImmediateOperand(   dim);
-    type->addImmediateOperand(content);
+    type->addImmediateOperand(  depth ? 1 : 0);
     type->addImmediateOperand(arrayed ? 1 : 0);
-    type->addImmediateOperand( shadow ? 1 : 0);
     type->addImmediateOperand(     ms ? 1 : 0);
+    type->addImmediateOperand(sampled);
+    type->addImmediateOperand((unsigned int)format);
 
-    groupedTypes[OpTypeSampler].push_back(type);
+    groupedTypes[OpTypeImage].push_back(type);
+    constantsTypesGlobals.push_back(type);
+    module.mapInstruction(type);
+
+    return type->getResultId();
+}
+
+Id Builder::makeSampledImageType(Id imageType)
+{
+    // try to find it
+    Instruction* type;
+    for (int t = 0; t < (int)groupedTypes[OpTypeSampledImage].size(); ++t) {
+        type = groupedTypes[OpTypeSampledImage][t];
+        if (type->getIdOperand(0) == imageType)
+            return type->getResultId();
+    }
+
+    // not found, make it
+    type = new Instruction(getUniqueId(), NoType, OpTypeSampledImage);
+    type->addIdOperand(imageType);
+
+    groupedTypes[OpTypeSampledImage].push_back(type);
     constantsTypesGlobals.push_back(type);
     module.mapInstruction(type);
 
@@ -604,11 +629,12 @@ Id Builder::makeCompositeConstant(Id typeId, std::vector<Id>& members)
     return c->getResultId();
 }
 
-void Builder::addEntryPoint(ExecutionModel model, Function* function)
+void Builder::addEntryPoint(ExecutionModel model, Function* function, const char* name)
 {
     Instruction* entryPoint = new Instruction(OpEntryPoint);
     entryPoint->addImmediateOperand(model);
     entryPoint->addIdOperand(function->getId());
+    entryPoint->addStringOperand(name);
 
     entryPoints.push_back(entryPoint);
 }
@@ -765,9 +791,7 @@ void Builder::leaveFunction(bool main)
             if (function.getReturnType() == makeVoidType())
                 makeReturn(true);
             else {
-                Id retStorage = createVariable(StorageClassFunction, function.getReturnType(), "dummyReturn");
-                Id retValue = createLoad(retStorage);
-                makeReturn(true, retValue);
+                makeReturn(true, createUndefined(function.getReturnType()));
             }
         }
     }
@@ -816,6 +840,14 @@ Id Builder::createVariable(StorageClass storageClass, Id type, const char* name)
         addName(inst->getResultId(), name);
 
     return inst->getResultId();
+}
+
+// Comments in header
+Id Builder::createUndefined(Id type)
+{
+  Instruction* inst = new Instruction(getUniqueId(), type, OpUndef);
+  buildPoint->addInstruction(inst);
+  return inst->getResultId();
 }
 
 // Comments in header
@@ -943,18 +975,20 @@ void Builder::createNoResultOp(Op opCode, Id operand)
     buildPoint->addInstruction(op);
 }
 
-void Builder::createControlBarrier(unsigned executionScope)
+void Builder::createControlBarrier(Scope execution, Scope memory, MemorySemanticsMask semantics)
 {
     Instruction* op = new Instruction(OpControlBarrier);
-    op->addImmediateOperand(executionScope);
+    op->addImmediateOperand(makeUintConstant(execution));
+    op->addImmediateOperand(makeUintConstant(memory));
+    op->addImmediateOperand(makeUintConstant(semantics));
     buildPoint->addInstruction(op);
 }
 
 void Builder::createMemoryBarrier(unsigned executionScope, unsigned memorySemantics)
 {
     Instruction* op = new Instruction(OpMemoryBarrier);
-    op->addImmediateOperand(executionScope);
-    op->addImmediateOperand(memorySemantics);
+    op->addImmediateOperand(makeUintConstant(executionScope));
+    op->addImmediateOperand(makeUintConstant(memorySemantics));
     buildPoint->addInstruction(op);
 }
 
@@ -989,12 +1023,11 @@ Id Builder::createTriOp(Op opCode, Id typeId, Id op1, Id op2, Id op3)
     return op->getResultId();
 }
 
-Id Builder::createTernaryOp(Op opCode, Id typeId, Id op1, Id op2, Id op3)
+Id Builder::createOp(Op opCode, Id typeId, const std::vector<Id>& operands)
 {
     Instruction* op = new Instruction(getUniqueId(), typeId, opCode);
-    op->addIdOperand(op1);
-    op->addIdOperand(op2);
-    op->addIdOperand(op3);
+    for (auto it = operands.begin(); it != operands.end(); ++it)
+        op->addIdOperand(*it);
     buildPoint->addInstruction(op);
 
     return op->getResultId();
@@ -1106,64 +1139,95 @@ Id Builder::createBuiltinCall(Decoration /*precision*/, Id resultType, Id builti
 // Create the correct instruction based on the inputs, and make the call.
 Id Builder::createTextureCall(Decoration precision, Id resultType, bool proj, const TextureParameters& parameters)
 {
-    static const int maxTextureArgs = 5;
+    static const int maxTextureArgs = 10;
     Id texArgs[maxTextureArgs] = {};
 
     //
-    // Set up the arguments
+    // Set up the fixed arguments
     //
-
     int numArgs = 0;
+    bool xplicit = false;
     texArgs[numArgs++] = parameters.sampler;
     texArgs[numArgs++] = parameters.coords;
-
-    if (parameters.gradX) {
-        texArgs[numArgs++] = parameters.gradX;
-        texArgs[numArgs++] = parameters.gradY;
-    }
-    if (parameters.lod)
-        texArgs[numArgs++] = parameters.lod;
-    if (parameters.offset)
-        texArgs[numArgs++] = parameters.offset;
-    if (parameters.bias)
-        texArgs[numArgs++] = parameters.bias;
     if (parameters.Dref)
         texArgs[numArgs++] = parameters.Dref;
 
     //
+    // Set up the optional arguments
+    //
+    int optArgNum = numArgs;                        // track which operand, if it exists, is the mask of optional arguments
+    ++numArgs;                                      // speculatively make room for the mask operand
+    ImageOperandsMask mask = ImageOperandsMaskNone; // the mask operand
+    if (parameters.bias) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsBiasMask);
+        texArgs[numArgs++] = parameters.bias;
+    }
+    if (parameters.lod) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsLodMask);
+        texArgs[numArgs++] = parameters.lod;
+        xplicit = true;
+    }
+    if (parameters.gradX) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsGradMask);
+        texArgs[numArgs++] = parameters.gradX;
+        texArgs[numArgs++] = parameters.gradY;
+        xplicit = true;
+    }
+    if (parameters.offset) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsOffsetMask);
+        texArgs[numArgs++] = parameters.offset;
+    }
+    // TBD: if Offset is constant, use ImageOperandsConstOffsetMask
+    if (parameters.offsets) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsConstOffsetsMask);
+        texArgs[numArgs++] = parameters.offsets;
+    }
+    if (parameters.sample) {
+        mask = (ImageOperandsMask)(mask | ImageOperandsSampleMask);
+        texArgs[numArgs++] = parameters.sample;
+    }
+    if (mask == ImageOperandsMaskNone)
+        --numArgs;  // undo speculative reservation for the mask argument
+    else
+        texArgs[optArgNum] = mask;
+
+    //
     // Set up the instruction
     //
-
     Op opCode;
-    if (proj && parameters.gradX && parameters.offset)
-        opCode = OpTextureSampleProjGradOffset;
-    else if (proj && parameters.lod && parameters.offset)
-        opCode = OpTextureSampleProjLodOffset;
-    else if (parameters.gradX && parameters.offset)
-        opCode = OpTextureSampleGradOffset;
-    else if (proj && parameters.offset)
-        opCode = OpTextureSampleProjOffset;
-    else if (parameters.lod && parameters.offset)
-        opCode = OpTextureSampleLodOffset;
-    else if (proj && parameters.gradX)
-        opCode = OpTextureSampleProjGrad;
-    else if (proj && parameters.lod)
-        opCode = OpTextureSampleProjLod;
-    else if (parameters.offset)
-        opCode = OpTextureSampleOffset;
-    else if (parameters.gradX)
-        opCode = OpTextureSampleGrad;
-    else if (proj)
-        opCode = OpTextureSampleProj;
-    else if (parameters.lod)
-        opCode = OpTextureSampleLod;
-    else if (parameters.Dref)
-        opCode = OpTextureSampleDref;
-    else
-        opCode = OpTextureSample;
+    opCode = OpImageSampleImplicitLod;
+    if (xplicit) {
+        if (parameters.Dref) {
+            if (proj)
+                opCode = OpImageSampleProjDrefExplicitLod;
+            else
+                opCode = OpImageSampleDrefExplicitLod;
+        } else {
+            if (proj)
+                opCode = OpImageSampleProjExplicitLod;
+            else
+                opCode = OpImageSampleExplicitLod;
+        }
+    } else {
+        if (parameters.Dref) {
+            if (proj)
+                opCode = OpImageSampleProjDrefImplicitLod;
+            else
+                opCode = OpImageSampleDrefImplicitLod;
+        } else {
+            if (proj)
+                opCode = OpImageSampleProjImplicitLod;
+            else
+                opCode = OpImageSampleImplicitLod;
+        }
+    }
 
     Instruction* textureInst = new Instruction(getUniqueId(), resultType, opCode);
-    for (int op = 0; op < numArgs; ++op)
+    for (int op = 0; op < optArgNum; ++op)
+        textureInst->addIdOperand(texArgs[op]);
+    if (optArgNum < numArgs)
+        textureInst->addImmediateOperand(texArgs[optArgNum]);
+    for (int op = optArgNum + 1; op < numArgs; ++op)
         textureInst->addIdOperand(texArgs[op]);
     setPrecision(textureInst->getResultId(), precision);
     buildPoint->addInstruction(textureInst);
@@ -1175,13 +1239,13 @@ Id Builder::createTextureCall(Decoration precision, Id resultType, bool proj, co
 Id Builder::createTextureQueryCall(Op opCode, const TextureParameters& parameters)
 {
     // Figure out the result type
-    Id resultType = NoType;
+    Id resultType = 0;
     switch (opCode) {
-    case OpTextureQuerySize:
-    case OpTextureQuerySizeLod:
+    case OpImageQuerySize:
+    case OpImageQuerySizeLod:
     {
         int numComponents;
-        switch (getDimensionality(parameters.sampler)) {
+        switch (getTypeDimensionality(getImageType(parameters.sampler))) {
         case Dim1D:
         case DimBuffer:
             numComponents = 1;
@@ -1198,7 +1262,7 @@ Id Builder::createTextureQueryCall(Op opCode, const TextureParameters& parameter
             MissingFunctionality("texture query dimensionality");
             break;
         }
-        if (isArrayedSampler(parameters.sampler))
+        if (isArrayedImageType(getImageType(parameters.sampler)))
             ++numComponents;
         if (numComponents == 1)
             resultType = makeIntType(32);
@@ -1207,11 +1271,11 @@ Id Builder::createTextureQueryCall(Op opCode, const TextureParameters& parameter
 
         break;
     }
-    case OpTextureQueryLod:
+    case OpImageQueryLod:
         resultType = makeVectorType(makeFloatType(32), 2);
         break;
-    case OpTextureQueryLevels:
-    case OpTextureQuerySamples:
+    case OpImageQueryLevels:
+    case OpImageQuerySamples:
         resultType = makeIntType(32);
         break;
     default:
@@ -1470,7 +1534,7 @@ Id Builder::createCompare(Decoration precision, Id value1, Id value2, bool equal
 // OpCompositeConstruct
 Id Builder::createCompositeConstruct(Id typeId, std::vector<Id>& constituents)
 {
-    assert((isAggregateType(typeId) || getNumTypeComponents(typeId) > 1) && getNumTypeComponents(typeId) == (int)constituents.size());
+    assert(isAggregateType(typeId) || (getNumTypeComponents(typeId) > 1 && getNumTypeComponents(typeId) == (int)constituents.size()));
 
     Instruction* op = new Instruction(getUniqueId(), typeId, OpCompositeConstruct);
     for (int c = 0; c < (int)constituents.size(); ++c)
@@ -1736,16 +1800,18 @@ void Builder::endSwitch(std::vector<Block*>& /*segmentBlock*/)
 }
 
 // Comments in header
-void Builder::makeNewLoop()
+void Builder::makeNewLoop(bool loopTestFirst)
 {
-    Loop loop = { };
+    loops.push(Loop(*this, loopTestFirst));
+    const Loop& loop = loops.top();
 
-    loop.function = &getBuildPoint()->getParent();
-    loop.header = new Block(getUniqueId(), *loop.function);
-    loop.merge  = new Block(getUniqueId(), *loop.function);
-    loop.test   = NULL;
+    // The loop test is always emitted before the loop body.
+    // But if the loop test executes at the bottom of the loop, then
+    // execute the test only on the second and subsequent iterations.
 
-    loops.push(loop);
+    // Remember the block that branches to the loop header.  This
+    // is required for the test-after-body case.
+    Block* preheader = getBuildPoint();
 
     // Branch into the loop
     createBranch(loop.header);
@@ -1753,56 +1819,91 @@ void Builder::makeNewLoop()
     // Set ourselves inside the loop
     loop.function->addBlock(loop.header);
     setBuildPoint(loop.header);
+
+    if (!loopTestFirst) {
+        // Generate code to defer the loop test until the second and
+        // subsequent iterations.
+
+        // It's always the first iteration when coming from the preheader.
+        // All other branches to this loop header will need to indicate "false",
+        // but we don't yet know where they will come from.
+        loop.isFirstIteration->addIdOperand(makeBoolConstant(true));
+        loop.isFirstIteration->addIdOperand(preheader->getId());
+        getBuildPoint()->addInstruction(loop.isFirstIteration);
+
+        // Mark the end of the structured loop. This must exist in the loop header block.
+        createMerge(OpLoopMerge, loop.merge, LoopControlMaskNone);
+
+        // Generate code to see if this is the first iteration of the loop.
+        // It needs to be in its own block, since the loop merge and
+        // the selection merge instructions can't both be in the same
+        // (header) block.
+        Block* firstIterationCheck = new Block(getUniqueId(), *loop.function);
+        createBranch(firstIterationCheck);
+        loop.function->addBlock(firstIterationCheck);
+        setBuildPoint(firstIterationCheck);
+
+        // Control flow after this "if" normally reconverges at the loop body.
+        // However, the loop test has a "break branch" out of this selection
+        // construct because it can transfer control to the loop merge block.
+        createMerge(OpSelectionMerge, loop.body, SelectionControlMaskNone);
+
+        Block* loopTest = new Block(getUniqueId(), *loop.function);
+        createConditionalBranch(loop.isFirstIteration->getResultId(), loop.body, loopTest);
+
+        loop.function->addBlock(loopTest);
+        setBuildPoint(loopTest);
+    }
 }
 
 void Builder::createLoopTestBranch(Id condition)
 {
-    Loop& loop = loops.top();
+    const Loop& loop = loops.top();
 
-    // If loop.test exists, then we've already generated the LoopMerge
-    // for this loop.
-    if (!loop.test)
-      createMerge(OpLoopMerge, loop.merge, LoopControlMaskNone);
+    // Generate the merge instruction. If the loop test executes before
+    // the body, then this is a loop merge.  Otherwise the loop merge
+    // has already been generated and this is a conditional merge.
+    if (loop.testFirst) {
+        createMerge(OpLoopMerge, loop.merge, LoopControlMaskNone);
+        // Branching to the "body" block will keep control inside
+        // the loop.
+        createConditionalBranch(condition, loop.body, loop.merge);
+        loop.function->addBlock(loop.body);
+        setBuildPoint(loop.body);
+    } else {
+        // The branch to the loop merge block is the allowed exception
+        // to the structured control flow.  Otherwise, control flow will
+        // continue to loop.body block.  Since that is already the target
+        // of a merge instruction, and a block can't be the target of more
+        // than one merge instruction, we need to make an intermediate block.
+        Block* stayInLoopBlock = new Block(getUniqueId(), *loop.function);
+        createMerge(OpSelectionMerge, stayInLoopBlock, SelectionControlMaskNone);
 
-    // Branching to the "body" block will keep control inside
-    // the loop.
-    Block* body = new Block(getUniqueId(), *loop.function);
-    createConditionalBranch(condition, body, loop.merge);
-    loop.function->addBlock(body);
-    setBuildPoint(body);
+        // This is the loop test.
+        createConditionalBranch(condition, stayInLoopBlock, loop.merge);
+
+        // The dummy block just branches to the real loop body.
+        loop.function->addBlock(stayInLoopBlock);
+        setBuildPoint(stayInLoopBlock);
+        createBranchToBody();
+    }
 }
 
-void Builder::endLoopHeaderWithoutTest()
+void Builder::createBranchToBody()
 {
-    Loop& loop = loops.top();
+    const Loop& loop = loops.top();
+    assert(loop.body);
 
-    createMerge(OpLoopMerge, loop.merge, LoopControlMaskNone);
-    Block* body = new Block(getUniqueId(), *loop.function);
-    createBranch(body);
-    loop.function->addBlock(body);
-    setBuildPoint(body);
-
-    assert(!loop.test);
-    loop.test = new Block(getUniqueId(), *loop.function);
-}
-
-void Builder::createBranchToLoopTest()
-{
-    Loop& loop = loops.top();
-    Block* testBlock = loop.test;
-    assert(testBlock);
-    createBranch(testBlock);
-    loop.function->addBlock(testBlock);
-    setBuildPoint(testBlock);
+    // This is a reconvergence of control flow, so no merge instruction
+    // is required.
+    createBranch(loop.body);
+    loop.function->addBlock(loop.body);
+    setBuildPoint(loop.body);
 }
 
 void Builder::createLoopContinue()
 {
-    Loop& loop = loops.top();
-    if (loop.test)
-      createBranch(loop.test);
-    else
-      createBranch(loop.header);
+    createBranchToLoopHeaderFromInside(loops.top());
     // Set up a block for dead code.
     createAndSetNoPredecessorBlock("post-loop-continue");
 }
@@ -1818,16 +1919,28 @@ void Builder::createLoopExit()
 // Close the innermost loop
 void Builder::closeLoop()
 {
-    Loop& loop = loops.top();
+    const Loop& loop = loops.top();
 
     // Branch back to the top
-    createBranch(loop.header);
+    createBranchToLoopHeaderFromInside(loop);
 
     // Add the merge block and set the build point to it
     loop.function->addBlock(loop.merge);
     setBuildPoint(loop.merge);
 
     loops.pop();
+}
+
+// Create a branch to the header of the given loop, from inside
+// the loop body.
+// Adjusts the phi node for the first-iteration value if needeed.
+void Builder::createBranchToLoopHeaderFromInside(const Loop& loop)
+{
+    createBranch(loop.header);
+    if (loop.isFirstIteration) {
+        loop.isFirstIteration->addIdOperand(makeBoolConstant(false));
+        loop.isFirstIteration->addIdOperand(getBuildPoint()->getId());
+    }
 }
 
 void Builder::clearAccessChain()
@@ -1990,7 +2103,16 @@ void Builder::dump(std::vector<unsigned int>& out) const
         extInst.addStringOperand(extensions[e]);
         extInst.dump(out);
     }
+
     // TBD: OpExtension ...
+
+    // Capabilities
+		for (auto it = capabilities.begin(); it != capabilities.end(); ++it) {
+        Instruction capInst(0, 0, OpCapability);
+        capInst.addImmediateOperand(*it);
+        capInst.dump(out);
+    }
+
     dumpInstructions(out, imports);
     Instruction memInst(0, 0, OpMemoryModel);
     memInst.addImmediateOperand(addressModel);
@@ -2123,15 +2245,31 @@ void Builder::dumpInstructions(std::vector<unsigned int>& out, const std::vector
     }
 }
 
+void TbdFunctionality(const char* tbd)
+{
+    static std::unordered_set<const char*> issued;
+
+    if (issued.find(tbd) == issued.end()) {
+        printf("TBD functionality: %s\n", tbd);
+        issued.insert(tbd);
+    }
+}
+
 void MissingFunctionality(const char* fun)
 {
-    //printf("Missing functionality: %s\n", fun);
+    printf("Missing functionality: %s\n", fun);
     //exit(1);
 }
 
-void ValidationError(const char* error)
-{
-    //printf("Validation Error: %s\n", error);
-}
+Builder::Loop::Loop(Builder& builder, bool testFirstArg)
+  : function(&builder.getBuildPoint()->getParent()),
+    header(new Block(builder.getUniqueId(), *function)),
+    merge(new Block(builder.getUniqueId(), *function)),
+    body(new Block(builder.getUniqueId(), *function)),
+    testFirst(testFirstArg),
+    isFirstIteration(testFirst
+                     ? nullptr
+                     : new Instruction(builder.getUniqueId(), builder.makeBoolType(), OpPhi))
+  {}
 
 }; // end spv namespace

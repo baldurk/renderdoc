@@ -48,7 +48,7 @@
 #ifndef SpvBuilder_H
 #define SpvBuilder_H
 
-#include "spirv.h"
+#include "spirv.hpp"
 #include "spvIR.h"
 
 #include <algorithm>
@@ -77,6 +77,8 @@ public:
         memoryModel = mem;
     }
 
+    void addCapability(spv::Capability cap) { capabilities.push_back(cap); }
+
     // To get a new <id> for anything needing a new one.
     Id getUniqueId() { return ++uniqueId; }
 
@@ -101,12 +103,8 @@ public:
     Id makeMatrixType(Id component, int cols, int rows);
     Id makeArrayType(Id element, unsigned size);
     Id makeFunctionType(Id returnType, std::vector<Id>& paramTypes);
-    enum samplerContent {
-        samplerContentTexture,
-        samplerContentImage,
-        samplerContentTextureFilter
-    };
-    Id makeSampler(Id sampledType, Dim, samplerContent, bool arrayed, bool shadow, bool ms);
+    Id makeImageType(Id sampledType, Dim, bool depth, bool arrayed, bool ms, unsigned sampled, ImageFormat format);
+    Id makeSampledImageType(Id imageType);
 
     // For querying about types.
     Id getTypeId(Id resultId) const { return module.getTypeId(resultId); }
@@ -133,7 +131,9 @@ public:
     bool isStructType(Id typeId)    const { return getTypeClass(typeId) == OpTypeStruct; }
     bool isArrayType(Id typeId)     const { return getTypeClass(typeId) == OpTypeArray; }
     bool isAggregateType(Id typeId) const { return isArrayType(typeId) || isStructType(typeId); }
+    bool isImageType(Id typeId)     const { return getTypeClass(typeId) == OpTypeImage; }
     bool isSamplerType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampler; }
+    bool isSampledImageType(Id typeId)   const { return getTypeClass(typeId) == OpTypeSampledImage; }
 
     bool isConstantScalar(Id resultId) const { return getOpCode(resultId) == OpConstant; }
     unsigned int getConstantScalar(Id resultId) const { return module.getInstruction(resultId)->getImmediateOperand(0); }
@@ -151,15 +151,20 @@ public:
     }
     int getNumRows(Id resultId) const { return getTypeNumRows(getTypeId(resultId)); }
 
-    Dim getDimensionality(Id resultId) const
+    Dim getTypeDimensionality(Id typeId) const
     {
-        assert(isSamplerType(getTypeId(resultId)));
-        return (Dim)module.getInstruction(getTypeId(resultId))->getImmediateOperand(1);
+        assert(isImageType(typeId));
+        return (Dim)module.getInstruction(typeId)->getImmediateOperand(1);
     }
-    bool isArrayedSampler(Id resultId) const
+    Id getImageType(Id resultId) const
     {
-        assert(isSamplerType(getTypeId(resultId)));
-        return module.getInstruction(getTypeId(resultId))->getImmediateOperand(3) != 0;
+        assert(isSampledImageType(getTypeId(resultId)));
+        return module.getInstruction(getTypeId(resultId))->getIdOperand(0);
+    }
+    bool isArrayedImageType(Id typeId) const
+    {
+        assert(isImageType(typeId));
+        return module.getInstruction(typeId)->getImmediateOperand(3) != 0;
     }
 
     // For making new constants (will return old constant if the requested one was already made).
@@ -174,7 +179,7 @@ public:
     Id makeCompositeConstant(Id type, std::vector<Id>& comps);
 
     // Methods for adding information outside the CFG.
-    void addEntryPoint(ExecutionModel, Function*);
+    void addEntryPoint(ExecutionModel, Function*, const char* name);
     void addExecutionMode(Function*, ExecutionMode mode, int value = -1);
     void addName(Id, const char* name);
     void addMemberName(Id, int member, const char* name);
@@ -213,6 +218,9 @@ public:
     // Create a global or function local or IO variable.
     Id createVariable(StorageClass, Id type, const char* name = 0);
 
+    // Create an imtermediate with an undefined value.
+    Id createUndefined(Id type);
+
     // Store into an Id and return the l-value
     void createStore(Id rValue, Id lValue);
 
@@ -233,12 +241,12 @@ public:
 
     void createNoResultOp(Op);
     void createNoResultOp(Op, Id operand);
-    void createControlBarrier(unsigned executionScope);
+    void createControlBarrier(Scope execution, Scope memory, MemorySemanticsMask);
     void createMemoryBarrier(unsigned executionScope, unsigned memorySemantics);
     Id createUnaryOp(Op, Id typeId, Id operand);
     Id createBinOp(Op, Id typeId, Id operand1, Id operand2);
     Id createTriOp(Op, Id typeId, Id operand1, Id operand2, Id operand3);
-    Id createTernaryOp(Op, Id typeId, Id operand1, Id operand2, Id operand3);
+    Id createOp(Op, Id typeId, const std::vector<Id>& operands);
     Id createFunctionCall(spv::Function*, std::vector<spv::Id>&);
 
     // Take an rvalue (source) and a set of channels to extract from it to
@@ -283,8 +291,10 @@ public:
         Id lod;
         Id Dref;
         Id offset;
+        Id offsets;
         Id gradX;
         Id gradY;
+        Id sample;
     };
 
     // Select the correct texture operation based on all inputs, and emit the correct instruction
@@ -357,35 +367,25 @@ public:
     // Finish off the innermost switch.
     void endSwitch(std::vector<Block*>& segmentBB);
 
-    // Start the beginning of a new loop.
-    void makeNewLoop();
+    // Start the beginning of a new loop, and prepare the builder to
+    // generate code for the loop test.
+    // The loopTestFirst parameter is true when the loop test executes before
+    // the body.  (It is false for do-while loops.)
+    void makeNewLoop(bool loopTestFirst);
 
     // Add the branch for the loop test, based on the given condition.
-    // The true branch goes to the block that remains inside the loop, and
-    // the false branch goes to the loop's merge block.  The  builder insertion
-    // point will be placed at the start of the inside-the-loop block.
+    // The true branch goes to the first block in the loop body, and
+    // the false branch goes to the loop's merge block.  The builder insertion
+    // point will be placed at the start of the body.
     void createLoopTestBranch(Id condition);
 
-    // Finish generating the loop header block in the case where the loop test
-    // is at the bottom of the loop.  It will include the LoopMerge instruction
-    // and a branch to the rest of the body.  The loop header block must be
-    // separate from the rest of the body to make room for the the two kinds
-    // of *Merge instructions that might have to occur just before a branch:
-    // the loop header must have a LoopMerge as its second-last instruction,
-    // and the body might begin with a conditional branch, which must have its
-    // own SelectionMerge instruction.
-    // Also create the basic block that will contain the loop test, but don't
-    // insert it into the function yet.  Any "continue" constructs in this loop
-    // will branch to the loop test block. The builder insertion point will be
-    // placed at the start of the body block.
-    void endLoopHeaderWithoutTest();
-
-    // Generate a branch to the loop test block.  This can only be called if
-    // the loop test is at the bottom of the loop. The builder insertion point
-    // is left at the start of the test block.
-    void createBranchToLoopTest();
+    // Generate an unconditional branch to the loop body.  The builder insertion
+    // point will be placed at the start of the body.  Use this when there is
+    // no loop test.
+    void createBranchToBody();
 
     // Add a branch to the test of the current (innermost) loop.
+    // The way we generate code, that's also the loop header.
     void createLoopContinue();
 
     // Add an exit (e.g. "break") for the innermost loop that you're in
@@ -499,11 +499,15 @@ protected:
     void createConditionalBranch(Id condition, Block* thenBlock, Block* elseBlock);
     void dumpInstructions(std::vector<unsigned int>&, const std::vector<Instruction*>&) const;
 
+    struct Loop; // Defined below.
+    void createBranchToLoopHeaderFromInside(const Loop& loop);
+
     SourceLanguage source;
     int sourceVersion;
     std::vector<const char*> extensions;
     AddressingModel addressModel;
     MemoryModel memoryModel;
+    std::vector<spv::Capability> capabilities;
     int builderNumber;
     Module module;
     Block* buildPoint;
@@ -531,6 +535,17 @@ protected:
 
     // Data that needs to be kept in order to properly handle loops.
     struct Loop {
+        // Constructs a default Loop structure containing new header, merge, and
+        // body blocks for the current function.
+        // The testFirst argument indicates whether the loop test executes at
+        // the top of the loop rather than at the bottom.  In the latter case,
+        // also create a phi instruction whose value indicates whether we're on
+        // the first iteration of the loop.  The phi instruction is initialized
+        // with no values or predecessor operands.
+        Loop(Builder& builder, bool testFirst);
+
+        // The function containing the loop.
+        Function* const function;
         // The header is the first block generated for the loop.
         // It dominates all the blocks in the loop, i.e. it is always
         // executed before any others.
@@ -538,25 +553,33 @@ protected:
         // "for" loops), then the header begins with the test code.
         // Otherwise, the loop is a "do-while" loop and the header contains the
         // start of the body of the loop (if the body exists).
-        Block* header;
+        Block* const header;
         // The merge block marks the end of the loop.  Control is transferred
         // to the merge block when either the loop test fails, or when a
         // nested "break" is encountered.
-        Block* merge;
-        // If not NULL, the test block is the basic block containing the loop
-        // test and the conditional branch back to the header or the merge
-        // block.  This is created for "do-while" loops, and is the target of
-        // any "continue" constructs that might exist.
-        Block* test;
-        Function* function;
+        Block* const merge;
+        // The body block is the first basic block in the body of the loop, i.e.
+        // the code that is to be repeatedly executed, aside from loop control.
+        // This member is null until we generate code that references the loop
+        // body block.
+        Block* const body;
+        // True when the loop test executes before the body.
+        const bool testFirst;
+        // When the test executes after the body, this is defined as the phi
+        // instruction that tells us whether we are on the first iteration of
+        // the loop.  Otherwise this is null.
+        Instruction* const isFirstIteration;
     };
 
     // Our loop stack.
     std::stack<Loop> loops;
 };  // end Builder class
 
+// Use for non-fatal notes about what's not complete
+void TbdFunctionality(const char*);
+
+// Use for fatal missing functionality
 void MissingFunctionality(const char*);
-void ValidationError(const char* error);
 
 };  // end spv namespace
 

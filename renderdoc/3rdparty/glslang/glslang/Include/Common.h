@@ -37,7 +37,7 @@
 #ifndef _COMMON_INCLUDED_
 #define _COMMON_INCLUDED_
 
-#if defined _MSC_VER || defined MINGW_HAS_SECURE_API
+#if (defined(_MSC_VER) && _MSC_VER < 1900 /*vs2015*/) || defined MINGW_HAS_SECURE_API
     #include <basetsd.h>
     #define snprintf sprintf_s
     #define safe_vsprintf(buf,max,format,args) vsnprintf_s((buf), (max), (max), (format), (args))
@@ -51,6 +51,17 @@
     #define UINT_PTR uintptr_t
 #endif
 
+#ifdef __ANDROID__
+#include <sstream>
+namespace std {
+template<typename T>
+std::string to_string(const T& val) {
+  std::ostringstream os;
+  os << val;
+  return os.str();
+}
+}
+#endif
 /* windows only pragma */
 #ifdef _MSC_VER
     #pragma warning(disable : 4786) // Don't warn about too long identifiers
@@ -59,8 +70,10 @@
 #endif
 
 #include <set>
+#include <unordered_set>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <list>
 #include <algorithm>
 #include <string>
@@ -82,21 +95,44 @@
     void operator delete[](void*) { }                                 \
     void operator delete[](void *, void *) { }
 
-#define TBaseMap std::map
-#define TBaseList std::list
-#define TBaseSet std::set
+namespace glslang {
+
+    //
+    // Pool version of string.
+    //
+    typedef pool_allocator<char> TStringAllocator;
+    typedef std::basic_string <char, std::char_traits<char>, TStringAllocator> TString;
+
+} // end namespace glslang
+
+// Repackage the std::hash for use by unordered map/set with a TString key.
+namespace std {
+
+    template<> struct hash<glslang::TString> {
+        std::size_t operator()(const glslang::TString& s) const
+        {
+            const unsigned _FNV_offset_basis = 2166136261U;
+            const unsigned _FNV_prime = 16777619U;
+            unsigned _Val = _FNV_offset_basis;
+            size_t _Count = s.size();
+            const char* _First = s.c_str();
+            for (size_t _Next = 0; _Next < _Count; ++_Next)
+            {
+                _Val ^= (unsigned)_First[_Next];
+                _Val *= _FNV_prime;
+            }
+
+            return _Val;
+        }
+    };
+}
 
 namespace glslang {
 
-//
-// Pool version of string.
-//
-typedef pool_allocator<char> TStringAllocator;
-typedef std::basic_string <char, std::char_traits<char>, TStringAllocator> TString;
 inline TString* NewPoolTString(const char* s)
 {
-	void* memory = GetThreadPoolAllocator().allocate(sizeof(TString));
-	return new(memory) TString(s);
+    void* memory = GetThreadPoolAllocator().allocate(sizeof(TString));
+    return new(memory) TString(s);
 }
 
 template<class T> inline T* NewPoolObject(T)
@@ -123,28 +159,15 @@ public:
     TVector(size_type i, const T& val) : std::vector<T, pool_allocator<T> >(i, val) {}
 };
 
-template <class T> class TList   : public TBaseList  <T, pool_allocator<T> > {
-public:
-    typedef typename TBaseList<T, pool_allocator<T> >::size_type size_type;
-    TList() : TBaseList<T, pool_allocator<T> >() {}
-    TList(const pool_allocator<T>& a) : TBaseList<T, pool_allocator<T> >(a) {}
-    TList(size_type i): TBaseList<T, pool_allocator<T> >(i) {}
+template <class T> class TList  : public std::list<T, pool_allocator<T> > {
 };
-
-// This is called TStlSet, because TSet is taken by an existing compiler class.
-template <class T, class CMP> class TStlSet : public std::set<T, CMP, pool_allocator<T> > {
-    // No pool allocator versions of constructors in std::set.
-};
-
 
 template <class K, class D, class CMP = std::less<K> > 
-class TMap : public TBaseMap<K, D, CMP, pool_allocator<std::pair<K, D> > > {
-public:
-    typedef pool_allocator<std::pair <K, D> > tAllocator;
+class TMap : public std::map<K, D, CMP, pool_allocator<std::pair<K, D> > > {
+};
 
-    TMap() : TBaseMap<K, D, CMP, tAllocator >() {}
-    // use correct two-stage name lookup supported in gcc 3.4 and above
-    TMap(const tAllocator& a) : TBaseMap<K, D, CMP, tAllocator>(TBaseMap<K, D, CMP, tAllocator >::key_compare(), a) {}
+template <class K, class D, class HASH = std::hash<K>, class PRED = std::equal_to<K> >
+class TUnorderedMap : public std::unordered_map<K, D, HASH, PRED, pool_allocator<std::pair<K const, D> > > {
 };
 
 //
@@ -177,16 +200,33 @@ inline const TString String(const int i, const int base = 10)
 }
 
 struct TSourceLoc {
-    void init() { string = 0; line = 0; column = 0; }
+    void init() { name = nullptr; string = 0; line = 0; column = 0; }
+    // Returns the name if it exists. Otherwise, returns the string number.
+    std::string getStringNameOrNum(bool quoteStringName = true) const
+    {
+        if (name != nullptr)
+            return quoteStringName ? ("\"" + std::string(name) + "\"") : name;
+
+        char text[16] = {0};
+
+    #if defined _MSC_VER || defined MINGW_HAS_SECURE_API
+        // we assume base 10 for all cases
+        _itoa_s(string, text, sizeof(text), 10);
+    #else
+        snprintf(text, sizeof(text), "%d", string);
+    #endif
+
+        return text;
+    }
+    const char* name; // descriptive name for this string
     int string;
     int line;
     int column;
 };
 
 typedef TMap<TString, TString> TPragmaTable;
-typedef TMap<TString, TString>::tAllocator TPragmaTableAllocator;
 
-const int GlslangMaxTokenLength = 1024;
+const int MaxTokenLength = 1024;
 
 template <class T> bool IsPow2(T powerOf2)
 {

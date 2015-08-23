@@ -854,7 +854,7 @@ TIntermTyped* TIntermediate::foldConstructor(TIntermAggregate* aggrNode)
 // dereference.  Can handle any thing except a multi-character swizzle, though
 // all swizzles may go to foldSwizzle().
 //
-TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, TSourceLoc loc)
+TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, const TSourceLoc& loc)
 {
     TType dereferencedType(node->getType(), index);
     dereferencedType.getQualifier().storage = EvqConst;
@@ -883,7 +883,7 @@ TIntermTyped* TIntermediate::foldDereference(TIntermTyped* node, int index, TSou
 // Make a constant vector node or constant scalar node, representing a given 
 // constant vector and constant swizzle into it.
 //
-TIntermTyped* TIntermediate::foldSwizzle(TIntermTyped* node, TVectorFields& fields, TSourceLoc loc)
+TIntermTyped* TIntermediate::foldSwizzle(TIntermTyped* node, TVectorFields& fields, const TSourceLoc& loc)
 {
     const TConstUnionArray& unionArray = node->getAsConstantUnion()->getConstArray();
     TConstUnionArray constArray(fields.num);

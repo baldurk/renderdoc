@@ -166,7 +166,7 @@ public:
             switch (visitNode->getOp()) {
             case EOpIndexIndirect:
                 // Visit all the indices of this array, and for each one add on the remaining dereferencing
-                for (int i = 0; i < visitNode->getLeft()->getType().getArraySize(); ++i) {
+                for (int i = 0; i < visitNode->getLeft()->getType().getOuterArraySize(); ++i) {
                     TString newBaseName = name;
                     if (baseType.getBasicType() != EbtBlock)
                         newBaseName.append(TString("[") + String(i) + "]");
@@ -201,7 +201,7 @@ public:
             if (terminalType->isArray()) {
                 // Visit all the indices of this array, and for each one,
                 // fully explode the remaining aggregate to dereference
-                for (int i = 0; i < terminalType->getArraySize(); ++i) {
+                for (int i = 0; i < terminalType->getOuterArraySize(); ++i) {
                     TString newBaseName = name;
                     newBaseName.append(TString("[") + String(i) + "]");
                     TType derefType(*terminalType, 0);
@@ -286,7 +286,7 @@ public:
             anonymous = IsAnonymous(base->getName());
             if (base->getType().isArray()) {
                 assert(! anonymous);
-                for (int e = 0; e < base->getType().getArraySize(); ++e)
+                for (int e = 0; e < base->getType().getCumulativeArraySize(); ++e)
                     blockIndex = addBlockName(base->getType().getTypeName() + "[" + String(e) + "]", getBlockSize(base->getType()));
             } else
                 blockIndex = addBlockName(base->getType().getTypeName(), getBlockSize(base->getType()));
@@ -610,7 +610,7 @@ public:
 
     int mapToGlArraySize(const TType& type)
     {
-        return type.isArray() ? type.getArraySize() : 1;
+        return type.isArray() ? type.getOuterArraySize() : 1;
     }
 
     typedef std::list<TIntermAggregate*> TFunctionStack;

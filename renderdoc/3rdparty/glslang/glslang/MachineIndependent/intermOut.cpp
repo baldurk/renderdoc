@@ -48,6 +48,8 @@ namespace {
 bool is_positive_infinity(double x) {
 #ifdef _MSC_VER
   return _fpclass(x) == _FPCLASS_PINF;
+#elif defined __ANDROID__
+  return std::isinf(x) && (x >= 0);
 #else
   return isinf(x) && (x >= 0);
 #endif
@@ -266,6 +268,13 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpPackHalf2x16:   out.debug << "packHalf2x16";         break;
     case EOpUnpackHalf2x16: out.debug << "unpackHalf2x16";       break;
 
+    case EOpPackSnorm4x8:     out.debug << "PackSnorm4x8";       break;
+    case EOpUnpackSnorm4x8:   out.debug << "UnpackSnorm4x8";     break;
+    case EOpPackUnorm4x8:     out.debug << "PackUnorm4x8";       break;
+    case EOpUnpackUnorm4x8:   out.debug << "UnpackUnorm4x8";     break;
+    case EOpPackDouble2x32:   out.debug << "PackDouble2x32";     break;
+    case EOpUnpackDouble2x32: out.debug << "UnpackDouble2x32";   break;
+
     case EOpLength:         out.debug << "length";               break;
     case EOpNormalize:      out.debug << "normalize";            break;
     case EOpDPdx:           out.debug << "dPdx";                 break;
@@ -277,6 +286,9 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
     case EOpDPdxCoarse:     out.debug << "dPdxCoarse";           break;
     case EOpDPdyCoarse:     out.debug << "dPdyCoarse";           break;
     case EOpFwidthCoarse:   out.debug << "fwidthCoarse";         break;
+
+    case EOpInterpolateAtCentroid: out.debug << "interpolateAtCentroid";  break;
+
     case EOpDeterminant:    out.debug << "determinant";          break;
     case EOpMatrixInverse:  out.debug << "inverse";              break;
     case EOpTranspose:      out.debug << "transpose";            break;
@@ -288,6 +300,23 @@ bool TOutputTraverser::visitUnary(TVisit /* visit */, TIntermUnary* node)
 
     case EOpEmitStreamVertex:   out.debug << "EmitStreamVertex";   break;
     case EOpEndStreamPrimitive: out.debug << "EndStreamPrimitive"; break;
+
+    case EOpAtomicCounterIncrement: out.debug << "AtomicCounterIncrement";break;
+    case EOpAtomicCounterDecrement: out.debug << "AtomicCounterDecrement";break;
+    case EOpAtomicCounter:          out.debug << "AtomicCounter";         break;
+
+    case EOpTextureQuerySize:       out.debug << "textureSize";           break;
+    case EOpTextureQueryLod:        out.debug << "textureQueryLod";       break;
+    case EOpTextureQueryLevels:     out.debug << "textureQueryLevels";    break;
+    case EOpTextureQuerySamples:    out.debug << "textureSamples";        break;
+    case EOpImageQuerySize:         out.debug << "imageQuerySize";        break;
+    case EOpImageQuerySamples:      out.debug << "imageQuerySamples";     break;
+    case EOpImageLoad:              out.debug << "imageLoad";             break;
+
+    case EOpBitFieldReverse:        out.debug << "bitFieldReverse";       break;
+    case EOpBitCount:               out.debug << "bitCount";              break;
+    case EOpFindLSB:                out.debug << "findLSB";               break;
+    case EOpFindMSB:                out.debug << "findMSB";               break;
 
     default: out.debug.message(EPrefixError, "Bad unary op");
     }
@@ -395,40 +424,63 @@ bool TOutputTraverser::visitAggregate(TVisit /* visit */, TIntermAggregate* node
     case EOpMemoryBarrierShared:        out.debug << "MemoryBarrierShared";        break;
     case EOpGroupMemoryBarrier:         out.debug << "GroupMemoryBarrier";         break;
 
-    case EImageQuerySize:               out.debug << "imageQuerySize";        break;
-    case EImageQuerySamples:            out.debug << "imageQuerySamples";     break;
-    case EImageLoad:                    out.debug << "imageLoad";             break;
-    case EImageStore:                   out.debug << "imageStore";            break;
-    case EImageAtomicAdd:               out.debug << "imageAtomicAdd";        break;
-    case EImageAtomicMin:               out.debug << "imageAtomicMin";        break;
-    case EImageAtomicMax:               out.debug << "imageAtomicMax";        break;
-    case EImageAtomicAnd:               out.debug << "imageAtomicAnd";        break;
-    case EImageAtomicOr:                out.debug << "imageAtomicOr";         break;
-    case EImageAtomicXor:               out.debug << "imageAtomicXor";        break;
-    case EImageAtomicExchange:          out.debug << "imageAtomicExchange";   break;
-    case EImageAtomicCompSwap:          out.debug << "imageAtomicCompSwap";   break;
+    case EOpAtomicAdd:                  out.debug << "AtomicAdd";             break;
+    case EOpAtomicMin:                  out.debug << "AtomicMin";             break;
+    case EOpAtomicMax:                  out.debug << "AtomicMax";             break;
+    case EOpAtomicAnd:                  out.debug << "AtomicAnd";             break;
+    case EOpAtomicOr:                   out.debug << "AtomicOr";              break;
+    case EOpAtomicXor:                  out.debug << "AtomicXor";             break;
+    case EOpAtomicExchange:             out.debug << "AtomicExchange";        break;
+    case EOpAtomicCompSwap:             out.debug << "AtomicCompSwap";        break;
 
-    case ETextureQuerySize:             out.debug << "textureSize";           break;
-    case ETextureQueryLod:              out.debug << "textureQueryLod";       break;
-    case ETextureQueryLevels:           out.debug << "textureQueryLevels";    break;
-    case ETextureQuerySamples:          out.debug << "textureSamples";        break;
-    case ETexture:                      out.debug << "texture";               break;
-    case ETextureProj:                  out.debug << "textureProj";           break;
-    case ETextureLod:                   out.debug << "textureLod";            break;
-    case ETextureOffset:                out.debug << "textureOffset";         break;
-    case ETextureFetch:                 out.debug << "textureFetch";          break;
-    case ETextureFetchOffset:           out.debug << "textureFetchOffset";    break;
-    case ETextureProjOffset:            out.debug << "textureProjOffset";     break;
-    case ETextureLodOffset:             out.debug << "textureLodOffset";      break;
-    case ETextureProjLod:               out.debug << "textureProjLod";        break;
-    case ETextureProjLodOffset:         out.debug << "textureProjLodOffset";  break;
-    case ETextureGrad:                  out.debug << "textureGrad";           break;
-    case ETextureGradOffset:            out.debug << "textureGradOffset";     break;
-    case ETextureProjGrad:              out.debug << "textureProjGrad";       break;
-    case ETextureProjGradOffset:        out.debug << "textureProjGradOffset"; break;
-    case ETextureGather:                out.debug << "textureGather";         break;
-    case ETextureGatherOffset:          out.debug << "textureGatherOffset";   break;
-    case ETextureGatherOffsets:         out.debug << "textureGatherOffsets";  break;
+    case EOpImageQuerySize:             out.debug << "imageQuerySize";        break;
+    case EOpImageQuerySamples:          out.debug << "imageQuerySamples";     break;
+    case EOpImageLoad:                  out.debug << "imageLoad";             break;
+    case EOpImageStore:                 out.debug << "imageStore";            break;
+    case EOpImageAtomicAdd:             out.debug << "imageAtomicAdd";        break;
+    case EOpImageAtomicMin:             out.debug << "imageAtomicMin";        break;
+    case EOpImageAtomicMax:             out.debug << "imageAtomicMax";        break;
+    case EOpImageAtomicAnd:             out.debug << "imageAtomicAnd";        break;
+    case EOpImageAtomicOr:              out.debug << "imageAtomicOr";         break;
+    case EOpImageAtomicXor:             out.debug << "imageAtomicXor";        break;
+    case EOpImageAtomicExchange:        out.debug << "imageAtomicExchange";   break;
+    case EOpImageAtomicCompSwap:        out.debug << "imageAtomicCompSwap";   break;
+
+    case EOpTextureQuerySize:           out.debug << "textureSize";           break;
+    case EOpTextureQueryLod:            out.debug << "textureQueryLod";       break;
+    case EOpTextureQueryLevels:         out.debug << "textureQueryLevels";    break;
+    case EOpTextureQuerySamples:        out.debug << "textureSamples";        break;
+    case EOpTexture:                    out.debug << "texture";               break;
+    case EOpTextureProj:                out.debug << "textureProj";           break;
+    case EOpTextureLod:                 out.debug << "textureLod";            break;
+    case EOpTextureOffset:              out.debug << "textureOffset";         break;
+    case EOpTextureFetch:               out.debug << "textureFetch";          break;
+    case EOpTextureFetchOffset:         out.debug << "textureFetchOffset";    break;
+    case EOpTextureProjOffset:          out.debug << "textureProjOffset";     break;
+    case EOpTextureLodOffset:           out.debug << "textureLodOffset";      break;
+    case EOpTextureProjLod:             out.debug << "textureProjLod";        break;
+    case EOpTextureProjLodOffset:       out.debug << "textureProjLodOffset";  break;
+    case EOpTextureGrad:                out.debug << "textureGrad";           break;
+    case EOpTextureGradOffset:          out.debug << "textureGradOffset";     break;
+    case EOpTextureProjGrad:            out.debug << "textureProjGrad";       break;
+    case EOpTextureProjGradOffset:      out.debug << "textureProjGradOffset"; break;
+    case EOpTextureGather:              out.debug << "textureGather";         break;
+    case EOpTextureGatherOffset:        out.debug << "textureGatherOffset";   break;
+    case EOpTextureGatherOffsets:       out.debug << "textureGatherOffsets";  break;
+
+    case EOpAddCarry:                   out.debug << "addCarry";              break;
+    case EOpSubBorrow:                  out.debug << "subBorrow";             break;
+    case EOpUMulExtended:               out.debug << "uMulExtended";          break;
+    case EOpIMulExtended:               out.debug << "iMulExtended";          break;
+    case EOpBitfieldExtract:            out.debug << "bitfieldExtract";       break;
+    case EOpBitfieldInsert:             out.debug << "bitfieldInsert";        break;
+
+    case EOpFma:                        out.debug << "fma";                   break;
+    case EOpFrexp:                      out.debug << "frexp";                 break;
+    case EOpLdexp:                      out.debug << "ldexp";                 break;
+
+    case EOpInterpolateAtSample:   out.debug << "interpolateAtSample";    break;
+    case EOpInterpolateAtOffset:   out.debug << "interpolateAtOffset";    break;
 
     default: out.debug.message(EPrefixError, "Bad aggregation op");
     }
@@ -649,7 +701,7 @@ void TIntermediate::output(TInfoSink& infoSink, bool tree)
 {
     infoSink.debug << "Shader version: " << version << "\n";
     if (requestedExtensions.size() > 0) {
-        for (std::set<std::string>::const_iterator extIt = requestedExtensions.begin(); extIt != requestedExtensions.end(); ++extIt)
+        for (auto extIt = requestedExtensions.begin(); extIt != requestedExtensions.end(); ++extIt)
             infoSink.debug << "Requested " << *extIt << "\n";
     }
 

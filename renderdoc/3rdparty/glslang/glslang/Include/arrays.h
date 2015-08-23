@@ -43,9 +43,13 @@
 
 namespace glslang {
 
+// This is used to mean there is no size yet (unsized), it is waiting to get a size from somewhere else.
+const int UnsizedArraySize = 0;
+
 //
 // TSmallArrayVector is used as the container for the set of sizes in TArraySizes.
 // It has generic-container semantics, while TArraySizes has array-of-array semantics.
+// That is, TSmallArrayVector should be more focused on mechanism and TArraySizes on policy.
 //
 struct TSmallArrayVector {
     //
@@ -56,7 +60,7 @@ struct TSmallArrayVector {
     //
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
 
-    TSmallArrayVector() : sizes(0) { }
+    TSmallArrayVector() : sizes(nullptr) { }
     virtual ~TSmallArrayVector() { dealloc(); }
 
     // For breaking into two non-shared copies, independently modifiable.
@@ -72,14 +76,14 @@ struct TSmallArrayVector {
         return *this;
     }
 
-    int size()
+    int size() const
     {
         if (sizes == nullptr)
             return 0;
         return (int)sizes->size();
     }
 
-    unsigned int front()
+    unsigned int front() const
     {
         assert(sizes != nullptr && sizes->size() > 0);
         return sizes->front();
@@ -97,13 +101,47 @@ struct TSmallArrayVector {
         sizes->push_back(e);
     }
 
-    unsigned int operator[](int i)
+    void push_front(const TSmallArrayVector& newDims)
     {
-        assert(sizes && (int)sizes->size() > i);
+        alloc();
+        sizes->insert(sizes->begin(), newDims.sizes->begin(), newDims.sizes->end());
+    }
+
+    void pop_front()
+    {
+        assert(sizes != nullptr && sizes->size() > 0);
+        if (sizes->size() == 1)
+            dealloc();
+        else
+            sizes->erase(sizes->begin());
+    }
+
+    // 'this' should currently not be holding anything, and copyNonFront
+    // will make it hold a copy of all but the first element of rhs.
+    // (This would be useful for making a type that is dereferenced by
+    // one dimension.)
+    void copyNonFront(const TSmallArrayVector& rhs)
+    {
+        assert(sizes == nullptr);
+        if (rhs.size() > 1) {
+            alloc();
+            sizes->insert(sizes->begin(), rhs.sizes->begin() + 1, rhs.sizes->end());
+        }
+    }
+
+    unsigned int operator[](int i) const
+    {
+        assert(sizes != nullptr  && (int)sizes->size() > i);
         return (*sizes)[i];
     }
 
-    bool operator==(const TSmallArrayVector& rhs)
+    unsigned int& operator[](int i)
+    {
+        assert(sizes != nullptr  && (int)sizes->size() > i);
+        return (*sizes)[i];
+    }
+
+    bool operator==(const TSmallArrayVector& rhs) const
     {
         if (sizes == nullptr && rhs.sizes == nullptr)
             return true;
@@ -111,6 +149,7 @@ struct TSmallArrayVector {
             return false;
         return *sizes == *rhs.sizes;
     }
+    bool operator!=(const TSmallArrayVector& rhs) const { return ! operator==(rhs); }
 
 protected:
     TSmallArrayVector(const TSmallArrayVector&);
@@ -123,6 +162,7 @@ protected:
     void dealloc()
     {
         delete sizes;
+        sizes = nullptr;
     }
 
     TVector<unsigned int>* sizes; // will either hold such a pointer, or in the future, hold the two array sizes
@@ -130,10 +170,16 @@ protected:
 
 //
 // Represent an array, or array of arrays, to arbitrary depth.  This is not
-// done through a hierarchy of types, but localized into this single cumulative object.
+// done through a hierarchy of types in a type tree, rather all contiguous arrayness
+// in the type hierarchy is localized into this single cumulative object.
 //
 // The arrayness in TTtype is a pointer, so that it can be non-allocated and zero
 // for the vast majority of types that are non-array types.
+//
+// Order Policy: these are all identical:
+//  - left to right order within a contiguous set of ...[..][..][..]... in the source language
+//  - index order 0, 1, 2, ... within the 'sizes' member below
+//  - outer-most to inner-most
 //
 struct TArraySizes {
     POOL_ALLOCATOR_NEW_DELETE(GetThreadPoolAllocator())
@@ -150,14 +196,58 @@ struct TArraySizes {
     }
 
     // translate from array-of-array semantics to container semantics
-    int getNumDims() { return sizes.size(); }
-    int getOuterSize() { return sizes.front(); }
-    void setOuterSize(int s) { sizes.push_back((unsigned)s); }
+    int getNumDims() const { return sizes.size(); }
+    int getDimSize(int dim) const { return sizes[dim]; }
+    void setDimSize(int dim, int size) { sizes[dim] = size; }
+    int getOuterSize() const { return sizes.front(); }
+    int getCumulativeSize() const
+    {
+        int size = 1;
+        for (int d = 0; d < sizes.size(); ++d) {
+            // this only makes sense in paths that have a known array size
+            assert(sizes[d] != UnsizedArraySize);
+            size *= sizes[d];
+        }
+        return size;
+    }
+    void addInnerSize() { sizes.push_back((unsigned)UnsizedArraySize); }
+    void addInnerSize(int s) { sizes.push_back((unsigned)s); }
     void changeOuterSize(int s) { sizes.changeFront((unsigned)s); }
-    int getImplicitSize() { return (int)implicitArraySize; }
+    int getImplicitSize() const { return (int)implicitArraySize; }
     void setImplicitSize(int s) { implicitArraySize = s; }
-    int operator[](int i) { return sizes[i]; }
+    bool isInnerImplicit() const
+    {
+        for (int d = 1; d < sizes.size(); ++d) {
+            if (sizes[d] == (unsigned)UnsizedArraySize)
+                return true;
+        }
+
+        return false;
+    }
+    void addOuterSizes(const TArraySizes& s) { sizes.push_front(s.sizes); }
+    void dereference() { sizes.pop_front(); }
+    void copyDereferenced(const TArraySizes& rhs)
+    {
+        assert(sizes.size() == 0);
+        if (rhs.sizes.size() > 1)
+            sizes.copyNonFront(rhs.sizes);
+    }
+
+    bool sameInnerArrayness(const TArraySizes& rhs) const
+    {
+        if (sizes.size() != rhs.sizes.size())
+            return false;
+
+        for (int d = 1; d < sizes.size(); ++d) {
+            if (sizes[d] != rhs.sizes[d])
+                return false;
+        }
+
+        return true;
+    }
+
     bool operator==(const TArraySizes& rhs) { return sizes == rhs.sizes; }
+    bool operator!=(const TArraySizes& rhs) { return sizes != rhs.sizes; }
 
 protected:
     TSmallArrayVector sizes;

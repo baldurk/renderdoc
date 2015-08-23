@@ -154,6 +154,7 @@ enum TBuiltInVariable {
     EbvPatchVertices,
     EbvTessLevelOuter,
     EbvTessLevelInner,
+    EbvBoundingBox,
     EbvTessCoord,
     EbvColor,
     EbvSecondaryColor,
@@ -241,6 +242,7 @@ __inline const char* GetBuiltInVariableString(TBuiltInVariable v)
     case EbvPatchVertices:        return "PatchVertices";
     case EbvTessLevelOuter:       return "TessLevelOuter";
     case EbvTessLevelInner:       return "TessLevelInner";
+    case EbvBoundingBox:          return "BoundingBox";
     case EbvTessCoord:            return "TessCoord";
     case EbvColor:                return "Color";
     case EbvSecondaryColor:       return "SecondaryColor";

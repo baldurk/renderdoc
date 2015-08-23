@@ -112,6 +112,10 @@ const char* const E_GL_ARB_shader_texture_image_samples = "GL_ARB_shader_texture
 const char* const E_GL_ARB_viewport_array               = "GL_ARB_viewport_array";
 //const char* const E_GL_ARB_cull_distance            = "GL_ARB_cull_distance";  // present for 4.5, but need extension control over block members
 
+// #line and #include
+const char* const E_GL_GOOGLE_cpp_style_line_directive          = "GL_GOOGLE_cpp_style_line_directive";
+const char* const E_GL_GOOGLE_include_directive                 = "GL_GOOGLE_include_directive";
+
 // AEP
 const char* const E_GL_ANDROID_extension_pack_es31a             = "GL_ANDROID_extension_pack_es31a";
 const char* const E_GL_KHR_blend_equation_advanced              = "GL_KHR_blend_equation_advanced";

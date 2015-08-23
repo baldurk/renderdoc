@@ -78,40 +78,92 @@ NVIDIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef PARSER_H
 #define PARSER_H
 
-#define CPP_AND_OP         257
-#define CPP_SUB_ASSIGN     259
-#define CPP_MOD_ASSIGN     260
-#define CPP_ADD_ASSIGN     261
-#define CPP_DIV_ASSIGN     262
-#define CPP_MUL_ASSIGN     263
-#define CPP_EQ_OP          264
-#define CPP_XOR_OP         265 
-#define CPP_ERROR_SY       266
-#define CPP_FLOATCONSTANT  267
-#define CPP_GE_OP          268
-#define CPP_RIGHT_OP       269
-#define CPP_IDENTIFIER     270
-#define CPP_INTCONSTANT    271
-#define CPP_LE_OP          272
-#define CPP_LEFT_OP        273
-#define CPP_DEC_OP         274
-#define CPP_NE_OP          275
-#define CPP_OR_OP          276
-#define CPP_INC_OP         277
-#define CPP_STRCONSTANT    278
-#define CPP_RIGHT_ASSIGN   280
-#define CPP_LEFT_ASSIGN    281
-#define CPP_AND_ASSIGN     282
-#define CPP_OR_ASSIGN      283
-#define CPP_XOR_ASSIGN     284
-#define CPP_LEFT_BRACKET   285
-#define CPP_RIGHT_BRACKET  286
-#define CPP_LEFT_BRACE     287
-#define CPP_RIGHT_BRACE    288
-#define CPP_UINTCONSTANT   289
-#define CPP_DOUBLECONSTANT 290
-#define CPP_TOKEN_PASTE    291
+namespace glslang {
 
-#define CPP_FIRST_USER_TOKEN_SY 292
+// Multi-character tokens
+enum EFixedAtoms {
+    PpAtomMaxSingle = 256, // single character tokens get their own char value as their token, skip them
+
+    // Operators
+
+    PpAtomAdd,
+    PpAtomSub,
+    PpAtomMul,
+    PpAtomDiv,
+    PpAtomMod,
+
+    PpAtomRight,
+    PpAtomLeft,
+
+    PpAtomRightAssign,
+    PpAtomLeftAssign,
+    PpAtomAndAssign,
+    PpAtomOrAssign,
+    PpAtomXorAssign,
+
+    PpAtomAnd,
+    PpAtomOr,
+    PpAtomXor,
+
+    PpAtomEQ,
+    PpAtomNE,
+    PpAtomGE,
+    PpAtomLE,
+
+    PpAtomDecrement,
+    PpAtomIncrement,
+
+    PpAtomPaste,
+
+    // Constants
+
+    PpAtomConstInt,
+    PpAtomConstUint,
+    PpAtomConstFloat,
+    PpAtomConstDouble,
+    PpAtomConstString,
+
+    // Indentifiers 
+    PpAtomIdentifier,
+
+    // preprocessor "keywords"
+
+    PpAtomDefine,
+    PpAtomDefined,
+    PpAtomUndef,
+
+    PpAtomIf,
+    PpAtomIfdef,
+    PpAtomIfndef,
+    PpAtomElse,
+    PpAtomElif,
+    PpAtomEndif,
+
+    PpAtomLine,
+    PpAtomPragma,
+    PpAtomError,
+
+    // #version ...
+    PpAtomVersion,
+    PpAtomCore,
+    PpAtomCompatibility,
+    PpAtomEs,
+
+    // #extension
+    PpAtomExtension,
+
+    // __LINE__, __FILE__, __VERSION__
+
+    PpAtomLineMacro,
+    PpAtomFileMacro,
+    PpAtomVersionMacro,
+
+    // #include
+    PpAtomInclude,
+
+    PpAtomLast,
+};
+
+} // end namespace glslang
 
 #endif /* not PARSER_H */

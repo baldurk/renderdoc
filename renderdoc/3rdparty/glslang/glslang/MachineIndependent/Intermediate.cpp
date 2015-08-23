@@ -59,7 +59,7 @@ namespace glslang {
 //
 // Returns the added node.
 //
-TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, TSourceLoc loc)
+TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType& type, const TSourceLoc& loc)
 {
     TIntermSymbol* node = new TIntermSymbol(id, name, type);
     node->setLoc(loc);
@@ -67,7 +67,7 @@ TIntermSymbol* TIntermediate::addSymbol(int id, const TString& name, const TType
     return node;
 }
 
-TIntermSymbol* TIntermediate::addSymbol(const TVariable& variable, TSourceLoc loc)
+TIntermSymbol* TIntermediate::addSymbol(const TVariable& variable, const TSourceLoc& loc)
 {
     return addSymbol(variable.getUniqueId(), variable.getName(), variable.getType(), loc);
 }
@@ -267,7 +267,7 @@ TIntermTyped* TIntermediate::addUnaryMath(TOperator op, TIntermTyped* child, TSo
     return node;
 }
 
-TIntermTyped* TIntermediate::addBuiltInFunctionCall(TSourceLoc loc, TOperator op, bool unary, TIntermNode* childNode, const TType& returnType)
+TIntermTyped* TIntermediate::addBuiltInFunctionCall(const TSourceLoc& loc, TOperator op, bool unary, TIntermNode* childNode, const TType& returnType)
 {
     if (unary) {
         //
@@ -658,7 +658,7 @@ TIntermAggregate* TIntermediate::growAggregate(TIntermNode* left, TIntermNode* r
     return aggNode;
 }
 
-TIntermAggregate* TIntermediate::growAggregate(TIntermNode* left, TIntermNode* right, TSourceLoc loc)
+TIntermAggregate* TIntermediate::growAggregate(TIntermNode* left, TIntermNode* right, const TSourceLoc& loc)
 {
     TIntermAggregate* aggNode = growAggregate(left, right);
     if (aggNode)
@@ -684,7 +684,7 @@ TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node)
     return aggNode;
 }
 
-TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node, TSourceLoc loc)
+TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node, const TSourceLoc& loc)
 {
     if (node == 0)
         return 0;
@@ -703,7 +703,7 @@ TIntermAggregate* TIntermediate::makeAggregate(TIntermNode* node, TSourceLoc loc
 //
 // Returns the selection node created.
 //
-TIntermNode* TIntermediate::addSelection(TIntermTyped* cond, TIntermNodePair nodePair, TSourceLoc loc)
+TIntermNode* TIntermediate::addSelection(TIntermTyped* cond, TIntermNodePair nodePair, const TSourceLoc& loc)
 {
     //
     // Don't prune the false path for compile-time constants; it's needed
@@ -717,7 +717,7 @@ TIntermNode* TIntermediate::addSelection(TIntermTyped* cond, TIntermNodePair nod
 }
 
 
-TIntermTyped* TIntermediate::addComma(TIntermTyped* left, TIntermTyped* right, TSourceLoc loc)
+TIntermTyped* TIntermediate::addComma(TIntermTyped* left, TIntermTyped* right, const TSourceLoc& loc)
 {
     // However, the lowest precedence operators of the sequence operator ( , ) and the assignment operators 
     // ... are not included in the operators that can create a constant expression.
@@ -736,7 +736,7 @@ TIntermTyped* TIntermediate::addComma(TIntermTyped* left, TIntermTyped* right, T
     return commaAggregate;
 }
 
-TIntermTyped* TIntermediate::addMethod(TIntermTyped* object, const TType& type, const TString* name, TSourceLoc loc)
+TIntermTyped* TIntermediate::addMethod(TIntermTyped* object, const TType& type, const TString* name, const TSourceLoc& loc)
 {
     TIntermMethod* method = new TIntermMethod(object, type, *name);
     method->setLoc(loc);
@@ -751,7 +751,7 @@ TIntermTyped* TIntermediate::addMethod(TIntermTyped* object, const TType& type, 
 //
 // Returns the selection node created, or 0 if one could not be.
 //
-TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* trueBlock, TIntermTyped* falseBlock, TSourceLoc loc)
+TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* trueBlock, TIntermTyped* falseBlock, const TSourceLoc& loc)
 {
     //
     // Get compatible types.
@@ -799,7 +799,7 @@ TIntermTyped* TIntermediate::addSelection(TIntermTyped* cond, TIntermTyped* true
 // Returns the constant union node created.
 //
 
-TIntermConstantUnion* TIntermediate::addConstantUnion(const TConstUnionArray& unionArray, const TType& t, TSourceLoc loc, bool literal) const
+TIntermConstantUnion* TIntermediate::addConstantUnion(const TConstUnionArray& unionArray, const TType& t, const TSourceLoc& loc, bool literal) const
 {
     TIntermConstantUnion* node = new TIntermConstantUnion(unionArray, t);
     node->setLoc(loc);
@@ -809,7 +809,7 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(const TConstUnionArray& un
     return node;
 }
 
-TIntermConstantUnion* TIntermediate::addConstantUnion(int i, TSourceLoc loc, bool literal) const
+TIntermConstantUnion* TIntermediate::addConstantUnion(int i, const TSourceLoc& loc, bool literal) const
 {
     TConstUnionArray unionArray(1);
     unionArray[0].setIConst(i);
@@ -817,7 +817,7 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(int i, TSourceLoc loc, boo
     return addConstantUnion(unionArray, TType(EbtInt, EvqConst), loc, literal);
 }
 
-TIntermConstantUnion* TIntermediate::addConstantUnion(unsigned int u, TSourceLoc loc, bool literal) const
+TIntermConstantUnion* TIntermediate::addConstantUnion(unsigned int u, const TSourceLoc& loc, bool literal) const
 {
     TConstUnionArray unionArray(1);
     unionArray[0].setUConst(u);
@@ -825,7 +825,7 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(unsigned int u, TSourceLoc
     return addConstantUnion(unionArray, TType(EbtUint, EvqConst), loc, literal);
 }
 
-TIntermConstantUnion* TIntermediate::addConstantUnion(bool b, TSourceLoc loc, bool literal) const
+TIntermConstantUnion* TIntermediate::addConstantUnion(bool b, const TSourceLoc& loc, bool literal) const
 {
     TConstUnionArray unionArray(1);
     unionArray[0].setBConst(b);
@@ -833,7 +833,7 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(bool b, TSourceLoc loc, bo
     return addConstantUnion(unionArray, TType(EbtBool, EvqConst), loc, literal);
 }
 
-TIntermConstantUnion* TIntermediate::addConstantUnion(double d, TBasicType baseType, TSourceLoc loc, bool literal) const
+TIntermConstantUnion* TIntermediate::addConstantUnion(double d, TBasicType baseType, const TSourceLoc& loc, bool literal) const
 {
     assert(baseType == EbtFloat || baseType == EbtDouble);
 
@@ -843,7 +843,7 @@ TIntermConstantUnion* TIntermediate::addConstantUnion(double d, TBasicType baseT
     return addConstantUnion(unionArray, TType(baseType, EvqConst), loc, literal);
 }
 
-TIntermTyped* TIntermediate::addSwizzle(TVectorFields& fields, TSourceLoc loc)
+TIntermTyped* TIntermediate::addSwizzle(TVectorFields& fields, const TSourceLoc& loc)
 {
     
     TIntermAggregate* node = new TIntermAggregate(EOpSequence);
@@ -861,9 +861,40 @@ TIntermTyped* TIntermediate::addSwizzle(TVectorFields& fields, TSourceLoc loc)
 }
 
 //
+// Follow the left branches down to the root of an l-value
+// expression (just "." and []).
+//
+// Return the base of the l-value (where following indexing quits working).
+// Return nullptr if a chain following dereferences cannot be followed.
+//
+// 'swizzleOkay' says whether or not it is okay to consider a swizzle 
+// a valid part of the dereference chain.
+//
+const TIntermTyped* TIntermediate::findLValueBase(const TIntermTyped* node, bool swizzleOkay)
+{
+    do {
+        const TIntermBinary* binary = node->getAsBinaryNode();
+        if (binary == nullptr)
+            return node;
+        TOperator op = binary->getOp();
+        if (op != EOpIndexDirect && op != EOpIndexIndirect && op != EOpIndexDirectStruct && op != EOpVectorSwizzle)
+            return nullptr;
+        if (! swizzleOkay) {
+            if (op == EOpVectorSwizzle)
+                return nullptr;
+            if ((op == EOpIndexDirect || op == EOpIndexIndirect) && 
+                (binary->getLeft()->getType().isVector() || binary->getLeft()->getType().isScalar()) && 
+                ! binary->getLeft()->getType().isArray())
+                return nullptr;
+        }
+        node = node->getAsBinaryNode()->getLeft();
+    } while (true);
+}
+
+//
 // Create loop nodes.
 //
-TIntermLoop* TIntermediate::addLoop(TIntermNode* body, TIntermTyped* test, TIntermTyped* terminal, bool testFirst, TSourceLoc loc)
+TIntermLoop* TIntermediate::addLoop(TIntermNode* body, TIntermTyped* test, TIntermTyped* terminal, bool testFirst, const TSourceLoc& loc)
 {
     TIntermLoop* node = new TIntermLoop(body, test, terminal, testFirst);
     node->setLoc(loc);
@@ -874,12 +905,12 @@ TIntermLoop* TIntermediate::addLoop(TIntermNode* body, TIntermTyped* test, TInte
 //
 // Add branches.
 //
-TIntermBranch* TIntermediate::addBranch(TOperator branchOp, TSourceLoc loc)
+TIntermBranch* TIntermediate::addBranch(TOperator branchOp, const TSourceLoc& loc)
 {
     return addBranch(branchOp, 0, loc);
 }
 
-TIntermBranch* TIntermediate::addBranch(TOperator branchOp, TIntermTyped* expression, TSourceLoc loc)
+TIntermBranch* TIntermediate::addBranch(TOperator branchOp, TIntermTyped* expression, const TSourceLoc& loc)
 {
     TIntermBranch* node = new TIntermBranch(branchOp, expression);
     node->setLoc(loc);
