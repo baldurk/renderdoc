@@ -406,6 +406,11 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	if(GetModuleHandleA("atidxx64.dll"))
 		LoadLibraryA("atidxx64.dll");
 
+	// NVIDIA workaround - same as above!
+
+	if(GetModuleHandleA("nvwgf2umx.dll"))
+		LoadLibraryA("nvwgf2umx.dll");
+
 	//////////////////////////////////////////////////////////////////////////
 	// Compile time asserts
 
