@@ -230,7 +230,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 	return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-const GLHookSet &GetRealFunctions();
+const GLHookSet &GetRealGLFunctions();
 
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
@@ -462,7 +462,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 		}
 	}
 
-	const GLHookSet &real = GetRealFunctions();
+	const GLHookSet &real = GetRealGLFunctions();
 
 	PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&real;
 	size_t num = sizeof(real)/sizeof(PFNGLGETSTRINGPROC);

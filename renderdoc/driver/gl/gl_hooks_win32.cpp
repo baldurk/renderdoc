@@ -253,7 +253,7 @@ class OpenGLHook : LibraryHook
 		
 		static OpenGLHook glhooks;
 
-		const GLHookSet &GetRealFunctions()
+		const GLHookSet &GetRealGLFunctions()
 		{
 			if(!m_PopulatedHooks)
 				m_PopulatedHooks = PopulateHooks();
@@ -856,7 +856,7 @@ class OpenGLHook : LibraryHook
 
 OpenGLHook OpenGLHook::glhooks;
 
-const GLHookSet &GetRealFunctions() { return OpenGLHook::glhooks.GetRealFunctions(); }
+const GLHookSet &GetRealGLFunctions() { return OpenGLHook::glhooks.GetRealGLFunctions(); }
 
 void MakeContextCurrent(GLWindowingData data)
 {

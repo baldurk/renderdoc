@@ -2860,7 +2860,7 @@ ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint3
 	return ShaderDebugTrace();
 }
 
-const GLHookSet &GetRealFunctions();
+const GLHookSet &GetRealGLFunctions();
 
 // defined in gl_replay_<platform>.cpp
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
