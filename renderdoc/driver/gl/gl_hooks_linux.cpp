@@ -791,6 +791,10 @@ __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 			return (__GLXextFuncPtr)dlsym(libGLdlsymHandle, (const char *)f);
 	}
 
+	// this might not be dlsym exported, so if it's GPA'd, record the real pointer for oureslves
+	if(!strcmp(func, "glXCreateContextAttribsARB") && OpenGLHook::glhooks.glXCreateContextAttribsARB_real == NULL)
+		OpenGLHook::glhooks.glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)realFunc;
+
 	// handle a few functions that we only export as real functions, just
 	// in case
 	if(!strcmp(func, "glXCreateContext"))           return (__GLXextFuncPtr)&glXCreateContext;
