@@ -692,6 +692,36 @@ namespace renderdoc
             return stage.ToString();
         }
 
+        public static string Abbrev(this ShaderStageType stage, APIPipelineStateType apitype)
+        {
+            if (apitype == APIPipelineStateType.D3D11)
+            {
+                switch (stage)
+                {
+                    case ShaderStageType.Vertex: return "VS";
+                    case ShaderStageType.Hull: return "HS";
+                    case ShaderStageType.Domain: return "DS";
+                    case ShaderStageType.Geometry: return "GS";
+                    case ShaderStageType.Pixel: return "PS";
+                    case ShaderStageType.Compute: return "CS";
+                }
+            }
+            else if (apitype == APIPipelineStateType.OpenGL)
+            {
+                switch (stage)
+                {
+                    case ShaderStageType.Vertex: return "VS";
+                    case ShaderStageType.Tess_Control: return "TCS";
+                    case ShaderStageType.Tess_Eval: return "TES";
+                    case ShaderStageType.Geometry: return "GS";
+                    case ShaderStageType.Fragment: return "FS";
+                    case ShaderStageType.Compute: return "CS";
+                }
+            }
+
+            return "?S";
+        }
+
         public static string Str(this SystemAttribute systemValue)
         {
             switch (systemValue)

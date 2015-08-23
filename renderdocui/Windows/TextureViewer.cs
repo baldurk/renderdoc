@@ -59,7 +59,7 @@ namespace renderdocui.Windows
 
         private int m_HighWaterStatusLength = 0;
 
-        public enum FollowType { OutputColour, OutputDepth, ReadWriteRes, PSResource }
+        public enum FollowType { OutputColour, OutputDepth, ReadWriteRes, InputResource }
         struct Following
         {
             public FollowType Type;
@@ -85,9 +85,26 @@ namespace renderdocui.Windows
             }
 
             // todo, implement these better for GL :(
+            private static void GetDrawContext(Core core, out bool copy, out bool compute)
+            {
+                var curDraw = core.CurDrawcall;
+                copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve)) != 0;
+                compute = curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
+                          core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null;
+            }
 
             public int GetHighestMip(Core core)
             {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                // TODO find a way (without copy-pasting tons of code)
+                // to duplicate the logic of GetResourceId() but return
+                // different information
+                if (copy || compute)
+                    return -1;
+
                 if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 {
                     D3D11PipelineState.ShaderStage.ResourceView view = null;
@@ -105,7 +122,7 @@ namespace renderdocui.Windows
                         if (index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
                             view = core.CurD3D11PipelineState.m_OM.UAVs[index];
                     }
-                    else if (Type == FollowType.PSResource)
+                    else if (Type == FollowType.InputResource)
                     {
                         view = core.CurD3D11PipelineState.m_PS.SRVs[index];
                     }
@@ -133,6 +150,16 @@ namespace renderdocui.Windows
 
             public int GetFirstArraySlice(Core core)
             {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                // TODO find a way (without copy-pasting tons of code)
+                // to duplicate the logic of GetResourceId() but return
+                // different information
+                if (copy || compute)
+                    return -1;
+
                 if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 {
                     D3D11PipelineState.ShaderStage.ResourceView view = null;
@@ -150,7 +177,7 @@ namespace renderdocui.Windows
                         if (index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
                             view = core.CurD3D11PipelineState.m_OM.UAVs[index];
                     }
-                    else if (Type == FollowType.PSResource)
+                    else if (Type == FollowType.InputResource)
                     {
                         view = core.CurD3D11PipelineState.m_PS.SRVs[index];
                     }
@@ -172,7 +199,7 @@ namespace renderdocui.Windows
                         if(!core.CurGLPipelineState.Images[index].Layered)
                             return (int)core.CurGLPipelineState.Images[index].Layer;
                     }
-                    else if (Type == FollowType.PSResource)
+                    else if (Type == FollowType.InputResource)
                     {
                         return (int)core.CurGLPipelineState.Textures[index].FirstSlice;
                     }
@@ -187,30 +214,113 @@ namespace renderdocui.Windows
 
                 if (Type == FollowType.OutputColour)
                 {
-                    var outputs = core.CurPipelineState.GetOutputTargets();
+                    var outputs = GetOutputTargets(core);
 
                     if(index < outputs.Length)
                         id = outputs[index];
                 }
                 else if (Type == FollowType.OutputDepth)
                 {
-                    id = core.CurPipelineState.OutputDepth;
+                    id = GetDepthTarget(core);
                 }
                 else if (Type == FollowType.ReadWriteRes)
                 {
-                    var rw = core.CurPipelineState.GetReadWriteResources();
+                    var rw = GetReadWriteResources(core);
 
                     if (index < rw.Length)
                         id = rw[index];
                 }
-                else if (Type == FollowType.PSResource)
+                else if (Type == FollowType.InputResource)
                 {
-                    var res = core.CurPipelineState.GetResources(ShaderStageType.Pixel);
-                    if(res.Length > index)
+                    var res = GetResources(core);
+
+                    if(index < res.Length)
                         id = res[index];
                 }
 
                 return id;
+            }
+
+            public static ResourceId[] GetReadWriteResources(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return new ResourceId[0];
+                else if (compute)
+                    return core.CurPipelineState.GetReadWriteResources(ShaderStageType.Compute);
+                else
+                    return core.CurPipelineState.GetReadWriteResources(ShaderStageType.Pixel);
+            }
+
+            public static ResourceId[] GetOutputTargets(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return new ResourceId[] { curDraw.copyDestination };
+                else if(compute)
+                    return new ResourceId[0];
+                else
+                    return core.CurPipelineState.GetOutputTargets();
+            }
+
+            public static ResourceId GetDepthTarget(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy || compute)
+                    return ResourceId.Null;
+                else
+                    return core.CurPipelineState.GetDepthTarget();
+            }
+
+            public static ResourceId[] GetResources(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return new ResourceId[] { curDraw.copySource };
+                else if (compute)
+                    return core.CurPipelineState.GetResources(ShaderStageType.Compute);
+                else
+                    return core.CurPipelineState.GetResources(ShaderStageType.Pixel);
+            }
+
+            public static ShaderReflection GetReflection(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return null;
+                else if (compute)
+                    return core.CurPipelineState.GetShaderReflection(ShaderStageType.Compute);
+                else
+                    return core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
+            }
+
+            public static ShaderBindpointMapping GetMapping(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return null;
+                else if (compute)
+                    return core.CurPipelineState.GetBindpointMapping(ShaderStageType.Compute);
+                else
+                    return core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
             }
         }
         private Following m_Following = new Following(FollowType.OutputColour, 0);
@@ -313,7 +423,7 @@ namespace renderdocui.Windows
 
             dockPanel.ActiveDocumentChanged += new EventHandler(dockPanel_ActiveDocumentChanged);
 
-            var w3 = Helpers.WrapDockContent(dockPanel, texPanel, "PS Resources");
+            var w3 = Helpers.WrapDockContent(dockPanel, texPanel, "Inputs");
             w3.DockAreas &= ~DockAreas.Document;
             w3.DockState = DockState.DockRight;
             w3.Show();
@@ -321,7 +431,7 @@ namespace renderdocui.Windows
             w3.CloseButton = false;
             w3.CloseButtonVisible = false;
 
-            var w5 = Helpers.WrapDockContent(dockPanel, rtPanel, "OM Targets");
+            var w5 = Helpers.WrapDockContent(dockPanel, rtPanel, "Outputs");
             w5.DockAreas &= ~DockAreas.Document;
             w5.DockState = DockState.DockRight;
             w5.Show(w3.Pane, w3);
@@ -971,30 +1081,16 @@ namespace renderdocui.Windows
 
             UI_OnTextureSelectionChanged();
 
-            ResourceId[] RTs = m_Core.CurPipelineState.GetOutputTargets();
-            ResourceId[] RWs = m_Core.CurPipelineState.GetReadWriteResources();
-            ResourceId Depth = m_Core.CurPipelineState.OutputDepth;
-            ResourceId[] Texs = null;
+            ResourceId[] RTs = Following.GetOutputTargets(m_Core);
+            ResourceId[] RWs = Following.GetReadWriteResources(m_Core);
+            ResourceId Depth = Following.GetDepthTarget(m_Core);
+            ResourceId[] Texs = Following.GetResources(m_Core);
 
-            ShaderReflection details = null;
-            ShaderBindpointMapping mapping = null;
+            ShaderReflection details = Following.GetReflection(m_Core);
+            ShaderBindpointMapping mapping = Following.GetMapping(m_Core);
 
             var curDraw = m_Core.GetDrawcall(frameID, eventID);
-
-            if (curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
-                m_Core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null)
-            {
-                Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Compute);
-                details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Compute);
-                mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Compute);
-            }
-
-            if (details == null)
-            {
-                Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
-                details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
-                mapping = m_Core.CurPipelineState.GetBindpointMapping(ShaderStageType.Pixel);
-            }
+            bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve)) != 0;
 
             if (m_Output == null) return;
 
@@ -1003,7 +1099,12 @@ namespace renderdocui.Windows
             int i = 0;
             for(int rt=0; rt < RTs.Length; rt++)
             {
-                var prev = rtPanel.Thumbnails[i];
+                ResourcePreview prev;
+
+                if (i < rtPanel.Thumbnails.Length)
+                    prev = rtPanel.Thumbnails[i];
+                else
+                    prev = UI_CreateThumbnail(rtPanel);
 
                 if (RTs[rt] != ResourceId.Null)
                 {
@@ -1018,6 +1119,9 @@ namespace renderdocui.Windows
                             buf = b;
 
                     string bindName = "";
+
+                    if (copy)
+                        bindName = "Destination";
 
                     if (tex != null)
                     {
@@ -1044,7 +1148,7 @@ namespace renderdocui.Windows
                     }
 
                     prev.Tag = new Following(FollowType.OutputColour, rt);
-                    prev.SlotName = rt.ToString();
+                    prev.SlotName = copy ? "DST" : rt.ToString();
                     prev.Visible = true;
                 }
                 else if (prev.Selected)
@@ -1067,7 +1171,12 @@ namespace renderdocui.Windows
 
             for (int rw = 0; rw < RWs.Length; rw++)
             {
-                var prev = rtPanel.Thumbnails[i];
+                ResourcePreview prev;
+
+                if (i < rtPanel.Thumbnails.Length)
+                    prev = rtPanel.Thumbnails[i];
+                else
+                    prev = UI_CreateThumbnail(rtPanel);
 
                 if (RWs[rw] != ResourceId.Null)
                 {
@@ -1140,12 +1249,27 @@ namespace renderdocui.Windows
                 i++;
             }
 
-            for (; i < rtPanel.Thumbnails.Length; i++)
+
             {
-                var prev = rtPanel.Thumbnails[i];
+                ResourcePreview prev;
 
                 // depth thumbnail is always the last one
-                if (i == rtPanel.Thumbnails.Length - 1 && Depth != ResourceId.Null)
+                if (i < rtPanel.Thumbnails.Length)
+                {
+                    // hide others
+                    for (; i < rtPanel.Thumbnails.Length - 1; i++)
+                    {
+                        rtPanel.Thumbnails[i].Init();
+                        rtPanel.Thumbnails[i].Visible = false;
+                    }
+                    prev = rtPanel.Thumbnails[rtPanel.Thumbnails.Length - 1];
+                }
+                else
+                {
+                    prev = UI_CreateThumbnail(rtPanel);
+                }
+
+                if (Depth != ResourceId.Null)
                 {
                     FetchTexture tex = null;
                     foreach (var t in m_Core.CurTextures)
@@ -1181,6 +1305,7 @@ namespace renderdocui.Windows
                     }
 
                     prev.Tag = new Following(FollowType.OutputDepth, 0);
+                    prev.SlotName = "D";
                     prev.Visible = true;
                 }
                 else if (prev.Selected)
@@ -1200,12 +1325,16 @@ namespace renderdocui.Windows
             }
 
             rtPanel.RefreshLayout();
-
+            
             i = 0;
-            foreach (var prev in texPanel.Thumbnails)
+            for(; i < Texs.Length; i++)
             {
-                if (i >= Texs.Length)
-                    break;
+                ResourcePreview prev;
+
+                if (i < texPanel.Thumbnails.Length)
+                    prev = texPanel.Thumbnails[i];
+                else
+                    prev = UI_CreateThumbnail(texPanel);
 
                 bool used = false;
 
@@ -1221,6 +1350,12 @@ namespace renderdocui.Windows
                             bindName = "<" + bind.name + ">";
                         }
                     }
+                }
+
+                if (copy)
+                {
+                    used = true;
+                    bindName = "Source";
                 }
 
                 // show if
@@ -1263,7 +1398,8 @@ namespace renderdocui.Windows
                         prev.Init();
                     }
 
-                    prev.Tag = new Following(FollowType.PSResource, i);
+                    prev.Tag = new Following(FollowType.InputResource, i);
+                    prev.SlotName = copy ? "SRC" : i.ToString();
                     prev.Visible = true;
                 }
                 else if (prev.Selected)
@@ -1304,6 +1440,17 @@ namespace renderdocui.Windows
 
         #region Update UI state
 
+        private ResourcePreview UI_CreateThumbnail(ThumbnailStrip strip)
+        {
+            var prev = new ResourcePreview(m_Core, m_Output);
+            prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+            prev.MouseClick += thumbsLayout_MouseClick;
+            prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
+            prev.Visible = false;
+            strip.AddThumbnail(prev);
+            return prev;
+        }
+
         private void UI_CreateThumbnails()
         {
             if (rtPanel.Thumbnails.Length > 0 || texPanel.Thumbnails.Length > 0) return;
@@ -1311,43 +1458,17 @@ namespace renderdocui.Windows
             rtPanel.SuspendLayout();
             texPanel.SuspendLayout();
 
-            for (int i = 0; i < 128; i++)
+            // these will expand, but we make sure that there is a good set reserved
+            for (int i = 0; i < 9; i++)
             {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = i.ToString();
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                rtPanel.AddThumbnail(prev);
+                var prev = UI_CreateThumbnail(rtPanel);
 
                 if(i == 0)
                     prev.Selected = true;
             }
 
-            {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = "D";
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                rtPanel.AddThumbnail(prev);
-            }
-
             for (int i = 0; i < 128; i++)
-            {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = i.ToString();
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                texPanel.AddThumbnail(prev);
-            }
-
-            foreach (var c in rtPanel.Thumbnails)
-                c.Visible = false;
-
-            foreach (var c in texPanel.Thumbnails)
-                c.Visible = false;
+                UI_CreateThumbnail(texPanel);
 
             rtPanel.ResumeLayout();
             texPanel.ResumeLayout();
@@ -1663,32 +1784,67 @@ namespace renderdocui.Windows
             ResourceId followID = m_Following.GetResourceId(m_Core);
 
             {
-                FetchTexture tex = null;
-                foreach (var t in m_Core.CurTextures)
-                    if (t.ID == followID)
-                        tex = t;
+                bool found = false;
 
-                if (tex != null)
+                string name = "";
+
+                foreach (var t in m_Core.CurTextures)
+                {
+                    if (t.ID == followID)
+                    {
+                        name = t.name;
+                        found = true;
+                    }
+                }
+
+                foreach (var b in m_Core.CurBuffers)
+                {
+                    if (b.ID == followID)
+                    {
+                        name = b.name;
+                        found = true;
+                    }
+                }
+
+                if (followID == ResourceId.Null)
+                {
+                    m_PreviewPanel.Text = "Unbound";
+                }
+                else if(found)
                 {
                     switch (m_Following.Type)
                     {
                         case FollowType.OutputColour:
-                            m_PreviewPanel.Text = string.Format("Cur Colour Output {0} - {1}", m_Following.index, tex.name);
+                            m_PreviewPanel.Text = string.Format("Cur Output {0} - {1}", m_Following.index, name);
                             break;
                         case FollowType.OutputDepth:
-                            m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", tex.name);
+                            m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", name);
                             break;
-                        case FollowType.PSResource:
-                            m_PreviewPanel.Text = string.Format("Cur PS Resource {0} - {1}", m_Following.index, tex.name);
+                        case FollowType.ReadWriteRes:
+                            m_PreviewPanel.Text = string.Format("Cur RW Output - {0}", name);
+                            break;
+                        case FollowType.InputResource:
+                            m_PreviewPanel.Text = string.Format("Cur Input {0} - {1}", m_Following.index, name);
                             break;
                     }
                 }
                 else
                 {
-                    m_PreviewPanel.Text = "Current";
-
-                    if (followID == ResourceId.Null)
-                        m_PreviewPanel.Text = "Unbound";
+                    switch (m_Following.Type)
+                    {
+                        case FollowType.OutputColour:
+                            m_PreviewPanel.Text = string.Format("Cur Output {0}", m_Following.index);
+                            break;
+                        case FollowType.OutputDepth:
+                            m_PreviewPanel.Text = string.Format("Cur Depth Output");
+                            break;
+                        case FollowType.ReadWriteRes:
+                            m_PreviewPanel.Text = string.Format("Cur RW Output");
+                            break;
+                        case FollowType.InputResource:
+                            m_PreviewPanel.Text = string.Format("Cur Input {0}", m_Following.index);
+                            break;
+                    }
                 }
             }
 

@@ -176,24 +176,30 @@ struct FetchDrawcall
 	{
 		eventID = 0;
 		drawcallID = 0;
+		flags = 0;
 		numIndices = 0;
 		numInstances = 0;
 		indexOffset = 0;
 		vertexOffset = 0;
 		instanceOffset = 0;
-		topology = eTopology_Unknown;
+
+		dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
+		dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
+
 		indexByteWidth = 0;
-		flags = 0;
+		topology = eTopology_Unknown;
+
+		copySource = ResourceId();
+		copyDestination = ResourceId();
+
 		context = ResourceId();
 		parent = 0;
 		previous = 0;
 		next = 0;
 
-		dispatchDimension[0] = dispatchDimension[1] = dispatchDimension[2] = 0;
-		dispatchThreadsDimension[0] = dispatchThreadsDimension[1] = dispatchThreadsDimension[2] = 0;
-
 		for(int i=0; i < 8; i++)
 			outputs[i] = ResourceId();
+		depthOut = ResourceId();
 	}
 
 	uint32_t eventID, drawcallID;
@@ -213,6 +219,9 @@ struct FetchDrawcall
 	
 	uint32_t indexByteWidth;
 	PrimitiveTopology topology;
+
+	ResourceId copySource;
+	ResourceId copyDestination;
 
 	ResourceId context;
 

@@ -791,6 +791,9 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
 		draw.name = name;
 		draw.flags |= eDraw_Copy;
 
+		draw.copySource = srcid;
+		draw.copyDestination = dstid;
+
 		AddDrawcall(draw, true);
 
 		if(srcid == dstid)

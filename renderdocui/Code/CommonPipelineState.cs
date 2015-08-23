@@ -575,7 +575,43 @@ namespace renderdocui.Code
                 }
             }
 
-            return null;
+            return new ResourceId[0];
+        }
+
+        public ResourceId[] GetReadWriteResources(ShaderStageType stage)
+        {
+            if (LogLoaded)
+            {
+                if (IsLogD3D11)
+                {
+                    if (stage == ShaderStageType.Compute)
+                    {
+                        ResourceId[] ret = new ResourceId[m_D3D11.m_CS.UAVs.Length];
+                        for (int i = 0; i < m_D3D11.m_CS.UAVs.Length; i++)
+                            ret[i] = m_D3D11.m_CS.UAVs[i].Resource;
+
+                        return ret;
+                    }
+                    else
+                    {
+                        ResourceId[] ret = new ResourceId[m_D3D11.m_OM.UAVs.Length];
+                        for (int i = 0; i < m_D3D11.m_OM.UAVs.Length; i++)
+                            ret[i] = m_D3D11.m_OM.UAVs[i].Resource;
+
+                        return ret;
+                    }
+                }
+                else if (IsLogGL)
+                {
+                    ResourceId[] ret = new ResourceId[m_GL.Images.Length];
+                    for (int i = 0; i < m_GL.Images.Length; i++)
+                        ret[i] = m_GL.Images[i].Resource;
+
+                    return ret;
+                }
+            }
+
+            return new ResourceId[0];
         }
 
         public ResourceId GetDepthTarget()
@@ -604,31 +640,6 @@ namespace renderdocui.Code
             return ResourceId.Null;
         }
 
-        public ResourceId[] GetReadWriteResources()
-        {
-            if (LogLoaded)
-            {
-                if (IsLogD3D11)
-                {
-                    ResourceId[] ret = new ResourceId[m_D3D11.m_OM.UAVs.Length];
-                    for (int i = 0; i < m_D3D11.m_OM.UAVs.Length; i++)
-                        ret[i] = m_D3D11.m_OM.UAVs[i].Resource;
-
-                    return ret;
-                }
-                else if (IsLogGL)
-                {
-                    ResourceId[] ret = new ResourceId[m_GL.Images.Length];
-                    for (int i = 0; i < m_GL.Images.Length; i++)
-                        ret[i] = m_GL.Images[i].Resource;
-
-                    return ret;
-                }
-            }
-
-            return null;
-        }
-
         public ResourceId[] GetOutputTargets()
         {
             if (LogLoaded)
@@ -655,7 +666,7 @@ namespace renderdocui.Code
                 }
             }
 
-            return null;
+            return new ResourceId[0];
         }
 
         public ResourceId OutputDepth

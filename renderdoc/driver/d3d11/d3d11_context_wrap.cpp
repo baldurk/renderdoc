@@ -4843,11 +4843,12 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion( ID3D11Resource
 		draw.name = name;
 		draw.flags |= eDraw_Copy;
 
-		AddDrawcall(draw, true);
-
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
 			m_pDevice->GetResourceManager()->HasLiveResource(Source))
 		{
+			draw.copySource = Source;
+			draw.copyDestination = Destination;
+
 			if(Destination == Source)
 			{
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_Copy));
@@ -4858,6 +4859,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopySubresourceRegion( ID3D11Resource
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Source)].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
 			}
 		}
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
@@ -4974,11 +4977,12 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(ID3D11Resource *pDstReso
 		draw.name = name;
 		draw.flags |= eDraw_Copy;
 
-		AddDrawcall(draw, true);
-
 		if(m_pDevice->GetResourceManager()->HasLiveResource(Destination) &&
 			m_pDevice->GetResourceManager()->HasLiveResource(Source))
 		{
+			draw.copySource = Source;
+			draw.copyDestination = Destination;
+
 			if(Destination == Source)
 			{
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Destination)].push_back(EventUsage(m_CurEventID, eUsage_Copy));
@@ -4989,6 +4993,8 @@ bool WrappedID3D11DeviceContext::Serialise_CopyResource(ID3D11Resource *pDstReso
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(Source)].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
 			}
 		}
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
@@ -5428,11 +5434,12 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pD
 		draw.name = name;
 		draw.flags |= eDraw_Resolve;
 
-		AddDrawcall(draw, true);
-
 		if(m_pDevice->GetResourceManager()->HasLiveResource(DestResource) &&
 			m_pDevice->GetResourceManager()->HasLiveResource(SourceResource))
 		{
+			draw.copySource = SourceResource;
+			draw.copyDestination = DestResource;
+
 			if(DestResource == SourceResource)
 			{
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(DestResource)].push_back(EventUsage(m_CurEventID, eUsage_Resolve));
@@ -5443,6 +5450,8 @@ bool WrappedID3D11DeviceContext::Serialise_ResolveSubresource(ID3D11Resource *pD
 				m_ResourceUses[m_pDevice->GetResourceManager()->GetLiveID(SourceResource)].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
 			}
 		}
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;

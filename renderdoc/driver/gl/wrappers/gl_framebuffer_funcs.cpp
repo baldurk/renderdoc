@@ -1336,8 +1336,6 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 		draw.name = name;
 		draw.flags |= eDraw_Resolve;
 
-		AddDrawcall(draw, true);
-
 		GLint numCols = 8;
 		m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
 
@@ -1373,6 +1371,9 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 					dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
 				else
 					dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+				
+				draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+				draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
 
 				// MS to non-MS is a resolve
 				if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
@@ -1390,6 +1391,8 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
 				}
 			}
 		}
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;

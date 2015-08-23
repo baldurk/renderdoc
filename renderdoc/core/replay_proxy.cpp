@@ -784,6 +784,9 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.topology);
 
 	Serialise("", el.context);
+
+	Serialise("", el.copySource);
+	Serialise("", el.copyDestination);
 	
 	Serialise("", el.parent);
 	Serialise("", el.previous);
@@ -795,7 +798,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.events);
 	Serialise("", el.children);
 
-	SIZE_CHECK(FetchDrawcall, 192);
+	SIZE_CHECK(FetchDrawcall, 208);
 }
 
 template<>

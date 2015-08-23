@@ -339,6 +339,9 @@ namespace renderdoc
         public UInt32 indexByteWidth;
         public PrimitiveTopology topology;
 
+        public ResourceId copySource;
+        public ResourceId copyDestination;
+
         public ResourceId context;
 
         public Int64 parentDrawcall;
