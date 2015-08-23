@@ -1131,14 +1131,14 @@ namespace renderdocui.Windows.PipelineState
                         v1.MinDepth != v2.MinDepth ||
                         v1.MaxDepth != v2.MaxDepth)
                     {
-                        if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || showEmpty.Checked)
+                        if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || v1.MinDepth != v2.MaxDepth || showEmpty.Checked)
                         {
                             string indexstring = prev.ToString();
                             if (prev < i - 1)
                                 indexstring = String.Format("{0}-{1}", prev, i - 1);
                             var node = viewports.Nodes.Add(new object[] { indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth });
 
-                            if (v1.Width == v1.Height && v1.Width == 0 && v1.Height == 0)
+                            if (v1.Width == 0 || v1.Height == 0 || v1.MinDepth == v1.MaxDepth)
                                 EmptyRow(node);
                         }
 
@@ -1151,14 +1151,18 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var v1 = state.m_RS.Viewports[prev];
 
-                    if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || showEmpty.Checked)
+                    // must display at least one viewport - otherwise if they are
+                    // all empty we get an empty list - we want a nice obvious
+                    // 'invalid viewport' entry. So check if prev is 0
+
+                    if (v1.Width != v1.Height || v1.Width != 0 || v1.Height != 0 || showEmpty.Checked || prev == 0)
                     {
                         string indexstring = prev.ToString();
                         if (prev < state.m_RS.Viewports.Length-1)
                             indexstring = String.Format("{0}-{1}", prev, state.m_RS.Viewports.Length - 1);
                         var node = viewports.Nodes.Add(new object[] { indexstring, v1.Left, v1.Bottom, v1.Width, v1.Height, v1.MinDepth, v1.MaxDepth });
 
-                        if (v1.Width == v1.Height && v1.Width == 0 && v1.Height == 0)
+                        if (v1.Width == 0 || v1.Height == 0 || v1.MinDepth == v1.MaxDepth)
                             EmptyRow(node);
                     }
                 }
@@ -1184,17 +1188,21 @@ namespace renderdocui.Windows.PipelineState
                     if (s1.Width != s2.Width ||
                         s1.Height != s2.Height ||
                         s1.Left != s2.Left ||
-                        s1.Bottom != s2.Bottom)
+                        s1.Bottom != s2.Bottom ||
+                        s1.Enabled != s2.Enabled)
                     {
-                        if (s1.Width != s1.Height || s1.Width != 0 || s1.Height != 0 || showEmpty.Checked)
+                        if (s1.Enabled || showEmpty.Checked)
                         {
                             string indexstring = prev.ToString();
                             if (prev < i - 1)
                                 indexstring = String.Format("{0}-{1}", prev, i - 1);
                             var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
 
-                            if (s1.Width == s1.Height && s1.Width == 0 && s1.Height == 0)
+                            if (s1.Width == 0 || s1.Height == 0)
                                 EmptyRow(node);
+
+                            if (!s1.Enabled)
+                                InactiveRow(node);
                         }
 
                         prev = i;
@@ -1206,15 +1214,18 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var s1 = state.m_RS.Scissors[prev];
 
-                    if (s1.Width != s1.Height || s1.Width != 0 || s1.Height != 0 || showEmpty.Checked)
+                    if (s1.Enabled || showEmpty.Checked)
                     {
                         string indexstring = prev.ToString();
                         if (prev < state.m_RS.Scissors.Length - 1)
                             indexstring = String.Format("{0}-{1}", prev, state.m_RS.Scissors.Length - 1);
                         var node = scissors.Nodes.Add(new object[] { indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled });
 
-                        if (s1.Width == s1.Height && s1.Width == 0 && s1.Height == 0)
+                        if (s1.Width == 0 || s1.Height == 0)
                             EmptyRow(node);
+
+                        if (!s1.Enabled)
+                            InactiveRow(node);
                     }
                 }
             }

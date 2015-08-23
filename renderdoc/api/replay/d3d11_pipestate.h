@@ -164,19 +164,25 @@ struct D3D11PipelineState
 	{
 		struct Viewport
 		{
-			Viewport(float TX=0.0f, float TY=0.0f, float W=0.0f, float H=0.0f, float MN=0.0f, float MX=0.0f)
-				: Width(W), Height(H), MinDepth(MN), MaxDepth(MX)
+			Viewport()
+				: Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f), Enabled(false)
+			{ TopLeft[0] = 0.0f; TopLeft[1] = 0.0f; }
+			Viewport(float TX, float TY, float W, float H, float MN, float MX, bool en)
+				: Width(W), Height(H), MinDepth(MN), MaxDepth(MX), Enabled(en)
 			{ TopLeft[0] = TX; TopLeft[1] = TY; }
 			float TopLeft[2];
 			float Width, Height;
 			float MinDepth, MaxDepth;
+			bool32 Enabled;
 		};
 		rdctype::array<Viewport> Viewports;
 
 		struct Scissor
 		{
-			Scissor(int l=0, int t=0, int r=0, int b=0) : left(l), top(t), right(r), bottom(b) {}
+			Scissor() : left(0), top(0), right(0), bottom(0), Enabled(false) {}
+			Scissor(int l, int t, int r, int b, bool en) : left(l), top(t), right(r), bottom(b), Enabled(en) {}
 			int32_t left, top, right, bottom;
+			bool32 Enabled;
 		};
 		rdctype::array<Scissor> Scissors;
 

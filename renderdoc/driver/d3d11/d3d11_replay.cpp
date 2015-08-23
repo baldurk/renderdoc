@@ -835,19 +835,19 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 		create_array_uninit(ret.m_RS.Scissors, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
 		for(i=0; i < rs->RS.NumScissors; i++)
 			ret.m_RS.Scissors[i] = D3D11PipelineState::Rasterizer::Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
-																			rs->RS.Scissors[i].right, rs->RS.Scissors[i].bottom); 
+																			rs->RS.Scissors[i].right, rs->RS.Scissors[i].bottom, true); 
 
 		for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-			ret.m_RS.Scissors[i] = D3D11PipelineState::Rasterizer::Scissor(0, 0, 0, 0);
+			ret.m_RS.Scissors[i] = D3D11PipelineState::Rasterizer::Scissor(0, 0, 0, 0, false);
 		
 		create_array_uninit(ret.m_RS.Viewports, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
 		for(i=0; i < rs->RS.NumViews; i++)
 			ret.m_RS.Viewports[i] = D3D11PipelineState::Rasterizer::Viewport(rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY, 
 																				rs->RS.Viewports[i].Width, rs->RS.Viewports[i].Height, 
-																				rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth);
+																				rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth, true);
 
 		for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-			ret.m_RS.Viewports[i] = D3D11PipelineState::Rasterizer::Viewport(0, 0, 0, 0, 0, 0);
+			ret.m_RS.Viewports[i] = D3D11PipelineState::Rasterizer::Viewport(0, 0, 0, 0, 0, 0, false);
 	}
 
 	/////////////////////////////////////////////////

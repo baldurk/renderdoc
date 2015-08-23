@@ -217,6 +217,7 @@ namespace renderdoc
                 public float[] TopLeft;
                 public float Width, Height;
                 public float MinDepth, MaxDepth;
+                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Viewport[] Viewports;
@@ -225,6 +226,7 @@ namespace renderdoc
             public class Scissor
             {
                 public Int32 left, top, right, bottom;
+                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Scissor[] Scissors;

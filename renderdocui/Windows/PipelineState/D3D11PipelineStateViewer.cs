@@ -1094,12 +1094,15 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var v in state.m_RS.Viewports)
                 {
-                    if (v.Width != v.Height || v.Width != 0 || v.Height != 0 || showEmpty.Checked)
+                    if (v.Enabled || showEmpty.Checked)
                     {
                         var node = viewports.Nodes.Add(new object[] { i, v.TopLeft[0], v.TopLeft[1], v.Width, v.Height, v.MinDepth, v.MaxDepth });
 
-                        if (v.Width == v.Height && v.Width == 0 && v.Height == 0)
+                        if (v.Width == 0 || v.Height == 0 || v.MinDepth == v.MaxDepth)
                             EmptyRow(node);
+
+                        if (!v.Enabled)
+                            InactiveRow(node);
                     }
 
                     i++;
@@ -1117,12 +1120,15 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var s in state.m_RS.Scissors)
                 {
-                    if (s.right != 0 || s.bottom != 0 || showEmpty.Checked)
+                    if (s.Enabled || showEmpty.Checked)
                     {
                         var node = scissors.Nodes.Add(new object[] { i, s.left, s.top, s.right - s.left, s.bottom - s.top });
 
-                        if (s.right == 0 && s.bottom == 0)
+                        if (s.right == s.left || s.bottom == s.top)
                             EmptyRow(node);
+
+                        if (!s.Enabled)
+                            InactiveRow(node);
                     }
 
                     i++;

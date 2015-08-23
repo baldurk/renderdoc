@@ -220,6 +220,7 @@ namespace renderdoc
                 public float Left, Bottom;
                 public float Width, Height;
                 public double MinDepth, MaxDepth;
+                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Viewport[] Viewports;
