@@ -36,13 +36,15 @@ os/os_specific.o \
 3rdparty/lz4/lz4.o \
 3rdparty/stb/stb_impl.o \
 3rdparty/tinyexr/tinyexr.o \
-os/linux/linux_libentry.o \
 os/linux/linux_callstack.o \
 os/linux/linux_hook.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
 os/linux/linux_stringio.o \
-os/linux/linux_threading.o
+os/linux/linux_threading.o \
+os/linux/linux_libentry.o
+# linux_libentry must be the last object file
+
 DATA=data/glsl/debuguniforms.ho \
 data/glsl/texsample.ho \
 data/glsl/blit.frago \
@@ -118,7 +120,7 @@ force_look:
 	true
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
-	$(CPP) -o librenderdoc.so $(OBJDIR_OBJECTS) $(OBJDIR_DATA) -Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive $(LDFLAGS)
+	$(CPP) -o librenderdoc.so $(OBJDIR_DATA) -Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive $(OBJDIR_OBJECTS) $(LDFLAGS)
 
 .PHONY: clean
 clean:

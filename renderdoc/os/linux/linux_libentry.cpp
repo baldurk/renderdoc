@@ -35,7 +35,6 @@ void readCapOpts(const char *str, CaptureOptions *opts)
 }
 
 // DllMain equivalent
-__attribute__((constructor))
 void library_loaded()
 {
 	string curfile;
@@ -80,3 +79,8 @@ void library_loaded()
 		LibraryHooks::GetInstance().CreateHooks();
 	}
 }
+
+// wrap in a struct to enforce ordering. This file is
+// linked last, so all other global struct constructors
+// should run first
+struct init { init() { library_loaded(); } } do_init;
