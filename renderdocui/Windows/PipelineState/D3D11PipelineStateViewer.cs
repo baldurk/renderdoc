@@ -926,6 +926,11 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
+                        string slotname = i.ToString();
+
+                        if (shaderInput != null && shaderInput.name.Length > 0)
+                            slotname += ": " + shaderInput.name;
+
                         UInt32 w = 1, h = 1, d = 1;
                         UInt32 a = 1;
                         string format = "Unknown";
@@ -996,7 +1001,7 @@ namespace renderdocui.Windows.PipelineState
                             }
                         }
 
-                        var node = csUAVs.Nodes.Add(new object[] { i, name, typename, w, h, d, a, format });
+                        var node = csUAVs.Nodes.Add(new object[] { slotname, name, typename, w, h, d, a, format });
 
                         node.Tag = tag;
 
