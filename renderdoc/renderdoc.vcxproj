@@ -291,6 +291,9 @@
     <ClCompile Include="os\linux\linux_callstack.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="os\linux\linux_hook.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\linux\linux_libentry.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

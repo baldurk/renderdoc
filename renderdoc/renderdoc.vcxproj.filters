@@ -329,6 +329,9 @@
     <ClCompile Include="os\linux\linux_network.cpp">
       <Filter>OS\Linux</Filter>
     </ClCompile>
+    <ClCompile Include="os\linux\linux_hook.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
     <ClCompile Include="os\linux\linux_process.cpp">
       <Filter>OS\Linux</Filter>
     </ClCompile>

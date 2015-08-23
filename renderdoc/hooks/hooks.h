@@ -76,6 +76,8 @@ class Hook
 
 #elif defined(LINUX)
 
+#include "os/linux/linux_hook.h"
+
 // just need this for dlsym
 #include <dlfcn.h>
 

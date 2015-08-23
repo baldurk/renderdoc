@@ -38,6 +38,7 @@ os/os_specific.o \
 3rdparty/tinyexr/tinyexr.o \
 os/linux/linux_libentry.o \
 os/linux/linux_callstack.o \
+os/linux/linux_hook.o \
 os/linux/linux_network.o \
 os/linux/linux_process.o \
 os/linux/linux_stringio.o \

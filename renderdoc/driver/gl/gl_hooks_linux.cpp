@@ -276,10 +276,19 @@ class OpenGLHook : LibraryHook
 			delete m_GLDriver;
 		}
 
+		static void libHooked(void *realLib)
+		{
+			libGLdlsymHandle = realLib;
+			OpenGLHook::glhooks.CreateHooks(NULL);
+		}
+
 		bool CreateHooks(const char *libName)
 		{
 			if(!m_EnabledHooks)
 				return false;
+
+			if(libName)
+				LinuxHookLibrary("libGL.so", &libHooked);
 
 			bool success = SetupHooks(GL);
 
@@ -814,27 +823,6 @@ __attribute__ ((visibility ("default")))
 __GLXextFuncPtr glXGetProcAddressARB(const GLubyte *f)
 {
 	return glXGetProcAddress(f);
-}
-
-typedef void* (*DLOPENPROC)(const char*,int);
-DLOPENPROC realdlopen = NULL;
-
-__attribute__ ((visibility ("default")))
-void *dlopen(const char *filename, int flag)
-{
-	if(realdlopen == NULL) realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
-
-	void *ret = realdlopen(filename, flag);
-
-	if(filename && ret && strstr(filename, "libGL.so"))
-	{
-		RDCDEBUG("Redirecting dlopen to ourselves");
-		libGLdlsymHandle = ret;
-		OpenGLHook::glhooks.CreateHooks("libGL.so");
-		ret = realdlopen("librenderdoc.so", flag);
-	}
-
-	return ret;
 }
 
 bool OpenGLHook::PopulateHooks()
