@@ -375,7 +375,7 @@ VkResult WrappedVulkan::vkDestroyInstance(
 	if(ret != VK_SUCCESS)
 		return ret;
 	
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback)
 	{
 		m_Real.vkDbgDestroyMsgCallback(instance, m_MsgCallback);
 	}
