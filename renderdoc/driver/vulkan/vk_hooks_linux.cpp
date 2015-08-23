@@ -162,6 +162,9 @@ class VulkanHook : LibraryHook
 			
 			RDCEraseEl(VK);
 
+			GPA_Instance = (PFN_vkGetInstanceProcAddr)NULL;
+			GPA_Device = (PFN_vkGetDeviceProcAddr)NULL;
+
 			m_Vulkan = NULL;
 
 			m_EnabledHooks = true;
@@ -219,6 +222,9 @@ class VulkanHook : LibraryHook
 		
 		VulkanFunctions VK;
 
+		PFN_vkGetInstanceProcAddr GPA_Instance;
+		PFN_vkGetDeviceProcAddr GPA_Device;
+
 		bool m_PopulatedHooks;
 		bool m_HasHooks;
 		bool m_EnabledHooks;
@@ -237,7 +243,48 @@ bool VulkanHook::SetupHooks(VulkanFunctions &VK)
 	
 	HookInitVulkan();
 
+	if(GPA_Instance == NULL) GPA_Instance = (PFN_vkGetInstanceProcAddr)dlsym(libvulkandlsymHandle, "vkGetInstanceProcAddr");
+	if(GPA_Device == NULL)   GPA_Device = (PFN_vkGetDeviceProcAddr)dlsym(libvulkandlsymHandle, "vkGetDeviceProcAddr");
+
 	return success;
+}
+
+extern "C" __attribute__ ((visibility ("default")))
+PFN_vkVoidFunction vkGetInstanceProcAddr(
+    VkInstance                                  instance,
+    const char*                                 pName)
+{
+	PFN_vkVoidFunction realFunc = VulkanHook::vkhooks.GPA_Instance(instance, pName);
+	
+#undef HookInit
+#define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(VulkanHook::vkhooks.VK.function == NULL) VulkanHook::vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(function, _renderdoc_hooked); }
+	
+	// VKTODO do we want to care about the case where different instances have
+	// different function pointers? at the moment we assume they're all the
+	// same.
+	HookInitVulkan();
+
+	RDCDEBUG("Instance GPA'd function '%s' is not hooked!", pName);
+	return realFunc;
+}
+
+extern "C" __attribute__ ((visibility ("default")))
+PFN_vkVoidFunction vkGetDeviceProcAddr(
+    VkDevice                                    device,
+    const char*                                 pName)
+{
+	PFN_vkVoidFunction realFunc = VulkanHook::vkhooks.GPA_Device(device, pName);
+
+#undef HookInit
+#define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(VulkanHook::vkhooks.VK.function == NULL) VulkanHook::vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(function, _renderdoc_hooked); }
+	
+	// VKTODO do we want to care about the case where different devices have
+	// different function pointers? at the moment we assume they're all the
+	// same.
+	HookInitVulkan();
+
+	RDCDEBUG("Device GPA'd function '%s' is not hooked!", pName);
+	return realFunc;
 }
 
 VulkanHook VulkanHook::vkhooks;
