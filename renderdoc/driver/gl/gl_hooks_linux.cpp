@@ -612,7 +612,7 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 	const int *attribs = attribList;
 	vector<int> attribVec;
 
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+	// modify attribs to our liking
 	{
 		bool flagsNext = false;
 		bool flagsFound = false;
@@ -623,8 +623,15 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 
 			if(flagsNext)
 			{
-				val |= GLX_CONTEXT_DEBUG_BIT_ARB;
 				flagsNext = false;
+
+				if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+					val |= GLX_CONTEXT_DEBUG_BIT_ARB;
+				else
+					val &= ~GLX_CONTEXT_DEBUG_BIT_ARB;
+
+				// remove NO_ERROR bit
+				val &= ~GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 			}
 
 			if(val == GLX_CONTEXT_FLAGS_ARB)
@@ -638,7 +645,7 @@ GLXContext glXCreateContextAttribsARB(Display *dpy, GLXFBConfig config, GLXConte
 			a++;
 		}
 
-		if(!flagsFound)
+		if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
 		{
 			attribVec.push_back(GLX_CONTEXT_FLAGS_ARB);
 			attribVec.push_back(GLX_CONTEXT_DEBUG_BIT_ARB);

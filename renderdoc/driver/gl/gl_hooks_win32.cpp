@@ -410,7 +410,7 @@ class OpenGLHook : LibraryHook
 			const int *attribs = attribList;
 			vector<int> attribVec;
 
-			if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+			// modify attribs to our liking
 			{
 				bool flagsNext = false;
 				bool flagsFound = false;
@@ -421,8 +421,15 @@ class OpenGLHook : LibraryHook
 
 					if(flagsNext)
 					{
-						val |= WGL_CONTEXT_DEBUG_BIT_ARB;
 						flagsNext = false;
+
+						if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+							val |= WGL_CONTEXT_DEBUG_BIT_ARB;
+						else
+							val &= ~WGL_CONTEXT_DEBUG_BIT_ARB;
+
+						// remove NO_ERROR bit
+						val &= ~GL_CONTEXT_FLAG_NO_ERROR_BIT_KHR;
 					}
 
 					if(val == WGL_CONTEXT_FLAGS_ARB)
@@ -436,7 +443,7 @@ class OpenGLHook : LibraryHook
 					a++;
 				}
 
-				if(!flagsFound)
+				if(!flagsFound && RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
 				{
 					attribVec.push_back(WGL_CONTEXT_FLAGS_ARB);
 					attribVec.push_back(WGL_CONTEXT_DEBUG_BIT_ARB);

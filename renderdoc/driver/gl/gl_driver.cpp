@@ -397,6 +397,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_explicit_uniform_location");
 	globalExts.push_back("GL_ARB_fragment_coord_conventions");
 	globalExts.push_back("GL_ARB_fragment_layer_viewport");
+	globalExts.push_back("GL_ARB_fragment_shader_interlock");
 	globalExts.push_back("GL_ARB_framebuffer_no_attachments");
 	globalExts.push_back("GL_ARB_framebuffer_object");
 	globalExts.push_back("GL_ARB_framebuffer_sRGB");
@@ -424,6 +425,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_pipeline_statistics_query");
 	globalExts.push_back("GL_ARB_point_parameters");
 	globalExts.push_back("GL_ARB_point_sprite");
+	globalExts.push_back("GL_ARB_post_depth_coverage");
 	globalExts.push_back("GL_ARB_program_interface_query");
 	globalExts.push_back("GL_ARB_provoking_vertex");
 	globalExts.push_back("GL_ARB_query_buffer_object");
@@ -437,7 +439,10 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_seamless_cubemap_per_texture");
 	globalExts.push_back("GL_ARB_separate_shader_objects");
 	globalExts.push_back("GL_ARB_shader_atomic_counters");
+	globalExts.push_back("GL_ARB_shader_atomic_counter_ops");
+	globalExts.push_back("GL_ARB_shader_ballot");
 	globalExts.push_back("GL_ARB_shader_bit_encoding");
+	globalExts.push_back("GL_ARB_shader_clock");
 	globalExts.push_back("GL_ARB_shader_draw_parameters");
 	globalExts.push_back("GL_ARB_shader_group_vote");
 	globalExts.push_back("GL_ARB_shader_image_load_store");
@@ -448,6 +453,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_ARB_shader_subroutine");
 	globalExts.push_back("GL_ARB_shader_texture_image_samples");
 	globalExts.push_back("GL_ARB_shader_texture_lod");
+	globalExts.push_back("GL_ARB_shader_viewport_layer_array");
 	globalExts.push_back("GL_ARB_shading_language_100");
 	globalExts.push_back("GL_ARB_shading_language_420pack");
 	globalExts.push_back("GL_ARB_shading_language_include");
@@ -560,6 +566,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
 	globalExts.push_back("GL_KHR_context_flush_control");
 	globalExts.push_back("GL_KHR_debug");
+	globalExts.push_back("GL_KHR_no_error");
 	globalExts.push_back("GL_KHR_robustness");
 	globalExts.push_back("GL_KHR_robust_buffer_access_behavior");
 
@@ -583,7 +590,17 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 	* GL_ARB_sparse_buffer
 	* GL_ARB_sparse_texture
 	* GL_EXT_sparse_texture2
+	* GL_ARB_sparse_texture2
+	* GL_ARB_sparse_texture_clamp <- this one is free, but no point exposing until other spares exts
 	* GL_EXT_x11_sync_object
+	* GL_KHR_texture_compression_astc_hdr <- without support for astc textures on PC hardware this
+	* GL_KHR_texture_compression_astc_ldr <- could be difficult. Maybe falls into the category of 'only
+	                                         support if it's supported on replaying driver'?
+	* GL_ARB_ES3_2_compatibility
+	* GL_ARB_gpu_shader_int64
+	* GL_ARB_parallel_shader_compile
+	* GL_ARB_sample_locations
+	* GL_ARB_texture_filter_minmax
 
 	************************************************************************/
 
