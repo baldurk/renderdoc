@@ -114,7 +114,7 @@ namespace renderdocui.Code
         public bool LogLoading { get { return m_LogLoadingInProgress; } }
         public string LogFileName { get { return m_LogFile; } set { if (LogLoaded) m_LogFile = value; } }
 
-        public FetchFrameInfo[] FrameInfo { get { while (m_FrameInfo == null); return m_FrameInfo; } }
+        public FetchFrameInfo[] FrameInfo { get { return m_FrameInfo; } }
 
         public APIProperties APIProps { get { return m_APIProperties; } }
 

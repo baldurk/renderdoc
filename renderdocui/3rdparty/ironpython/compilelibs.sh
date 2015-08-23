@@ -6,9 +6,7 @@ if [ $# -ne 1 ]; then
 fi
 
 IRONPYTHON="$1"
-LIBS=$(cat libs.txt | awk '{print "Lib/"$1}')
 OUTDIR=$PWD
 
-cd $IRONPYTHON
-./ipy.exe Tools/Scripts/pyc.py /target:dll /out:pythonlibs $LIBS
-mv pythonlibs.dll $OUTDIR/
+cd $IRONPYTHON/Lib
+zip -r $OUTDIR/pythonlibs.zip *

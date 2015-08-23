@@ -99,6 +99,11 @@ namespace renderdocui.Windows.Dialogs
 
             searches.Add(Directory.GetCurrentDirectory());
 
+            string libspath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "pythonlibs.zip");
+
+            if (File.Exists(libspath))
+                searches.Add(libspath);
+
             engine.SetSearchPaths(searches);
 
             return engine;
@@ -463,11 +468,6 @@ namespace renderdocui.Windows.Dialogs
         {
             scriptEditor.Text = String.Format("# RenderDoc Python scripts, powered by IronPython {0}\n" +
                                 "# The 'renderdoc' object is the Core class instance.\n\n", IronPython.CurrentVersion.AssemblyFileVersion);
-
-            if (File.Exists("pythonlibs.dll"))
-                scriptEditor.Text += "import clr\nclr.AddReference(\"pythonlibs\")\n\n";
-            else
-                scriptEditor.Text += "#import clr\n#clr.AddReference(\"pythonlibs\")\n\n";
 
             scriptEditor.Text = scriptEditor.Text.Replace("\n", Environment.NewLine);
         }

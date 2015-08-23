@@ -114,7 +114,7 @@
             <File Id='IronPythonModulesDLL' Name='IronPython.Modules.dll' DiskId='1' Source='dist/Release32/IronPython.Modules.dll' />
             <File Id='MicrosoftScriptingDLL' Name='Microsoft.Scripting.dll' DiskId='1' Source='dist/Release32/Microsoft.Scripting.dll' />
             <File Id='MicrosoftDynamicDLL' Name='Microsoft.Dynamic.dll' DiskId='1' Source='dist/Release32/Microsoft.Dynamic.dll' />
-            <File Id='PythonLibsDLL' Name='pythonlibs.dll' DiskId='1' Source='dist/Release32/pythonlibs.dll' />
+            <File Id='PythonLibsZIP' Name='pythonlibs.zip' DiskId='1' Source='dist/Release32/pythonlibs.zip' />
           </Component>
 
           <Component Id='Documentation' Guid='CD32B446-6DC1-49E4-8FE9-509E1AFB126D'>
