@@ -189,6 +189,11 @@ class VulkanHook : LibraryHook
 			if(libName)
 				LinuxHookLibrary("libvulkan.so", &libHooked);
 
+			// SUUUUPer hack. I guess Keyboard needs to support
+			// xcb connections as well, and init it whenever
+			// a WSI swapchain gets created on it
+			Keyboard::CloneDisplay(XOpenDisplay(NULL));
+
 			bool success = SetupHooks(VK);
 
 			if(!success) return false;
