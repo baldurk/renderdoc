@@ -71,7 +71,7 @@ const char *VkChunkNames[] =
 	"vkCreatePipelineCache",
 	"vkCreateGraphicsPipelines",
 	"vkCreateComputePipelines",
-	"vkWsiWinCreatePresentableImage",
+	"vkGetSwapChainInfoWSI",
 
 	"vkCreateFence",
 	"vkGetFenceStatus",
@@ -4855,6 +4855,30 @@ VkResult WrappedVulkan::vkGetSurfaceInfoWSI(
 	return m_Real.vkGetSurfaceInfoWSI(device, pSurfaceDescription, infoType, pDataSize, pData);
 }
 
+bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
+		VkDevice                                 device,
+    VkSwapChainWSI                           swapChain,
+    VkSwapChainInfoTypeWSI                   infoType,
+    size_t*                                  pDataSize,
+    void*                                    pData)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
+	VkSwapChainImagePropertiesWSI *image = (VkSwapChainImagePropertiesWSI *)pData;
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(image->image)));
+
+	if(m_State >= WRITING)
+	{
+		RDCASSERT(infoType == VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI);
+	}
+
+	if(m_State == READING)
+	{
+		// VKTODO create fake backbuffer for this image
+	}
+
+	return true;
+}
+
 VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 		VkDevice                                 device,
     VkSwapChainWSI                           swapChain,
@@ -4862,8 +4886,47 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
     size_t*                                  pDataSize,
     void*                                    pData)
 {
+	// make sure we always get the size
+	size_t dummySize = 0;
+	if(pDataSize == NULL)
+		pDataSize = &dummySize;
+
+	VkResult ret = m_Real.vkGetSwapChainInfoWSI(device, swapChain, infoType, pDataSize, pData);
+
 	// VKTODO: intercept VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI and wrap/serialise the images
-	return m_Real.vkGetSwapChainInfoWSI(device, swapChain, infoType, pDataSize, pData);
+	if(infoType == VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI && pData && m_State >= WRITING)
+	{
+		VkSwapChainImagePropertiesWSI *images = (VkSwapChainImagePropertiesWSI *)pData;
+		size_t numImages = (*pDataSize)/sizeof(VkSwapChainImagePropertiesWSI);
+
+		for(size_t i=0; i < numImages; i++)
+		{
+			VkResource res = MakeRes(images[i].image);
+			ResourceId id = GetResourceManager()->RegisterResource(res);
+
+			if(m_State >= WRITING)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					SCOPED_SERIALISE_CONTEXT(PRESENT_IMAGE);
+					dummySize = sizeof(VkSwapChainImagePropertiesWSI);
+					Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &dummySize, (void *)&images[i]);
+
+					chunk = scope.Get();
+				}
+
+				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+				record->AddChunk(chunk);
+			}
+			else
+			{
+				GetResourceManager()->AddLiveResource(id, res);
+			}
+		}
+	}
+
+	return ret;
 }
 
 VkResult WrappedVulkan::vkAcquireNextImageWSI(
