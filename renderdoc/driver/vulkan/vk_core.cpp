@@ -1213,7 +1213,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 	{
 		ResourceId id = GetResourceManager()->GetID(MakeRes(mem));
 
-		if(m_State >= WRITING_CAPFRAME)
+		if(m_State >= WRITING)
 		{
 			auto it = m_MemoryInfo.find(id);
 			if(it == m_MemoryInfo.end())
