@@ -487,7 +487,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				// VKTODO: shouldn't be 0, 0
 				m_Real.vkGetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
 				VkCmdBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, VK_NULL_HANDLE, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				m_Real.vkCreateCommandBuffer(device, &createInfo, &m_PhysicalReplayData[i].cmd);
+				//VKTODO: Needs a command pool
+				//m_Real.vkCreateCommandBuffer(device, &createInfo, &m_PhysicalReplayData[i].cmd);
 				found = true;
 				break;
 			}
@@ -527,7 +528,8 @@ VkResult WrappedVulkan::vkCreateDevice(
 				// VKTODO: createInfo needs pool
 				m_Real.vkGetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
 				VkCmdBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, VK_NULL_HANDLE, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				m_Real.vkCreateCommandBuffer(*pDevice, &createInfo, &m_PhysicalReplayData[i].cmd);
+				//VKTODO: Needs a command pool
+				//m_Real.vkCreateCommandBuffer(device, &createInfo, &m_PhysicalReplayData[i].cmd);
 				found = true;
 				break;
 			}
