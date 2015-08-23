@@ -285,7 +285,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
 			break;
 	}
 
-	RDCERR("Unhandled Base Format case!");
+	RDCERR("Unhandled Base Format case %d!", internalFormat);
 
 	return eGL_NONE;
 }
@@ -391,7 +391,7 @@ GLenum GetDataType(GLenum internalFormat)
 			break;
 	}
 
-	RDCERR("Unhandled Data Type case!");
+	RDCERR("Unhandled Data Type case %d!", internalFormat);
 
 	return eGL_NONE;
 }
