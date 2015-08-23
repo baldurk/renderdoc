@@ -249,6 +249,12 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 	return pi;
 }
 
+extern "C" __declspec(dllexport)
+void __cdecl RENDERDOC_GetRemoteAccessIdent(uint32_t *ident)
+{
+	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
+}
+
 uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
 {
 	CaptureOptions options;
@@ -410,7 +416,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 		if(opts != NULL)
 			InjectFunctionCall(hProcess, loc, "RENDERDOC_SetCaptureOptions", (CaptureOptions *)opts, sizeof(CaptureOptions));
 
-		InjectFunctionCall(hProcess, loc, "RENDERDOC_InitRemoteAccess", &remoteident, sizeof(remoteident));
+		InjectFunctionCall(hProcess, loc, "RENDERDOC_GetRemoteAccessIdent", &remoteident, sizeof(remoteident));
 	}
 
 	if(waitForExit)

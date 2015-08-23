@@ -100,6 +100,8 @@ struct ResourceId
 #include "data_types.h"
 #include "control_types.h"
 
+#include "capture_options.h"
+
 #include "d3d11_pipestate.h"
 #include "gl_pipestate.h"
 
@@ -397,53 +399,31 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_VertexOffset(PrimitiveTo
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_SupportLocalReplay(const char *logfile, rdctype::str *driverName);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_SupportLocalReplay)(const char *logfile, rdctype::str *driverName);
-
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRenderer **rend);
-typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateReplayRenderer)(const char *logfile, float *progress, ReplayRenderer **rend);
 
 //////////////////////////////////////////////////////////////////////////
 // Remote access and control
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API RemoteAccess* RENDERDOC_CC RENDERDOC_CreateRemoteAccessConnection(const char *host, uint32_t ident, const char *clientName, bool32 forceConnection);
-typedef RemoteAccess* (RENDERDOC_CC *pRENDERDOC_CreateRemoteAccessConnection)(const char *host, uint32_t ident, const char *clientName, bool32 forceConnection);
-
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteConnections(const char *host, uint32_t *idents);
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_EnumerateRemoteConnections)(const char *host, uint32_t *idents);
-
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateRemoteReplayConnection(const char *host, RemoteRenderer **rend);
-typedef ReplayCreateStatus (RENDERDOC_CC *pRENDERDOC_CreateRemoteReplayConnection)(const char *host, RemoteRenderer **rend);
-
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SpawnReplayHost(volatile bool32 *killReplay);
-typedef void (RENDERDOC_CC *pRENDERDOC_SpawnReplayHost)(volatile bool32 *killReplay);
 
 //////////////////////////////////////////////////////////////////////////
 // Injection/execution capture functions.
 //////////////////////////////////////////////////////////////////////////
 
-struct CaptureOptions;
-
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *opts);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char *pathmatch, const char *logfile, const CaptureOptions *opts);
-typedef void (RENDERDOC_CC *pRENDERDOC_StartGlobalHook)(const char *pathmatch, const char *logfile, const CaptureOptions *opts);
-
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
 																	const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_ExecuteAndInject)(const char *app, const char *workingDir, const char *cmdLine,
-														 const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
-     
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
-typedef uint32_t (RENDERDOC_CC *pRENDERDOC_InjectIntoProcess)(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 
 //////////////////////////////////////////////////////////////////////////
 // Miscellaneous!
 //////////////////////////////////////////////////////////////////////////
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 crashed);
-typedef void (RENDERDOC_CC *pRENDERDOC_TriggerExceptionHandler)(void *exceptionPtrs, bool32 crashed);
-
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
-typedef void (RENDERDOC_CC *pRENDERDOC_LogText)(const char *text);
-
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf, uint32_t &len);
-typedef bool32 (RENDERDOC_CC *pRENDERDOC_GetThumbnail)(const char *filename, byte *buf, uint32_t &len);

@@ -358,7 +358,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 
 	if(m_pInfoQueue)
 	{
-		m_pInfoQueue->SetMuteDebugOutput(true);
+		if(RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
+			m_pInfoQueue->SetMuteDebugOutput(true);
 
 		UINT size = m_pInfoQueue->GetStorageFilterStackSize();
 
@@ -2863,11 +2864,19 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 	}
 	else
 	{
-		RDCLOG("Failed to capture, frame %u", m_FrameCounter);
+		const char *reasonString = "Unknown reason";
+		switch(reason)
+		{
+			case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
+			case CaptureFailed_UncappedUnmap:   reasonString = "Uncapped Map()/Unmap()"; break;
+			default: break;
+		}
+
+		RDCLOG("Failed to capture, frame %u: %s", m_FrameCounter, reasonString);
 
 		m_Failures++;
 
-		if((RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled) && swap != NULL)
+		if((RenderDoc::Inst().GetOverlayBits() & eRENDERDOC_Overlay_Enabled) && swap != NULL)
 		{
 			D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
 
@@ -2884,14 +2893,6 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 				swap->GetDesc(&swapDesc);
 				GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
 				GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
-
-				const char *reasonString = "Unknown reason";
-				switch(reason)
-				{
-					case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
-					case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
-					default: break;
-				}
 
 				GetDebugManager()->RenderText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
 			}
@@ -2915,7 +2916,10 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
 		GetResourceManager()->ClearReferencedResources();
 
-		if(m_Failures > 5) // failed too many times
+		// if it's a capture triggered from application code, immediately
+		// give up as it's not reasonable to expect applications to detect and retry.
+		// otherwise we can retry in case the next frame works.
+		if(m_Failures > 5 || m_AppControlledCapture)
 		{
 			m_pImmediateContext->FinishCapture();
 
@@ -3037,7 +3041,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 		
 		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-		if(overlay & eOverlay_Enabled)
+		if(overlay & eRENDERDOC_Overlay_Enabled)
 		{
 			ID3D11RenderTargetView *rtv = m_SwapChains[swap];
 
@@ -3053,7 +3057,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 			if(activeWindow)
 			{
-				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
 				string overlayText = "D3D11. ";
 
@@ -3068,11 +3072,11 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 				if(!keys.empty())
 					overlayText += " to capture.";
 
-				if(overlay & eOverlay_FrameNumber)
+				if(overlay & eRENDERDOC_Overlay_FrameNumber)
 				{
 					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
 				}
-				if(overlay & eOverlay_FrameRate)
+				if(overlay & eRENDERDOC_Overlay_FrameRate)
 				{
 					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
 																					m_AvgFrametime, m_MinFrametime, m_MaxFrametime, 1000.0f/m_AvgFrametime);
@@ -3086,7 +3090,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 					y += 1.0f;
 				}
 
-				if(overlay & eOverlay_CaptureList)
+				if(overlay & eRENDERDOC_Overlay_CaptureList)
 				{
 					GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
 					y += 1.0f;
@@ -3125,7 +3129,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 			}
 			else
 			{
-				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
 
 				string str = "D3D11. Inactive swapchain.";
 

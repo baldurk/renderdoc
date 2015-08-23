@@ -14,6 +14,8 @@ OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
 replay/entry_points.o \
 replay/type_helpers.o \
+replay/app_api.o \
+replay/capture_options.o \
 hooks/hooks.o \
 serialise/serialiser.o \
 serialise/grisu2.o \

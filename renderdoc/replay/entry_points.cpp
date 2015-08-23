@@ -27,9 +27,10 @@
 #include "maths/formatpacking.h"
 #include "serialise/serialiser.h"
 #include "core/core.h"
-#include "hooks/hooks.h"
 #include "replay/replay_renderer.h"
 #include "api/replay/renderdoc_replay.h"
+
+// these entry points are for the replay/analysis side - not for the application.
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC Topology_NumVerticesPerPrimitive(PrimitiveTopology topology)
 {
@@ -234,19 +235,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC Camera_GetBasis(Camera *c, FloatVecto
 }
 
 extern "C" RENDERDOC_API
-int RENDERDOC_CC RENDERDOC_GetAPIVersion()
-{
-	return RENDERDOC_API_VERSION;
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_Shutdown()
-{
-	RenderDoc::Inst().Shutdown();
-	LibraryHooks::GetInstance().RemoveHooks();
-}
-
-extern "C" RENDERDOC_API
 void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
 	RDCLOG("%s", text);
@@ -256,37 +244,6 @@ extern "C" RENDERDOC_API
 const char* RENDERDOC_CC RENDERDOC_GetLogFile()
 {
 	return RDCGETLOGFILE();
-}
-
-extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_GetNumCaptures()
-{
-	return (uint32_t)RenderDoc::Inst().GetCaptures().size();
-}
-
-extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, uint64_t *timestamp)
-{
-	vector<CaptureData> caps = RenderDoc::Inst().GetCaptures();
-
-	if(idx >= (uint32_t)caps.size())
-	{
-		if(logfile) logfile[0] = 0;
-		if(pathlength) *pathlength = 0;
-		if(timestamp) *timestamp = 0;
-		return false;
-	}
-
-	CaptureData &c = caps[idx];
-
-	if(logfile)
-		memcpy(logfile, c.path.c_str(), sizeof(char)*(c.path.size()+1));
-	if(pathlength)
-		*pathlength = uint32_t(c.path.size()+1);
-	if(timestamp)
-		*timestamp = c.timestamp;
-
-	return true;
 }
 
 extern "C" RENDERDOC_API
@@ -313,12 +270,6 @@ void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs, bool32 
 			RenderDoc::Inst().RecreateCrashHandler();
 		}
 	}
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_UnloadCrashHandler()
-{
-	RenderDoc::Inst().UnloadCrashHandler();
 }
 
 extern "C" RENDERDOC_API
@@ -367,24 +318,16 @@ ReplayCreateStatus RENDERDOC_CC RENDERDOC_CreateReplayRenderer(const char *logfi
 }
 
 extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetLogFile(const char *logfile)
-{
-	RDCLOG("Using logfile %s", logfile);
-	RenderDoc::Inst().SetLogFile(logfile);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetCaptureOptions(const CaptureOptions *opts)
-{
-	RDCLOG("Setting capture options");
-	RenderDoc::Inst().SetCaptureOptions(opts);
-}
-
-extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
 									 const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
 	return Process::LaunchAndInjectIntoProcess(app, workingDir, cmdLine, logfile, opts, waitForExit != 0);
+}
+
+extern "C" RENDERDOC_API
+void RENDERDOC_CC RENDERDOC_GetDefaultCaptureOptions(CaptureOptions *opts)
+{
+	*opts = CaptureOptions();
 }
 
 extern "C" RENDERDOC_API
@@ -397,60 +340,6 @@ extern "C" RENDERDOC_API
 uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
 	return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetActiveWindow(void *device, void *wndHandle)
-{
-	RenderDoc::Inst().SetActiveWindow(device, wndHandle);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_TriggerCapture()
-{
-	RenderDoc::Inst().TriggerCapture();
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_StartFrameCapture(void *device, void *wndHandle)
-{
-	RenderDoc::Inst().StartFrameCapture(device, wndHandle);
-}
-
-extern "C" RENDERDOC_API
-bool32 RENDERDOC_CC RENDERDOC_EndFrameCapture(void *device, void *wndHandle)
-{
-	return RenderDoc::Inst().EndFrameCapture(device, wndHandle);
-}
-
-extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_GetOverlayBits()
-{
-	return RenderDoc::Inst().GetOverlayBits();
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_MaskOverlayBits(uint32_t And, uint32_t Or)
-{
-	RenderDoc::Inst().MaskOverlayBits(And, Or);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetFocusToggleKeys(KeyButton *keys, int num)
-{
-	RenderDoc::Inst().SetFocusKeys(keys, num);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_SetCaptureKeys(KeyButton *keys, int num)
-{
-	RenderDoc::Inst().SetCaptureKeys(keys, num);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_QueueCapture(uint32_t frameNumber)
-{
-	RenderDoc::Inst().QueueCapture(frameNumber);
 }
 
 extern "C" RENDERDOC_API
@@ -515,33 +404,6 @@ extern "C" RENDERDOC_API
 void *RENDERDOC_CC RENDERDOC_AllocArrayMem(uint64_t sz)
 {
 	return rdctype::array<char>::allocate((size_t)sz);
-}
-
-extern "C" RENDERDOC_API
-void RENDERDOC_CC RENDERDOC_InitRemoteAccess(uint32_t *ident)
-{
-	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
-}
-
-extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_IsRemoteAccessConnected()
-{
-	return RenderDoc::Inst().IsRemoteAccessConnected();
-}
-
-extern "C" RENDERDOC_API
-uint32_t RENDERDOC_CC RENDERDOC_LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline)
-{
-	string replayapp = FileIO::GetReplayAppFilename();
-
-	if(replayapp.empty())
-		return 0;
-
-	string cmd = cmdline ? cmdline : "";
-	if(connectRemoteAccess)
-		cmd += StringFormat::Fmt(" --remoteaccess localhost:%u", RenderDoc::Inst().GetRemoteAccessIdent());
-
-	return Process::LaunchProcess(replayapp.c_str(), "", cmd.c_str());
 }
 
 extern "C" RENDERDOC_API

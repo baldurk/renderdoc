@@ -78,25 +78,6 @@ namespace renderdoc
         public bool RefAllResources;
         public bool SaveAllInitials;
         public bool CaptureAllCmdLists;
-        
-        public static CaptureOptions Defaults
-        {
-            get
-            {
-                CaptureOptions defs = new CaptureOptions();
-                defs.AllowVSync = true;
-                defs.AllowFullscreen = true;
-                defs.DebugDeviceMode = false;
-                defs.CaptureCallstacks = false;
-                defs.CaptureCallstacksOnlyDraws = false;
-                defs.DelayForDebugger = 0;
-                defs.VerifyMapWrites = false;
-                defs.HookIntoChildren = false;
-                defs.RefAllResources = false;
-                defs.SaveAllInitials = false;
-                defs.CaptureAllCmdLists = false;
-                return defs;
-            }
-        }
+        public bool DebugOutputMute;
     };
 };

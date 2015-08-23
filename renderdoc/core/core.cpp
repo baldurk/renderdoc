@@ -74,12 +74,12 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 }
 
 template<>
-string ToStrHelper<false, KeyButton>::Get(const KeyButton &el)
+string ToStrHelper<false, RENDERDOC_InputButton>::Get(const RENDERDOC_InputButton &el)
 {
 	char alphanumericbuf[2] = { 'A', 0 };
 
 	// enums map straight to ascii
-	if( (el >= eKey_A && el <= eKey_Z) || (el >= eKey_0 && el <= eKey_9) )
+	if( (el >= eRENDERDOC_Key_A && el <= eRENDERDOC_Key_Z) || (el >= eRENDERDOC_Key_0 && el <= eRENDERDOC_Key_9) )
 	{
 		alphanumericbuf[0] = (char)el;
 		return alphanumericbuf;
@@ -87,40 +87,40 @@ string ToStrHelper<false, KeyButton>::Get(const KeyButton &el)
 
 	switch(el)
 	{
-		case eKey_Divide:    return "/";
-		case eKey_Multiply:  return "*";
-		case eKey_Subtract:  return "-";
-		case eKey_Plus:      return "+";
+		case eRENDERDOC_Key_Divide:    return "/";
+		case eRENDERDOC_Key_Multiply:  return "*";
+		case eRENDERDOC_Key_Subtract:  return "-";
+		case eRENDERDOC_Key_Plus:      return "+";
 
-		case eKey_F1:        return "F1";
-		case eKey_F2:        return "F2";
-		case eKey_F3:        return "F3";
-		case eKey_F4:        return "F4";
-		case eKey_F5:        return "F5";
-		case eKey_F6:        return "F6";
-		case eKey_F7:        return "F7";
-		case eKey_F8:        return "F8";
-		case eKey_F9:        return "F9";
-		case eKey_F10:       return "F10";
-		case eKey_F11:       return "F11";
-		case eKey_F12:       return "F12";
+		case eRENDERDOC_Key_F1:        return "F1";
+		case eRENDERDOC_Key_F2:        return "F2";
+		case eRENDERDOC_Key_F3:        return "F3";
+		case eRENDERDOC_Key_F4:        return "F4";
+		case eRENDERDOC_Key_F5:        return "F5";
+		case eRENDERDOC_Key_F6:        return "F6";
+		case eRENDERDOC_Key_F7:        return "F7";
+		case eRENDERDOC_Key_F8:        return "F8";
+		case eRENDERDOC_Key_F9:        return "F9";
+		case eRENDERDOC_Key_F10:       return "F10";
+		case eRENDERDOC_Key_F11:       return "F11";
+		case eRENDERDOC_Key_F12:       return "F12";
 
-		case eKey_Home:      return "Home";
-		case eKey_End:       return "End";
-		case eKey_Insert:    return "Insert";
-		case eKey_Delete:    return "Delete";
-		case eKey_PageUp:    return "PageUp";
-		case eKey_PageDn:    return "PageDn";
+		case eRENDERDOC_Key_Home:      return "Home";
+		case eRENDERDOC_Key_End:       return "End";
+		case eRENDERDOC_Key_Insert:    return "Insert";
+		case eRENDERDOC_Key_Delete:    return "Delete";
+		case eRENDERDOC_Key_PageUp:    return "PageUp";
+		case eRENDERDOC_Key_PageDn:    return "PageDn";
 
-		case eKey_Backspace: return "Backspace";
-		case eKey_Tab:       return "Tab";
-		case eKey_PrtScrn:   return "PrtScrn";
-		case eKey_Pause:     return "Pause";
+		case eRENDERDOC_Key_Backspace: return "Backspace";
+		case eRENDERDOC_Key_Tab:       return "Tab";
+		case eRENDERDOC_Key_PrtScrn:   return "PrtScrn";
+		case eRENDERDOC_Key_Pause:     return "Pause";
 		default: break;
 	}
 	
 	char tostrBuf[256] = {0};
-	StringFormat::snprintf(tostrBuf, 255, "KeyButton<%d>", el);
+	StringFormat::snprintf(tostrBuf, 255, "RENDERDOC_InputButton<%d>", el);
 
 	return tostrBuf;
 }
@@ -160,22 +160,24 @@ RenderDoc::RenderDoc()
 	m_MarkerIndentLevel = 0;
 	m_CurrentDriver = RDC_Unknown;
 
+	m_CapturesActive = 0;
+
 	m_Replay = false;
 
 	m_Cap = false;
 
 	m_FocusKeys.clear();
-	m_FocusKeys.push_back(eKey_F11);
+	m_FocusKeys.push_back(eRENDERDOC_Key_F11);
 
 	m_CaptureKeys.clear();
-	m_CaptureKeys.push_back(eKey_F12);
-	m_CaptureKeys.push_back(eKey_PrtScrn);
+	m_CaptureKeys.push_back(eRENDERDOC_Key_F12);
+	m_CaptureKeys.push_back(eRENDERDOC_Key_PrtScrn);
 
 	m_ProgressPtr = NULL;
 	
 	m_ExHandler = NULL;
 
-	m_Overlay = eOverlay_Default;
+	m_Overlay = eRENDERDOC_Overlay_Default;
 	
 	m_RemoteServerThreadShutdown = false;
 	m_RemoteClientThreadShutdown = false;
@@ -361,7 +363,10 @@ void RenderDoc::StartFrameCapture(void *dev, void *wnd)
 {
 	IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
 	if(frameCap)
+	{
 		frameCap->StartFrameCapture(dev, wnd);
+		m_CapturesActive++;
+	}
 }
 
 void RenderDoc::SetActiveWindow(void *dev, void *wnd)
@@ -382,7 +387,10 @@ bool RenderDoc::EndFrameCapture(void *dev, void *wnd)
 {
 	IFrameCapturer *frameCap = MatchFrameCapturer(dev, wnd);
 	if(frameCap)
+	{
+		m_CapturesActive--;
 		return frameCap->EndFrameCapture(dev, wnd);
+	}
 	return false;
 }
 
@@ -725,9 +733,9 @@ map<RDCDriver, string> RenderDoc::GetRemoteDrivers()
 	return ret;
 }
 
-void RenderDoc::SetCaptureOptions(const CaptureOptions *opts)
+void RenderDoc::SetCaptureOptions(const CaptureOptions &opts)
 {
-	m_Options = *opts;
+	m_Options = opts;
 }
 
 void RenderDoc::SetLogFile(const char *logFile)

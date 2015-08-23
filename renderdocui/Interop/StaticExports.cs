@@ -56,6 +56,9 @@ namespace renderdoc
         private static extern ReplayCreateStatus RENDERDOC_CreateRemoteReplayConnection(IntPtr host, ref IntPtr outrend);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_GetDefaultCaptureOptions(IntPtr outopts);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_SpawnReplayHost(ref bool killReplay);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -252,6 +255,19 @@ namespace renderdoc
 
             if (!success || len == 0)
                 return null;
+
+            return ret;
+        }
+
+        public static CaptureOptions GetDefaultCaptureOptions()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(CaptureOptions));
+
+            RENDERDOC_GetDefaultCaptureOptions(mem);
+
+            CaptureOptions ret = (CaptureOptions)CustomMarshal.PtrToStructure(mem, typeof(CaptureOptions), true);
+
+            CustomMarshal.Free(mem);
 
             return ret;
         }

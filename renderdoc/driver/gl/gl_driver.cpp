@@ -2059,7 +2059,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 		uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
-		if(overlay & eOverlay_Enabled)
+		if(overlay & eRENDERDOC_Overlay_Enabled)
 		{
 			RenderTextState textState;
 
@@ -2067,7 +2067,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
 			if(activeWindow)
 			{
-				vector<KeyButton> keys = RenderDoc::Inst().GetCaptureKeys();
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
 				string overlayText = "OpenGL.";
 
@@ -2087,11 +2087,11 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 						overlayText += " to capture.";
 				}
 
-				if(overlay & eOverlay_FrameNumber)
+				if(overlay & eRENDERDOC_Overlay_FrameNumber)
 				{
 					overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
 				}
-				if(overlay & eOverlay_FrameRate)
+				if(overlay & eRENDERDOC_Overlay_FrameRate)
 				{
 					overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)",
 						m_AvgFrametime, m_MinFrametime, m_MaxFrametime,
@@ -2122,7 +2122,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 					y += 1.0f;
 				}
 
-				if(ctxdata.Modern() && (overlay & eOverlay_CaptureList))
+				if(ctxdata.Modern() && (overlay & eRENDERDOC_Overlay_CaptureList))
 				{
 					RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_FrameRecord.size());
 					y += 1.0f;
@@ -2160,7 +2160,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 			}
 			else
 			{
-				vector<KeyButton> keys = RenderDoc::Inst().GetFocusKeys();
+				vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
 
 				string str = "OpenGL. Inactive window.";
 				
@@ -2433,24 +2433,24 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 	}
 	else
 	{
-		RDCLOG("Failed to capture, frame %u", m_FrameCounter);
+		const char *reasonString = "Unknown reason";
+		switch(reason)
+		{
+			case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+			default: break;
+		}
+
+		RDCLOG("Failed to capture, frame %u: %s", m_FrameCounter, reasonString);
 
 		m_Failures++;
 
-		if((RenderDoc::Inst().GetOverlayBits() & eOverlay_Enabled))
+		if((RenderDoc::Inst().GetOverlayBits() & eRENDERDOC_Overlay_Enabled))
 		{
 			ContextData &ctxdata = GetCtxData();
 
 			RenderTextState textState;
 
 			textState.Push(m_Real, ctxdata.Modern());
-
-			const char *reasonString = "Unknown reason";
-			switch(reason)
-			{
-				case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
-				default: break;
-			}
 
 			RenderOverlayText(0.0f, 0.0f, "Failed to capture frame %u: %s", m_FrameCounter, reasonString);
 
@@ -2469,8 +2469,11 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 		CleanupCapture();
 
 		GetResourceManager()->ClearReferencedResources();
-
-		if(m_Failures > 5) // failed too many times
+		
+		// if it's a capture triggered from application code, immediately
+		// give up as it's not reasonable to expect applications to detect and retry.
+		// otherwise we can retry in case the next frame works.
+		if(m_Failures > 5 || m_AppControlledCapture)
 		{
 			FinishCapture();
 

@@ -42,6 +42,7 @@ class Serialiser;
 class Chunk;
 
 #include "api/app/renderdoc_app.h"
+#include "api/replay/capture_options.h"
 #include "api/replay/replay_enums.h"
 #include "os/os_specific.h"
 #include "common/threading.h"
@@ -186,7 +187,7 @@ class RenderDoc
 
 		void BecomeReplayHost(volatile uint32_t &killReplay);
 
-		void SetCaptureOptions(const CaptureOptions *opts);
+		void SetCaptureOptions(const CaptureOptions &opts);
 		const CaptureOptions &GetCaptureOptions() const { return m_Options; }
 
 		void RecreateCrashHandler();
@@ -253,6 +254,7 @@ class RenderDoc
 		void RemoveDeviceFrameCapturer(void *dev);
 		
 		void StartFrameCapture(void *dev, void *wnd);
+		bool IsFrameCapturing() { return m_CapturesActive > 0; }
 		void SetActiveWindow(void *dev, void *wnd);
 		bool EndFrameCapture(void *dev, void *wnd);
 
@@ -265,21 +267,21 @@ class RenderDoc
 
 		void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
 
-		void SetFocusKeys(KeyButton *keys, int num)
+		void SetFocusKeys(RENDERDOC_InputButton *keys, int num)
 		{
 			m_FocusKeys.resize(num);
 			for(int i=0; i < num && keys; i++)
 				m_FocusKeys[i] = keys[i];
 		}
-		void SetCaptureKeys(KeyButton *keys, int num)
+		void SetCaptureKeys(RENDERDOC_InputButton *keys, int num)
 		{
 			m_CaptureKeys.resize(num);
 			for(int i=0; i < num && keys; i++)
 				m_CaptureKeys[i] = keys[i];
 		}
 
-		const vector<KeyButton> &GetFocusKeys() { return m_FocusKeys; }
-		const vector<KeyButton> &GetCaptureKeys() { return m_CaptureKeys; }
+		const vector<RENDERDOC_InputButton> &GetFocusKeys() { return m_FocusKeys; }
+		const vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
 
 		bool ShouldTriggerCapture(uint32_t frameNumber);
 	private:
@@ -292,8 +294,8 @@ class RenderDoc
 
 		bool m_Cap;
 
-		vector<KeyButton> m_FocusKeys;
-		vector<KeyButton> m_CaptureKeys;
+		vector<RENDERDOC_InputButton> m_FocusKeys;
+		vector<RENDERDOC_InputButton> m_CaptureKeys;
 
 		string m_LoggingFilename;
 
@@ -362,6 +364,8 @@ class RenderDoc
 				return *this == o;
 			}
 		};
+
+		int m_CapturesActive;
 
 		map<DeviceWnd, FrameCap> m_WindowFrameCapturers;
 		DeviceWnd m_ActiveWindow;

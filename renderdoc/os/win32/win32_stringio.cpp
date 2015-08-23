@@ -89,37 +89,37 @@ namespace Keyboard
 	{
 		int vk = 0;
 		
-		if(key >= eKey_A && key <= eKey_Z) vk = key;
-		if(key >= eKey_0 && key <= eKey_9) vk = key;
+		if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z) vk = key;
+		if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9) vk = key;
 
 		switch(key)
 		{
-			case eKey_Divide:    vk = VK_DIVIDE; break;
-			case eKey_Multiply:  vk = VK_MULTIPLY; break;
-			case eKey_Subtract:  vk = VK_SUBTRACT; break;
-			case eKey_Plus:      vk = VK_ADD; break;
-			case eKey_F1:        vk = VK_F1; break;
-			case eKey_F2:        vk = VK_F2; break;
-			case eKey_F3:        vk = VK_F3; break;
-			case eKey_F4:        vk = VK_F4; break;
-			case eKey_F5:        vk = VK_F5; break;
-			case eKey_F6:        vk = VK_F6; break;
-			case eKey_F7:        vk = VK_F7; break;
-			case eKey_F8:        vk = VK_F8; break;
-			case eKey_F9:        vk = VK_F9; break;
-			case eKey_F10:       vk = VK_F10; break;
-			case eKey_F11:       vk = VK_F11; break;
-			case eKey_F12:       vk = VK_F12; break;
-			case eKey_Home:      vk = VK_HOME; break;
-			case eKey_End:       vk = VK_END; break;
-			case eKey_Insert:    vk = VK_INSERT; break;
-			case eKey_Delete:    vk = VK_DELETE; break;
-			case eKey_PageUp:    vk = VK_PRIOR; break;
-			case eKey_PageDn:    vk = VK_NEXT; break;
-			case eKey_Backspace: vk = VK_BACK; break;
-			case eKey_Tab:       vk = VK_TAB; break;
-			case eKey_PrtScrn:   vk = VK_SNAPSHOT; break;
-			case eKey_Pause:     vk = VK_PAUSE; break;
+			case eRENDERDOC_Key_Divide:    vk = VK_DIVIDE; break;
+			case eRENDERDOC_Key_Multiply:  vk = VK_MULTIPLY; break;
+			case eRENDERDOC_Key_Subtract:  vk = VK_SUBTRACT; break;
+			case eRENDERDOC_Key_Plus:      vk = VK_ADD; break;
+			case eRENDERDOC_Key_F1:        vk = VK_F1; break;
+			case eRENDERDOC_Key_F2:        vk = VK_F2; break;
+			case eRENDERDOC_Key_F3:        vk = VK_F3; break;
+			case eRENDERDOC_Key_F4:        vk = VK_F4; break;
+			case eRENDERDOC_Key_F5:        vk = VK_F5; break;
+			case eRENDERDOC_Key_F6:        vk = VK_F6; break;
+			case eRENDERDOC_Key_F7:        vk = VK_F7; break;
+			case eRENDERDOC_Key_F8:        vk = VK_F8; break;
+			case eRENDERDOC_Key_F9:        vk = VK_F9; break;
+			case eRENDERDOC_Key_F10:       vk = VK_F10; break;
+			case eRENDERDOC_Key_F11:       vk = VK_F11; break;
+			case eRENDERDOC_Key_F12:       vk = VK_F12; break;
+			case eRENDERDOC_Key_Home:      vk = VK_HOME; break;
+			case eRENDERDOC_Key_End:       vk = VK_END; break;
+			case eRENDERDOC_Key_Insert:    vk = VK_INSERT; break;
+			case eRENDERDOC_Key_Delete:    vk = VK_DELETE; break;
+			case eRENDERDOC_Key_PageUp:    vk = VK_PRIOR; break;
+			case eRENDERDOC_Key_PageDn:    vk = VK_NEXT; break;
+			case eRENDERDOC_Key_Backspace: vk = VK_BACK; break;
+			case eRENDERDOC_Key_Tab:       vk = VK_TAB; break;
+			case eRENDERDOC_Key_PrtScrn:   vk = VK_SNAPSHOT; break;
+			case eRENDERDOC_Key_Pause:     vk = VK_PAUSE; break;
 			default:
 				break;
 		}

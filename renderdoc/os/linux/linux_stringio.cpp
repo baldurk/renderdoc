@@ -79,37 +79,37 @@ namespace Keyboard
 		
 		if(CurrentXDisplay == NULL) return false;
 
-		if(key >= eKey_A && key <= eKey_Z) ks = key;
-		if(key >= eKey_0 && key <= eKey_9) ks = key;
+		if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z) ks = key;
+		if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9) ks = key;
 		
 		switch(key)
 		{
-			case eKey_Divide:    ks = XK_KP_Divide; break;
-			case eKey_Multiply:  ks = XK_KP_Multiply; break;
-			case eKey_Subtract:  ks = XK_KP_Subtract; break;
-			case eKey_Plus:      ks = XK_KP_Add; break;
-			case eKey_F1:        ks = XK_F1; break;
-			case eKey_F2:        ks = XK_F2; break;
-			case eKey_F3:        ks = XK_F3; break;
-			case eKey_F4:        ks = XK_F4; break;
-			case eKey_F5:        ks = XK_F5; break;
-			case eKey_F6:        ks = XK_F6; break;
-			case eKey_F7:        ks = XK_F7; break;
-			case eKey_F8:        ks = XK_F8; break;
-			case eKey_F9:        ks = XK_F9; break;
-			case eKey_F10:       ks = XK_F10; break;
-			case eKey_F11:       ks = XK_F11; break;
-			case eKey_F12:       ks = XK_F12; break;
-			case eKey_Home:      ks = XK_Home; break;
-			case eKey_End:       ks = XK_End; break;
-			case eKey_Insert:    ks = XK_Insert; break;
-			case eKey_Delete:    ks = XK_Delete; break;
-			case eKey_PageUp:    ks = XK_Prior; break;
-			case eKey_PageDn:    ks = XK_Next; break;
-			case eKey_Backspace: ks = XK_BackSpace; break;
-			case eKey_Tab:       ks = XK_Tab; break;
-			case eKey_PrtScrn:   ks = XK_Print; break;
-			case eKey_Pause:     ks = XK_Pause; break;
+			case eRENDERDOC_Key_Divide:    ks = XK_KP_Divide; break;
+			case eRENDERDOC_Key_Multiply:  ks = XK_KP_Multiply; break;
+			case eRENDERDOC_Key_Subtract:  ks = XK_KP_Subtract; break;
+			case eRENDERDOC_Key_Plus:      ks = XK_KP_Add; break;
+			case eRENDERDOC_Key_F1:        ks = XK_F1; break;
+			case eRENDERDOC_Key_F2:        ks = XK_F2; break;
+			case eRENDERDOC_Key_F3:        ks = XK_F3; break;
+			case eRENDERDOC_Key_F4:        ks = XK_F4; break;
+			case eRENDERDOC_Key_F5:        ks = XK_F5; break;
+			case eRENDERDOC_Key_F6:        ks = XK_F6; break;
+			case eRENDERDOC_Key_F7:        ks = XK_F7; break;
+			case eRENDERDOC_Key_F8:        ks = XK_F8; break;
+			case eRENDERDOC_Key_F9:        ks = XK_F9; break;
+			case eRENDERDOC_Key_F10:       ks = XK_F10; break;
+			case eRENDERDOC_Key_F11:       ks = XK_F11; break;
+			case eRENDERDOC_Key_F12:       ks = XK_F12; break;
+			case eRENDERDOC_Key_Home:      ks = XK_Home; break;
+			case eRENDERDOC_Key_End:       ks = XK_End; break;
+			case eRENDERDOC_Key_Insert:    ks = XK_Insert; break;
+			case eRENDERDOC_Key_Delete:    ks = XK_Delete; break;
+			case eRENDERDOC_Key_PageUp:    ks = XK_Prior; break;
+			case eRENDERDOC_Key_PageDn:    ks = XK_Next; break;
+			case eRENDERDOC_Key_Backspace: ks = XK_BackSpace; break;
+			case eRENDERDOC_Key_Tab:       ks = XK_Tab; break;
+			case eRENDERDOC_Key_PrtScrn:   ks = XK_Print; break;
+			case eRENDERDOC_Key_Pause:     ks = XK_Pause; break;
 			default:
 				break;
 		}

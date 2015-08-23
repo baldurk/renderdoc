@@ -219,6 +219,9 @@
     <ClInclude Include="data\embedded_files.h">
       <Filter>Resources</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\capture_options.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -340,6 +343,12 @@
     </ClCompile>
     <ClCompile Include="os\win32\sys_win32_hooks.cpp">
       <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\app_api.cpp">
+      <Filter>API\In-App</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\capture_options.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
