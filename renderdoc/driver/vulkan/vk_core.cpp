@@ -1141,7 +1141,7 @@ VkResult WrappedVulkan::vkMapMemory(
 				// VKTODO handle multiple maps
 				it->second.mappedPtr = *ppData;
 				it->second.mapOffset = offset;
-				it->second.mapSize = size;
+				it->second.mapSize = size == 0 ? it->second.size : size;
 				it->second.mapFlags = flags;
 			}
 		}
