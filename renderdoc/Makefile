@@ -118,7 +118,7 @@ force_look:
 	true
 
 librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
-	$(CPP) -o librenderdoc.so $^ $(LDFLAGS)
+	$(CPP) -o librenderdoc.so $(OBJDIR_OBJECTS) $(OBJDIR_DATA) -Wl,--whole-archive $(LIBS) -Wl,--no-whole-archive $(LDFLAGS)
 
 .PHONY: clean
 clean:
