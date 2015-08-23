@@ -1714,7 +1714,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 	if(m_Mode == READING)
 		el.pTypeCount = new VkDescriptorTypeCount[el.count];
 
-	for(uint32_t i=0; el.count; i++)
+	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pTypeCount", (VkDescriptorTypeCount &)el.pTypeCount[i]);
 }
 
@@ -1748,7 +1748,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 	if(m_Mode == READING)
 		el.pDescriptors = new VkDescriptorInfo[el.count];
 
-	for(uint32_t i=0; el.count; i++)
+	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pDescriptors", (VkDescriptorInfo &)el.pDescriptors[i]);
 }
 
@@ -1813,7 +1813,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	if(m_Mode == READING)
 		el.pBinding = new VkDescriptorSetLayoutBinding[el.count];
 
-	for(uint32_t i=0; el.count; i++)
+	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pBinding", (VkDescriptorSetLayoutBinding &)el.pBinding[i]);
 }
 
