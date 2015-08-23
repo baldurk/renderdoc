@@ -185,7 +185,7 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 #define AddExtSupport(list, name, version) { VkExtensionProperties props = { name, version }; list.push_back(props); }
 	
 	AddExtSupport(globalExts.renderdoc, "VK_Renderdoc", 0);
-	AddExtSupport(globalExts.renderdoc, "VK_WSI_LunarG", 0);
+	AddExtSupport(globalExts.renderdoc, "VK_WSI_swapchain", 0);
 
 #undef AddExtSupport
 
@@ -196,6 +196,9 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	m_Real.vkGetGlobalExtensionProperties(NULL, &extCount, &globalExts.driver[0]);
 
 	std::sort(globalExts.driver.begin(), globalExts.driver.end());
+
+	for(size_t i=0; i < globalExts.driver.size(); i++)
+		RDCDEBUG("Driver Ext %d: %s", i, globalExts.driver[i].extName);
 
 	// intersection of extensions
 	{
