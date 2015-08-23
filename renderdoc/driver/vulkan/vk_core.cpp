@@ -340,7 +340,9 @@ VkResult WrappedVulkan::vkCreateInstance(
 	}
 #endif
 
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode)
+	// VKTODO we should try and fetch vkDbgCreateMsgCallback ourselves if it isn't
+	// already loaded
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_Real.vkDbgCreateMsgCallback)
 	{
 		VkFlags flags = VK_DBG_REPORT_INFO_BIT |
 										VK_DBG_REPORT_WARN_BIT |
