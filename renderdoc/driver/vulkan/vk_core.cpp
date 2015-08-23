@@ -4958,7 +4958,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
     size_t swapChainImagesSize;
     err = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
-    RDCASSERT(err != VK_SUCCESS);
+    RDCASSERT(err == VK_SUCCESS);
 
 		numIms = uint32_t(swapChainImagesSize/sizeof(VkSwapChainImagePropertiesWSI));
 
