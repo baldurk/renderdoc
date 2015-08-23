@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="vk_manager.cpp" />
+    <ClCompile Include="vk_replay.cpp" />
+    <ClCompile Include="vk_replay_win32.cpp" />
+    <ClCompile Include="vk_replay_linux.cpp" />
+    <ClCompile Include="vk_common.cpp" />
+    <ClCompile Include="vk_core.cpp" />
+    <ClCompile Include="vk_hooks_win32.cpp" />
+    <ClCompile Include="vk_hooks_linux.cpp" />
+    <ClCompile Include="vk_resources.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vk_core.h" />
+    <ClInclude Include="vk_hookset.h" />
+    <ClInclude Include="vk_hookset_defs.h" />
+    <ClInclude Include="vk_manager.h" />
+    <ClInclude Include="vk_replay.h" />
+    <ClInclude Include="vk_resources.h" />
+    <ClInclude Include="vk_common.h" />
+  </ItemGroup>
+</Project>

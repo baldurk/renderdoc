@@ -8,7 +8,7 @@ MACROS=-DLINUX \
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
 LDFLAGS=-lpthread -lrt -shared -ldl -lX11
-LIBS=driver/gl/rdoc_gl.a driver/shaders/spirv/rdoc_spirv.a
+LIBS=driver/gl/rdoc_gl.a driver/vulkan/rdoc_vulkan.a driver/shaders/spirv/rdoc_spirv.a
 OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
 replay/replay_renderer.o \
@@ -113,6 +113,9 @@ OBJDIR_DATA=$(addprefix $(OBJDIR)/, $(DATA))
 
 driver/gl/rdoc_gl.a: force_look
 	cd driver/gl && $(MAKE) rdoc_gl.a
+
+driver/vulkan/rdoc_vulkan.a: force_look
+	cd driver/vulkan && $(MAKE) rdoc_vulkan.a
 
 driver/shaders/spirv/rdoc_spirv.a: force_look
 	cd driver/shaders/spirv && $(MAKE) rdoc_spirv.a
