@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <string.h>
+
 #include "common/common.h"
 #include "core/core.h"
 #include "hooks/hooks.h"

@@ -3,7 +3,6 @@ CPP=g++
 COMMIT=`git rev-parse HEAD`
 MACROS=-DLINUX \
 			 -DRENDERDOC_PLATFORM=linux \
-			 -DRENDERDOC_EXPORTS \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/api/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder

@@ -67,7 +67,7 @@ void library_loaded()
 			CaptureOptions optstruct;
 			readCapOpts(optstr.c_str(), &optstruct);
 
-			RenderDoc::Inst().SetCaptureOptions(&optstruct);
+			RenderDoc::Inst().SetCaptureOptions(optstruct);
 		}
 
 		if(logfile)

@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <float.h>
+
 #include "common/common.h"
 #include "core/core.h"
 #include "api/replay/capture_options.h"

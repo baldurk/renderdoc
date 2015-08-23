@@ -25,6 +25,7 @@
 
 #include "os/os_specific.h"
 #include "api/app/renderdoc_app.h"
+#include "api/replay/capture_options.h"
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
