@@ -50,6 +50,7 @@ namespace Process
 	uint32_t LaunchProcess(const char *app, const char *workingDir, const char *cmdLine);
 	uint32_t LaunchAndInjectIntoProcess(const char *app, const char *workingDir, const char *cmdLine,
 										const char *logfile, const CaptureOptions *opts, bool waitForExit);
+	bool LoadLibrary(const char *module);
 	void *GetFunctionAddress(const char *module, const char *function);
 	uint32_t GetCurrentPID();
 };

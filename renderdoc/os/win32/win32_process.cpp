@@ -553,6 +553,15 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 #endif
 }
 
+bool LoadLibrary(const char *module)
+{
+	HMODULE mod = GetModuleHandleA(module);
+	if(mod != NULL)
+		return true;
+
+	return LoadLibraryA(module) != NULL;
+}
+
 void *Process::GetFunctionAddress(const char *module, const char *function)
 {
 	HMODULE mod = GetModuleHandleA(module);

@@ -396,6 +396,11 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 	RDCUNIMPLEMENTED("Global hooking of all processes on linux");
 }
 
+bool Process::LoadLibrary(const char *module)
+{
+	return dlopen(module, RTLD_NOW) != NULL;
+}
+
 void *Process::GetFunctionAddress(const char *module, const char *function)
 {
 	void *handle = dlopen(module, RTLD_NOW);
