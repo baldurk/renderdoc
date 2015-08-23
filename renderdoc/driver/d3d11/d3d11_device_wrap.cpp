@@ -1381,7 +1381,7 @@ bool WrappedID3D11Device::Serialise_CreateGeometryShaderWithStreamOutput(
 
 		ID3D11GeometryShader *ret;
 		HRESULT hr = m_pDevice->CreateGeometryShaderWithStreamOutput(ShaderBytecode, (size_t)BytecodeLen,
-		                                           SODecl, numEntries, BufStrides, numStrides, RastStream, linkage, &ret);
+		                                           SODecl, numEntries, numStrides == 0 ? NULL : BufStrides, numStrides, RastStream, linkage, &ret);
 
 		if(FAILED(hr))
 		{
