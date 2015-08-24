@@ -851,7 +851,7 @@ namespace renderdocui.Code
 
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
-                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
+                    c.Invoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
                 else
                     logviewer.OnEventSelected(frameID, eventID);
             }
