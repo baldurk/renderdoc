@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
@@ -454,7 +455,8 @@ namespace renderdoc
                 return null;
 
             // Get instance fields of the structure type. 
-            FieldInfo[] fields = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            FieldInfo[] fields = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .OrderBy(field => field.MetadataToken).ToArray();
 
             object ret = Activator.CreateInstance(structureType);
 
