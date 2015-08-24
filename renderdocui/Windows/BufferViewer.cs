@@ -1585,6 +1585,9 @@ namespace renderdocui.Windows
         {
             var bufView = state.m_GridView;
 
+            if (bufView.IsDisposed)
+                return;
+
             SuppressCaching = true;
 
             for (int i = 0; i < bufView.Columns.Count; i++)
