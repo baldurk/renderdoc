@@ -36,6 +36,25 @@
 #include <string>
 using std::string;
 
+// helpers for various shims and dlls etc, not part of the public API
+extern "C" __declspec(dllexport)
+void __cdecl RENDERDOC_GetRemoteAccessIdent(uint32_t *ident)
+{
+	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
+}
+
+extern "C" __declspec(dllexport)
+void __cdecl RENDERDOC_SetCaptureOptions(CaptureOptions *opts)
+{
+	if(opts) RenderDoc::Inst().SetCaptureOptions(*opts);
+}
+
+extern "C" __declspec(dllexport)
+void __cdecl RENDERDOC_SetLogFile(const char *log)
+{
+	if(log) RenderDoc::Inst().SetLogFile(log);
+}
+
 void InjectDLL(HANDLE hProcess, wstring libName)
 {
 	wchar_t dllPath[MAX_PATH + 1] = {0};
@@ -247,12 +266,6 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
 	}
 
 	return pi;
-}
-
-extern "C" __declspec(dllexport)
-void __cdecl RENDERDOC_GetRemoteAccessIdent(uint32_t *ident)
-{
-	if(ident) *ident = RenderDoc::Inst().GetRemoteAccessIdent();
 }
 
 uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts, bool waitForExit)
