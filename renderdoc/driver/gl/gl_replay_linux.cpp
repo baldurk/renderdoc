@@ -328,24 +328,32 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	{
 		// eventually we want to emulate EXT_dsa on replay if it isn't present, but for
 		// now we just require it.
-		bool found = false;
+		bool dsa = false;
+		bool bufstorage = false;
+
+		if(getStr)
+			RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER), getStr(eGL_VERSION));
 
 		GLint numExts = 0;
 		getInt(eGL_NUM_EXTENSIONS, &numExts);
-		for(GLint i=0; i < numExts; i++)
+		for(GLint e=0; e < numExts; e++)
 		{
-			const char *ext = (const char *)getStr(eGL_EXTENSIONS, (GLuint)i);
+			const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
 
-			if(!strcmp(ext, "GL_EXT_direct_state_access"))
-			{
-				found = true;
-				break;
-			}
+			RDCLOG("Extension % 3d: %s", e, ext);
+
+			if(!strcmp(ext, "GL_EXT_direct_state_access")) dsa = true;
+			if(!strcmp(ext, "GL_ARB_buffer_storage")) bufstorage = true;
 		}
 
-		if(!found)
-		{
+		if(!dsa)
 			RDCERR("RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try updating your drivers.");
+
+		if(!bufstorage)
+			RDCERR("RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try updating your drivers.");
+
+		if(!dsa || !bufstorage)
+		{
 			glXDestroyPbufferProc(dpy, pbuffer);
 			glXDestroyCtxProc(dpy, ctx);
 			XFree(fbcfg);
