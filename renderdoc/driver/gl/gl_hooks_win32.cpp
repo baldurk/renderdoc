@@ -346,6 +346,9 @@ class OpenGLHook : LibraryHook
 
 			ret.isSRGB = true;
 
+			if(glhooks.wglGetProcAddress_hook() == NULL)
+				glhooks.wglGetProcAddress_hook.SetFuncPtr(Process::GetFunctionAddress(DLL_NAME, "wglGetProcAddress"));
+
 			if(glhooks.wglGetPixelFormatAttribivARB_realfunc == NULL)
 				glhooks.wglGetProcAddress_hook()("wglGetPixelFormatAttribivARB");
 
