@@ -28,6 +28,7 @@
 #include "core/core.h"
 #include "hooks/hooks.h"
 #include "api/app/renderdoc_app.h"
+#include "api/replay/renderdoc_replay.h" // for RENDERDOC_API to export the RENDERDOC_GetAPI function
 
 static void SetFocusToggleKeys(RENDERDOC_InputButton *keys, int num)
 {
