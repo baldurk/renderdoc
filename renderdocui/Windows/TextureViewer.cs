@@ -1424,8 +1424,6 @@ namespace renderdocui.Windows
                     prev.Init();
                     prev.Visible = false;
                 }
-
-                i++;
             }
 
             texPanel.RefreshLayout();
