@@ -36,6 +36,7 @@ using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using renderdocui.Code;
 using renderdoc;
+using renderdocui.Windows.Dialogs;
 using System.Text.RegularExpressions;
 
 namespace renderdocui.Windows
@@ -63,6 +64,8 @@ namespace renderdocui.Windows
         private DockContent m_ConstantsDock = null;
         private DockContent m_VariablesDock = null;
         private DockContent m_WatchDock = null;
+
+        private FindAllDialog m_FindAll = null;
 
         private MenuItem m_IntContext = null;
         private MenuItem m_FloatContext = null;
@@ -267,10 +270,13 @@ namespace renderdocui.Windows
                 Text = string.Format("{0} - Edit ({1})", entry, f.Key);
             }
 
+            m_FindAll = new FindAllDialog(FindAllFiles);
+            m_FindAll.Hide();
+
             if (files.Count > 3)
                 AddFileList();
 
-            if(sel != null)
+            if (sel != null)
                 sel.Show();
 
             ShowConstants();
@@ -322,6 +328,22 @@ namespace renderdocui.Windows
                     sc.FindReplace.HighlightAll(sc.FindReplace.FindAll(search, ScintillaNET.SearchFlags.MatchCase));
 
                     sc.Selection.Range = range;
+                }
+            }
+            else if (e.KeyCode == Keys.F && e.Control && e.Shift)
+            {
+                ScintillaNET.Scintilla sc = sender as ScintillaNET.Scintilla;
+
+                if (sc != null)
+                {
+                    string search = sc.GetWordFromPosition(sc.CurrentPos);
+                    if (sc.Selection.Length > 0)
+                        search = sc.Selection.Text;
+
+                    if (search.Length > 0)
+                        m_FindAll.Search = search;
+
+                    m_FindAll.Show();
                 }
             }
         }
@@ -571,6 +593,9 @@ namespace renderdocui.Windows
                 sel.Show();
             }
 
+            m_FindAll = new FindAllDialog(FindAllFiles);
+            m_FindAll.Hide();
+            
             ShowConstants();
             ShowVariables();
             ShowWatch();
@@ -660,10 +685,7 @@ namespace renderdocui.Windows
 
         void list_SelectedIndexChanged(object sender, EventArgs e)
         {
-            int idx = m_FileList.SelectedIndex;
 
-            if (idx >= 0 && idx < m_Scintillas.Count)
-                (m_Scintillas[idx].Parent as DockContent).Show();
         }
 
         private void AddFileList()
@@ -757,6 +779,132 @@ namespace renderdocui.Windows
             scintilla1.NativeInterface.SendMessageDirect(SCI_SETSCROLLWIDTHTRACKING, true);
 
             return scintilla1;
+        }
+
+        List< KeyValuePair<ScintillaNET.Scintilla, ScintillaNET.Range> > m_FindResults = new List< KeyValuePair<ScintillaNET.Scintilla, ScintillaNET.Range> >();
+        ScintillaNET.Scintilla m_FindResultsDisplay = null;
+
+        void FindAllFiles()
+        {
+            if (m_Scintillas.Count == 0)
+                return;
+
+            if (m_FindResultsDisplay == null)
+            {
+                m_FindResultsDisplay = new ScintillaNET.Scintilla();
+                ((System.ComponentModel.ISupportInitialize)(m_FindResultsDisplay)).BeginInit();
+
+                m_FindResultsDisplay.Dock = System.Windows.Forms.DockStyle.Fill;
+                m_FindResultsDisplay.Margins.Left = 0;
+                m_FindResultsDisplay.Name = "findResults";
+                m_FindResultsDisplay.ConfigurationManager.Language = "errorlist";
+
+                m_FindResultsDisplay.DoubleClick += new EventHandler(findResults_DoubleClick);
+
+                ((System.ComponentModel.ISupportInitialize)(m_FindResultsDisplay)).EndInit();
+
+                var w = Helpers.WrapDockContent(dockPanel, m_FindResultsDisplay, "Find Results");
+                w.DockAreas |= DockAreas.Float;
+                w.DockState = DockState.DockBottom;
+                w.HideOnClose = true;
+                w.Show((m_Scintillas[0].Parent as DockContent).Pane, DockAlignment.Bottom, 0.5);
+            }
+            else
+            {
+                m_FindResultsDisplay.Text = "";
+                m_FindResultsDisplay.Parent.Show();
+            }
+
+            var findResultsByEd = new Dictionary<ScintillaNET.Scintilla, List<ScintillaNET.Range>>();
+
+            if (m_FindAll.Regexs)
+            {
+                m_FindResultsDisplay.Text = String.Format("Find all \"{0}\", Regular Expressions", m_FindAll.Search);
+
+                foreach (var s in m_Scintillas)
+                {
+                    if (s == m_DisassemblyView)
+                        continue;
+                    findResultsByEd.Add(s, s.FindReplace.FindAll(m_FindAll.SearchRegex));
+                }
+            }
+            else
+            {
+                m_FindResultsDisplay.Text = String.Format("Find all \"{0}\"", m_FindAll.Search);
+
+                if((m_FindAll.FindAllOptions & ScintillaNET.SearchFlags.MatchCase) != 0)
+                    m_FindResultsDisplay.Text += ", Match case";
+                if ((m_FindAll.FindAllOptions & ScintillaNET.SearchFlags.WholeWord) != 0)
+                    m_FindResultsDisplay.Text += ", Whole word";
+                if ((m_FindAll.FindAllOptions & ScintillaNET.SearchFlags.WordStart) != 0)
+                    m_FindResultsDisplay.Text += ", Word start";
+
+                foreach (var s in m_Scintillas)
+                {
+                    if (s == m_DisassemblyView)
+                        continue;
+                    findResultsByEd.Add(s, s.FindReplace.FindAll(m_FindAll.Search, m_FindAll.FindAllOptions));
+                }
+            }
+
+            int fileCount = 0;
+
+            foreach (var kv in findResultsByEd)
+            {
+                string filename = (kv.Key.Parent as DockContent).Text;
+
+                if (kv.Value.Count > 0)
+                    fileCount++;
+
+                foreach(var result in kv.Value)
+                {
+                    string text = kv.Key.Lines[result.StartingLine.Number].Text;
+
+                    int nl = text.IndexOf('\n');
+                    if (nl != -1)
+                        text = text.Substring(0, nl);
+
+                    m_FindResultsDisplay.Text += String.Format("{0}  {1}({2}): {3}", Environment.NewLine, filename, result.StartingLine.Number + 1, text);
+
+                    m_FindResults.Add(new KeyValuePair<ScintillaNET.Scintilla, ScintillaNET.Range>(kv.Key, result));
+                }
+            }
+
+            m_FindResultsDisplay.Text += String.Format("{0}Matching lines: {1} Matching files: {2} Total files searched: {3}",
+                Environment.NewLine, m_FindResults.Count, fileCount, m_Scintillas.Count - (m_DisassemblyView != null ? 1 : 0));
+        }
+
+        void findResults_DoubleClick(object sender, EventArgs e)
+        {
+            int line = m_FindResultsDisplay.Lines.Current.Number;
+
+            if (line > 0 && line < m_FindResultsDisplay.Lines.Count)
+            {
+                // clear selection from double click, but don't scroll or move cursor
+                int linevis = m_FindResultsDisplay.Lines.FirstVisibleIndex;
+                int pos = m_FindResultsDisplay.CurrentPos;
+                
+                m_FindResultsDisplay.Selection.SelectNone();
+
+                m_FindResultsDisplay.CurrentPos = pos;
+                m_FindResultsDisplay.Lines.FirstVisibleIndex = linevis;
+
+                m_FindResultsDisplay.FindReplace.ClearAllHighlights();
+                m_FindResultsDisplay.FindReplace.HighlightAll(new ScintillaNET.Range[] { m_FindResultsDisplay.Lines[line].Range });
+
+                int idx = line - 1;
+
+                DockContent dc = (m_FindResults[idx].Key.Parent as DockContent);
+
+                dc.Activate();
+                dc.Show();
+
+                m_FindResults[idx].Key.GoTo.Line(m_FindResults[idx].Value.StartingLine.Number);
+
+                foreach(var res in m_FindResults)
+                    res.Key.FindReplace.ClearAllHighlights();
+                m_FindResults[idx].Key.FindReplace.HighlightAll(new ScintillaNET.Range[] { m_FindResults[idx].Value });
+            }
         }
 
         List<ScintillaNET.Range> m_PrevRanges = new List<ScintillaNET.Range>();
@@ -1977,6 +2125,11 @@ namespace renderdocui.Windows
         private void ShaderViewer_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
+        }
+
+        private void findinall_Click(object sender, EventArgs e)
+        {
+            m_FindAll.Show();
         }
     }
 }

@@ -222,6 +222,12 @@
     <Compile Include="Windows\Dialogs\ColumnSelector.Designer.cs">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\FindAllDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\FindAllDialog.Designer.cs">
+      <DependentUpon>FindAllDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\Dialogs\PythonShell.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -362,6 +368,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\ColumnSelector.resx">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\FindAllDialog.resx">
+      <DependentUpon>FindAllDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\PythonShell.resx">
       <DependentUpon>PythonShell.cs</DependentUpon>
