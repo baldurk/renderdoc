@@ -267,6 +267,9 @@ namespace renderdocui.Windows
                 Text = string.Format("{0} - Edit ({1})", entry, f.Key);
             }
 
+            if (files.Count > 3)
+                AddFileList();
+
             if(sel != null)
                 sel.Show();
 
@@ -559,6 +562,9 @@ namespace renderdocui.Windows
                     fileIdx++;
                 }
 
+                if (shader.DebugInfo.files.Length > 2)
+                    AddFileList();
+
                 if (trace != null || sel == null)
                     sel = (DockContent)m_DisassemblyView.Parent;
 
@@ -648,6 +654,37 @@ namespace renderdocui.Windows
             CurrentStep = 0;
 
             this.ResumeLayout(false);
+        }
+
+        private ListBox m_FileList = null;
+
+        void list_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int idx = m_FileList.SelectedIndex;
+
+            if (idx >= 0 && idx < m_Scintillas.Count)
+                (m_Scintillas[idx].Parent as DockContent).Show();
+        }
+
+        private void AddFileList()
+        {
+            m_FileList = new ListBox();
+            m_FileList.Dock = System.Windows.Forms.DockStyle.Fill;
+            m_FileList.FormattingEnabled = true;
+            m_FileList.HorizontalScrollbar = false;
+            m_FileList.Location = new System.Drawing.Point(0, 0);
+            m_FileList.Name = "fileList";
+            m_FileList.SelectionMode = System.Windows.Forms.SelectionMode.One;
+            m_FileList.SelectedIndexChanged += new EventHandler(list_SelectedIndexChanged);
+
+            foreach (ScintillaNET.Scintilla s in m_Scintillas)
+                m_FileList.Items.Add((s.Parent as DockContent).Text);
+
+            var w = Helpers.WrapDockContent(dockPanel, m_FileList, "File List");
+            w.DockState = DockState.DockLeft;
+            w.CloseButton = false;
+            w.CloseButtonVisible = false;
+            w.Show(dockPanel);
         }
 
         private ScintillaNET.Scintilla MakeEditor(string name, string text, bool src)
