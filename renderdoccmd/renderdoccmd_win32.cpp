@@ -298,6 +298,124 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		return 1;
 	}
 
+	// special WIN32 option for launching the crash handler
+	if(argc == 3 && !_stricmp(argv[1], "--update"))
+	{
+		string originalpath = argv[2];
+		wstring wide_path;
+
+		{
+			wchar_t *conv = new wchar_t[originalpath.size()+1];
+
+			MultiByteToWideChar(CP_UTF8, 0, originalpath.c_str(), -1, conv, originalpath.size()+1);
+
+			wide_path = conv;
+		}
+
+		// Wait for UI to exit
+		Sleep(3000);
+
+		mz_zip_archive zip;
+		ZeroMemory(&zip, sizeof(zip));
+
+		mz_bool b = mz_zip_reader_init_file(&zip, "./update.zip", 0);
+
+		if(b)
+		{
+			mz_uint numfiles = mz_zip_reader_get_num_files(&zip);
+
+			// first create directories
+			for(mz_uint i=0; i < numfiles; i++)
+			{
+				if(mz_zip_reader_is_file_a_directory(&zip, i))
+				{
+					mz_zip_archive_file_stat zstat;
+					mz_zip_reader_file_stat(&zip, i, &zstat);
+
+					const char *fn = zstat.m_filename;
+					// skip first directory because it's RenderDoc_Version_Bitness/
+					fn = strchr(fn, '/');
+					if(fn) fn++;
+
+					if(*fn)
+					{
+						wchar_t conv[MAX_PATH] = {0};
+						wchar_t *wfn = conv;
+
+						// I know the zip only contains ASCII chars, just upcast
+						while(*fn) *(wfn++) = wchar_t(*(fn++));
+
+						wstring target = wide_path + conv;
+
+						wfn = &target[0];
+
+						// convert slashes because CreateDirectory barfs on
+						// proper slashes.
+						while(*(wfn++)) { if(*wfn == L'/') *wfn = L'\\'; }
+
+						CreateDirectoryW(target.c_str(), NULL);
+					}
+				}
+			}
+
+			for(mz_uint i=0; i < numfiles; i++)
+			{
+				if(!mz_zip_reader_is_file_a_directory(&zip, i))
+				{
+					mz_zip_archive_file_stat zstat;
+					mz_zip_reader_file_stat(&zip, i, &zstat);
+
+					const char *fn = zstat.m_filename;
+					// skip first directory because it's RenderDoc_Version_Bitness/
+					fn = strchr(fn, '/');
+					if(fn) fn++;
+
+					if(*fn)
+					{
+						wchar_t conv[MAX_PATH] = {0};
+						wchar_t *wfn = conv;
+
+						// I know the zip only contains ASCII chars, just upcast
+						while(*fn) *(wfn++) = wchar_t(*(fn++));
+
+						wstring target = wide_path + conv;
+
+						wfn = &target[0];
+
+						// convert slashes just to be consistent
+						while(*(wfn++)) { if(*wfn == L'/') *wfn = L'\\'; }
+
+						mz_zip_reader_extract_to_wfile(&zip, i, target.c_str(), 0);
+					}
+				}
+			}
+		}
+
+		// run original UI exe and tell it an update succeeded
+		wstring cmdline = L"\"";
+		cmdline += wide_path;
+		cmdline += L"/renderdocui.exe\" --updatedone";
+
+		wchar_t *paramsAlloc = new wchar_t[512];
+
+		wcscpy_s(paramsAlloc, 511, cmdline.c_str());
+
+		PROCESS_INFORMATION pi;
+		STARTUPINFOW si;
+		ZeroMemory(&pi, sizeof(pi));
+		ZeroMemory(&si, sizeof(si));
+
+		CreateProcessW(NULL, paramsAlloc, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+
+		if(pi.dwProcessId != 0)
+		{
+			CloseHandle(pi.hProcess);
+			CloseHandle(pi.hThread);
+		}
+
+		return 0;
+	}
+
 #if defined(RELEASE)
 	CrashGenerationServer *crashServer = NULL;
 

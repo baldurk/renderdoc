@@ -62,6 +62,19 @@ namespace renderdocui.Code
 
             Win32PInvoke.LoadLibrary("renderdoc.dll");
 
+            // clean up any update that just happened
+            string updateFilesPath = Path.Combine(Path.GetTempPath(), "RenderDocUpdate");
+
+            try
+            {
+                if (Directory.Exists(updateFilesPath))
+                    Directory.Delete(updateFilesPath, true);
+            }
+            catch (Exception)
+            {
+                // ignore any exceptions from this
+            }
+
             string filename = "";
 
             bool temp = false;
@@ -135,6 +148,15 @@ namespace renderdocui.Code
             Application.CurrentCulture = new System.Globalization.CultureInfo("en-GB");
 
             var core = new Core(filename, remoteHost, remoteIdent, temp, cfg);
+
+            foreach (var a in args)
+            {
+                if (a.ToUpperInvariant() == "--UPDATEDONE")
+                {
+                    cfg.CheckUpdate_UpdateAvailable = false;
+                    cfg.CheckUpdate_UpdateResponse = "";
+                }
+            }
 
             try
             {

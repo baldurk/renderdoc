@@ -119,6 +119,14 @@ namespace renderdocui.Windows
             }
         }
 
+        private string BareVersionString
+        {
+            get
+            {
+                return Assembly.GetEntryAssembly().GetName().Version.ToString(2);
+            }
+        }
+
         private string VersionString
         {
             get
@@ -975,34 +983,77 @@ namespace renderdocui.Windows
             updateToolStripMenuItem.Text = "An update is available";
         }
 
-        private void CheckUpdates()
+        private void UpdatePopup()
         {
-            if (!m_Core.Config.CheckUpdate_AllowChecks)
+            (new Dialogs.UpdateDialog(m_Core)).ShowDialog();
+        }
+
+        private enum UpdateResult
+        {
+            Disabled,
+            Unofficial,
+            Toosoon,
+            Latest,
+            Upgrade,
+        };
+
+        private delegate void UpdateResultMethod(UpdateResult res);
+
+        private void CheckUpdates(bool forceCheck = false, UpdateResultMethod callback = null)
+        {
+            if (!forceCheck && !m_Core.Config.CheckUpdate_AllowChecks)
             {
                 updateToolStripMenuItem.Text = "Update checks disabled";
+                if (callback != null) callback(UpdateResult.Disabled);
                 return;
             }
-            
-            if(!OfficialVersion && !BetaVersion)
+
+            if (!OfficialVersion && !BetaVersion)
+            {
+                if (callback != null) callback(UpdateResult.Unofficial);
                 return;
+            }
+
+            if (m_Core.Config.CheckUpdate_UpdateAvailable)
+            {
+                if (m_Core.Config.CheckUpdate_UpdateResponse.Length == 0)
+                {
+                    forceCheck = true;
+                }
+                else
+                {
+                    SetUpdateAvailable();
+                    return;
+                }
+            }
 
             DateTime today = DateTime.Now;
             DateTime compare = today.AddDays(-2);
 
-            if(compare.CompareTo(m_Core.Config.CheckUpdate_LastUpdate) < 0)
+            if (!forceCheck && compare.CompareTo(m_Core.Config.CheckUpdate_LastUpdate) < 0)
+            {
+                if (callback != null) callback(UpdateResult.Toosoon);
                 return;
+            }
 
             m_Core.Config.CheckUpdate_LastUpdate = today;
 
-            string versionCheck = VersionString;
+            string versionCheck = BareVersionString;
 
             if (BetaVersion)
                 versionCheck += String.Format("-{0}-beta", GitCommitHash.Substring(0, 8));
 
+            statusText.Text = "Checking for updates...";
+            statusProgress.Visible = true;
+            statusProgress.Style = ProgressBarStyle.Marquee;
+            statusProgress.MarqueeAnimationSpeed = 50;
+
             var updateThread = Helpers.NewThread(new ThreadStart(() =>
             {
                 // spawn thread to check update
-                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/checkupdate/{0}", versionCheck));
+                WebRequest g = HttpWebRequest.Create(String.Format("http://renderdoc.org/getupdateurl/{0}/{1}", IntPtr.Size == 4 ? "32" : "64", versionCheck));
+
+                UpdateResult result = UpdateResult.Disabled;
 
                 try
                 {
@@ -1012,8 +1063,21 @@ namespace renderdocui.Windows
                     {
                         string response = sr.ReadToEnd();
 
-                        if (response == "update")
-                            BeginInvoke((MethodInvoker)delegate { m_Core.Config.CheckUpdate_UpdateAvailable = true; SetUpdateAvailable(); });
+                        if (response != "")
+                        {
+                            BeginInvoke((MethodInvoker)delegate
+                            {
+                                m_Core.Config.CheckUpdate_UpdateAvailable = true;
+                                m_Core.Config.CheckUpdate_UpdateResponse = response;
+                                SetUpdateAvailable();
+                                UpdatePopup();
+                            });
+                            result = UpdateResult.Upgrade;
+                        }
+                        else if (callback != null)
+                        {
+                            result = UpdateResult.Latest;
+                        }
                     }
 
                     webresp.Close();
@@ -1021,17 +1085,68 @@ namespace renderdocui.Windows
                 catch (WebException ex)
                 {
                     StaticExports.LogText(String.Format("Problem checking for updates - {0}", ex.Message));
-                    return;
                 }
                 catch (Exception)
                 {
                     // just want to swallow the exception, checking for updates doesn't need to be handled
                     // and it's not worth trying to retry.
-                    return;
                 }
+
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    statusText.Text = "";
+                    statusProgress.Visible = false;
+                    statusProgress.Style = ProgressBarStyle.Continuous;
+                    statusProgress.MarqueeAnimationSpeed = 0;
+                    if (callback != null && result != UpdateResult.Disabled)
+                        callback(result);
+                });
             }));
 
             updateThread.Start();
+        }
+
+        private void checkForUpdatesToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            CheckUpdates(true, (UpdateResult res) =>
+            {
+                switch (res)
+                {
+                    case UpdateResult.Disabled:
+                    case UpdateResult.Toosoon:
+                    {
+                        // won't happen, we forced the check
+                        break;
+                    }
+                    case UpdateResult.Unofficial:
+                    {
+                        DialogResult mb = MessageBox.Show("You are running an unofficial build, not beta or stable release.\n" +
+                            "Updates are only available for installed release builds\n\n" +
+                            "Would you like to open the builds list in a browser?",
+                            "Unofficial build", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+
+                        if (mb == DialogResult.Yes)
+                            Process.Start("https://renderdoc.org/builds");
+                        break;
+                    }
+                    case UpdateResult.Latest:
+                    {
+                        MessageBox.Show("You are running the latest version.\n", "Latest version", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        break;
+                    }
+                    case UpdateResult.Upgrade:
+                    {
+                        // CheckUpdates() will have shown a dialog for this
+                        break;
+                    }
+                }
+            });
+        }
+
+        private void updateToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            SetUpdateAvailable();
+            UpdatePopup();
         }
 
         private bool PromptCloseLog()
@@ -1449,16 +1564,6 @@ namespace renderdocui.Windows
         {
             // Help.ShowHelp(this, "renderdoc.chm", HelpNavigator.Topic, "html/b97b19f8-2b97-4dca-8a7a-ed7026eb43fe.htm");
             Help.ShowHelp(this, "renderdoc.chm");
-        }
-
-        private void updateToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            Process.Start(String.Format("http://renderdoc.org/getupdate/{0}", VersionString));
-
-            DateTime today = DateTime.Now;
-
-            m_Core.Config.CheckUpdate_LastUpdate = today;
-            m_Core.Config.CheckUpdate_UpdateAvailable = false;
         }
 
         private void nightlybuildsToolStripMenuItem_Click(object sender, EventArgs e)
