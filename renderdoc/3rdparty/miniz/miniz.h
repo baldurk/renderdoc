@@ -76,6 +76,43 @@ typedef struct
 
 } mz_zip_archive;
 
+enum
+{
+  MZ_ZIP_MAX_IO_BUF_SIZE = 64*1024,
+  MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE = 260,
+  MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE = 256
+};
+
+typedef struct
+{
+  mz_uint32 m_file_index;
+  mz_uint32 m_central_dir_ofs;
+  mz_uint16 m_version_made_by;
+  mz_uint16 m_version_needed;
+  mz_uint16 m_bit_flag;
+  mz_uint16 m_method;
+#ifndef MINIZ_NO_TIME
+  time_t m_time;
+#endif
+  mz_uint32 m_crc32;
+  mz_uint64 m_comp_size;
+  mz_uint64 m_uncomp_size;
+  mz_uint16 m_internal_attr;
+  mz_uint32 m_external_attr;
+  mz_uint64 m_local_header_ofs;
+  mz_uint32 m_comment_size;
+  char m_filename[MZ_ZIP_MAX_ARCHIVE_FILENAME_SIZE];
+  char m_comment[MZ_ZIP_MAX_ARCHIVE_FILE_COMMENT_SIZE];
+} mz_zip_archive_file_stat;
+
+mz_bool mz_zip_reader_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint32 flags);
+mz_uint mz_zip_reader_get_num_files(mz_zip_archive *pZip);
+mz_bool mz_zip_reader_file_stat(mz_zip_archive *pZip, mz_uint file_index, mz_zip_archive_file_stat *pStat);
+mz_bool mz_zip_reader_is_file_a_directory(mz_zip_archive *pZip, mz_uint file_index);
+mz_uint mz_zip_reader_get_filename(mz_zip_archive *pZip, mz_uint file_index, char *pFilename, mz_uint filename_buf_size);
+mz_bool mz_zip_reader_extract_to_file(mz_zip_archive *pZip, mz_uint file_index, const char *pDst_filename, mz_uint flags);
+mz_bool mz_zip_reader_extract_to_wfile(mz_zip_archive *pZip, mz_uint file_index, const wchar_t *pDst_filename, mz_uint flags);
+
 mz_bool mz_zip_writer_init_file(mz_zip_archive *pZip, const char *pFilename, mz_uint64 size_to_reserve_at_beginning);
 mz_bool mz_zip_writer_init_wfile(mz_zip_archive *pZip, const wchar_t *pFilename, mz_uint64 size_to_reserve_at_beginning);
 mz_bool mz_zip_writer_add_file(mz_zip_archive *pZip, const char *pArchive_name, const char *pSrc_filename, const void *pComment, mz_uint16 comment_size, mz_uint level_and_flags);
