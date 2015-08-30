@@ -383,6 +383,25 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle(
 			VkDevice                                    device));
 
+	// Semaphore functions
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSemaphore(
+			VkDevice                                    device,
+			const VkSemaphoreCreateInfo*                pCreateInfo,
+			VkSemaphore*                                pSemaphore));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroySemaphore(
+			VkDevice                                    device,
+			VkSemaphore                                 semaphore));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueSignalSemaphore(
+			VkQueue                                     queue,
+			VkSemaphore                                 semaphore));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkQueueWaitSemaphore(
+			VkQueue                                     queue,
+			VkSemaphore                                 semaphore));
+
 	// Memory functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocMemory(

@@ -62,7 +62,7 @@ enum VkNamespace
 	eResCmdBuffer,
 	eResCmdBufferBake,
 	eResFence,
-	eResQueueSemaphore,
+	eResSemaphore,
 	eResEvent,
 	eResWaitEvent,
 	eResQueryPool,
@@ -125,7 +125,7 @@ inline VkResource MakeRes(VkDynamicRasterState o) { return VkResource(eResRaster
 inline VkResource MakeRes(VkDynamicColorBlendState o) { return VkResource(eResColorBlendState, o.handle); }
 inline VkResource MakeRes(VkDynamicDepthStencilState o) { return VkResource(eResDepthStencilState, o.handle); }
 inline VkResource MakeRes(VkFence o) { return VkResource(eResFence, o.handle); }
-inline VkResource MakeRes(VkSemaphore o) { return VkResource(eResQueueSemaphore, o.handle); }
+inline VkResource MakeRes(VkSemaphore o) { return VkResource(eResSemaphore, o.handle); }
 inline VkResource MakeRes(VkEvent o) { return VkResource(eResEvent, o.handle); }
 inline VkResource MakeRes(VkQueryPool o) { return VkResource(eResQueryPool, o.handle); }
 

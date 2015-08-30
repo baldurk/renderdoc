@@ -72,6 +72,10 @@
 	HookInit(vkDestroyPipelineCache); \
 	HookInit(vkCreatePipelineLayout); \
 	HookInit(vkDestroyPipelineLayout); \
+	HookInit(vkCreateSemaphore); \
+	HookInit(vkDestroySemaphore); \
+	HookInit(vkQueueSignalSemaphore); \
+	HookInit(vkQueueWaitSemaphore); \
 	HookInit(vkCreateSampler); \
 	HookInit(vkDestroySampler); \
 	HookInit(vkCreateDescriptorSetLayout); \
@@ -185,6 +189,10 @@
 	HookDefine2(VkResult, vkDestroyPipelineCache, VkDevice, device, VkPipelineCache, pipelineCache); \
 	HookDefine3(VkResult, vkCreatePipelineLayout, VkDevice, device, const VkPipelineLayoutCreateInfo*, pCreateInfo, VkPipelineLayout*, pPipelineLayout); \
 	HookDefine2(VkResult, vkDestroyPipelineLayout, VkDevice, device, VkPipelineLayout, pipelineLayout); \
+	HookDefine3(VkResult, vkCreateSemaphore, VkDevice, device, const VkSemaphoreCreateInfo*, pCreateInfo, VkSemaphore*, pSemaphore); \
+	HookDefine2(VkResult, vkDestroySemaphore, VkDevice, device, VkSemaphore, semaphore); \
+	HookDefine2(VkResult, vkQueueSignalSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
+	HookDefine2(VkResult, vkQueueWaitSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
 	HookDefine3(VkResult, vkCreateSampler, VkDevice, device, const VkSamplerCreateInfo*, pCreateInfo, VkSampler*, pSampler); \
 	HookDefine2(VkResult, vkDestroySampler, VkDevice, device, VkSampler, sampler); \
 	HookDefine3(VkResult, vkCreateDescriptorSetLayout, VkDevice, device, const VkDescriptorSetLayoutCreateInfo*, pCreateInfo, VkDescriptorSetLayout*, pSetLayout); \

@@ -79,6 +79,7 @@ const char *VkChunkNames[] =
 	"vkCreateComputePipelines",
 	"vkGetSwapChainInfoWSI",
 
+	"vkCreateSemaphore",
 	"vkCreateFence",
 	"vkGetFenceStatus",
 	"vkWaitForFences",
@@ -90,6 +91,8 @@ const char *VkChunkNames[] =
 	"vkBeginCommandBuffer",
 	"vkEndCommandBuffer",
 
+	"vkQueueSignalSemaphore",
+	"vkQueueWaitSemaphore",
 	"vkQueueWaitIdle",
 	"vkDeviceWaitIdle",
 
@@ -878,6 +881,7 @@ DESTROY_IMPL(VkDynamicViewportState, vkDestroyDynamicViewportState)
 DESTROY_IMPL(VkDynamicRasterState, vkDestroyDynamicRasterState)
 DESTROY_IMPL(VkDynamicColorBlendState, vkDestroyDynamicColorBlendState)
 DESTROY_IMPL(VkDynamicDepthStencilState, vkDestroyDynamicDepthStencilState)
+DESTROY_IMPL(VkSemaphore, vkDestroySemaphore)
 DESTROY_IMPL(VkCmdPool, vkDestroyCommandPool)
 DESTROY_IMPL(VkCmdBuffer, vkDestroyCommandBuffer)
 DESTROY_IMPL(VkFramebuffer, vkDestroyFramebuffer)
@@ -1062,6 +1066,64 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		}
 
 		record->dirtied.clear();
+	}
+
+	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaphore)
+{
+	SERIALISE_ELEMENT(ResourceId, qid, GetResourceManager()->GetID(MakeRes(queue)));
+	SERIALISE_ELEMENT(ResourceId, sid, GetResourceManager()->GetID(MakeRes(semaphore)));
+	
+	if(m_State < WRITING)
+	{
+		m_Real.vkQueueSignalSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
+				(VkSemaphore)GetResourceManager()->GetLiveResource(sid).handle);
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaphore)
+{
+	VkResult ret = m_Real.vkQueueSignalSemaphore(queue, semaphore);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(QUEUE_SIGNAL_SEMAPHORE);
+		Serialise_vkQueueSignalSemaphore(queue, semaphore);
+
+		m_ContextRecord->AddChunk(scope.Get());
+	}
+
+	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphore)
+{
+	SERIALISE_ELEMENT(ResourceId, qid, GetResourceManager()->GetID(MakeRes(queue)));
+	SERIALISE_ELEMENT(ResourceId, sid, GetResourceManager()->GetID(MakeRes(semaphore)));
+	
+	if(m_State < WRITING)
+	{
+		m_Real.vkQueueWaitSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
+				(VkSemaphore)GetResourceManager()->GetLiveResource(sid).handle);
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphore)
+{
+	VkResult ret = m_Real.vkQueueWaitSemaphore(queue, semaphore);
+	
+	if(m_State >= WRITING)
+	{
+		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_SEMAPHORE);
+		Serialise_vkQueueWaitSemaphore(queue, semaphore);
+
+		m_ContextRecord->AddChunk(scope.Get());
 	}
 
 	return ret;
@@ -2391,6 +2453,70 @@ VkResult WrappedVulkan::vkCreateSampler(
 			{
 				SCOPED_SERIALISE_CONTEXT(CREATE_SAMPLER);
 				Serialise_vkCreateSampler(device, pCreateInfo, pSampler);
+
+				chunk = scope.Get();
+			}
+
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+
+	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkCreateSemaphore(
+			VkDevice                                    device,
+			const VkSemaphoreCreateInfo*                pCreateInfo,
+			VkSemaphore*                                pSemaphore)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
+	SERIALISE_ELEMENT(VkSemaphoreCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(*pSemaphore)));
+
+	if(m_State == READING)
+	{
+		VkSemaphore sem = VK_NULL_HANDLE;
+
+		VkResult ret = m_Real.vkCreateSemaphore((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sem);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+		}
+		else
+		{
+			ResourceId live = GetResourceManager()->RegisterResource(MakeRes(sem));
+			GetResourceManager()->AddLiveResource(id, MakeRes(sem));
+		}
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkCreateSemaphore(
+			VkDevice                                    device,
+			const VkSemaphoreCreateInfo*                pCreateInfo,
+			VkSemaphore*                                pSemaphore)
+{
+	VkResult ret = m_Real.vkCreateSemaphore(device, pCreateInfo, pSemaphore);
+
+	if(ret == VK_SUCCESS)
+	{
+		VkResource res = MakeRes(*pSemaphore);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_SEMAPHORE);
+				Serialise_vkCreateSemaphore(device, pCreateInfo, pSemaphore);
 
 				chunk = scope.Get();
 			}
@@ -5856,6 +5982,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkGetSwapChainInfoWSI(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SWAP_CHAIN_INFO_TYPE_MAX_ENUM_WSI, NULL, NULL);
 		break;
 
+	case CREATE_SEMAPHORE:
+		Serialise_vkCreateSemaphore(VK_NULL_HANDLE, NULL, NULL);
+		break;
 	case CREATE_FENCE:
 		//VKTODO:
 		//Serialise_vkCreateFence(VK_NULL_HANDLE, NULL, NULL);
@@ -5886,6 +6015,12 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkEndCommandBuffer(VK_NULL_HANDLE);
 		break;
 
+	case QUEUE_SIGNAL_SEMAPHORE:
+		Serialise_vkQueueSignalSemaphore(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
+	case QUEUE_WAIT_SEMAPHORE:
+		Serialise_vkQueueWaitSemaphore(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
 	case QUEUE_WAIT_IDLE:
 		Serialise_vkQueueWaitIdle(VK_NULL_HANDLE);
 		break;

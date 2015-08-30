@@ -1717,6 +1717,20 @@ void Serialiser::Serialise(const char *name, VkStencilOpState &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkSemaphoreCreateInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+
+	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// for strongly typed serialising
+	Serialise("flags", el.flags);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkSamplerCreateInfo", 0, true);

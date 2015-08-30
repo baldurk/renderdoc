@@ -81,6 +81,7 @@ template<> void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkStencilOpState &el);
+template<> void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el);
@@ -145,6 +146,7 @@ enum VulkanChunkType
 	CREATE_COMPUTE_PIPE,
 	PRESENT_IMAGE,
 
+	CREATE_SEMAPHORE,
 	CREATE_FENCE,
 	GET_FENCE_STATUS,
 	WAIT_FENCES,
@@ -156,6 +158,8 @@ enum VulkanChunkType
 	BEGIN_CMD_BUFFER,
 	END_CMD_BUFFER,
 
+	QUEUE_SIGNAL_SEMAPHORE,
+	QUEUE_WAIT_SEMAPHORE,
 	QUEUE_WAIT_IDLE,
 	DEVICE_WAIT_IDLE,
 
