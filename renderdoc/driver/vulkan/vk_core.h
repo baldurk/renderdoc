@@ -611,6 +611,12 @@ public:
 			uint32_t                                    copyCount,
 			const VkCopyDescriptorSet*                  pDescriptorCopies));
 
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFreeDescriptorSets(
+			VkDevice                                    device,
+			VkDescriptorPool                            descriptorPool,
+			uint32_t                                    count,
+			const VkDescriptorSet*                      pDescriptorSets));
+
 	// State object functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateDynamicViewportState(
@@ -725,6 +731,13 @@ public:
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset,
 			VkIndexType                                 indexType));
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBindVertexBuffers(
+			VkCmdBuffer                                 cmdBuffer,
+			uint32_t                                    startBinding,
+			uint32_t                                    bindingCount,
+			const VkBuffer*                             pBuffers,
+			const VkDeviceSize*                         pOffsets));
 
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdDraw(
 			VkCmdBuffer                                 cmdBuffer,

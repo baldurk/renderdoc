@@ -84,6 +84,7 @@
 	HookInit(vkDestroyDescriptorPool); \
 	HookInit(vkAllocDescriptorSets); \
 	HookInit(vkUpdateDescriptorSets); \
+	HookInit(vkFreeDescriptorSets); \
 	HookInit(vkCreateDynamicViewportState); \
 	HookInit(vkDestroyDynamicViewportState); \
 	HookInit(vkCreateDynamicRasterState); \
@@ -106,6 +107,7 @@
 	HookInit(vkCmdBindDynamicColorBlendState); \
 	HookInit(vkCmdBindDynamicDepthStencilState); \
 	HookInit(vkCmdBindDescriptorSets); \
+	HookInit(vkCmdBindVertexBuffers); \
 	HookInit(vkCmdBindIndexBuffer); \
 	HookInit(vkCmdDraw); \
 	HookInit(vkCmdDrawIndirect); \
@@ -201,6 +203,7 @@
 	HookDefine2(VkResult, vkDestroyDescriptorPool, VkDevice, device, VkDescriptorPool, descriptorPool); \
 	HookDefine7(VkResult, vkAllocDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, VkDescriptorSetUsage, setUsage, uint32_t, count, const VkDescriptorSetLayout*, pSetLayouts, VkDescriptorSet*, pDescriptorSets, uint32_t*, pCount); \
 	HookDefine5(VkResult, vkUpdateDescriptorSets, VkDevice, device, uint32_t, writeCount, const VkWriteDescriptorSet*, pDescriptorWrites, uint32_t, copyCount, const VkCopyDescriptorSet*, pDescriptorCopies); \
+	HookDefine4(VkResult, vkFreeDescriptorSets, VkDevice, device, VkDescriptorPool, descriptorPool, uint32_t, count, const VkDescriptorSet*, pDescriptorSets); \
 	HookDefine3(VkResult, vkCreateDynamicViewportState, VkDevice, device, const VkDynamicViewportStateCreateInfo*, pCreateInfo, VkDynamicViewportState*, pState); \
 	HookDefine2(VkResult, vkDestroyDynamicViewportState, VkDevice, device, VkDynamicViewportState, state); \
 	HookDefine3(VkResult, vkCreateDynamicRasterState, VkDevice, device, const VkDynamicRasterStateCreateInfo*, pCreateInfo, VkDynamicRasterState*, pState); \
@@ -224,6 +227,7 @@
 	HookDefine2(void, vkCmdBindDynamicDepthStencilState, VkCmdBuffer, cmdBuffer, VkDynamicDepthStencilState, dynamicDepthStencilState); \
 	HookDefine8(void, vkCmdBindDescriptorSets, VkCmdBuffer, cmdBuffer, VkPipelineBindPoint, pipelineBindPoint, VkPipelineLayout, layout, uint32_t, firstSet, uint32_t, setCount, const VkDescriptorSet*, pDescriptorSets, uint32_t, dynamicOffsetCount, const uint32_t*, pDynamicOffsets); \
 	HookDefine4(void, vkCmdBindIndexBuffer, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, VkIndexType, indexType); \
+	HookDefine5(void, vkCmdBindVertexBuffers, VkCmdBuffer, cmdBuffer, uint32_t, startBinding, uint32_t, bindingCount, const VkBuffer*, pBuffers, const VkDeviceSize*, pOffsets); \
 	HookDefine5(void, vkCmdDraw, VkCmdBuffer, cmdBuffer, uint32_t, firstVertex, uint32_t, vertexCount, uint32_t, firstInstance, uint32_t, instanceCount); \
 	HookDefine6(void, vkCmdDrawIndexed, VkCmdBuffer, cmdBuffer, uint32_t, firstIndex, uint32_t, indexCount, int32_t, vertexOffset, uint32_t, firstInstance, uint32_t, instanceCount); \
 	HookDefine5(void, vkCmdDrawIndirect, VkCmdBuffer, cmdBuffer, VkBuffer, buffer, VkDeviceSize, offset, uint32_t, count, uint32_t, stride); \

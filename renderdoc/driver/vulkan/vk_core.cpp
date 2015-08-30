@@ -109,6 +109,7 @@ const char *VkChunkNames[] =
 	"vkCmdBindDynamicColorBlendState",
 	"vkCmdBindDynamicDepthStencilState",
 	"vkCmdBindDescriptorSet",
+	"vkCmdBindVertexBuffers",
 	"vkCmdBindIndexBuffer",
 	"vkCmdCopyBufferToImage",
 	"vkCmdCopyImageToBuffer",
@@ -3127,6 +3128,32 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 	return ret;
 }
 
+VkResult WrappedVulkan::vkFreeDescriptorSets(
+    VkDevice                                    device,
+    VkDescriptorPool                            descriptorPool,
+    uint32_t                                    count,
+    const VkDescriptorSet*                      pDescriptorSets)
+{
+	VkResult ret = m_Real.vkFreeDescriptorSets(device, descriptorPool, count, pDescriptorSets);
+
+	if(ret == VK_SUCCESS)
+	{
+		for(uint32_t i=0; i < count; i++)
+		{
+			VkResource res = MakeRes(pDescriptorSets[i]);
+			ResourceId id = GetResourceManager()->GetID(res);
+
+			GetResourceManager()->MarkCleanResource(id);
+			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+			if(record)
+				record->Delete(GetResourceManager());
+			GetResourceManager()->UnregisterResource(res);
+		}
+	}
+
+	return ret;
+}
+
 bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 		VkDevice                                    device,
 		uint32_t                                    writeCount,
@@ -3778,6 +3805,71 @@ void WrappedVulkan::vkCmdBindDynamicDepthStencilState(
 		record->AddChunk(scope.Get());
 	}
 }
+
+bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
+    VkCmdBuffer                                 cmdBuffer,
+    uint32_t                                    startBinding,
+    uint32_t                                    bindingCount,
+    const VkBuffer*                             pBuffers,
+    const VkDeviceSize*                         pOffsets)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
+	SERIALISE_ELEMENT(uint32_t, start, startBinding);
+	SERIALISE_ELEMENT(uint32_t, count, bindingCount);
+
+	vector<VkBuffer> bufs;
+	vector<VkDeviceSize> offs;
+
+	for(uint32_t i=0; i < count; i++)
+	{
+		ResourceId id;
+		VkDeviceSize o;
+		if(m_State >= WRITING)
+		{
+			id = GetResourceManager()->GetID(MakeRes(pBuffers[i]));
+			o = pOffsets[i];
+		}
+
+		m_pSerialiser->Serialise("pBuffers[]", id);
+		m_pSerialiser->Serialise("pOffsets[]", o);
+
+		if(m_State < WRITING)
+		{
+			bufs.push_back((VkBuffer)GetResourceManager()->GetLiveResource(id).handle);
+			offs.push_back(o);
+		}
+	}
+
+	if(m_State < WRITING)
+	{
+		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
+		
+		m_Real.vkCmdBindVertexBuffers(cmdBuffer, start, count, &bufs[0], &offs[0]);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdBindVertexBuffers(
+    VkCmdBuffer                                 cmdBuffer,
+    uint32_t                                    startBinding,
+    uint32_t                                    bindingCount,
+    const VkBuffer*                             pBuffers,
+    const VkDeviceSize*                         pOffsets)
+{
+	m_Real.vkCmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(cmdBuffer));
+
+		SCOPED_SERIALISE_CONTEXT(BIND_VERTEX_BUFFERS);
+		Serialise_vkCmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
+
+		record->AddChunk(scope.Get());
+	}
+}
+
 
 bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
     VkCmdBuffer                                 cmdBuffer,
@@ -6081,6 +6173,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case BIND_INDEX_BUFFER:
 		Serialise_vkCmdBindIndexBuffer(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_INDEX_TYPE_MAX_ENUM);
+		break;
+	case BIND_VERTEX_BUFFERS:
+		Serialise_vkCmdBindVertexBuffers(VK_NULL_HANDLE, 0, 0, NULL, NULL);
 		break;
 	case COPY_BUF2IMG:
 		Serialise_vkCmdCopyBufferToImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
