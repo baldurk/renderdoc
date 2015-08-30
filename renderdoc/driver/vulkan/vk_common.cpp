@@ -661,6 +661,7 @@ string ToStrHelper<false, VkRenderPassContents>::Get(const VkRenderPassContents 
 template<>
 string ToStrHelper<false, VkImageLayout>::Get(const VkImageLayout &el)
 {
+	// cast to int for WSI enum
 	switch((int)el)
 	{
 		TOSTR_CASE_STRINGIZE(VK_IMAGE_LAYOUT_UNDEFINED)
@@ -681,7 +682,8 @@ string ToStrHelper<false, VkImageLayout>::Get(const VkImageLayout &el)
 template<>
 string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
 {
-	switch(el)
+	// cast to int for WSI enum
+	switch((int)el)
 	{
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_APPLICATION_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO)
@@ -733,6 +735,7 @@ string ToStrHelper<false, VkStructureType>::Get(const VkStructureType &el)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO)
     TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO)
+		TOSTR_CASE_STRINGIZE(VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI)
 		default: break;
 	}
 
