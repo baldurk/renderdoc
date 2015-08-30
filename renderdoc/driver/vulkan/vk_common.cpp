@@ -1764,6 +1764,8 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 
 	Serialise("stage", el.stage);
 	SerialiseObject(VkShader, "shader", el.shader);
+	if(m_Mode >= WRITING) RDCASSERT(el.pSpecializationInfo == NULL);
+	if(m_Mode == READING) el.pSpecializationInfo = NULL;
 	// VKTODO: pSpecializationInfo
 }
 
