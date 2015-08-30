@@ -295,7 +295,8 @@ WrappedVulkan::~WrappedVulkan()
 #if defined(FORCE_VALIDATION_LAYER)
 	if(m_MsgCallback)
 	{
-		m_Real.vkDbgDestroyMsgCallback(instance, m_MsgCallback);
+		// VKTODO [0] isn't right..
+		m_Real.vkDbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
 	}
 #endif
 
@@ -337,6 +338,10 @@ bool WrappedVulkan::Serialise_vkCreateInstance(
 
 		for(uint32_t i=0; i < pCreateInfo->extensionCount; i++)
 			extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
+
+#if defined(FORCE_VALIDATION_LAYER)
+		extensions.push_back("DEBUG_REPORT");
+#endif
 	}
 
 	m_pSerialiser->Serialise("AppName", app);
@@ -388,18 +393,6 @@ bool WrappedVulkan::Serialise_vkCreateInstance(
 		VkInstance inst;
 
 		VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
-
-#if defined(FORCE_VALIDATION_LAYER)
-		if(m_Real.vkDbgCreateMsgCallback)
-		{
-			VkFlags flags = VK_DBG_REPORT_INFO_BIT |
-				VK_DBG_REPORT_WARN_BIT |
-				VK_DBG_REPORT_PERF_WARN_BIT |
-				VK_DBG_REPORT_ERROR_BIT |
-				VK_DBG_REPORT_DEBUG_BIT;
-			m_Real.vkDbgCreateMsgCallback(inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
-		}
-#endif
 
 		GetResourceManager()->RegisterResource(MakeRes(inst));
 		GetResourceManager()->AddLiveResource(instId, MakeRes(inst));
@@ -528,6 +521,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		}
 
 		ReplayData data;
+		data.inst = instance;
 		data.phys = pd;
 		m_PhysicalReplayData.push_back(data);
 	}
@@ -599,8 +593,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 			if(m_PhysicalReplayData[i].phys == physicalDevice)
 			{
 				// VKTODO super ultra mega hyper hack of great justice
-				void PopulateDeviceHooks(VkDevice d);
-				PopulateDeviceHooks(device);
+				void PopulateDeviceHooks(VkDevice d, VkInstance i);
+				PopulateDeviceHooks(device, m_PhysicalReplayData[i].inst);
 
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODO: shouldn't be 0, 0
@@ -612,6 +606,24 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
 				m_Real.vkCreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+
+#if defined(FORCE_VALIDATION_LAYER)
+				if(m_Real.vkDbgCreateMsgCallback)
+				{
+					VkFlags flags = VK_DBG_REPORT_INFO_BIT |
+						VK_DBG_REPORT_WARN_BIT |
+						VK_DBG_REPORT_PERF_WARN_BIT |
+						VK_DBG_REPORT_ERROR_BIT |
+						VK_DBG_REPORT_DEBUG_BIT;
+					m_Real.vkDbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+					RDCLOG("Created dbg callback");
+				}
+				else
+				{
+					RDCLOG("No dbg callback");
+				}
+#endif
+
 				found = true;
 				break;
 			}

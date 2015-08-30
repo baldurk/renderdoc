@@ -233,7 +233,7 @@ class VulkanHook : LibraryHook
 
 DefineHooks();
 
-void PopulateDeviceHooks(VkDevice d)
+void PopulateDeviceHooks(VkDevice d, VkInstance i)
 {
 #define HACK_WSI(func) VulkanHook::vkhooks.VK.func = (CONCAT(PFN_, func))VulkanHook::vkhooks.GPA_Device(d, STRINGIZE(func));
 	HACK_WSI(vkCreateSwapChainWSI)
@@ -242,6 +242,11 @@ void PopulateDeviceHooks(VkDevice d)
 	HACK_WSI(vkAcquireNextImageWSI)
 	HACK_WSI(vkQueuePresentWSI)
 #undef HACK_WSI
+
+#define HACK_DBG(func) VulkanHook::vkhooks.VK.func = (CONCAT(PFN_, func))VulkanHook::vkhooks.GPA_Instance(i, STRINGIZE(func));
+	HACK_DBG(vkDbgCreateMsgCallback)
+	HACK_DBG(vkDbgDestroyMsgCallback)
+#undef HACK_DBG
 }
 
 bool VulkanHook::SetupHooks(VulkanFunctions &VK)
