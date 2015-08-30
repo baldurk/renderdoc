@@ -803,6 +803,22 @@ VkResult WrappedVulkan::vkGetImageSubresourceLayout(
 	return m_Real.vkGetImageSubresourceLayout(device, image, pSubresource, pLayout);
 }
 
+VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
+		VkDevice                                    device,
+		VkBuffer                                    buffer,
+		VkMemoryRequirements*                       pMemoryRequirements)
+{
+	return m_Real.vkGetBufferMemoryRequirements(device, buffer, pMemoryRequirements);
+}
+
+VkResult WrappedVulkan::vkGetImageMemoryRequirements(
+		VkDevice                                    device,
+		VkImage                                     image,
+		VkMemoryRequirements*                       pMemoryRequirements)
+{
+	return m_Real.vkGetImageMemoryRequirements(device, image, pMemoryRequirements);
+}
+
 VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
     const char*                                 pLayerName,
 		uint32_t*                                   pCount,

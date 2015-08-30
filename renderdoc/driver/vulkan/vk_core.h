@@ -386,6 +386,16 @@ public:
 			VkDevice                                    device,
 			VkDeviceMemory                              mem));
 
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements(
+			VkDevice                                    device,
+			VkBuffer                                    buffer,
+			VkMemoryRequirements*                       pMemoryRequirements));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetImageMemoryRequirements(
+			VkDevice                                    device,
+			VkImage                                     image,
+			VkMemoryRequirements*                       pMemoryRequirements));
+
 	// Memory management API functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkBindBufferMemory(

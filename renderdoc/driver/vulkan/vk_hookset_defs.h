@@ -56,6 +56,8 @@
 	HookInit(vkCreateImage); \
 	HookInit(vkDestroyImage); \
 	HookInit(vkGetImageSubresourceLayout); \
+	HookInit(vkGetBufferMemoryRequirements); \
+	HookInit(vkGetImageMemoryRequirements); \
 	HookInit(vkCreateImageView); \
 	HookInit(vkDestroyImageView); \
 	HookInit(vkCreateAttachmentView); \
@@ -167,6 +169,8 @@
 	HookDefine3(VkResult, vkCreateImage, VkDevice, device, const VkImageCreateInfo*, pCreateInfo, VkImage*, pImage); \
 	HookDefine2(VkResult, vkDestroyImage, VkDevice, device, VkImage, image); \
 	HookDefine4(VkResult, vkGetImageSubresourceLayout, VkDevice, device, VkImage, image, const VkImageSubresource*, pSubresource, VkSubresourceLayout*, pLayout); \
+	HookDefine3(VkResult, vkGetBufferMemoryRequirements, VkDevice, device, VkBuffer, buffer, VkMemoryRequirements*, VkMemoryRequirements); \
+	HookDefine3(VkResult, vkGetImageMemoryRequirements, VkDevice, device, VkImage, image, VkMemoryRequirements*, VkMemoryRequirements); \
 	HookDefine3(VkResult, vkCreateImageView, VkDevice, device, const VkImageViewCreateInfo*, pCreateInfo, VkImageView*, pView); \
 	HookDefine2(VkResult, vkDestroyImageView, VkDevice, device, VkImageView, imageView); \
 	HookDefine3(VkResult, vkCreateAttachmentView, VkDevice, device, const VkAttachmentViewCreateInfo*, pCreateInfo, VkAttachmentView*, pView); \
