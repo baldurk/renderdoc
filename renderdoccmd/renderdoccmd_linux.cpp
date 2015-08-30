@@ -97,9 +97,9 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 
 	xcb_map_window(connection, window);
 
-	void *displayAndDrawable[] = { (void *)connection, (void *)screen, (void *)(size_t)window };
+	void *connectionScreenWindow[] = { (void *)connection, (void *)(uintptr_t)scr, (void *)(uintptr_t)window };
 
-	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, displayAndDrawable);
+	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, connectionScreenWindow);
 
 	OutputConfig c = { eOutputType_TexDisplay };
 

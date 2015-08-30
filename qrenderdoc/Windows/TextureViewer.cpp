@@ -7,7 +7,7 @@
 
 #if defined(__linux__)
 #include <QX11Info>
-#include <X11/Xlib.h>
+#include <xcb/xcb.h>
 #include <GL/glx.h>
 #endif
 
@@ -117,11 +117,11 @@ void TextureViewer::OnLogfileLoaded()
 #if defined(WIN32)
 	HWND wnd = (HWND)ui->render->winId();
 #elif defined(__linux__)
-	Display *display = QX11Info::display();
-	GLXDrawable drawable = (GLXDrawable)ui->render->winId();
+	xcb_connection_t *display = QX11Info::connection();
+	xcb_window_t window = (xcb_window_t)ui->render->winId();
 
-	void *displayAndDrawable[2] = { (void *)display, (void *)drawable };
-	void *wnd = displayAndDrawable;
+	void *connectionScreenWindow[3] = { (void *)display, (void *)0, (void *)(uintptr_t)window };
+	void *wnd = connectionScreenWindow;
 #else
 #error "Unknown platform"
 #endif

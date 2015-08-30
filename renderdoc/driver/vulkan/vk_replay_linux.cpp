@@ -26,11 +26,17 @@
 
 void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 {
-	void **displayAndDrawable = (void **)wn;
+	void **connectionScreenWindow = (void **)wn;
 
-	connection = (xcb_connection_t *)displayAndDrawable[0];
-	screen = (xcb_screen_t *)displayAndDrawable[1];
-	wnd = (xcb_window_t)(size_t)displayAndDrawable[2];
+	connection = (xcb_connection_t *)connectionScreenWindow[0];
+	int scr = (int)(uintptr_t)connectionScreenWindow[1];
+	wnd = (xcb_window_t)(uintptr_t)connectionScreenWindow[2];
+
+	const xcb_setup_t *setup = xcb_get_setup(connection);
+	xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
+	while (scr-- > 0) xcb_screen_next(&iter);
+
+	screen = iter.data;
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
