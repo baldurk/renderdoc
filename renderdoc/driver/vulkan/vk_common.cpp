@@ -190,6 +190,19 @@ string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBit
 }
 
 template<>
+string ToStrHelper<false, VkSubpassDescriptionFlagBits>::Get(const VkSubpassDescriptionFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_SUBPASS_DESCRIPTION_NO_OVERDRAW_BIT)              ret += " | VK_SUBPASS_DESCRIPTION_NO_OVERDRAW_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkPipelineBindPoint>::Get(const VkPipelineBindPoint &el)
 {
 	switch(el)
@@ -353,6 +366,33 @@ string ToStrHelper<false, VkBlend>::Get(const VkBlend &el)
 	}
 	
 	return StringFormat::Fmt("VK_BLEND<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkAttachmentLoadOp>::Get(const VkAttachmentLoadOp &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_LOAD)
+		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_CLEAR)
+		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkAttachmentLoadOp<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkAttachmentStoreOp>::Get(const VkAttachmentStoreOp &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_STORE_OP_STORE)
+		TOSTR_CASE_STRINGIZE(VK_ATTACHMENT_STORE_OP_DONT_CARE)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkAttachmentLoadOp<%d>", el);
 }
 
 template<>
@@ -1238,6 +1278,85 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
+{
+	ScopedContext scope(this, this, name, "VkAttachmentDescription", 0, true);
+	
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
+	Serialise("format", el.format);
+	Serialise("samples", el.samples);
+	Serialise("loadOp", el.loadOp);
+	Serialise("storeOp", el.storeOp);
+	Serialise("stencilLoadOp", el.stencilLoadOp);
+	Serialise("stencilStoreOp", el.stencilStoreOp);
+	Serialise("initialLayout", el.initialLayout);
+	Serialise("finalLayout", el.finalLayout);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkAttachmentReference &el)
+{
+	ScopedContext scope(this, this, name, "VkAttachmentReference", 0, true);
+
+	Serialise("attachment", el.attachment);
+	Serialise("layout", el.layout);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
+{
+	ScopedContext scope(this, this, name, "VkSubpassDescription", 0, true);
+	
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DESCRIPTION);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
+	Serialise("pipelineBindPoint", el.pipelineBindPoint);
+	Serialise("flags", (VkSubpassDescriptionFlagBits &)el.flags);
+	Serialise("depthStencilAttachment", el.depthStencilAttachment);
+	
+	size_t sz = 0;
+	
+	Serialise("inputCount", el.inputCount); sz = el.inputCount;
+	Serialise("inputAttachments", (VkAttachmentReference *&)el.inputAttachments, sz);
+	
+	Serialise("colorCount", el.colorCount); sz = el.colorCount;
+	Serialise("colorAttachments", (VkAttachmentReference *&)el.colorAttachments, sz);
+
+	bool hasResolves = (el.resolveAttachments != NULL);
+	Serialise("hasResolves", hasResolves);
+
+	if(hasResolves)
+	{
+		Serialise("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, sz);
+	}
+	
+	Serialise("preserveCount", el.preserveCount); sz = el.preserveCount;
+	Serialise("preserveAttachments", (VkAttachmentReference *&)el.preserveAttachments, sz);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSubpassDependency &el)
+{
+	ScopedContext scope(this, this, name, "VkSubpassDependency", 0, true);
+	
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_SUBPASS_DEPENDENCY);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
+	Serialise("srcSubpass", el.srcSubpass);
+	Serialise("destSubpass", el.srcSubpass);
+	Serialise("srcStageMask", el.srcStageMask);
+	Serialise("destStageMask", el.srcStageMask);
+	Serialise("outputMask", el.outputMask);
+	Serialise("inputMask", el.inputMask);
+	Serialise("byRegion", el.byRegion);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkRenderPassCreateInfo", 0, true);
@@ -1246,19 +1365,20 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	size_t sz = 0;
-	
 	Serialise("attachmentCount", el.attachmentCount);
-	sz = el.attachmentCount;
-	Serialise("pAttachments", (VkAttachmentDescription *&)el.pAttachments, sz);
+	if(m_Mode == READING)	el.pAttachments = new VkAttachmentDescription[el.attachmentCount];
+	for(uint32_t i=0; i < el.attachmentCount; i++)
+		Serialise("pAttachments[]", (VkAttachmentDescription &)el.pAttachments[i]);
 	
 	Serialise("subpassCount", el.subpassCount);
-	sz = el.subpassCount;
-	Serialise("pSubpasses", (VkSubpassDescription *&)el.pSubpasses, sz);
+	if(m_Mode == READING)	el.pSubpasses = new VkSubpassDescription[el.subpassCount];
+	for(uint32_t i=0; i < el.subpassCount; i++)
+		Serialise("pSubpasses[]", (VkSubpassDescription &)el.pSubpasses[i]);
 	
 	Serialise("dependencyCount", el.dependencyCount);
-	sz = el.dependencyCount;
-	Serialise("pDependencies", (VkSubpassDependency *&)el.pDependencies, sz);
+	if(m_Mode == READING)	el.pDependencies = new VkSubpassDependency[el.dependencyCount];
+	for(uint32_t i=0; i < el.dependencyCount; i++)
+		Serialise("pDependencies[]", (VkSubpassDependency &)el.pDependencies[i]);
 }
 
 template<>
