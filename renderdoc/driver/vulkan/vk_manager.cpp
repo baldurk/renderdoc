@@ -228,6 +228,17 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 			if(m_State < WRITING && srcit != states.end())
 			{
 				VkImageMemoryBarrier t;
+				t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+				t.pNext = NULL;
+				// VKTODO losing information? what are in/out mask and queues
+				// if input/output mask are just same as memory barriers, for
+				// the memory bound to the image, it's maybe fine as we don't need
+				// those for this purpose, they were replayed when the non-collapsed
+				// barrier happened.
+				t.inputMask = 0;
+				t.outputMask = 0;
+				t.srcQueueFamilyIndex = 0;
+				t.destQueueFamilyIndex = 0;
 				t.image = (VkImage)GetCurrentResource(liveid).handle;
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				t.newLayout = state.state;
