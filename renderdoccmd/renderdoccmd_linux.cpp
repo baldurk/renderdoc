@@ -87,9 +87,11 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay displayCfg)
 	XStoreName(dpy, win, "renderdoccmd");
 	XMapWindow(dpy, win);
 
-	GLXWindow glwnd = glXCreateWindow(dpy, fbcfg[0], win, NULL);
+	//GLXWindow glwnd = glXCreateWindow(dpy, fbcfg[0], win, NULL);
 
-	void *displayAndDrawable[] = { (void *)dpy, (void *)glwnd };
+	//void *displayAndDrawable[] = { (void *)dpy, (void *)glwnd };
+
+	void *displayAndDrawable[] = { (void *)dpy, (void *)win };
 
 	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, displayAndDrawable);
 
