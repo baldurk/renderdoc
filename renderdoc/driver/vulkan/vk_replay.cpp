@@ -409,7 +409,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	const VulkanFunctions &vk = m_pDriver->m_Real;
 	
 	// copy fake backbuffer into actual backbuffer
-#if 0
+
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
@@ -421,7 +421,10 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		0, 0, fakeBBIm,
 		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
-	vk.vkBeginCommandBuffer(cmd, 0);
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	RDCASSERT(res == VK_SUCCESS);
 
 	void *barrier = (void *)&fakeTrans;
 
@@ -429,7 +432,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	fakeTrans.oldLayout = fakeTrans.newLayout;
 
 	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &outw.curcoltrans);
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&outw.curcoltrans);
 	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
 
 	VkImageCopy region = {
@@ -437,19 +440,18 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
 		{ RDCMIN(1280, outw.width), RDCMIN(720, outw.height), 1 },
 	};
-	vk.vkCmdCopyImage(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg, VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
+	vk.vkCmdCopyImage(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
 	
 	fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	
 	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &outw.curcoltrans);
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1,(void **) &outw.curcoltrans);
 	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
 
 	vk.vkEndCommandBuffer(cmd);
 
 	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
-#endif
 	
 	{
 		VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, &outw.swap, &outw.curidx };
