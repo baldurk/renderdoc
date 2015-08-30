@@ -4397,8 +4397,7 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
 		m_FrameRecord.push_back(record);
 
-		// VKTODO Initial states not done yet!
-		//GetResourceManager()->CreateInitialContents();
+		GetResourceManager()->CreateInitialContents();
 	}
 }
 
