@@ -5707,6 +5707,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case CLEAR_DEPTHSTENCIL_ATTACH:
 		Serialise_vkCmdClearDepthStencilAttachment(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0.0f, 0, 0, NULL);
 		break;
+	case PIPELINE_BARRIER:
+		Serialise_vkCmdPipelineBarrier(VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
+		break;
 	case RESOLVE_IMAGE:
 		//VKTODO:
 		//Serialise_vkCmdResolveImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
