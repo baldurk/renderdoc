@@ -1271,6 +1271,7 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("attachmentCount", el.attachmentCount);
 	size_t sz = el.attachmentCount;
+	if(m_Mode == READING) el.pAttachments = NULL;
 	Serialise("pAttachments", (VkAttachmentBindInfo *&)el.pAttachments, sz);
 	Serialise("width", el.width);
 	Serialise("height", el.height);
@@ -1321,9 +1322,11 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 	size_t sz = 0;
 	
 	Serialise("inputCount", el.inputCount); sz = el.inputCount;
+	if(m_Mode == READING) el.inputAttachments = NULL;
 	Serialise("inputAttachments", (VkAttachmentReference *&)el.inputAttachments, sz);
 	
 	Serialise("colorCount", el.colorCount); sz = el.colorCount;
+	if(m_Mode == READING) el.colorAttachments = NULL;
 	Serialise("colorAttachments", (VkAttachmentReference *&)el.colorAttachments, sz);
 
 	bool hasResolves = (el.resolveAttachments != NULL);
@@ -1331,10 +1334,12 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 
 	if(hasResolves)
 	{
+		if(m_Mode == READING) el.resolveAttachments = NULL;
 		Serialise("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, sz);
 	}
 	
 	Serialise("preserveCount", el.preserveCount); sz = el.preserveCount;
+	if(m_Mode == READING) el.preserveAttachments = NULL;
 	Serialise("preserveAttachments", (VkAttachmentReference *&)el.preserveAttachments, sz);
 }
 
@@ -1395,6 +1400,7 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 	Serialise("renderArea", el.renderArea);
 	Serialise("attachmentCount", el.attachmentCount);
 	size_t sz = el.attachmentCount;
+	if(m_Mode == READING) el.pAttachmentClearValues = NULL;
 	Serialise("pAttachmentClearValues", (VkClearValue *&)el.pAttachmentClearValues, sz);
 }
 
@@ -1425,7 +1431,9 @@ void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &e
 
 	Serialise("viewportCount", el.viewportAndScissorCount);
 	size_t sz = el.viewportAndScissorCount;
+	if(m_Mode == READING) el.pViewports = NULL;
 	Serialise("viewports", (VkViewport *&)el.pViewports, sz);
+	if(m_Mode == READING) el.pScissors = NULL;
 	Serialise("scissors", (VkRect2D *&)el.pScissors, sz);
 }
 
@@ -1777,6 +1785,7 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 	el.initialSize = initialSize;
 
 	size_t sz = initialSize;
+	if(m_Mode == READING) el.initialData = NULL;
 	SerialiseBuffer("initialData", (byte *&)el.initialData, sz);
 
 	uint64_t maxSize = el.maxSize;
@@ -1840,6 +1849,7 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	el.codeSize = codeSize;
 
 	size_t sz = codeSize;
+	if(m_Mode == READING) el.pCode = NULL;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
 	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
