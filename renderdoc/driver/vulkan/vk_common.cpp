@@ -47,6 +47,19 @@ string ToStrHelper<false, DescriptorSlotType>::Get(const DescriptorSlotType &el)
 }
 
 template<>
+string ToStrHelper<false, VkDeviceCreateFlagBits>::Get(const VkDeviceCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_DEVICE_CREATE_VALIDATION_BIT)              ret += " | VK_DEVICE_CREATE_VALIDATION_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkQueueFlagBits>::Get(const VkQueueFlagBits &el)
 {
 	string ret;
@@ -56,6 +69,119 @@ string ToStrHelper<false, VkQueueFlagBits>::Get(const VkQueueFlagBits &el)
 	if(el & VK_QUEUE_DMA_BIT)           ret += " | VK_QUEUE_DMA_BIT";
 	if(el & VK_QUEUE_SPARSE_MEMMGR_BIT) ret += " | VK_QUEUE_SPARSE_MEMMGR_BIT";
 	if(el & VK_QUEUE_EXTENDED_BIT)      ret += " | VK_QUEUE_EXTENDED_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkPipelineCreateFlagBits>::Get(const VkPipelineCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT) ret += " | VK_PIPELINE_CREATE_DISABLE_OPTIMIZATION_BIT";
+	if(el & VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT)    ret += " | VK_PIPELINE_CREATE_ALLOW_DERIVATIVES_BIT";
+	if(el & VK_PIPELINE_CREATE_DERIVATIVE_BIT)           ret += " | VK_PIPELINE_CREATE_DERIVATIVE_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkBufferCreateFlagBits>::Get(const VkBufferCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_BUFFER_CREATE_SPARSE_BIT)           ret += " | VK_BUFFER_CREATE_SPARSE_BIT";
+	if(el & VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT) ret += " | VK_BUFFER_CREATE_SPARSE_RESIDENCY_BIT";
+	if(el & VK_BUFFER_CREATE_SPARSE_ALIASED_BIT)   ret += " | VK_BUFFER_CREATE_SPARSE_ALIASED_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkImageCreateFlagBits>::Get(const VkImageCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_IMAGE_CREATE_SPARSE_BIT)           ret += " | VK_IMAGE_CREATE_SPARSE_BIT";
+	if(el & VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT) ret += " | VK_IMAGE_CREATE_SPARSE_RESIDENCY_BIT";
+	if(el & VK_IMAGE_CREATE_SPARSE_ALIASED_BIT)   ret += " | VK_IMAGE_CREATE_SPARSE_ALIASED_BIT";
+	if(el & VK_IMAGE_CREATE_INVARIANT_DATA_BIT)   ret += " | VK_IMAGE_CREATE_INVARIANT_DATA_BIT";
+	if(el & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT)   ret += " | VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT";
+	if(el & VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT)  ret += " | VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkCmdPoolCreateFlagBits>::Get(const VkCmdPoolCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_CMD_POOL_CREATE_TRANSIENT_BIT)            ret += " | VK_CMD_POOL_CREATE_TRANSIENT_BIT";
+	if(el & VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT) ret += " | VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkCmdPoolResetFlagBits>::Get(const VkCmdPoolResetFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_CMD_POOL_RESET_RELEASE_RESOURCES)           ret += " | VK_CMD_POOL_RESET_RELEASE_RESOURCES";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkCmdBufferOptimizeFlagBits>::Get(const VkCmdBufferOptimizeFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT)           ret += " | VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT";
+	if(el & VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT)       ret += " | VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT";
+	if(el & VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT)       ret += " | VK_CMD_BUFFER_OPTIMIZE_PIPELINE_SWITCH_BIT";
+	if(el & VK_CMD_BUFFER_OPTIMIZE_DESCRIPTOR_SET_SWITCH_BIT) ret += " | VK_CMD_BUFFER_OPTIMIZE_DESCRIPTOR_SET_SWITCH_BIT";
+	if(el & VK_CMD_BUFFER_OPTIMIZE_NO_SIMULTANEOUS_USE_BIT)   ret += " | VK_CMD_BUFFER_OPTIMIZE_NO_SIMULTANEOUS_USE_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
+{
+	string ret;
+
+	if(el == VK_SHADER_STAGE_ALL)
+		return "VK_SHADER_STAGE_ALL";
+
+	if(el & VK_SHADER_STAGE_VERTEX_BIT)              ret += " | VK_SHADER_STAGE_VERTEX_BIT";
+	if(el & VK_SHADER_STAGE_TESS_CONTROL_BIT)        ret += " | VK_SHADER_STAGE_TESS_CONTROL_BIT";
+	if(el & VK_SHADER_STAGE_TESS_EVALUATION_BIT)     ret += " | VK_SHADER_STAGE_TESS_EVALUATION_BIT";
+	if(el & VK_SHADER_STAGE_GEOMETRY_BIT)            ret += " | VK_SHADER_STAGE_GEOMETRY_BIT";
+	if(el & VK_SHADER_STAGE_FRAGMENT_BIT)            ret += " | VK_SHADER_STAGE_FRAGMENT_BIT";
+	if(el & VK_SHADER_STAGE_COMPUTE_BIT)             ret += " | VK_SHADER_STAGE_COMPUTE_BIT";
 	
 	if(!ret.empty())
 		ret = ret.substr(3);
@@ -958,7 +1084,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkDeviceCreateFlagBits &)el.flags);
 
 	Serialise("queueRecordCount", el.queueRecordCount);
 	
@@ -1013,7 +1139,7 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 
 	Serialise("size", el.size);
 	Serialise("usage", el.usage);
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkBufferCreateFlagBits &)el.flags);
 }
 
 template<>
@@ -1047,7 +1173,7 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	Serialise("samples", el.samples);
 	Serialise("tiling", el.tiling);
 	Serialise("usage", el.usage);
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkImageCreateFlagBits &)el.flags);
 }
 
 template<>
@@ -1392,6 +1518,8 @@ void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 	
 	SerialiseObject(VkCmdPool, "cmdPool", el.cmdPool);
 	Serialise("level", el.level);
+	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// for strongly typed serialising
 	Serialise("flags", el.flags);
 }
 
@@ -1403,7 +1531,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO);
 	SerialiseNext(this, el.pNext);
 	
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkCmdBufferOptimizeFlagBits &)el.flags);
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
 }
@@ -1529,6 +1657,8 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 
 	size_t sz = codeSize;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
+	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// for strongly typed serialising
 	Serialise("flags", el.flags);
 }
 
@@ -1560,6 +1690,8 @@ void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 		}
 	}
 
+	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// for strongly typed serialising
 	Serialise("flags", el.flags);
 	SerialiseObject(VkShaderModule, "module", el.module);
 }
@@ -1653,7 +1785,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkPipelineCreateFlagBits &)el.flags);
 	SerialiseObject(VkPipelineLayout, "layout", el.layout);
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("subpass", el.subpass);
@@ -1686,7 +1818,7 @@ void Serialiser::Serialise(const char *name, VkComputePipelineCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 
 	Serialise("cs", el.cs);
-	Serialise("flags", el.flags);
+	Serialise("flags", (VkPipelineCreateFlagBits &)el.flags);
 	SerialiseObject(VkPipelineLayout, "layout", el.layout);
 	SerialiseObject(VkPipeline, "basePipelineHandle", el.basePipelineHandle);
 	Serialise("basePipelineIndex", el.basePipelineIndex);
@@ -1775,7 +1907,7 @@ void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 {
 	ScopedContext scope(this, this, name, "VkPushConstantRange", 0, true);
 
-	Serialise("stageFlags", el.stageFlags);
+	Serialise("stageFlags", (VkShaderStageFlagBits &)el.stageFlags);
 	Serialise("start", el.start);
 	Serialise("length", el.length);
 }
@@ -1787,7 +1919,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 
 	Serialise("descriptorType", el.descriptorType);
 	Serialise("arraySize", el.arraySize);
-	Serialise("stageFlags", el.stageFlags);
+	Serialise("stageFlags", (VkShaderStageFlagBits &)el.stageFlags);
 
 	bool hasSamplers = el.pImmutableSamplers != NULL;
 	Serialise("hasSamplers", hasSamplers);
