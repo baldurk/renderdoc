@@ -37,9 +37,9 @@
 
 #elif defined(__linux__)
 
-#include <X11/Xlib.h>
-#define WINDOW_HANDLE_DECL Display *display; Drawable wnd;
-#define NULL_WND_HANDLE 0
+#include <xcb/xcb.h>
+#define WINDOW_HANDLE_DECL xcb_connection_t *connection; xcb_screen_t *screen; xcb_window_t wnd;
+#define NULL_WND_HANDLE xcb_window_t(0)
 
 #endif
 
@@ -170,10 +170,14 @@ class VulkanReplay : public IReplayDriver
 
 			int32_t width, height;
 
-			VkImage colimg;
-			VkDeviceMemory colmem;
-			VkAttachmentView colview;
-			VkImageMemoryBarrier coltrans;
+			VkSwapChainWSI swap;
+			uint32_t numImgs;
+			VkImage colimg[8];
+			VkAttachmentView colview[8];
+			VkImageMemoryBarrier coltrans[8];
+			VkImageMemoryBarrier *curcoltrans;
+			uint32_t curidx;
+
 			VkImage dsimg;
 			VkDeviceMemory dsmem;
 			VkAttachmentView dsview;

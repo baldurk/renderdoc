@@ -28,8 +28,9 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 {
 	void **displayAndDrawable = (void **)wn;
 
-	display = (Display *)displayAndDrawable[0];
-	wnd = (Window)displayAndDrawable[1];
+	connection = (xcb_connection_t *)displayAndDrawable[0];
+	screen = (xcb_screen_t *)displayAndDrawable[1];
+	wnd = (xcb_window_t)(size_t)displayAndDrawable[2];
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -39,13 +40,13 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 	
 	OutputWindow &outw = m_OutputWindows[id];
 	
-	Window rootwin;
-	int x, y;
-	unsigned int width, height, border, depth;
-	XGetGeometry(outw.display, outw.wnd, &rootwin, &x, &y, &width, &height, &border, &depth);
+	xcb_get_geometry_cookie_t  geomCookie = xcb_get_geometry (outw.connection, outw.wnd);  // window is a xcb_drawable_t
+	xcb_get_geometry_reply_t  *geom       = xcb_get_geometry_reply (outw.connection, geomCookie, NULL);
 
-	w = (int32_t)width;
-	h = (int32_t)height;
+	w = (int32_t)geom->width;
+	h = (int32_t)geom->height;
+
+	free(geom);
 }
 
 bool VulkanReplay::IsOutputWindowVisible(uint64_t id)

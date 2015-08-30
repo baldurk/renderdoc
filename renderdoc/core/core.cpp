@@ -475,6 +475,10 @@ bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
 
 	m_Cap = false;
 
+	// Hack while no keyboard input supported on xcb
+	if(frameNumber == 10)
+		return true;
+
 	set<uint32_t> frames;
 	frames.swap(m_QueuedFrameCaptures);
 	for(auto it=frames.begin(); it != frames.end(); ++it)

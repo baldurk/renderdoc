@@ -34,9 +34,6 @@
 #include "common/threading.h"
 #include "serialise/string_utils.h"
 
-// bit of a hack
-namespace Keyboard { void CloneDisplay(Display *dpy); }
-
 void *libvulkandlsymHandle = RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libvulkan
 
 // don't want these definitions, the only place we'll use these is as parameter/variable names
@@ -188,11 +185,6 @@ class VulkanHook : LibraryHook
 
 			if(libName)
 				LinuxHookLibrary("libvulkan.so", &libHooked);
-
-			// SUUUUPer hack. I guess Keyboard needs to support
-			// xcb connections as well, and init it whenever
-			// a WSI swapchain gets created on it
-			Keyboard::CloneDisplay(XOpenDisplay(NULL));
 
 			bool success = SetupHooks(VK);
 
