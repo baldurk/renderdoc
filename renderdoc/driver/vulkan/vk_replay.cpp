@@ -655,10 +655,16 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 {
 	RDCDEBUG("Creating a VulkanReplay replay device");
 	
+#if defined(WIN32)
 	bool loaded = Process::LoadLibrary("vulkan.dll");
+#elif defined(__linux__)
+	bool loaded = Process::LoadLibrary("libvulkan.so");
+#else
+#error "Unknown platform"
+#endif
 	if(!loaded)
 	{
-		RDCERR("Failed to load vulkan.dll");
+		RDCERR("Failed to load vulkan library");
 		return eReplayCreate_APIInitFailed;
 	}
 	
