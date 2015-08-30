@@ -5322,7 +5322,10 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 				.memoryTypeIndex = 0, // VKTODO find appropriate memory type index
 			};
 
-			res = vkAllocMemory(dev, &allocInfo, &mem);
+			res = m_Real.vkAllocMemory(dev, &allocInfo, &mem);
+			RDCASSERT(res == VK_SUCCESS);
+
+			res = m_Real.vkBindImageMemory(dev, im, mem, 0);
 			RDCASSERT(res == VK_SUCCESS);
 
 			m_SwapChainInfo[id].images[i].mem = mem;
