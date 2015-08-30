@@ -5337,6 +5337,12 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			res = m_Real.vkBindImageMemory(dev, im, mem, 0);
 			RDCASSERT(res == VK_SUCCESS);
 
+			GetResourceManager()->RegisterResource(MakeRes(mem));
+			GetResourceManager()->RegisterResource(MakeRes(im));
+
+			// image live ID will be assigned separately in Serialise_vkGetSwapChainInfoWSI
+			// memory doesn't have a live ID
+
 			m_SwapChainInfo[id].images[i].mem = mem;
 			m_SwapChainInfo[id].images[i].im = im;
 
