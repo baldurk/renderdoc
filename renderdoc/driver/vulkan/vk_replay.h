@@ -80,7 +80,7 @@ class VulkanReplay : public IReplayDriver
 		vector<DebugMessage> GetDebugMessages();
 
 		void SavePipelineState();
-		D3D11PipelineState GetD3D11PipelineState() { return D3D11PipelineState(); }
+		D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }
 		GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
 
 		void FreeTargetResource(ResourceId id);
@@ -184,6 +184,8 @@ class VulkanReplay : public IReplayDriver
 			VkImageMemoryBarrier depthtrans;
 			VkImageMemoryBarrier stenciltrans;
 		};
+
+		D3D11PipelineState m_D3D11PipelineState;
 
 		map<uint64_t, OutputWindow> m_OutputWindows;
 		uint64_t m_OutputWinID;

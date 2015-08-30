@@ -579,6 +579,15 @@ ShaderReflection *VulkanReplay::GetShader(ResourceId id)
 void VulkanReplay::SavePipelineState()
 {
 	VULKANNOTIMP("SavePipelineState");
+
+	create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
+
+	ResourceId id;
+	VkImage fakeBBIm = VK_NULL_HANDLE;
+	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBMem);
+
+	m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
 }
 
 void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
