@@ -238,6 +238,7 @@ private:
 
 public:
 	WrappedVulkan(const VulkanFunctions &real, const char *logFilename);
+	~WrappedVulkan();
 
 	ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
 	ResourceId GetContextResourceID() { return m_ContextResourceID; }

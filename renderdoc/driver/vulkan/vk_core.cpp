@@ -25,6 +25,8 @@
 #include "vk_core.h"
 #include "serialise/string_utils.h"
 
+// VKTODO drop m_DeviceRecord - move EVERYTHING to resource records.
+
 static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 {
 	int cmp = strcmp(a.extName, b.extName);
@@ -285,6 +287,18 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	RDCCOMPILE_ASSERT(ARRAY_COUNT(VkChunkNames) == NUM_VULKAN_CHUNKS-FIRST_CHUNK_ID, "Not right number of chunk names");
 }
 
+WrappedVulkan::~WrappedVulkan()
+{
+#if defined(FORCE_VALIDATION_LAYER)
+	if(m_MsgCallback)
+	{
+		m_Real.vkDbgDestroyMsgCallback(instance, m_MsgCallback);
+	}
+#endif
+
+	// VKTODO clean up replay resources here?
+}
+
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
 {
 	if(idx < FIRST_CHUNK_ID || idx >= NUM_VULKAN_CHUNKS)
@@ -298,14 +312,28 @@ bool WrappedVulkan::Serialise_vkCreateInstance(
 {
 	string app = "";
 	string engine = "";
+	vector<string> layers;
+	vector<string> extensions;
 
-	RDCASSERT(pCreateInfo->pAppInfo == NULL ||
-	          pCreateInfo->pAppInfo->pNext == NULL);
-
-	if(m_State >= WRITING && pCreateInfo->pAppInfo)
+	if(m_State >= WRITING)
 	{
-		app = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
-		engine = pCreateInfo->pAppInfo->pEngineName ? pCreateInfo->pAppInfo->pEngineName : "";
+		if(pCreateInfo->pAppInfo)
+		{
+			// VKTODO
+			RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
+
+			app = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
+			engine = pCreateInfo->pAppInfo->pEngineName ? pCreateInfo->pAppInfo->pEngineName : "";
+		}
+
+		layers.resize(pCreateInfo->layerCount);
+		extensions.resize(pCreateInfo->extensionCount);
+
+		for(uint32_t i=0; i < pCreateInfo->layerCount; i++)
+			layers[i] = pCreateInfo->ppEnabledLayerNames[i];
+
+		for(uint32_t i=0; i < pCreateInfo->extensionCount; i++)
+			extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
 	}
 
 	m_pSerialiser->Serialise("AppName", app);
@@ -314,7 +342,68 @@ bool WrappedVulkan::Serialise_vkCreateInstance(
 	SERIALISE_ELEMENT(uint32_t, EngineVersion, pCreateInfo->pAppInfo ? pCreateInfo->pAppInfo->engineVersion : 0);
 	SERIALISE_ELEMENT(uint32_t, apiVersion, pCreateInfo->pAppInfo ? pCreateInfo->pAppInfo->apiVersion : 0);
 
+	m_pSerialiser->Serialise("Layers", layers);
+	m_pSerialiser->Serialise("Extensions", extensions);
+
 	SERIALISE_ELEMENT(ResourceId, instId, GetResourceManager()->GetID(MakeRes(*pInstance)));
+
+	if(m_State == READING)
+	{
+		// VKTODO verify that layers/extensions are available
+
+		app = std::string("RenderDoc (") + app + ")";
+		engine = std::string("RenderDoc (") + engine + ")";
+
+		const char **layerscstr = new const char *[layers.size()];
+		for(size_t i=0; i < layers.size(); i++)
+			layerscstr[i] = layers[i].c_str();
+
+		const char **extscstr = new const char *[extensions.size()];
+		for(size_t i=0; i < extensions.size(); i++)
+			extscstr[i] = extensions[i].c_str();
+
+    VkApplicationInfo appinfo = {
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pNext = NULL,
+        .pAppName = app.c_str(),
+        .appVersion = AppVersion,
+        .pEngineName = engine.c_str(),
+        .engineVersion = EngineVersion,
+        .apiVersion = VK_API_VERSION,
+    };
+    VkInstanceCreateInfo instinfo = {
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = NULL,
+        .pAppInfo = &appinfo,
+        .pAllocCb = NULL,
+        .layerCount = (uint32_t)layers.size(),
+        .ppEnabledLayerNames = layerscstr,
+        .extensionCount = (uint32_t)extensions.size(),
+        .ppEnabledExtensionNames = extscstr,
+    };
+
+		VkInstance inst;
+
+		VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
+
+#if defined(FORCE_VALIDATION_LAYER)
+		if(m_Real.vkDbgCreateMsgCallback)
+		{
+			VkFlags flags = VK_DBG_REPORT_INFO_BIT |
+				VK_DBG_REPORT_WARN_BIT |
+				VK_DBG_REPORT_PERF_WARN_BIT |
+				VK_DBG_REPORT_ERROR_BIT |
+				VK_DBG_REPORT_DEBUG_BIT;
+			m_Real.vkDbgCreateMsgCallback(inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+		}
+#endif
+
+		GetResourceManager()->RegisterResource(MakeRes(inst));
+		GetResourceManager()->AddLiveResource(instId, MakeRes(inst));
+
+		SAFE_DELETE_ARRAY(layerscstr);
+		SAFE_DELETE_ARRAY(extscstr);
+	}
 
 	return true;
 }
@@ -403,24 +492,43 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	SERIALISE_ELEMENT(ResourceId, inst, GetResourceManager()->GetID(MakeRes(instance)));
 	
 	SERIALISE_ELEMENT(uint32_t, physCount, *pPhysicalDeviceCount);
-	// match up physical devices to those available on replay
+
+	uint32_t count;
+	VkPhysicalDevice devices[8]; // VKTODO: dynamically allocate
+	if(m_State < WRITING)
+	{
+		instance = (VkInstance)GetResourceManager()->GetLiveResource(inst).handle;
+		VkResult ret = m_Real.vkEnumeratePhysicalDevices(instance, &count, devices);
+
+		// VKTODO
+		RDCASSERT(ret == VK_SUCCESS);
+
+		// VKTODO match up physical devices to those available on replay
+	}
 	
 	for(uint32_t i=0; i < physCount; i++)
 	{
 		SERIALISE_ELEMENT(ResourceId, physId, GetResourceManager()->GetID(MakeRes(pPhysicalDevices[i])));
 
-		ReplayData data;
-		data.phys = pPhysicalDevices[i];
-		m_PhysicalReplayData.push_back(data);
+		VkPhysicalDevice pd = VK_NULL_HANDLE;
 
-		if(m_State < WRITING)
+		if(m_State >= WRITING)
 		{
-			GetResourceManager()->RegisterResource(MakeRes(data.phys));
-			GetResourceManager()->AddLiveResource(physId, MakeRes(data.phys));
+			pd = pPhysicalDevices[i];
 		}
+		else
+		{
+			pd = devices[i];
+
+			GetResourceManager()->RegisterResource(MakeRes(devices[i]));
+			GetResourceManager()->AddLiveResource(physId, MakeRes(devices[i]));
+		}
+
+		ReplayData data;
+		data.phys = pd;
+		m_PhysicalReplayData.push_back(data);
 	}
 
-	// this means there was an error code (or it's not supported by the driver either)
 	return true;
 }
 
@@ -5743,18 +5851,7 @@ void WrappedVulkan::DebugCallback(
 
 void WrappedVulkan::Initialise(VkInitParams &params)
 {
-	// VKTODO: figure out init on replay
-	/*
-	VkApplicationInfo rdcInfo = {0};
-	rdcInfo.pEngineName = rdcInfo.pAppName = "RenderDoc";
-	rdcInfo.apiVersion = VK_API_VERSION;
-
-	vkCreateInstance();
-	*/
-
-#if FORCE_VALIDATION_LAYER
-	m_Real.vkDbgRegisterMsgCallback(&DebugCallbackStatic, this);
-#endif
+	// maybe instance params should be fetched here?
 }
 
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
