@@ -53,6 +53,7 @@ template<> void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkBufferViewCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkAttachmentBindInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el);

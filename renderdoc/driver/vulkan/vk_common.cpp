@@ -1264,6 +1264,15 @@ void Serialiser::Serialise(const char *name, VkImageViewCreateInfo &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkAttachmentBindInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkAttachmentBindInfo", 0, true);
+	
+	SerialiseObject(VkAttachmentView, "view", el.view);
+	Serialise("layout", el.layout);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkFramebufferCreateInfo", 0, true);
@@ -1274,9 +1283,10 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	Serialise("attachmentCount", el.attachmentCount);
-	size_t sz = el.attachmentCount;
-	if(m_Mode == READING) el.pAttachments = NULL;
-	Serialise("pAttachments", (VkAttachmentBindInfo *&)el.pAttachments, sz);
+	if(m_Mode == READING)
+		el.pAttachments = el.attachmentCount ? new VkAttachmentBindInfo[el.attachmentCount] : NULL;
+	for(uint32_t i=0; i < el.attachmentCount; i++)
+		Serialise("pAttachments[]", (VkAttachmentBindInfo &)el.pAttachments[i]);
 	Serialise("width", el.width);
 	Serialise("height", el.height);
 	Serialise("layers", el.layers);
