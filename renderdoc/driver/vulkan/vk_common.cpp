@@ -1095,6 +1095,10 @@ void SerialiseOptionalObject(Serialiser *ser, const char *name, T *&el)
 			el = new T;
 		ser->Serialise(name, *el);
 	}
+	else if(ser->IsReading())
+	{
+		el = NULL;
+	}
 }
 
 template<>
