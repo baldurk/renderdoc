@@ -29,7 +29,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	void **displayAndDrawable = (void **)wn;
 
 	display = (Display *)displayAndDrawable[0];
-	wnd = (Window)displayAndDrawable[0];
+	wnd = (Window)displayAndDrawable[1];
 }
 
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
