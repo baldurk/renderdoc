@@ -2014,6 +2014,10 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 {
 	ScopedContext scope(this, this, name, "VkDescriptorSetLayoutCreateInfo", 0, true);
 
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
 	Serialise("count", el.count);
 
 	if(m_Mode == READING)
