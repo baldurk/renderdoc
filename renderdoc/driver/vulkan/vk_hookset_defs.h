@@ -86,6 +86,9 @@
 	HookInit(vkDestroyDynamicColorBlendState); \
 	HookInit(vkCreateDynamicDepthStencilState); \
 	HookInit(vkDestroyDynamicDepthStencilState); \
+	HookInit(vkCreateCommandPool); \
+	HookInit(vkDestroyCommandPool); \
+	HookInit(vkResetCommandPool); \
 	HookInit(vkCreateCommandBuffer); \
 	HookInit(vkDestroyCommandBuffer); \
 	HookInit(vkBeginCommandBuffer); \
@@ -194,6 +197,9 @@
 	HookDefine2(VkResult, vkDestroyDynamicColorBlendState, VkDevice, device, VkDynamicColorBlendState, state); \
 	HookDefine3(VkResult, vkCreateDynamicDepthStencilState, VkDevice, device, const VkDynamicDepthStencilStateCreateInfo*, pCreateInfo, VkDynamicDepthStencilState*, pState); \
 	HookDefine2(VkResult, vkDestroyDynamicDepthStencilState, VkDevice, device, VkDynamicDepthStencilState, state); \
+	HookDefine3(VkResult, vkCreateCommandPool, VkDevice, device, const VkCmdPoolCreateInfo*, pCreateInfo, VkCmdPool*, pCmdPool); \
+	HookDefine2(VkResult, vkDestroyCommandPool, VkDevice, device, VkCmdPool, cmdPool); \
+	HookDefine3(VkResult, vkResetCommandPool, VkDevice, device, VkCmdPool, cmdPool, VkCmdPoolResetFlags, flags); \
 	HookDefine3(VkResult, vkCreateCommandBuffer, VkDevice, device, const VkCmdBufferCreateInfo*, pCreateInfo, VkCmdBuffer*, pCmdBuffer); \
 	HookDefine2(VkResult, vkDestroyCommandBuffer, VkDevice, device, VkCmdBuffer, cmdBuffer); \
 	HookDefine2(VkResult, vkBeginCommandBuffer, VkCmdBuffer, cmdBuffer, const VkCmdBufferBeginInfo*, pBeginInfo); \

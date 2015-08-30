@@ -598,6 +598,22 @@ public:
 			VkDevice                                    device,
 			VkDynamicDepthStencilState                  state));
 
+	// Command pool functions
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandPool(
+			VkDevice                                  device,
+			const VkCmdPoolCreateInfo*                pCreateInfo,
+			VkCmdPool*                                pCmdPool));
+	
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyCommandPool(
+			VkDevice                                  device,
+			VkCmdPool                                 VkCmdPool));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkResetCommandPool(
+			VkDevice                                  device,
+			VkCmdPool                                 VkCmdPool,
+    	VkCmdPoolResetFlags                       flags));
+
 	// Command buffer functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateCommandBuffer(

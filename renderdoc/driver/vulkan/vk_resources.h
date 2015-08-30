@@ -58,6 +58,7 @@ enum VkNamespace
 	eResMSAAState,
 	eResColorBlendState,
 	eResDepthStencilState,
+	eResCmdPool,
 	eResCmdBuffer,
 	eResCmdBufferBake,
 	eResFence,
@@ -101,6 +102,7 @@ inline VkResource MakeRes(VkInstance o) { return VkResource(eResInstance, (uint6
 inline VkResource MakeRes(VkDevice o) { return VkResource(eResDevice, (uint64_t)o); }
 inline VkResource MakeRes(VkQueue o) { return VkResource(eResQueue, (uint64_t)o); }
 inline VkResource MakeRes(VkCmdBuffer o) { return VkResource(eResCmdBuffer, (uint64_t)o); }
+inline VkResource MakeRes(VkCmdPool o) { return VkResource(eResCmdPool, o.handle); }
 inline VkResource MakeRes(VkDeviceMemory o) { return VkResource(eResDeviceMemory, o.handle); }
 inline VkResource MakeRes(VkBuffer o) { return VkResource(eResBuffer, o.handle); }
 inline VkResource MakeRes(VkBufferView o) { return VkResource(eResBufferView, o.handle); }

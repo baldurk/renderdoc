@@ -1550,6 +1550,19 @@ void Serialiser::Serialise(const char *name, VkClearColorValue &el)
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkCmdPoolCreateInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+	
+	Serialise("queueFamilyIndex", el.queueFamilyIndex);
+	Serialise("flags", (VkCmdPoolCreateFlagBits &)el.flags);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkCmdBufferCreateInfo", 0, true);

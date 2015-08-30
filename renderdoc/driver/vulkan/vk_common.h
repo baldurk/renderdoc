@@ -76,6 +76,7 @@ template<> void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateIn
 template<> void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkClearColorValue &el);
+template<> void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkStencilOpState &el);
@@ -114,6 +115,10 @@ enum VulkanChunkType
 	ALLOC_MEM,
 	UNMAP_MEM,
 	FREE_MEM,
+	
+	CREATE_CMD_POOL,
+	RESET_CMD_POOL,
+
 	CREATE_CMD_BUFFER,
 	CREATE_FRAMEBUFFER,
 	CREATE_RENDERPASS,

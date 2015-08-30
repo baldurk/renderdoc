@@ -48,6 +48,10 @@ const char *VkChunkNames[] =
 	"vkAllocMemory",
 	"vkUnmapMemory",
 	"vkFreeMemory",
+
+	"vkCreateCommandPool",
+	"vkResetCommandPool",
+
 	"vkCreateCommandBuffer",
 	"vkCreateFramebuffer",
 	"vkCreateRenderPass",
@@ -743,6 +747,7 @@ DESTROY_IMPL(VkDynamicViewportState, vkDestroyDynamicViewportState)
 DESTROY_IMPL(VkDynamicRasterState, vkDestroyDynamicRasterState)
 DESTROY_IMPL(VkDynamicColorBlendState, vkDestroyDynamicColorBlendState)
 DESTROY_IMPL(VkDynamicDepthStencilState, vkDestroyDynamicDepthStencilState)
+DESTROY_IMPL(VkCmdPool, vkDestroyCommandPool)
 DESTROY_IMPL(VkCmdBuffer, vkDestroyCommandBuffer)
 DESTROY_IMPL(VkFramebuffer, vkDestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, vkDestroyRenderPass)
@@ -2595,6 +2600,81 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 
 	return ret;
 }
+
+// Command pool functions
+
+bool WrappedVulkan::Serialise_vkCreateCommandPool(
+			VkDevice                                    device,
+			const VkCmdPoolCreateInfo*                  pCreateInfo,
+			VkCmdPool*                                  pCmdPool)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
+	SERIALISE_ELEMENT(VkCmdPoolCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(*pCmdPool)));
+
+	if(m_State == READING)
+	{
+		VkCmdPool pool = VK_NULL_HANDLE;
+
+		VkResult ret = m_Real.vkCreateCommandPool((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &pool);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+		}
+		else
+		{
+			ResourceId live = GetResourceManager()->RegisterResource(MakeRes(pool));
+			GetResourceManager()->AddLiveResource(id, MakeRes(pool));
+		}
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkCreateCommandPool(
+			VkDevice                                    device,
+			const VkCmdPoolCreateInfo*                  pCreateInfo,
+			VkCmdPool*                                  pCmdPool)
+{
+	VkResult ret = m_Real.vkCreateCommandPool(device, pCreateInfo, pCmdPool);
+
+	if(ret == VK_SUCCESS)
+	{
+		VkResource res = MakeRes(*pCmdPool);
+		ResourceId id = GetResourceManager()->RegisterResource(res);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_CMD_POOL);
+				Serialise_vkCreateCommandPool(device, pCreateInfo, pCmdPool);
+
+				chunk = scope.Get();
+			}
+
+			m_DeviceRecord->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, res);
+		}
+	}
+
+	return ret;
+}
+
+VkResult WrappedVulkan::vkResetCommandPool(
+			VkDevice                                    device,
+			VkCmdPool                                   cmdPool,
+			VkCmdPoolResetFlags                         flags)
+{
+	// VKTODO do I need to serialise this? just a driver hint..
+	return vkResetCommandPool(device, cmdPool, flags);
+}
+
 
 // Command buffer functions
 
@@ -5343,6 +5423,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case FREE_MEM:
 		Serialise_vkFreeMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
+	case CREATE_CMD_POOL:
+		Serialise_vkCreateCommandPool(VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_CMD_BUFFER:
 		RDCERR("vkCreateCommandBuffer should not be serialised directly");
