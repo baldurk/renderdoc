@@ -1332,11 +1332,9 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 	bool hasResolves = (el.resolveAttachments != NULL);
 	Serialise("hasResolves", hasResolves);
 
+	if(m_Mode == READING) el.resolveAttachments = NULL;
 	if(hasResolves)
-	{
-		if(m_Mode == READING) el.resolveAttachments = NULL;
 		Serialise("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, sz);
-	}
 	
 	Serialise("preserveCount", el.preserveCount); sz = el.preserveCount;
 	if(m_Mode == READING) el.preserveAttachments = NULL;
