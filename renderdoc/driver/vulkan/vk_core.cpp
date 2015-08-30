@@ -4414,6 +4414,8 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 	
 	SERIALISE_ELEMENT(ResourceId, bbid, GetResourceManager()->GetID(MakeRes(presentImage)));
 
+	RDCASSERT(presentImage != VK_NULL_HANDLE);
+
 	bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
 	m_pSerialiser->Serialise("HasCallstack", HasCallstack);	
 
@@ -5454,12 +5456,20 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 {
 	VkResult ret = m_Real.vkQueuePresentWSI(queue, pPresentInfo);
 
+	if(ret != VK_SUCCESS || pPresentInfo->swapChainCount == 0)
+		return ret;
+
 	RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
 	
 	if(m_State == WRITING_IDLE)
 		RenderDoc::Inst().Tick();
 	
 	m_FrameCounter++; // first present becomes frame #1, this function is at the end of the frame
+
+	if(pPresentInfo->swapChainCount > 1 && (m_FrameCounter % 100) == 0)
+	{
+		RDCWARN("Presenting multiple swapchains at once - only first will be processed");
+	}
 	
 	if(m_State == WRITING_IDLE)
 	{
@@ -5506,8 +5516,14 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 		{
 			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
 
-			// VKTODO: Get VkImage for this present from m_SwapChainInfo[]
-			//EndCaptureFrame(pPresentInfo->srcImage);
+			ResourceId swapid = GetResourceManager()->GetID(MakeRes(pPresentInfo->swapChains[0]));
+
+			// VKTODO
+			RDCASSERT(pPresentInfo->pNext == NULL);
+
+			VkImage backbuffer = m_SwapChainInfo[swapid].images[pPresentInfo->imageIndices[0]].im;
+
+			EndCaptureFrame(backbuffer);
 			FinishCapture();
 
 			Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(m_FrameCounter, &m_InitParams, NULL, 0, 0, 0);
