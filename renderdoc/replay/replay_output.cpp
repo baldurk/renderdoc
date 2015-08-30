@@ -415,6 +415,7 @@ bool ReplayOutput::Display()
 	{
 		if(!m_Thumbnails[i].dirty)
 		{
+			m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
 			m_pDevice->FlipOutputWindow(m_Thumbnails[i].outputID);
 			continue;
 		}
@@ -470,7 +471,9 @@ bool ReplayOutput::Display()
 
 	if(!m_MainOutput.dirty)
 	{
+		m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
 		m_pDevice->FlipOutputWindow(m_MainOutput.outputID);
+		m_pDevice->BindOutputWindow(m_PixelContext.outputID, false);
 		m_pDevice->FlipOutputWindow(m_PixelContext.outputID);
 		return true;
 	}

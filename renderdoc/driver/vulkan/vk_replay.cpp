@@ -395,11 +395,11 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)
 {
-	VULKANNOTIMP("FlipOutputWindow");
-
 	auto it = m_OutputWindows.find(id);
 	if(id == 0 || it == m_OutputWindows.end())
 		return;
+
+	VULKANNOTIMP("FlipOutputWindow");
 
 	OutputWindow &outw = it->second;
 
