@@ -44,9 +44,18 @@ bool VulkanResourceManager::SerialisableResource(ResourceId id, VkResourceRecord
 	return true;
 }
 
+// debugging logging for transitions
+#if 0
+#define TRDBG(...) RDCLOG(__VA_ARGS__)
+#else
+#define TRDBG(...)
+#endif
+
 void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
 											  uint32_t numTransitions, const VkImageMemoryBarrier *transitions)
 {
+	TRDBG("Recording %u transitions", numTransitions);
+
 	for(uint32_t ti=0; ti < numTransitions; ti++)
 	{
 		const VkImageMemoryBarrier &t = transitions[ti];
@@ -192,6 +201,8 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 		// where it should be inserted
 		trans.insert(it, std::make_pair(id, ImageRegionState(t.subresourceRange, t.oldLayout, t.newLayout)));
 	}
+
+	TRDBG("Post-record, there are %u transitions", (uint32_t)trans.size());
 }
 
 void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions)
@@ -246,6 +257,8 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 
 void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states)
 {
+	TRDBG("Applying %u transitions", (uint32_t)trans.size());
+
 	for(size_t ti=0; ti < trans.size(); ti++)
 	{
 		ResourceId id = trans[ti].first;
@@ -256,17 +269,35 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
 		if(numslices == VK_LAST_ARRAY_SLICE) numslices = states[id].arraySize;
 
+		// VKTODO check, does this mean the sensible thing?
+		if(nummips == 0) nummips = 1;
+		if(numslices == 0) numslices = 1;
+
 		if(t.prevstate == t.state) continue;
 
 		auto stit = states.find(id);
+
+		TRDBG("Transition of %s (%u->%u, %u->%u) from %s to %s",
+				ToStr::Get(t.range.aspect).c_str(),
+				t.range.baseMipLevel, t.range.mipLevels,
+				t.range.baseArraySlice, t.range.arraySize,
+				ToStr::Get(t.prevstate).c_str(), ToStr::Get(t.state).c_str());
 
 		if(stit == states.end()) continue;
 
 		bool done = false;
 
+		TRDBG("Matching image has %u subresource states", stit->second.subresourceStates.size());
+
 		auto it = stit->second.subresourceStates.begin();
 		for(; it != stit->second.subresourceStates.end(); ++it)
 		{
+			TRDBG(".. state %s (%u->%u, %u->%u) from %s to %s",
+				ToStr::Get(it->range.aspect).c_str(),
+				it->range.baseMipLevel, it->range.mipLevels,
+				it->range.baseArraySlice, it->range.arraySize,
+				ToStr::Get(it->prevstate).c_str(), ToStr::Get(it->state).c_str());
+
 			// image transitions are handled by initially inserting one subresource range for each aspect,
 			// and whenever we need more fine-grained detail we split it immediately for one range for
 			// each subresource in that aspect. Thereafter if a transition comes in that covers multiple
