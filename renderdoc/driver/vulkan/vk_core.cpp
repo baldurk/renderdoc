@@ -5342,7 +5342,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			RDCASSERT(res == VK_SUCCESS);
 
 			GetResourceManager()->RegisterResource(MakeRes(mem));
-			GetResourceManager()->RegisterResource(MakeRes(im));
+			ResourceId liveId = GetResourceManager()->RegisterResource(MakeRes(im));
 
 			// image live ID will be assigned separately in Serialise_vkGetSwapChainInfoWSI
 			// memory doesn't have a live ID
@@ -5351,12 +5351,13 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			m_SwapChainInfo[id].images[i].im = im;
 
 			// fill out image info so we track resource state transitions
-			m_ImageInfo[id].format = imFormat;
-			m_ImageInfo[id].extent.width = info.imageExtent.width;
-			m_ImageInfo[id].extent.height = info.imageExtent.height;
-			m_ImageInfo[id].extent.depth = 1;
-			m_ImageInfo[id].mipLevels = 1;
-			m_ImageInfo[id].arraySize = info.imageArraySize;
+			m_ImageInfo[liveId].mem = mem;
+			m_ImageInfo[liveId].format = imFormat;
+			m_ImageInfo[liveId].extent.width = info.imageExtent.width;
+			m_ImageInfo[liveId].extent.height = info.imageExtent.height;
+			m_ImageInfo[liveId].extent.depth = 1;
+			m_ImageInfo[liveId].mipLevels = 1;
+			m_ImageInfo[liveId].arraySize = info.imageArraySize;
 
 			VkImageSubresourceRange range;
 			range.baseMipLevel = range.baseArraySlice = 0;
@@ -5364,8 +5365,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			range.arraySize = info.imageArraySize;
 			range.aspect = VK_IMAGE_ASPECT_COLOR;
 
-			m_ImageInfo[id].subresourceStates.clear();
-			m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			m_ImageInfo[liveId].subresourceStates.clear();
+			m_ImageInfo[liveId].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
 		}
 	}
 
