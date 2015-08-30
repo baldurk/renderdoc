@@ -1967,6 +1967,9 @@ VkResult WrappedVulkan::vkCreateShader(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+
+			VkResourceRecord *modulerecord = GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->module));
+			record->AddParent(modulerecord);
 		}
 		else
 		{
@@ -2107,6 +2110,15 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 				record->AddChunk(chunk);
+
+				VkResourceRecord *cacherecord = GetResourceManager()->GetResourceRecord(MakeRes(pipelineCache));
+				record->AddParent(cacherecord);
+
+				for(uint32_t i=0; i < pCreateInfos->stageCount; i++)
+				{
+					VkResourceRecord *shaderrecord = GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfos->pStages[i].shader));
+					record->AddParent(shaderrecord);
+				}
 			}
 			else
 			{
