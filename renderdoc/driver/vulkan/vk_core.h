@@ -115,11 +115,13 @@ private:
 
 	struct ReplayData
 	{
-		ReplayData() : phys(VK_NULL_HANDLE), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE), cmd(VK_NULL_HANDLE) {}
+		// VKTODO need to release/destroy these somewhere
+		ReplayData() : phys(VK_NULL_HANDLE), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE), cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE) {}
 		VkPhysicalDevice phys;
 		VkDevice dev;
 		VkQueue q;
 		VkCmdBuffer cmd;
+		VkCmdPool cmdpool;
 	};
 	vector<ReplayData> m_PhysicalReplayData;
 	int m_SwapPhysDevice;

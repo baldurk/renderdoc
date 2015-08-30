@@ -598,9 +598,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODO: shouldn't be 0, 0
 				m_Real.vkGetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
-				VkCmdBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, VK_NULL_HANDLE, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				//VKTODO: Needs a command pool
-				//m_Real.vkCreateCommandBuffer(device, &createInfo, &m_PhysicalReplayData[i].cmd);
+
+				// VKTODO queueFamilyIndex
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
+				m_Real.vkCreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+
+				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+				m_Real.vkCreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				found = true;
 				break;
 			}
@@ -637,11 +641,14 @@ VkResult WrappedVulkan::vkCreateDevice(
 			{
 				m_PhysicalReplayData[i].dev = *pDevice;
 				// VKTODO: shouldn't be 0, 0
-				// VKTODO: createInfo needs pool
 				m_Real.vkGetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
-				VkCmdBufferCreateInfo createInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, VK_NULL_HANDLE, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				//VKTODO: Needs a command pool
-				//m_Real.vkCreateCommandBuffer(device, &createInfo, &m_PhysicalReplayData[i].cmd);
+
+				// VKTODO queueFamilyIndex
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
+				m_Real.vkCreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+
+				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+				m_Real.vkCreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				found = true;
 				break;
 			}
@@ -4597,7 +4604,8 @@ void WrappedVulkan::ReadLogInitialisation()
 	RDCASSERT(m_SwapPhysDevice >= 0 &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].dev != VK_NULL_HANDLE &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].q != VK_NULL_HANDLE &&
-	            m_PhysicalReplayData[m_SwapPhysDevice].cmd != VK_NULL_HANDLE);
+	            m_PhysicalReplayData[m_SwapPhysDevice].cmd != VK_NULL_HANDLE &&
+	            m_PhysicalReplayData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
 }
 
 void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial)
