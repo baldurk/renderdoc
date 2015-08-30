@@ -199,6 +199,8 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 
 #undef AddExtSupport
 
+	m_SwapPhysDevice = -1;
+
 	uint32_t extCount = 0;
 	m_Real.vkGetGlobalExtensionProperties(NULL, &extCount, NULL);
 
@@ -5548,6 +5550,12 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 					VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
         .flags = 0,
     };
+
+		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		{
+			if(m_PhysicalReplayData[i].dev == dev)
+				m_SwapPhysDevice = i;
+		}
 
 		for(uint32_t i=0; i < numSwapImages; i++)
 		{

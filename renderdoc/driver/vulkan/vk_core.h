@@ -138,9 +138,9 @@ private:
 	ExtensionSupport globalExts;
 	map<ResourceId, ExtensionSupport> deviceExts;
 
-	VkDevice GetDev()    { return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
-	VkQueue GetQ()       { return m_PhysicalReplayData[m_SwapPhysDevice].q;   }
-	VkCmdBuffer GetCmd(){ return m_PhysicalReplayData[m_SwapPhysDevice].cmd; }
+	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
+	VkQueue GetQ()       { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q;   }
+	VkCmdBuffer GetCmd(){ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].cmd; }
 
 	ResourceId m_FakeBBImgId;
 	VkImage m_FakeBBIm;
