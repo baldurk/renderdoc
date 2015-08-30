@@ -5054,6 +5054,7 @@ bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
     void*                                    pData)
 {
 	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
+	SERIALISE_ELEMENT(ResourceId, swapId, GetResourceManager()->GetID(MakeRes(swapChain)));
 	VkSwapChainImagePropertiesWSI *image = (VkSwapChainImagePropertiesWSI *)pData;
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(image->image)));
 
@@ -5604,8 +5605,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		//Serialise_vkCreateComputePipelines(VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case PRESENT_IMAGE:
-		//VKTODO:
-		//Serialise_vkWsiWinCreatePresentableImage(VK_NULL_HANDLE, NULL, NULL, NULL);
+		Serialise_vkGetSwapChainInfoWSI(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_SWAP_CHAIN_INFO_TYPE_MAX_ENUM_WSI, NULL, NULL);
 		break;
 
 	case CREATE_FENCE:
@@ -5742,6 +5742,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case END_EVENT:
 		Serialise_vkCmdDbgMarkerEnd(VK_NULL_HANDLE);
+		break;
+
+	case CREATE_SWAP_BUFFER:
+		Serialise_vkCreateSwapChainWSI(VK_NULL_HANDLE, NULL, NULL);
 		break;
 
 	case CAPTURE_SCOPE:
