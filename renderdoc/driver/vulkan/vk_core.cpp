@@ -1626,6 +1626,25 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			m_ImageInfo[live].extent = info.extent;
 			m_ImageInfo[live].mipLevels = info.mipLevels;
 			m_ImageInfo[live].arraySize = info.arraySize;
+			
+			VkImageSubresourceRange range;
+			range.baseMipLevel = range.baseArraySlice = 0;
+			range.mipLevels = info.mipLevels;
+			range.arraySize = info.arraySize;
+			if(info.imageType == VK_IMAGE_TYPE_3D)
+				range.arraySize = info.extent.depth;
+
+			m_ImageInfo[live].subresourceStates.clear();
+			
+			if(!IsDepthStencilFormat(info.format))
+			{
+				range.aspect = VK_IMAGE_ASPECT_COLOR;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			}
+			else
+			{
+				range.aspect = VK_IMAGE_ASPECT_DEPTH;  m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				range.aspect = VK_IMAGE_ASPECT_STENCIL;m_ImageInfo[live].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			}
 		}
 	}
 
@@ -1667,6 +1686,25 @@ VkResult WrappedVulkan::vkCreateImage(
 		m_ImageInfo[id].extent = pCreateInfo->extent;
 		m_ImageInfo[id].mipLevels = pCreateInfo->mipLevels;
 		m_ImageInfo[id].arraySize = pCreateInfo->arraySize;
+
+		VkImageSubresourceRange range;
+		range.baseMipLevel = range.baseArraySlice = 0;
+		range.mipLevels = pCreateInfo->mipLevels;
+		range.arraySize = pCreateInfo->arraySize;
+		if(pCreateInfo->imageType == VK_IMAGE_TYPE_3D)
+			range.arraySize = pCreateInfo->extent.depth;
+
+		m_ImageInfo[id].subresourceStates.clear();
+
+		if(!IsDepthStencilFormat(pCreateInfo->format))
+		{
+			range.aspect = VK_IMAGE_ASPECT_COLOR;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+		}
+		else
+		{
+			range.aspect = VK_IMAGE_ASPECT_DEPTH;  m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+			range.aspect = VK_IMAGE_ASPECT_STENCIL;m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+		}
 	}
 
 	return ret;
@@ -5072,6 +5110,7 @@ bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
 	SERIALISE_ELEMENT(ResourceId, swapId, GetResourceManager()->GetID(MakeRes(swapChain)));
 	VkSwapChainImagePropertiesWSI *image = (VkSwapChainImagePropertiesWSI *)pData;
+	SERIALISE_ELEMENT(size_t, idx, *pDataSize);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(image->image)));
 
 	if(m_State >= WRITING)
@@ -5081,7 +5120,11 @@ bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
 
 	if(m_State == READING)
 	{
-		// VKTODO create fake backbuffer for this image
+		// VKTODO what if num images is less than on capture?
+		RDCASSERT(idx < m_SwapChainInfo[swapId].images.size());
+		VkImage im = m_SwapChainInfo[swapId].images[idx].im;
+
+		GetResourceManager()->AddLiveResource(id, MakeRes(im));
 	}
 
 	return true;
@@ -5110,6 +5153,11 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 		for(size_t i=0; i < numImages; i++)
 		{
 			VkResource res = MakeRes(images[i].image);
+
+			// already registered
+			if(GetResourceManager()->GetID(res) != ResourceId())
+				continue;
+
 			ResourceId id = GetResourceManager()->RegisterResource(res);
 
 			if(m_State >= WRITING)
@@ -5118,8 +5166,7 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 
 				{
 					SCOPED_SERIALISE_CONTEXT(PRESENT_IMAGE);
-					dummySize = sizeof(VkSwapChainImagePropertiesWSI);
-					Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &dummySize, (void *)&images[i]);
+					Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &i, (void *)&images[i]);
 
 					chunk = scope.Get();
 				}
@@ -5162,11 +5209,11 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
 	if(m_State >= WRITING)
 	{
-		VkResult err = VK_SUCCESS;
+		VkResult res = VK_SUCCESS;
 
     size_t swapChainImagesSize;
-    err = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
-    RDCASSERT(err == VK_SUCCESS);
+    res = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
+    RDCASSERT(res == VK_SUCCESS);
 
 		numIms = uint32_t(swapChainImagesSize/sizeof(VkSwapChainImagePropertiesWSI));
 
@@ -5175,24 +5222,90 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 		// VKTODO: need to get proper formats - needs surface description
 		/*
     size_t formatsSize;
-    err = m_Real.vkGetSurfaceInfoWSI(device, (VkSurfaceDescriptionWSI *), VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, NULL);
-    assert(!err);
+    res = m_Real.vkGetSurfaceInfoWSI(device, (VkSurfaceDescriptionWSI *), VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, NULL);
+    RDCASSERT(res == VK_SUCCESS);
     VkSurfaceFormatPropertiesWSI *surfFormats = (VkSurfaceFormatPropertiesWSI *)malloc(formatsSize);
-    err = m_Real.vkGetSurfaceInfoWSI(demo->device, (VkSurfaceDescriptionWSI *) , VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, surfFormats);
-    assert(!err);
+    res = m_Real.vkGetSurfaceInfoWSI(demo->device, (VkSurfaceDescriptionWSI *) , VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, surfFormats);
+    RDCASSERT(res == VK_SUCCESS);
 		*/
 	}
 
 	SERIALISE_ELEMENT(VkFormat, imFormat, fmt);
 	SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
 
+	m_SwapChainInfo[id].format = imFormat;
+	m_SwapChainInfo[id].extent = info.imageExtent;
+	m_SwapChainInfo[id].arraySize = info.imageArraySize;
+
+	m_SwapChainInfo[id].images.resize(numSwapImages);
+
 	if(m_State == READING)
 	{
-		// VKTODO: create a set of fake backbuffer images and hook them up
-	}
-	else
-	{
-		// VKTODO: fill out m_SwapChainInfo[] map with image info for present
+		RDCASSERT(imFormat == info.imageFormat);
+
+		VkDevice dev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
+		
+    const VkImageCreateInfo imInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = NULL,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = imFormat,
+        .extent = { info.imageExtent.width, info.imageExtent.height, 1 },
+        .mipLevels = 1,
+        .arraySize = info.imageArraySize,
+        .samples = 1,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage =
+					VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|
+					VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|
+					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
+					VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+        .flags = 0,
+    };
+
+		for(uint32_t i=0; i < numSwapImages; i++)
+		{
+			VkDeviceMemory mem = VK_NULL_HANDLE;
+			VkImage im = VK_NULL_HANDLE;
+
+			VkResult res = m_Real.vkCreateImage(dev, &imInfo, &im);
+			RDCASSERT(res == VK_SUCCESS);
+			
+			VkMemoryRequirements mrq = {0};
+
+			res = m_Real.vkGetImageMemoryRequirements(dev, im, &mrq);
+			RDCASSERT(res == VK_SUCCESS);
+			
+			VkMemoryAllocInfo allocInfo = {
+				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+				.pNext = NULL,
+				.allocationSize = mrq.size,
+				.memoryTypeIndex = 0, // VKTODO find appropriate memory type index
+			};
+
+			res = vkAllocMemory(dev, &allocInfo, &mem);
+			RDCASSERT(res == VK_SUCCESS);
+
+			m_SwapChainInfo[id].images[i].mem = mem;
+			m_SwapChainInfo[id].images[i].im = im;
+
+			// fill out image info so we track resource state transitions
+			m_ImageInfo[id].format = imFormat;
+			m_ImageInfo[id].extent.width = info.imageExtent.width;
+			m_ImageInfo[id].extent.height = info.imageExtent.height;
+			m_ImageInfo[id].extent.depth = 1;
+			m_ImageInfo[id].mipLevels = 1;
+			m_ImageInfo[id].arraySize = info.imageArraySize;
+
+			VkImageSubresourceRange range;
+			range.baseMipLevel = range.baseArraySlice = 0;
+			range.mipLevels = 1;
+			range.arraySize = info.imageArraySize;
+			range.aspect = VK_IMAGE_ASPECT_COLOR;
+
+			m_ImageInfo[id].subresourceStates.clear();
+			m_ImageInfo[id].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+		}
 	}
 
 	return true;
@@ -5223,6 +5336,49 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+
+			// serialise out the swap chain images
+			{
+				size_t swapChainImagesSize;
+				VkResult ret = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
+				RDCASSERT(ret == VK_SUCCESS);
+
+				uint32_t numSwapImages = uint32_t(swapChainImagesSize)/sizeof(VkSwapChainImagePropertiesWSI);
+
+				VkSwapChainImagePropertiesWSI* images = new VkSwapChainImagePropertiesWSI[numSwapImages];
+
+				// go through our own function so we assign these images IDs
+				ret = vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, images);
+				RDCASSERT(ret == VK_SUCCESS);
+
+				for(uint32_t i=0; i < numSwapImages; i++)
+				{
+					// memory doesn't exist for genuine WSI created images
+					m_SwapChainInfo[id].images[i].mem = VK_NULL_HANDLE;
+					m_SwapChainInfo[id].images[i].im = images[i].image;
+
+					ResourceId imid = GetResourceManager()->GetID(MakeRes(images[i].image));
+
+					// fill out image info so we track resource state transitions
+					m_ImageInfo[imid].format = pCreateInfo->imageFormat;
+					m_ImageInfo[imid].extent.width = pCreateInfo->imageExtent.width;
+					m_ImageInfo[imid].extent.height = pCreateInfo->imageExtent.height;
+					m_ImageInfo[imid].extent.depth = 1;
+					m_ImageInfo[imid].mipLevels = 1;
+					m_ImageInfo[imid].arraySize = pCreateInfo->imageArraySize;
+
+					VkImageSubresourceRange range;
+					range.baseMipLevel = range.baseArraySlice = 0;
+					range.mipLevels = 1;
+					range.arraySize = pCreateInfo->imageArraySize;
+					range.aspect = VK_IMAGE_ASPECT_COLOR;
+
+					m_ImageInfo[imid].subresourceStates.clear();
+					m_ImageInfo[imid].subresourceStates.push_back(ImageRegionState(range, UNTRANSITIONED_IMG_STATE, VK_IMAGE_LAYOUT_UNDEFINED));
+				}
+
+				SAFE_DELETE_ARRAY(images);
+			}
 		}
 		else
 		{
@@ -5291,7 +5447,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 		{
 			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
 
-			// VKTODO: Get VkImage for this present
+			// VKTODO: Get VkImage for this present from m_SwapChainInfo[]
 			//EndCaptureFrame(pPresentInfo->srcImage);
 			FinishCapture();
 

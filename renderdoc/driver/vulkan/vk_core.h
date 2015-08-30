@@ -155,6 +155,22 @@ private:
 	};
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
+	struct SwapInfo
+	{
+		VkFormat format;
+		VkExtent2D extent;
+		int arraySize;
+
+		struct SwapImage
+		{
+			VkDeviceMemory mem;
+			VkImage im;
+			ImageRegionState state;
+		};
+		vector<SwapImage> images;
+	};
+	map<ResourceId, SwapInfo> m_SwapChainInfo;
+
 	struct DescriptorSetSlot
 	{
 		DescriptorSetSlot() : type(DescSetSlot_None)
