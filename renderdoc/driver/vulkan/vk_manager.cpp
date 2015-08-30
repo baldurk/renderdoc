@@ -275,6 +275,8 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		ResourceId id = trans[ti].first;
 		ImageRegionState &t = trans[ti].second;
 
+		TRDBG("Applying transition to %llu", GetOriginalID(id));
+
 		uint32_t nummips = t.range.mipLevels;
 		uint32_t numslices = t.range.arraySize;
 		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
