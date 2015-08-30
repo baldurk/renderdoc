@@ -1068,7 +1068,7 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 #define SerialiseObject(type, name, obj) \
 			{ \
 				ResourceId id; \
-				if(m_Mode >= WRITING) id = MGR()->GetID(obj.handle); \
+				if(m_Mode >= WRITING) id = MGR()->GetID(MakeRes(obj)); \
 				Serialise(name, id); \
 				if(m_Mode < WRITING) obj = type(MGR()->GetLiveResource(id).handle); \
 			}
