@@ -5641,6 +5641,12 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
 
+			for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+			{
+				if(m_PhysicalReplayData[i].dev == device)
+					m_SwapPhysDevice = i;
+			}
+
 			// serialise out the swap chain images
 			{
 				size_t swapChainImagesSize;
