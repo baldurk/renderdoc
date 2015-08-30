@@ -598,6 +598,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		{
 			if(m_PhysicalReplayData[i].phys == physicalDevice)
 			{
+				// VKTODO super ultra mega hyper hack of great justice
+				void PopulateDeviceHooks(VkDevice d);
+				PopulateDeviceHooks(device);
+
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODO: shouldn't be 0, 0
 				m_Real.vkGetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
