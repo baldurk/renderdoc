@@ -6333,6 +6333,49 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 	{
 		GetResourceManager()->ApplyInitialContents();
 		GetResourceManager()->ReleaseInFrameResources();
+
+		// VKTODO temp hack - clear backbuffer to magenta
+		// just so we can see if we are replaying or not.
+		if(m_FakeBBImgId != ResourceId())
+		{
+			VkDevice dev = GetDev();
+			VkCmdBuffer cmd = GetCmd();
+			VkQueue q = GetQ();
+			const VulkanFunctions &vk = m_Real;
+
+			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+			VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+
+			ImgState &st = m_ImageInfo[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
+			RDCASSERT(st.subresourceStates.size() == 1);
+
+			VkImageMemoryBarrier t;
+			t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+			t.pNext = NULL;
+			t.inputMask = 0;
+			t.outputMask = 0;
+			t.srcQueueFamilyIndex = 0;
+			t.destQueueFamilyIndex = 0;
+			t.image = m_FakeBBIm;
+			t.oldLayout = st.subresourceStates[0].state;
+			t.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			t.subresourceRange = st.subresourceStates[0].range;
+
+			void *barrier = (void *)&t;
+
+			st.subresourceStates[0].state = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
+
+			VkClearColorValue clearColor = { { 1.0f, 0.0f, 1.0f, 1.0f, } };
+			vk.vkCmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
+
+			RDCLOG("Clearing fake bb");
+
+			res = vk.vkEndCommandBuffer(cmd);
+
+			res = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+		}
 	}
 	
 	{
