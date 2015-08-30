@@ -152,6 +152,8 @@ private:
 	{
 		VkDevice device;
 		VkCmdBufferCreateInfo createInfo;
+		
+		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
 	};
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 

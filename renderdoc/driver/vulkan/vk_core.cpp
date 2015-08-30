@@ -990,6 +990,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		m_Real.vkQueueSubmit(queue, numCmds, cmds, fence);
 
+		for(uint32_t i=0; i < numCmds; i++)
+		{
+			ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmds[i]));
+			GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+		}
+
 		delete[] cmds;
 	}
 	
@@ -1036,6 +1042,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
 		ResourceId cmd = GetResourceManager()->GetID(MakeRes(pCmdBuffers[i]));
+		GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(cmd);
 		for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
@@ -4189,6 +4196,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	SERIALISE_ELEMENT(uint32_t, memCount, memBarrierCount);
 
 	vector<VkGenericStruct*> mems;
+	vector<VkImageMemoryBarrier> imTrans;
 
 	for(uint32_t i=0; i < memCount; i++)
 	{
@@ -4213,7 +4221,10 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 			SERIALISE_ELEMENT(VkImageMemoryBarrier, barrier, *((VkImageMemoryBarrier *)ppMemBarriers[i]));
 
 			if(m_State < WRITING)
+			{
 				mems.push_back((VkGenericStruct *)new VkImageMemoryBarrier(barrier));
+				imTrans.push_back(barrier);
+			}
 		}
 	}
 	
@@ -4222,6 +4233,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdPipelineBarrier(cmdBuffer, src, dest, region, memCount, (const void **)&mems[0]);
+		
+		ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmdBuffer));
+		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
 	}
 
 	for(size_t i=0; i < mems.size(); i++)
@@ -4248,6 +4262,19 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		Serialise_vkCmdPipelineBarrier(cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
 
 		record->AddChunk(scope.Get());
+
+		vector<VkImageMemoryBarrier> imTrans;
+
+		for(uint32_t i=0; i < memBarrierCount; i++)
+		{
+			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->type;
+
+			if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+				imTrans.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));
+		}
+		
+		ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmdBuffer));
+		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
 	}
 }
 
