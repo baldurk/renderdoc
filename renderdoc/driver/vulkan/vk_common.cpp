@@ -92,6 +92,41 @@ string ToStrHelper<false, VkPipelineCreateFlagBits>::Get(const VkPipelineCreateF
 }
 
 template<>
+string ToStrHelper<false, VkBufferUsageFlagBits>::Get(const VkBufferUsageFlagBits &el)
+{
+	string ret = "VK_BUFFER_USAGE_GENERAL";
+
+	if(el & VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT)       ret += " | VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT";
+	if(el & VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT)  ret += " | VK_BUFFER_USAGE_TRANSFER_DESTINATION_BIT";
+	if(el & VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT)  ret += " | VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)  ret += " | VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT)        ret += " | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)        ret += " | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_INDEX_BUFFER_BIT)          ret += " | VK_BUFFER_USAGE_INDEX_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_VERTEX_BUFFER_BIT)         ret += " | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT";
+	if(el & VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT)       ret += " | VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT";
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkImageUsageFlagBits>::Get(const VkImageUsageFlagBits &el)
+{
+	string ret = "VK_IMAGE_USAGE_GENERAL";
+
+	if(el & VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT)       ret += " | VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT)  ret += " | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT";
+	if(el & VK_IMAGE_USAGE_SAMPLED_BIT)               ret += " | VK_IMAGE_USAGE_SAMPLED_BIT";
+	if(el & VK_IMAGE_USAGE_STORAGE_BIT)               ret += " | VK_IMAGE_USAGE_STORAGE_BIT";
+	if(el & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT)      ret += " | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_DEPTH_STENCIL_BIT)         ret += " | VK_IMAGE_USAGE_DEPTH_STENCIL_BIT";
+	if(el & VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT)  ret += " | VK_IMAGE_USAGE_TRANSIENT_ATTACHMENT_BIT";
+	if(el & VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)      ret += " | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT";
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkBufferCreateFlagBits>::Get(const VkBufferCreateFlagBits &el)
 {
 	string ret;
@@ -1192,7 +1227,7 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 
 	Serialise("size", el.size);
-	Serialise("usage", el.usage);
+	Serialise("usage", (VkBufferUsageFlagBits &)el.usage);
 	Serialise("flags", (VkBufferCreateFlagBits &)el.flags);
 }
 
@@ -1228,7 +1263,7 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	Serialise("arraySize", el.arraySize);
 	Serialise("samples", el.samples);
 	Serialise("tiling", el.tiling);
-	Serialise("usage", el.usage);
+	Serialise("usage", (VkImageUsageFlagBits &)el.usage);
 	Serialise("flags", (VkImageCreateFlagBits &)el.flags);
 }
 
