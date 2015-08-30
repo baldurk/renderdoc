@@ -1121,6 +1121,33 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 			exts[i] = m_StringDB.find(s)->c_str();
 		}
 	}
+
+	Serialise("layerCount", el.layerCount);
+	
+	if(m_Mode == READING)
+	{
+		if(el.layerCount == 0)
+			el.ppEnabledLayerNames = NULL;
+		else
+			el.ppEnabledLayerNames = new char*[el.layerCount];
+	}
+	
+	// cast away const on array so we can assign to it on reading
+	const char **layers = (const char **)el.ppEnabledLayerNames;
+	for(uint32_t i=0; i < el.layerCount; i++)
+	{
+		string s = "";
+		if(m_Mode == WRITING && layers[i] != NULL)
+			s = layers[i];
+
+		Serialise("ppEnabledLayerNames", s);
+
+		if(m_Mode == READING)
+		{
+			m_StringDB.insert(s);
+			layers[i] = m_StringDB.find(s)->c_str();
+		}
+	}
 }
 
 template<>
@@ -1129,6 +1156,7 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 	ScopedContext scope(this, this, name, "VkBufferCreateInfo", 0, true);
 
 	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO);
+	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
 	Serialise("size", el.size);
