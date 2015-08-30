@@ -4480,8 +4480,10 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		if(!imgTransitions.empty())
 		{
-			VkImageMemoryBarrier *barriers = &imgTransitions[0];
-			m_Real.vkCmdPipelineBarrier(cmd, src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers);
+			vector<void *> barriers;
+			for(size_t i=0; i < imgTransitions.size(); i++)
+				barriers.push_back(&imgTransitions[i]);
+			m_Real.vkCmdPipelineBarrier(cmd, src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers[0]);
 		}
 
 		m_Real.vkEndCommandBuffer(cmd);
