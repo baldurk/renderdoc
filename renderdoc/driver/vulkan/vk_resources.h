@@ -209,3 +209,4 @@ enum DescriptorSlotType
 };
 
 bool IsBlockFormat(VkFormat f);
+bool IsDepthStencilFormat(VkFormat f);
