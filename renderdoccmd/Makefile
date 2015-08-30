@@ -6,7 +6,7 @@ MACROS=-DLINUX \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -fPIC $(MACROS) -I../renderdoc/api/
 CPPFLAGS=-std=c++11 -g -Wno-unused -Wno-unknown-pragmas -Wno-reorder
-LDFLAGS=-L../renderdoc/ -lrenderdoc -lGL -lX11 -Wl,-rpath,'$$ORIGIN/'
+LDFLAGS=-L../renderdoc/ -lrenderdoc -lGL -lxcb -Wl,-rpath,'$$ORIGIN/'
 OBJDIR=.obj
 OBJECTS=renderdoccmd.o renderdoccmd_linux.o
 
