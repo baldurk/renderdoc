@@ -209,12 +209,9 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkQueue q = m_pDriver->GetQ();
 	const VulkanFunctions &vk = m_pDriver->m_Real;
 
-	ResourceId id;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBMem);
-	
-	VkResult res = vk.vkBeginCommandBuffer(cmd, 0);
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
 	
 	outw.coltrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (const void **)&outw.coltrans);
