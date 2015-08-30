@@ -4471,7 +4471,9 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 	{
 		VkCmdBuffer cmd = GetCmd();
 
-		m_Real.vkBeginCommandBuffer(cmd, 0);
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		m_Real.vkBeginCommandBuffer(cmd, &beginInfo);
 		
     VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
