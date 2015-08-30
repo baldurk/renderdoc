@@ -212,6 +212,8 @@ class VulkanHook : LibraryHook
 
 		const VulkanFunctions &GetRealVKFunctions()
 		{
+			libvulkandlsymHandle = dlopen("libvulkan.so", RTLD_NOW);
+			SetupHooks(VK);
 			return VK;
 		}
 		
