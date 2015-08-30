@@ -1130,12 +1130,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	Serialise("queueRecordCount", el.queueRecordCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.queueRecordCount == 0)
-			el.pRequestedQueues = NULL;
-		else
-			el.pRequestedQueues = new VkDeviceQueueCreateInfo[el.queueRecordCount];
-	}
+		el.pRequestedQueues = el.queueRecordCount ? new VkDeviceQueueCreateInfo[el.queueRecordCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	VkDeviceQueueCreateInfo* queues = (VkDeviceQueueCreateInfo*)el.pRequestedQueues;
@@ -1145,12 +1140,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	Serialise("extensionCount", el.extensionCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.extensionCount == 0)
-			el.ppEnabledExtensionNames = NULL;
-		else
-			el.ppEnabledExtensionNames = new char*[el.extensionCount];
-	}
+		el.ppEnabledExtensionNames = el.extensionCount ? new char*[el.extensionCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **exts = (const char **)el.ppEnabledExtensionNames;
@@ -1172,12 +1162,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 	Serialise("layerCount", el.layerCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.layerCount == 0)
-			el.ppEnabledLayerNames = NULL;
-		else
-			el.ppEnabledLayerNames = new char*[el.layerCount];
-	}
+		el.ppEnabledLayerNames = el.layerCount ? new char*[el.layerCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	const char **layers = (const char **)el.ppEnabledLayerNames;
@@ -1383,17 +1368,17 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 
 	Serialise("attachmentCount", el.attachmentCount);
-	if(m_Mode == READING)	el.pAttachments = new VkAttachmentDescription[el.attachmentCount];
+	if(m_Mode == READING)	el.pAttachments = el.attachmentCount ? new VkAttachmentDescription[el.attachmentCount] : NULL;
 	for(uint32_t i=0; i < el.attachmentCount; i++)
 		Serialise("pAttachments[]", (VkAttachmentDescription &)el.pAttachments[i]);
 	
 	Serialise("subpassCount", el.subpassCount);
-	if(m_Mode == READING)	el.pSubpasses = new VkSubpassDescription[el.subpassCount];
+	if(m_Mode == READING)	el.pSubpasses = el.subpassCount ? new VkSubpassDescription[el.subpassCount] : NULL;
 	for(uint32_t i=0; i < el.subpassCount; i++)
 		Serialise("pSubpasses[]", (VkSubpassDescription &)el.pSubpasses[i]);
 	
 	Serialise("dependencyCount", el.dependencyCount);
-	if(m_Mode == READING)	el.pDependencies = new VkSubpassDependency[el.dependencyCount];
+	if(m_Mode == READING)	el.pDependencies = el.dependencyCount ? new VkSubpassDependency[el.dependencyCount] : NULL;
 	for(uint32_t i=0; i < el.dependencyCount; i++)
 		Serialise("pDependencies[]", (VkSubpassDependency &)el.pDependencies[i]);
 }
@@ -1526,12 +1511,7 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 	Serialise("bindingCount", el.bindingCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.bindingCount == 0)
-			el.pVertexBindingDescriptions = NULL;
-		else
-			el.pVertexBindingDescriptions = new VkVertexInputBindingDescription[el.bindingCount];
-	}
+		el.pVertexBindingDescriptions = el.bindingCount ? new VkVertexInputBindingDescription[el.bindingCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	VkVertexInputBindingDescription* binds = (VkVertexInputBindingDescription*)el.pVertexBindingDescriptions;
@@ -1541,12 +1521,7 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 	Serialise("attributeCount", el.attributeCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.attributeCount == 0)
-			el.pVertexAttributeDescriptions = NULL;
-		else
-			el.pVertexAttributeDescriptions = new VkVertexInputAttributeDescription[el.attributeCount];
-	}
+		el.pVertexAttributeDescriptions = el.attributeCount ? new VkVertexInputAttributeDescription[el.attributeCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	VkVertexInputAttributeDescription* attrs = (VkVertexInputAttributeDescription*)el.pVertexAttributeDescriptions;
@@ -1653,12 +1628,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 	Serialise("attachmentCount", el.attachmentCount);
 	
 	if(m_Mode == READING)
-	{
-		if(el.attachmentCount == 0)
-			el.pAttachments = NULL;
-		else
-			el.pAttachments = new VkPipelineColorBlendAttachmentState[el.attachmentCount];
-	}
+		el.pAttachments = el.attachmentCount ? new VkPipelineColorBlendAttachmentState[el.attachmentCount] : NULL;
 	
 	// cast away const on array so we can assign to it on reading
 	VkPipelineColorBlendAttachmentState* atts = (VkPipelineColorBlendAttachmentState*)el.pAttachments;
@@ -1817,12 +1787,7 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 	Serialise("descriptorSetCount", el.descriptorSetCount);
 
 	if(m_Mode == READING)
-	{
-		if(el.descriptorSetCount == 0)
-			el.pSetLayouts = NULL;
-		else
-			el.pSetLayouts = new VkDescriptorSetLayout[el.descriptorSetCount];
-	}
+		el.pSetLayouts = el.descriptorSetCount ? new VkDescriptorSetLayout[el.descriptorSetCount] : NULL;
 
 	// cast away const on array so we can assign to it on reading
 	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)el.pSetLayouts;
@@ -1834,12 +1799,7 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 	Serialise("pushConstantRangeCount", el.pushConstantRangeCount);
 
 	if(m_Mode == READING)
-	{
-		if(el.pushConstantRangeCount == 0)
-			el.pPushConstantRanges = NULL;
-		else
-			el.pPushConstantRanges = new VkPushConstantRange[el.pushConstantRangeCount];
-	}
+		el.pPushConstantRanges = el.pushConstantRangeCount ? new VkPushConstantRange[el.pushConstantRangeCount] : NULL;
 
 	// cast away const on array so we can assign to it on reading
 	VkPushConstantRange* push = (VkPushConstantRange*)el.pPushConstantRanges;
@@ -2015,7 +1975,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 
 	Serialise("stageCount", el.stageCount);
 	if(m_Mode == READING)
-		el.pStages = new VkPipelineShaderStageCreateInfo[el.stageCount];
+		el.pStages = el.stageCount ? new VkPipelineShaderStageCreateInfo[el.stageCount] : NULL;
 
 	for(uint32_t i=0; i < el.stageCount; i++)
 		Serialise("stage", (VkPipelineShaderStageCreateInfo &)el.pStages[i]);
@@ -2058,7 +2018,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 	Serialise("count", el.count);
 
 	if(m_Mode == READING)
-		el.pTypeCount = new VkDescriptorTypeCount[el.count];
+		el.pTypeCount = el.count ? new VkDescriptorTypeCount[el.count] : NULL;
 
 	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pTypeCount", (VkDescriptorTypeCount &)el.pTypeCount[i]);
@@ -2093,7 +2053,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 	Serialise("count", el.count);
 
 	if(m_Mode == READING)
-		el.pDescriptors = new VkDescriptorInfo[el.count];
+		el.pDescriptors = el.count ? new VkDescriptorInfo[el.count] : NULL;
 
 	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pDescriptors", (VkDescriptorInfo &)el.pDescriptors[i]);
@@ -2143,7 +2103,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 	if(m_Mode == READING)
 	{
 		if(hasSamplers)
-			el.pImmutableSamplers = new VkSampler[el.arraySize];
+			el.pImmutableSamplers = el.arraySize ? new VkSampler[el.arraySize] : NULL;
 		else
 			el.pImmutableSamplers = NULL;
 	}
@@ -2168,7 +2128,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	Serialise("count", el.count);
 
 	if(m_Mode == READING)
-		el.pBinding = new VkDescriptorSetLayoutBinding[el.count];
+		el.pBinding = el.count ? new VkDescriptorSetLayoutBinding[el.count] : NULL;
 
 	for(uint32_t i=0; i < el.count; i++)
 		Serialise("pBinding", (VkDescriptorSetLayoutBinding &)el.pBinding[i]);
