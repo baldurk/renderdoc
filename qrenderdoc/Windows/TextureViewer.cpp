@@ -33,6 +33,7 @@ m_Core(core)
 
 	ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, ui->dockarea->areaOf(renderContainer));
 
+	/*
 	QWidget *lockedTabTest = new QWidget(this);
 	lockedTabTest->setWindowTitle(tr("Locked Tab #1"));
 
@@ -55,7 +56,7 @@ m_Core(core)
 	lockedTabTest->setWindowTitle(tr("Locked Tab #4"));
 	
 	ui->dockarea->addToolWindow(lockedTabTest, ref);
-	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);
+	ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking | ToolWindowManager::HideCloseButton);*/
 	
 	ui->dockarea->addToolWindow(ui->resourceThumbs, ToolWindowManager::AreaReference(ToolWindowManager::RightOf, ui->dockarea->areaOf(renderContainer)));
 	ui->dockarea->setToolWindowProperties(ui->resourceThumbs, ToolWindowManager::HideCloseButton);
