@@ -2118,8 +2118,13 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 	bool hasSamplers = el.pImmutableSamplers != NULL;
 	Serialise("hasSamplers", hasSamplers);
 
-	if(hasSamplers && m_Mode == READING)
-		el.pImmutableSamplers = new VkSampler[el.arraySize];
+	if(m_Mode == READING)
+	{
+		if(hasSamplers)
+			el.pImmutableSamplers = new VkSampler[el.arraySize];
+		else
+			el.pImmutableSamplers = NULL;
+	}
 
 	VkSampler *samplers = (VkSampler *)el.pImmutableSamplers;
 
