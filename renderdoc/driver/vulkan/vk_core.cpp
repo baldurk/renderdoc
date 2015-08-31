@@ -6362,8 +6362,6 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			VkClearColorValue clearColor = { { 1.0f, 0.0f, 1.0f, 1.0f, } };
 			vk.vkCmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
 
-			RDCLOG("Clearing fake bb");
-
 			res = vk.vkEndCommandBuffer(cmd);
 
 			res = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
