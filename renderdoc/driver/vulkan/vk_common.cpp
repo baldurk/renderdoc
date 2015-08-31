@@ -1123,7 +1123,7 @@ void SerialiseOptionalObject(Serialiser *ser, const char *name, T *&el)
 	bool present;
 
 	present = el != NULL;
-	ser->Serialise("present", present);
+	ser->Serialise((string(name) + "Present").c_str(), present);
 	if(present)
 	{
 		if(ser->IsReading())
