@@ -188,6 +188,20 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 			ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
 		}
 
+		using ResourceManager::MarkDirtyResource;
+
+		void MarkDirtyResource(VkResource res)
+		{
+			return ResourceManager::MarkDirtyResource(GetID(res));
+		}
+
+		using ResourceManager::MarkCleanResource;
+		
+		void MarkCleanResource(VkResource res)
+		{
+			return ResourceManager::MarkCleanResource(GetID(res));
+		}
+
 		// handling memory & image transitions
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
 			                   uint32_t numTransitions, const VkImageMemoryBarrier *transitions);

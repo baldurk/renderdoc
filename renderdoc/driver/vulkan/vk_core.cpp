@@ -25,6 +25,10 @@
 #include "vk_core.h"
 #include "serialise/string_utils.h"
 
+// VKTODO dirty buffers should propagate through to their memory somehow
+// images can be separately dirty since we can't just copy their memory
+// (tiling could be different)
+
 static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 {
 	int cmp = strcmp(a.extName, b.extName);
@@ -1252,7 +1256,6 @@ VkResult WrappedVulkan::vkAllocMemory(
 		}
 
 		m_MemoryInfo[id].size = pAllocInfo->allocationSize;
-		m_MemoryInfo[id].mapCount = 0;
 	}
 
 	return ret;
@@ -1307,7 +1310,6 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mapOffset = offset;
 				it->second.mapSize = size == 0 ? it->second.size : size;
 				it->second.mapFlags = flags;
-				it->second.mapCount++;
 			}
 		}
 		else if(m_State >= WRITING)
@@ -1387,7 +1389,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 			}
 			else
 			{
-				if(ret == VK_SUCCESS && (it->second.mapCount < 2 || m_State >= WRITING_CAPFRAME))
+				if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
 				{
 					SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
 					Serialise_vkUnmapMemory(device, mem);
@@ -1403,6 +1405,11 @@ VkResult WrappedVulkan::vkUnmapMemory(
 						m_ContextRecord->AddChunk(scope.Get());
 						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Write);
 					}
+				}
+				else
+				{
+					GetResourceManager()->MarkDirtyResource(MakeRes(mem));
+					RDCLOG("Map - marking %llu dirty", id);
 				}
 
 				it->second.mappedPtr = NULL;
@@ -3551,6 +3558,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pRenderPassBegin->renderPass)), eFrameRef_Read);
+		// VKTODO should mark framebuffer read and attachments write
 		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pRenderPassBegin->framebuffer)), eFrameRef_Write);
 	}
 }
@@ -5844,11 +5852,13 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 bool WrappedVulkan::Prepare_InitialState(VkResource res)
 {
 	ResourceId id = GetResourceManager()->GetID(res);
-	
-	RDCUNIMPLEMENTED("initial states not implemented");
 
+	RDCLOG("Prepare_InitialState %llu", id);
+	
 	if(res.Namespace == eResDescriptorSet)
 	{
+		RDCUNIMPLEMENTED("descriptor set initial states not implemented");
+
 		// VKTODO: need to figure out the format/serialisation of these
 		return true;
 	}
@@ -5862,12 +5872,74 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 
 		MemState &meminfo = m_MemoryInfo[id];
 
-		// VKTODO: need to copy off memory somewhere else
+		VkResult vkr = VK_SUCCESS;
+
+		VkDevice d = GetDev();
+		VkQueue q = GetQ();
+		VkCmdBuffer cmd = GetCmd();
+
+		VkDeviceMemory mem = VK_NULL_HANDLE;
+
+		VkMemoryAllocInfo allocInfo = {
+			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+			.pNext = NULL,
+			.allocationSize = meminfo.size,
+			.memoryTypeIndex = 0,
+		};
+		// VKTODO memory type index needs to be host-visible for copy back
+
+		vkr = m_Real.vkAllocMemory(d, &allocInfo, &mem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = m_Real.vkBeginCommandBuffer(cmd, &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		VkBuffer srcBuf, dstBuf;
+
+		vkr = m_Real.vkCreateBuffer(d, &bufInfo, &srcBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = m_Real.vkCreateBuffer(d, &bufInfo, &dstBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_Real.vkBindBufferMemory(d, srcBuf, (VkDeviceMemory)res.handle, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = m_Real.vkBindBufferMemory(d, dstBuf, mem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCopy region = { 0, 0, meminfo.size };
+
+		m_Real.vkCmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
+	
+		vkr = m_Real.vkEndCommandBuffer(cmd);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_Real.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODO would be nice to store a fence too at this point
+		// so we can sync on that on serialise rather than syncing
+		// every time.
+		m_Real.vkQueueWaitIdle(q);
+
+		m_Real.vkDestroyBuffer(d, srcBuf);
+		m_Real.vkDestroyBuffer(d, dstBuf);
+
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(MakeRes(mem), (uint32_t)meminfo.size, NULL));
 
 		return true;
 	}
 	else if(res.Namespace == eResImage)
 	{
+		RDCUNIMPLEMENTED("image initial states not implemented");
+
 		if(m_ImageInfo.find(id) == m_ImageInfo.end())
 		{
 			RDCERR("Couldn't find image info");
@@ -5892,19 +5964,28 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 	if(m_State < WRITING) res = GetResourceManager()->GetLiveResource(id);
 	
-	RDCUNIMPLEMENTED("initial states not implemented");
-
 	if(m_State >= WRITING)
 	{
 		VulkanResourceManager::InitialContentData initContents = GetResourceManager()->GetInitialContents(id);
 
 		if(res.Namespace == eResDescriptorSet)
 		{
+			RDCUNIMPLEMENTED("descriptor set initial states not implemented");
+
 			// VKTODO: need to figure out the format/serialisation of these
 		}
 		else if(res.Namespace == eResImage || res.Namespace == eResDeviceMemory)
 		{
-			// VKTODO: need to upload the buffer to memory
+			VkDevice d = GetDev();
+
+			byte *ptr = NULL;
+			m_Real.vkMapMemory(d, (VkDeviceMemory)initContents.resource.handle, 0, 0, 0, (void **)&ptr);
+
+			size_t dataSize = (size_t)initContents.num;
+
+			m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
+
+			m_Real.vkUnmapMemory(d, (VkDeviceMemory)initContents.resource.handle);
 		}
 	}
 	else
@@ -5918,8 +5999,49 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 			byte *data = NULL;
 			size_t dataSize = 0;
 			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
-			
-			// VKTODO: need to copy buffer to memory
+
+			VkResult vkr = VK_SUCCESS;
+
+			VkDevice d = GetDev();
+
+			VkDeviceMemory mem = VK_NULL_HANDLE;
+
+			VkMemoryAllocInfo allocInfo = {
+				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+				.pNext = NULL,
+				.allocationSize = dataSize,
+				.memoryTypeIndex = 0,
+			};
+			// VKTODO memory type index needs to be host-visible for copy
+
+			vkr = m_Real.vkAllocMemory(d, &allocInfo, &mem);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			VkBufferCreateInfo bufInfo = {
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+				dataSize, VK_BUFFER_USAGE_GENERAL, 0,
+				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			};
+
+			VkBuffer buf;
+
+			vkr = m_Real.vkCreateBuffer(d, &bufInfo, &buf);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			vkr = m_Real.vkBindBufferMemory(d, buf, mem, 0);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			byte *ptr = NULL;
+			m_Real.vkMapMemory(d, mem, 0, 0, 0, (void **)&ptr);
+
+			// VKTODO could deserialise directly into this ptr if we serialised
+			// size separately.
+			memcpy(ptr, data, dataSize);
+
+			m_Real.vkUnmapMemory(d, mem);
+
+			// VKTODO leaking the memory here! needs to be cleaned up with the buffer
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(MakeRes(buf), eInitialContents_Copy, NULL));
 		}
 	}
 
@@ -5928,16 +6050,14 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 void WrappedVulkan::Create_InitialState(ResourceId id, VkResource live, bool hasData)
 {
-	// VKTODO now that we track references, some mem is write-before-read
-	return;
-	RDCUNIMPLEMENTED("initial states not implemented");
-
 	if(live.Namespace == eResDescriptorSet)
 	{
 		RDCERR("Unexpected attempt to create initial state for descriptor set");
 	}
 	else if(live.Namespace == eResImage)
 	{
+		RDCUNIMPLEMENTED("image initial states not implemented");
+
 		if(m_ImageInfo.find(id) == m_ImageInfo.end())
 		{
 			RDCERR("Couldn't find image info");
@@ -5957,6 +6077,10 @@ void WrappedVulkan::Create_InitialState(ResourceId id, VkResource live, bool has
 	{
 		RDCERR("Unexpected attempt to create initial state for memory");
 	}
+	else if(live.Namespace == eResFramebuffer)
+	{
+		RDCWARN("Framebuffer without initial state! should clear all attachments");
+	}
 	else
 	{
 		RDCERR("Unhandled resource type %d", live.Namespace);
@@ -5965,19 +6089,73 @@ void WrappedVulkan::Create_InitialState(ResourceId id, VkResource live, bool has
 
 void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::InitialContentData initial)
 {
-	RDCUNIMPLEMENTED("initial states not implemented");
-
 	if(live.Namespace == eResDescriptorSet)
 	{
 		// VKTODO: need to figure out the format/serialisation of these
+		RDCUNIMPLEMENTED("descriptor set initial states not implemented");
 	}
 	else if(live.Namespace == eResDeviceMemory)
 	{
-		// VKTODO: need to copy initial copy to live
+		ResourceId id = GetResourceManager()->GetID(live);
+
+		if(m_MemoryInfo.find(id) == m_MemoryInfo.end())
+		{
+			RDCERR("Couldn't find memory info");
+			return;
+		}
+
+		MemState &meminfo = m_MemoryInfo[id];
+		
+		VkBuffer srcBuf = (VkBuffer)initial.resource.handle;
+		VkDeviceMemory dstMem = (VkDeviceMemory)live.handle;
+
+		VkResult vkr = VK_SUCCESS;
+
+		VkDevice d = GetDev();
+		VkQueue q = GetQ();
+		VkCmdBuffer cmd = GetCmd();
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = m_Real.vkBeginCommandBuffer(cmd, &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		VkBuffer dstBuf;
+		
+		// VKTODO this should be created once up front, not every time
+		vkr = m_Real.vkCreateBuffer(d, &bufInfo, &dstBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_Real.vkBindBufferMemory(d, dstBuf, dstMem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCopy region = { 0, 0, meminfo.size };
+
+		m_Real.vkCmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
+	
+		vkr = m_Real.vkEndCommandBuffer(cmd);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = m_Real.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODO would be nice to store a fence too at this point
+		// so we can sync on that on serialise rather than syncing
+		// every time.
+		m_Real.vkQueueWaitIdle(q);
+
+		m_Real.vkDestroyBuffer(d, dstBuf);
 	}
 	else if(live.Namespace == eResImage)
 	{
 		// VKTODO: need to copy initial copy to live
+		RDCUNIMPLEMENTED("image initial states not implemented");
 	}
 	else
 	{

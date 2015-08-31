@@ -434,7 +434,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 bool VulkanResourceManager::Force_InitialState(VkResource res)
 {
-	return false;
+	return (res.Namespace == eResDeviceMemory);
 	// VKTODO might need this
 	//return (res.Namespace == eResDescriptorSet);
 }
