@@ -180,6 +180,14 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 			return ResourceManager::GetResourceRecord(GetID(obj));
 		}
 		
+		using ResourceManager::MarkResourceFrameReferenced;
+
+		void MarkResourceFrameReferenced(VkResource res, FrameRefType refType)
+		{
+			if(res.handle == 0) return;
+			ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
+		}
+
 		// handling memory & image transitions
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
 			                   uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
