@@ -1077,8 +1077,8 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 		if(m_State == WRITING_CAPFRAME)
 		{
-			m_DeviceRecord->AddParent(record);
-			m_DeviceRecord->AddParent(record->bakedCommands);
+			m_ContextRecord->AddParent(record);
+			m_ContextRecord->AddParent(record->bakedCommands);
 		}
 
 		record->dirtied.clear();
@@ -1134,7 +1134,7 @@ VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphor
 {
 	VkResult ret = m_Real.vkQueueWaitSemaphore(queue, semaphore);
 	
-	if(m_State >= WRITING)
+	if(m_State >= WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_SEMAPHORE);
 		Serialise_vkQueueWaitSemaphore(queue, semaphore);
@@ -1149,7 +1149,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(VkQueue queue)
 {
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(queue)));
 	
-	if(m_State < WRITING)
+	if(m_State < WRITING_CAPFRAME)
 	{
 		m_Real.vkQueueWaitIdle((VkQueue)GetResourceManager()->GetLiveResource(id).handle);
 	}
@@ -1161,7 +1161,7 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 {
 	VkResult ret = m_Real.vkQueueWaitIdle(queue);
 	
-	if(m_State >= WRITING)
+	if(m_State >= WRITING_CAPFRAME)
 	{
 		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_IDLE);
 		Serialise_vkQueueWaitIdle(queue);
