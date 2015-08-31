@@ -307,7 +307,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInst,
 		{
 			wchar_t *conv = new wchar_t[originalpath.size()+1];
 
-			MultiByteToWideChar(CP_UTF8, 0, originalpath.c_str(), -1, conv, originalpath.size()+1);
+			MultiByteToWideChar(CP_UTF8, 0, originalpath.c_str(), -1, conv, int(originalpath.size()+1));
 
 			wide_path = conv;
 		}
