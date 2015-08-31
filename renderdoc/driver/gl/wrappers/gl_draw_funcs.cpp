@@ -2788,7 +2788,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 		Vec4f v;
 		if(value) v = *((Vec4f *)value);
 
-		m_pSerialiser->Serialise<4>("value", (float *)&v.x);
+		m_pSerialiser->SerialisePODArray<4>("value", (float *)&v.x);
 		
 		if(m_State == READING)
 			name = "glClearBufferfv(" +
@@ -2921,7 +2921,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 		int32_t v[4];
 		if(value) memcpy(v, value, sizeof(v));
 
-		m_pSerialiser->Serialise<4>("value", v);
+		m_pSerialiser->SerialisePODArray<4>("value", v);
 		
 		if(m_State == READING)
 			name = "glClearBufferiv(" +
@@ -3044,7 +3044,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 		uint32_t v[4];
 		if(value) memcpy(v, value, sizeof(v));
 
-		m_pSerialiser->Serialise<4>("value", v);
+		m_pSerialiser->SerialisePODArray<4>("value", v);
 		
 		if(m_State == READING)
 			name = "glClearBufferuiv(" +
@@ -3295,7 +3295,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum in
 		memcpy(val, data, s);
 	}
 
-	m_pSerialiser->Serialise<4>("data", val);
+	m_pSerialiser->SerialisePODArray<4>("data", val);
 	
 	if(m_State <= EXECUTING)
 	{
@@ -3402,7 +3402,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum
 		memcpy(val, data, s);
 	}
 
-	m_pSerialiser->Serialise<4>("data", val);
+	m_pSerialiser->SerialisePODArray<4>("data", val);
 
 	if(m_State <= EXECUTING)
 	{
@@ -3641,7 +3641,7 @@ bool WrappedOpenGL::Serialise_glClearTexImage(GLuint texture, GLint level, GLenu
 		memcpy(val, data, s);
 	}
 
-	m_pSerialiser->Serialise<4>("data", val);
+	m_pSerialiser->SerialisePODArray<4>("data", val);
 
 	if(m_State <= EXECUTING)
 	{
@@ -3739,7 +3739,7 @@ bool WrappedOpenGL::Serialise_glClearTexSubImage(GLuint texture, GLint level, GL
 		memcpy(val, data, s);
 	}
 
-	m_pSerialiser->Serialise<4>("data", val);
+	m_pSerialiser->SerialisePODArray<4>("data", val);
 
 	if(m_State <= EXECUTING)
 	{

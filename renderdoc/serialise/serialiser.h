@@ -339,19 +339,19 @@ class Serialiser
 
 		// serialise a fixed-size array.
 		template<int Num, class T>
-		void Serialise(const char *name, T *el)
+		void SerialisePODArray(const char *name, T *el)
 		{
 			size_t n = Num;
-			Serialise(name, el, n);
+			SerialisePODArray(name, el, n);
 		}
 
 		// serialise a normal array. Typically this should be a small array,
-		// for large buffers use SerialiseBuffer which is optimised for that
+		// for large byte buffers use SerialiseBuffer which is optimised for that
 		//
 		// If serialising in, el must either be NULL in which case allocated
 		// memory will be returned, or it must be already large enough.
 		template<class T>
-		void Serialise(const char *name, T *&el, size_t &Num)
+		void SerialisePODArray(const char *name, T *&el, size_t &Num)
 		{
 			uint32_t numElems = (uint32_t)Num;
 
@@ -376,14 +376,11 @@ class Serialiser
 
 			Num = (size_t)numElems;
 			
-			// disable since this requires a ToStr implementation for any array element
-			/*
 			if(name != NULL && m_DebugTextWriting)
 			{
 				for(size_t i=0; i < Num; i++)
 					DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
 			}
-			*/
 		}
 
 		// serialise a single element

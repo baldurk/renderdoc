@@ -471,8 +471,8 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 		}
 	}
 
-	m_pSerialiser->Serialise<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Strides", IA.Strides);
-	m_pSerialiser->Serialise<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Offsets", IA.Offsets);
+	m_pSerialiser->SerialisePODArray<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Strides", IA.Strides);
+	m_pSerialiser->SerialisePODArray<D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT>("IA.Offsets", IA.Offsets);
 	m_pSerialiser->Serialise("IA.indexFormat", IA.IndexFormat);
 	m_pSerialiser->Serialise("IA.indexOffset", IA.IndexOffset);
 
@@ -613,8 +613,8 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 
 	m_pSerialiser->Serialise("RS.NumViews", RS.NumViews);
 	m_pSerialiser->Serialise("RS.NumScissors", RS.NumScissors);
-	m_pSerialiser->Serialise<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>("RS.Viewports", RS.Viewports);
-	m_pSerialiser->Serialise<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>("RS.Scissors", RS.Scissors);
+	m_pSerialiser->SerialisePODArray<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>("RS.Viewports", RS.Viewports);
+	m_pSerialiser->SerialisePODArray<D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE>("RS.Scissors", RS.Scissors);
 	
 	SERIALISE_ELEMENT(ResourceId, OMDepthStencilState, GetIDForResource(OM.DepthStencilState));
 	if(m_State < WRITING)
@@ -636,7 +636,7 @@ void D3D11RenderState::Serialise(LogState m_State, WrappedID3D11Device *device)
 			OM.BlendState = NULL;
 	}
 
-	m_pSerialiser->Serialise<4>("OM.BlendFactor", OM.BlendFactor);
+	m_pSerialiser->SerialisePODArray<4>("OM.BlendFactor", OM.BlendFactor);
 	m_pSerialiser->Serialise("OM.SampleMask", OM.SampleMask);
 
 	SERIALISE_ELEMENT(ResourceId, OMDepthView, GetIDForResource(OM.DepthView));

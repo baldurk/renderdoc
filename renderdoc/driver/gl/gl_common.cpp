@@ -1422,7 +1422,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
 			}
 
 			if(SerialiseUniforms)
-				ser->Serialise<16>("data", dv);
+				ser->SerialisePODArray<16>("data", dv);
 
 			if(WriteDestProgram)
 			{

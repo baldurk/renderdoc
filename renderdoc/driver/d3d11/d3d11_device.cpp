@@ -237,7 +237,7 @@ ReplayCreateStatus D3D11InitParams::Serialise()
 	SERIALISE_ELEMENT(uint32_t, flags, Flags); Flags = flags;
 	SERIALISE_ELEMENT(uint32_t, sdk, SDKVersion); SDKVersion = sdk;
 	SERIALISE_ELEMENT(uint32_t, numlevels, NumFeatureLevels); NumFeatureLevels = numlevels;
-	m_pSerialiser->Serialise<ARRAY_COUNT(FeatureLevels)>("FeatureLevels", FeatureLevels);
+	m_pSerialiser->SerialisePODArray<ARRAY_COUNT(FeatureLevels)>("FeatureLevels", FeatureLevels);
 
 	return eReplayCreate_Success;
 }

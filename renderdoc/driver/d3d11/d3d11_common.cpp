@@ -1414,7 +1414,7 @@ void Serialiser::Serialise(const char *name, D3D11_SAMPLER_DESC &el)
 	Serialise("MipLODBias", el.MipLODBias);
 	Serialise("MaxAnisotropy", el.MaxAnisotropy);
 	Serialise("ComparisonFunc", el.ComparisonFunc);
-	Serialise<4>("BorderColor", el.BorderColor);
+	SerialisePODArray<4>("BorderColor", el.BorderColor);
 	Serialise("MinLOD", el.MinLOD);
 	Serialise("MaxLOD", el.MaxLOD);
 }

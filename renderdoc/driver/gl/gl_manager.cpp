@@ -125,9 +125,9 @@ void Serialiser::Serialise(const char *name, FeedbackInitialData &el)
 {
 	ScopedContext scope(this, this, name, "FeedbackInitialData", 0, true);
 	Serialise("valid", el.valid);
-	Serialise<4>("Buffer", el.Buffer);
-	Serialise<4>("Offset", el.Offset);
-	Serialise<4>("Size", el.Size);
+	SerialisePODArray<4>("Buffer", el.Buffer);
+	SerialisePODArray<4>("Offset", el.Offset);
+	SerialisePODArray<4>("Size", el.Size);
 }
 
 template<>
@@ -146,7 +146,7 @@ void Serialiser::Serialise(const char *name, FramebufferInitialData &el)
 {
 	ScopedContext scope(this, this, name, "FramebufferInitialData", 0, true);
 	Serialise("valid", el.valid);
-	Serialise<8>("DrawBuffers", el.DrawBuffers);
+	SerialisePODArray<8>("DrawBuffers", el.DrawBuffers);
 	for(size_t i=0; i < ARRAY_COUNT(el.Attachments); i++)
 		Serialise("Attachments", el.Attachments[i]);
 	Serialise("ReadBuffer", el.ReadBuffer);
@@ -185,9 +185,9 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 	Serialise("seamless", el.seamless);
 	Serialise("minFilter", el.minFilter);
 	Serialise("magFilter", el.magFilter);
-	Serialise<4>("swizzle", el.swizzle);
-	Serialise<3>("wrap", el.wrap);
-	Serialise<4>("border", el.border);
+	SerialisePODArray<4>("swizzle", el.swizzle);
+	SerialisePODArray<3>("wrap", el.wrap);
+	SerialisePODArray<4>("border", el.border);
 	Serialise("lodBias", el.lodBias);
 	Serialise("texBuffer", el.texBuffer);
 	Serialise("texBufOffs", el.texBufOffs);

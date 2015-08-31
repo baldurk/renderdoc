@@ -1181,7 +1181,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	if(!ContextPresent)
 		return;
 
-	m_pSerialiser->Serialise<eEnabled_Count>("GL_ENABLED", Enabled);
+	m_pSerialiser->SerialisePODArray<eEnabled_Count>("GL_ENABLED", Enabled);
 
 	ResourceId ids[128];
 
@@ -1220,7 +1220,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 			for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
 				if(texArrays[t][i]) ids[i] = rm->GetID(TextureRes(ctx, texArrays[t][i]));
 
-		m_pSerialiser->Serialise<ARRAY_COUNT(Tex2D)>(names[t], ids);
+		m_pSerialiser->SerialisePODArray<ARRAY_COUNT(Tex2D)>(names[t], ids);
 
 		if(state < WRITING)
 			for(size_t i=0; i < ARRAY_COUNT(Tex2D); i++)
@@ -1268,7 +1268,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	
 	for(size_t i=0; i < ARRAY_COUNT(GenericVertexAttribs); i++)
 	{
-		m_pSerialiser->Serialise<4>("GL_CURRENT_VERTEX_ATTRIB", &GenericVertexAttribs[i].x);
+		m_pSerialiser->SerialisePODArray<4>("GL_CURRENT_VERTEX_ATTRIB", &GenericVertexAttribs[i].x);
 	}
 	
 	m_pSerialiser->Serialise("GL_POINT_FADE_THRESHOLD_SIZE", PointFadeThresholdSize);
@@ -1305,7 +1305,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	for(size_t s=0; s < ARRAY_COUNT(Subroutines); s++)
 	{
 		m_pSerialiser->Serialise("GL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS", Subroutines[s].numSubroutines);
-		m_pSerialiser->Serialise<128>("GL_SUBROUTINE_UNIFORMS", Subroutines[s].Values);
+		m_pSerialiser->SerialisePODArray<128>("GL_SUBROUTINE_UNIFORMS", Subroutines[s].Values);
 	}
 
 	{
@@ -1361,7 +1361,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_BLEND", Blends[i].Enabled);
 	}
 	
-	m_pSerialiser->Serialise<4>("GL_BLEND_COLOR", BlendColor);
+	m_pSerialiser->SerialisePODArray<4>("GL_BLEND_COLOR", BlendColor);
 		
 	for(size_t i=0; i < ARRAY_COUNT(Viewports); i++)
 	{
@@ -1380,7 +1380,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 		m_pSerialiser->Serialise("GL_SCISSOR.enabled", Scissors[i].enabled);
 	}
 	
-	m_pSerialiser->Serialise<8>("GL_DRAW_BUFFERS", DrawBuffers);
+	m_pSerialiser->SerialisePODArray<8>("GL_DRAW_BUFFERS", DrawBuffers);
 	m_pSerialiser->Serialise("GL_READ_BUFFER", ReadBuffer);
 
 	m_pSerialiser->Serialise("GL_FRAGMENT_SHADER_DERIVATIVE_HINT", Hints.Derivatives);
@@ -1429,9 +1429,9 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 	m_pSerialiser->Serialise("GL_STENCIL_CLEAR_VALUE", StencilClearValue);
 
 	for(size_t i=0; i < ARRAY_COUNT(ColorMasks); i++)
-		m_pSerialiser->Serialise<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
+		m_pSerialiser->SerialisePODArray<4>("GL_COLOR_WRITEMASK", &ColorMasks[i].red);
 	
-	m_pSerialiser->Serialise<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
+	m_pSerialiser->SerialisePODArray<2>("GL_SAMPLE_MASK_VALUE", &SampleMask[0]);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_VALUE", SampleCoverage);
 	m_pSerialiser->Serialise("GL_SAMPLE_COVERAGE_INVERT", SampleCoverageInvert);
 	m_pSerialiser->Serialise("GL_MIN_SAMPLE_SHADING", MinSampleShading);
@@ -1441,12 +1441,12 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
 
 	m_pSerialiser->Serialise("GL_LOGIC_OP_MODE", LogicOp);
 
-	m_pSerialiser->Serialise<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
+	m_pSerialiser->SerialisePODArray<4>("GL_COLOR_CLEAR_VALUE", &ColorClearValue.red);
 
 	{
 		m_pSerialiser->Serialise("GL_PATCH_VERTICES", PatchParams.numVerts);
-		m_pSerialiser->Serialise<2>("GL_PATCH_DEFAULT_INNER_LEVEL", &PatchParams.defaultInnerLevel[0]);
-		m_pSerialiser->Serialise<4>("GL_PATCH_DEFAULT_OUTER_LEVEL", &PatchParams.defaultOuterLevel[0]);
+		m_pSerialiser->SerialisePODArray<2>("GL_PATCH_DEFAULT_INNER_LEVEL", &PatchParams.defaultInnerLevel[0]);
+		m_pSerialiser->SerialisePODArray<4>("GL_PATCH_DEFAULT_OUTER_LEVEL", &PatchParams.defaultOuterLevel[0]);
 	}
 
 	m_pSerialiser->Serialise("GL_POLYGON_MODE", PolygonMode);

@@ -201,7 +201,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 	Serialise("", el.DebugInfo.entryFunc);
 	Serialise("", el.DebugInfo.files);
 
-	Serialise<3>("", el.DispatchThreadsDimension);
+	SerialisePODArray<3>("", el.DispatchThreadsDimension);
 
 	Serialise("", el.Disassembly);
 	
@@ -225,7 +225,7 @@ void Serialiser::Serialise(const char *name, ShaderVariable &el)
 	Serialise("", el.name);
 	Serialise("", el.type);
 
-	Serialise<16>("", el.value.dv);
+	SerialisePODArray<16>("", el.value.dv);
 	
 	Serialise("", el.isStruct);
 	
@@ -333,7 +333,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::ShaderStage::Sa
 	Serialise("", el.AddressU);
 	Serialise("", el.AddressV);
 	Serialise("", el.AddressW);
-	Serialise<4>("", el.BorderColor);
+	SerialisePODArray<4>("", el.BorderColor);
 	Serialise("", el.Comparison);
 	Serialise("", el.Filter);
 	Serialise("", el.UseBorder);
@@ -428,7 +428,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger &e
 		Serialise("", el.m_BlendState.AlphaToCoverage);
 		Serialise("", el.m_BlendState.IndependentBlend);
 		Serialise("", el.m_BlendState.Blends);
-		Serialise<4>("", el.m_BlendState.BlendFactor);
+		SerialisePODArray<4>("", el.m_BlendState.BlendFactor);
 
 		Serialise("", el.m_BlendState.SampleMask);
 	}
@@ -472,7 +472,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 {
 	Serialise("", el.Enabled);
 	Serialise("", el.Format);
-	Serialise<4>("", el.GenericValue.f);
+	SerialisePODArray<4>("", el.GenericValue.f);
 	Serialise("", el.BufferSlot);
 	Serialise("", el.RelativeOffset);
 
@@ -513,7 +513,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Sampler &el)
 	Serialise("", el.AddressS);
 	Serialise("", el.AddressT);
 	Serialise("", el.AddressR);
-	Serialise<4>("", el.BorderColor);
+	SerialisePODArray<4>("", el.BorderColor);
 	Serialise("", el.Comparison);
 	Serialise("", el.MinFilter);
 	Serialise("", el.MagFilter);
@@ -611,7 +611,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Blend
 template<>
 void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::BlendState &el)
 {
-	Serialise<4>("", el.BlendFactor);
+	SerialisePODArray<4>("", el.BlendFactor);
 	Serialise("", el.Blends);
 
 	SIZE_CHECK(GLPipelineState::FrameBuffer::BlendState, 24);
@@ -777,8 +777,8 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.vertexOffset);
 	Serialise("", el.instanceOffset);
 
-	Serialise<3>("", el.dispatchDimension);
-	Serialise<3>("", el.dispatchThreadsDimension);
+	SerialisePODArray<3>("", el.dispatchDimension);
+	SerialisePODArray<3>("", el.dispatchThreadsDimension);
 
 	Serialise("", el.indexByteWidth);
 	Serialise("", el.topology);
@@ -792,7 +792,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 	Serialise("", el.previous);
 	Serialise("", el.next);
 	
-	Serialise<8>("", el.outputs);
+	SerialisePODArray<8>("", el.outputs);
 	Serialise("", el.depthOut);
 	
 	Serialise("", el.events);
@@ -868,13 +868,13 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 	Serialise("", el.fragIndex);
 	Serialise("", el.primitiveID);
 
-	Serialise<4>("", el.preMod.col.value_u);
+	SerialisePODArray<4>("", el.preMod.col.value_u);
 	Serialise("", el.preMod.depth);
 	Serialise("", el.preMod.stencil);
-	Serialise<4>("", el.shaderOut.col.value_u);
+	SerialisePODArray<4>("", el.shaderOut.col.value_u);
 	Serialise("", el.shaderOut.depth);
 	Serialise("", el.shaderOut.stencil);
-	Serialise<4>("", el.postMod.col.value_u);
+	SerialisePODArray<4>("", el.postMod.col.value_u);
 	Serialise("", el.postMod.depth);
 	Serialise("", el.postMod.stencil);
 	
@@ -1987,8 +1987,8 @@ ShaderDebugTrace ProxySerialiser::DebugThread(uint32_t frameID, uint32_t eventID
 	
 	m_ToReplaySerialiser->Serialise("", frameID);
 	m_ToReplaySerialiser->Serialise("", eventID);
-	m_ToReplaySerialiser->Serialise<3>("", groupid);
-	m_ToReplaySerialiser->Serialise<3>("", threadid);
+	m_ToReplaySerialiser->SerialisePODArray<3>("", groupid);
+	m_ToReplaySerialiser->SerialisePODArray<3>("", threadid);
 
 	if(m_ReplayHost)
 	{

@@ -2207,7 +2207,7 @@ bool WrappedID3D11DeviceContext::Serialise_RSSetViewports(UINT NumViewports_, co
 		if(pViewports)
 			view = pViewports[i];
 
-		m_pSerialiser->Serialise<6>((string("Viewport[") + ToStr::Get(i) + "]").c_str(), (FLOAT *)&view);
+		m_pSerialiser->SerialisePODArray<6>((string("Viewport[") + ToStr::Get(i) + "]").c_str(), (FLOAT *)&view);
 
 		views[i] = view;
 	}
@@ -3237,7 +3237,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetBlendState(ID3D11BlendState *pBl
 		}
 	}
 
-	m_pSerialiser->Serialise<4>("BlendFactor", BlendFactor);
+	m_pSerialiser->SerialisePODArray<4>("BlendFactor", BlendFactor);
 
 	SERIALISE_ELEMENT(uint32_t, SampleMask, SampleMask_);
 
@@ -3377,7 +3377,7 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 			size_t numLevels = call->NumLevels();
 			uint64_t *stack = (uint64_t *)call->GetAddrs();
 
-			m_pSerialiser->Serialise("callstack", stack, numLevels);
+			m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
 			delete call;
 		}
@@ -3386,7 +3386,7 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
 			size_t numLevels = 0;
 			uint64_t *stack = NULL;
 
-			m_pSerialiser->Serialise("callstack", stack, numLevels);
+			m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
 			m_pSerialiser->SetCallstack(stack, numLevels);
 
@@ -5662,7 +5662,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(ID3D11RenderTar
 	if(m_State >= WRITING)
 		memcpy(Color, ColorRGBA, sizeof(float)*4);
 
-	m_pSerialiser->Serialise<4>("ColorRGBA", Color);
+	m_pSerialiser->SerialisePODArray<4>("ColorRGBA", Color);
 
 	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
 	{
@@ -5788,7 +5788,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(ID3D11Un
 	if(m_State >= WRITING)
 		memcpy(Values, Values_, sizeof(UINT)*4);
 
-	m_pSerialiser->Serialise<4>("Values", Values);
+	m_pSerialiser->SerialisePODArray<4>("Values", Values);
 
 	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
 	{
@@ -5904,7 +5904,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(ID3D11U
 	if(m_State >= WRITING)
 		memcpy(Values, Values_, sizeof(FLOAT)*4);
 
-	m_pSerialiser->Serialise<4>("Values", Values);
+	m_pSerialiser->SerialisePODArray<4>("Values", Values);
 
 	if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(View))
 	{

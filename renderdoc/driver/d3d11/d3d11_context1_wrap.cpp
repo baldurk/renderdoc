@@ -370,7 +370,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
 	if(m_State >= WRITING)
 		memcpy(Color, ColorRGBA, sizeof(float)*4);
 
-	m_pSerialiser->Serialise<4>("ColorRGBA", Color);
+	m_pSerialiser->SerialisePODArray<4>("ColorRGBA", Color);
 
 	SERIALISE_ELEMENT(uint32_t, numRects, NumRects);
 	SERIALISE_ELEMENT_ARR(D3D11_RECT, rects, pRect, NumRects);
