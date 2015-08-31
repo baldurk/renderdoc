@@ -979,8 +979,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 {
 	SERIALISE_ELEMENT(ResourceId, queueId, GetResourceManager()->GetID(MakeRes(queue)));
 	SERIALISE_ELEMENT(ResourceId, fenceId, fence != VK_NULL_HANDLE ? GetResourceManager()->GetID(MakeRes(fence)) : ResourceId());
-
-	// VKTODO: serialise mem refs, on replay add/remove as necessary
 	
 	SERIALISE_ELEMENT(uint32_t, numCmds, cmdBufferCount);
 
