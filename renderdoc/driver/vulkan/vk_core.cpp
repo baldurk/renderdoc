@@ -265,11 +265,6 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 #else
 	const bool debugSerialiser = true;
 #endif
-	
-#if !defined(_RELEASE)
-	CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
-	opts.RefAllResources = true;
-#endif
 
 	if(RenderDoc::Inst().IsReplayApp())
 	{
@@ -423,7 +418,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 	if(m_State >= WRITING)
 	{
 		CaptureOptions &opts = (CaptureOptions &)RenderDoc::Inst().GetCaptureOptions();
-		opts.RefAllResources = true;
 		opts.DebugDeviceMode = true;
 	}
 #endif
@@ -1055,7 +1049,15 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			GetResourceManager()->MarkDirtyResource(*it);
 
 		if(m_State == WRITING_CAPFRAME)
+		{
+			// pull in frame refs from this baked command buffer
+			record->bakedCommands->AddResourceReferences(GetResourceManager());
+
+			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
+			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+
 			m_ContextRecord->AddParent(record->bakedCommands);
+		}
 
 		record->dirtied.clear();
 	}
@@ -1087,6 +1089,8 @@ VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaph
 		Serialise_vkQueueSignalSemaphore(queue, semaphore);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(queue), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(semaphore), eFrameRef_Read);
 	}
 
 	return ret;
@@ -1116,6 +1120,8 @@ VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphor
 		Serialise_vkQueueWaitSemaphore(queue, semaphore);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(queue), eFrameRef_Read);
+		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(semaphore), eFrameRef_Read);
 	}
 
 	return ret;
@@ -1143,6 +1149,7 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 		Serialise_vkQueueWaitIdle(queue);
 
 		m_ContextRecord->AddChunk(scope.Get());
+		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(queue), eFrameRef_Read);
 	}
 
 	return ret;
@@ -1388,9 +1395,14 @@ VkResult WrappedVulkan::vkUnmapMemory(
 					VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(mem));
 
 					if(m_State == WRITING_IDLE)
+					{
 						record->AddChunk(scope.Get());
+					}
 					else
+					{
 						m_ContextRecord->AddChunk(scope.Get());
+						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Write);
+					}
 				}
 
 				it->second.mappedPtr = NULL;
@@ -1445,7 +1457,17 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 			chunk = scope.Get();
 		}
 
-		record->AddChunk(chunk);
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+
+			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(buffer), eFrameRef_Write);
+			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Read);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+		}
 
 		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
@@ -1495,7 +1517,17 @@ VkResult WrappedVulkan::vkBindImageMemory(
 			chunk = scope.Get();
 		}
 
-		record->AddChunk(chunk);
+		if(m_State == WRITING_CAPFRAME)
+		{
+			m_ContextRecord->AddChunk(chunk);
+
+			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(image), eFrameRef_Write);
+			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Read);
+		}
+		else
+		{
+			record->AddChunk(chunk);
+		}
 
 		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
@@ -1621,6 +1653,7 @@ VkResult WrappedVulkan::vkCreateBufferView(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->buffer)));
 		}
 		else
 		{
@@ -1797,8 +1830,9 @@ VkResult WrappedVulkan::vkCreateImageView(
 				chunk = scope.Get();
 			}
 
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->image));
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->image)));
 		}
 		else
 		{
@@ -1861,8 +1895,9 @@ VkResult WrappedVulkan::vkCreateAttachmentView(
 				chunk = scope.Get();
 			}
 
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->image));
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+			record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->image)));
 		}
 		else
 		{
@@ -2139,6 +2174,9 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 
 				VkResourceRecord *cacherecord = GetResourceManager()->GetResourceRecord(MakeRes(pipelineCache));
 				record->AddParent(cacherecord);
+
+				VkResourceRecord *layoutrecord = GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfos->layout));
+				record->AddParent(layoutrecord);
 
 				for(uint32_t i=0; i < pCreateInfos->stageCount; i++)
 				{
@@ -2544,6 +2582,11 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 			record->AddChunk(chunk);
+
+			for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
+			{
+				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->pAttachments[i].view)));
+			}
 		}
 		else
 		{
@@ -3063,7 +3106,8 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 				record->AddChunk(chunk);
 
-				// VKTODO: add parent descriptor pool record
+				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(descriptorPool)));
+				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pSetLayouts[i])));
 			}
 			else
 			{
@@ -3161,7 +3205,25 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 				chunk = scope.Get();
 			}
 
+			// VKTODO these shouldn't be accumulate-serialised, they should be
+			// tracked in memory by recording updates, and force-initial stated
+
 			record->AddChunk(chunk);
+
+			// VKTODO shouldn't add parents here, these should be more like SetMemoryRecord
+			// as it's transient/updated.
+
+			for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
+			{
+				if(pDescriptorWrites[i].pDescriptors[d].bufferView)
+					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].bufferView)));
+				if(pDescriptorWrites[i].pDescriptors[d].sampler)
+					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].sampler)));
+				if(pDescriptorWrites[i].pDescriptors[d].imageView)
+					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].imageView)));
+				if(pDescriptorWrites[i].pDescriptors[d].attachmentView)
+					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].attachmentView)));
+			}
 		}
 
 		for(uint32_t i=0; i < copyCount; i++)
@@ -3176,6 +3238,9 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 
 				chunk = scope.Get();
 			}
+
+			// VKTODO these shouldn't be accumulate-serialised, they should be
+			// tracked in memory by recording updates, and force-initial stated
 
 			record->AddChunk(chunk);
 		}
@@ -3215,7 +3280,11 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
 	m_pSerialiser->Serialise("createInfo", createInfo);
 
-	if(m_State == READING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		// remove one-time submit flag as we will want to submit many
 		info.flags &= ~VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT;
@@ -3302,7 +3371,11 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
 
-	if(m_State == READING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(bakeId).handle;
 
@@ -3365,7 +3438,11 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
 	m_pSerialiser->Serialise("createInfo", info);
 
-	if(m_State == READING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = VK_NULL_HANDLE;
 
@@ -3444,7 +3521,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 	SERIALISE_ELEMENT(VkRenderPassBeginInfo, beginInfo, *pRenderPassBegin);
 	SERIALISE_ELEMENT(VkRenderPassContents, cont, contents);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -3469,6 +3550,8 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 		Serialise_vkCmdBeginRenderPass(cmdBuffer, pRenderPassBegin, contents);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pRenderPassBegin->renderPass)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pRenderPassBegin->framebuffer)), eFrameRef_Write);
 	}
 }
 
@@ -3477,7 +3560,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -3512,7 +3599,11 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 	SERIALISE_ELEMENT(VkPipelineBindPoint, bind, pipelineBindPoint);
 	SERIALISE_ELEMENT(ResourceId, pipeid, GetResourceManager()->GetID(MakeRes(pipeline)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		pipeline = (VkPipeline)GetResourceManager()->GetLiveResource(pipeid).handle;
@@ -3538,6 +3629,7 @@ void WrappedVulkan::vkCmdBindPipeline(
 		Serialise_vkCmdBindPipeline(cmdBuffer, pipelineBindPoint, pipeline);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pipeline)), eFrameRef_Read);
 	}
 }
 
@@ -3574,7 +3666,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 	SERIALISE_ELEMENT(uint32_t, offsCount, dynamicOffsetCount);
 	SERIALISE_ELEMENT_ARR_OPT(uint32_t, offs, pDynamicOffsets, offsCount, offsCount > 0);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		layout = (VkPipelineLayout)GetResourceManager()->GetLiveResource(layoutid).handle;
@@ -3610,6 +3706,9 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 		Serialise_vkCmdBindDescriptorSets(cmdBuffer, pipelineBindPoint, layout, firstSet, setCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(layout)), eFrameRef_Read);
+		for(uint32_t i=0; i < setCount; i++)
+			record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pDescriptorSets[i])), eFrameRef_Read);
 	}
 }
 
@@ -3620,7 +3719,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResourceManager()->GetID(MakeRes(dynamicViewportState)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicViewportState = (VkDynamicViewportState)GetResourceManager()->GetLiveResource(stateid).handle;
@@ -3645,6 +3748,7 @@ void WrappedVulkan::vkCmdBindDynamicViewportState(
 		Serialise_vkCmdBindDynamicViewportState(cmdBuffer, dynamicViewportState);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(dynamicViewportState)), eFrameRef_Read);
 	}
 }
 
@@ -3655,7 +3759,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResourceManager()->GetID(MakeRes(dynamicRasterState)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicRasterState = (VkDynamicRasterState)GetResourceManager()->GetLiveResource(stateid).handle;
@@ -3680,6 +3788,7 @@ void WrappedVulkan::vkCmdBindDynamicRasterState(
 		Serialise_vkCmdBindDynamicRasterState(cmdBuffer, dynamicRasterState);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(dynamicRasterState)), eFrameRef_Read);
 	}
 }
 
@@ -3690,7 +3799,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResourceManager()->GetID(MakeRes(dynamicColorBlendState)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicColorBlendState = (VkDynamicColorBlendState)GetResourceManager()->GetLiveResource(stateid).handle;
@@ -3715,6 +3828,7 @@ void WrappedVulkan::vkCmdBindDynamicColorBlendState(
 		Serialise_vkCmdBindDynamicColorBlendState(cmdBuffer, dynamicColorBlendState);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(dynamicColorBlendState)), eFrameRef_Read);
 	}
 }
 
@@ -3725,7 +3839,11 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResourceManager()->GetID(MakeRes(dynamicDepthStencilState)));
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicDepthStencilState = (VkDynamicDepthStencilState)GetResourceManager()->GetLiveResource(stateid).handle;
@@ -3750,6 +3868,7 @@ void WrappedVulkan::vkCmdBindDynamicDepthStencilState(
 		Serialise_vkCmdBindDynamicDepthStencilState(cmdBuffer, dynamicDepthStencilState);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(dynamicDepthStencilState)), eFrameRef_Read);
 	}
 }
 
@@ -3787,7 +3906,11 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 		}
 	}
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		
@@ -3814,6 +3937,8 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
 		Serialise_vkCmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
 
 		record->AddChunk(scope.Get());
+		for(uint32_t i=0; i < bindingCount; i++)
+			record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pBuffers[i])), eFrameRef_Read);
 	}
 }
 
@@ -3829,7 +3954,11 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 	SERIALISE_ELEMENT(VkIndexType, idxType, indexType);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
@@ -3856,6 +3985,7 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
 		Serialise_vkCmdBindIndexBuffer(cmdBuffer, buffer, offset, indexType);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(buffer)), eFrameRef_Read);
 	}
 }
 
@@ -3866,15 +3996,19 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 	uint32_t       firstInstance,
 	uint32_t       instanceCount)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(uint32_t, firstVtx, firstVertex);
 	SERIALISE_ELEMENT(uint32_t, vtxCount, vertexCount);
 	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
 	{
-		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(id).handle;
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
+	{
+		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdDraw(buf, firstVtx, vtxCount, firstInst, instCount);
 	}
@@ -3923,7 +4057,11 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkImageBlit, regions, pRegions, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
@@ -3959,6 +4097,8 @@ void WrappedVulkan::vkCmdBlitImage(
 		record->AddChunk(scope.Get());
 
 		record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destImage)));
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(srcImage)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(destImage)), eFrameRef_Write);
 	}
 }
 
@@ -3980,7 +4120,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkImageCopy, regions, pRegions, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
@@ -4013,6 +4157,8 @@ void WrappedVulkan::vkCmdCopyImage(
 		Serialise_vkCmdCopyImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(srcImage)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(destImage)), eFrameRef_Write);
 
 		// VKTODO init states not implemented yet...
 		//record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destImage)));
@@ -4034,7 +4180,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferImageCopy, regions, pRegions, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
@@ -4068,6 +4218,8 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 		record->AddChunk(scope.Get());
 
 		record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destImage)));
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(srcBuffer)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(destImage)), eFrameRef_Write);
 	}
 }
 
@@ -4088,7 +4240,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferImageCopy, regions, pRegions, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
@@ -4120,6 +4276,8 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 		Serialise_vkCmdCopyImageToBuffer(cmdBuffer, srcImage, srcImageLayout, destBuffer, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(srcImage)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(destBuffer)), eFrameRef_Write);
 
 		// VKTODO: need to dirty the memory bound to the buffer?
 		record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destBuffer)));
@@ -4140,7 +4298,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 	SERIALISE_ELEMENT(uint32_t, count, regionCount);
 	SERIALISE_ELEMENT_ARR(VkBufferCopy, regions, pRegions, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(srcid).handle;
@@ -4171,6 +4333,8 @@ void WrappedVulkan::vkCmdCopyBuffer(
 		Serialise_vkCmdCopyBuffer(cmdBuffer, srcBuffer, destBuffer, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(srcBuffer)), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(destBuffer)), eFrameRef_Write);
 		
 		// VKTODO: need to dirty the memory bound to the buffer?
 		record->dirtied.insert(GetResourceManager()->GetID(MakeRes(destBuffer)));
@@ -4193,7 +4357,11 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 	SERIALISE_ELEMENT(uint32_t, count, rangeCount);
 	SERIALISE_ELEMENT_ARR(VkImageSubresourceRange, ranges, pRanges, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
@@ -4224,6 +4392,7 @@ void WrappedVulkan::vkCmdClearColorImage(
 		Serialise_vkCmdClearColorImage(cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(image)), eFrameRef_Write);
 	}
 }
 
@@ -4244,7 +4413,11 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 	SERIALISE_ELEMENT(uint32_t, count, rangeCount);
 	SERIALISE_ELEMENT_ARR(VkImageSubresourceRange, ranges, pRanges, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
@@ -4276,6 +4449,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 		Serialise_vkCmdClearDepthStencilImage(cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(image)), eFrameRef_Write);
 	}
 }
 
@@ -4295,7 +4469,11 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 	SERIALISE_ELEMENT(uint32_t, count, rectCount);
 	SERIALISE_ELEMENT_ARR(VkRect3D, rects, pRects, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -4325,6 +4503,8 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 		Serialise_vkCmdClearColorAttachment(cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
+		// VKTODO mark referenced the image under the attachment
+		//record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(image)), eFrameRef_Write);
 	}
 }
 
@@ -4345,7 +4525,11 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 	SERIALISE_ELEMENT(uint32_t, count, rectCount);
 	SERIALISE_ELEMENT_ARR(VkRect3D, rects, pRects, count);
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -4376,6 +4560,8 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 		Serialise_vkCmdClearDepthStencilAttachment(cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
 
 		record->AddChunk(scope.Get());
+		// VKTODO mark referenced the image under the attachment
+		//record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(image)), eFrameRef_Write);
 	}
 }
 
@@ -4428,7 +4614,11 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 		}
 	}
 	
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -4475,6 +4665,9 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		
 		ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmdBuffer));
 		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+
+		// VKTODO do we need to mark frame referenced the resources in the barrier? if they're not referenced
+		// elsewhere, perhaps they can be dropped
 	}
 }
 
@@ -4827,7 +5020,10 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 	}
 
-	GetResourceManager()->MarkInFrame(true);
+	// VKTODO I think this is a legacy concept that doesn't really mean anything anymore,
+	// even on GL/D3D11. Creates are all shifted before the frame, only command bfufers remain
+	// in vulkan
+	//GetResourceManager()->MarkInFrame(true);
 
 	while(1)
 	{
@@ -4860,7 +5056,8 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		m_ParentDrawcall.children.clear();
 	}
 
-	GetResourceManager()->MarkInFrame(false);
+	// VKTODO See above
+	//GetResourceManager()->MarkInFrame(false);
 
 	m_State = READING;
 }
@@ -4922,16 +5119,20 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	uint32_t       firstInstance,
 	uint32_t       instanceCount)
 {
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	SERIALISE_ELEMENT(uint32_t, firstIdx, firstIndex);
 	SERIALISE_ELEMENT(uint32_t, idxCount, indexCount);
 	SERIALISE_ELEMENT(int32_t, vtxOffs, vertexOffset);
 	SERIALISE_ELEMENT(uint32_t, firstInst, firstInstance);
 	SERIALISE_ELEMENT(uint32_t, instCount, instanceCount);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
 	{
-		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(id).handle;
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
+	{
+		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdDrawIndexed(buf, firstIdx, idxCount, vtxOffs, firstInst, instCount);
 	}
@@ -4974,7 +5175,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 	SERIALISE_ELEMENT(uint32_t, cnt, count);
 	SERIALISE_ELEMENT(uint32_t, strd, stride);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
@@ -5019,7 +5224,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 	SERIALISE_ELEMENT(uint32_t, cnt, count);
 	SERIALISE_ELEMENT(uint32_t, strd, stride);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
@@ -5061,7 +5270,11 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 	SERIALISE_ELEMENT(uint32_t, Y, y);
 	SERIALISE_ELEMENT(uint32_t, Z, z);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
@@ -5099,7 +5312,11 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 	SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(MakeRes(buffer)));
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 
-	if(m_State < WRITING)
+	if(m_State == EXECUTING)
+	{
+		// VKTODO check if we want to partial-replay this cmd buffer
+	}
+	else if(m_State == READING)
 	{
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
@@ -5223,6 +5440,11 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 				record->AddChunk(chunk);
+
+				// we invert the usual scheme - we make the swapchain record take parent refs
+				// on these images, so that we can just ref the swapchain on present and pull
+				// in all the images
+				GetResourceManager()->GetResourceRecord(MakeRes(swapChain))->AddParent(record);
 			}
 			else
 			{
@@ -5529,7 +5751,9 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 			ResourceId swapid = GetResourceManager()->GetID(MakeRes(pPresentInfo->swapChains[0]));
 
-			// VKTODO
+			GetResourceManager()->MarkResourceFrameReferenced(swapid, eFrameRef_Read);
+
+			// VKTODO handle present info pNext
 			RDCASSERT(pPresentInfo->pNext == NULL);
 
 			VkImage backbuffer = m_SwapChainInfo[swapid].images[pPresentInfo->imageIndices[0]].im;
@@ -5704,6 +5928,8 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 void WrappedVulkan::Create_InitialState(ResourceId id, VkResource live, bool hasData)
 {
+	// VKTODO now that we track references, some mem is write-before-read
+	return;
 	RDCUNIMPLEMENTED("initial states not implemented");
 
 	if(live.Namespace == eResDescriptorSet)
