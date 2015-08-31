@@ -194,4 +194,10 @@ class VulkanHook : LibraryHook
 
 VulkanHook VulkanHook::vulkanhooks;
 
+void PopulateDeviceHooks(VkDevice d, VkInstance i)
+{
+	// don't need to bother with an impl because this file will be replaced
+	// before we ever run on windows
+}
+
 const VulkanFunctions &GetRealVKFunctions() { return VulkanHook::vulkanhooks.GetRealVKFunctions(); }

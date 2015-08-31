@@ -229,25 +229,25 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 		extscstr[i] = params.Extensions[i].c_str();
 
 	VkApplicationInfo appinfo = {
-			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pNext = NULL,
-			.pAppName = params.AppName.c_str(),
-			.appVersion = params.AppVersion,
-			.pEngineName = params.EngineName.c_str(),
-			.engineVersion = params.EngineVersion,
-			.apiVersion = VK_API_VERSION,
+			/*.sType =*/ VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			/*.pNext =*/ NULL,
+			/*.pAppName =*/ params.AppName.c_str(),
+			/*.appVersion =*/ params.AppVersion,
+			/*.pEngineName =*/ params.EngineName.c_str(),
+			/*.engineVersion =*/ params.EngineVersion,
+			/*.apiVersion =*/ VK_API_VERSION,
 	};
 	// VKTODO
 	RDCASSERT(params.APIVersion == VK_API_VERSION);
 	VkInstanceCreateInfo instinfo = {
-			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-			.pNext = NULL,
-			.pAppInfo = &appinfo,
-			.pAllocCb = NULL,
-			.layerCount = (uint32_t)params.Layers.size(),
-			.ppEnabledLayerNames = layerscstr,
-			.extensionCount = (uint32_t)params.Extensions.size(),
-			.ppEnabledExtensionNames = extscstr,
+			/*.sType =*/ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			/*.pNext =*/ NULL,
+			/*.pAppInfo =*/ &appinfo,
+			/*.pAllocCb =*/ NULL,
+			/*.layerCount =*/ (uint32_t)params.Layers.size(),
+			/*.ppEnabledLayerNames =*/ layerscstr,
+			/*.extensionCount =*/ (uint32_t)params.Extensions.size(),
+			/*.ppEnabledExtensionNames =*/ extscstr,
 	};
 
 	VkInstance inst;
@@ -385,7 +385,7 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 WrappedVulkan::~WrappedVulkan()
 {
 #if defined(FORCE_VALIDATION_LAYER)
-	if(m_MsgCallback)
+	if(m_MsgCallback != VK_NULL_HANDLE)
 	{
 		// VKTODO [0] isn't right..
 		m_Real.vkDbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
@@ -460,7 +460,7 @@ VkResult WrappedVulkan::vkDestroyInstance(
 	if(ret != VK_SUCCESS)
 		return ret;
 	
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback)
+	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback != VK_NULL_HANDLE)
 	{
 		m_Real.vkDbgDestroyMsgCallback(instance, m_MsgCallback);
 	}
@@ -2998,7 +2998,7 @@ VkResult WrappedVulkan::vkResetCommandPool(
 			VkCmdPoolResetFlags                         flags)
 {
 	// VKTODO do I need to serialise this? just a driver hint..
-	return vkResetCommandPool(device, cmdPool, flags);
+	return m_Real.vkResetCommandPool(device, cmdPool, flags);
 }
 
 
@@ -3222,13 +3222,13 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 
 			for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
 			{
-				if(pDescriptorWrites[i].pDescriptors[d].bufferView)
+				if(pDescriptorWrites[i].pDescriptors[d].bufferView != VK_NULL_HANDLE)
 					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].bufferView)));
-				if(pDescriptorWrites[i].pDescriptors[d].sampler)
+				if(pDescriptorWrites[i].pDescriptors[d].sampler != VK_NULL_HANDLE)
 					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].sampler)));
-				if(pDescriptorWrites[i].pDescriptors[d].imageView)
+				if(pDescriptorWrites[i].pDescriptors[d].imageView != VK_NULL_HANDLE)
 					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].imageView)));
-				if(pDescriptorWrites[i].pDescriptors[d].attachmentView)
+				if(pDescriptorWrites[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE)
 					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].attachmentView)));
 			}
 		}
@@ -5524,29 +5524,29 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 		RDCASSERT(imFormat == info.imageFormat);
 
 		VkDevice dev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
-		
-    const VkImageCreateInfo imInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = NULL,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = imFormat,
-        .extent = { info.imageExtent.width, info.imageExtent.height, 1 },
-        .mipLevels = 1,
-        .arraySize = info.imageArraySize,
-        .samples = 1,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage =
-					VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|
-					VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|
-					VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
-					VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
-        .flags = 0,
-    };
+
+		const VkImageCreateInfo imInfo = {
+			/*.sType =*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+			/*.pNext =*/ NULL,
+			/*.imageType =*/ VK_IMAGE_TYPE_2D,
+			/*.format =*/ imFormat,
+			/*.extent =*/ { info.imageExtent.width, info.imageExtent.height, 1 },
+			/*.mipLevels =*/ 1,
+			/*.arraySize =*/ info.imageArraySize,
+			/*.samples =*/ 1,
+			/*.tiling =*/ VK_IMAGE_TILING_OPTIMAL,
+			/*.usage =*/
+			VK_IMAGE_USAGE_TRANSFER_SOURCE_BIT|
+			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT|
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT|
+			VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT,
+			/*.flags =*/ 0,
+		};
 
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
 		{
 			if(m_PhysicalReplayData[i].dev == dev)
-				m_SwapPhysDevice = i;
+				m_SwapPhysDevice = (int)i;
 		}
 
 		for(uint32_t i=0; i < numSwapImages; i++)
@@ -5563,10 +5563,10 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			RDCASSERT(res == VK_SUCCESS);
 			
 			VkMemoryAllocInfo allocInfo = {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-				.pNext = NULL,
-				.allocationSize = mrq.size,
-				.memoryTypeIndex = 0, // VKTODO find appropriate memory type index
+				/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+				/*.pNext =*/ NULL,
+				/*.allocationSize =*/ mrq.size,
+				/*.memoryTypeIndex =*/ 0, // VKTODO find appropriate memory type index
 			};
 
 			res = m_Real.vkAllocMemory(dev, &allocInfo, &mem);
@@ -5636,7 +5636,7 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 			for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
 			{
 				if(m_PhysicalReplayData[i].dev == device)
-					m_SwapPhysDevice = i;
+					m_SwapPhysDevice = (int)i;
 			}
 
 			// serialise out the swap chain images
@@ -5881,10 +5881,10 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 		VkDeviceMemory mem = VK_NULL_HANDLE;
 
 		VkMemoryAllocInfo allocInfo = {
-			.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-			.pNext = NULL,
-			.allocationSize = meminfo.size,
-			.memoryTypeIndex = 0,
+			/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+			/*.pNext =*/ NULL,
+			/*.allocationSize =*/ meminfo.size,
+			/*.memoryTypeIndex =*/ 0,
 		};
 		// VKTODO memory type index needs to be host-visible for copy back
 
@@ -6007,10 +6007,10 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 			VkDeviceMemory mem = VK_NULL_HANDLE;
 
 			VkMemoryAllocInfo allocInfo = {
-				.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-				.pNext = NULL,
-				.allocationSize = dataSize,
-				.memoryTypeIndex = 0,
+				/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+				/*.pNext =*/ NULL,
+				/*.allocationSize =*/ dataSize,
+				/*.memoryTypeIndex =*/ 0,
 			};
 			// VKTODO memory type index needs to be host-visible for copy
 

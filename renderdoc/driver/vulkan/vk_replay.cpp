@@ -22,9 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <X11/Xlib.h>
-#include <X11/Xlib-xcb.h>
-
 #include "vk_replay.h"
 #include "vk_core.h"
 #include "vk_resources.h"
@@ -92,11 +89,26 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 
 	VkSwapChainWSI old = swap;
 
+	void *handleptr = NULL;
+	VkPlatformWSI platform = VK_PLATFORM_MAX_ENUM_WSI;
+
+#if defined(WIN32)
+	static int dllLocator=0;
+
+	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, (HMODULE *)&handleptr);
+	platform = VK_PLATFORM_WIN32_WSI;
+#elif defined(__linux__)
 	VkPlatformHandleXcbWSI handle;
 	handle.connection = connection;
 	handle.root = screen->root;
 
-	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, VK_PLATFORM_X11_WSI, &handle, &wnd };
+	handleptr = &handle;
+	platform = VK_PLATFORM_X11_WSI;
+#else
+#error "unknown platform"
+#endif
+
+	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, VK_PLATFORM_X11_WSI, handleptr, &wnd };
 
 	VkSwapChainCreateInfoWSI swapInfo = {
 			VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI, NULL, (VkSurfaceDescriptionWSI *)&surfDesc,
@@ -115,7 +127,7 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	res = vk.vkGetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, NULL);
 	RDCASSERT(res == VK_SUCCESS);
 
-	numImgs = sz/sizeof(VkSwapChainImagePropertiesWSI);
+	numImgs = uint32_t(sz/sizeof(VkSwapChainImagePropertiesWSI));
 
 	VkSwapChainImagePropertiesWSI* imgs = new VkSwapChainImagePropertiesWSI[numImgs];
 	res = vk.vkGetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, imgs);
@@ -745,9 +757,9 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 	RDCDEBUG("Creating a VulkanReplay replay device");
 	
 #if defined(WIN32)
-	bool loaded = Process::LoadLibrary("vulkan.dll");
+	bool loaded = Process::LoadModule("vulkan.dll");
 #elif defined(__linux__)
-	bool loaded = Process::LoadLibrary("libvulkan.so");
+	bool loaded = Process::LoadModule("libvulkan.so");
 #else
 #error "Unknown platform"
 #endif
