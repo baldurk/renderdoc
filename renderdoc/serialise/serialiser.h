@@ -383,6 +383,49 @@ class Serialiser
 			}
 		}
 
+		// serialise a normal array. Typically this should be a small array,
+		// for large byte buffers use SerialiseBuffer which is optimised for that
+		//
+		// If serialising in, el will either be set to NULL or allocated, the
+		// existing value will be overwritten.
+		template<class T>
+		void SerialiseComplexArray(const char *name, T *&el, uint32_t &Num)
+		{
+			if(m_Mode == WRITING)
+			{
+				WriteFrom(Num);
+				for(uint32_t i=0; i < Num; i++)
+					Serialise(m_DebugTextWriting ? StringFormat::Fmt("%s[%i]", name, i).c_str() : "", el[i]);
+			}
+			else if(m_Mode == READING)
+			{
+				ReadInto(Num);
+
+				RDCASSERT(el == NULL);
+
+				if(Num > 0)
+				{
+					el = new T[Num];
+
+					for(uint32_t i=0; i < Num; i++)
+						Serialise(m_DebugTextWriting ? StringFormat::Fmt("%s[%i]", name, i).c_str() : "", el[i]);
+				}
+				else
+				{
+					el = NULL;
+				}
+			}
+		}
+
+		// overload for 64-bit counts
+		template<class T>
+		void SerialiseComplexArray(const char *name, T *&el, uint64_t &Num)
+		{
+			uint32_t n;
+			SerialiseComplexArray(name, el, n);
+			Num = n;
+		}
+
 		// serialise a single element
 		template<class T> void Serialise(const char *name, T &el)
 		{
