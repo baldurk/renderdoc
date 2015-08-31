@@ -1799,9 +1799,33 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 
 	Serialise("stage", el.stage);
 	SerialiseObject(VkShader, "shader", el.shader);
-	if(m_Mode >= WRITING) RDCASSERT(el.pSpecializationInfo == NULL);
-	if(m_Mode == READING) el.pSpecializationInfo = NULL;
-	// VKTODO: pSpecializationInfo
+
+	SerialiseOptionalObject(this, "el.pSpecializationInfo", (VkSpecializationInfo *&)el.pSpecializationInfo);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkSpecializationInfo", 0, true);
+
+	uint64_t dataSize = el.dataSize;
+	Serialise("dataSize", el.dataSize);
+	size_t sz = dataSize;
+	if(m_Mode == READING) el.pData = NULL;
+	SerialiseBuffer("pData", (byte *&)el.pData, sz);
+
+	Serialise("mapEntryCount", el.mapEntryCount);
+	if(m_Mode == READING) el.pMap = el.mapEntryCount ? new VkSpecializationMapEntry[el.mapEntryCount] : NULL;
+
+	VkSpecializationMapEntry *map = (VkSpecializationMapEntry *)el.pMap;
+	for(uint32_t i=0; i < el.mapEntryCount; i++)
+	{
+		Serialise("pMap[].constantId", map[i].constantId);
+		uint64_t size = map[i].size;
+		Serialise("pMap[].size", size);
+		if(m_Mode == READING) map[i].size = size;
+		Serialise("pMap[].offset", map[i].offset);
+	}
 }
 
 template<>
