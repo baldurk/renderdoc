@@ -104,8 +104,7 @@ private:
 
 	VkInitParams m_InitParams;
 
-	ResourceId m_DeviceResourceID;
-	VkResourceRecord *m_DeviceRecord;
+	VkResourceRecord *m_InstanceRecord;
 		
 	ResourceId m_ContextResourceID;
 	VkResourceRecord *m_ContextRecord;
@@ -270,7 +269,6 @@ public:
 	WrappedVulkan(const VulkanFunctions &real, const char *logFilename);
 	~WrappedVulkan();
 
-	ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
 	ResourceId GetContextResourceID() { return m_ContextResourceID; }
 
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }

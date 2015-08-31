@@ -25,8 +25,6 @@
 #include "vk_core.h"
 #include "serialise/string_utils.h"
 
-// VKTODO drop m_DeviceRecord - move EVERYTHING to resource records.
-
 static bool operator <(const VkExtensionProperties &a, const VkExtensionProperties &b)
 {
 	int cmp = strcmp(a.extName, b.extName);
@@ -356,18 +354,10 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 	
-	m_DeviceResourceID = GetResourceManager()->RegisterResource(VkResource(eResSpecial, VK_NULL_HANDLE));
 	m_ContextResourceID = GetResourceManager()->RegisterResource(VkResource(eResSpecial, VK_NULL_HANDLE));
 
 	if(!RenderDoc::Inst().IsReplayApp())
 	{
-		m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_DeviceResourceID);
-		m_DeviceRecord->DataInSerialiser = false;
-		m_DeviceRecord->Length = 0;
-		m_DeviceRecord->NumSubResources = 0;
-		m_DeviceRecord->SpecialResource = true;
-		m_DeviceRecord->SubResources = NULL;
-		
 		m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
 		m_ContextRecord->DataInSerialiser = false;
 		m_ContextRecord->Length = 0;
@@ -377,7 +367,7 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	}
 	else
 	{
-		m_DeviceRecord = m_ContextRecord = NULL;
+		m_ContextRecord = NULL;
 
 		ResourceIDGen::SetReplayResourceIDs();
 	}
@@ -454,7 +444,9 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	if(m_State >= WRITING)
 	{
-		m_InitParams.Set(pCreateInfo, GetResourceManager()->GetID(MakeRes(inst)));
+		ResourceId instID = GetResourceManager()->GetID(MakeRes(inst));
+		m_InitParams.Set(pCreateInfo, instID);
+		m_InstanceRecord = GetResourceManager()->AddResourceRecord(instID);
 	}
 
 	*pInstance = inst;
@@ -475,13 +467,7 @@ VkResult WrappedVulkan::vkDestroyInstance(
 		m_Real.vkDbgDestroyMsgCallback(instance, m_MsgCallback);
 	}
 
-	VkResource res = MakeRes(instance);
-	if(GetResourceManager()->HasCurrentResource(res))
-	{
-		if(GetResourceManager()->HasResourceRecord(res))
-				GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-		GetResourceManager()->UnregisterResource(res);
-	}
+	GetResourceManager()->UnregisterResource(MakeRes(instance));
 
 	return VK_SUCCESS;
 }
@@ -556,7 +542,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 			SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
 			Serialise_vkEnumeratePhysicalDevices(instance, &count, &devices[i]);
 
-			m_DeviceRecord->AddChunk(scope.Get());
+			m_InstanceRecord->AddChunk(scope.Get());
 		}
 	}
 
@@ -696,7 +682,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			m_InstanceRecord->AddChunk(chunk);
 		}
 		else
 		{
@@ -709,6 +695,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 {
+	// VKTODO this stuff should all be in vkDestroyInstance
 	if(m_State >= WRITING)
 	{
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
@@ -717,12 +704,7 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 			{
 				if(i == (size_t)m_SwapPhysDevice)
 				{
-					if(m_DeviceRecord)
-					{
-						RDCASSERT(m_DeviceRecord->GetRefCount() == 1);
-						m_DeviceRecord->Delete(GetResourceManager());
-						m_DeviceRecord = NULL;
-					}
+					// VKTODO m_InstanceRecord
 
 					if(m_ContextRecord)
 					{
@@ -732,13 +714,6 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 					}
 
 					m_ResourceManager->Shutdown();
-
-					m_DeviceRecord = GetResourceManager()->AddResourceRecord(m_DeviceResourceID);
-					m_DeviceRecord->DataInSerialiser = false;
-					m_DeviceRecord->Length = 0;
-					m_DeviceRecord->NumSubResources = 0;
-					m_DeviceRecord->SpecialResource = true;
-					m_DeviceRecord->SubResources = NULL;
 
 					m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
 					m_ContextRecord->DataInSerialiser = false;
@@ -1257,11 +1232,12 @@ VkResult WrappedVulkan::vkAllocMemory(
 
 				chunk = scope.Get();
 			}
-
-			m_DeviceRecord->AddChunk(chunk);
 			
-			// create resource record for gpu memory, although we won't use it for chunk tracking
-			GetResourceManager()->AddResourceRecord(id);
+			// create resource record for gpu memory
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			RDCASSERT(record);
+
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -1275,57 +1251,15 @@ VkResult WrappedVulkan::vkAllocMemory(
 	return ret;
 }
 
-bool WrappedVulkan::Serialise_vkFreeMemory(
-    VkDevice                                    device,
-    VkDeviceMemory                              mem)
-{
-	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
-	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(mem)));
-
-	if(m_State == READING)
-	{
-		VkResource res = GetResourceManager()->GetLiveResource(id);
-		device = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
-		mem = (VkDeviceMemory)res.handle;
-
-		VkResult ret = m_Real.vkFreeMemory(device, mem);
-
-		if(ret != VK_SUCCESS)
-		{
-			RDCERR("Failed on freeing memory, VkResult: 0x%08x", ret);
-		}
-		
-		ResourceId liveid = GetResourceManager()->GetLiveID(id);
-		m_MemoryInfo.erase(liveid);
-		GetResourceManager()->EraseLiveResource(id);
-		GetResourceManager()->MarkCleanResource(liveid);
-		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(liveid);
-		if(record)
-			record->Delete(GetResourceManager());
-		GetResourceManager()->UnregisterResource(res);
-	}
-
-	return true;
-}
-
 VkResult WrappedVulkan::vkFreeMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
-	if(m_State >= WRITING)
-	{
-		Chunk *chunk = NULL;
-
-		{
-			SCOPED_SERIALISE_CONTEXT(FREE_MEM);
-			Serialise_vkFreeMemory(device, mem);
-
-			chunk = scope.Get();
-		}
-
-		m_DeviceRecord->AddChunk(chunk);
-	}
-	
+	// VKTODO I don't think I need to serialise this.
+	// the resource record just stays around until there are
+	// no references (which should be the same since lifetime
+	// tracking is app responsibility)
+	// we just need to clean up after ourselves on replay
 	ResourceId id = GetResourceManager()->GetID(MakeRes(mem));
 	m_MemoryInfo.erase(id);
 	GetResourceManager()->MarkCleanResource(id);
@@ -1451,8 +1385,10 @@ VkResult WrappedVulkan::vkUnmapMemory(
 					SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
 					Serialise_vkUnmapMemory(device, mem);
 
+					VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(mem));
+
 					if(m_State == WRITING_IDLE)
-						m_DeviceRecord->AddChunk(scope.Get());
+						record->AddChunk(scope.Get());
 					else
 						m_ContextRecord->AddChunk(scope.Get());
 				}
@@ -1497,7 +1433,6 @@ VkResult WrappedVulkan::vkBindBufferMemory(
     VkDeviceSize                                memOffset)
 {
 	VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(buffer));
-	if(record == NULL) record = m_DeviceRecord;
 
 	if(m_State >= WRITING)
 	{
@@ -1511,6 +1446,8 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 		}
 
 		record->AddChunk(chunk);
+
+		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
 
 	return m_Real.vkBindBufferMemory(device, buffer, mem, memOffset);
@@ -1546,7 +1483,6 @@ VkResult WrappedVulkan::vkBindImageMemory(
     VkDeviceSize                                memOffset)
 {
 	VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(image));
-	if(record == NULL) record = m_DeviceRecord;
 
 	if(m_State >= WRITING)
 	{
@@ -1560,6 +1496,8 @@ VkResult WrappedVulkan::vkBindImageMemory(
 		}
 
 		record->AddChunk(chunk);
+
+		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
 
 	return m_Real.vkBindImageMemory(device, image, mem, memOffset);
@@ -2734,7 +2672,8 @@ VkResult WrappedVulkan::vkCreateDynamicViewportState(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -2797,7 +2736,8 @@ VkResult WrappedVulkan::vkCreateDynamicRasterState(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -2860,7 +2800,8 @@ VkResult WrappedVulkan::vkCreateDynamicColorBlendState(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -2923,7 +2864,8 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -2988,7 +2930,8 @@ VkResult WrappedVulkan::vkCreateCommandPool(
 				chunk = scope.Get();
 			}
 
-			m_DeviceRecord->AddChunk(chunk);
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+			record->AddChunk(chunk);
 		}
 		else
 		{
@@ -3028,6 +2971,8 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 
 			record->bakedCommands = NULL;
+
+			record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pCreateInfo->cmdPool)));
 
 			// we don't serialise this as we never create this command buffer directly.
 			// Instead we create a command buffer for each baked list that we find.
@@ -5660,7 +5605,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 		GetResourceManager()->ClearReferencedResources();
 
-		GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
+		GetResourceManager()->MarkResourceFrameReferenced(m_InstanceRecord->GetResourceID(), eFrameRef_Read);
 		GetResourceManager()->PrepareInitialContents();
 		
 		AttemptCapture();
@@ -5842,8 +5787,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkUnmapMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case FREE_MEM:
-		Serialise_vkFreeMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
-		break;
+		// VKTODO see vkFreeMemory
+		//Serialise_vkFreeMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		//break;
 	case CREATE_CMD_POOL:
 		Serialise_vkCreateCommandPool(VK_NULL_HANDLE, NULL, NULL);
 		break;

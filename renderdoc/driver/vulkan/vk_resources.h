@@ -152,24 +152,51 @@ struct ImageRegionState
 
 struct VkResourceRecord : public ResourceRecord
 {
-	static const NullInitialiser NullResource = MakeNullResource;
+	public:
+		static const NullInitialiser NullResource = MakeNullResource;
 
-	VkResourceRecord(ResourceId id) :
-		ResourceRecord(id, true),
-		bakedCommands(NULL)
-	{
-	}
+		VkResourceRecord(ResourceId id) :
+			ResourceRecord(id, true),
+			bakedCommands(NULL),
+			memory(NULL)
+		{
+		}
 
-	void Bake()
-	{
-		SwapChunks(bakedCommands);
-		dirtied.swap(bakedCommands->dirtied);
-	}
+		void Bake()
+		{
+			SwapChunks(bakedCommands);
+			dirtied.swap(bakedCommands->dirtied);
+		}
 
-	VkResourceRecord *bakedCommands;
+		// need to only track current memory binding,
+		// so we don't have parents on every memory record
+		// that we were ever bound to. But we also want
+		// the record to be immediately in Parents without
+		// needing an extra step to insert it at the last
+		// minute.
+		void SetMemoryRecord(VkResourceRecord *r)
+		{
+			if(memory != NULL)
+				Parents.erase((ResourceRecord *)memory);
 
-	// a list of resources that are made dirty by submitting this command buffer
-	set<ResourceId> dirtied;
+			memory = r;
+
+			if(memory != NULL)
+				AddParent(memory);
+		}
+
+		VkResourceRecord *GetMemoryRecord()
+		{
+			return memory;
+		}
+
+		VkResourceRecord *bakedCommands;
+
+		// a list of resources that are made dirty by submitting this command buffer
+		set<ResourceId> dirtied;
+
+	private:
+		VkResourceRecord *memory;
 };
 
 struct MemState
