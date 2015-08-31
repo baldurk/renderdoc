@@ -181,6 +181,7 @@ struct MemState
 	VkDeviceSize size;
 	VkMemoryMapFlags mapFlags;
 	void *mappedPtr;
+	int mapCount;
 };
 struct ImgState
 {

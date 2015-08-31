@@ -1268,6 +1268,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 		}
 
 		m_MemoryInfo[id].size = pAllocInfo->allocationSize;
+		m_MemoryInfo[id].mapCount = 0;
 	}
 
 	return ret;
@@ -1364,6 +1365,7 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mapOffset = offset;
 				it->second.mapSize = size == 0 ? it->second.size : size;
 				it->second.mapFlags = flags;
+				it->second.mapCount++;
 			}
 		}
 		else if(m_State >= WRITING)
@@ -1443,7 +1445,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 			}
 			else
 			{
-				if(ret == VK_SUCCESS)
+				if(ret == VK_SUCCESS && (it->second.mapCount < 2 || m_State >= WRITING_CAPFRAME))
 				{
 					SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
 					Serialise_vkUnmapMemory(device, mem);
