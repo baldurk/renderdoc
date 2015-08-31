@@ -44,10 +44,19 @@ struct VkInitParams : public RDCInitParams
 	VkInitParams();
 	ReplayCreateStatus Serialise();
 
-	static const uint32_t VK_SERIALISE_VERSION = 0x0000001;
+	void Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst);
+
+	static const uint32_t VK_SERIALISE_VERSION = 0x0000002;
 
 	// version number internal to vulkan stream
 	uint32_t SerialiseVersion;
+
+	string AppName, EngineName;
+	uint32_t AppVersion, EngineVersion, APIVersion;
+
+	vector<string> Layers;
+	vector<string> Extensions;
+	ResourceId InstanceID;
 };
 
 struct DrawcallTreeNode

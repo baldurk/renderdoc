@@ -155,7 +155,108 @@ ReplayCreateStatus VkInitParams::Serialise()
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 
+	m_pSerialiser->Serialise("AppName", AppName);
+	m_pSerialiser->Serialise("EngineName", EngineName);
+	m_pSerialiser->Serialise("AppVersion", AppVersion);
+	m_pSerialiser->Serialise("EngineVersion", EngineVersion);
+	m_pSerialiser->Serialise("APIVersion", APIVersion);
+
+	m_pSerialiser->Serialise("Layers", Layers);
+	m_pSerialiser->Serialise("Extensions", Extensions);
+
+	m_pSerialiser->Serialise("InstanceID", InstanceID);
+
 	return eReplayCreate_Success;
+}
+
+void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
+{
+	RDCASSERT(pCreateInfo);
+
+	if(pCreateInfo->pAppInfo)
+	{
+		// VKTODO
+		RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
+
+		AppName = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
+		EngineName = pCreateInfo->pAppInfo->pEngineName ? pCreateInfo->pAppInfo->pEngineName : "";
+
+		AppVersion = pCreateInfo->pAppInfo->appVersion;
+		EngineVersion = pCreateInfo->pAppInfo->engineVersion;
+		APIVersion = pCreateInfo->pAppInfo->apiVersion;
+	}
+	else
+	{
+		AppName = "";
+		EngineName = "";
+
+		AppVersion = 0;
+		EngineVersion = 0;
+		APIVersion = 0;
+	}
+
+	Layers.resize(pCreateInfo->layerCount);
+	Extensions.resize(pCreateInfo->extensionCount);
+
+	for(uint32_t i=0; i < pCreateInfo->layerCount; i++)
+		Layers[i] = pCreateInfo->ppEnabledLayerNames[i];
+
+	for(uint32_t i=0; i < pCreateInfo->extensionCount; i++)
+		Extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
+
+	InstanceID = inst;
+}
+
+void WrappedVulkan::Initialise(VkInitParams &params)
+{
+	params.AppName = string("RenderDoc (") + params.AppName + ")";
+	params.EngineName = string("RenderDoc (") + params.EngineName + ")";
+
+	// VKTODO verify that layers/extensions are available
+
+	const char **layerscstr = new const char *[params.Layers.size()];
+	for(size_t i=0; i < params.Layers.size(); i++)
+		layerscstr[i] = params.Layers[i].c_str();
+
+#if defined(FORCE_VALIDATION_LAYER)
+	params.Extensions.push_back("DEBUG_REPORT");
+#endif
+
+	const char **extscstr = new const char *[params.Extensions.size()];
+	for(size_t i=0; i < params.Extensions.size(); i++)
+		extscstr[i] = params.Extensions[i].c_str();
+
+	VkApplicationInfo appinfo = {
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pNext = NULL,
+			.pAppName = params.AppName.c_str(),
+			.appVersion = params.AppVersion,
+			.pEngineName = params.EngineName.c_str(),
+			.engineVersion = params.EngineVersion,
+			.apiVersion = VK_API_VERSION,
+	};
+	// VKTODO
+	RDCASSERT(params.APIVersion == VK_API_VERSION);
+	VkInstanceCreateInfo instinfo = {
+			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			.pNext = NULL,
+			.pAppInfo = &appinfo,
+			.pAllocCb = NULL,
+			.layerCount = (uint32_t)params.Layers.size(),
+			.ppEnabledLayerNames = layerscstr,
+			.extensionCount = (uint32_t)params.Extensions.size(),
+			.ppEnabledExtensionNames = extscstr,
+	};
+
+	VkInstance inst;
+
+	VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
+
+	GetResourceManager()->RegisterResource(MakeRes(inst));
+	GetResourceManager()->AddLiveResource(params.InstanceID, MakeRes(inst));
+
+	SAFE_DELETE_ARRAY(layerscstr);
+	SAFE_DELETE_ARRAY(extscstr);
 }
 
 WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilename)
@@ -312,100 +413,6 @@ const char * WrappedVulkan::GetChunkName(uint32_t idx)
 	return VkChunkNames[idx-FIRST_CHUNK_ID];
 }
 
-bool WrappedVulkan::Serialise_vkCreateInstance(
-		const VkInstanceCreateInfo*                 pCreateInfo,
-		VkInstance*                                 pInstance)
-{
-	string app = "";
-	string engine = "";
-	vector<string> layers;
-	vector<string> extensions;
-
-	if(m_State >= WRITING)
-	{
-		if(pCreateInfo->pAppInfo)
-		{
-			// VKTODO
-			RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
-
-			app = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
-			engine = pCreateInfo->pAppInfo->pEngineName ? pCreateInfo->pAppInfo->pEngineName : "";
-		}
-
-		layers.resize(pCreateInfo->layerCount);
-		extensions.resize(pCreateInfo->extensionCount);
-
-		for(uint32_t i=0; i < pCreateInfo->layerCount; i++)
-			layers[i] = pCreateInfo->ppEnabledLayerNames[i];
-
-		for(uint32_t i=0; i < pCreateInfo->extensionCount; i++)
-			extensions[i] = pCreateInfo->ppEnabledExtensionNames[i];
-
-#if defined(FORCE_VALIDATION_LAYER)
-		extensions.push_back("DEBUG_REPORT");
-#endif
-	}
-
-	m_pSerialiser->Serialise("AppName", app);
-	m_pSerialiser->Serialise("EngineName", engine);
-	SERIALISE_ELEMENT(uint32_t, AppVersion, pCreateInfo->pAppInfo ? pCreateInfo->pAppInfo->appVersion : 0);
-	SERIALISE_ELEMENT(uint32_t, EngineVersion, pCreateInfo->pAppInfo ? pCreateInfo->pAppInfo->engineVersion : 0);
-	SERIALISE_ELEMENT(uint32_t, apiVersion, pCreateInfo->pAppInfo ? pCreateInfo->pAppInfo->apiVersion : 0);
-
-	m_pSerialiser->Serialise("Layers", layers);
-	m_pSerialiser->Serialise("Extensions", extensions);
-
-	SERIALISE_ELEMENT(ResourceId, instId, GetResourceManager()->GetID(MakeRes(*pInstance)));
-
-	if(m_State == READING)
-	{
-		// VKTODO verify that layers/extensions are available
-
-		app = std::string("RenderDoc (") + app + ")";
-		engine = std::string("RenderDoc (") + engine + ")";
-
-		const char **layerscstr = new const char *[layers.size()];
-		for(size_t i=0; i < layers.size(); i++)
-			layerscstr[i] = layers[i].c_str();
-
-		const char **extscstr = new const char *[extensions.size()];
-		for(size_t i=0; i < extensions.size(); i++)
-			extscstr[i] = extensions[i].c_str();
-
-    VkApplicationInfo appinfo = {
-        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-        .pNext = NULL,
-        .pAppName = app.c_str(),
-        .appVersion = AppVersion,
-        .pEngineName = engine.c_str(),
-        .engineVersion = EngineVersion,
-        .apiVersion = VK_API_VERSION,
-    };
-    VkInstanceCreateInfo instinfo = {
-        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext = NULL,
-        .pAppInfo = &appinfo,
-        .pAllocCb = NULL,
-        .layerCount = (uint32_t)layers.size(),
-        .ppEnabledLayerNames = layerscstr,
-        .extensionCount = (uint32_t)extensions.size(),
-        .ppEnabledExtensionNames = extscstr,
-    };
-
-		VkInstance inst;
-
-		VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
-
-		GetResourceManager()->RegisterResource(MakeRes(inst));
-		GetResourceManager()->AddLiveResource(instId, MakeRes(inst));
-
-		SAFE_DELETE_ARRAY(layerscstr);
-		SAFE_DELETE_ARRAY(extscstr);
-	}
-
-	return true;
-}
-
 VkResult WrappedVulkan::vkCreateInstance(
 		const VkInstanceCreateInfo*                 pCreateInfo,
 		VkInstance*                                 pInstance)
@@ -447,10 +454,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	if(m_State >= WRITING)
 	{
-		SCOPED_SERIALISE_CONTEXT(CREATE_INSTANCE);
-		Serialise_vkCreateInstance(pCreateInfo, &inst);
-				
-		m_DeviceRecord->AddChunk(scope.Get());
+		m_InitParams.Set(pCreateInfo, GetResourceManager()->GetID(MakeRes(inst)));
 	}
 
 	*pInstance = inst;
@@ -6004,9 +6008,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			GetResourceManager()->AddLiveResource(immContextId, VkResource(eResSpecial, VK_NULL_HANDLE));
 			break;
 		}
-	case CREATE_INSTANCE:
-		Serialise_vkCreateInstance(NULL, NULL);
-		break;
 	case ENUM_PHYSICALS:
 		Serialise_vkEnumeratePhysicalDevices(NULL, NULL, NULL);
 		break;
@@ -6402,11 +6403,6 @@ void WrappedVulkan::DebugCallback(
 				const char*         pMsg)
 {
 	RDCWARN("debug message:\n%s", pMsg);
-}
-
-void WrappedVulkan::Initialise(VkInitParams &params)
-{
-	// maybe instance params should be fetched here?
 }
 
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
