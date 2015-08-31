@@ -1076,10 +1076,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			GetResourceManager()->MarkDirtyResource(*it);
 
 		if(m_State == WRITING_CAPFRAME)
-		{
-			m_ContextRecord->AddParent(record);
 			m_ContextRecord->AddParent(record->bakedCommands);
-		}
 
 		record->dirtied.clear();
 	}
