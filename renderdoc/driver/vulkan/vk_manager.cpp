@@ -230,7 +230,7 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 				VkImageMemoryBarrier t;
 				t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 				t.pNext = NULL;
-				// VKTODO losing information? what are in/out mask and queues
+				// VKTODOHIGH losing information? what are in/out mask and queues
 				// if input/output mask are just same as memory barriers, for
 				// the memory bound to the image, it's maybe fine as we don't need
 				// those for this purpose, they were replayed when the non-collapsed
@@ -282,7 +282,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
 		if(numslices == VK_LAST_ARRAY_SLICE) numslices = states[id].arraySize;
 
-		// VKTODO check, does this mean the sensible thing?
+		// VKTODOHIGH check, does this mean the sensible thing?
 		if(nummips == 0) nummips = 1;
 		if(numslices == 0) numslices = 1;
 
@@ -435,7 +435,7 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 bool VulkanResourceManager::Force_InitialState(VkResource res)
 {
 	return (res.Namespace == eResDeviceMemory);
-	// VKTODO might need this
+	// VKTODOHIGH might need this
 	//return (res.Namespace == eResDescriptorSet);
 }
 

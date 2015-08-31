@@ -26,7 +26,7 @@
 #include "vk_manager.h"
 #include "vk_resources.h"
 
-// VKTODO: need a Deserialise or otherwise deallocate function to release buffers or new'd memory
+// VKTODOMED need a Deserialise or otherwise deallocate function to release buffers or new'd memory
 
 VulkanResourceManager *manager = NULL;
 #define MGR() VulkanResourceManager::GetInstance()
@@ -1110,7 +1110,7 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)
 {
-	// VKTODO serialise out whether there is a next structure, its type, and contents
+	// VKTODOLOW serialise out whether there is a next structure, its type, and contents
 	if(ser->IsReading())
 		pNext = NULL;
 	else
@@ -1721,7 +1721,7 @@ void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el)
 	
 	SerialiseObject(VkCmdPool, "cmdPool", el.cmdPool);
 	Serialise("level", el.level);
-	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
 }
@@ -1760,7 +1760,7 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
 }
@@ -1898,7 +1898,7 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 	size_t sz = codeSize;
 	if(m_Mode == READING) el.pCode = NULL;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
-	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
 }
@@ -1932,7 +1932,7 @@ void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el)
 		}
 	}
 
-	// VKTODO if this enum gets any bits, cast to Vk*FlagBits
+	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
 	SerialiseObject(VkShaderModule, "module", el.module);
@@ -2305,7 +2305,7 @@ void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 	
-	// VKTODO: don't need any of the info in here, I think
+	// VKTODOLOW: don't need any of the info in here, I think
 	//Serialise("pSurfaceDescription", *el.pSurfaceDescription);
 	
 	Serialise("minImageCount", el.minImageCount);
@@ -2317,7 +2317,7 @@ void Serialiser::Serialise(const char *name, VkSwapChainCreateInfoWSI &el)
 	
 	Serialise("presentMode", el.presentMode);
 
-	// VKTODO: don't think we need the old swap chain
+	// VKTODOLOW: don't think we need the old swap chain
 	//Serialise("oldSwapChain", el.oldSwapChain);
 
 	Serialise("clipped", el.clipped);

@@ -392,7 +392,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 {
 	VULKANNOTIMP("ClearOutputWindowColour");
 
-	// VKTODO: same as FlipOutputWindow but do a colour clear
+	// VKTODOHIGH: same as FlipOutputWindow but do a colour clear
 	// ultimately these functions should push commands into a queue and there should be a
 	// more explicit start/end render functions (similar to BindOutputWindow, so it
 	// could start the command buffer, and an end function could end it and submit it)
@@ -402,7 +402,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 {
 	VULKANNOTIMP("ClearOutputWindowDepth");
 
-	// VKTODO: same as FlipOutputWindow but do a depth clear
+	// VKTODOHIGH: same as FlipOutputWindow but do a depth clear
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)

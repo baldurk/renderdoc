@@ -24,6 +24,25 @@
 
 #pragma once
 
+///////////////////////////////////////////////////////////////////////////
+// VKTODO notes:
+//
+// VKTODOHIGH - things that should be addressed urgently, they are creaky and
+// may/will break on non-trivial programs.
+// e.g. missing dirty resource tracking, or using 0 as a memory queue index, etc
+//
+// VKTODOMED - we can probably live with this right now but it should be fixed
+// before too long. e.g. things like leaking memory, missing functions that
+// aren't used yet.
+//
+// VKTODOLOW - this should be fixed, but isn't a priority right now. We can
+// probably live with this for quite a while or it's unlikely to cause a problem.
+// e.g. assuming the extensions/layers/physical devices used on capture will be
+// available identically on replay (which will be the case for 95% of cases). As
+// well as handling pNext being non-NULL which won't happen until extensions
+// come around.
+
+
 #include "common/common.h"
 
 #include "serialise/serialiser.h"

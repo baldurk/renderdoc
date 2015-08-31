@@ -274,9 +274,10 @@ PFN_vkVoidFunction vkGetInstanceProcAddr(
 #undef HookInit
 #define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(VulkanHook::vkhooks.VK.function == NULL) VulkanHook::vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(function, _renderdoc_hooked); }
 	
-	// VKTODO do we want to care about the case where different instances have
+	// VKTODOLOW do we want to care about the case where different instances have
 	// different function pointers? at the moment we assume they're all the
 	// same.
+	// Update - will be fixed by dispatch mechanism
 	HookInitVulkan();
 
 	RDCDEBUG("Instance GPA'd function '%s' is not hooked!", pName);
@@ -293,9 +294,10 @@ PFN_vkVoidFunction vkGetDeviceProcAddr(
 #undef HookInit
 #define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(VulkanHook::vkhooks.VK.function == NULL) VulkanHook::vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(function, _renderdoc_hooked); }
 	
-	// VKTODO do we want to care about the case where different devices have
+	// VKTODOLOW do we want to care about the case where different devices have
 	// different function pointers? at the moment we assume they're all the
 	// same.
+	// Update - will be fixed by dispatch mechanism
 	HookInitVulkan();
 
 	RDCDEBUG("Device GPA'd function '%s' is not hooked!", pName);

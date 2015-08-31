@@ -123,7 +123,7 @@ private:
 
 	struct ReplayData
 	{
-		// VKTODO need to release/destroy these somewhere
+		// VKTODOHIGH need to release/destroy these somewhere
 		ReplayData() : inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE), cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE) {}
 		VkInstance inst;
 		VkPhysicalDevice phys;
