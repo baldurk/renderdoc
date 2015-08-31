@@ -37,7 +37,6 @@ static bool operator <(const VkExtensionProperties &a, const VkExtensionProperti
 }
 
 // VKTODO assertion of structure types, handling of pNext or assert == NULL
-// VKTODO bring back image state tracking :(
 
 const char *VkChunkNames[] =
 {
