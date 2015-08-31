@@ -364,11 +364,14 @@ class Serialiser
 			{
 				ReadInto(numElems);
 
-				if(el == NULL) el = new T[numElems];
+				if(numElems > 0)
+				{
+					if(el == NULL) el = new T[numElems];
 
-				size_t length = numElems*sizeof(T);
+					size_t length = numElems*sizeof(T);
 
-				memcpy(el, ReadBytes(length), length);
+					memcpy(el, ReadBytes(length), length);
+				}
 			}
 
 			Num = (size_t)numElems;
