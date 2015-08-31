@@ -396,7 +396,7 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 	RDCUNIMPLEMENTED("Global hooking of all processes on linux");
 }
 
-bool Process::LoadLibrary(const char *module)
+bool Process::LoadModule(const char *module)
 {
 	return dlopen(module, RTLD_NOW) != NULL;
 }

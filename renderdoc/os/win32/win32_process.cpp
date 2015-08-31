@@ -566,7 +566,7 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
 #endif
 }
 
-bool LoadLibrary(const char *module)
+bool Process::LoadModule(const char *module)
 {
 	HMODULE mod = GetModuleHandleA(module);
 	if(mod != NULL)
