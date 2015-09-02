@@ -1406,7 +1406,6 @@ VkResult WrappedVulkan::vkUnmapMemory(
 				else
 				{
 					GetResourceManager()->MarkDirtyResource(MakeRes(mem));
-					RDCLOG("Map - marking %llu dirty", id);
 				}
 
 				it->second.mappedPtr = NULL;
@@ -4810,7 +4809,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 		size_t numLevels = call->NumLevels();
 		uint64_t *stack = (uint64_t *)call->GetAddrs();
 
-		m_pSerialiser->Serialise("callstack", stack, numLevels);
+		m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
 		delete call;
 	}
@@ -6443,7 +6442,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 				size_t numLevels = 0;
 				uint64_t *stack = NULL;
 
-				m_pSerialiser->Serialise("callstack", stack, numLevels);
+				m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
 				m_pSerialiser->SetCallstack(stack, numLevels);
 

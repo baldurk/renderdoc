@@ -49,6 +49,11 @@
 
 #include "core/core.h"
 
+// this needs to be above the include of vulkan.h
+#if defined(__linux__)
+#include <xcb/xcb.h>
+#endif
+
 #include <vulkan.h>
 #include <vk_debug_marker_lunarg.h>
 #include <vk_debug_report_lunarg.h>
@@ -95,7 +100,6 @@ template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCre
 template<> void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el);
-template<> void Serialiser::Serialise(const char *name, VkClearColorValue &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el);

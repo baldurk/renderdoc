@@ -1037,6 +1037,12 @@ string ToStrHelper<false, VkFormat>::Get(const VkFormat &el)
 }
 
 template<>
+string ToStrHelper<false, VkRect2D>::Get(const VkRect2D &el)
+{
+	return StringFormat::Fmt("VkRect2D<%dx%d+%d+%d>", el.extent.width, el.extent.height, el.offset.x, el.offset.y);
+}
+
+template<>
 string ToStrHelper<false, VkExtent2D>::Get(const VkExtent2D &el)
 {
 	return StringFormat::Fmt("VkExtent<%d,%d>", el.width, el.height);
@@ -1064,6 +1070,26 @@ template<>
 string ToStrHelper<false, VkViewport>::Get(const VkViewport &el)
 {
 	return StringFormat::Fmt("VkViewport<%f,%f, %fx%f, %f-%f>", el.originX, el.originY, el.width, el.height, el.minDepth, el.maxDepth);
+}
+
+template<>
+string ToStrHelper<false, VkClearColorValue>::Get(const VkClearColorValue &el)
+{
+	return StringFormat::Fmt("VkClearColorValue<%f,%f,%f,%f>"
+			, el.f32[0], el.f32[1], el.f32[2], el.f32[3]);
+}
+template<>
+string ToStrHelper<false, VkClearValue>::Get(const VkClearValue &el)
+{
+	return StringFormat::Fmt("VkClearValue[ col:<%f,%f,%f,%f> / d:%f s:%u ]"
+			, el.color.f32[0], el.color.f32[1], el.color.f32[2], el.color.f32[3]
+			, el.ds.depth, el.ds.stencil);
+}
+
+template<>
+string ToStrHelper<false, VkAttachmentReference>::Get(const VkAttachmentReference &el)
+{
+	return StringFormat::Fmt("VkAttachmentReference<%u, %s>", el.attachment, ToStr::Get(el.layout).c_str());
 }
 
 template<>
@@ -1162,16 +1188,9 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 
 	Serialise("flags", (VkDeviceCreateFlagBits &)el.flags);
 
-	Serialise("queueRecordCount", el.queueRecordCount);
-	
-	if(m_Mode == READING)
-		el.pRequestedQueues = el.queueRecordCount ? new VkDeviceQueueCreateInfo[el.queueRecordCount] : NULL;
-	
-	// cast away const on array so we can assign to it on reading
-	VkDeviceQueueCreateInfo* queues = (VkDeviceQueueCreateInfo*)el.pRequestedQueues;
-	for(uint32_t i=0; i < el.queueRecordCount; i++)
-		Serialise("RequestedQueues", queues[i]);
+	SerialiseComplexArray("pRequestedQueues", (VkDeviceQueueCreateInfo *&)el.pRequestedQueues, el.queueRecordCount);
 
+	// need to do this by hand to use string DB
 	Serialise("extensionCount", el.extensionCount);
 	
 	if(m_Mode == READING)
@@ -1194,6 +1213,7 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 		}
 	}
 
+	// need to do this by hand to use string DB
 	Serialise("layerCount", el.layerCount);
 	
 	if(m_Mode == READING)
@@ -1302,11 +1322,7 @@ void Serialiser::Serialise(const char *name, VkFramebufferCreateInfo &el)
 	SerialiseNext(this, el.pNext);
 	
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
-	Serialise("attachmentCount", el.attachmentCount);
-	if(m_Mode == READING)
-		el.pAttachments = el.attachmentCount ? new VkAttachmentBindInfo[el.attachmentCount] : NULL;
-	for(uint32_t i=0; i < el.attachmentCount; i++)
-		Serialise("pAttachments[]", (VkAttachmentBindInfo &)el.pAttachments[i]);
+	SerialiseComplexArray("pAttachments", (VkAttachmentBindInfo *&)el.pAttachments, el.attachmentCount);
 	Serialise("width", el.width);
 	Serialise("height", el.height);
 	Serialise("layers", el.layers);
@@ -1332,15 +1348,6 @@ void Serialiser::Serialise(const char *name, VkAttachmentDescription &el)
 }
 
 template<>
-void Serialiser::Serialise(const char *name, VkAttachmentReference &el)
-{
-	ScopedContext scope(this, this, name, "VkAttachmentReference", 0, true);
-
-	Serialise("attachment", el.attachment);
-	Serialise("layout", el.layout);
-}
-
-template<>
 void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 {
 	ScopedContext scope(this, this, name, "VkSubpassDescription", 0, true);
@@ -1352,27 +1359,25 @@ void Serialiser::Serialise(const char *name, VkSubpassDescription &el)
 	Serialise("pipelineBindPoint", el.pipelineBindPoint);
 	Serialise("flags", (VkSubpassDescriptionFlagBits &)el.flags);
 	Serialise("depthStencilAttachment", el.depthStencilAttachment);
+
+	if(m_Mode == READING)
+	{
+		el.inputAttachments = NULL;
+		el.colorAttachments = NULL;
+		el.resolveAttachments = NULL;
+		el.preserveAttachments = NULL;
+	}
 	
-	size_t sz = 0;
-	
-	Serialise("inputCount", el.inputCount); sz = el.inputCount;
-	if(m_Mode == READING) el.inputAttachments = NULL;
-	Serialise("inputAttachments", (VkAttachmentReference *&)el.inputAttachments, sz);
-	
-	Serialise("colorCount", el.colorCount); sz = el.colorCount;
-	if(m_Mode == READING) el.colorAttachments = NULL;
-	Serialise("colorAttachments", (VkAttachmentReference *&)el.colorAttachments, sz);
+	SerialisePODArray("inputAttachments", (VkAttachmentReference *&)el.inputAttachments, el.inputCount);
+	SerialisePODArray("colorAttachments", (VkAttachmentReference *&)el.colorAttachments, el.colorCount);
 
 	bool hasResolves = (el.resolveAttachments != NULL);
 	Serialise("hasResolves", hasResolves);
 
-	if(m_Mode == READING) el.resolveAttachments = NULL;
 	if(hasResolves)
-		Serialise("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, sz);
+		SerialisePODArray("resolveAttachments", (VkAttachmentReference *&)el.resolveAttachments, el.colorCount);
 	
-	Serialise("preserveCount", el.preserveCount); sz = el.preserveCount;
-	if(m_Mode == READING) el.preserveAttachments = NULL;
-	Serialise("preserveAttachments", (VkAttachmentReference *&)el.preserveAttachments, sz);
+	SerialisePODArray("preserveAttachments", (VkAttachmentReference *&)el.preserveAttachments, el.preserveCount);
 }
 
 template<>
@@ -1402,20 +1407,9 @@ void Serialiser::Serialise(const char *name, VkRenderPassCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("attachmentCount", el.attachmentCount);
-	if(m_Mode == READING)	el.pAttachments = el.attachmentCount ? new VkAttachmentDescription[el.attachmentCount] : NULL;
-	for(uint32_t i=0; i < el.attachmentCount; i++)
-		Serialise("pAttachments[]", (VkAttachmentDescription &)el.pAttachments[i]);
-	
-	Serialise("subpassCount", el.subpassCount);
-	if(m_Mode == READING)	el.pSubpasses = el.subpassCount ? new VkSubpassDescription[el.subpassCount] : NULL;
-	for(uint32_t i=0; i < el.subpassCount; i++)
-		Serialise("pSubpasses[]", (VkSubpassDescription &)el.pSubpasses[i]);
-	
-	Serialise("dependencyCount", el.dependencyCount);
-	if(m_Mode == READING)	el.pDependencies = el.dependencyCount ? new VkSubpassDependency[el.dependencyCount] : NULL;
-	for(uint32_t i=0; i < el.dependencyCount; i++)
-		Serialise("pDependencies[]", (VkSubpassDependency &)el.pDependencies[i]);
+	SerialiseComplexArray("pAttachments", (VkAttachmentDescription *&)el.pAttachments, el.attachmentCount);
+	SerialiseComplexArray("pSubpasses", (VkSubpassDescription *&)el.pSubpasses, el.subpassCount);
+	SerialiseComplexArray("pDependencies", (VkSubpassDependency *&)el.pDependencies, el.dependencyCount);
 }
 
 template<>
@@ -1430,10 +1424,10 @@ void Serialiser::Serialise(const char *name, VkRenderPassBeginInfo &el)
 	SerialiseObject(VkRenderPass, "renderPass", el.renderPass);
 	SerialiseObject(VkFramebuffer, "framebuffer", el.framebuffer);
 	Serialise("renderArea", el.renderArea);
-	Serialise("attachmentCount", el.attachmentCount);
-	size_t sz = el.attachmentCount;
-	if(m_Mode == READING) el.pAttachmentClearValues = NULL;
-	Serialise("pAttachmentClearValues", (VkClearValue *&)el.pAttachmentClearValues, sz);
+
+	if(m_Mode == READING)
+		el.pAttachmentClearValues = NULL;
+	SerialisePODArray("pAttachmentClearValues", (VkClearValue *&)el.pAttachmentClearValues, el.attachmentCount);
 }
 
 template<>
@@ -1461,12 +1455,14 @@ void Serialiser::Serialise(const char *name, VkDynamicViewportStateCreateInfo &e
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("viewportCount", el.viewportAndScissorCount);
-	size_t sz = el.viewportAndScissorCount;
-	if(m_Mode == READING) el.pViewports = NULL;
-	Serialise("viewports", (VkViewport *&)el.pViewports, sz);
-	if(m_Mode == READING) el.pScissors = NULL;
-	Serialise("scissors", (VkRect2D *&)el.pScissors, sz);
+	if(m_Mode == READING)
+	{
+		el.pViewports = NULL;
+		el.pScissors = NULL;
+	}
+
+	SerialisePODArray("viewports", (VkViewport *&)el.pViewports, el.viewportAndScissorCount);
+	SerialisePODArray("scissors", (VkRect2D *&)el.pScissors, el.viewportAndScissorCount);
 }
 
 template<>
@@ -1493,7 +1489,7 @@ void Serialiser::Serialise(const char *name, VkDynamicColorBlendStateCreateInfo 
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	Serialise<4>("blendConst", el.blendConst);
+	SerialisePODArray<4>("blendConst", el.blendConst);
 }
 
 template<>
@@ -1543,25 +1539,8 @@ void Serialiser::Serialise(const char *name, VkPipelineVertexInputStateCreateInf
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 	
-	Serialise("bindingCount", el.bindingCount);
-	
-	if(m_Mode == READING)
-		el.pVertexBindingDescriptions = el.bindingCount ? new VkVertexInputBindingDescription[el.bindingCount] : NULL;
-	
-	// cast away const on array so we can assign to it on reading
-	VkVertexInputBindingDescription* binds = (VkVertexInputBindingDescription*)el.pVertexBindingDescriptions;
-	for(uint32_t i=0; i < el.bindingCount; i++)
-		Serialise("bindings", binds[i]);
-	
-	Serialise("attributeCount", el.attributeCount);
-	
-	if(m_Mode == READING)
-		el.pVertexAttributeDescriptions = el.attributeCount ? new VkVertexInputAttributeDescription[el.attributeCount] : NULL;
-	
-	// cast away const on array so we can assign to it on reading
-	VkVertexInputAttributeDescription* attrs = (VkVertexInputAttributeDescription*)el.pVertexAttributeDescriptions;
-	for(uint32_t i=0; i < el.attributeCount; i++)
-		Serialise("attributes", attrs[i]);
+	SerialiseComplexArray("pVertexBindingDescriptions", (VkVertexInputBindingDescription *&)el.pVertexBindingDescriptions, el.bindingCount);
+	SerialiseComplexArray("pVertexAttributeDescriptions", (VkVertexInputAttributeDescription *&)el.pVertexAttributeDescriptions, el.attributeCount);
 }
 
 template<>
@@ -1662,13 +1641,7 @@ void Serialiser::Serialise(const char *name, VkPipelineColorBlendStateCreateInfo
 
 	Serialise("attachmentCount", el.attachmentCount);
 	
-	if(m_Mode == READING)
-		el.pAttachments = el.attachmentCount ? new VkPipelineColorBlendAttachmentState[el.attachmentCount] : NULL;
-	
-	// cast away const on array so we can assign to it on reading
-	VkPipelineColorBlendAttachmentState* atts = (VkPipelineColorBlendAttachmentState*)el.pAttachments;
-	for(uint32_t i=0; i < el.attachmentCount; i++)
-		Serialise("attachments", atts[i]);
+	SerialiseComplexArray("pAttachments", (VkPipelineColorBlendAttachmentState*&)el.pAttachments, el.attachmentCount);
 }
 
 template<>
@@ -1687,14 +1660,6 @@ void Serialiser::Serialise(const char *name, VkPipelineDepthStencilStateCreateIn
 	Serialise("stencilEnable", el.stencilTestEnable);
 	Serialise("front", el.front);
 	Serialise("back", el.back);
-}
-
-template<>
-void Serialiser::Serialise(const char *name, VkClearColorValue &el)
-{
-	ScopedContext scope(this, this, name, "VkClearColorValue", 0, true);
-	
-	Serialise<4>("u32", el.u32);
 }
 
 template<>
@@ -1804,6 +1769,18 @@ void Serialiser::Serialise(const char *name, VkPipelineShaderStageCreateInfo &el
 }
 
 template<>
+void Serialiser::Serialise(const char *name, VkSpecializationMapEntry &el)
+{
+	ScopedContext scope(this, this, name, "VkSpecializationMapEntry", 0, true);
+
+	Serialise("constantId", el.constantId);
+	uint64_t size = el.size;
+	Serialise("size", size);
+	if(m_Mode == READING) el.size = size;
+	Serialise("offset", el.offset);
+}
+
+template<>
 void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 {
 	ScopedContext scope(this, this, name, "VkSpecializationInfo", 0, true);
@@ -1814,18 +1791,7 @@ void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 	if(m_Mode == READING) el.pData = NULL;
 	SerialiseBuffer("pData", (byte *&)el.pData, sz);
 
-	Serialise("mapEntryCount", el.mapEntryCount);
-	if(m_Mode == READING) el.pMap = el.mapEntryCount ? new VkSpecializationMapEntry[el.mapEntryCount] : NULL;
-
-	VkSpecializationMapEntry *map = (VkSpecializationMapEntry *)el.pMap;
-	for(uint32_t i=0; i < el.mapEntryCount; i++)
-	{
-		Serialise("pMap[].constantId", map[i].constantId);
-		uint64_t size = map[i].size;
-		Serialise("pMap[].size", size);
-		if(m_Mode == READING) map[i].size = size;
-		Serialise("pMap[].offset", map[i].offset);
-	}
+	SerialiseComplexArray("pMap", (VkSpecializationMapEntry *&)el.pMap, el.mapEntryCount);
 }
 
 template<>
@@ -1859,6 +1825,8 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
+	// need to do this one by hand since it's just an array of objects that don't themselves have
+	// a Serialise overload
 	Serialise("descriptorSetCount", el.descriptorSetCount);
 
 	if(m_Mode == READING)
@@ -1867,19 +1835,9 @@ void Serialiser::Serialise(const char *name, VkPipelineLayoutCreateInfo &el)
 	// cast away const on array so we can assign to it on reading
 	VkDescriptorSetLayout* layouts = (VkDescriptorSetLayout*)el.pSetLayouts;
 	for(uint32_t i=0; i < el.descriptorSetCount; i++)
-	{
 		SerialiseObject(VkDescriptorSetLayout, "layout", layouts[i]);
-	}
 
-	Serialise("pushConstantRangeCount", el.pushConstantRangeCount);
-
-	if(m_Mode == READING)
-		el.pPushConstantRanges = el.pushConstantRangeCount ? new VkPushConstantRange[el.pushConstantRangeCount] : NULL;
-
-	// cast away const on array so we can assign to it on reading
-	VkPushConstantRange* push = (VkPushConstantRange*)el.pPushConstantRanges;
-	for(uint32_t i=0; i < el.pushConstantRangeCount; i++)
-		Serialise("pushConstantRanges", push[i]);
+	SerialiseComplexArray("pPushConstantRanges", (VkPushConstantRange*&)el.pPushConstantRanges, el.pushConstantRangeCount);
 }
 
 template<>
@@ -2048,12 +2006,7 @@ void Serialiser::Serialise(const char *name, VkGraphicsPipelineCreateInfo &el)
 	SerialiseOptionalObject(this, "pDepthStencilState", (VkPipelineDepthStencilStateCreateInfo *&)el.pDepthStencilState);
 	SerialiseOptionalObject(this, "pColorBlendState", (VkPipelineColorBlendStateCreateInfo *&)el.pColorBlendState);
 
-	Serialise("stageCount", el.stageCount);
-	if(m_Mode == READING)
-		el.pStages = el.stageCount ? new VkPipelineShaderStageCreateInfo[el.stageCount] : NULL;
-
-	for(uint32_t i=0; i < el.stageCount; i++)
-		Serialise("stage", (VkPipelineShaderStageCreateInfo &)el.pStages[i]);
+	SerialiseComplexArray("pStages", (VkPipelineShaderStageCreateInfo *&)el.pStages, el.stageCount);
 }
 
 template<>
@@ -2090,13 +2043,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el)
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 
-	Serialise("count", el.count);
-
-	if(m_Mode == READING)
-		el.pTypeCount = el.count ? new VkDescriptorTypeCount[el.count] : NULL;
-
-	for(uint32_t i=0; i < el.count; i++)
-		Serialise("pTypeCount", (VkDescriptorTypeCount &)el.pTypeCount[i]);
+	SerialiseComplexArray("pTypeCount", (VkDescriptorTypeCount*&)el.pTypeCount, el.count);
 }
 
 template<>
@@ -2125,13 +2072,7 @@ void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el)
 	Serialise("destArrayElement", el.destArrayElement);
 	Serialise("descriptorType", el.descriptorType);
 
-	Serialise("count", el.count);
-
-	if(m_Mode == READING)
-		el.pDescriptors = el.count ? new VkDescriptorInfo[el.count] : NULL;
-
-	for(uint32_t i=0; i < el.count; i++)
-		Serialise("pDescriptors", (VkDescriptorInfo &)el.pDescriptors[i]);
+	SerialiseComplexArray("pDescriptors", (VkDescriptorInfo*&)el.pDescriptors, el.count);
 }
 
 template<>
@@ -2175,6 +2116,8 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el)
 	bool hasSamplers = el.pImmutableSamplers != NULL;
 	Serialise("hasSamplers", hasSamplers);
 
+	// do this one by hand because it's an array of objects that aren't Serialise
+	// overloaded
 	if(m_Mode == READING)
 	{
 		if(hasSamplers)
@@ -2200,13 +2143,7 @@ void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el
 	Serialise("sType", el.sType);
 	SerialiseNext(this, el.pNext);
 	
-	Serialise("count", el.count);
-
-	if(m_Mode == READING)
-		el.pBinding = el.count ? new VkDescriptorSetLayoutBinding[el.count] : NULL;
-
-	for(uint32_t i=0; i < el.count; i++)
-		Serialise("pBinding", (VkDescriptorSetLayoutBinding &)el.pBinding[i]);
+	SerialiseComplexArray("pBinding", (VkDescriptorSetLayoutBinding *&)el.pBinding, el.count);
 }
 
 template<>
