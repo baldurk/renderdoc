@@ -3326,6 +3326,14 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		}
 
 		m_Real.vkBeginCommandBuffer(cmd, &info);
+
+		{
+			FetchDrawcall draw;
+			draw.name = StringFormat::Fmt("vkBeginCommandBuffer(%llu)", cmdId);
+			draw.flags |= eDraw_PushMarker;
+
+			AddDrawcall(draw, false);
+		}
 	}
 
 	return true;
@@ -3388,6 +3396,15 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 		GetResourceManager()->RemoveReplacement(cmdId);
 
 		m_Real.vkEndCommandBuffer(cmd);
+
+		if(!m_CurEvents.empty())
+		{
+			FetchDrawcall draw;
+			draw.name = "API Calls";
+			draw.flags |= eDraw_SetMarker;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
@@ -4018,6 +4035,27 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdDraw(buf, firstVtx, vtxCount, firstInst, instCount);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(DRAW, desc);
+			string name = "vkCmdDraw(" +
+				ToStr::Get(vtxCount) + "," +
+				ToStr::Get(instCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = vtxCount;
+			draw.numInstances = instCount;
+			draw.indexOffset = 0;
+			draw.vertexOffset = firstVtx;
+			draw.instanceOffset = firstInst;
+
+			draw.flags |= eDraw_Drawcall;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
@@ -4735,7 +4773,7 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResourceManager()->GetID(MakeRes(cmdBuffer)));
 	
-	if(m_State == READING) // && !m_CurEvents.empty()
+	if(m_State == READING && !m_CurEvents.empty())
 	{
 		FetchDrawcall draw;
 		draw.name = "API Calls";
@@ -5094,12 +5132,12 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 	{
 		// no push/pop necessary
 	}
-	else if(context->m_State == READING && chunk == BEGIN_EVENT)
+	else if(context->m_State == READING && (chunk == BEGIN_EVENT || chunk == BEGIN_CMD_BUFFER))
 	{
 		// push down the drawcallstack to the latest drawcall
 		context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
 	}
-	else if(context->m_State == READING && chunk == END_EVENT)
+	else if(context->m_State == READING && (chunk == END_EVENT || chunk == END_CMD_BUFFER))
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
 		RDCASSERT(context->m_DrawcallStack.size() > 1);
