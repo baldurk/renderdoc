@@ -172,17 +172,20 @@ private:
 	{
 		VkDevice device;
 		VkCmdBufferCreateInfo createInfo;
-
-		// used on replay
-		DrawcallTreeNode *draw;
 		
 		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
+
+		// used on replay
+		DrawcallTreeNode *draw; // the root draw to copy from when submitting
+		uint32_t eventCount; // how many events are in this cmd buffer, for quick skipping
+		uint32_t drawCount; // similar to above
 	};
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
-	// on replay, the last command buffer we began (used immediately
-	// upon return)
-	ResourceId m_LastCmdBufferID;
+	// on replay, the current command buffer we're handling (we know
+	// that these don't overlap as that disjoint ordering is guaranteed
+	// on capture).
+	ResourceId m_CurCmdBufferID;
 
 	struct SwapInfo
 	{
@@ -247,7 +250,7 @@ private:
 		
 	DrawcallTreeNode m_ParentDrawcall;
 
-	void RefreshIDs(vector<DrawcallTreeNode> &nodes);
+	void RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEventID, uint32_t baseDrawID);
 
 	list<DrawcallTreeNode *> m_DrawcallStack;
 	

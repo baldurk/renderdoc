@@ -345,6 +345,8 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	m_CurEventID = 1;
 	m_CurDrawcallID = 1;
 
+	m_CurCmdBufferID = ResourceId();
+
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
 	m_FakeBBImgId = ResourceId();
@@ -1044,39 +1046,44 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			d.children = m_CmdBufferInfo[cmdIds[c]].draw->children;
 
 			// assign new event and drawIDs
-			RefreshIDs(d.children);
+			RefreshIDs(d.children, m_CurEventID, m_CurDrawcallID);
 
-			m_CurEventID++;
+			// 1 extra for the [0] virtual event for the command buffer
+			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
 		// done adding command buffers
 		m_DrawcallStack.pop_back();
 	}
+	else
+	{
+		for(uint32_t c=0; c < numCmds; c++)
+		{
+			// 1 extra for the [0] virtual event for the command buffer
+			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
+		}
+	}
 
 	return true;
 }
 
-void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes)
+void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEventID, uint32_t baseDrawID)
 {
 	// assign new drawcall IDs
 	for(size_t i=0; i < nodes.size(); i++)
 	{
-		m_CurEventID++;
-
-		nodes[i].draw.eventID = m_CurEventID;
-		nodes[i].draw.drawcallID = m_CurDrawcallID;
+		nodes[i].draw.eventID += baseEventID;
+		nodes[i].draw.drawcallID += baseDrawID;
 
 		for(int32_t e=0; e < nodes[i].draw.events.count; e++)
 		{
-			m_CurEventID++;
-			nodes[i].draw.events[e].eventID = m_CurEventID;
+			nodes[i].draw.events[e].eventID += baseEventID;
+			m_Events.push_back(nodes[i].draw.events[e]);
 		}
 
-		// markers don't increment drawcall ID
-		if((nodes[i].draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
-			m_CurDrawcallID++;
-
-		RefreshIDs(nodes[i].children);
+		RefreshIDs(nodes[i].children, baseEventID, baseDrawID);
 	}
 }
 
@@ -3383,7 +3390,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		m_Real.vkBeginCommandBuffer(cmd, &info);
 
-		m_LastCmdBufferID = bakeId;
+		m_CurCmdBufferID = bakeId;
 	}
 
 	return true;
@@ -5111,6 +5118,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	else if(m_State == READING)
 	{
 		m_CurEventID = 1;
+		m_CurDrawcallID = 1;
 	}
 
 	if(m_State == EXECUTING)
@@ -5150,6 +5158,12 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		GetFrameRecord().back().drawcallList = m_ParentDrawcall.Bake();
 
+		struct SortEID
+		{
+			bool operator() (const FetchAPIEvent &a, const FetchAPIEvent &b) { return a.eventID < b.eventID; }
+		};
+
+		std::sort(m_Events.begin(), m_Events.end(), SortEID());
 		m_ParentDrawcall.children.clear();
 	}
 
@@ -5189,21 +5203,55 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 		// push down the drawcallstack to the latest drawcall
 		context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
 	}
-	else if(context->m_State == READING && chunk == BEGIN_CMD_BUFFER)
-	{
-		DrawcallTreeNode *draw = new DrawcallTreeNode;
-
-		RDCASSERT(m_LastCmdBufferID != ResourceId());
-		m_CmdBufferInfo[m_LastCmdBufferID].draw = draw;
-
-		context->m_DrawcallStack.push_back(draw);
-	}
-	else if(context->m_State == READING && (chunk == END_EVENT || chunk == END_CMD_BUFFER))
+	else if(context->m_State == READING && chunk == END_EVENT)
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
 		RDCASSERT(context->m_DrawcallStack.size() > 1);
 		if(context->m_DrawcallStack.size() > 1)
 			context->m_DrawcallStack.pop_back();
+	}
+	else if(chunk == BEGIN_CMD_BUFFER)
+	{
+		if(context->m_State == READING)
+		{
+			DrawcallTreeNode *draw = new DrawcallTreeNode;
+
+			RDCASSERT(m_CurCmdBufferID != ResourceId());
+			m_CmdBufferInfo[m_CurCmdBufferID].draw = draw;
+
+			context->m_DrawcallStack.push_back(draw);
+		}
+
+		// we know that command buffers always come before any other events,
+		// so we aren't trashing useful data here.
+		// We restart the count from 0 so the events and drawcalls recorded
+		// locally into the command buffers drawcall in m_CmdBufferInfo are
+		// 0-based. Then on queue submit we just increment all child
+		// events/drawcalls by the current 'next' ID and insert them into
+		// the tree.
+		// this happens on reading AND executing to make sure event IDs stay
+		// consistent
+		m_CurEventID = 0;
+		m_CurDrawcallID = 0;
+	}
+	else if(chunk == END_CMD_BUFFER)
+	{
+		if(context->m_State == READING)
+		{
+			RDCASSERT(m_CurCmdBufferID != ResourceId());
+			m_CmdBufferInfo[m_CurCmdBufferID].eventCount = m_CurEventID;
+			m_CmdBufferInfo[m_CurCmdBufferID].drawCount = m_CurDrawcallID;
+
+			m_CurCmdBufferID = ResourceId();
+
+			if(context->m_DrawcallStack.size() > 1)
+				context->m_DrawcallStack.pop_back();
+		}
+
+		// reset to starting event/drawcall IDs as we might be doing the actual
+		// frame events now
+		m_CurEventID = 1;
+		m_CurDrawcallID = 1;
 	}
 	else if(context->m_State == READING)
 	{
@@ -6755,7 +6803,7 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description, ResourceI
 
 	m_CurEvents.push_back(apievent);
 
-	if(m_State == READING)
+	if(m_State == READING && m_CurCmdBufferID == ResourceId())
 		m_Events.push_back(apievent);
 }
 
