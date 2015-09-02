@@ -349,6 +349,11 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 
 	m_CurCmdBufferID = ResourceId();
 
+	m_PartialReplayData.renderPassActive = false;
+	m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
+	m_PartialReplayData.partialParent = ResourceId();
+	m_PartialReplayData.baseEvent = 0;
+
 	m_DrawcallStack.push_back(&m_ParentDrawcall);
 
 	m_FakeBBImgId = ResourceId();
@@ -1048,6 +1053,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			// assign new event and drawIDs
 			RefreshIDs(d.children, m_CurEventID, m_CurDrawcallID);
 
+			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_CurEventID);
+
 			// 1 extra for the [0] virtual event for the command buffer
 			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
 			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
@@ -1060,8 +1067,13 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		// done adding command buffers
 		m_DrawcallStack.pop_back();
 	}
-	else
+	else if(m_State == EXECUTING)
 	{
+		m_CurEventID++;
+
+		uint32_t startEID = m_CurEventID;
+
+		// advance m_CurEventID to match the events added when reading
 		for(uint32_t c=0; c < numCmds; c++)
 		{
 			// 1 extra for the [0] virtual event for the command buffer
@@ -1069,14 +1081,65 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
-		m_SubmittedFences.insert(fenceId);
+		m_CurEventID--;
 
-		m_Real.vkQueueSubmit(queue, numCmds, cmds, fence);
-
-		for(uint32_t i=0; i < numCmds; i++)
+		if(m_LastEventID < m_CurEventID)
 		{
-			ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmds[i]));
-			GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_CurEventID);
+
+			uint32_t eid = startEID;
+
+			vector<ResourceId> trimmedCmdIds;
+			vector<VkCmdBuffer> trimmedCmds;
+
+			for(uint32_t c=0; c < numCmds; c++)
+			{
+				uint32_t end = eid + m_CmdBufferInfo[cmdIds[c]].eventCount;
+
+				if(eid == m_PartialReplayData.baseEvent)
+				{
+					ResourceId partial = GetResourceManager()->GetID(MakeRes(PartialCmdBuf()));
+					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
+					trimmedCmdIds.push_back(partial);
+					trimmedCmds.push_back(PartialCmdBuf());
+				}
+				else if(m_LastEventID >= end)
+				{
+					RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
+					trimmedCmdIds.push_back(cmdIds[c]);
+					trimmedCmds.push_back((VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdIds[c]).handle);
+				}
+				else
+				{
+					RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
+				}
+
+				eid += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+			}
+
+			RDCASSERT(trimmedCmds.size() > 0);
+
+			m_SubmittedFences.insert(fenceId);
+
+			m_Real.vkQueueSubmit(queue, (uint32_t)trimmedCmds.size(), &trimmedCmds[0], fence);
+
+			for(uint32_t i=0; i < numCmds; i++)
+			{
+				ResourceId cmd = trimmedCmdIds[i];
+				GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+			}
+		}
+		else
+		{
+			m_SubmittedFences.insert(fenceId);
+
+			m_Real.vkQueueSubmit(queue, numCmds, cmds, fence);
+
+			for(uint32_t i=0; i < numCmds; i++)
+			{
+				ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmds[i]));
+				GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+			}
 		}
 	}
 
@@ -3361,13 +3424,53 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		device = m_CmdBufferInfo[cmdId].device;
 		createInfo = m_CmdBufferInfo[cmdId].createInfo;
 	}
+	else
+	{
+		m_CurCmdBufferID = bakeId;
+	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResourceManager()->GetID(MakeRes(device)));
 	m_pSerialiser->Serialise("createInfo", createInfo);
 
+	if(m_State < WRITING)
+		device = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
+
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		const vector<uint32_t> &baseEvents = m_PartialReplayData.cmdBufferSubmits[bakeId];
+		uint32_t length = m_CmdBufferInfo[bakeId].eventCount;
+
+		for(auto it=baseEvents.begin(); it != baseEvents.end(); ++it)
+		{
+			if(*it < m_LastEventID && m_LastEventID < (*it + length))
+			{
+				RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID, *it + length, cmdId, bakeId);
+
+				m_PartialReplayData.partialParent = cmdId;
+				m_PartialReplayData.baseEvent = *it;
+				m_PartialReplayData.renderPassActive = false;
+
+				VkCmdBuffer cmd = VK_NULL_HANDLE;
+				VkResult ret = m_Real.vkCreateCommandBuffer(device, &createInfo, &cmd);
+
+				if(ret != VK_SUCCESS)
+				{
+					RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+				}
+				else
+				{
+					GetResourceManager()->RegisterResource(MakeRes(cmd));
+				}
+
+				m_PartialReplayData.resultPartialCmdBuffer = cmd;
+				m_PartialReplayData.partialDevice = device;
+
+				// add one-time submit flag as this partial cmd buffer will only be submitted once
+				info.flags |= VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT;
+
+				m_Real.vkBeginCommandBuffer(cmd, &info);
+			}
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -3378,7 +3481,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		if(!GetResourceManager()->HasLiveResource(bakeId))
 		{
-			VkResult ret = m_Real.vkCreateCommandBuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &createInfo, &cmd);
+			VkResult ret = m_Real.vkCreateCommandBuffer(device, &createInfo, &cmd);
 
 			if(ret != VK_SUCCESS)
 			{
@@ -3405,8 +3508,6 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		}
 
 		m_Real.vkBeginCommandBuffer(cmd, &info);
-
-		m_CurCmdBufferID = bakeId;
 	}
 
 	return true;
@@ -3460,7 +3561,19 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdId))
+		{
+			RDCDEBUG("Ending partial command buffer for %llu baked to %llu", cmdId, bakeId);
+
+			if(m_PartialReplayData.renderPassActive)
+				m_Real.vkCmdEndRenderPass(PartialCmdBuf());
+
+			m_Real.vkEndCommandBuffer(PartialCmdBuf());
+
+			m_PartialReplayData.partialParent = ResourceId();
+		}
+
+		m_CurEventID--;
 	}
 	else if(m_State == READING)
 	{
@@ -3540,7 +3653,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		// VKTODOHIGH check how vkResetCommandBuffer interacts with partial replays
 	}
 	else if(m_State == READING)
 	{
@@ -3599,6 +3712,11 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 
 		record->bakedCommands = GetResourceManager()->AddResourceRecord(res, bakedId);
 
+		// VKTODOHIGH do we need to actually serialise this at all? all it does is
+		// reset a command buffer to be able to begin again. We could just move the
+		// logic to create new baked commands from begin to here, and skip 
+		// serialising this (as we never re-begin a cmd buffer, we make a new copy
+		// for each bake).
 		{
 			SCOPED_SERIALISE_CONTEXT(RESET_CMD_BUFFER);
 			Serialise_vkResetCommandBuffer(cmdBuffer, flags);
@@ -3623,7 +3741,11 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			m_PartialReplayData.renderPassActive = true;
+			m_Real.vkCmdBeginRenderPass(PartialCmdBuf(), &beginInfo, cont);
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -3663,7 +3785,11 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			m_PartialReplayData.renderPassActive = false;
+			m_Real.vkCmdEndRenderPass(PartialCmdBuf());
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -3702,7 +3828,10 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		pipeline = (VkPipeline)GetResourceManager()->GetLiveResource(pipeid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindPipeline(PartialCmdBuf(), bind, pipeline);
 	}
 	else if(m_State == READING)
 	{
@@ -3769,7 +3898,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		layout = (VkPipelineLayout)GetResourceManager()->GetLiveResource(layoutid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindDescriptorSets(PartialCmdBuf(), bind, layout, first, numSets, sets, offsCount, offs);
 	}
 	else if(m_State == READING)
 	{
@@ -3777,9 +3909,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 		layout = (VkPipelineLayout)GetResourceManager()->GetLiveResource(layoutid).handle;
 
 		m_Real.vkCmdBindDescriptorSets(cmdBuffer, bind, layout, first, numSets, sets, offsCount, offs);
-
-		SAFE_DELETE_ARRAY(sets);
 	}
+
+	if(m_State < WRITING)
+		SAFE_DELETE_ARRAY(sets);
 
 	SAFE_DELETE_ARRAY(descriptorIDs);
 	SAFE_DELETE_ARRAY(offs);
@@ -3822,7 +3955,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		dynamicViewportState = (VkDynamicViewportState)GetResourceManager()->GetLiveResource(stateid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindDynamicViewportState(PartialCmdBuf(), dynamicViewportState);
 	}
 	else if(m_State == READING)
 	{
@@ -3862,7 +3998,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		dynamicRasterState = (VkDynamicRasterState)GetResourceManager()->GetLiveResource(stateid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindDynamicRasterState(PartialCmdBuf(), dynamicRasterState);
 	}
 	else if(m_State == READING)
 	{
@@ -3902,7 +4041,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		dynamicColorBlendState = (VkDynamicColorBlendState)GetResourceManager()->GetLiveResource(stateid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindDynamicColorBlendState(PartialCmdBuf(), dynamicColorBlendState);
 	}
 	else if(m_State == READING)
 	{
@@ -3942,7 +4084,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		dynamicDepthStencilState = (VkDynamicDepthStencilState)GetResourceManager()->GetLiveResource(stateid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindDynamicDepthStencilState(PartialCmdBuf(), dynamicDepthStencilState);
 	}
 	else if(m_State == READING)
 	{
@@ -4009,7 +4154,8 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindVertexBuffers(PartialCmdBuf(), start, count, &bufs[0], &offs[0]);
 	}
 	else if(m_State == READING)
 	{
@@ -4057,7 +4203,10 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBindIndexBuffer(PartialCmdBuf(), buffer, offs, idxType);
 	}
 	else if(m_State == READING)
 	{
@@ -4105,7 +4254,8 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDraw(PartialCmdBuf(), firstVtx, vtxCount, firstInst, instCount);
 	}
 	else if(m_State == READING)
 	{
@@ -4181,7 +4331,11 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
+		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdBlitImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions, f);
 	}
 	else if(m_State == READING)
 	{
@@ -4244,7 +4398,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
+		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdCopyImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4304,7 +4462,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+		destImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdCopyBufferToImage(PartialCmdBuf(), srcBuffer, destImage, destImageLayout, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4364,7 +4526,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		srcImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
+		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdCopyImageToBuffer(PartialCmdBuf(), srcImage, layout, destBuffer, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4422,7 +4588,11 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(srcid).handle;
+		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(dstid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdCopyBuffer(PartialCmdBuf(), srcBuffer, destBuffer, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4481,7 +4651,10 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdClearColorImage(PartialCmdBuf(), image, layout, &col, count, ranges);
 	}
 	else if(m_State == READING)
 	{
@@ -4537,7 +4710,10 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdClearDepthStencilImage(PartialCmdBuf(), image, l, d, s, count, ranges);
 	}
 	else if(m_State == READING)
 	{
@@ -4593,7 +4769,8 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdClearColorAttachment(PartialCmdBuf(), att, layout, &col, count, rects);
 	}
 	else if(m_State == READING)
 	{
@@ -4649,7 +4826,8 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdClearDepthStencilAttachment(PartialCmdBuf(), asp, lay, d, s, count, rects);
 	}
 	else if(m_State == READING)
 	{
@@ -4738,7 +4916,13 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			m_Real.vkCmdPipelineBarrier(PartialCmdBuf(), src, dest, region, memCount, (const void **)&mems[0]);
+
+			ResourceId cmd = GetResourceManager()->GetID(MakeRes(PartialCmdBuf()));
+			GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4855,10 +5039,6 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
 		FetchDrawcall draw;
 		draw.name = "API Calls";
 		draw.flags |= eDraw_SetMarker;
-
-		// the outer loop will increment the event ID but we've not
-		// actually added anything just wrapped up the existing EIDs.
-		m_CurEventID--;
 
 		AddDrawcall(draw, true);
 	}
@@ -5137,9 +5317,20 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	{
 		FetchAPIEvent ev = GetEvent(startEventID);
 		m_CurEventID = ev.eventID;
-		m_pSerialiser->SetOffset(ev.fileOffset);
+
+		// if not partial, we need to be sure to replay
+		// past the command buffer records, so can't
+		// skip to the file offset of the first event
+		if(partial)
+			m_pSerialiser->SetOffset(ev.fileOffset);
+
 		m_FirstEventID = startEventID;
 		m_LastEventID = endEventID;
+
+		m_PartialReplayData.renderPassActive = false;
+		RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
+		m_PartialReplayData.partialParent = ResourceId();
+		m_PartialReplayData.baseEvent = 0;
 	}
 	else if(m_State == READING)
 	{
@@ -5149,10 +5340,6 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		m_LastEventID = ~0U;
 	}
 
-	if(m_State == EXECUTING)
-	{
-	}
-
 	// VKTODOMED I think this is a legacy concept that doesn't really mean anything anymore,
 	// even on GL/D3D11. Creates are all shifted before the frame, only command bfufers remain
 	// in vulkan
@@ -5160,9 +5347,10 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	while(1)
 	{
-		if(m_State == EXECUTING && m_CurEventID > endEventID)
+		if(m_State == EXECUTING && m_CurEventID > endEventID && m_CurCmdBufferID == ResourceId())
 		{
 			// we can just break out if we've done all the events desired.
+			// note that the command buffer events aren't 'real' and we just blaze through them
 			break;
 		}
 
@@ -5197,6 +5385,13 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	// VKTODOMED See above
 	//GetResourceManager()->MarkInFrame(false);
+
+	if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
+	{
+		m_Real.vkDeviceWaitIdle(m_PartialReplayData.partialDevice);
+		m_Real.vkDestroyCommandBuffer(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdBuffer);
+		m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
+	}
 
 	m_State = READING;
 }
@@ -5248,19 +5443,28 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 			m_CmdBufferInfo[m_CurCmdBufferID].draw = draw;
 
 			context->m_DrawcallStack.push_back(draw);
+
+			{
+				FetchDrawcall draw;
+				draw.name = "Command Buffer Start";
+				draw.flags |= eDraw_SetMarker;
+
+				AddDrawcall(draw, false);
+			}
 		}
 
 		// we know that command buffers always come before any other events,
 		// so we aren't trashing useful data here.
-		// We restart the count from 0 so the events and drawcalls recorded
+		// We restart the count from 1 to account for a fake marker at the
+		// start of the command buffer, but the events and drawcalls recorded
 		// locally into the command buffers drawcall in m_CmdBufferInfo are
 		// 0-based. Then on queue submit we just increment all child
 		// events/drawcalls by the current 'next' ID and insert them into
 		// the tree.
 		// this happens on reading AND executing to make sure event IDs stay
 		// consistent
-		m_CurEventID = 0;
-		m_CurDrawcallID = 0;
+		m_CurEventID = 1;
+		m_CurDrawcallID = 1;
 	}
 	else if(chunk == END_CMD_BUFFER)
 	{
@@ -5270,11 +5474,11 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 			m_CmdBufferInfo[m_CurCmdBufferID].eventCount = m_CurEventID;
 			m_CmdBufferInfo[m_CurCmdBufferID].drawCount = m_CurDrawcallID;
 
-			m_CurCmdBufferID = ResourceId();
-
 			if(context->m_DrawcallStack.size() > 1)
 				context->m_DrawcallStack.pop_back();
 		}
+
+		m_CurCmdBufferID = ResourceId();
 
 		// reset to starting event/drawcall IDs as we might be doing the actual
 		// frame events now
@@ -5310,7 +5514,8 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDrawIndexed(PartialCmdBuf(), firstIdx, idxCount, vtxOffs, firstInst, instCount);
 	}
 	else if(m_State == READING)
 	{
@@ -5359,7 +5564,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDrawIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
 	}
 	else if(m_State == READING)
 	{
@@ -5408,7 +5616,10 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDrawIndexedIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
 	}
 	else if(m_State == READING)
 	{
@@ -5454,7 +5665,8 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDispatch(PartialCmdBuf(), x, y, z);
 	}
 	else if(m_State == READING)
 	{
@@ -5496,7 +5708,10 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 
 	if(m_State == EXECUTING)
 	{
-		// VKTODOHIGH check if we want to partial-replay this cmd buffer
+		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+			m_Real.vkCmdDispatchIndirect(PartialCmdBuf(), buffer, offs);
 	}
 	else if(m_State == READING)
 	{
@@ -6041,7 +6256,7 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 {
 	ResourceId id = GetResourceManager()->GetID(res);
 
-	RDCLOG("Prepare_InitialState %llu", id);
+	RDCDEBUG("Prepare_InitialState %llu", id);
 	
 	if(res.Namespace == eResDescriptorSet)
 	{
@@ -6666,6 +6881,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
 	RDCASSERT(frameID < (uint32_t)m_FrameRecord.size());
+
+	// VKTODOHIGH figure out how replaying only a draw will work.
+	if(replayType == eReplay_OnlyDraw) return;
+	if(replayType == eReplay_WithoutDraw) { replayType = eReplay_Full; }
 
 	uint64_t offs = m_FrameRecord[frameID].frameInfo.fileOffset;
 

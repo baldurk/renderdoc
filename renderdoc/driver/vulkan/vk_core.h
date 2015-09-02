@@ -187,6 +187,58 @@ private:
 	// on capture).
 	ResourceId m_CurCmdBufferID;
 
+	struct
+	{
+		// if we're doing a partial replay, by definition only one command
+		// buffer will be partial at any one time. While replaying through
+		// the command buffer chunks, the partial command buffer will be
+		// created as a temporary new command buffer and when it comes to
+		// the queue that should submit it, it can submit this instead.
+		VkCmdBuffer resultPartialCmdBuffer;
+		VkDevice partialDevice; // device for above cmd buffer
+
+		// this records where in the frame a command buffer was submitted,
+		// so that we know if our replay range ends in one of these ranges
+		// we need to construct a partial command buffer for future
+		// replaying. Note that we always have the complete command buffer
+		// around - it's the bakeID itself.
+		// Since we only ever record a bakeID once the key is unique - note
+		// that the same command buffer could be recorded multiple times
+		// a frame, so the parent command buffer ID (the one recorded in
+		// vkCmd chunks) is NOT unique.
+		// However, a single baked command list can be submitted multiple
+		// times - so we have to have a list of base events
+		// VKTODO change this to a sorted vector similar to the image
+		// states
+		// Map from bakeID -> vector<baseEventID>
+		map<ResourceId, vector<uint32_t> > cmdBufferSubmits;
+
+		// This is just the ResourceId of the original parent command buffer
+		// and it's baked id.
+		// If we are in the middle of a partial replay - allows fast checking
+		// in all vkCmd chunks, with the iteration through the above list
+		// only in vkBegin.
+		// partialParent gets reset to ResourceId() in the vkEnd so that
+		// other baked command buffers from the same parent don't pick it up
+		// Also reset each overall replay
+		ResourceId partialParent;
+
+		// If a partial replay is detected, this records the base of the
+		// range. This both allows easily and uniquely identifying it in the
+		// queuesubmit, but also allows the recording to 'rebase' the last
+		// event ID by subtracting this, to know how far to record
+		uint32_t baseEvent;
+
+		// If we're doing a partial record this bool tells us when we
+		// reach the vkEndCommandBuffer that we also need to end a render
+		// pass.
+		bool renderPassActive;
+	} m_PartialReplayData;
+
+	bool IsPartialCmd(ResourceId cmdid) { return cmdid == m_PartialReplayData.partialParent; }
+	bool InPartialRange() { return m_CurEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
+	VkCmdBuffer PartialCmdBuf() { return m_PartialReplayData.resultPartialCmdBuffer; }
+
 	struct SwapInfo
 	{
 		VkFormat format;
