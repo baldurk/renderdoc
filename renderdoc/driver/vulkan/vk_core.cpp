@@ -4777,6 +4777,21 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdClearColorAttachment(cmdBuffer, att, layout, &col, count, rects);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(CLEAR_COLOR_ATTACH, desc);
+			string name = "vkCmdClearColorAttachment(" +
+				ToStr::Get(att) + "," +
+				ToStr::Get(col) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Clear|eDraw_ClearColour;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(rects);
