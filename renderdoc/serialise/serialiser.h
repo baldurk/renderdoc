@@ -341,7 +341,7 @@ class Serialiser
 		template<int Num, class T>
 		void SerialisePODArray(const char *name, T *el)
 		{
-			size_t n = Num;
+			uint32_t n = (uint32_t)Num;
 			SerialisePODArray(name, el, n);
 		}
 
@@ -351,10 +351,8 @@ class Serialiser
 		// If serialising in, el must either be NULL in which case allocated
 		// memory will be returned, or it must be already large enough.
 		template<class T>
-		void SerialisePODArray(const char *name, T *&el, size_t &Num)
+		void SerialisePODArray(const char *name, T *&el, uint32_t &numElems)
 		{
-			uint32_t numElems = (uint32_t)Num;
-
 			if(m_Mode == WRITING)
 			{
 				WriteFrom(numElems);
@@ -373,14 +371,24 @@ class Serialiser
 					memcpy(el, ReadBytes(length), length);
 				}
 			}
-
-			Num = (size_t)numElems;
 			
 			if(name != NULL && m_DebugTextWriting)
 			{
-				for(size_t i=0; i < Num; i++)
+				if(numElems == 0)
+					DebugPrint("%s[0]", name);
+
+				for(size_t i=0; i < numElems; i++)
 					DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
 			}
+		}
+
+		// overload for 64-bit counts
+		template<class T>
+		void SerialisePODArray(const char *name, T *&el, uint64_t &Num)
+		{
+			uint32_t n = (uint32_t)Num;
+			SerialisePODArray(name, el, n);
+			Num = n;
 		}
 
 		// serialise a normal array. Typically this should be a small array,
@@ -401,8 +409,6 @@ class Serialiser
 			{
 				ReadInto(Num);
 
-				RDCASSERT(el == NULL);
-
 				if(Num > 0)
 				{
 					el = new T[Num];
@@ -415,13 +421,16 @@ class Serialiser
 					el = NULL;
 				}
 			}
+
+			if(name != NULL && m_DebugTextWriting && Num == 0)
+				DebugPrint("%s[0]", name);
 		}
 
 		// overload for 64-bit counts
 		template<class T>
 		void SerialiseComplexArray(const char *name, T *&el, uint64_t &Num)
 		{
-			uint32_t n;
+			uint32_t n = (uint32_t)Num;
 			SerialiseComplexArray(name, el, n);
 			Num = n;
 		}
