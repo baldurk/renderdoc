@@ -375,7 +375,7 @@ class Serialiser
 			if(name != NULL && m_DebugTextWriting)
 			{
 				if(numElems == 0)
-					DebugPrint("%s[0]", name);
+					DebugPrint("%s[]\n", name);
 
 				for(size_t i=0; i < numElems; i++)
 					DebugPrint("%s[%d] = %s\n", name, i, ToStr::Get<T>(el[i]).c_str());
@@ -423,7 +423,7 @@ class Serialiser
 			}
 
 			if(name != NULL && m_DebugTextWriting && Num == 0)
-				DebugPrint("%s[0]", name);
+				DebugPrint("%s[]\n", name);
 		}
 
 		// overload for 64-bit counts
