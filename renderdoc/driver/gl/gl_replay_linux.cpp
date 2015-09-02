@@ -312,11 +312,13 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 	}
 
 	PFNGLGETINTEGERVPROC getInt = (PFNGLGETINTEGERVPROC)glXGetFuncProc((const GLubyte *)"glGetIntegerv");
-	PFNGLGETSTRINGIPROC getStr = (PFNGLGETSTRINGIPROC)glXGetFuncProc((const GLubyte *)"glGetStringi");
+	PFNGLGETSTRINGPROC getStr = (PFNGLGETSTRINGPROC)glXGetFuncProc((const GLubyte *)"glGetString");
+	PFNGLGETSTRINGIPROC getStri = (PFNGLGETSTRINGIPROC)glXGetFuncProc((const GLubyte *)"glGetStringi");
 
-	if(getInt == NULL || getStr == NULL)
+
+	if(getInt == NULL || getStr == NULL || getStri == NULL)
 	{
-		RDCERR("Couldn't get glGetIntegerv (%p) or glGetStringi (%p) entry points", getInt, getStr);
+		RDCERR("Couldn't get glGetIntegerv (%p), glGetString (%p) or glGetStringi (%p) entry points", getInt, getStr, getStri);
 		glXDestroyPbufferProc(dpy, pbuffer);
 		glXDestroyCtxProc(dpy, ctx);
 		XFree(fbcfg);
