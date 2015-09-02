@@ -344,6 +344,8 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	
 	m_CurEventID = 1;
 	m_CurDrawcallID = 1;
+	m_FirstEventID = 0;
+	m_LastEventID = ~0U;
 
 	m_CurCmdBufferID = ResourceId();
 
@@ -994,7 +996,12 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			fence = (VkFence)GetResourceManager()->GetLiveResource(fenceId).handle;
 		else
 			fence = VK_NULL_HANDLE;
+	}
 
+	const string desc = m_pSerialiser->GetDebugStr();
+
+	if(m_State == READING)
+	{
 		m_SubmittedFences.insert(fenceId);
 
 		m_Real.vkQueueSubmit(queue, numCmds, cmds, fence);
@@ -1005,13 +1012,6 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
 		}
 
-		delete[] cmds;
-	}
-	
-	const string desc = m_pSerialiser->GetDebugStr();
-
-	if(m_State == READING)
-	{
 		AddEvent(QUEUE_SUBMIT, desc);
 		string name = "vkQueueSubmit(" +
 						ToStr::Get(numCmds) + ")";
@@ -1053,6 +1053,10 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
+		// the outer loop will increment the event ID but we've handled
+		// it ourselves, so 'undo' that.
+		m_CurEventID--;
+
 		// done adding command buffers
 		m_DrawcallStack.pop_back();
 	}
@@ -1064,7 +1068,19 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
 			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
+
+		m_SubmittedFences.insert(fenceId);
+
+		m_Real.vkQueueSubmit(queue, numCmds, cmds, fence);
+
+		for(uint32_t i=0; i < numCmds; i++)
+		{
+			ResourceId cmd = GetResourceManager()->GetID(MakeRes(cmds[i]));
+			GetResourceManager()->ApplyTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo);
+		}
 	}
+
+	SAFE_DELETE_ARRAY(cmds);
 
 	return true;
 }
@@ -3460,6 +3476,10 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 			draw.name = "API Calls";
 			draw.flags |= eDraw_SetMarker;
 
+			// the outer loop will increment the event ID but we've not
+			// actually added anything just wrapped up the existing EIDs.
+			m_CurEventID--;
+
 			AddDrawcall(draw, true);
 		}
 	}
@@ -4836,6 +4856,10 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
 		draw.name = "API Calls";
 		draw.flags |= eDraw_SetMarker;
 
+		// the outer loop will increment the event ID but we've not
+		// actually added anything just wrapped up the existing EIDs.
+		m_CurEventID--;
+
 		AddDrawcall(draw, true);
 	}
 
@@ -5114,11 +5138,15 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		FetchAPIEvent ev = GetEvent(startEventID);
 		m_CurEventID = ev.eventID;
 		m_pSerialiser->SetOffset(ev.fileOffset);
+		m_FirstEventID = startEventID;
+		m_LastEventID = endEventID;
 	}
 	else if(m_State == READING)
 	{
 		m_CurEventID = 1;
 		m_CurDrawcallID = 1;
+		m_FirstEventID = 0;
+		m_LastEventID = ~0U;
 	}
 
 	if(m_State == EXECUTING)
