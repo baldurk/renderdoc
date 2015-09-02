@@ -957,6 +957,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	
 	SERIALISE_ELEMENT(uint32_t, numCmds, cmdBufferCount);
 
+	vector<ResourceId> cmdIds;
 	VkCmdBuffer *cmds = m_State >= WRITING ? NULL : new VkCmdBuffer[numCmds];
 	for(uint32_t i=0; i < numCmds; i++)
 	{
@@ -974,6 +975,8 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		if(m_State < WRITING)
 		{
+			cmdIds.push_back(id);
+
 			cmds[i] = id != ResourceId()
 			          ? (VkCmdBuffer)GetResourceManager()->GetLiveResource(id).handle
 			          : NULL;
@@ -1007,22 +1010,72 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	{
 		AddEvent(QUEUE_SUBMIT, desc);
 		string name = "vkQueueSubmit(" +
-						ToStr::Get(numCmds) + ", ...)";
+						ToStr::Get(numCmds) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
-		draw.numIndices = 3;
-		draw.numInstances = 1;
-		draw.indexOffset = 0;
-		draw.vertexOffset = 0;
-		draw.instanceOffset = 0;
 
-		draw.flags |= eDraw_Drawcall;
+		draw.flags |= eDraw_PushMarker;
 
 		AddDrawcall(draw, true);
+
+		// add command buffer draws under here
+		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+		m_CurEventID++;
+
+		for(uint32_t c=0; c < numCmds; c++)
+		{
+			AddEvent(QUEUE_SUBMIT, "");
+			string name = "[" + ToStr::Get(cmdIds[c]) + "]";
+
+			FetchDrawcall draw;
+			draw.name = name;
+
+			draw.flags |= eDraw_PushMarker;
+
+			AddDrawcall(draw, true);
+
+			DrawcallTreeNode &d = m_DrawcallStack.back()->children.back();
+
+			// copy DrawcallTreeNode children
+			d.children = m_CmdBufferInfo[cmdIds[c]].draw->children;
+
+			// assign new event and drawIDs
+			RefreshIDs(d.children);
+
+			m_CurEventID++;
+		}
+
+		// done adding command buffers
+		m_DrawcallStack.pop_back();
 	}
 
 	return true;
+}
+
+void WrappedVulkan::RefreshIDs(vector<DrawcallTreeNode> &nodes)
+{
+	// assign new drawcall IDs
+	for(size_t i=0; i < nodes.size(); i++)
+	{
+		m_CurEventID++;
+
+		nodes[i].draw.eventID = m_CurEventID;
+		nodes[i].draw.drawcallID = m_CurDrawcallID;
+
+		for(int32_t e=0; e < nodes[i].draw.events.count; e++)
+		{
+			m_CurEventID++;
+			nodes[i].draw.events[e].eventID = m_CurEventID;
+		}
+
+		// markers don't increment drawcall ID
+		if((nodes[i].draw.flags & (eDraw_SetMarker|eDraw_PushMarker)) == 0)
+			m_CurDrawcallID++;
+
+		RefreshIDs(nodes[i].children);
+	}
 }
 
 VkResult WrappedVulkan::vkQueueSubmit(
@@ -3327,13 +3380,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		m_Real.vkBeginCommandBuffer(cmd, &info);
 
-		{
-			FetchDrawcall draw;
-			draw.name = StringFormat::Fmt("vkBeginCommandBuffer(%llu)", cmdId);
-			draw.flags |= eDraw_PushMarker;
-
-			AddDrawcall(draw, false);
-		}
+		m_LastCmdBufferID = bakeId;
 	}
 
 	return true;
@@ -5132,10 +5179,19 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 	{
 		// no push/pop necessary
 	}
-	else if(context->m_State == READING && (chunk == BEGIN_EVENT || chunk == BEGIN_CMD_BUFFER))
+	else if(context->m_State == READING && chunk == BEGIN_EVENT)
 	{
 		// push down the drawcallstack to the latest drawcall
 		context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
+	}
+	else if(context->m_State == READING && chunk == BEGIN_CMD_BUFFER)
+	{
+		DrawcallTreeNode *draw = new DrawcallTreeNode;
+
+		RDCASSERT(m_LastCmdBufferID != ResourceId());
+		m_CmdBufferInfo[m_LastCmdBufferID].draw = draw;
+
+		context->m_DrawcallStack.push_back(draw);
 	}
 	else if(context->m_State == READING && (chunk == END_EVENT || chunk == END_CMD_BUFFER))
 	{
