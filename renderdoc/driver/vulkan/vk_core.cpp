@@ -355,6 +355,8 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 	
 	m_ContextResourceID = GetResourceManager()->RegisterResource(VkResource(eResSpecial, VK_NULL_HANDLE));
 
+	m_HeaderChunk = NULL;
+
 	if(!RenderDoc::Inst().IsReplayApp())
 	{
 		m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
@@ -1111,7 +1113,8 @@ VkResult WrappedVulkan::vkQueueSubmit(
 			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
 			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
 
-			m_ContextRecord->AddParent(record->bakedCommands);
+			m_CmdBufferRecords.push_back(record->bakedCommands);
+			record->bakedCommands->AddRef();
 		}
 
 		record->dirtied.clear();
@@ -4967,7 +4970,9 @@ void WrappedVulkan::BeginCaptureFrame()
 
 	Serialise_BeginCaptureFrame(false);
 
-	m_ContextRecord->AddChunk(scope.Get(), 1);
+	// need to hold onto this as it must come right after the capture chunk,
+	// before any command buffers
+	m_HeaderChunk = scope.Get();
 }
 
 void WrappedVulkan::FinishCapture()
@@ -5885,19 +5890,33 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 				Serialise_CaptureScope(0);
 
 				m_pFileSerialiser->Insert(scope.Get(true));
+
+				m_pFileSerialiser->Insert(m_HeaderChunk);
 			}
 
 			{
-				RDCDEBUG("Getting Resource Record");	
-
-				VkResourceRecord *record = GetResourceManager()->GetResourceRecord(m_ContextResourceID);
-
-				RDCDEBUG("Accumulating context resource list");	
+				RDCDEBUG("Flushing %u command buffer records to file serialiser", (uint32_t)m_CmdBufferRecords.size());	
 
 				map<int32_t, Chunk *> recordlist;
-				record->Insert(recordlist);
 
-				RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());	
+				// ensure all command buffer records are disjoint and all present before queue submits
+				for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
+				{
+					recordlist.clear();
+					m_CmdBufferRecords[i]->Insert(recordlist);
+
+					RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu", (uint32_t)recordlist.size(), m_CmdBufferRecords[i]->GetResourceID());	
+
+					for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
+						m_pFileSerialiser->Insert(it->second);
+
+					m_CmdBufferRecords[i]->Delete(GetResourceManager());
+				}
+
+				recordlist.clear();
+				m_ContextRecord->Insert(recordlist);
+
+				RDCDEBUG("Flushing %u chunks to file serialiser from context record", (uint32_t)recordlist.size());	
 
 				for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
 					m_pFileSerialiser->Insert(it->second);
@@ -5910,6 +5929,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			RenderDoc::Inst().SuccessfullyWrittenLog();
 
 			SAFE_DELETE(m_pFileSerialiser);
+			SAFE_DELETE(m_HeaderChunk);
 
 			m_State = WRITING_IDLE;
 			

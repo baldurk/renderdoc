@@ -108,6 +108,15 @@ private:
 		
 	ResourceId m_ContextResourceID;
 	VkResourceRecord *m_ContextRecord;
+	Chunk *m_HeaderChunk;
+
+	// we record the command buffer records so we can insert them
+	// individually, that means even if they were recorded locklessly
+	// in parallel, on replay they are disjoint and it makes things
+	// much easier to process (we will enforce/display ordering
+	// by queue submit order anyway, so it's OK to lose the record
+	// order).
+	vector<VkResourceRecord *> m_CmdBufferRecords;
 
 	VulkanResourceManager *m_ResourceManager;
 	
