@@ -25,6 +25,8 @@
 #include "vk_core.h"
 #include "serialise/string_utils.h"
 
+// VKTODOHIGH need to call vkResetCommandBuffer() before calling vkBeginCommandBuffer()
+
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)

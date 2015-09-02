@@ -265,7 +265,96 @@ vector<ResourceId> VulkanReplay::GetBuffers()
 
 void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip, uint32_t sample, float pixel[4])
 {
-	RDCUNIMPLEMENTED("PickPixel");
+	//VULKANNOTIMP("PickPixel");
+
+	ResourceId resid;
+	VkImage fakeBBIm = VK_NULL_HANDLE;
+	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBMem);
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetCmd();
+	VkQueue q = m_pDriver->GetQ();
+	const VulkanFunctions &vk = m_pDriver->m_Real;
+
+	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
+
+	{
+		VkMemoryAllocInfo allocInfo = {
+			/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
+			/*.pNext =*/ NULL,
+			/*.allocationSize =*/ 128,
+			/*.memoryTypeIndex =*/ 0, // VKTODOHIGH find appropriate memory type index
+		};
+
+		VkResult res = vk.vkAllocMemory(dev, &allocInfo, &readbackmem);
+		RDCASSERT(res == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			128, VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		VkBuffer destbuf;
+
+		res = vk.vkCreateBuffer(dev, &bufInfo, &destbuf);
+		RDCASSERT(res == VK_SUCCESS);
+
+		res = vk.vkBindBufferMemory(dev, destbuf, readbackmem, 0);
+		RDCASSERT(res == VK_SUCCESS);
+
+		// VKTODOHIGH find out the actual current image state
+		VkImageMemoryBarrier fakeTrans = {
+			VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+			0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
+			0, 0, fakeBBIm,
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+		RDCASSERT(res == VK_SUCCESS);
+
+		void *barrier = (void *)&fakeTrans;
+		vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		fakeTrans.oldLayout = fakeTrans.newLayout;
+
+		VkBufferImageCopy region = {
+			0, 128, 1,
+			{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { (int)x, (int)y, 0 },
+			{ 1, 1, 1 },
+		};
+		vk.vkCmdCopyImageToBuffer(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, destbuf, 1, &region);
+
+		fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
+		vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+		vk.vkEndCommandBuffer(cmd);
+
+		vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+
+		vk.vkQueueWaitIdle(q);
+	}
+
+	// VKTODOHIGH ultra cheeky - map memory directly without copying
+	// to host-visible memory
+	byte *pData = NULL;
+	vk.vkMapMemory(dev, readbackmem, 0, 0, 0, (void **)&pData);
+
+	RDCASSERT(pData != NULL);
+
+	// VKTODOHIGH assuming BGRA
+	pixel[2] = float(pData[0])/255.0f;
+	pixel[1] = float(pData[1])/255.0f;
+	pixel[0] = float(pData[2])/255.0f;
+	pixel[3] = float(pData[3])/255.0f;
+
+	vk.vkUnmapMemory(dev, readbackmem);
+
+	vk.vkDeviceWaitIdle(dev);
+
+	vk.vkFreeMemory(dev, readbackmem);
 }
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
@@ -428,6 +517,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
 	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBMem);
 
+	// VKTODOHIGH find out the actual current image state
 	VkImageMemoryBarrier fakeTrans = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
 		0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,

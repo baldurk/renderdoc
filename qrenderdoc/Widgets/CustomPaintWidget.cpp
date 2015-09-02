@@ -14,6 +14,16 @@ CustomPaintWidget::~CustomPaintWidget()
 
 }
 
+void CustomPaintWidget::mousePressEvent(QMouseEvent *e)
+{
+    emit clicked(e);
+}
+
+void CustomPaintWidget::mouseMoveEvent(QMouseEvent *e)
+{
+    emit mouseMove(e);
+}
+
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
 	if(m_Output)

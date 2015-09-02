@@ -26,6 +26,9 @@ m_Core(core)
 
 	QWidget *renderContainer = ui->renderContainer;
 
+    QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::on_render_clicked);
+    QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::on_render_clicked);
+
 	ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
 	ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
 	                                                       ToolWindowManager::HideCloseButton |
@@ -111,6 +114,39 @@ TextureViewer::~TextureViewer()
 {
 	m_Core->RemoveLogViewer(this);
 	delete ui;
+}
+
+void TextureViewer::on_render_clicked(QMouseEvent *e)
+{
+    uint32_t x = (uint32_t)e->x();
+    uint32_t y = (uint32_t)e->y();
+
+    if(e->buttons() & Qt::RightButton)
+    {
+        m_Core->Renderer()->AsyncInvoke([this,x,y](IReplayRenderer *) {
+
+            ResourceId id;
+            if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
+                id = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+            else
+                id = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+
+            PixelValue val;
+            ReplayOutput_PickPixel(m_Output, id, false, x, y, 0, 0, 0, &val);
+
+            QString str = QString("Pixel %1 %2 %3 %4").arg(val.value_f[0]).arg(val.value_f[1]).arg(val.value_f[2]).arg(val.value_f[3]);
+
+            GUIInvoke::call([this,str,val]() {
+                ui->statusText->setText(str);
+                QPalette Pal(palette());
+
+                // set black background
+                Pal.setColor(QPalette::Background, QColor(int(val.value_f[0]*255), int(val.value_f[1]*255), int(val.value_f[2]*255)));
+                ui->pickSwatch->setAutoFillBackground(true);
+                ui->pickSwatch->setPalette(Pal);
+            });
+        });
+    }
 }
 
 void TextureViewer::OnLogfileLoaded()

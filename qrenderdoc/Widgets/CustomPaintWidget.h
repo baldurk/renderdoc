@@ -14,7 +14,13 @@ class CustomPaintWidget : public QWidget
 
 		void SetOutput(IReplayOutput *out) { m_Output = out; }
 
-	signals:
+    signals:
+        void clicked(QMouseEvent *e);
+        void mouseMove(QMouseEvent *e);
+
+    private slots:
+        void mousePressEvent(QMouseEvent *e);
+        void mouseMoveEvent(QMouseEvent *e);
 
 	public slots:
 
