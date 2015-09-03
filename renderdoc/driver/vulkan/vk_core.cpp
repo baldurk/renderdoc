@@ -46,7 +46,7 @@ const char *VkChunkNames[] =
 {
 	"WrappedVulkan::Initialisation",
 	"vkCreateInstance",
-	"vkInitAndEnumerateGpus",
+	"vkEnumeratePhysicalDevices",
 	"vkCreateDevice",
 	"vkGetDeviceQueue",
 	
@@ -489,8 +489,8 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		VkPhysicalDevice*                           pPhysicalDevices)
 {
 	SERIALISE_ELEMENT(ResourceId, inst, GetResourceManager()->GetID(MakeRes(instance)));
-	
-	SERIALISE_ELEMENT(uint32_t, physCount, *pPhysicalDeviceCount);
+	SERIALISE_ELEMENT(uint32_t, physIndex, *pPhysicalDeviceCount);
+	SERIALISE_ELEMENT(ResourceId, physId, GetResourceManager()->GetID(MakeRes(*pPhysicalDevices)));
 
 	uint32_t count;
 	VkPhysicalDevice devices[8]; // VKTODOLOW: dynamically allocate
@@ -502,30 +502,25 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 		// VKTODOLOW match up physical devices to those available on replay
 	}
-	
-	for(uint32_t i=0; i < physCount; i++)
+
+	VkPhysicalDevice pd = VK_NULL_HANDLE;
+
+	if(m_State >= WRITING)
 	{
-		SERIALISE_ELEMENT(ResourceId, physId, GetResourceManager()->GetID(MakeRes(pPhysicalDevices[i])));
-
-		VkPhysicalDevice pd = VK_NULL_HANDLE;
-
-		if(m_State >= WRITING)
-		{
-			pd = pPhysicalDevices[i];
-		}
-		else
-		{
-			pd = devices[i];
-
-			GetResourceManager()->RegisterResource(MakeRes(devices[i]));
-			GetResourceManager()->AddLiveResource(physId, MakeRes(devices[i]));
-		}
-
-		ReplayData data;
-		data.inst = instance;
-		data.phys = pd;
-		m_PhysicalReplayData.push_back(data);
+		pd = *pPhysicalDevices;
 	}
+	else
+	{
+		pd = devices[physIndex];
+
+		GetResourceManager()->RegisterResource(MakeRes(pd));
+		GetResourceManager()->AddLiveResource(physId, MakeRes(pd));
+	}
+
+	ReplayData data;
+	data.inst = instance;
+	data.phys = pd;
+	m_PhysicalReplayData.push_back(data);
 
 	return true;
 }
@@ -549,7 +544,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		if(m_State >= WRITING)
 		{
 			SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
-			Serialise_vkEnumeratePhysicalDevices(instance, &count, &devices[i]);
+			Serialise_vkEnumeratePhysicalDevices(instance, &i, &devices[i]);
 
 			m_InstanceRecord->AddChunk(scope.Get());
 		}
