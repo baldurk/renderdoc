@@ -3742,6 +3742,10 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		{
 			m_PartialReplayData.renderPassActive = true;
 			m_Real.vkCmdBeginRenderPass(PartialCmdBuf(), &beginInfo, cont);
+
+			m_PartialReplayData.state.renderPass = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(MakeRes(beginInfo.renderPass)));
+			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(MakeRes(beginInfo.framebuffer)));
+			m_PartialReplayData.state.renderArea = beginInfo.renderArea;
 		}
 	}
 	else if(m_State == READING)
@@ -3786,6 +3790,10 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		{
 			m_PartialReplayData.renderPassActive = false;
 			m_Real.vkCmdEndRenderPass(PartialCmdBuf());
+
+			m_PartialReplayData.state.renderPass = ResourceId();
+			m_PartialReplayData.state.framebuffer = ResourceId();
+			RDCEraseEl(m_PartialReplayData.state.renderArea);
 		}
 	}
 	else if(m_State == READING)

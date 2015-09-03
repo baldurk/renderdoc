@@ -241,10 +241,12 @@ private:
 		{
 			StateVector()
 			{
-				compute.pipeline = graphics.pipeline =
+				compute.pipeline = graphics.pipeline = renderPass = framebuffer = 
 					dynamicVP = dynamicRS = dynamicCB = dynamicDS = ResourceId();
 				compute.descSets.clear();
 				graphics.descSets.clear();
+
+				RDCEraseEl(renderArea);
 
 				RDCEraseEl(ibuffer);
 				vbuffers.clear();
