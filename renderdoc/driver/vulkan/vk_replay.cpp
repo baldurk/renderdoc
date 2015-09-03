@@ -90,12 +90,14 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	VkSwapChainWSI old = swap;
 
 	void *handleptr = NULL;
+	void *wndptr = NULL;
 	VkPlatformWSI platform = VK_PLATFORM_MAX_ENUM_WSI;
 
 #if defined(WIN32)
 	static int dllLocator=0;
 
 	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, (HMODULE *)&handleptr);
+	wndptr = wnd;
 	platform = VK_PLATFORM_WIN32_WSI;
 #elif defined(__linux__)
 	VkPlatformHandleXcbWSI handle;
@@ -103,12 +105,13 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	handle.root = screen->root;
 
 	handleptr = &handle;
+	wndptr = &wnd;
 	platform = VK_PLATFORM_X11_WSI;
 #else
 #error "unknown platform"
 #endif
 
-	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, platform, handleptr, &wnd };
+	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, platform, handleptr, wndptr };
 
 	// VKTODOHIGH need to verify which present modes are present
 	VkSwapChainCreateInfoWSI swapInfo = {
