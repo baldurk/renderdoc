@@ -407,7 +407,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
 {
-	RDCUNIMPLEMENTED("RenderHighlightBox");
+	VULKANNOTIMP("RenderHighlightBox");
 }
 	
 ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay overlay, uint32_t frameID, uint32_t eventID, const vector<uint32_t> &passEvents)
@@ -791,7 +791,7 @@ void VulkanReplay::BuildTargetShader(string source, string entry, const uint32_t
 
 void VulkanReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
 {
-	RDCUNIMPLEMENTED("BuildCustomShader");
+	VULKANNOTIMP("BuildCustomShader");
 }
 
 vector<PixelModification> VulkanReplay::PixelHistory(uint32_t frameID, vector<EventUsage> events, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip, uint32_t sampleIdx)
