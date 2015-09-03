@@ -104,6 +104,7 @@ struct ResourceId
 
 #include "d3d11_pipestate.h"
 #include "gl_pipestate.h"
+#include "vk_pipestate.h"
 
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus

@@ -187,7 +187,7 @@ private:
 	// on capture).
 	ResourceId m_CurCmdBufferID;
 
-	struct
+	struct PartialReplayData
 	{
 		// if we're doing a partial replay, by definition only one command
 		// buffer will be partial at any one time. While replaying through
@@ -233,6 +233,54 @@ private:
 		// reach the vkEndCommandBuffer that we also need to end a render
 		// pass.
 		bool renderPassActive;
+
+		// There is only a state while currently partially replaying, it's
+		// undefined/empty otherwise.
+		// All IDs are original IDs, not live.
+		struct StateVector
+		{
+			StateVector()
+			{
+				compute.pipeline = graphics.pipeline =
+					dynamicVP = dynamicRS = dynamicCB = dynamicDS = ResourceId();
+				compute.descSets.clear();
+				graphics.descSets.clear();
+
+				RDCEraseEl(ibuffer);
+				vbuffers.clear();
+			}
+
+			ResourceId dynamicVP;
+			ResourceId dynamicRS;
+			ResourceId dynamicCB;
+			ResourceId dynamicDS;
+
+			ResourceId renderPass;
+			ResourceId framebuffer;
+			VkRect2D renderArea;
+
+			struct
+			{
+				ResourceId pipeline;
+				// VKTODOMED might need something more sophisticated here, for
+				// dynamic offsets
+				vector<ResourceId> descSets;
+			} compute, graphics;
+
+			struct IdxBuffer
+			{
+				ResourceId buf;
+				VkDeviceSize offs;
+				int bytewidth;
+			} ibuffer;
+
+			struct VertBuffer
+			{
+				ResourceId buf;
+				VkDeviceSize offs;
+			};
+			vector<VertBuffer> vbuffers;
+		} state;
 	} m_PartialReplayData;
 
 	bool IsPartialCmd(ResourceId cmdid) { return cmdid == m_PartialReplayData.partialParent; }

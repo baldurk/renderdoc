@@ -3833,7 +3833,13 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 		pipeline = (VkPipeline)GetResourceManager()->GetLiveResource(pipeid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindPipeline(PartialCmdBuf(), bind, pipeline);
+			if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+				m_PartialReplayData.state.graphics.pipeline = pipeid;
+			else
+				m_PartialReplayData.state.compute.pipeline = pipeid;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -3903,7 +3909,22 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 		layout = (VkPipelineLayout)GetResourceManager()->GetLiveResource(layoutid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindDescriptorSets(PartialCmdBuf(), bind, layout, first, numSets, sets, offsCount, offs);
+
+			vector<ResourceId> &descsets =
+				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+				? m_PartialReplayData.state.graphics.descSets
+				: m_PartialReplayData.state.compute.descSets;
+
+			// expand as necessary
+			if(descsets.size() < first + numSets)
+				descsets.resize(first + numSets);
+
+			// VKTODOMED use layout to bake in dynamic offsets?
+			for(uint32_t i=0; i < numSets; i++)
+				descsets[first+i] = descriptorIDs[i];
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -3960,7 +3981,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 		dynamicViewportState = (VkDynamicViewportState)GetResourceManager()->GetLiveResource(stateid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindDynamicViewportState(PartialCmdBuf(), dynamicViewportState);
+			m_PartialReplayData.state.dynamicVP = stateid;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4003,7 +4027,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 		dynamicRasterState = (VkDynamicRasterState)GetResourceManager()->GetLiveResource(stateid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindDynamicRasterState(PartialCmdBuf(), dynamicRasterState);
+			m_PartialReplayData.state.dynamicRS = stateid;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4046,7 +4073,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 		dynamicColorBlendState = (VkDynamicColorBlendState)GetResourceManager()->GetLiveResource(stateid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindDynamicColorBlendState(PartialCmdBuf(), dynamicColorBlendState);
+			m_PartialReplayData.state.dynamicCB = stateid;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4089,7 +4119,10 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 		dynamicDepthStencilState = (VkDynamicDepthStencilState)GetResourceManager()->GetLiveResource(stateid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindDynamicDepthStencilState(PartialCmdBuf(), dynamicDepthStencilState);
+			m_PartialReplayData.state.dynamicDS = stateid;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4131,6 +4164,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	SERIALISE_ELEMENT(uint32_t, start, startBinding);
 	SERIALISE_ELEMENT(uint32_t, count, bindingCount);
 
+	vector<ResourceId> bufids;
 	vector<VkBuffer> bufs;
 	vector<VkDeviceSize> offs;
 
@@ -4149,6 +4183,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 
 		if(m_State < WRITING)
 		{
+			bufids.push_back(id);
 			bufs.push_back((VkBuffer)GetResourceManager()->GetLiveResource(id).handle);
 			offs.push_back(o);
 		}
@@ -4157,7 +4192,18 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindVertexBuffers(PartialCmdBuf(), start, count, &bufs[0], &offs[0]);
+
+			if(m_PartialReplayData.state.vbuffers.size() < start + count)
+				m_PartialReplayData.state.vbuffers.resize(start + count);
+
+			for(uint32_t i=0; i < count; i++)
+			{
+				m_PartialReplayData.state.vbuffers[start + i].buf = bufids[i];
+				m_PartialReplayData.state.vbuffers[start + i].offs = offs[i];
+			}
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -4208,7 +4254,13 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
 			m_Real.vkCmdBindIndexBuffer(PartialCmdBuf(), buffer, offs, idxType);
+
+			m_PartialReplayData.state.ibuffer.buf = bufid;
+			m_PartialReplayData.state.ibuffer.offs = offs;
+			m_PartialReplayData.state.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
+		}
 	}
 	else if(m_State == READING)
 	{
@@ -5348,6 +5400,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		RDCASSERT(m_PartialReplayData.resultPartialCmdBuffer == VK_NULL_HANDLE);
 		m_PartialReplayData.partialParent = ResourceId();
 		m_PartialReplayData.baseEvent = 0;
+		m_PartialReplayData.state = PartialReplayData::StateVector();
 	}
 	else if(m_State == READING)
 	{
@@ -7010,6 +7063,9 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 		draw.outputs[i] = ResourceId();
 
 	draw.depthOut = ResourceId();
+
+	// VKTODOHIGH set index byte width here
+	// VKTODOHIGH set topology here
 
 	m_CurDrawcallID++;
 	if(hasEvents)
