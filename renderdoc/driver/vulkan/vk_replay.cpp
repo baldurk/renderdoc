@@ -113,8 +113,9 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	// VKTODOHIGH need to verify which present modes are present
 	VkSwapChainCreateInfoWSI swapInfo = {
 			VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI, NULL, (VkSurfaceDescriptionWSI *)&surfDesc,
-			2, VK_FORMAT_B8G8R8A8_UNORM, { width, height }, 0,
-			VK_SURFACE_TRANSFORM_NONE_WSI, 1, VK_PRESENT_MODE_IMMEDIATE_WSI,
+			2, VK_FORMAT_B8G8R8A8_UNORM, { width, height },
+			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
+			VK_SURFACE_TRANSFORM_NONE_WSI, 1, VK_PRESENT_MODE_MAILBOX_WSI,
 			old, true,
 	};
 
