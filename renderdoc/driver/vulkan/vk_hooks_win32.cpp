@@ -27,7 +27,7 @@
 #include "vk_core.h"
 #include "hooks/hooks.h"
 
-#define DLL_NAME "vulkan.dll"
+#define DLL_NAME "vulkan.0.dll"
 
 Threading::CriticalSection vulkanLock;
 
@@ -50,12 +50,12 @@ class VulkanHook : LibraryHook
 		
 		bool CreateHooks(const char *dllName)
 		{
-			RDCEraseEl(real);
+			RDCEraseEl(VK);
 
 			if(!m_EnabledHooks)
 				return false;
 
-			bool success = SetupHooks(real);
+			bool success = SetupHooks(VK);
 
 			if(!success) return false;
 			
@@ -69,20 +69,40 @@ class VulkanHook : LibraryHook
 			m_EnabledHooks = enable;
 		}
 		
-		static VulkanHook vulkanhooks;
+		static VulkanHook vkhooks;
 
 		const VulkanFunctions &GetRealVKFunctions()
 		{
+			LoadLibraryA("vulkan.0.dll");
 			if(!m_PopulatedHooks)
-				m_PopulatedHooks = PopulateHooks();
-			return real;
+			{
+				PopulateHooks();
+				m_PopulatedHooks = true;
+			}
+			return VK;
+		}
+
+		void PopulateDeviceHooks(VkDevice d, VkInstance i)
+		{
+#define HACK_WSI(func) VK.func = (CONCAT(PFN_, func))GPA_Device()(d, STRINGIZE(func));
+			HACK_WSI(vkCreateSwapChainWSI)
+			HACK_WSI(vkDestroySwapChainWSI)
+			HACK_WSI(vkGetSwapChainInfoWSI)
+			HACK_WSI(vkAcquireNextImageWSI)
+			HACK_WSI(vkQueuePresentWSI)
+#undef HACK_WSI
+
+#define HACK_DBG(func) VK.func = (CONCAT(PFN_, func))GPA_Instance()(i, STRINGIZE(func));
+			HACK_DBG(vkDbgCreateMsgCallback)
+			HACK_DBG(vkDbgDestroyMsgCallback)
+#undef HACK_DBG
 		}
 
 	private:
 		WrappedVulkan *GetDriver()
 		{
 			if(m_Driver == NULL)
-				m_Driver = new WrappedVulkan(real, "");
+				m_Driver = new WrappedVulkan(VK, "");
 
 			GetRealVKFunctions();
 
@@ -91,12 +111,67 @@ class VulkanHook : LibraryHook
 
 		WrappedVulkan *m_Driver;
 		
-		VulkanFunctions real;
+		VulkanFunctions VK;
+		
+		Hook<PFN_vkGetInstanceProcAddr> GPA_Instance;
+		Hook<PFN_vkGetDeviceProcAddr> GPA_Device;
 
 		bool m_PopulatedHooks;
 		bool m_HasHooks;
 		bool m_EnabledHooks;
+
+		bool PopulateHooks()
+		{
+#undef HookInit
+#define HookInit(funcname) \
+	if(!VK.funcname) VK.funcname = (CONCAT(PFN_, funcname))Process::GetFunctionAddress(DLL_NAME, STRINGIZE(funcname));
+
+			HookInitVulkan()
+
+			if(GPA_Instance() == NULL) GPA_Instance.SetFuncPtr(Process::GetFunctionAddress(DLL_NAME, "vkGetInstanceProcAddr"));
+			if(GPA_Device() == NULL)   GPA_Device.SetFuncPtr(Process::GetFunctionAddress(DLL_NAME, "vkGetDeviceProcAddr"));
+
+			return true;
+		}
 		
+		static PFN_vkVoidFunction VKAPI vkGetInstanceProcAddr_hooked(
+			VkInstance                                  instance,
+			const char*                                 pName)
+		{
+			PFN_vkVoidFunction realFunc = VulkanHook::vkhooks.GPA_Instance()(instance, pName);
+
+#undef HookInit
+#define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(vkhooks.VK.function == NULL) vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(hooked_, function); }
+
+			// VKTODOLOW do we want to care about the case where different instances have
+			// different function pointers? at the moment we assume they're all the
+			// same.
+			// Update - will be fixed by dispatch mechanism
+			HookInitVulkan();
+
+			RDCDEBUG("Instance GPA'd function '%s' is not hooked!", pName);
+			return realFunc;
+		}
+		
+		static PFN_vkVoidFunction VKAPI vkGetDeviceProcAddr_hooked(
+    VkDevice                                    device,
+    const char*                                 pName)
+		{
+			PFN_vkVoidFunction realFunc = VulkanHook::vkhooks.GPA_Device()(device, pName);
+
+#undef HookInit
+#define HookInit(function) if(!strcmp(pName, STRINGIZE(function))) { if(vkhooks.VK.function == NULL) vkhooks.VK.function = (CONCAT(PFN_, function))realFunc; return (PFN_vkVoidFunction)CONCAT(hooked_, function); }
+
+			// VKTODOLOW do we want to care about the case where different instances have
+			// different function pointers? at the moment we assume they're all the
+			// same.
+			// Update - will be fixed by dispatch mechanism
+			HookInitVulkan();
+
+			RDCDEBUG("Device GPA'd function '%s' is not hooked!", pName);
+			return realFunc;
+		}
+
 		bool SetupHooks(VulkanFunctions &GL)
 		{
 			bool success = true;
@@ -104,29 +179,12 @@ class VulkanHook : LibraryHook
 #undef HookInit
 #define HookInit(funcname) \
 	success &= CONCAT(hook_, funcname).Initialize(STRINGIZE(funcname), DLL_NAME, &CONCAT(hooked_, funcname)); \
-	real.funcname = CONCAT(hook_, funcname)();
+	VK.funcname = CONCAT(hook_, funcname)();
 
 			HookInitVulkan()
 
-			return success;
-		}
-		
-		bool PopulateHooks()
-		{
-			bool success = true;
-
-			HMODULE mod = GetModuleHandleA(DLL_NAME);
-
-			if(mod == NULL)
-				return false;
-			
-			// fetch real pointers via GetProcAddress
-#undef HookInit
-#define HookInit(function) \
-				if(real.function == NULL) real.function = (CONCAT(PFN_, function)) Process::GetFunctionAddress(DLL_NAME, STRINGIZE(function)); \
-				success &= (real.function != NULL);
-
-			HookInitVulkan()
+			success &= GPA_Instance.Initialize("vkGetInstanceProcAddr", DLL_NAME, vkGetInstanceProcAddr_hooked);
+			success &= GPA_Device.Initialize("vkGetDeviceProcAddr", DLL_NAME, vkGetDeviceProcAddr_hooked);
 
 			return success;
 		}
@@ -144,60 +202,59 @@ class VulkanHook : LibraryHook
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0); \
 		}
 #define HookDefine2(ret, funcname, t0, p0, t1, p1) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1); \
 		}
 #define HookDefine3(ret, funcname, t0, p0, t1, p1, t2, p2) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2); \
 		}
 #define HookDefine4(ret, funcname, t0, p0, t1, p1, t2, p2, t3, p3) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2, t3 p3) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2, p3); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2, p3); \
 		}
 #define HookDefine5(ret, funcname, t0, p0, t1, p1, t2, p2, t3, p3, t4, p4) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2, t3 p3, t4 p4) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2, p3, p4); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2, p3, p4); \
 		}
 #define HookDefine6(ret, funcname, t0, p0, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5); \
 		}
 #define HookDefine7(ret, funcname, t0, p0, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5, p6); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5, p6); \
 		}
 #define HookDefine8(ret, funcname, t0, p0, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
 		Hook<CONCAT(PFN_, funcname)> CONCAT(hook_, funcname); \
 		static ret VKAPI CONCAT(hooked_, funcname)(t0 p0, t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7) \
 		{ \
-			SCOPED_LOCK(vulkanLock); return vulkanhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5, p6, p7); \
+			SCOPED_LOCK(vulkanLock); return vkhooks.GetDriver()->funcname(p0, p1, p2, p3, p4, p5, p6, p7); \
 		}
 
 		DefineHooks()
 };
 
-VulkanHook VulkanHook::vulkanhooks;
+VulkanHook VulkanHook::vkhooks;
 
 void PopulateDeviceHooks(VkDevice d, VkInstance i)
 {
-	// don't need to bother with an impl because this file will be replaced
-	// before we ever run on windows
+	VulkanHook::vkhooks.PopulateDeviceHooks(d, i);
 }
 
-const VulkanFunctions &GetRealVKFunctions() { return VulkanHook::vulkanhooks.GetRealVKFunctions(); }
+const VulkanFunctions &GetRealVKFunctions() { return VulkanHook::vkhooks.GetRealVKFunctions(); }
