@@ -255,8 +255,8 @@ vector<ResourceId> VulkanReplay::GetTextures()
 
 	ResourceId id;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBMem);
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
 
 	texs.push_back(id);
 	return texs;
@@ -274,8 +274,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBMem);
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
 
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
@@ -519,8 +519,8 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBMem);
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
 
 	// VKTODOHIGH find out the actual current image state
 	VkImageMemoryBarrier fakeTrans = {
@@ -546,7 +546,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkImageCopy region = {
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
-		{ RDCMIN(1280, outw.width), RDCMIN(720, outw.height), 1 },
+		{ RDCMIN(fakeBBext.width, outw.width), RDCMIN(fakeBBext.height, outw.height), 1 },
 	};
 	vk.vkCmdCopyImage(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
 	
@@ -692,8 +692,8 @@ void VulkanReplay::SavePipelineState()
 
 	ResourceId id;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkDeviceMemory fakeBBMem = VK_NULL_HANDLE;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBMem);
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
 
 	m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
 }

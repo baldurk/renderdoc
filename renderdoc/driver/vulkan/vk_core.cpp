@@ -360,7 +360,7 @@ WrappedVulkan::WrappedVulkan(const VulkanFunctions &real, const char *logFilenam
 
 	m_FakeBBImgId = ResourceId();
 	m_FakeBBIm = VK_NULL_HANDLE;
-	m_FakeBBMem = VK_NULL_HANDLE;
+	RDCEraseEl(m_FakeBBExtent);
 
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
 	
@@ -6902,7 +6902,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
 			m_FakeBBImgId = bbid;
 			m_FakeBBIm = (VkImage)GetResourceManager()->GetLiveResource(bbid).handle;
-			m_FakeBBMem = m_ImageInfo[liveBBid].mem;
+			m_FakeBBExtent = m_ImageInfo[liveBBid].extent;
 
 			bool HasCallstack = false;
 			m_pSerialiser->Serialise("HasCallstack", HasCallstack);	

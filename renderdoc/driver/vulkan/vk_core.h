@@ -161,9 +161,9 @@ private:
 
 	ResourceId m_FakeBBImgId;
 	VkImage m_FakeBBIm;
-	VkDeviceMemory m_FakeBBMem;
-	void GetFakeBB(ResourceId &id, VkImage &im, VkDeviceMemory &mem)
-	{ id = m_FakeBBImgId; im = m_FakeBBIm; mem = m_FakeBBMem; }
+	VkExtent3D m_FakeBBExtent;
+	void GetFakeBB(ResourceId &id, VkImage &im, VkExtent3D &extent)
+	{ id = m_FakeBBImgId; im = m_FakeBBIm; extent = m_FakeBBExtent; }
 	
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
