@@ -694,14 +694,50 @@ void VulkanReplay::SavePipelineState()
 {
 	VULKANNOTIMP("SavePipelineState");
 
-	create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
+	{
+		create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
 
-	ResourceId id;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
+		ResourceId id;
+		VkImage fakeBBIm = VK_NULL_HANDLE;
+		VkExtent3D fakeBBext;
+		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
 
-	m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
+		m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
+	}
+
+	{
+		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+
+		create_array_uninit(m_VulkanPipelineState.VI.vbuffers, state.vbuffers.size());
+		for(size_t i=0; i < state.vbuffers.size(); i++)
+		{
+			m_VulkanPipelineState.VI.vbuffers[i].buffer = state.vbuffers[i].buf;
+			m_VulkanPipelineState.VI.vbuffers[i].offset = state.vbuffers[i].offs;
+		}
+		
+		{
+			m_VulkanPipelineState.IA.ibuffer.buf = state.ibuffer.buf;
+			m_VulkanPipelineState.IA.ibuffer.offs = state.ibuffer.offs;
+		}
+
+		m_VulkanPipelineState.computePipeline = state.compute.pipeline;
+		m_VulkanPipelineState.graphicsPipeline = state.graphics.pipeline;
+
+		m_VulkanPipelineState.VP.state = state.dynamicVP;
+		m_VulkanPipelineState.RS.state = state.dynamicVP;
+		m_VulkanPipelineState.DS.state = state.dynamicDS;
+		m_VulkanPipelineState.CB.state = state.dynamicCB;
+
+		m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;
+		m_VulkanPipelineState.Pass.framebuffer.obj = state.framebuffer;
+
+		// TODO split fine-grained state out of above objects
+
+		m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;
+		m_VulkanPipelineState.Pass.renderArea.y = state.renderArea.offset.y;
+		m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
+		m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
+	}
 }
 
 void VulkanReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)

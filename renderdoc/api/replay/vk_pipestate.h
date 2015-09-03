@@ -28,7 +28,7 @@ struct VulkanPipelineState
 {
 	VulkanPipelineState() : pipelineFlags(0) {}
 
-	ResourceId pipeline;
+	ResourceId computePipeline, graphicsPipeline;
 	uint32_t pipelineFlags;
 
 	// VKTODOMED renderpass/subpass?
@@ -92,30 +92,35 @@ struct VulkanPipelineState
 		// VKTODOMED specialization info
 	} VS, TCS, TES, GS, FS, CS;
 
+	// VKTODOHIGH descriptor sets
+
 	struct Tessellation
 	{
 		Tessellation() : numControlPoints(0) { }
 		uint32_t numControlPoints;
 	} Tess;
 
-	struct ViewportScissor
+	struct ViewState
 	{
 		ResourceId state;
 
-		struct Viewport
+		struct ViewportScissor
 		{
-			Viewport() : x(0), y(0), width(0), height(0), mindepth(0), maxdepth(0) {}
-			float x, y, width, height, mindepth, maxdepth;
-		} vp;
+			struct Viewport
+			{
+				Viewport() : x(0), y(0), width(0), height(0), mindepth(0), maxdepth(0) {}
+				float x, y, width, height, mindepth, maxdepth;
+			} vp;
 
-		struct Scissor
-		{
-			Scissor() : x(0), y(0), width(0), height(0) {}
-			int32_t x, y, width, height;
-		} scissor;
-	};
-
-	rdctype::array<ViewportScissor> viewportScissors;
+			struct Scissor
+			{
+				Scissor() : x(0), y(0), width(0), height(0) {}
+				int32_t x, y, width, height;
+			} scissor;
+		};
+	
+		rdctype::array<ViewportScissor> viewportScissors;
+	} VP;
 
 	struct Raster
 	{
@@ -143,15 +148,17 @@ struct VulkanPipelineState
 
 	struct ColorBlend
 	{
+		ColorBlend()
+		{
+			blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
+		}
+
 		bool32 alphaToCoverageEnable, logicOpEnable;
 		rdctype::str logicOp;
 
 		struct Attachment
 		{
-			Attachment() : blendEnable(false), writeMask(0)
-			{
-				blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
-			}
+			Attachment() : blendEnable(false), writeMask(0) {}
 
 			bool32 blendEnable;
 
@@ -163,11 +170,11 @@ struct VulkanPipelineState
 			} blend, alphaBlend;
 
 			uint8_t writeMask;
-
-			ResourceId state;
-			float blendConst[4];
 		};
 		rdctype::array<Attachment> attachments;
+
+		ResourceId state;
+		float blendConst[4];
 	} CB;
 
 	struct DepthStencil
