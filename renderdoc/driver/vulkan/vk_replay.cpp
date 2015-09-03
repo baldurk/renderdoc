@@ -289,6 +289,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	const VulkanFunctions &vk = m_pDriver->m_Real;
 
 	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
+	VkBuffer destbuf = VK_NULL_HANDLE;
 
 	{
 		VkMemoryAllocInfo allocInfo = {
@@ -306,8 +307,6 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			128, VK_BUFFER_USAGE_GENERAL, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
-
-		VkBuffer destbuf;
 
 		res = vk.vkCreateBuffer(dev, &bufInfo, &destbuf);
 		RDCASSERT(res == VK_SUCCESS);
@@ -365,6 +364,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 	vk.vkDeviceWaitIdle(dev);
 
+	vk.vkDestroyBuffer(dev, destbuf);
 	vk.vkFreeMemory(dev, readbackmem);
 }
 
