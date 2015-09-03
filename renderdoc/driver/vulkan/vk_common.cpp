@@ -695,6 +695,19 @@ string ToStrHelper<false, VkMemoryOutputFlagBits>::Get(const VkMemoryOutputFlagB
 }
 
 template<>
+string ToStrHelper<false, VkSharingMode>::Get(const VkSharingMode &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_SHARING_MODE_EXCLUSIVE)
+		TOSTR_CASE_STRINGIZE(VK_SHARING_MODE_CONCURRENT)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkSharingMode<%d>", el);
+}
+
+template<>
 string ToStrHelper<false, VkBufferViewType>::Get(const VkBufferViewType &el)
 {
 	switch(el)
@@ -1318,6 +1331,9 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
 	Serialise("size", el.size);
 	Serialise("usage", (VkBufferUsageFlagBits &)el.usage);
 	Serialise("flags", (VkBufferCreateFlagBits &)el.flags);
+	Serialise("sharingMode", el.sharingMode);
+	if(m_Mode == READING) el.pQueueFamilyIndices = NULL;
+	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyCount);
 }
 
 template<>
@@ -1354,6 +1370,9 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
 	Serialise("tiling", el.tiling);
 	Serialise("usage", (VkImageUsageFlagBits &)el.usage);
 	Serialise("flags", (VkImageCreateFlagBits &)el.flags);
+	Serialise("sharingMode", el.sharingMode);
+	if(m_Mode == READING) el.pQueueFamilyIndices = NULL;
+	SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices, el.queueFamilyCount);
 }
 
 template<>
