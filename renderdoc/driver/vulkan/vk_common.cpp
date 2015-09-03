@@ -1177,6 +1177,73 @@ void Serialiser::Serialise(const char *name, VkDeviceQueueCreateInfo &el)
 	Serialise("queueCount", el.queueCount);
 }
 
+// technically this doesn't need a serialise function as it's POD,
+// but we give it one just for ease of printing etc.
+template<>
+void Serialiser::Serialise(const char *name, VkPhysicalDeviceFeatures &el)
+{
+	ScopedContext scope(this, this, name, "VkPhysicalDeviceFeatures", 0, true);
+
+	Serialise("robustBufferAccess", el.robustBufferAccess);
+	Serialise("fullDrawIndexUint32", el.fullDrawIndexUint32);
+	Serialise("imageCubeArray", el.imageCubeArray);
+	Serialise("independentBlend", el.independentBlend);
+	Serialise("geometryShader", el.geometryShader);
+	Serialise("tessellationShader", el.tessellationShader);
+	Serialise("sampleRateShading", el.sampleRateShading);
+	Serialise("dualSourceBlend", el.dualSourceBlend);
+	Serialise("logicOp", el.logicOp);
+	Serialise("instancedDrawIndirect", el.instancedDrawIndirect);
+	Serialise("depthClip", el.depthClip);
+	Serialise("depthBiasClamp", el.depthBiasClamp);
+	Serialise("fillModeNonSolid", el.fillModeNonSolid);
+	Serialise("depthBounds", el.depthBounds);
+	Serialise("wideLines", el.wideLines);
+	Serialise("largePoints", el.largePoints);
+	Serialise("textureCompressionETC2", el.textureCompressionETC2);
+	Serialise("textureCompressionASTC_LDR", el.textureCompressionASTC_LDR);
+	Serialise("textureCompressionBC", el.textureCompressionBC);
+	Serialise("pipelineStatisticsQuery", el.pipelineStatisticsQuery);
+	Serialise("vertexSideEffects", el.vertexSideEffects);
+	Serialise("tessellationSideEffects", el.tessellationSideEffects);
+	Serialise("geometrySideEffects", el.geometrySideEffects);
+	Serialise("fragmentSideEffects", el.fragmentSideEffects);
+	Serialise("shaderTessellationPointSize", el.shaderTessellationPointSize);
+	Serialise("shaderGeometryPointSize", el.shaderGeometryPointSize);
+	Serialise("shaderTextureGatherExtended", el.shaderTextureGatherExtended);
+	Serialise("shaderStorageImageExtendedFormats", el.shaderStorageImageExtendedFormats);
+	Serialise("shaderStorageImageMultisample", el.shaderStorageImageMultisample);
+	Serialise("shaderStorageBufferArrayConstantIndexing", el.shaderStorageBufferArrayConstantIndexing);
+	Serialise("shaderStorageImageArrayConstantIndexing", el.shaderStorageImageArrayConstantIndexing);
+	Serialise("shaderUniformBufferArrayDynamicIndexing", el.shaderUniformBufferArrayDynamicIndexing);
+	Serialise("shaderSampledImageArrayDynamicIndexing", el.shaderSampledImageArrayDynamicIndexing);
+	Serialise("shaderStorageBufferArrayDynamicIndexing", el.shaderStorageBufferArrayDynamicIndexing);
+	Serialise("shaderStorageImageArrayDynamicIndexing", el.shaderStorageImageArrayDynamicIndexing);
+	Serialise("shaderClipDistance", el.shaderClipDistance);
+	Serialise("shaderCullDistance", el.shaderCullDistance);
+	Serialise("shaderFloat64", el.shaderFloat64);
+	Serialise("shaderInt64", el.shaderInt64);
+	Serialise("shaderFloat16", el.shaderFloat16);
+	Serialise("shaderInt16", el.shaderInt16);
+	Serialise("shaderResourceResidency", el.shaderResourceResidency);
+	Serialise("shaderResourceMinLOD", el.shaderResourceMinLOD);
+	Serialise("sparse", el.sparse);
+	Serialise("sparseResidencyBuffer", el.sparseResidencyBuffer);
+	Serialise("sparseResidencyImage2D", el.sparseResidencyImage2D);
+	Serialise("sparseResidencyImage3D", el.sparseResidencyImage3D);
+	Serialise("sparseResidency2Samples", el.sparseResidency2Samples);
+	Serialise("sparseResidency4Samples", el.sparseResidency4Samples);
+	Serialise("sparseResidency8Samples", el.sparseResidency8Samples);
+	Serialise("sparseResidency16Samples", el.sparseResidency16Samples);
+	Serialise("sparseResidencyStandard2DBlockShape", el.sparseResidencyStandard2DBlockShape);
+	Serialise("sparseResidencyStandard2DMSBlockShape", el.sparseResidencyStandard2DMSBlockShape);
+	Serialise("sparseResidencyStandard3DBlockShape", el.sparseResidencyStandard3DBlockShape);
+	Serialise("sparseResidencyAlignedMipSize", el.sparseResidencyAlignedMipSize);
+	Serialise("sparseResidencyNonResident", el.sparseResidencyNonResident);
+	Serialise("sparseResidencyNonResidentStrict", el.sparseResidencyNonResidentStrict);
+	Serialise("sparseResidencyAliased", el.sparseResidencyAliased);
+}
+
 template<>
 void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 {
@@ -1235,6 +1302,8 @@ void Serialiser::Serialise(const char *name, VkDeviceCreateInfo &el)
 			layers[i] = m_StringDB.find(s)->c_str();
 		}
 	}
+
+	SerialiseOptionalObject(this, "pEnabledFeatures", (VkPhysicalDeviceFeatures *&)el.pEnabledFeatures);
 }
 
 template<>
