@@ -849,7 +849,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 	RDCDEBUG("Creating a VulkanReplay replay device");
 	
 #if defined(WIN32)
-	bool loaded = Process::LoadModule("vulkan.dll");
+	bool loaded = Process::LoadModule("vulkan.0.dll");
 #elif defined(__linux__)
 	bool loaded = Process::LoadModule("libvulkan.so");
 #else
