@@ -108,8 +108,9 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 #error "unknown platform"
 #endif
 
-	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, VK_PLATFORM_X11_WSI, handleptr, &wnd };
+	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, platform, handleptr, &wnd };
 
+	// VKTODOHIGH need to verify which present modes are present
 	VkSwapChainCreateInfoWSI swapInfo = {
 			VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI, NULL, (VkSurfaceDescriptionWSI *)&surfDesc,
 			2, VK_FORMAT_B8G8R8A8_UNORM, { width, height }, 0,
