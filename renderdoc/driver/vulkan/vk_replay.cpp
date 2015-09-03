@@ -277,6 +277,12 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	VkExtent3D fakeBBext;
 	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
 
+	if(x >= (uint32_t)fakeBBext.width || y >= (uint32_t)fakeBBext.height)
+	{
+		RDCEraseEl(pixel);
+		return;
+	}
+
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
