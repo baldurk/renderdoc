@@ -180,10 +180,10 @@ struct VulkanPipelineState
 	struct DepthStencil
 	{
 		DepthStencil()
-			: testEnable(false), writeEnable(false), boundsEnable(false), stencilTestEnable(false)
+			: depthTestEnable(false), depthWriteEnable(false), depthBoundsEnable(false), stencilTestEnable(false)
 			, minDepthBounds(0), maxDepthBounds(0) {}
 
-		bool32 testEnable, writeEnable, boundsEnable;
+		bool32 depthTestEnable, depthWriteEnable, depthBoundsEnable;
 		rdctype::str compareOp;
 
 		bool32 stencilTestEnable;
