@@ -10,6 +10,7 @@
     <ClCompile Include="vk_hooks_win32.cpp" />
     <ClCompile Include="vk_hooks_linux.cpp" />
     <ClCompile Include="vk_resources.cpp" />
+    <ClCompile Include="vk_info.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_core.h" />
@@ -19,5 +20,6 @@
     <ClInclude Include="vk_replay.h" />
     <ClInclude Include="vk_resources.h" />
     <ClInclude Include="vk_common.h" />
+    <ClInclude Include="vk_info.h" />
   </ItemGroup>
 </Project>

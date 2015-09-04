@@ -25,6 +25,7 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_hooks_win32.cpp" />
+    <ClCompile Include="vk_info.cpp" />
     <ClCompile Include="vk_manager.cpp" />
     <ClCompile Include="vk_replay.cpp" />
     <ClCompile Include="vk_replay_win32.cpp" />
@@ -48,6 +49,7 @@
     <ClInclude Include="vk_core.h" />
     <ClInclude Include="vk_hookset.h" />
     <ClInclude Include="vk_hookset_defs.h" />
+    <ClInclude Include="vk_info.h" />
     <ClInclude Include="vk_manager.h" />
     <ClInclude Include="vk_replay.h" />
     <ClInclude Include="vk_resources.h" />

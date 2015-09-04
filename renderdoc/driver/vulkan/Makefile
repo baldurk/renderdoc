@@ -14,6 +14,7 @@ vk_core.o \
 vk_hooks_linux.o \
 vk_manager.o \
 vk_replay.o \
+vk_info.o \
 vk_replay_linux.o \
 vk_resources.o \
 

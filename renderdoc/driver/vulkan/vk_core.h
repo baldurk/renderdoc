@@ -33,6 +33,7 @@
 
 #include "vk_common.h"
 #include "vk_hookset.h"
+#include "vk_info.h"
 #include "vk_manager.h"
 #include "vk_replay.h"
 
@@ -325,6 +326,8 @@ private:
 		uint32_t slotCount;
 	};
 	map<ResourceId, DescriptorSetInfo> m_DescSetInfo;
+
+	VulkanCreationInfo m_CreationInfo;
 
 	set<ResourceId> m_SubmittedFences;
 		
