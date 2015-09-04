@@ -707,36 +707,204 @@ void VulkanReplay::SavePipelineState()
 
 	{
 		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
+		VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
-		create_array_uninit(m_VulkanPipelineState.VI.vbuffers, state.vbuffers.size());
-		for(size_t i=0; i < state.vbuffers.size(); i++)
-		{
-			m_VulkanPipelineState.VI.vbuffers[i].buffer = state.vbuffers[i].buf;
-			m_VulkanPipelineState.VI.vbuffers[i].offset = state.vbuffers[i].offs;
-		}
+		m_VulkanPipelineState = VulkanPipelineState();
 		
+		// General pipeline properties
+		m_VulkanPipelineState.compute.obj = state.compute.pipeline;
+		m_VulkanPipelineState.graphics.obj = state.graphics.pipeline;
+
+		if(state.compute.pipeline != ResourceId())
+			m_VulkanPipelineState.compute.flags = c.m_Pipeline[state.compute.pipeline].flags;
+
+		if(state.graphics.pipeline != ResourceId())
 		{
+			const VulkanCreationInfo::Pipeline &p = c.m_Pipeline[state.graphics.pipeline];
+
+			m_VulkanPipelineState.graphics.flags = p.flags;
+
+			// Input Assembly
 			m_VulkanPipelineState.IA.ibuffer.buf = state.ibuffer.buf;
 			m_VulkanPipelineState.IA.ibuffer.offs = state.ibuffer.offs;
+			m_VulkanPipelineState.IA.primitiveRestartEnable = p.primitiveRestartEnable;
+
+			// Vertex Input
+			create_array_uninit(m_VulkanPipelineState.VI.attrs, p.vertexAttrs.size());
+			for(size_t i=0; i < p.vertexAttrs.size(); i++)
+			{
+				m_VulkanPipelineState.VI.attrs[i].location = p.vertexAttrs[i].location;
+				m_VulkanPipelineState.VI.attrs[i].binding = p.vertexAttrs[i].binding;
+				m_VulkanPipelineState.VI.attrs[i].byteoffset = p.vertexAttrs[i].byteoffset;
+				m_VulkanPipelineState.VI.attrs[i].format = MakeResourceFormat(p.vertexAttrs[i].format);
+			}
+
+			create_array_uninit(m_VulkanPipelineState.VI.binds, p.vertexBindings.size());
+			for(size_t i=0; i < p.vertexBindings.size(); i++)
+			{
+				m_VulkanPipelineState.VI.binds[i].bytestride = p.vertexBindings[i].bytestride;
+				m_VulkanPipelineState.VI.binds[i].vbufferBinding = p.vertexBindings[i].vbufferBinding;
+				m_VulkanPipelineState.VI.binds[i].perInstance = p.vertexBindings[i].perInstance;
+			}
+
+			create_array_uninit(m_VulkanPipelineState.VI.vbuffers, state.vbuffers.size());
+			for(size_t i=0; i < state.vbuffers.size(); i++)
+			{
+				m_VulkanPipelineState.VI.vbuffers[i].buffer = state.vbuffers[i].buf;
+				m_VulkanPipelineState.VI.vbuffers[i].offset = state.vbuffers[i].offs;
+			}
+
+			// Shader Stages
+			VulkanPipelineState::ShaderStage *stages[] = {
+				&m_VulkanPipelineState.VS,
+				&m_VulkanPipelineState.TCS,
+				&m_VulkanPipelineState.TES,
+				&m_VulkanPipelineState.GS,
+				&m_VulkanPipelineState.FS,
+				&m_VulkanPipelineState.CS,
+			};
+
+			for(size_t i=0; i < ARRAY_COUNT(stages); i++)
+			{
+				stages[i]->Shader = p.shaders[i];
+				stages[i]->ShaderDetails = NULL;
+				stages[i]->customName = false;
+				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", p.shaders[i]);
+				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
+			}
+
+			// Tessellation
+			m_VulkanPipelineState.Tess.numControlPoints = p.patchControlPoints;
+
+			// Viewport/Scissors
+			m_VulkanPipelineState.VP.state = state.dynamicVP;
+			create_array_uninit(m_VulkanPipelineState.VP.viewportScissors, c.m_VPScissor[state.dynamicVP].viewports.size());
+			for(size_t i=0; i < c.m_VPScissor[state.dynamicVP].viewports.size(); i++)
+			{
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.x = c.m_VPScissor[state.dynamicVP].viewports[i].originX;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.y = c.m_VPScissor[state.dynamicVP].viewports[i].originY;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.width = c.m_VPScissor[state.dynamicVP].viewports[i].width;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.height = c.m_VPScissor[state.dynamicVP].viewports[i].height;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.minDepth = c.m_VPScissor[state.dynamicVP].viewports[i].minDepth;
+				m_VulkanPipelineState.VP.viewportScissors[i].vp.maxDepth = c.m_VPScissor[state.dynamicVP].viewports[i].maxDepth;
+
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.x = c.m_VPScissor[state.dynamicVP].scissors[i].offset.x;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.y = c.m_VPScissor[state.dynamicVP].scissors[i].offset.y;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.width = c.m_VPScissor[state.dynamicVP].scissors[i].extent.width;
+				m_VulkanPipelineState.VP.viewportScissors[i].scissor.height = c.m_VPScissor[state.dynamicVP].scissors[i].extent.height;
+			}
+
+			// Rasterizer
+			m_VulkanPipelineState.RS.depthClipEnable = p.depthClipEnable;
+			m_VulkanPipelineState.RS.rasterizerDiscardEnable = p.rasterizerDiscardEnable;
+			m_VulkanPipelineState.RS.FrontCCW = p.frontFace == VK_FRONT_FACE_CCW;
+
+			switch(p.fillMode)
+			{
+				case VK_FILL_MODE_POINTS:    m_VulkanPipelineState.RS.FillMode = eFill_Point;     break;
+				case VK_FILL_MODE_WIREFRAME: m_VulkanPipelineState.RS.FillMode = eFill_Wireframe; break;
+				case VK_FILL_MODE_SOLID:     m_VulkanPipelineState.RS.FillMode = eFill_Solid;     break;
+				default:
+					m_VulkanPipelineState.RS.FillMode = eFill_Solid;
+					RDCERR("Unexpected value for FillMode %x", p.fillMode);
+					break;
+			}
+
+			switch(p.cullMode)
+			{
+				case VK_CULL_MODE_NONE:           m_VulkanPipelineState.RS.CullMode = eCull_None;         break;
+				case VK_CULL_MODE_FRONT:          m_VulkanPipelineState.RS.CullMode = eCull_Front;        break;
+				case VK_CULL_MODE_BACK:           m_VulkanPipelineState.RS.CullMode = eCull_Back;         break;
+				case VK_CULL_MODE_FRONT_AND_BACK: m_VulkanPipelineState.RS.CullMode = eCull_FrontAndBack; break;
+				default:
+					m_VulkanPipelineState.RS.CullMode = eCull_None;
+					RDCERR("Unexpected value for CullMode %x", p.cullMode);
+					break;
+			}
+
+			m_VulkanPipelineState.RS.state = state.dynamicRS;
+			m_VulkanPipelineState.RS.depthBias = c.m_Raster[state.dynamicRS].depthBias;
+			m_VulkanPipelineState.RS.depthBiasClamp = c.m_Raster[state.dynamicRS].depthBiasClamp;
+			m_VulkanPipelineState.RS.slopeScaledDepthBias = c.m_Raster[state.dynamicRS].slopeScaledDepthBias;
+			m_VulkanPipelineState.RS.lineWidth = c.m_Raster[state.dynamicRS].lineWidth;
+
+			// MSAA
+			m_VulkanPipelineState.MSAA.rasterSamples = p.rasterSamples;
+			m_VulkanPipelineState.MSAA.sampleShadingEnable = p.sampleShadingEnable;
+			m_VulkanPipelineState.MSAA.minSampleShading = p.minSampleShading;
+			m_VulkanPipelineState.MSAA.sampleMask = p.sampleMask;
+
+			// Color Blend
+			m_VulkanPipelineState.CB.logicOpEnable = p.logicOpEnable;
+			m_VulkanPipelineState.CB.alphaToCoverageEnable = p.alphaToCoverageEnable;
+			m_VulkanPipelineState.CB.logicOp = ToStr::Get(p.logicOp);
+
+			create_array_uninit(m_VulkanPipelineState.CB.attachments, p.attachments.size());
+			for(size_t i=0; i < p.attachments.size(); i++)
+			{
+				m_VulkanPipelineState.CB.attachments[i].blendEnable = p.attachments[i].blendEnable;
+
+				m_VulkanPipelineState.CB.attachments[i].blend.Source = ToStr::Get(p.attachments[i].blend.Source);
+				m_VulkanPipelineState.CB.attachments[i].blend.Destination = ToStr::Get(p.attachments[i].blend.Destination);
+				m_VulkanPipelineState.CB.attachments[i].blend.Operation = ToStr::Get(p.attachments[i].blend.Operation);
+
+				m_VulkanPipelineState.CB.attachments[i].alphaBlend.Source = ToStr::Get(p.attachments[i].alphaBlend.Source);
+				m_VulkanPipelineState.CB.attachments[i].alphaBlend.Destination = ToStr::Get(p.attachments[i].alphaBlend.Destination);
+				m_VulkanPipelineState.CB.attachments[i].alphaBlend.Operation = ToStr::Get(p.attachments[i].alphaBlend.Operation);
+
+				m_VulkanPipelineState.CB.attachments[i].writeMask = p.attachments[i].channelWriteMask;
+			}
+
+			m_VulkanPipelineState.CB.state = state.dynamicCB;
+			memcpy(m_VulkanPipelineState.CB.blendConst, c.m_Blend[state.dynamicCB].blendConst, sizeof(float)*4);
+
+			// Depth Stencil
+			m_VulkanPipelineState.DS.depthTestEnable = p.depthTestEnable;
+			m_VulkanPipelineState.DS.depthWriteEnable = p.depthWriteEnable;
+			m_VulkanPipelineState.DS.depthBoundsEnable = p.depthBoundsEnable;
+			m_VulkanPipelineState.DS.depthCompareOp = ToStr::Get(p.depthCompareOp);
+			m_VulkanPipelineState.DS.stencilTestEnable = p.stencilTestEnable;
+
+			m_VulkanPipelineState.DS.front.passOp = ToStr::Get(p.front.stencilPassOp);
+			m_VulkanPipelineState.DS.front.failOp = ToStr::Get(p.front.stencilFailOp);
+			m_VulkanPipelineState.DS.front.depthFailOp = ToStr::Get(p.front.stencilDepthFailOp);
+			m_VulkanPipelineState.DS.front.func = ToStr::Get(p.front.stencilCompareOp);
+
+			m_VulkanPipelineState.DS.back.passOp = ToStr::Get(p.back.stencilPassOp);
+			m_VulkanPipelineState.DS.back.failOp = ToStr::Get(p.back.stencilFailOp);
+			m_VulkanPipelineState.DS.back.depthFailOp = ToStr::Get(p.back.stencilDepthFailOp);
+			m_VulkanPipelineState.DS.back.func = ToStr::Get(p.back.stencilCompareOp);
+
+			m_VulkanPipelineState.DS.state = state.dynamicDS;
+			m_VulkanPipelineState.DS.minDepthBounds = c.m_DepthStencil[state.dynamicDS].minDepthBounds;
+			m_VulkanPipelineState.DS.maxDepthBounds = c.m_DepthStencil[state.dynamicDS].maxDepthBounds;
+
+			m_VulkanPipelineState.DS.front.ref = c.m_DepthStencil[state.dynamicDS].stencilFrontRef;
+			m_VulkanPipelineState.DS.back.ref = c.m_DepthStencil[state.dynamicDS].stencilBackRef;
+
+			m_VulkanPipelineState.DS.stencilReadMask = c.m_DepthStencil[state.dynamicDS].stencilReadMask;
+			m_VulkanPipelineState.DS.stencilWriteMask = c.m_DepthStencil[state.dynamicDS].stencilWriteMask;
+
+			// Renderpass
+			m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;
+			m_VulkanPipelineState.Pass.framebuffer.obj = state.framebuffer;
+
+			m_VulkanPipelineState.Pass.framebuffer.width = c.m_Framebuffer[state.framebuffer].width;
+			m_VulkanPipelineState.Pass.framebuffer.height = c.m_Framebuffer[state.framebuffer].height;
+			m_VulkanPipelineState.Pass.framebuffer.layers = c.m_Framebuffer[state.framebuffer].layers;
+
+			create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments, c.m_Framebuffer[state.framebuffer].attachments.size());
+			for(size_t i=0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
+			{
+				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = 
+					c.m_Framebuffer[state.framebuffer].attachments[i].view;
+			}
+
+			m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;
+			m_VulkanPipelineState.Pass.renderArea.y = state.renderArea.offset.y;
+			m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
+			m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
 		}
-
-		m_VulkanPipelineState.computePipeline = state.compute.pipeline;
-		m_VulkanPipelineState.graphicsPipeline = state.graphics.pipeline;
-
-		m_VulkanPipelineState.VP.state = state.dynamicVP;
-		m_VulkanPipelineState.RS.state = state.dynamicVP;
-		m_VulkanPipelineState.DS.state = state.dynamicDS;
-		m_VulkanPipelineState.CB.state = state.dynamicCB;
-
-		m_VulkanPipelineState.Pass.renderpass.obj = state.renderPass;
-		m_VulkanPipelineState.Pass.framebuffer.obj = state.framebuffer;
-
-		// TODO split fine-grained state out of above objects
-
-		m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;
-		m_VulkanPipelineState.Pass.renderArea.y = state.renderArea.offset.y;
-		m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
-		m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
 	}
 }
 

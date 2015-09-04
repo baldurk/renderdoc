@@ -2264,6 +2264,9 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 	if(m_State == READING)
 	{
 		VkPipeline pipe = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_Pipeline[id].Init(GetResourceManager(), &info);
 
 		device = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 		pipelineCache = (VkPipelineCache)GetResourceManager()->GetLiveResource(cacheId).handle;
@@ -2682,6 +2685,9 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 	if(m_State == READING)
 	{
 		VkFramebuffer fb = VK_NULL_HANDLE;
+		
+		// use original ID
+		m_CreationInfo.m_Framebuffer[id].Init(GetResourceManager(), &info);
 
 		VkResult ret = m_Real.vkCreateFramebuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &fb);
 
@@ -2818,6 +2824,9 @@ bool WrappedVulkan::Serialise_vkCreateDynamicViewportState(
 	{
 		VkDynamicViewportState state = VK_NULL_HANDLE;
 
+		// use original ID
+		m_CreationInfo.m_VPScissor[id].Init(GetResourceManager(), &info);
+
 		VkResult ret = m_Real.vkCreateDynamicViewportState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
@@ -2881,6 +2890,9 @@ bool WrappedVulkan::Serialise_vkCreateDynamicRasterState(
 	if(m_State == READING)
 	{
 		VkDynamicRasterState state = VK_NULL_HANDLE;
+
+		// use original ID
+		m_CreationInfo.m_Raster[id].Init(GetResourceManager(), &info);
 
 		VkResult ret = m_Real.vkCreateDynamicRasterState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
@@ -2946,6 +2958,9 @@ bool WrappedVulkan::Serialise_vkCreateDynamicColorBlendState(
 	{
 		VkDynamicColorBlendState state = VK_NULL_HANDLE;
 
+		// use original ID
+		m_CreationInfo.m_Blend[id].Init(GetResourceManager(), &info);
+
 		VkResult ret = m_Real.vkCreateDynamicColorBlendState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
@@ -3009,6 +3024,9 @@ bool WrappedVulkan::Serialise_vkCreateDynamicDepthStencilState(
 	if(m_State == READING)
 	{
 		VkDynamicDepthStencilState state = VK_NULL_HANDLE;
+
+		// use original ID
+		m_CreationInfo.m_DepthStencil[id].Init(GetResourceManager(), &info);
 
 		VkResult ret = m_Real.vkCreateDynamicDepthStencilState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 

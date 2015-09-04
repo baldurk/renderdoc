@@ -237,3 +237,5 @@ enum DescriptorSlotType
 
 bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
+
+ResourceFormat MakeResourceFormat(VkFormat fmt);

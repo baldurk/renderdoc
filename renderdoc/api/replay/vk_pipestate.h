@@ -26,10 +26,13 @@
 
 struct VulkanPipelineState
 {
-	VulkanPipelineState() : pipelineFlags(0) {}
+	struct Pipeline
+	{
+		Pipeline() : flags(0) {}
 
-	ResourceId computePipeline, graphicsPipeline;
-	uint32_t pipelineFlags;
+		ResourceId obj;
+		uint32_t flags;
+	} compute, graphics;
 
 	// VKTODOMED renderpass/subpass?
 	
@@ -52,7 +55,8 @@ struct VulkanPipelineState
 	{
 		struct Attribute
 		{
-			Attribute() : binding(0), format(), byteoffset(0) {}
+			Attribute() : location(0), binding(0), format(), byteoffset(0) {}
+			uint32_t location;
 			uint32_t binding;
 			ResourceFormat format;
 			uint32_t byteoffset;
@@ -108,8 +112,8 @@ struct VulkanPipelineState
 		{
 			struct Viewport
 			{
-				Viewport() : x(0), y(0), width(0), height(0), mindepth(0), maxdepth(0) {}
-				float x, y, width, height, mindepth, maxdepth;
+				Viewport() : x(0), y(0), width(0), height(0), minDepth(0), maxDepth(0) {}
+				float x, y, width, height, minDepth, maxDepth;
 			} vp;
 
 			struct Scissor
@@ -149,6 +153,7 @@ struct VulkanPipelineState
 	struct ColorBlend
 	{
 		ColorBlend()
+			: alphaToCoverageEnable(false), logicOpEnable(false)
 		{
 			blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
 		}
@@ -181,25 +186,25 @@ struct VulkanPipelineState
 	{
 		DepthStencil()
 			: depthTestEnable(false), depthWriteEnable(false), depthBoundsEnable(false), stencilTestEnable(false)
-			, minDepthBounds(0), maxDepthBounds(0) {}
+			, minDepthBounds(0), maxDepthBounds(0), stencilReadMask(0), stencilWriteMask(0) {}
 
 		bool32 depthTestEnable, depthWriteEnable, depthBoundsEnable;
-		rdctype::str compareOp;
+		rdctype::str depthCompareOp;
 
 		bool32 stencilTestEnable;
 		struct StencilOp
 		{
-			StencilOp() : mask(0), ref(0) {}
+			StencilOp() : ref(0) {}
 			rdctype::str failOp;
 			rdctype::str depthFailOp;
 			rdctype::str passOp;
 			rdctype::str func;
-			uint32_t mask;
 			uint32_t ref;
 		} front, back;
 
 		ResourceId state;
 		float minDepthBounds, maxDepthBounds;
+		uint32_t stencilReadMask, stencilWriteMask;
 	} DS;
 
 	struct CurrentPass

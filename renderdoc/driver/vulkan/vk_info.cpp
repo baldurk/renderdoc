@@ -24,6 +24,135 @@
 
 #include "vk_info.h"
 
-void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *rm, const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
+		flags = pCreateInfo->flags;
+
+		// need to figure out which states are valid to be NULL
+
+		// VkPipelineShaderStageCreateInfo
+		RDCEraseEl(shaders);
+		for(uint32_t i=0; i < pCreateInfo->stageCount; i++)
+			shaders[ pCreateInfo->pStages[i].stage ] = rm->GetOriginalID(rm->GetID(MakeRes(pCreateInfo->pStages[i].shader)));
+
+		if(pCreateInfo->pVertexInputState)
+		{
+			vertexBindings.resize(pCreateInfo->pVertexInputState->bindingCount);
+			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->bindingCount; i++)
+			{
+				vertexBindings[i].vbufferBinding = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].binding;
+				vertexBindings[i].bytestride = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].strideInBytes;
+				vertexBindings[i].perInstance = pCreateInfo->pVertexInputState->pVertexBindingDescriptions[i].stepRate == VK_VERTEX_INPUT_STEP_RATE_INSTANCE;
+			}
+
+			vertexAttrs.resize(pCreateInfo->pVertexInputState->attributeCount);
+			for(uint32_t i=0; i < pCreateInfo->pVertexInputState->attributeCount; i++)
+			{
+				vertexAttrs[i].binding = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].binding;
+				vertexAttrs[i].location = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].location;
+				vertexAttrs[i].format = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].format;
+				vertexAttrs[i].byteoffset = pCreateInfo->pVertexInputState->pVertexAttributeDescriptions[i].offsetInBytes;
+			}
+		}
+
+		topology = pCreateInfo->pInputAssemblyState->topology;
+		primitiveRestartEnable = pCreateInfo->pInputAssemblyState->primitiveRestartEnable ? true : false;
+
+		if(pCreateInfo->pTessellationState)
+			patchControlPoints = pCreateInfo->pTessellationState->patchControlPoints;
+		else
+			patchControlPoints = 0;
+
+		viewportCount = pCreateInfo->pViewportState->viewportCount;
+
+		// VkPipelineRasterStateCreateInfo
+    depthClipEnable = pCreateInfo->pRasterState->depthClipEnable ? true : false;
+    rasterizerDiscardEnable = pCreateInfo->pRasterState->rasterizerDiscardEnable ? true : false;
+    fillMode = pCreateInfo->pRasterState->fillMode;
+    cullMode = pCreateInfo->pRasterState->cullMode;
+    frontFace = pCreateInfo->pRasterState->frontFace;
+		
+		// VkPipelineMultisampleStateCreateInfo
+    rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
+    sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
+    minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
+    sampleMask = pCreateInfo->pMultisampleState->sampleMask;
+		
+		// VkPipelineDepthStencilStateCreateInfo
+    depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
+    depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
+    depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
+    depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsEnable ? true : false;
+    stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
+    front = pCreateInfo->pDepthStencilState->front;
+    back = pCreateInfo->pDepthStencilState->back;
+
+		// VkPipelineColorBlendStateCreateInfo
+    alphaToCoverageEnable = pCreateInfo->pColorBlendState->alphaToCoverageEnable ? true : false;
+    logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
+    logicOp = pCreateInfo->pColorBlendState->logicOp;
+
+		attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
+
+		for(uint32_t i=0; i < pCreateInfo->pColorBlendState->attachmentCount; i++)
+		{
+			attachments[i].blendEnable = pCreateInfo->pColorBlendState->pAttachments[i].blendEnable ? true : false;
+
+			attachments[i].blend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcBlendColor;
+			attachments[i].blend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].destBlendColor;
+			attachments[i].blend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].blendOpColor;
+
+			attachments[i].alphaBlend.Source = pCreateInfo->pColorBlendState->pAttachments[i].srcBlendAlpha;
+			attachments[i].alphaBlend.Destination = pCreateInfo->pColorBlendState->pAttachments[i].destBlendAlpha;
+			attachments[i].alphaBlend.Operation = pCreateInfo->pColorBlendState->pAttachments[i].blendOpAlpha;
+
+			attachments[i].channelWriteMask = pCreateInfo->pColorBlendState->pAttachments[i].channelWriteMask;
+		}
+}
+
+void VulkanCreationInfo::ViewportScissor::Init(VulkanResourceManager *rm, const VkDynamicViewportStateCreateInfo* pCreateInfo)
+{
+	viewports.resize(pCreateInfo->viewportAndScissorCount);
+	scissors.resize(pCreateInfo->viewportAndScissorCount);
+
+	for(uint32_t i=0; i < pCreateInfo->viewportAndScissorCount; i++)
+	{
+		viewports[i] = pCreateInfo->pViewports[i];
+		scissors[i] = pCreateInfo->pScissors[i];
+	}
+}
+
+void VulkanCreationInfo::Raster::Init(VulkanResourceManager *rm, const VkDynamicRasterStateCreateInfo* pCreateInfo)
+{
+	depthBias = pCreateInfo->depthBias;
+	depthBiasClamp = pCreateInfo->depthBiasClamp;
+	slopeScaledDepthBias = pCreateInfo->slopeScaledDepthBias;
+	lineWidth = pCreateInfo->lineWidth;
+}
+
+void VulkanCreationInfo::Blend::Init(VulkanResourceManager *rm, const VkDynamicColorBlendStateCreateInfo* pCreateInfo)
+{
+	RDCCOMPILE_ASSERT(sizeof(blendConst) == sizeof(pCreateInfo->blendConst), "blend constant size mismatch!");
+	memcpy(blendConst, pCreateInfo->blendConst, sizeof(blendConst));
+}
+
+void VulkanCreationInfo::DepthStencil::Init(VulkanResourceManager *rm, const VkDynamicDepthStencilStateCreateInfo* pCreateInfo)
+{
+	minDepthBounds = pCreateInfo->minDepthBounds;
+	maxDepthBounds = pCreateInfo->maxDepthBounds;
+	stencilReadMask = pCreateInfo->stencilReadMask;
+	stencilWriteMask = pCreateInfo->stencilWriteMask;
+	stencilFrontRef = pCreateInfo->stencilFrontRef;
+	stencilBackRef = pCreateInfo->stencilBackRef;
+}
+
+void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *rm, const VkFramebufferCreateInfo* pCreateInfo)
+{
+	width = pCreateInfo->width;
+	height = pCreateInfo->height;
+	layers = pCreateInfo->layers;
+
+	attachments.resize(pCreateInfo->attachmentCount);
+	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
+		attachments[i].view = rm->GetOriginalID(rm->GetID(MakeRes(pCreateInfo->pAttachments[i].view)));
 }

@@ -108,3 +108,21 @@ bool IsDepthStencilFormat(VkFormat f)
 
 	return false;
 }
+
+ResourceFormat MakeResourceFormat(VkFormat fmt)
+{
+	ResourceFormat ret;
+
+	ret.rawType = (uint32_t)fmt;
+	ret.special = false;
+	ret.specialFormat = eSpecial_Unknown;
+	ret.strname = ToStr::Get(fmt).substr(10); // 3 == strlen("VK_FORMAT_")
+
+	
+	// VKTODOHIGH generate resource format
+	ret.compByteWidth = 1;
+	ret.compCount = 4;
+	ret.compType = eCompType_UNorm;
+	ret.srgbCorrected = false;
+	return ret;
+}

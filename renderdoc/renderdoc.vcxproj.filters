@@ -222,6 +222,9 @@
     <ClInclude Include="api\replay\capture_options.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\vk_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
