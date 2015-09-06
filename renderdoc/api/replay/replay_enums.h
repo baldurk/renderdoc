@@ -42,6 +42,8 @@ enum FormatComponentType
 	eCompType_SNorm,
 	eCompType_UInt,
 	eCompType_SInt,
+	eCompType_UScaled,
+	eCompType_SScaled,
 	eCompType_Depth,
 	eCompType_Double,
 };
