@@ -5963,7 +5963,6 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 	SERIALISE_ELEMENT(VkSwapChainCreateInfoWSI, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(*pSwapChain)));
 
-	VkFormat fmt = VK_FORMAT_UNDEFINED;
 	uint32_t numIms = 0;
 
 	if(m_State >= WRITING)
@@ -5975,24 +5974,11 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
     RDCASSERT(res == VK_SUCCESS);
 
 		numIms = uint32_t(swapChainImagesSize/sizeof(VkSwapChainImagePropertiesWSI));
-
-		fmt = VK_FORMAT_B8G8R8A8_UNORM;
-
-		// VKTODOMED: need to get proper formats - needs surface description
-		/*
-    size_t formatsSize;
-    res = m_Real.vkGetSurfaceInfoWSI(device, (VkSurfaceDescriptionWSI *), VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, NULL);
-    RDCASSERT(res == VK_SUCCESS);
-    VkSurfaceFormatPropertiesWSI *surfFormats = (VkSurfaceFormatPropertiesWSI *)malloc(formatsSize);
-    res = m_Real.vkGetSurfaceInfoWSI(demo->device, (VkSurfaceDescriptionWSI *) , VK_SURFACE_INFO_TYPE_FORMATS_WSI, &formatsSize, surfFormats);
-    RDCASSERT(res == VK_SUCCESS);
-		*/
 	}
 
-	SERIALISE_ELEMENT(VkFormat, imFormat, fmt);
 	SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
 
-	m_SwapChainInfo[id].format = imFormat;
+	m_SwapChainInfo[id].format = info.imageFormat;
 	m_SwapChainInfo[id].extent = info.imageExtent;
 	m_SwapChainInfo[id].arraySize = info.imageArraySize;
 
@@ -6000,15 +5986,13 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
 	if(m_State == READING)
 	{
-		RDCASSERT(imFormat == info.imageFormat);
-
 		VkDevice dev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 
 		const VkImageCreateInfo imInfo = {
 			/*.sType =*/ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
 			/*.pNext =*/ NULL,
 			/*.imageType =*/ VK_IMAGE_TYPE_2D,
-			/*.format =*/ imFormat,
+			/*.format =*/ info.imageFormat,
 			/*.extent =*/ { info.imageExtent.width, info.imageExtent.height, 1 },
 			/*.mipLevels =*/ 1,
 			/*.arraySize =*/ info.imageArraySize,
@@ -6065,7 +6049,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
 			// fill out image info so we track resource state transitions
 			m_ImageInfo[liveId].mem = mem;
-			m_ImageInfo[liveId].format = imFormat;
+			m_ImageInfo[liveId].format = info.imageFormat;
 			m_ImageInfo[liveId].extent.width = info.imageExtent.width;
 			m_ImageInfo[liveId].extent.height = info.imageExtent.height;
 			m_ImageInfo[liveId].extent.depth = 1;
