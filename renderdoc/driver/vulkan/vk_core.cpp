@@ -7055,8 +7055,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 		GetResourceManager()->ApplyInitialContents();
 		GetResourceManager()->ReleaseInFrameResources();
 
-		// VKTODOLOW temp hack - clear backbuffer to magenta
-		// just so we can see if we are replaying or not.
+		// VKTODOLOW temp hack - clear backbuffer to black
 		if(m_FakeBBImgId != ResourceId())
 		{
 			VkDevice dev = GetDev();
@@ -7088,7 +7087,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			st.subresourceStates[0].state = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
 
-			VkClearColorValue clearColor = { { 1.0f, 0.0f, 1.0f, 1.0f, } };
+			VkClearColorValue clearColor = { { 0.0f, 0.0f, 0.0f, 1.0f, } };
 			vk.vkCmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
 
 			res = vk.vkEndCommandBuffer(cmd);
