@@ -179,6 +179,7 @@ class VulkanReplay : public IReplayDriver
 			VkImageMemoryBarrier coltrans[8];
 			VkImageMemoryBarrier *curcoltrans;
 			VkRenderPass renderpass;
+			VkDynamicViewportState fullVP;
 			uint32_t curidx;
 
 			VkImage dsimg;
@@ -206,23 +207,33 @@ class VulkanReplay : public IReplayDriver
 
 		struct UBO
 		{
+			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
+			void Create(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize size);
+			void Destroy(const VulkanFunctions &vk, VkDevice dev);
+
+			void *Map(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
+			void Unmap(const VulkanFunctions &vk, VkDevice dev);
+
 			VkBuffer buf;
 			VkDeviceMemory mem;
 			VkBufferView view;
 		};
 
 		VkPipelineCache m_PipelineCache;
+		VkDescriptorPool m_DescriptorPool;
 		VkDynamicColorBlendState m_DynamicCBStateWhite;
 		VkDynamicRasterState m_DynamicRSState;
 		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
 		
+		VkDescriptorSetLayout m_CheckerboardDescSetLayout;
+		VkPipelineLayout m_CheckerboardPipeLayout;
+		VkDescriptorSet m_CheckerboardDescSet;
 		VkPipeline m_CheckerboardPipeline;
 		UBO m_CheckerboardUBO;
-
-		VkPipeline m_TexDisplayPipeline;
+		
 		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
 		VkPipelineLayout m_TexDisplayPipeLayout;
-		VkDescriptorPool m_TexDisplayDescPool;
 		VkDescriptorSet m_TexDisplayDescSet;
+		VkPipeline m_TexDisplayPipeline;
 		UBO m_TexDisplayUBO;
 };

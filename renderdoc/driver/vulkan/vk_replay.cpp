@@ -39,6 +39,8 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 		fb[i] = VK_NULL_HANDLE;
 		fbdepth[i] = VK_NULL_HANDLE;
 	}
+	renderpass = VK_NULL_HANDLE;
+	fullVP = VK_NULL_HANDLE;
 
 	VkImageMemoryBarrier t = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
@@ -93,6 +95,15 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 		dsview = VK_NULL_HANDLE;
 		dsimg = VK_NULL_HANDLE;
 		dsmem = VK_NULL_HANDLE;
+	}
+
+	if(renderpass != VK_NULL_HANDLE)
+	{
+		vk.vkDestroyRenderPass(device, renderpass);
+		renderpass = VK_NULL_HANDLE;
+
+		vk.vkDestroyDynamicViewportState(device, fullVP);
+		fullVP = VK_NULL_HANDLE;
 	}
 
 	VkSwapChainWSI old = swap;
@@ -198,6 +209,19 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 		RDCASSERT(res == VK_SUCCESS);
 	}
 
+	{
+		VkViewport vp = { 0.0f, 0.0f, (float)width, (float)height, 0.0f, 1.0f, };
+		VkRect2D sc = { { 0, 0 }, { width, height } };
+
+		VkDynamicViewportStateCreateInfo vpInfo = {
+			VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO, NULL,
+			1, &vp, &sc
+		};
+
+		VkResult vkr = vk.vkCreateDynamicViewportState(device, &vpInfo, &fullVP);
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
+
 	for(uint32_t i=0; i < numImgs; i++)
 	{
 		if(colimg[i] != VK_NULL_HANDLE)
@@ -235,6 +259,58 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	}
 }
 
+void VulkanReplay::UBO::Create(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize size)
+{
+	VkMemoryAllocInfo allocInfo = {
+		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		size, 2, // VKTODOHIGH find appropriate memory type index
+	};
+
+	VkResult vkr = vk.vkAllocMemory(dev, &allocInfo, &mem);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkBufferCreateInfo bufInfo = {
+		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+		size, VK_BUFFER_USAGE_GENERAL, 0,
+		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+	};
+
+	vkr = vk.vkCreateBuffer(dev, &bufInfo, &buf);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	vkr = vk.vkBindBufferMemory(dev, buf, mem, 0);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkBufferViewCreateInfo bufviewInfo = {
+		VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL,
+		buf, VK_BUFFER_VIEW_TYPE_RAW,
+		VK_FORMAT_UNDEFINED, 0, size,
+	};
+
+	vkr = vk.vkCreateBufferView(dev, &bufviewInfo, &view);
+	RDCASSERT(vkr == VK_SUCCESS);
+}
+
+void VulkanReplay::UBO::Destroy(const VulkanFunctions &vk, VkDevice dev)
+{
+	vk.vkDestroyBufferView(dev, view);
+	vk.vkDestroyBuffer(dev, buf);
+	vk.vkFreeMemory(dev, mem);
+}
+
+void *VulkanReplay::UBO::Map(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
+{
+	void *ptr = NULL;
+	VkResult vkr = vk.vkMapMemory(dev, mem, offset, size, 0, (void **)&ptr);
+	RDCASSERT(vkr == VK_SUCCESS);
+	return ptr;
+}
+
+void VulkanReplay::UBO::Unmap(const VulkanFunctions &vk, VkDevice dev)
+{
+	vk.vkUnmapMemory(dev, mem);
+}
+
 VulkanReplay::VulkanReplay()
 {
 	m_pDriver = NULL;
@@ -259,17 +335,33 @@ void VulkanReplay::InitDebugData()
 	vkr = vk.vkCreatePipelineCache(dev, &cacheInfo, &m_PipelineCache);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkDescriptorSetLayoutBinding layoutBinding[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
-	};
-	
-	VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
-		VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL,
-		ARRAY_COUNT(layoutBinding), &layoutBinding[0],
-	};
-	
-	vkr = vk.vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
-	RDCASSERT(vkr == VK_SUCCESS);
+	{
+		VkDescriptorSetLayoutBinding layoutBinding[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
+		};
+
+		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL,
+			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
+		};
+
+		vkr = vk.vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
+
+	{
+		VkDescriptorSetLayoutBinding layoutBinding[] = {
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
+		};
+
+		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+			VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, NULL,
+			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
+		};
+
+		vkr = vk.vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
 
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
 		VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, NULL,
@@ -280,8 +372,14 @@ void VulkanReplay::InitDebugData()
 	vkr = vk.vkCreatePipelineLayout(dev, &pipeLayoutInfo, &m_TexDisplayPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
+	pipeLayoutInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
+	
+	vkr = vk.vkCreatePipelineLayout(dev, &pipeLayoutInfo, &m_CheckerboardPipeLayout);
+	RDCASSERT(vkr == VK_SUCCESS);
+
 	VkDescriptorTypeCount descPoolTypes[] = {
-		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, },
+		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
+		{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1024, },
 	};
 	
 	VkDescriptorPoolCreateInfo descpoolInfo = {
@@ -289,56 +387,36 @@ void VulkanReplay::InitDebugData()
     ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vk.vkCreateDescriptorPool(dev, VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 1, &descpoolInfo, &m_TexDisplayDescPool);
+	vkr = vk.vkCreateDescriptorPool(dev, VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 2, &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	uint32_t count;
-	vkr = vk.vkAllocDescriptorSets(dev, m_TexDisplayDescPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
+	vkr = vk.vkAllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_CheckerboardDescSetLayout, &m_CheckerboardDescSet, &count);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	vkr = vk.vkAllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkMemoryAllocInfo allocInfo = {
-		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-		128, 2, // VKTODOHIGH find appropriate memory type index
+	m_CheckerboardUBO.Create(vk, dev, 128);
+	m_TexDisplayUBO.Create(vk, dev, 128);
+
+	VkDescriptorInfo desc[2] = { {0}, {0} };
+	
+	desc[0].bufferView = m_CheckerboardUBO.view;
+	desc[1].bufferView = m_TexDisplayUBO.view;
+
+	VkWriteDescriptorSet writeSet[] = {
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			m_CheckerboardDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[0]
+		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			m_TexDisplayDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[1]
+		},
 	};
 
-	vkr = vk.vkAllocMemory(dev, &allocInfo, &m_TexDisplayUBO.mem);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VkBufferCreateInfo bufInfo = {
-		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
-		128, VK_BUFFER_USAGE_GENERAL, 0,
-		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
-	};
-
-	vkr = vk.vkCreateBuffer(dev, &bufInfo, &m_TexDisplayUBO.buf);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	vkr = vk.vkBindBufferMemory(dev, m_TexDisplayUBO.buf, m_TexDisplayUBO.mem, 0);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VkBufferViewCreateInfo bufviewInfo = {
-		VK_STRUCTURE_TYPE_BUFFER_VIEW_CREATE_INFO, NULL,
-		m_TexDisplayUBO.buf, VK_BUFFER_VIEW_TYPE_RAW,
-		VK_FORMAT_UNDEFINED, 0, 128,
-	};
-
-	vkr = vk.vkCreateBufferView(dev, &bufviewInfo, &m_TexDisplayUBO.view);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	Vec4f *data = NULL;
-	vkr = vk.vkMapMemory(dev, m_TexDisplayUBO.mem, 0, 0, 0, (void **)&data);
-	data[0] = Vec4f(0.6f, 0.0f, 0.0f, 1.0f);
-	data[1] = Vec4f(0.0f, 0.0f, 0.6f, 1.0f);
-	vk.vkUnmapMemory(dev, m_TexDisplayUBO.mem);
-
-	VkDescriptorInfo desc = { 0 }; desc.bufferView = m_TexDisplayUBO.view;
-
-	VkWriteDescriptorSet writeSet = {
-		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-		m_TexDisplayDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc
-	};
-
-	vkr = vk.vkUpdateDescriptorSets(dev, 1, &writeSet, 0, NULL);
+	vkr = vk.vkUpdateDescriptorSets(dev, 2, writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkDynamicRasterStateCreateInfo rsInfo = {
@@ -457,7 +535,7 @@ void VulkanReplay::InitDebugData()
 		&ds,
 		&cb,
 		0, // flags
-		m_TexDisplayPipeLayout,
+		m_CheckerboardPipeLayout,
 		VK_NULL_HANDLE, // render pass
 		0, // sub pass
 		VK_NULL_HANDLE, // base pipeline handle
@@ -471,6 +549,8 @@ void VulkanReplay::InitDebugData()
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	stages[1].shader = shader[TEXDISPLAYFS];
+
+	pipeInfo.layout = m_TexDisplayPipeLayout;
 
 	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -683,8 +763,6 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 	OutputWindow &outw = it->second;
 
-	VULKANNOTIMP("RenderCheckerboard");
-
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
@@ -697,13 +775,48 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&outw.curcoltrans);
 	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
-	
-	VkClearColorValue clearColor = { { RANDF(0.0f, 1.0f), RANDF(0.0f, 1.0f), RANDF(0.0f, 1.0f), 1.0f, } };
-	vk.vkCmdClearColorImage(cmd, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &outw.curcoltrans->subresourceRange);
-	
+
+	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	// needs to be ring-buffered
+	Vec4f *data = (Vec4f *)m_CheckerboardUBO.Map(vk, dev);
+	data[0].x = light.x;
+	data[0].y = light.y;
+	data[0].z = light.z;
+	data[1].x = dark.x;
+	data[1].y = dark.y;
+	data[1].z = dark.z;
+	m_CheckerboardUBO.Unmap(vk, dev);
+
+	{
+		VkClearValue clearval = {0};
+		VkRenderPassBeginInfo rpbegin = {
+			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+			outw.renderpass, outw.fb[ outw.curidx ],
+			{ { 0, 0, }, { outw.width, outw.height } },
+			1, &clearval,
+		};
+		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeline);
+		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeLayout, 0, 1, &m_CheckerboardDescSet, 0, NULL);
+
+		vk.vkCmdBindDynamicViewportState(cmd, outw.fullVP);
+		vk.vkCmdBindDynamicRasterState(cmd, m_DynamicRSState);
+		vk.vkCmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
+		vk.vkCmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
+
+		vk.vkCmdDraw(cmd, 0, 4, 0, 1);
+		vk.vkCmdEndRenderPass(cmd);
+	}
+
 	res = vk.vkEndCommandBuffer(cmd);
 
 	res = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+
+	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+	// into a single command buffer and we can just have several allocated
+	// ring-buffer style
+	vk.vkQueueWaitIdle(q);
 }
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
@@ -844,43 +957,6 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&outw.curcoltrans);
 	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
 
-	VkViewport vp = { 0.0f, 0.0f, (float)outw.width, (float)outw.height, 0.0f, 1.0f, };
-	VkRect2D sc = { { 0, 0 }, { outw.width, outw.height } };
-
-	VkDynamicViewportStateCreateInfo vpInfo = {
-		VK_STRUCTURE_TYPE_DYNAMIC_VIEWPORT_STATE_CREATE_INFO, NULL,
-		1, &vp, &sc
-	};
-
-	VkDynamicViewportState dynVP;
-
-	// VKTODOMED cache this, or create per output window on resize
-	VkResult vkr = vk.vkCreateDynamicViewportState(dev, &vpInfo, &dynVP);
-	RDCASSERT(vkr == VK_SUCCESS);
-	
-	{
-		VkClearValue clearval = {0};
-		clearval.color.f32[2] = clearval.color.f32[3] = 1.0f;
-		VkRenderPassBeginInfo rpbegin = {
-			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			outw.renderpass, outw.fb[ outw.curidx ],
-			{ { 0, 0, }, { outw.width, outw.height } },
-			1, &clearval,
-		};
-		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
-
-		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeline);
-		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeLayout, 0, 1, &m_TexDisplayDescSet, 0, NULL);
-
-		vk.vkCmdBindDynamicViewportState(cmd, dynVP);
-		vk.vkCmdBindDynamicRasterState(cmd, m_DynamicRSState);
-		vk.vkCmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
-		vk.vkCmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
-
-		vk.vkCmdDraw(cmd, 0, 4, 0, 1);
-		vk.vkCmdEndRenderPass(cmd);
-	}
-	
 	VkImageCopy region = {
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
 		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
@@ -908,8 +984,6 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	}
 
 	vk.vkDeviceWaitIdle(dev);
-
-	vk.vkDestroyDynamicViewportState(dev, dynVP);
 }
 
 void VulkanReplay::DestroyOutputWindow(uint64_t id)
