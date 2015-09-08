@@ -601,14 +601,17 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODOHIGH: shouldn't be 0, 0
-				m_Real.vkGetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = m_Real.vkGetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
+				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
-				m_Real.vkCreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = m_Real.vkCreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				m_Real.vkCreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = m_Real.vkCreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				RDCASSERT(vkr == VK_SUCCESS);
 
 #if defined(FORCE_VALIDATION_LAYER)
 				if(m_Real.vkDbgCreateMsgCallback)
@@ -618,7 +621,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 						VK_DBG_REPORT_PERF_WARN_BIT |
 						VK_DBG_REPORT_ERROR_BIT |
 						VK_DBG_REPORT_DEBUG_BIT;
-					m_Real.vkDbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+					vkr = m_Real.vkDbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+					RDCASSERT(vkr == VK_SUCCESS);
 					RDCLOG("Created dbg callback");
 				}
 				else
@@ -663,14 +667,17 @@ VkResult WrappedVulkan::vkCreateDevice(
 			{
 				m_PhysicalReplayData[i].dev = *pDevice;
 				// VKTODOHIGH: shouldn't be 0, 0
-				m_Real.vkGetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = m_Real.vkGetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
+				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
-				m_Real.vkCreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = m_Real.vkCreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				m_Real.vkCreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = m_Real.vkCreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				RDCASSERT(vkr == VK_SUCCESS);
 				found = true;
 				break;
 			}
@@ -6036,11 +6043,11 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
 	if(m_State >= WRITING)
 	{
-		VkResult res = VK_SUCCESS;
+		VkResult vkr = VK_SUCCESS;
 
     size_t swapChainImagesSize;
-    res = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
-    RDCASSERT(res == VK_SUCCESS);
+    vkr = m_Real.vkGetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
+    RDCASSERT(vkr == VK_SUCCESS);
 
 		numIms = uint32_t(swapChainImagesSize/sizeof(VkSwapChainImagePropertiesWSI));
 	}
@@ -6086,24 +6093,24 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			VkDeviceMemory mem = VK_NULL_HANDLE;
 			VkImage im = VK_NULL_HANDLE;
 
-			VkResult res = m_Real.vkCreateImage(dev, &imInfo, &im);
-			RDCASSERT(res == VK_SUCCESS);
+			VkResult vkr = m_Real.vkCreateImage(dev, &imInfo, &im);
+			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkMemoryRequirements mrq = {0};
 
-			res = m_Real.vkGetImageMemoryRequirements(dev, im, &mrq);
-			RDCASSERT(res == VK_SUCCESS);
+			vkr = m_Real.vkGetImageMemoryRequirements(dev, im, &mrq);
+			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkMemoryAllocInfo allocInfo = {
 				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
 				mrq.size, GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			res = m_Real.vkAllocMemory(dev, &allocInfo, &mem);
-			RDCASSERT(res == VK_SUCCESS);
+			vkr = m_Real.vkAllocMemory(dev, &allocInfo, &mem);
+			RDCASSERT(vkr == VK_SUCCESS);
 
-			res = m_Real.vkBindImageMemory(dev, im, mem, 0);
-			RDCASSERT(res == VK_SUCCESS);
+			vkr = m_Real.vkBindImageMemory(dev, im, mem, 0);
+			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->RegisterResource(MakeRes(mem));
 			ResourceId liveId = GetResourceManager()->RegisterResource(MakeRes(im));
@@ -7066,7 +7073,8 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-			VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+			VkResult vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+			RDCASSERT(vkr == VK_SUCCESS);
 
 			ImgState &st = m_ImageInfo[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
 			RDCASSERT(st.subresourceStates.size() == 1);
@@ -7091,9 +7099,11 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			VkClearColorValue clearColor = { { 0.0f, 0.0f, 0.0f, 1.0f, } };
 			vk.vkCmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
 
-			res = vk.vkEndCommandBuffer(cmd);
+			vkr = vk.vkEndCommandBuffer(cmd);
+			RDCASSERT(vkr == VK_SUCCESS);
 
-			res = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+			vkr = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+			RDCASSERT(vkr == VK_SUCCESS);
 		}
 	}
 	
