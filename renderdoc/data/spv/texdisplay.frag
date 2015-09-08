@@ -65,8 +65,7 @@ void main(void)
 	if(scr.x < 0.0f || scr.y < 0.0f ||
 	   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
 	{
-		color_out = vec4(0, 0, 0, 1);
-		return;
+		discard;
 	}
 
 	if (texdisplay.FlipY != 0)

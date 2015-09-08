@@ -207,7 +207,7 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 		VkAttachmentDescription attDesc = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
 			VK_FORMAT_B8G8R8A8_UNORM, 1,
-			VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
+			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 		};
@@ -1187,12 +1187,32 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 {
-	VULKANNOTIMP("ClearOutputWindowColour");
+	auto it = m_OutputWindows.find(id);
+	if(id == 0 || it == m_OutputWindows.end())
+		return;
 
-	// VKTODOHIGH: same as FlipOutputWindow but do a colour clear
-	// ultimately these functions should push commands into a queue and there should be a
-	// more explicit start/end render functions (similar to BindOutputWindow, so it
-	// could start the command buffer, and an end function could end it and submit it)
+	OutputWindow &outw = it->second;
+
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetCmd();
+	VkQueue q = m_pDriver->GetQ();
+	const VulkanFunctions &vk = m_pDriver->m_Real;
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	RDCASSERT(res == VK_SUCCESS);
+
+	vk.vkCmdClearColorImage(cmd, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.curcoltrans->subresourceRange);
+
+	vk.vkEndCommandBuffer(cmd);
+
+	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	
+	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+	// into a single command buffer and we can just have several allocated
+	// ring-buffer style
+	vk.vkQueueWaitIdle(q);
 }
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
