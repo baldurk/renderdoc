@@ -820,7 +820,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 	// VKTODOMED this should go through render texture so that we
 	// just get pure F32 RGBA data out
-	if(fakeBBfmt.special == eSpecial_B8G8R8A8)
+	if(fakeBBfmt.specialFormat == eSpecial_B8G8R8A8)
 	{
 		pixel[0] = float(pData[2])/255.0f;
 		pixel[1] = float(pData[1])/255.0f;
