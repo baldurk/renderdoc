@@ -442,6 +442,12 @@
     <None Include="data\spv\texdisplayfs.spv">
       <Filter>Resources\spv</Filter>
     </None>
+    <None Include="data\spv\checkerboard.frag">
+      <Filter>Resources\spv</Filter>
+    </None>
+    <None Include="data\spv\checkerboardfs.spv">
+      <Filter>Resources\spv</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

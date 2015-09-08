@@ -359,6 +359,8 @@
     <None Include="data\hlsl\multisample.hlsl" />
     <None Include="data\spv\blit.vert" />
     <None Include="data\spv\blitvs.spv" />
+    <None Include="data\spv\checkerboard.frag" />
+    <None Include="data\spv\checkerboardfs.spv" />
     <None Include="data\spv\texdisplay.frag" />
     <None Include="data\spv\texdisplayfs.spv" />
     <None Include="os\win32\comexport.def" />
