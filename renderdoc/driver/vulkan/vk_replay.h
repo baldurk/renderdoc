@@ -224,6 +224,9 @@ class VulkanReplay : public IReplayDriver
 		VkDynamicColorBlendState m_DynamicCBStateWhite;
 		VkDynamicRasterState m_DynamicRSState;
 		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
+		VkSampler m_LinearSampler, m_PointSampler;
+
+		VkImageView m_FakeBBImView;
 		
 		VkDescriptorSetLayout m_CheckerboardDescSetLayout;
 		VkPipelineLayout m_CheckerboardPipeLayout;

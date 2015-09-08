@@ -28,6 +28,32 @@
 
 #include "serialise/string_utils.h"
 
+// VKTODOMED should share this between shader and C++
+struct displayuniforms
+{
+	Vec2f Position;
+	float Scale;
+	float HDRMul;
+
+	Vec4f Channels;
+
+	float RangeMinimum;
+	float InverseRangeSize;
+	float MipLevel;
+	int   FlipY;
+
+	Vec3f TextureResolutionPS;
+	int   OutputDisplayFormat;
+
+	Vec2f OutputRes;
+	int   RawOutput;
+	float Slice;
+
+	int   SampleIdx;
+	int   NumSamples;
+	Vec2f Padding;
+};
+
 VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), height(0),
 	dsimg(VK_NULL_HANDLE), dsmem(VK_NULL_HANDLE)
 {
@@ -327,6 +353,46 @@ void VulkanReplay::InitDebugData()
 	VkDevice dev = m_pDriver->GetDev();
 	
 	VkResult vkr = VK_SUCCESS;
+	
+	ResourceId id;
+	VkImage fakeBBIm = VK_NULL_HANDLE;
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
+
+	VkImageViewCreateInfo bbviewInfo = {
+		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+		fakeBBIm, VK_IMAGE_VIEW_TYPE_2D,
+		VK_FORMAT_R8G8B8A8_UNORM,
+		{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
+	};
+	
+	// VKTODOMED will have to be created on the fly for whichever image we're
+	// viewing (and cached)
+	vkr = vk.vkCreateImageView(dev, &bbviewInfo, &m_FakeBBImView);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkSamplerCreateInfo sampInfo = {
+		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, NULL,
+		VK_TEX_FILTER_LINEAR, VK_TEX_FILTER_LINEAR,
+		VK_TEX_MIPMAP_MODE_LINEAR, 
+		VK_TEX_ADDRESS_CLAMP, VK_TEX_ADDRESS_CLAMP, VK_TEX_ADDRESS_CLAMP,
+		0.0f, // lod bias
+		1.0f, // max aniso
+		false, VK_COMPARE_OP_NEVER,
+		0.0f, 0.0f, // min/max lod
+		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
+	};
+
+	vkr = vk.vkCreateSampler(dev, &sampInfo, &m_LinearSampler);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	sampInfo.minFilter = VK_TEX_FILTER_NEAREST;
+	sampInfo.magFilter = VK_TEX_FILTER_NEAREST;
+	sampInfo.mipMode = VK_TEX_MIPMAP_MODE_NEAREST;
+
+	vkr = vk.vkCreateSampler(dev, &sampInfo, &m_PointSampler);
+	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED all of this is leaking
 
@@ -351,7 +417,8 @@ void VulkanReplay::InitDebugData()
 
 	{
 		VkDescriptorSetLayoutBinding layoutBinding[] = {
-			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, }
+			{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL, },
+			{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL, }
 		};
 
 		VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
@@ -400,10 +467,16 @@ void VulkanReplay::InitDebugData()
 	m_CheckerboardUBO.Create(vk, dev, 128);
 	m_TexDisplayUBO.Create(vk, dev, 128);
 
-	VkDescriptorInfo desc[2] = { {0}, {0} };
+	RDCCOMPILE_ASSERT(sizeof(displayuniforms) < 128, "tex display size");
+
+	VkDescriptorInfo desc[3];
+	RDCEraseEl(desc);
 	
 	desc[0].bufferView = m_CheckerboardUBO.view;
 	desc[1].bufferView = m_TexDisplayUBO.view;
+	desc[2].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc[2].imageView = m_FakeBBImView;
+	desc[2].sampler = m_LinearSampler;
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -414,9 +487,13 @@ void VulkanReplay::InitDebugData()
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
 			m_TexDisplayDescSet, 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[1]
 		},
+		{
+			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+			m_TexDisplayDescSet, 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[2]
+		},
 	};
 
-	vkr = vk.vkUpdateDescriptorSets(dev, 2, writeSet, 0, NULL);
+	vkr = vk.vkUpdateDescriptorSets(dev, ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkDynamicRasterStateCreateInfo rsInfo = {
@@ -751,7 +828,176 @@ uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDispla
 
 bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 {
-	VULKANNOTIMP("RenderTexture");
+	auto it = m_OutputWindows.find(m_ActiveWinID);
+	if(it == m_OutputWindows.end())
+	{
+		RDCERR("output window not bound");
+		return false;
+	}
+
+	OutputWindow &outw = it->second;
+
+	ResourceId resid;
+	VkImage fakeBBIm = VK_NULL_HANDLE;
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
+	
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetCmd();
+	VkQueue q = m_pDriver->GetQ();
+	const VulkanFunctions &vk = m_pDriver->m_Real;
+
+	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
+	// needs to be ring-buffered
+	displayuniforms *data = (displayuniforms *)m_TexDisplayUBO.Map(vk, dev);
+
+	data->Padding = 0;
+	
+	float x = cfg.offx;
+	float y = cfg.offy;
+	
+	data->Position.x = x;
+	data->Position.y = y;
+	data->Scale = cfg.scale;
+	data->HDRMul = -1.0f;
+
+	int32_t tex_x = fakeBBext.width;
+	int32_t tex_y = fakeBBext.height;
+	int32_t tex_z = fakeBBext.depth;
+	
+	if(cfg.scale <= 0.0f)
+	{
+		float xscale = float(outw.width)/float(tex_x);
+		float yscale = float(outw.height)/float(tex_y);
+
+		float scale = data->Scale = RDCMIN(xscale, yscale);
+
+		if(yscale > xscale)
+		{
+			data->Position.x = 0;
+			data->Position.y = (float(outw.width)-(tex_y*scale) )*0.5f;
+		}
+		else
+		{
+			data->Position.y = 0;
+			data->Position.x = (float(outw.height)-(tex_x*scale) )*0.5f;
+		}
+	}
+
+	data->Channels.x = cfg.Red ? 1.0f : 0.0f;
+	data->Channels.y = cfg.Green ? 1.0f : 0.0f;
+	data->Channels.z = cfg.Blue ? 1.0f : 0.0f;
+	data->Channels.w = cfg.Alpha ? 1.0f : 0.0f;
+	
+	if(cfg.rangemax <= cfg.rangemin) cfg.rangemax += 0.00001f;
+	
+	data->RangeMinimum = cfg.rangemin;
+	data->InverseRangeSize = 1.0f/(cfg.rangemax-cfg.rangemin);
+	
+	data->FlipY = cfg.FlipY ? 1 : 0;
+
+	data->MipLevel = (float)cfg.mip;
+	data->Slice = 0;
+	if(1 /* VKTODOLOW check texture type texDetails.curType != eGL_TEXTURE_3D*/)
+		data->Slice = (float)cfg.sliceFace;
+	else
+		data->Slice = (float)(cfg.sliceFace>>cfg.mip);
+	
+	data->TextureResolutionPS.x = float(tex_x);
+	data->TextureResolutionPS.y = float(tex_y);
+	data->TextureResolutionPS.z = float(tex_z);
+
+	float mipScale = float(1<<cfg.mip);
+
+	// VKTODOMED reading from data pointer (should not)
+	data->Scale *= mipScale;
+	data->TextureResolutionPS.x /= mipScale;
+	data->TextureResolutionPS.y /= mipScale;
+	data->TextureResolutionPS.z /= mipScale;
+	
+	// VKTODOLOW multisampled texture display
+	data->NumSamples = 1;
+	data->SampleIdx = 0;
+
+	data->OutputRes.x = (float)outw.width;
+	data->OutputRes.y = (float)outw.height;
+
+	// VKTODOMED handle different texture types/displays
+	data->OutputDisplayFormat = 0;
+	
+	data->RawOutput = cfg.rawoutput ? 1 : 0;
+
+	m_TexDisplayUBO.Unmap(vk, dev);
+	
+	VkDescriptorInfo desc = {0};
+	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc.imageView = m_FakeBBImView;
+	desc.sampler = m_PointSampler;
+	if(cfg.mip == 0 && cfg.scale < 1.0f)
+		desc.sampler = m_LinearSampler;
+
+	VkWriteDescriptorSet writeSet = {
+		VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
+		m_TexDisplayDescSet, 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
+	};
+
+	VkResult vkr = vk.vkUpdateDescriptorSets(dev, 1, &writeSet, 0, NULL);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	// VKTODOHIGH find out the actual current image state
+	VkImageMemoryBarrier fakeTrans = {
+		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+		0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		0, 0, fakeBBIm,
+		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	RDCASSERT(res == VK_SUCCESS);
+
+	void *barrier = (void *)&fakeTrans;
+
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	fakeTrans.oldLayout = fakeTrans.newLayout;
+
+	// VKTODOMED need to render to an intermediate texture that can
+	// be copied/drawn to the actual backbuffer (of which there may
+	// be many)
+	{
+		VkClearValue clearval = {0};
+		VkRenderPassBeginInfo rpbegin = {
+			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
+			outw.renderpass, outw.fb[ outw.curidx ],
+			{ { 0, 0, }, { outw.width, outw.height } },
+			1, &clearval,
+		};
+		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+
+		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeline);
+		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeLayout, 0, 1, &m_TexDisplayDescSet, 0, NULL);
+
+		vk.vkCmdBindDynamicViewportState(cmd, outw.fullVP);
+		vk.vkCmdBindDynamicRasterState(cmd, m_DynamicRSState);
+		vk.vkCmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
+		vk.vkCmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
+
+		vk.vkCmdDraw(cmd, 0, 4, 0, 1);
+		vk.vkCmdEndRenderPass(cmd);
+	}
+
+	fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+
+	vk.vkEndCommandBuffer(cmd);
+
+	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+
+	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+	// into a single command buffer and we can just have several allocated
+	// ring-buffer style
+	vk.vkQueueWaitIdle(q);
+
 	return false;
 }
 	
@@ -895,6 +1141,24 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	vk.vkQueueWaitSemaphore(q, sem);
 
 	vk.vkDestroySemaphore(dev, sem);
+
+	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	RDCASSERT(res == VK_SUCCESS);
+	
+	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1,(void **) &outw.curcoltrans);
+	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
+
+	vk.vkEndCommandBuffer(cmd);
+
+	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	
+	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
+	// into a single command buffer and we can just have several allocated
+	// ring-buffer style
+	vk.vkQueueWaitIdle(q);
 }
 
 void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
@@ -928,44 +1192,11 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
 	const VulkanFunctions &vk = m_pDriver->m_Real;
-	
-	// copy fake backbuffer into actual backbuffer
-
-	ResourceId resid;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
-
-	// VKTODOHIGH find out the actual current image state
-	VkImageMemoryBarrier fakeTrans = {
-		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-		0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL,
-		0, 0, fakeBBIm,
-		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(res == VK_SUCCESS);
-
-	void *barrier = (void *)&fakeTrans;
-
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-	fakeTrans.oldLayout = fakeTrans.newLayout;
-
-	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&outw.curcoltrans);
-	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
-
-	VkImageCopy region = {
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
-		{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { 0, 0, 0 },
-		{ RDCMIN(fakeBBext.width, outw.width), RDCMIN(fakeBBext.height, outw.height), 1 },
-	};
-	vk.vkCmdCopyImage(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &region);
-	
-	fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	
 	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1,(void **) &outw.curcoltrans);
@@ -974,14 +1205,12 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	vk.vkEndCommandBuffer(cmd);
 
 	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
-	
-	{
-		VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, &outw.swap, &outw.curidx };
 
-		vk.vkQueuePresentWSI(q, &presentInfo);
+	VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, &outw.swap, &outw.curidx };
 
-		vk.vkQueueWaitIdle(q);
-	}
+	vk.vkQueuePresentWSI(q, &presentInfo);
+
+	vk.vkQueueWaitIdle(q);
 
 	vk.vkDeviceWaitIdle(dev);
 }
@@ -1057,16 +1286,21 @@ void VulkanReplay::FileChanged()
 FetchTexture VulkanReplay::GetTexture(ResourceId id)
 {
 	VULKANNOTIMP("GetTexture");
+	
+	ResourceId resid;
+	VkImage fakeBBIm = VK_NULL_HANDLE;
+	VkExtent3D fakeBBext;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
 
 	FetchTexture ret;
 	ret.arraysize = 1;
-	ret.byteSize = 1280*720*4;
+	ret.byteSize = fakeBBext.width*fakeBBext.height*4;
 	ret.creationFlags = eTextureCreate_SwapBuffer|eTextureCreate_SRV|eTextureCreate_RTV;
 	ret.cubemap = false;
 	ret.customName = false;
 	ret.depth = 1;
-	ret.width = 1280;
-	ret.height = 720;
+	ret.width = fakeBBext.width;
+	ret.height = fakeBBext.height;
 	ret.dimension = 2;
 	ret.ID = id;
 	ret.mips = 1;

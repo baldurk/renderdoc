@@ -26,25 +26,87 @@
 
 layout (location = 0) out vec4 color_out;
 
-layout (binding = 0, std140) uniform checkeruniforms
+layout (binding = 0, std140) uniform displayuniforms
 {
-    vec4 lightCol;
-    vec4 darkCol;
-} checker;
+	vec2  Position;
+	float Scale;
+	float HDRMul;
+
+	vec4  Channels;
+
+	float RangeMinimum;
+	float InverseRangeSize;
+	float MipLevel;
+	int   FlipY;
+
+	vec3  TextureResolutionPS;
+	int   OutputDisplayFormat;
+
+	vec2  OutputRes;
+	int   RawOutput;
+	float Slice;
+
+	int   SampleIdx;
+	int   NumSamples;
+	vec2  Padding;
+} texdisplay;
+
+layout (binding = 1) uniform sampler2D tex;
 
 void main(void)
 {
-	vec2 ab = mod(gl_FragCoord.xy, 128.0f.xx);
+	// calc screen co-ords with origin top left, modified by Position
+	vec2 scr = gl_FragCoord.xy - texdisplay.Position.xy;
 
-	if(
-		(ab.x < 64 && ab.y < 64) ||
-		(ab.x > 64 && ab.y > 64)
-		)
+	scr /= texdisplay.Scale;
+
+	vec2 texcoord = vec2(gl_FragCoord.xy)/512.0f.xx;
+	
+	if(scr.x < 0.0f || scr.y < 0.0f ||
+	   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
 	{
-		color_out = vec4(sqrt(checker.lightCol.rgb), 1);
+		color_out = vec4(0, 0, 0, 1);
+		return;
 	}
-	else
+
+	if (texdisplay.FlipY != 0)
+		scr.y = texdisplay.TextureResolutionPS.y - scr.y;
+
+	vec4 col = textureLod(tex, scr.xy / texdisplay.TextureResolutionPS.xy, float(texdisplay.MipLevel));
+
+	if(texdisplay.RawOutput != 0)
 	{
-		color_out = vec4(sqrt(checker.darkCol.rgb), 1);
+		color_out = col;
+		return;
 	}
+
+	// RGBM encoding
+	if(texdisplay.HDRMul > 0.0f)
+	{
+		col = vec4(col.rgb * col.a * texdisplay.HDRMul, 1.0);
+	}
+
+	vec4 pre_range_col = col;
+
+	col = ((col - texdisplay.RangeMinimum)*texdisplay.InverseRangeSize);
+	
+	if(texdisplay.Channels.x < 0.5f) col.x = pre_range_col.x = 0.0f;
+	if(texdisplay.Channels.y < 0.5f) col.y = pre_range_col.y = 0.0f;
+	if(texdisplay.Channels.z < 0.5f) col.z = pre_range_col.z = 0.0f;
+	if(texdisplay.Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f;
+	
+	{
+		// if only one channel is selected
+		if(dot(texdisplay.Channels, 1.0f.xxxx) == 1.0f)
+		{
+			// if it's alpha, just move it into rgb
+			// otherwise, select the channel that's on and replicate it across all channels
+			if(texdisplay.Channels.a == 1)
+				col = vec4(col.aaa, 1);
+			else
+				col = vec4(dot(col.rgb, 1.0f.xxx).xxx, 1.0f);
+		}
+	}
+
+	color_out = col;
 }
