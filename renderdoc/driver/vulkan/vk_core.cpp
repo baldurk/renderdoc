@@ -3780,6 +3780,15 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		cmdBuffer = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
 		m_Real.vkCmdBeginRenderPass(cmdBuffer, &beginInfo, cont);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		AddEvent(BEGIN_RENDERPASS, desc);
+		FetchDrawcall draw;
+		draw.name = "Command Buffer Start";
+		draw.flags |= eDraw_Clear;
+
+		AddDrawcall(draw, true);
 	}
 
 	return true;
@@ -5601,14 +5610,6 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 			m_CmdBufferInfo[m_CurCmdBufferID].draw = draw;
 
 			context->m_DrawcallStack.push_back(draw);
-
-			{
-				FetchDrawcall draw;
-				draw.name = "Command Buffer Start";
-				draw.flags |= eDraw_SetMarker;
-
-				AddDrawcall(draw, false);
-			}
 		}
 
 		// we know that command buffers always come before any other events,
