@@ -6913,6 +6913,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			m_FakeBBImgId = bbid;
 			m_FakeBBIm = (VkImage)GetResourceManager()->GetLiveResource(bbid).handle;
 			m_FakeBBExtent = m_ImageInfo[liveBBid].extent;
+			m_FakeBBFmt = MakeResourceFormat(m_ImageInfo[liveBBid].format);
 
 			bool HasCallstack = false;
 			m_pSerialiser->Serialise("HasCallstack", HasCallstack);	

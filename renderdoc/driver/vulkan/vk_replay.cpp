@@ -357,7 +357,8 @@ void VulkanReplay::InitDebugData()
 	ResourceId id;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
+	ResourceFormat fakeBBfmt;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
 
 	VkImageViewCreateInfo bbviewInfo = {
 		VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
@@ -708,7 +709,8 @@ vector<ResourceId> VulkanReplay::GetTextures()
 	ResourceId id;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
+	ResourceFormat fakeBBfmt;
+	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
 
 	texs.push_back(id);
 	return texs;
@@ -727,7 +729,8 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
+	ResourceFormat fakeBBfmt;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
 
 	if(x >= (uint32_t)fakeBBext.width || y >= (uint32_t)fakeBBext.height)
 	{
@@ -806,11 +809,22 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 	RDCASSERT(pData != NULL);
 
-	// VKTODOHIGH assuming BGRA
-	pixel[2] = float(pData[0])/255.0f;
-	pixel[1] = float(pData[1])/255.0f;
-	pixel[0] = float(pData[2])/255.0f;
-	pixel[3] = float(pData[3])/255.0f;
+	// VKTODOMED this should go through render texture so that we
+	// just get pure F32 RGBA data out
+	if(fakeBBfmt.special == eSpecial_B8G8R8A8)
+	{
+		pixel[0] = float(pData[2])/255.0f;
+		pixel[1] = float(pData[1])/255.0f;
+		pixel[2] = float(pData[0])/255.0f;
+		pixel[3] = float(pData[3])/255.0f;
+	}
+	else
+	{
+		pixel[0] = float(pData[0])/255.0f;
+		pixel[1] = float(pData[1])/255.0f;
+		pixel[2] = float(pData[2])/255.0f;
+		pixel[3] = float(pData[3])/255.0f;
+	}
 
 	vk.vkUnmapMemory(dev, readbackmem);
 
@@ -840,7 +854,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
+	ResourceFormat fakeBBfmt;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
 	
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
@@ -1290,7 +1305,8 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ResourceId resid;
 	VkImage fakeBBIm = VK_NULL_HANDLE;
 	VkExtent3D fakeBBext;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext);
+	ResourceFormat fakeBBfmt;
+	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
 
 	FetchTexture ret;
 	ret.arraysize = 1;
@@ -1308,15 +1324,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	ret.msSamp = 1;
 	ret.name = "WSI Presentable Image";
 	ret.numSubresources = 1;
-
-	ret.format.compByteWidth = 1;
-	ret.format.compCount = 4;
-	ret.format.compType = eCompType_UNorm;
-	ret.format.rawType = 0;
-	ret.format.special = false;
-	ret.format.specialFormat = eSpecial_Unknown;
-	ret.format.srgbCorrected = false;
-	ret.format.strname = "B8G8R8A8_UNORM";
+	ret.format = fakeBBfmt;
 	return ret;
 }
 
@@ -1342,7 +1350,8 @@ void VulkanReplay::SavePipelineState()
 		ResourceId id;
 		VkImage fakeBBIm = VK_NULL_HANDLE;
 		VkExtent3D fakeBBext;
-		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext);
+		ResourceFormat fakeBBfmt;
+		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
 
 		m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
 	}
