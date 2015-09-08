@@ -240,6 +240,6 @@ class VulkanReplay : public IReplayDriver
 		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
 		VkPipelineLayout m_TexDisplayPipeLayout;
 		VkDescriptorSet m_TexDisplayDescSet;
-		VkPipeline m_TexDisplayPipeline;
+		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
 		UBO m_TexDisplayUBO;
 };

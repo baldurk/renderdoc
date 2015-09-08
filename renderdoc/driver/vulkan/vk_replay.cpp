@@ -672,6 +672,13 @@ void VulkanReplay::InitDebugData()
 	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
+	attState.blendEnable = true;
+	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
+	attState.destBlendColor = VK_BLEND_ONE_MINUS_SRC_ALPHA;
+
+	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
+	RDCASSERT(vkr == VK_SUCCESS);
+
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
 		vkr = vk.vkDestroyShader(dev, shader[i]);
@@ -1028,7 +1035,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		};
 		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeline);
+		// VKTODOMED will need a way to disable blend for other things
+		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? m_TexDisplayPipeline : m_TexDisplayBlendPipeline);
 		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeLayout, 0, 1, &m_TexDisplayDescSet, 0, NULL);
 
 		vk.vkCmdBindDynamicViewportState(cmd, outw.fullVP);
