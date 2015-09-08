@@ -63,9 +63,9 @@ data/glsl/quadoverdraw.frago \
 data/glsl/histogram.compo \
 data/glsl/arraymscopy.compo \
 data/glsl/outline.frago \
-data/spv/blitvs.spv \
-data/spv/checkerboardfs.spv \
-data/spv/texdisplayfs.spv \
+data/spv/blitvs.spvo \
+data/spv/checkerboardfs.spvo \
+data/spv/texdisplayfs.spvo \
 data/sourcecodepro.ttfo
 
 .PHONY: all

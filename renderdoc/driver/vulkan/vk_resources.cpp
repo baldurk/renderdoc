@@ -117,13 +117,13 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 	ret.special = false;
 	ret.specialFormat = eSpecial_Unknown;
 	ret.strname = ToStr::Get(fmt).substr(10); // 3 == strlen("VK_FORMAT_")
+	ret.compByteWidth = 0;
+	ret.compCount = 0;
+	ret.compType = eCompType_None;
+	ret.srgbCorrected = false;
 
 	if(fmt == VK_FORMAT_UNDEFINED)
 	{
-		ret.compCount = 0;
-		ret.compByteWidth = 0;
-		ret.compType = eCompType_None;
-		ret.srgbCorrected = false;
 		return ret;
 	}
 
@@ -257,6 +257,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_B8G8R8A8_SRGB:
 			ret.special = true;
 			ret.specialFormat = eSpecial_B8G8R8A8;
+			break;
+		default:
 			break;
 	}
 
@@ -415,6 +417,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_B10G10R10A2_SINT:
 			ret.compCount = 4;
 			break;
+		default:
+			break;
 	}
 
 	switch(fmt)
@@ -448,6 +452,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_B8G8R8_SRGB:
 		case VK_FORMAT_B8G8R8A8_SRGB:
 			ret.srgbCorrected = true;
+			break;
+		default:
 			break;
 	}
 
@@ -642,6 +648,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_D32_SFLOAT:
 			ret.compType = eCompType_Depth;
 			break;
+		default:
+			break;
 	}
 
 	switch(fmt)
@@ -745,6 +753,8 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 		case VK_FORMAT_R64G64B64_SFLOAT:
 		case VK_FORMAT_R64G64B64A64_SFLOAT:
 			ret.compByteWidth = 8;
+			break;
+		default:
 			break;
 	}
 
