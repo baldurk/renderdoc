@@ -163,7 +163,7 @@ class VulkanReplay : public IReplayDriver
 
 			void SetCol(VkDeviceMemory mem, VkImage img);
 			void SetDS(VkDeviceMemory mem, VkImage img);
-			void MakeTargets(const VulkanFunctions &vk, VkDevice device, bool depth);
+			void MakeTargets(WrappedVulkan *driver, VkDevice device, bool depth);
 
 			void SetWindowHandle(void *wn);
 
@@ -174,10 +174,13 @@ class VulkanReplay : public IReplayDriver
 			VkSwapChainWSI swap;
 			uint32_t numImgs;
 			VkImage colimg[8];
-			VkAttachmentView colview[8];
-			VkFramebuffer fb[8], fbdepth[8];
 			VkImageMemoryBarrier coltrans[8];
-			VkImageMemoryBarrier *curcoltrans;
+
+			VkImage bb;
+			VkAttachmentView bbview;
+			VkDeviceMemory bbmem;
+			VkImageMemoryBarrier bbtrans;
+			VkFramebuffer fb, fbdepth;
 			VkRenderPass renderpass;
 			VkDynamicViewportState fullVP;
 			uint32_t curidx;

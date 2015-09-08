@@ -59,12 +59,12 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 {
 	swap = VK_NULL_HANDLE;
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
-	{
 		colimg[i] = VK_NULL_HANDLE;
-		colview[i] = VK_NULL_HANDLE;
-		fb[i] = VK_NULL_HANDLE;
-		fbdepth[i] = VK_NULL_HANDLE;
-	}
+
+	bb = VK_NULL_HANDLE;
+	bbview = VK_NULL_HANDLE;
+	fb = VK_NULL_HANDLE;
+	fbdepth = VK_NULL_HANDLE;
 	renderpass = VK_NULL_HANDLE;
 	fullVP = VK_NULL_HANDLE;
 
@@ -76,6 +76,8 @@ VulkanReplay::OutputWindow::OutputWindow() : wnd(NULL_WND_HANDLE), width(0), hei
 	};
 	for(size_t i=0; i < ARRAY_COUNT(coltrans); i++)
 		coltrans[i] = t;
+
+	bbtrans = t;
 
 	t.subresourceRange.aspect = VK_IMAGE_ASPECT_DEPTH;
 	depthtrans = t;
@@ -92,44 +94,45 @@ void VulkanReplay::OutputWindow::SetDS(VkDeviceMemory mem, VkImage img)
 {
 }
 
-void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice device, bool depth)
+void VulkanReplay::OutputWindow::MakeTargets(WrappedVulkan *driver, VkDevice device, bool depth)
 {
+	const VulkanFunctions &vk = driver->m_Real;
+
 	vk.vkDeviceWaitIdle(device);
-
-	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
-	{
-		if(colimg[i] != VK_NULL_HANDLE)
-		{
-			vk.vkDestroyAttachmentView(device, colview[i]);
-			vk.vkDestroyFramebuffer(device, fb[i]);
-			if(dsimg != VK_NULL_HANDLE)
-				vk.vkDestroyFramebuffer(device, fbdepth[i]);
-
-			fb[i] = VK_NULL_HANDLE;
-			fbdepth[i] = VK_NULL_HANDLE;
-			colimg[i] = VK_NULL_HANDLE;
-			colview[i] = VK_NULL_HANDLE;
-		}
-	}
-
-	if(dsimg != VK_NULL_HANDLE)
-	{
-		vk.vkDestroyAttachmentView(device, dsview);
-		vk.vkDestroyImage(device, dsimg);
-		vk.vkFreeMemory(device, dsmem);
-
-		dsview = VK_NULL_HANDLE;
-		dsimg = VK_NULL_HANDLE;
-		dsmem = VK_NULL_HANDLE;
-	}
-
-	if(renderpass != VK_NULL_HANDLE)
+	
+	if(bb != VK_NULL_HANDLE)
 	{
 		vk.vkDestroyRenderPass(device, renderpass);
 		renderpass = VK_NULL_HANDLE;
 
 		vk.vkDestroyDynamicViewportState(device, fullVP);
 		fullVP = VK_NULL_HANDLE;
+		
+		vk.vkDestroyImage(device, bb);
+		vk.vkDestroyAttachmentView(device, bbview);
+		vk.vkFreeMemory(device, bbmem);
+		vk.vkDestroyFramebuffer(device, fb);
+		
+		bb = VK_NULL_HANDLE;
+		bbview = VK_NULL_HANDLE;
+		bbmem = VK_NULL_HANDLE;
+		fb = VK_NULL_HANDLE;
+	}
+
+	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
+		colimg[i] = VK_NULL_HANDLE;
+
+	if(dsimg != VK_NULL_HANDLE)
+	{
+		vk.vkDestroyAttachmentView(device, dsview);
+		vk.vkDestroyImage(device, dsimg);
+		vk.vkFreeMemory(device, dsmem);
+		vk.vkDestroyFramebuffer(device, fbdepth);
+		
+		dsview = VK_NULL_HANDLE;
+		dsimg = VK_NULL_HANDLE;
+		dsmem = VK_NULL_HANDLE;
+		fbdepth = VK_NULL_HANDLE;
 	}
 
 	VkSwapChainWSI old = swap;
@@ -248,30 +251,60 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
-	for(uint32_t i=0; i < numImgs; i++)
 	{
-		if(colimg[i] != VK_NULL_HANDLE)
-		{
-			VkAttachmentViewCreateInfo info = {
-				VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
-				colimg[i], VK_FORMAT_B8G8R8A8_UNORM, 0, 0, 1,
-				0 };
+		VkImageCreateInfo imInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
+			VK_IMAGE_TYPE_2D, VK_FORMAT_B8G8R8A8_UNORM, { width, height, 1 },
+			1, 1, 1,
+			VK_IMAGE_TILING_OPTIMAL,
+			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
+			0, VK_SHARING_MODE_EXCLUSIVE,
+			0, NULL,
+		};
 
-			res = vk.vkCreateAttachmentView(device, &info, &colview[i]);
-			RDCASSERT(res == VK_SUCCESS);
+		VkResult res = vk.vkCreateImage(device, &imInfo, &bb);
+		RDCASSERT(res == VK_SUCCESS);
 
-			VkAttachmentBindInfo attBind = { colview[i], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+		VkMemoryRequirements mrq = {0};
 
-			VkFramebufferCreateInfo fbinfo = {
-				VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
-				renderpass,
-				1, &attBind,
-				(uint32_t)width, (uint32_t)height, 1,
-			};
+		res = vk.vkGetImageMemoryRequirements(device, bb, &mrq);
+		RDCASSERT(res == VK_SUCCESS);
 
-			res = vk.vkCreateFramebuffer(device, &fbinfo, &fb[i]);
-			RDCASSERT(res == VK_SUCCESS);
-		}
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		res = vk.vkAllocMemory(device, &allocInfo, &bbmem);
+		RDCASSERT(res == VK_SUCCESS);
+
+		res = vk.vkBindImageMemory(device, bb, bbmem, 0);
+		RDCASSERT(res == VK_SUCCESS);
+
+		bbtrans.image = bb;
+		bbtrans.oldLayout = bbtrans.newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	}
+
+	{
+		VkAttachmentViewCreateInfo info = {
+			VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
+			bb, VK_FORMAT_B8G8R8A8_UNORM, 0, 0, 1,
+			0 };
+
+		res = vk.vkCreateAttachmentView(device, &info, &bbview);
+		RDCASSERT(res == VK_SUCCESS);
+
+		VkAttachmentBindInfo attBind = { bbview, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
+		VkFramebufferCreateInfo fbinfo = {
+			VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
+			renderpass,
+			1, &attBind,
+			(uint32_t)width, (uint32_t)height, 1,
+		};
+
+		res = vk.vkCreateFramebuffer(device, &fbinfo, &fb);
+		RDCASSERT(res == VK_SUCCESS);
 	}
 
 	if(dsimg != VK_NULL_HANDLE)
@@ -985,14 +1018,11 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	fakeTrans.oldLayout = fakeTrans.newLayout;
 
-	// VKTODOMED need to render to an intermediate texture that can
-	// be copied/drawn to the actual backbuffer (of which there may
-	// be many)
 	{
 		VkClearValue clearval = {0};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			outw.renderpass, outw.fb[ outw.curidx ],
+			outw.renderpass, outw.fb,
 			{ { 0, 0, }, { outw.width, outw.height } },
 			1, &clearval,
 		};
@@ -1041,10 +1071,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
 	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
-	
-	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&outw.curcoltrans);
-	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
+
+	void *barrier = (void *)&outw.bbtrans;
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
@@ -1061,7 +1089,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		VkClearValue clearval = {0};
 		VkRenderPassBeginInfo rpbegin = {
 			VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL,
-			outw.renderpass, outw.fb[ outw.curidx ],
+			outw.renderpass, outw.fb,
 			{ { 0, 0, }, { outw.width, outw.height } },
 			1, &clearval,
 		};
@@ -1128,7 +1156,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 		{
 			bool depth = (outw.dsimg != VK_NULL_HANDLE);
 
-			outw.MakeTargets(m_pDriver->m_Real, m_pDriver->GetDev(), depth);
+			outw.MakeTargets(m_pDriver, m_pDriver->GetDev(), depth);
 		}
 
 		return true;
@@ -1160,8 +1188,6 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	vk.vkAcquireNextImageWSI(dev, outw.swap, UINT64_MAX, sem, &outw.curidx);
 
-	outw.curcoltrans = &outw.coltrans[outw.curidx];
-
 	vk.vkQueueWaitSemaphore(q, sem);
 
 	vk.vkDestroySemaphore(dev, sem);
@@ -1170,10 +1196,19 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(res == VK_SUCCESS);
+
+	void *barrier[] = {
+		(void *)&outw.bbtrans,
+		(void *)&outw.coltrans[outw.curidx],
+	};
 	
-	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1,(void **) &outw.curcoltrans);
-	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
+	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
+
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+
+	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
+	outw.coltrans[outw.curidx].oldLayout = outw.bbtrans.newLayout;
 
 	vk.vkEndCommandBuffer(cmd);
 
@@ -1203,7 +1238,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(res == VK_SUCCESS);
 
-	vk.vkCmdClearColorImage(cmd, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.curcoltrans->subresourceRange);
+	vk.vkCmdClearColorImage(cmd, outw.bb, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbtrans.subresourceRange);
 
 	vk.vkEndCommandBuffer(cmd);
 
@@ -1239,10 +1274,33 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
 	VkResult res = vk.vkBeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(res == VK_SUCCESS);
+
+	void *barrier[] = {
+		(void *)&outw.bbtrans,
+		(void *)&outw.coltrans[outw.curidx],
+	};
 	
-	outw.curcoltrans->newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1,(void **) &outw.curcoltrans);
-	outw.curcoltrans->oldLayout = outw.curcoltrans->newLayout;
+	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
+	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
+
+	VkImageCopy cpy = {
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0 },
+		{ 0, 0, 0 },
+		{ VK_IMAGE_ASPECT_COLOR, 0, 0 },
+		{ 0, 0, 0 },
+		{ outw.width, outw.height, 1 },
+	};
+
+	vk.vkCmdCopyImage(cmd, outw.bb, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+	
+	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
+
+	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+
+	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
+	outw.coltrans[outw.curidx].oldLayout = outw.coltrans[outw.curidx].newLayout;
 
 	vk.vkEndCommandBuffer(cmd);
 
@@ -1268,13 +1326,7 @@ void VulkanReplay::DestroyOutputWindow(uint64_t id)
 	const VulkanFunctions &vk = m_pDriver->m_Real;
 	VkDevice device = m_pDriver->GetDev();
 
-	for(size_t i=0; i < ARRAY_COUNT(outw.colimg); i++)
-	{
-		if(outw.colimg[i] != VK_NULL_HANDLE)
-		{
-			vk.vkDestroyAttachmentView(device, outw.colview[i]);
-		}
-	}
+	// VKTODOHIGH proper free of outw
 
 	if(outw.dsimg != VK_NULL_HANDLE)
 	{
@@ -1303,7 +1355,7 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 		m_OutputWindows[id].width = w;
 		m_OutputWindows[id].height = h;
 		
-		m_OutputWindows[id].MakeTargets(m_pDriver->m_Real, m_pDriver->GetDev(), depth);
+		m_OutputWindows[id].MakeTargets(m_pDriver, m_pDriver->GetDev(), depth);
 	}
 
 	return id;
