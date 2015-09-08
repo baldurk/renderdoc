@@ -285,15 +285,9 @@ void VulkanReplay::OutputWindow::MakeTargets(const VulkanFunctions &vk, VkDevice
 	}
 }
 
-void VulkanReplay::UBO::Create(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize size)
+void VulkanReplay::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
 {
-	VkMemoryAllocInfo allocInfo = {
-		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
-		size, 2, // VKTODOHIGH find appropriate memory type index
-	};
-
-	VkResult vkr = vk.vkAllocMemory(dev, &allocInfo, &mem);
-	RDCASSERT(vkr == VK_SUCCESS);
+	const VulkanFunctions &vk = driver->m_Real;
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -301,7 +295,19 @@ void VulkanReplay::UBO::Create(const VulkanFunctions &vk, VkDevice dev, VkDevice
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
-	vkr = vk.vkCreateBuffer(dev, &bufInfo, &buf);
+	VkResult vkr = vk.vkCreateBuffer(dev, &bufInfo, &buf);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkMemoryRequirements mrq;
+	vkr = vk.vkGetBufferMemoryRequirements(dev, buf, &mrq);
+
+	// VKTODOMED maybe don't require host visible, and do map & copy?
+	VkMemoryAllocInfo allocInfo = {
+		VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+		size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
+	};
+
+	vkr = vk.vkAllocMemory(dev, &allocInfo, &mem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	vkr = vk.vkBindBufferMemory(dev, buf, mem, 0);
@@ -465,8 +471,8 @@ void VulkanReplay::InitDebugData()
 	vkr = vk.vkAllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	m_CheckerboardUBO.Create(vk, dev, 128);
-	m_TexDisplayUBO.Create(vk, dev, 128);
+	m_CheckerboardUBO.Create(m_pDriver, dev, 128);
+	m_TexDisplayUBO.Create(m_pDriver, dev, 128);
 
 	RDCCOMPILE_ASSERT(sizeof(displayuniforms) < 128, "tex display size");
 
@@ -743,27 +749,30 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	VkQueue q = m_pDriver->GetQ();
 	const VulkanFunctions &vk = m_pDriver->m_Real;
 
+	// VKTODOMED this should be all created offline, including separate host and
+	// readback buffers
 	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
 	VkBuffer destbuf = VK_NULL_HANDLE;
 
 	{
-		VkMemoryAllocInfo allocInfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-			/*.pNext =*/ NULL,
-			/*.allocationSize =*/ 128,
-			/*.memoryTypeIndex =*/ 0, // VKTODOHIGH find appropriate memory type index
-		};
-
-		VkResult res = vk.vkAllocMemory(dev, &allocInfo, &readbackmem);
-		RDCASSERT(res == VK_SUCCESS);
-
 		VkBufferCreateInfo bufInfo = {
 			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
 			128, VK_BUFFER_USAGE_GENERAL, 0,
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
-		res = vk.vkCreateBuffer(dev, &bufInfo, &destbuf);
+		VkResult vkr = vk.vkCreateBuffer(dev, &bufInfo, &destbuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		VkMemoryRequirements mrq;
+		vkr = vk.vkGetBufferMemoryRequirements(dev, destbuf, &mrq);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			128, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		VkResult res = vk.vkAllocMemory(dev, &allocInfo, &readbackmem);
 		RDCASSERT(res == VK_SUCCESS);
 
 		res = vk.vkBindBufferMemory(dev, destbuf, readbackmem, 0);
@@ -1198,8 +1207,6 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	auto it = m_OutputWindows.find(id);
 	if(id == 0 || it == m_OutputWindows.end())
 		return;
-
-	VULKANNOTIMP("FlipOutputWindow");
 
 	OutputWindow &outw = it->second;
 

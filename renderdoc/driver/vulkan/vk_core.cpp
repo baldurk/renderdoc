@@ -520,6 +520,13 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	ReplayData data;
 	data.inst = instance;
 	data.phys = pd;
+
+	m_Real.vkGetPhysicalDeviceMemoryProperties(pd, &data.memProps);
+
+	data.readbackMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+	data.uploadMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+	data.GPULocalMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+
 	m_PhysicalReplayData.push_back(data);
 
 	return true;
@@ -1338,6 +1345,8 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 	{
 		VkDeviceMemory mem = VK_NULL_HANDLE;
 
+		// VKTODOLOW may need to re-write info to change memory type index to the
+		// appropriate index on replay
 		VkResult ret = m_Real.vkAllocMemory((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &mem);
 		
 		ResourceId live;
@@ -5150,6 +5159,64 @@ void WrappedVulkan::vkCmdDbgMarkerEnd(
 	}
 }
 
+uint32_t WrappedVulkan::GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask)
+{
+	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].readbackMemIndex))
+		return m_PhysicalReplayData[m_SwapPhysDevice].readbackMemIndex;
+
+	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+		resourceRequiredBitmask,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
+}
+
+uint32_t WrappedVulkan::GetUploadMemoryIndex(uint32_t resourceRequiredBitmask)
+{
+	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].uploadMemIndex))
+		return m_PhysicalReplayData[m_SwapPhysDevice].uploadMemIndex;
+
+	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+		resourceRequiredBitmask,
+		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
+}
+
+uint32_t WrappedVulkan::GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask)
+{
+	if(resourceRequiredBitmask & (1 << m_PhysicalReplayData[m_SwapPhysDevice].GPULocalMemIndex))
+		return m_PhysicalReplayData[m_SwapPhysDevice].GPULocalMemIndex;
+
+	return m_PhysicalReplayData[m_SwapPhysDevice].GetMemoryIndex(
+		resourceRequiredBitmask,
+		VK_MEMORY_PROPERTY_DEVICE_ONLY, 0);
+}
+
+uint32_t WrappedVulkan::ReplayData::GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps)
+{
+	uint32_t best = memProps.memoryTypeCount;
+	
+	for(uint32_t memIndex = 0; memIndex < memProps.memoryTypeCount; memIndex++)
+	{
+		if(resourceRequiredBitmask & (1 << memIndex))
+		{
+			uint32_t memTypeFlags = memProps.memoryTypes[memIndex].propertyFlags;
+
+			if((memTypeFlags & allocRequiredProps) == allocRequiredProps)
+			{
+				if(memTypeFlags & allocUndesiredProps)
+					best = memIndex;
+				else
+					return memIndex;
+			}
+		}
+	}
+
+	if(best == memProps.memoryTypeCount)
+	{
+		RDCERR("Couldn't find any matching heap! requirements %x / %x too strict", resourceRequiredBitmask, allocRequiredProps);
+		return 0;
+	}
+	return best;
+}
+
 bool WrappedVulkan::ReleaseResource(VkResource res)
 {
 	// VKTODOHIGH: release resource with device from resource record
@@ -6026,10 +6093,8 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			RDCASSERT(res == VK_SUCCESS);
 			
 			VkMemoryAllocInfo allocInfo = {
-				/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-				/*.pNext =*/ NULL,
-				/*.allocationSize =*/ mrq.size,
-				/*.memoryTypeIndex =*/ 0, // VKTODOHIGH find appropriate memory type index
+				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+				mrq.size, GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
 			res = m_Real.vkAllocMemory(dev, &allocInfo, &mem);
@@ -6357,14 +6422,15 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 		VkCmdBuffer cmd = GetCmd();
 
 		VkDeviceMemory mem = VK_NULL_HANDLE;
+		
+		// VKTODOMED should get mem requirements for buffer - copy might enforce
+		// some restrictions?
+		VkMemoryRequirements mrq = { meminfo.size, 16, ~0U };
 
 		VkMemoryAllocInfo allocInfo = {
-			/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-			/*.pNext =*/ NULL,
-			/*.allocationSize =*/ meminfo.size,
-			/*.memoryTypeIndex =*/ 0,
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
-		// VKTODOHIGH memory type index needs to be host-visible for copy back
 
 		vkr = m_Real.vkAllocMemory(d, &allocInfo, &mem);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -6484,13 +6550,14 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 			VkDeviceMemory mem = VK_NULL_HANDLE;
 
+			// VKTODOMED should get mem requirements for buffer - copy might enforce
+			// some restrictions?
+			VkMemoryRequirements mrq = { dataSize, 16, ~0U };
+
 			VkMemoryAllocInfo allocInfo = {
-				/*.sType =*/ VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO,
-				/*.pNext =*/ NULL,
-				/*.allocationSize =*/ dataSize,
-				/*.memoryTypeIndex =*/ 0,
+				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+				dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
-			// VKTODOHIGH memory type index needs to be host-visible for copy
 
 			vkr = m_Real.vkAllocMemory(d, &allocInfo, &mem);
 			RDCASSERT(vkr == VK_SUCCESS);

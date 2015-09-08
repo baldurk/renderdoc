@@ -141,6 +141,18 @@ private:
 		VkQueue q;
 		VkCmdBuffer cmd;
 		VkCmdPool cmdpool;
+
+		uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps); 
+
+		// store the three most common memory indices:
+		//  - memory for copying into and reading back from the GPU
+		//  - memory for copying into and uploading to the GPU
+		//  - memory for sitting on the GPU and never being CPU accessed
+		uint32_t readbackMemIndex;
+		uint32_t uploadMemIndex;
+		uint32_t GPULocalMemIndex;
+
+		VkPhysicalDeviceMemoryProperties memProps;
 	};
 	vector<ReplayData> m_PhysicalReplayData;
 	int m_SwapPhysDevice;
@@ -159,6 +171,9 @@ private:
 	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
 	VkQueue GetQ()       { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q;   }
 	VkCmdBuffer GetCmd(){ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].cmd; }
+	uint32_t GetReadbackMemoryIndex(uint32_t resourceRequiredBitmask);
+	uint32_t GetUploadMemoryIndex(uint32_t resourceRequiredBitmask);
+	uint32_t GetGPULocalMemoryIndex(uint32_t resourceRequiredBitmask);
 
 	ResourceId m_FakeBBImgId;
 	VkImage m_FakeBBIm;

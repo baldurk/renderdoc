@@ -208,7 +208,7 @@ class VulkanReplay : public IReplayDriver
 		struct UBO
 		{
 			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
-			void Create(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize size);
+			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
 			void Destroy(const VulkanFunctions &vk, VkDevice dev);
 
 			void *Map(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
