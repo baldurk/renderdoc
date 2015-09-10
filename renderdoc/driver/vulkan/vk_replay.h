@@ -163,7 +163,8 @@ class VulkanReplay : public IReplayDriver
 
 			void SetCol(VkDeviceMemory mem, VkImage img);
 			void SetDS(VkDeviceMemory mem, VkImage img);
-			void MakeTargets(WrappedVulkan *driver, VkDevice device, bool depth);
+			void Create(WrappedVulkan *driver, VkDevice device, bool depth);
+			void Destroy(WrappedVulkan *driver, VkDevice device);
 
 			void SetWindowHandle(void *wn);
 

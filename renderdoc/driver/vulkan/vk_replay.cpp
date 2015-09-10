@@ -94,7 +94,7 @@ void VulkanReplay::OutputWindow::SetDS(VkDeviceMemory mem, VkImage img)
 {
 }
 
-void VulkanReplay::OutputWindow::MakeTargets(WrappedVulkan *driver, VkDevice device, bool depth)
+void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
 	const VulkanFunctions &vk = driver->m_Real;
 
@@ -119,6 +119,7 @@ void VulkanReplay::OutputWindow::MakeTargets(WrappedVulkan *driver, VkDevice dev
 		fb = VK_NULL_HANDLE;
 	}
 
+	// not owned - freed with the swapchain
 	for(size_t i=0; i < ARRAY_COUNT(colimg); i++)
 		colimg[i] = VK_NULL_HANDLE;
 
@@ -135,7 +136,19 @@ void VulkanReplay::OutputWindow::MakeTargets(WrappedVulkan *driver, VkDevice dev
 		fbdepth = VK_NULL_HANDLE;
 	}
 
+	if(swap != VK_NULL_HANDLE)
+		vk.vkDestroySwapChainWSI(device, swap);
+}
+
+void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
+{
+	const VulkanFunctions &vk = driver->m_Real;
+	
+	// save the old swapchain so it isn't destroyed
 	VkSwapChainWSI old = swap;
+	swap = VK_NULL_HANDLE;
+
+	Destroy(driver, device);
 
 	void *handleptr = NULL;
 	void *wndptr = NULL;
@@ -1170,7 +1183,7 @@ bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
 		{
 			bool depth = (outw.dsimg != VK_NULL_HANDLE);
 
-			outw.MakeTargets(m_pDriver, m_pDriver->GetDev(), depth);
+			outw.Create(m_pDriver, m_pDriver->GetDev(), depth);
 		}
 
 		return true;
@@ -1341,19 +1354,7 @@ void VulkanReplay::DestroyOutputWindow(uint64_t id)
 
 	OutputWindow &outw = it->second;
 
-	const VulkanFunctions &vk = m_pDriver->m_Real;
-	VkDevice device = m_pDriver->GetDev();
-
-	// VKTODOHIGH proper free of outw
-
-	if(outw.dsimg != VK_NULL_HANDLE)
-	{
-		vk.vkDestroyAttachmentView(device, outw.dsview);
-		vk.vkDestroyImage(device, outw.dsimg);
-		vk.vkFreeMemory(device, outw.dsmem);
-	}
-
-	vk.vkDestroySwapChainWSI(device, outw.swap);
+	outw.Destroy(m_pDriver, m_pDriver->GetDev());
 
 	m_OutputWindows.erase(it);
 }
@@ -1373,7 +1374,7 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 		m_OutputWindows[id].width = w;
 		m_OutputWindows[id].height = h;
 		
-		m_OutputWindows[id].MakeTargets(m_pDriver, m_pDriver->GetDev(), depth);
+		m_OutputWindows[id].Create(m_pDriver, m_pDriver->GetDev(), depth);
 	}
 
 	return id;
