@@ -45,7 +45,7 @@ void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWind
 	handle.connection = connection;
 	handle.root = screen->root;
 
-	surfDesc.pPlatformWindow = &handle;
+	surfDesc.pPlatformHandle = &handle;
 	surfDesc.pPlatformWindow = &wnd;
 	surfDesc.platform = VK_PLATFORM_X11_WSI;
 }
