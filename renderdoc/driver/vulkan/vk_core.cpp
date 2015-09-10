@@ -1845,6 +1845,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 			ResourceId live = GetResourceManager()->RegisterResource(MakeRes(img));
 			GetResourceManager()->AddLiveResource(id, MakeRes(img));
 			
+			m_ImageInfo[live].type = info.imageType;
 			m_ImageInfo[live].format = info.format;
 			m_ImageInfo[live].extent = info.extent;
 			m_ImageInfo[live].mipLevels = info.mipLevels;
@@ -1905,6 +1906,7 @@ VkResult WrappedVulkan::vkCreateImage(
 			GetResourceManager()->AddLiveResource(id, res);
 		}
 		
+		m_ImageInfo[id].type = pCreateInfo->imageType;
 		m_ImageInfo[id].format = pCreateInfo->format;
 		m_ImageInfo[id].extent = pCreateInfo->extent;
 		m_ImageInfo[id].mipLevels = pCreateInfo->mipLevels;
@@ -6122,6 +6124,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 
 			// fill out image info so we track resource state transitions
 			m_ImageInfo[liveId].mem = mem;
+			m_ImageInfo[liveId].type = VK_IMAGE_TYPE_2D;
 			m_ImageInfo[liveId].format = info.imageFormat;
 			m_ImageInfo[liveId].extent.width = info.imageExtent.width;
 			m_ImageInfo[liveId].extent.height = info.imageExtent.height;
@@ -6198,6 +6201,7 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 					ResourceId imid = GetResourceManager()->GetID(MakeRes(images[i].image));
 
 					// fill out image info so we track resource state transitions
+					m_ImageInfo[imid].type = VK_IMAGE_TYPE_2D;
 					m_ImageInfo[imid].format = pCreateInfo->imageFormat;
 					m_ImageInfo[imid].extent.width = pCreateInfo->imageExtent.width;
 					m_ImageInfo[imid].extent.height = pCreateInfo->imageExtent.height;

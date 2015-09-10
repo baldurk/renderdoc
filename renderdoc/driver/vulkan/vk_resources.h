@@ -214,6 +214,7 @@ struct ImgState
 	ImgState()
 		: mem(VK_NULL_HANDLE), arraySize(0), mipLevels(0)
 	{
+		type = VK_IMAGE_TYPE_MAX_ENUM;
 		format = VK_FORMAT_UNDEFINED;
 		extent.width = extent.height = extent.depth = 0;
 	}
@@ -221,6 +222,7 @@ struct ImgState
 	VkDeviceMemory mem;
 	vector<ImageRegionState> subresourceStates;
 
+	VkImageType type;
 	VkFormat format;
 	VkExtent3D extent;
 	int arraySize, mipLevels;
