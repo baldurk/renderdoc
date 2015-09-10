@@ -166,6 +166,8 @@ class VulkanReplay : public IReplayDriver
 			void Create(WrappedVulkan *driver, VkDevice device, bool depth);
 			void Destroy(WrappedVulkan *driver, VkDevice device);
 
+			// implemented in vk_replay_platform.cpp
+			void InitSurfaceDescription(VkSurfaceDescriptionWindowWSI &surfDesc);
 			void SetWindowHandle(void *wn);
 
 			WINDOW_HANDLE_DECL

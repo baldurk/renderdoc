@@ -154,25 +154,9 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	void *wndptr = NULL;
 	VkPlatformWSI platform = VK_PLATFORM_MAX_ENUM_WSI;
 
-#if defined(WIN32)
-	static int dllLocator=0;
+	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI };
 
-	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, (HMODULE *)&handleptr);
-	wndptr = wnd;
-	platform = VK_PLATFORM_WIN32_WSI;
-#elif defined(__linux__)
-	VkPlatformHandleXcbWSI handle;
-	handle.connection = connection;
-	handle.root = screen->root;
-
-	handleptr = &handle;
-	wndptr = &wnd;
-	platform = VK_PLATFORM_X11_WSI;
-#else
-#error "unknown platform"
-#endif
-
-	VkSurfaceDescriptionWindowWSI surfDesc = { VK_STRUCTURE_TYPE_SURFACE_DESCRIPTION_WINDOW_WSI, NULL, platform, handleptr, wndptr };
+	InitSurfaceDescription(surfDesc);
 
 	// VKTODOHIGH need to verify which present modes are present
 	VkSwapChainCreateInfoWSI swapInfo = {
@@ -1807,18 +1791,14 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
 
 const VulkanFunctions &GetRealVKFunctions();
 
+// in vk_replay_platform.cpp
+bool LoadVulkanLibrary();
+
 ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating a VulkanReplay replay device");
 	
-#if defined(WIN32)
-	bool loaded = Process::LoadModule("vulkan.0.dll");
-#elif defined(__linux__)
-	bool loaded = Process::LoadModule("libvulkan.so");
-#else
-#error "Unknown platform"
-#endif
-	if(!loaded)
+	if(!LoadVulkanLibrary())
 	{
 		RDCERR("Failed to load vulkan library");
 		return eReplayCreate_APIInitFailed;

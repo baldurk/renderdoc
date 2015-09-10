@@ -39,6 +39,17 @@ void VulkanReplay::OutputWindow::SetWindowHandle(void *wn)
 	screen = iter.data;
 }
 
+void VulkanReplay::OutputWindow::InitSurfaceDescription(VkSurfaceDescriptionWindowWSI &surfDesc)
+{
+	static VkPlatformHandleXcbWSI handle;
+	handle.connection = connection;
+	handle.root = screen->root;
+
+	surfDesc.pPlatformWindow = &handle;
+	surfDesc.pPlatformWindow = &wnd;
+	surfDesc.platform = VK_PLATFORM_X11_WSI;
+}
+
 void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
 	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
@@ -63,4 +74,9 @@ bool VulkanReplay::IsOutputWindowVisible(uint64_t id)
 	VULKANNOTIMP("Optimisation missing - output window always returning true");
 
 	return true;
+}
+
+bool LoadVulkanLibrary()
+{
+	return Process::LoadModule("libvulkan.so");
 }
