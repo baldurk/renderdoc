@@ -162,6 +162,13 @@ struct VkResourceRecord : public ResourceRecord
 		{
 		}
 
+		~VkResourceRecord()
+		{
+			for(size_t i=0; i < descBindings.size(); i++)
+				delete[] descBindings[i];
+			descBindings.clear();
+		}
+
 		void Bake()
 		{
 			SwapChunks(bakedCommands);
@@ -194,6 +201,10 @@ struct VkResourceRecord : public ResourceRecord
 
 		// a list of resources that are made dirty by submitting this command buffer
 		set<ResourceId> dirtied;
+
+		// descriptor set bindings for this descriptor set. Filled out on
+		// create from the layout.
+		vector<VkDescriptorInfo *> descBindings;
 
 	private:
 		VkResourceRecord *memory;

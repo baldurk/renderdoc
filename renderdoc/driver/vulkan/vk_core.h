@@ -182,6 +182,8 @@ private:
 	void GetFakeBB(ResourceId &id, VkImage &im, VkExtent3D &extent, ResourceFormat &fmt)
 	{ id = m_FakeBBImgId; im = m_FakeBBIm; extent = m_FakeBBExtent; fmt = m_FakeBBFmt; }
 	
+	// VKTODO all these m_*Info things need to be locked and ensure we only access
+	// them in slow path functions like creation
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
 
@@ -322,27 +324,6 @@ private:
 	};
 	map<ResourceId, SwapInfo> m_SwapChainInfo;
 
-	struct DescriptorSetSlot
-	{
-		DescriptorSetSlot() : type(DescSetSlot_None)
-		{
-			RDCEraseEl(a);
-		}
-		DescriptorSlotType type;
-
-		union
-		{
-			uint64_t a;
-		};
-	};
-
-	struct DescriptorSetInfo
-	{
-		DescriptorSetSlot *slots;
-		uint32_t slotCount;
-	};
-	map<ResourceId, DescriptorSetInfo> m_DescSetInfo;
-
 	VulkanCreationInfo m_CreationInfo;
 
 	set<ResourceId> m_SubmittedFences;
@@ -358,8 +339,6 @@ private:
 	void BeginCaptureFrame();
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
-
-	void SerialiseDescriptorSlot(DescriptorSetSlot *slot);
 	
 	// replay
 		

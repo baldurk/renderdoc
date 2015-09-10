@@ -27,6 +27,15 @@
 
 // VKTODOHIGH need to call vkResetCommandBuffer() before calling vkBeginCommandBuffer()
 
+// VKTODOHIGH check final semantics for lifetimes - e.g. shaders & shader modules can be freed
+// after shaders are used to create a pipeline, but for most things (views and resources,
+// resources and memory, descriptor set bindings and the resources they point to) the app is
+// responsible for correctly managing their lifetime, so we shouldn't have to ensure they are
+// refcounted and kept around - just need to account for bugs and resources/memory/etc not
+// being present on replay.
+// We should ref these by ID so that we handle these records going
+// away without crashing on dereference
+
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -2437,6 +2446,10 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 	SERIALISE_ELEMENT(VkDescriptorSetLayoutCreateInfo, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(MakeRes(*pSetLayout)));
 
+	// this creation info is needed at capture time (for creating/updating descriptor set bindings)
+	// uses original ID in replay
+	m_CreationInfo.m_DescSetLayout[id].Init(GetResourceManager(), &info);
+
 	if(m_State == READING)
 	{
 		VkDescriptorSetLayout layout = VK_NULL_HANDLE;
@@ -3283,8 +3296,12 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
 				record->AddChunk(chunk);
 
+				ResourceId layoutID = GetResourceManager()->GetID(MakeRes(pSetLayouts[i]));
+
 				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(descriptorPool)));
-				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pSetLayouts[i])));
+				record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
+
+				m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
 			}
 			else
 			{
@@ -3367,62 +3384,69 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 {
 	VkResult ret = m_Real.vkUpdateDescriptorSets(device, writeCount, pDescriptorWrites, copyCount, pDescriptorCopies);
 	
-	if(ret == VK_SUCCESS && m_State >= WRITING)
+	if(ret == VK_SUCCESS)
 	{
-		for(uint32_t i=0; i < writeCount; i++)
+		if(m_State == WRITING_CAPFRAME)
 		{
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].destSet));
-			
-			Chunk *chunk = NULL;
-
+			for(uint32_t i=0; i < writeCount; i++)
 			{
-				SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-				Serialise_vkUpdateDescriptorSets(device, 1, &pDescriptorWrites[i], 0, NULL);
+				{
+					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
+					Serialise_vkUpdateDescriptorSets(device, 1, &pDescriptorWrites[i], 0, NULL);
 
-				chunk = scope.Get();
+					m_ContextRecord->AddChunk(scope.Get());
+				}
+
+				// VKTODOMED marking conservatively as write here - need to correspond with the layout
+				// to mark read or write depending on binding type
+				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
+				{
+					if(pDescriptorWrites[i].pDescriptors[d].bufferView != VK_NULL_HANDLE)
+						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].bufferView), eFrameRef_Write);
+					if(pDescriptorWrites[i].pDescriptors[d].sampler != VK_NULL_HANDLE)
+						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].sampler), eFrameRef_Read);
+					if(pDescriptorWrites[i].pDescriptors[d].imageView != VK_NULL_HANDLE)
+						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].imageView), eFrameRef_Write);
+					if(pDescriptorWrites[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE)
+						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].attachmentView), eFrameRef_Write);
+				}
 			}
 
-			// VKTODOHIGH these shouldn't be accumulate-serialised, they should be
-			// tracked in memory by recording updates, and force-initial stated
-
-			record->AddChunk(chunk);
-
-			// VKTODOHIGH shouldn't add parents here, these should be more like SetMemoryRecord
-			// as it's transient/updated.
-
-			for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
+			for(uint32_t i=0; i < copyCount; i++)
 			{
-				if(pDescriptorWrites[i].pDescriptors[d].bufferView != VK_NULL_HANDLE)
-					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].bufferView)));
-				if(pDescriptorWrites[i].pDescriptors[d].sampler != VK_NULL_HANDLE)
-					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].sampler)));
-				if(pDescriptorWrites[i].pDescriptors[d].imageView != VK_NULL_HANDLE)
-					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].imageView)));
-				if(pDescriptorWrites[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE)
-					record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].pDescriptors[d].attachmentView)));
+				{
+					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
+					Serialise_vkUpdateDescriptorSets(device, 0, NULL, 1, &pDescriptorCopies[i]);
+
+					m_ContextRecord->AddChunk(scope.Get());
+				}
+				
+				// VKTODOHIGH need to MarkResourceFrameReferenced the source descriptors
 			}
 		}
 
-		for(uint32_t i=0; i < copyCount; i++)
+		// need to track descriptor set contents whether capframing or idle
+		if(m_State >= WRITING)
 		{
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorCopies[i].destSet));
-			
-			Chunk *chunk = NULL;
-
+			for(uint32_t i=0; i < writeCount; i++)
 			{
-				SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
-				Serialise_vkUpdateDescriptorSets(device, 0, NULL, 1, &pDescriptorCopies[i]);
+				VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].destSet));
 
-				chunk = scope.Get();
+				// VKTODOHIGH need to add some kind of parent ref on copied elements here
+
+				RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
+				
+				VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
+
+				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
+					record->descBindings[pDescriptorWrites[i].destBinding][pDescriptorWrites[i].destArrayElement + d] = pDescriptorWrites[i].pDescriptors[d];
 			}
 
-			// VKTODOHIGH these shouldn't be accumulate-serialised, they should be
-			// tracked in memory by recording updates, and force-initial stated
-
-			record->AddChunk(chunk);
-
-			// VKTODOHIGH need to addparent the source descriptors (similar to above, not quite
-			// addparent actually)
+			if(copyCount > 0)
+			{
+				// don't want to implement this blindly
+				RDCUNIMPLEMENTED("Copying descriptors not implemented");
+			}
 		}
 	}
 

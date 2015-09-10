@@ -106,22 +106,6 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 			return ResourceId();
 		}
 		
-		ResourceId GetID(uint64_t obj)
-		{
-			struct obj_compare
-			{
-				obj_compare(const uint64_t o) : obj(o) {}
-				bool operator() (const std::pair<VkResource,ResourceId> &p) { return (p.first.handle == obj); }
-				uint64_t obj;
-			};
-
-			auto it = std::find_if(m_CurrentResourceIds.begin(), m_CurrentResourceIds.end(), obj_compare(obj));
-			if(it != m_CurrentResourceIds.end())
-				return it->second;
-
-			return ResourceId();
-		}
-		
 		using ResourceManager::GetCurrentResource;
 
 		VkResource GetCurrentResource(VkResource obj)
@@ -173,11 +157,6 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 				return it->second;
 
 			return ResourceManager::GetResourceRecord(GetID(res));
-		}
-		
-		VkResourceRecord *GetResourceRecord(uint64_t obj)
-		{
-			return ResourceManager::GetResourceRecord(GetID(obj));
 		}
 		
 		using ResourceManager::MarkResourceFrameReferenced;

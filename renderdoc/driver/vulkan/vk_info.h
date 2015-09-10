@@ -165,4 +165,24 @@ struct VulkanCreationInfo
 		uint32_t width, height, layers;
 	};
 	map<ResourceId, Framebuffer> m_Framebuffer;
+
+	struct DescSetLayout
+	{
+		void Init(VulkanResourceManager *rm, const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
+
+		void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
+
+		struct Binding
+		{
+			Binding() : immutableSampler(NULL) {}
+			~Binding() { SAFE_DELETE_ARRAY(immutableSampler); }
+
+			VkDescriptorType descriptorType;
+			uint32_t arraySize;
+			VkShaderStageFlags stageFlags;
+			ResourceId *immutableSampler;
+		};
+		vector<Binding> bindings;
+	};
+	map<ResourceId, DescSetLayout> m_DescSetLayout;
 };

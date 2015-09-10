@@ -156,3 +156,29 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *rm, const VkFr
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
 		attachments[i].view = rm->GetOriginalID(rm->GetID(MakeRes(pCreateInfo->pAttachments[i].view)));
 }
+
+void VulkanCreationInfo::DescSetLayout::Init(VulkanResourceManager *rm, const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
+{
+	bindings.resize(pCreateInfo->count);
+	for(uint32_t i=0; i < pCreateInfo->count; i++)
+	{
+		bindings[i].arraySize = pCreateInfo->pBinding[i].arraySize;
+		bindings[i].descriptorType = pCreateInfo->pBinding[i].descriptorType;
+		bindings[i].stageFlags = pCreateInfo->pBinding[i].stageFlags;
+
+		if(pCreateInfo->pBinding[i].pImmutableSamplers)
+		{
+			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
+
+			for(uint32_t s=0; s < bindings[i].arraySize; s++)
+				bindings[i].immutableSampler[s] = rm->GetID(MakeRes(pCreateInfo->pBinding[i].pImmutableSamplers[s]));
+		}
+	}
+}
+
+void VulkanCreationInfo::DescSetLayout::CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings)
+{
+	descBindings.resize(bindings.size());
+	for(size_t i=0; i < bindings.size(); i++)
+		descBindings[i] = new VkDescriptorInfo[bindings[i].arraySize];
+}
