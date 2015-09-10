@@ -124,6 +124,9 @@ void DisplayRendererPreview(ReplayRenderer *renderer)
 int renderdoccmd(int argc, char **argv)
 {
 	CaptureOptions opts;
+
+	RENDERDOC_GetDefaultCaptureOptions(&opts);
+
 	opts.AllowFullscreen = false;
 	opts.AllowVSync = false;
 	opts.DelayForDebugger = 5;
