@@ -5160,7 +5160,7 @@ void WrappedVulkan::vkCmdDbgMarkerBegin(
 			VkCmdBuffer  cmdBuffer,
 			const char*     pMarker)
 {
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(cmdBuffer));
 
@@ -5190,7 +5190,7 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
 void WrappedVulkan::vkCmdDbgMarkerEnd(
 	VkCmdBuffer  cmdBuffer)
 {
-	if(m_State == WRITING_CAPFRAME)
+	if(m_State >= WRITING)
 	{
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(cmdBuffer));
 
