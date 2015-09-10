@@ -28,7 +28,7 @@
 
 #include "serialise/string_utils.h"
 
-// VKTODOMED should share this between shader and C++
+// VKTODOMED should share this between shader and C++ - need #include support in glslang
 struct displayuniforms
 {
 	Vec2f Position;
