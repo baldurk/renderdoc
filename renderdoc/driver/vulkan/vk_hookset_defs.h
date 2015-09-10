@@ -24,7 +24,7 @@
 
 #pragma once
 
-#define HookInitVulkan() \
+#define HookInitVulkanInstance() \
 	HookInit(vkCreateInstance); \
 	HookInit(vkDestroyInstance); \
 	HookInit(vkEnumeratePhysicalDevices); \
@@ -36,6 +36,11 @@
 	HookInit(vkGetPhysicalDeviceQueueCount); \
 	HookInit(vkGetPhysicalDeviceQueueProperties); \
 	HookInit(vkGetPhysicalDeviceMemoryProperties); \
+	HookInit(vkDbgCreateMsgCallback); \
+	HookInit(vkDbgDestroyMsgCallback); \
+	HookInit(vkGetPhysicalDeviceSurfaceSupportWSI)
+
+#define HookInitVulkanDevice() \
 	HookInit(vkCreateDevice); \
 	HookInit(vkDestroyDevice); \
 	HookInit(vkGetGlobalExtensionProperties); \
@@ -135,13 +140,12 @@
 	HookInit(vkCmdDbgMarkerEnd); \
 	HookInit(vkDbgCreateMsgCallback); \
 	HookInit(vkDbgDestroyMsgCallback); \
-	HookInit(vkGetPhysicalDeviceSurfaceSupportWSI); \
 	HookInit(vkCreateSwapChainWSI); \
 	HookInit(vkDestroySwapChainWSI); \
 	HookInit(vkGetSurfaceInfoWSI); \
 	HookInit(vkGetSwapChainInfoWSI); \
 	HookInit(vkAcquireNextImageWSI); \
-	HookInit(vkQueuePresentWSI);
+	HookInit(vkQueuePresentWSI)
 
 #define DefineHooks() \
 	HookDefine2(VkResult, vkCreateInstance, const VkInstanceCreateInfo*, pCreateInfo, VkInstance*, pInstance); \
@@ -260,4 +264,4 @@
 	HookDefine5(VkResult, vkGetSurfaceInfoWSI, VkDevice, device, const VkSurfaceDescriptionWSI*, pSurfaceDescription, VkSurfaceInfoTypeWSI, infoType, size_t*, pDataSize, void*, pData); \
 	HookDefine5(VkResult, vkGetSwapChainInfoWSI, VkDevice, device, VkSwapChainWSI, swapChain, VkSwapChainInfoTypeWSI, infoType, size_t*, pDataSize, void*, pData); \
 	HookDefine5(VkResult, vkAcquireNextImageWSI, VkDevice, device, VkSwapChainWSI, swapChain, uint64_t, timeout, VkSemaphore, semaphore, uint32_t*, pImageIndex); \
-	HookDefine2(VkResult, vkQueuePresentWSI, VkQueue, queue, VkPresentInfoWSI*, pPresentInfo);
+	HookDefine2(VkResult, vkQueuePresentWSI, VkQueue, queue, VkPresentInfoWSI*, pPresentInfo)

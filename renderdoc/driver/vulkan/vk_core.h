@@ -32,10 +32,15 @@
 #include "replay/replay_driver.h"
 
 #include "vk_common.h"
-#include "vk_hookset.h"
 #include "vk_info.h"
 #include "vk_manager.h"
 #include "vk_replay.h"
+
+// layer includes
+
+#include "vk_layer.h"
+#include "vk_layer_table.h"
+#include "vk_layer_extension_utils.h"
 
 using std::vector;
 using std::list;
@@ -88,8 +93,6 @@ struct DrawcallTreeNode
 class WrappedVulkan
 {
 private:
-	const VulkanFunctions &m_Real;
-	
 	friend class VulkanReplay;
 	
 	enum {
@@ -390,7 +393,7 @@ private:
 	}
 
 public:
-	WrappedVulkan(const VulkanFunctions &real, const char *logFilename);
+	WrappedVulkan(const char *logFilename);
 	~WrappedVulkan();
 
 	ResourceId GetContextResourceID() { return m_ContextResourceID; }

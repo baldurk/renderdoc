@@ -1,0 +1,11 @@
+{
+    "file_format_version" : "0.9.0",
+    "layer" : {
+        "name": "Renderdoc",
+        "type": "GLOBAL",
+        "library_path": "./libVKLayerRenderdoc.so",
+        "abi_versions": "1.0.0",
+        "implementation_version": "1.0.0",
+        "description": "LunarG Renderdoc Trace Layer"
+    }
+}

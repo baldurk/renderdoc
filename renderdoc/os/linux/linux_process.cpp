@@ -218,15 +218,21 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	int nenv = 0;
 	for(; environ[nenv]; nenv++);
 
-	const int numEnvAdd = 4;
+	const int numEnvAdd = 7;
 	// LD_LIBRARY_PATH
 	// LD_PRELOAD
+	// VK_LAYER_DIRS
+	// VK_DEVICE_LAYERS
+	// VK_INSTANCE_LAYERS
 	// RENDERDOC_CAPTUREOPTS
 	// RENDERDOC_LOGFILE
 
 	// might find these already existant in the environment
 	bool libpath = false;
 	bool preload = false;
+	bool layerdirs = false;
+	bool devicelayers = false;
+	bool instancelayers = false;
 
 	nenv += 1+numEnvAdd; // account for terminating NULL we need to replicate, and up to N additional environment varibales
 
@@ -262,6 +268,29 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 			memcpy(envp[i], environ[srci], len);
 			strcat(envp[i], ":librenderdoc.so");
 		}
+		else if(!strncmp(environ[srci], "VK_LAYER_DIRS=", sizeof("VK_LAYER_DIRS=")-1))
+		{
+			layerdirs = true;
+			envp[i] = new char[len+1+localpath.length()+30];
+			memcpy(envp[i], environ[srci], len);
+			strcat(envp[i], ":");
+			strcat(envp[i], localpath.c_str());
+			strcat(envp[i], "/../../renderdoc/driver/vulkan");
+		}
+		else if(!strncmp(environ[srci], "VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=")-1))
+		{
+			devicelayers = true;
+			envp[i] = new char[len+sizeof(":Renderdoc")];
+			memcpy(envp[i], environ[srci], len);
+			strcat(envp[i], ":Renderdoc");
+		}
+		else if(!strncmp(environ[srci], "VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=")-1))
+		{
+			instancelayers = true;
+			envp[i] = new char[len+sizeof(":Renderdoc")];
+			memcpy(envp[i], environ[srci], len);
+			strcat(envp[i], ":Renderdoc");
+		}
 		else if(!strncmp(environ[srci], "RENDERDOC_", sizeof("RENDERDOC_")-1))
 		{
 			// skip this variable entirely
@@ -289,6 +318,33 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	if(!preload)
 	{
 		string e = StringFormat::Fmt("LD_PRELOAD=%s/librenderdoc.so", localpath.c_str());
+		envp[i] = new char[e.length()+1];
+		memcpy(envp[i], e.c_str(), e.length()+1);
+		i++;
+		envp[i] = NULL;
+	}
+
+	if(!layerdirs)
+	{
+		string e = StringFormat::Fmt("VK_LAYER_DIRS=%s/../../renderdoc/driver/vulkan", localpath.c_str());
+		envp[i] = new char[e.length()+1];
+		memcpy(envp[i], e.c_str(), e.length()+1);
+		i++;
+		envp[i] = NULL;
+	}
+
+	if(!devicelayers)
+	{
+		string e = StringFormat::Fmt("VK_DEVICE_LAYERS=Renderdoc");
+		envp[i] = new char[e.length()+1];
+		memcpy(envp[i], e.c_str(), e.length()+1);
+		i++;
+		envp[i] = NULL;
+	}
+
+	if(!instancelayers)
+	{
+		string e = StringFormat::Fmt("VK_INSTANCE_LAYERS=Renderdoc");
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;

@@ -25,6 +25,7 @@
 #include "vk_replay.h"
 #include "vk_core.h"
 #include "vk_resources.h"
+#include "vk_layer_table.h"
 
 #include "serialise/string_utils.h"
 
@@ -96,22 +97,22 @@ void VulkanReplay::OutputWindow::SetDS(VkDeviceMemory mem, VkImage img)
 
 void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
-	const VulkanFunctions &vk = driver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(device);
 
-	vk.vkDeviceWaitIdle(device);
+	vt->DeviceWaitIdle(device);
 	
 	if(bb != VK_NULL_HANDLE)
 	{
-		vk.vkDestroyRenderPass(device, renderpass);
+		vt->DestroyRenderPass(device, renderpass);
 		renderpass = VK_NULL_HANDLE;
 
-		vk.vkDestroyDynamicViewportState(device, fullVP);
+		vt->DestroyDynamicViewportState(device, fullVP);
 		fullVP = VK_NULL_HANDLE;
 		
-		vk.vkDestroyImage(device, bb);
-		vk.vkDestroyAttachmentView(device, bbview);
-		vk.vkFreeMemory(device, bbmem);
-		vk.vkDestroyFramebuffer(device, fb);
+		vt->DestroyImage(device, bb);
+		vt->DestroyAttachmentView(device, bbview);
+		vt->FreeMemory(device, bbmem);
+		vt->DestroyFramebuffer(device, fb);
 		
 		bb = VK_NULL_HANDLE;
 		bbview = VK_NULL_HANDLE;
@@ -125,10 +126,10 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 	if(dsimg != VK_NULL_HANDLE)
 	{
-		vk.vkDestroyAttachmentView(device, dsview);
-		vk.vkDestroyImage(device, dsimg);
-		vk.vkFreeMemory(device, dsmem);
-		vk.vkDestroyFramebuffer(device, fbdepth);
+		vt->DestroyAttachmentView(device, dsview);
+		vt->DestroyImage(device, dsimg);
+		vt->FreeMemory(device, dsmem);
+		vt->DestroyFramebuffer(device, fbdepth);
 		
 		dsview = VK_NULL_HANDLE;
 		dsimg = VK_NULL_HANDLE;
@@ -137,12 +138,12 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	}
 
 	if(swap != VK_NULL_HANDLE)
-		vk.vkDestroySwapChainWSI(device, swap);
+		vt->DestroySwapChainWSI(device, swap);
 }
 
 void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
 {
-	const VulkanFunctions &vk = driver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(device);
 	
 	// save the old swapchain so it isn't destroyed
 	VkSwapChainWSI old = swap;
@@ -167,20 +168,20 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			old, true,
 	};
 
-	VkResult vkr = vk.vkCreateSwapChainWSI(device, &swapInfo, &swap);
+	VkResult vkr = vt->CreateSwapChainWSI(device, &swapInfo, &swap);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	if(old != VK_NULL_HANDLE)
-		vk.vkDestroySwapChainWSI(device, old);
+		vt->DestroySwapChainWSI(device, old);
 
 	size_t sz;
-	vkr = vk.vkGetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, NULL);
+	vkr = vt->GetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	numImgs = uint32_t(sz/sizeof(VkSwapChainImagePropertiesWSI));
 
 	VkSwapChainImagePropertiesWSI* imgs = new VkSwapChainImagePropertiesWSI[numImgs];
-	vkr = vk.vkGetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, imgs);
+	vkr = vt->GetSwapChainInfoWSI(device, swap, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &sz, imgs);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	for(size_t i=0; i < numImgs; i++)
@@ -231,7 +232,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 				0, NULL, // dependencies
 		};
 
-		vkr = vk.vkCreateRenderPass(device, &rpinfo, &renderpass);
+		vkr = vt->CreateRenderPass(device, &rpinfo, &renderpass);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -244,7 +245,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			1, &vp, &sc
 		};
 
-		VkResult vkr = vk.vkCreateDynamicViewportState(device, &vpInfo, &fullVP);
+		VkResult vkr = vt->CreateDynamicViewportState(device, &vpInfo, &fullVP);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -259,12 +260,12 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			0, NULL,
 		};
 
-		VkResult vkr = vk.vkCreateImage(device, &imInfo, &bb);
+		VkResult vkr = vt->CreateImage(device, &imInfo, &bb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryRequirements mrq = {0};
 
-		vkr = vk.vkGetImageMemoryRequirements(device, bb, &mrq);
+		vkr = vt->GetImageMemoryRequirements(device, bb, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryAllocInfo allocInfo = {
@@ -272,10 +273,10 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			mrq.size, driver->GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vk.vkAllocMemory(device, &allocInfo, &bbmem);
+		vkr = vt->AllocMemory(device, &allocInfo, &bbmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = vk.vkBindImageMemory(device, bb, bbmem, 0);
+		vkr = vt->BindImageMemory(device, bb, bbmem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		bbtrans.image = bb;
@@ -288,7 +289,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			bb, VK_FORMAT_B8G8R8A8_UNORM, 0, 0, 1,
 			0 };
 
-		vkr = vk.vkCreateAttachmentView(device, &info, &bbview);
+		vkr = vt->CreateAttachmentView(device, &info, &bbview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkAttachmentBindInfo attBind = { bbview, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
@@ -300,7 +301,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			(uint32_t)width, (uint32_t)height, 1,
 		};
 
-		vkr = vk.vkCreateFramebuffer(device, &fbinfo, &fb);
+		vkr = vt->CreateFramebuffer(device, &fbinfo, &fb);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -311,14 +312,14 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 			dsimg, VK_FORMAT_D32_SFLOAT_S8_UINT, 0, 0, 1,
 			0 };
 
-		vkr = vk.vkCreateAttachmentView(device, &info, &dsview);
+		vkr = vt->CreateAttachmentView(device, &info, &dsview);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 }
 
 void VulkanReplay::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
 {
-	const VulkanFunctions &vk = driver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -326,11 +327,11 @@ void VulkanReplay::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
-	VkResult vkr = vk.vkCreateBuffer(dev, &bufInfo, &buf);
+	VkResult vkr = vt->CreateBuffer(dev, &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkMemoryRequirements mrq;
-	vkr = vk.vkGetBufferMemoryRequirements(dev, buf, &mrq);
+	vkr = vt->GetBufferMemoryRequirements(dev, buf, &mrq);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED maybe don't require host visible, and do map & copy?
@@ -339,10 +340,10 @@ void VulkanReplay::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize
 		size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 	};
 
-	vkr = vk.vkAllocMemory(dev, &allocInfo, &mem);
+	vkr = vt->AllocMemory(dev, &allocInfo, &mem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vk.vkBindBufferMemory(dev, buf, mem, 0);
+	vkr = vt->BindBufferMemory(dev, buf, mem, 0);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkBufferViewCreateInfo bufviewInfo = {
@@ -351,28 +352,28 @@ void VulkanReplay::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize
 		VK_FORMAT_UNDEFINED, 0, size,
 	};
 
-	vkr = vk.vkCreateBufferView(dev, &bufviewInfo, &view);
+	vkr = vt->CreateBufferView(dev, &bufviewInfo, &view);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
-void VulkanReplay::UBO::Destroy(const VulkanFunctions &vk, VkDevice dev)
+void VulkanReplay::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
 {
-	vk.vkDestroyBufferView(dev, view);
-	vk.vkDestroyBuffer(dev, buf);
-	vk.vkFreeMemory(dev, mem);
+	vt->DestroyBufferView(dev, view);
+	vt->DestroyBuffer(dev, buf);
+	vt->FreeMemory(dev, mem);
 }
 
-void *VulkanReplay::UBO::Map(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
+void *VulkanReplay::UBO::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
 {
 	void *ptr = NULL;
-	VkResult vkr = vk.vkMapMemory(dev, mem, offset, size, 0, (void **)&ptr);
+	VkResult vkr = vt->MapMemory(dev, mem, offset, size, 0, (void **)&ptr);
 	RDCASSERT(vkr == VK_SUCCESS);
 	return ptr;
 }
 
-void VulkanReplay::UBO::Unmap(const VulkanFunctions &vk, VkDevice dev)
+void VulkanReplay::UBO::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
 {
-	vk.vkUnmapMemory(dev, mem);
+	vt->UnmapMemory(dev, mem);
 }
 
 VulkanReplay::VulkanReplay()
@@ -387,8 +388,8 @@ VulkanReplay::VulkanReplay()
 
 void VulkanReplay::InitDebugData()
 {
-	const VulkanFunctions &vk = m_pDriver->m_Real;
 	VkDevice dev = m_pDriver->GetDev();
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 	
 	VkResult vkr = VK_SUCCESS;
 	
@@ -408,7 +409,7 @@ void VulkanReplay::InitDebugData()
 	
 	// VKTODOMED will have to be created on the fly for whichever image we're
 	// viewing (and cached)
-	vkr = vk.vkCreateImageView(dev, &bbviewInfo, &m_FakeBBImView);
+	vkr = vt->CreateImageView(dev, &bbviewInfo, &m_FakeBBImView);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkSamplerCreateInfo sampInfo = {
@@ -423,21 +424,21 @@ void VulkanReplay::InitDebugData()
 		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 	};
 
-	vkr = vk.vkCreateSampler(dev, &sampInfo, &m_LinearSampler);
+	vkr = vt->CreateSampler(dev, &sampInfo, &m_LinearSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	sampInfo.minFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.magFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.mipMode = VK_TEX_MIPMAP_MODE_NEAREST;
 
-	vkr = vk.vkCreateSampler(dev, &sampInfo, &m_PointSampler);
+	vkr = vt->CreateSampler(dev, &sampInfo, &m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED all of this is leaking
 
 	VkPipelineCacheCreateInfo cacheInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, NULL, 0, NULL, 0 };
 
-	vkr = vk.vkCreatePipelineCache(dev, &cacheInfo, &m_PipelineCache);
+	vkr = vt->CreatePipelineCache(dev, &cacheInfo, &m_PipelineCache);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	{
@@ -450,7 +451,7 @@ void VulkanReplay::InitDebugData()
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vk.vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
+		vkr = vt->CreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -465,7 +466,7 @@ void VulkanReplay::InitDebugData()
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vk.vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
+		vkr = vt->CreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -475,12 +476,12 @@ void VulkanReplay::InitDebugData()
 		0, NULL, // push constant ranges
 	};
 	
-	vkr = vk.vkCreatePipelineLayout(dev, &pipeLayoutInfo, &m_TexDisplayPipeLayout);
+	vkr = vt->CreatePipelineLayout(dev, &pipeLayoutInfo, &m_TexDisplayPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	pipeLayoutInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
 	
-	vkr = vk.vkCreatePipelineLayout(dev, &pipeLayoutInfo, &m_CheckerboardPipeLayout);
+	vkr = vt->CreatePipelineLayout(dev, &pipeLayoutInfo, &m_CheckerboardPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkDescriptorTypeCount descPoolTypes[] = {
@@ -493,14 +494,14 @@ void VulkanReplay::InitDebugData()
     ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vk.vkCreateDescriptorPool(dev, VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 2, &descpoolInfo, &m_DescriptorPool);
+	vkr = vt->CreateDescriptorPool(dev, VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 2, &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	uint32_t count;
-	vkr = vk.vkAllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_CheckerboardDescSetLayout, &m_CheckerboardDescSet, &count);
+	vkr = vt->AllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_CheckerboardDescSetLayout, &m_CheckerboardDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	vkr = vk.vkAllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
+	vkr = vt->AllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1, &m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	m_CheckerboardUBO.Create(m_pDriver, dev, 128);
@@ -532,7 +533,7 @@ void VulkanReplay::InitDebugData()
 		},
 	};
 
-	vkr = vk.vkUpdateDescriptorSets(dev, ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+	vkr = vt->UpdateDescriptorSets(dev, ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkDynamicRasterStateCreateInfo rsInfo = {
@@ -540,7 +541,7 @@ void VulkanReplay::InitDebugData()
 		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
-	vkr = vk.vkCreateDynamicRasterState(dev, &rsInfo, &m_DynamicRSState);
+	vkr = vt->CreateDynamicRasterState(dev, &rsInfo, &m_DynamicRSState);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VkDynamicColorBlendStateCreateInfo cbInfo = {
@@ -548,7 +549,7 @@ void VulkanReplay::InitDebugData()
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 	};
 
-	vkr = vk.vkCreateDynamicColorBlendState(dev, &cbInfo, &m_DynamicCBStateWhite);
+	vkr = vt->CreateDynamicColorBlendState(dev, &cbInfo, &m_DynamicCBStateWhite);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VkDynamicDepthStencilStateCreateInfo dsInfo = {
@@ -556,7 +557,7 @@ void VulkanReplay::InitDebugData()
 		0.0f, 1.0f, 0xff, 0xff, 0, 0,
 	};
 
-	vkr = vk.vkCreateDynamicDepthStencilState(dev, &dsInfo, &m_DynamicDSStateDisabled);
+	vkr = vt->CreateDynamicDepthStencilState(dev, &dsInfo, &m_DynamicDSStateDisabled);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	string shaderSources[] = {
@@ -582,7 +583,7 @@ void VulkanReplay::InitDebugData()
 			shaderSources[i].size(), (void *)&shaderSources[i][0], 0,
 		};
 
-		vkr = vk.vkCreateShaderModule(dev, &modinfo, &module[i]);
+		vkr = vt->CreateShaderModule(dev, &modinfo, &module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkShaderCreateInfo shadinfo = {
@@ -590,7 +591,7 @@ void VulkanReplay::InitDebugData()
 			module[i], "main", 0,
 		};
 
-		vkr = vk.vkCreateShader(dev, &shadinfo, &shader[i]);
+		vkr = vt->CreateShader(dev, &shadinfo, &shader[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -661,29 +662,29 @@ void VulkanReplay::InitDebugData()
 	stages[0].shader = shader[BLITVS];
 	stages[1].shader = shader[CHECKERBOARDFS];
 
-	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_CheckerboardPipeline);
+	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_CheckerboardPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	stages[1].shader = shader[TEXDISPLAYFS];
 
 	pipeInfo.layout = m_TexDisplayPipeLayout;
 
-	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
+	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	attState.blendEnable = true;
 	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
 	attState.destBlendColor = VK_BLEND_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vk.vkCreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
+	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
-		vkr = vk.vkDestroyShader(dev, shader[i]);
+		vkr = vt->DestroyShader(dev, shader[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = vk.vkDestroyShaderModule(dev, module[i]);
+		vkr = vt->DestroyShaderModule(dev, module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 }
@@ -786,7 +787,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	// VKTODOMED this should be all created offline, including separate host and
 	// readback buffers
@@ -800,11 +801,11 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 		};
 
-		VkResult vkr = vk.vkCreateBuffer(dev, &bufInfo, &destbuf);
+		VkResult vkr = vt->CreateBuffer(dev, &bufInfo, &destbuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
 		VkMemoryRequirements mrq;
-		vkr = vk.vkGetBufferMemoryRequirements(dev, destbuf, &mrq);
+		vkr = vt->GetBufferMemoryRequirements(dev, destbuf, &mrq);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkMemoryAllocInfo allocInfo = {
@@ -812,10 +813,10 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			128, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = vk.vkAllocMemory(dev, &allocInfo, &readbackmem);
+		vkr = vt->AllocMemory(dev, &allocInfo, &readbackmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = vk.vkBindBufferMemory(dev, destbuf, readbackmem, 0);
+		vkr = vt->BindBufferMemory(dev, destbuf, readbackmem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOHIGH find out the actual current image state
@@ -827,11 +828,11 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+		vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		void *barrier = (void *)&fakeTrans;
-		vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 		fakeTrans.oldLayout = fakeTrans.newLayout;
 
 		VkBufferImageCopy region = {
@@ -839,22 +840,22 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 			{ VK_IMAGE_ASPECT_COLOR, 0, 0}, { (int)x, (int)y, 0 },
 			{ 1, 1, 1 },
 		};
-		vk.vkCmdCopyImageToBuffer(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, destbuf, 1, &region);
+		vt->CmdCopyImageToBuffer(cmd, fakeBBIm, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, destbuf, 1, &region);
 
 		fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
-		vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+		vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
-		vk.vkEndCommandBuffer(cmd);
+		vt->EndCommandBuffer(cmd);
 
-		vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+		vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 
-		vk.vkQueueWaitIdle(q);
+		vt->QueueWaitIdle(q);
 	}
 
 	// VKTODOHIGH ultra cheeky - map memory directly without copying
 	// to host-visible memory
 	byte *pData = NULL;
-	vk.vkMapMemory(dev, readbackmem, 0, 0, 0, (void **)&pData);
+	vt->MapMemory(dev, readbackmem, 0, 0, 0, (void **)&pData);
 
 	RDCASSERT(pData != NULL);
 
@@ -875,12 +876,12 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		pixel[3] = float(pData[3])/255.0f;
 	}
 
-	vk.vkUnmapMemory(dev, readbackmem);
+	vt->UnmapMemory(dev, readbackmem);
 
-	vk.vkDeviceWaitIdle(dev);
+	vt->DeviceWaitIdle(dev);
 
-	vk.vkDestroyBuffer(dev, destbuf);
-	vk.vkFreeMemory(dev, readbackmem);
+	vt->DestroyBuffer(dev, destbuf);
+	vt->FreeMemory(dev, readbackmem);
 }
 
 uint32_t VulkanReplay::PickVertex(uint32_t frameID, uint32_t eventID, MeshDisplay cfg, uint32_t x, uint32_t y)
@@ -909,11 +910,11 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
-	displayuniforms *data = (displayuniforms *)m_TexDisplayUBO.Map(vk, dev);
+	displayuniforms *data = (displayuniforms *)m_TexDisplayUBO.Map(vt, dev);
 
 	data->Padding = 0;
 	
@@ -991,7 +992,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	
 	data->RawOutput = cfg.rawoutput ? 1 : 0;
 
-	m_TexDisplayUBO.Unmap(vk, dev);
+	m_TexDisplayUBO.Unmap(vt, dev);
 	
 	VkDescriptorInfo desc = {0};
 	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
@@ -1005,7 +1006,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		m_TexDisplayDescSet, 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc
 	};
 
-	VkResult vkr = vk.vkUpdateDescriptorSets(dev, 1, &writeSet, 0, NULL);
+	VkResult vkr = vt->UpdateDescriptorSets(dev, 1, &writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOHIGH find out the actual current image state
@@ -1017,12 +1018,12 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	void *barrier = (void *)&fakeTrans;
 
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 	fakeTrans.oldLayout = fakeTrans.newLayout;
 
 	{
@@ -1033,32 +1034,32 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 			{ { 0, 0, }, { outw.width, outw.height } },
 			1, &clearval,
 		};
-		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		vt->CmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 		// VKTODOMED will need a way to disable blend for other things
-		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? m_TexDisplayPipeline : m_TexDisplayBlendPipeline);
-		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeLayout, 0, 1, &m_TexDisplayDescSet, 0, NULL);
+		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? m_TexDisplayPipeline : m_TexDisplayBlendPipeline);
+		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_TexDisplayPipeLayout, 0, 1, &m_TexDisplayDescSet, 0, NULL);
 
-		vk.vkCmdBindDynamicViewportState(cmd, outw.fullVP);
-		vk.vkCmdBindDynamicRasterState(cmd, m_DynamicRSState);
-		vk.vkCmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
-		vk.vkCmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
+		vt->CmdBindDynamicViewportState(cmd, outw.fullVP);
+		vt->CmdBindDynamicRasterState(cmd, m_DynamicRSState);
+		vt->CmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
+		vt->CmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
 
-		vk.vkCmdDraw(cmd, 0, 4, 0, 1);
-		vk.vkCmdEndRenderPass(cmd);
+		vt->CmdDraw(cmd, 0, 4, 0, 1);
+		vt->CmdEndRenderPass(cmd);
 	}
 
 	fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
+	vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
-	vk.vkEndCommandBuffer(cmd);
+	vt->EndCommandBuffer(cmd);
 
-	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
 	// ring-buffer style
-	vk.vkQueueWaitIdle(q);
+	vt->QueueWaitIdle(q);
 
 	return false;
 }
@@ -1074,25 +1075,25 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	VkResult vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	void *barrier = (void *)&outw.bbtrans;
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
-	Vec4f *data = (Vec4f *)m_CheckerboardUBO.Map(vk, dev);
+	Vec4f *data = (Vec4f *)m_CheckerboardUBO.Map(vt, dev);
 	data[0].x = light.x;
 	data[0].y = light.y;
 	data[0].z = light.z;
 	data[1].x = dark.x;
 	data[1].y = dark.y;
 	data[1].z = dark.z;
-	m_CheckerboardUBO.Unmap(vk, dev);
+	m_CheckerboardUBO.Unmap(vt, dev);
 
 	{
 		VkClearValue clearval = {0};
@@ -1102,30 +1103,30 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 			{ { 0, 0, }, { outw.width, outw.height } },
 			1, &clearval,
 		};
-		vk.vkCmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
+		vt->CmdBeginRenderPass(cmd, &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		vk.vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeline);
-		vk.vkCmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeLayout, 0, 1, &m_CheckerboardDescSet, 0, NULL);
+		vt->CmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeline);
+		vt->CmdBindDescriptorSets(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, m_CheckerboardPipeLayout, 0, 1, &m_CheckerboardDescSet, 0, NULL);
 
-		vk.vkCmdBindDynamicViewportState(cmd, outw.fullVP);
-		vk.vkCmdBindDynamicRasterState(cmd, m_DynamicRSState);
-		vk.vkCmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
-		vk.vkCmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
+		vt->CmdBindDynamicViewportState(cmd, outw.fullVP);
+		vt->CmdBindDynamicRasterState(cmd, m_DynamicRSState);
+		vt->CmdBindDynamicColorBlendState(cmd, m_DynamicCBStateWhite);
+		vt->CmdBindDynamicDepthStencilState(cmd, m_DynamicDSStateDisabled);
 
-		vk.vkCmdDraw(cmd, 0, 4, 0, 1);
-		vk.vkCmdEndRenderPass(cmd);
+		vt->CmdDraw(cmd, 0, 4, 0, 1);
+		vt->CmdEndRenderPass(cmd);
 	}
 
-	vkr = vk.vkEndCommandBuffer(cmd);
+	vkr = vt->EndCommandBuffer(cmd);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	vkr = vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
 	// ring-buffer style
-	vk.vkQueueWaitIdle(q);
+	vt->QueueWaitIdle(q);
 }
 	
 void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
@@ -1190,26 +1191,26 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 	
 	VkSemaphore sem;
 	VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT };
 
-	VkResult vkr = vk.vkCreateSemaphore(dev, &semInfo, &sem);
+	VkResult vkr = vt->CreateSemaphore(dev, &semInfo, &sem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vk.vkAcquireNextImageWSI(dev, outw.swap, UINT64_MAX, sem, &outw.curidx);
+	vkr = vt->AcquireNextImageWSI(dev, outw.swap, UINT64_MAX, sem, &outw.curidx);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vk.vkQueueWaitSemaphore(q, sem);
+	vkr = vt->QueueWaitSemaphore(q, sem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vk.vkDestroySemaphore(dev, sem);
+	vkr = vt->DestroySemaphore(dev, sem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	void *barrier[] = {
@@ -1220,19 +1221,19 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL;
 
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+	vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
 
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
 	outw.coltrans[outw.curidx].oldLayout = outw.bbtrans.newLayout;
 
-	vk.vkEndCommandBuffer(cmd);
+	vt->EndCommandBuffer(cmd);
 
-	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 	
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
 	// ring-buffer style
-	vk.vkQueueWaitIdle(q);
+	vt->QueueWaitIdle(q);
 }
 
 void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
@@ -1246,23 +1247,23 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	VkResult vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vk.vkCmdClearColorImage(cmd, outw.bb, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbtrans.subresourceRange);
+	vt->CmdClearColorImage(cmd, outw.bb, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, (VkClearColorValue *)col, 1, &outw.bbtrans.subresourceRange);
 
-	vk.vkEndCommandBuffer(cmd);
+	vt->EndCommandBuffer(cmd);
 
-	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 	
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
 	// ring-buffer style
-	vk.vkQueueWaitIdle(q);
+	vt->QueueWaitIdle(q);
 }
 
 void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
@@ -1283,11 +1284,11 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VulkanFunctions &vk = m_pDriver->m_Real;
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-	VkResult vkr = vk.vkBeginCommandBuffer(cmd, &beginInfo);
+	VkResult vkr = vt->BeginCommandBuffer(cmd, &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	void *barrier[] = {
@@ -1296,7 +1297,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	};
 	
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL;
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
+	vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, barrier);
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
 
 	VkImageCopy cpy = {
@@ -1307,27 +1308,27 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 		{ outw.width, outw.height, 1 },
 	};
 
-	vk.vkCmdCopyImage(cmd, outw.bb, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
+	vt->CmdCopyImage(cmd, outw.bb, VK_IMAGE_LAYOUT_TRANSFER_SOURCE_OPTIMAL, outw.colimg[outw.curidx], VK_IMAGE_LAYOUT_TRANSFER_DESTINATION_OPTIMAL, 1, &cpy);
 	
 	outw.bbtrans.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	outw.coltrans[outw.curidx].newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
 
-	vk.vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
+	vt->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 2, barrier);
 
 	outw.bbtrans.oldLayout = outw.bbtrans.newLayout;
 	outw.coltrans[outw.curidx].oldLayout = outw.coltrans[outw.curidx].newLayout;
 
-	vk.vkEndCommandBuffer(cmd);
+	vt->EndCommandBuffer(cmd);
 
-	vk.vkQueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+	vt->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 
 	VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, &outw.swap, &outw.curidx };
 
-	vk.vkQueuePresentWSI(q, &presentInfo);
+	vt->QueuePresentWSI(q, &presentInfo);
 
-	vk.vkQueueWaitIdle(q);
+	vt->QueueWaitIdle(q);
 
-	vk.vkDeviceWaitIdle(dev);
+	vt->DeviceWaitIdle(dev);
 }
 
 void VulkanReplay::DestroyOutputWindow(uint64_t id)
@@ -1789,8 +1790,6 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
 	RDCUNIMPLEMENTED("SetProxyTextureData");
 }
 
-const VulkanFunctions &GetRealVKFunctions();
-
 // in vk_replay_platform.cpp
 bool LoadVulkanLibrary();
 
@@ -1816,7 +1815,7 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 		return eReplayCreate_APIIncompatibleVersion;
 	}
 	
-	WrappedVulkan *vk = new WrappedVulkan(GetRealVKFunctions(), logfile);
+	WrappedVulkan *vk = new WrappedVulkan(logfile);
 	vk->Initialise(initParams);
 	
 	RDCLOG("Created device.");

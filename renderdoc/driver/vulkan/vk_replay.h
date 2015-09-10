@@ -25,6 +25,7 @@
 #pragma once
 
 #include "vk_common.h"
+#include "vk_layer.h"
 #include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
 #include "core/core.h"
@@ -50,7 +51,6 @@ using std::map;
 #define VULKANNOTIMP(...) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__)
 
 class WrappedVulkan;
-struct VulkanFunctions;
 
 class VulkanReplay : public IReplayDriver
 {
@@ -215,10 +215,10 @@ class VulkanReplay : public IReplayDriver
 		{
 			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
 			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
-			void Destroy(const VulkanFunctions &vk, VkDevice dev);
+			void Destroy(const VkLayerDispatchTable *vk, VkDevice dev);
 
-			void *Map(const VulkanFunctions &vk, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
-			void Unmap(const VulkanFunctions &vk, VkDevice dev);
+			void *Map(const VkLayerDispatchTable *vk, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
+			void Unmap(const VkLayerDispatchTable *vk, VkDevice dev);
 
 			VkBuffer buf;
 			VkDeviceMemory mem;
