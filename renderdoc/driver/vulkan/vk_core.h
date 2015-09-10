@@ -324,6 +324,8 @@ private:
 	};
 	map<ResourceId, SwapInfo> m_SwapChainInfo;
 
+	map<ResourceId, ResourceId> m_DescriptorSetLayouts;
+
 	VulkanCreationInfo m_CreationInfo;
 
 	set<ResourceId> m_SubmittedFences;

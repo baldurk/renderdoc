@@ -434,9 +434,9 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 bool VulkanResourceManager::Force_InitialState(VkResource res)
 {
+	// VKTODOMED don't want to be forcing device memory initial state, need to
+	// know which objects have dirtied their bound memory.
 	return (res.Namespace == eResDeviceMemory);
-	// VKTODOHIGH might need this
-	//return (res.Namespace == eResDescriptorSet);
 }
 
 bool VulkanResourceManager::Need_InitialStateChunk(VkResource res)

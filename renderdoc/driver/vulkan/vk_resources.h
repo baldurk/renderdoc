@@ -204,6 +204,7 @@ struct VkResourceRecord : public ResourceRecord
 
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.
+		ResourceId layout;
 		vector<VkDescriptorInfo *> descBindings;
 
 	private:

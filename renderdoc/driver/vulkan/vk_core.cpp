@@ -3256,6 +3256,9 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		{
 			ResourceId live = GetResourceManager()->RegisterResource(MakeRes(descset));
 			GetResourceManager()->AddLiveResource(id, MakeRes(descset));
+
+			// this is stored in the resource record on capture, we need to be able to look to up
+			m_DescriptorSetLayouts[id] = layoutId;
 		}
 	}
 
@@ -3301,6 +3304,10 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 				record->AddParent(GetResourceManager()->GetResourceRecord(MakeRes(descriptorPool)));
 				record->AddParent(GetResourceManager()->GetResourceRecord(layoutID));
 
+				// just always treat descriptor sets as dirty
+				GetResourceManager()->MarkDirtyResource(id);
+
+				record->layout = layoutID;
 				m_CreationInfo.m_DescSetLayout[layoutID].CreateBindingsArray(record->descBindings);
 			}
 			else
@@ -3395,20 +3402,6 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					Serialise_vkUpdateDescriptorSets(device, 1, &pDescriptorWrites[i], 0, NULL);
 
 					m_ContextRecord->AddChunk(scope.Get());
-				}
-
-				// VKTODOMED marking conservatively as write here - need to correspond with the layout
-				// to mark read or write depending on binding type
-				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
-				{
-					if(pDescriptorWrites[i].pDescriptors[d].bufferView != VK_NULL_HANDLE)
-						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].bufferView), eFrameRef_Write);
-					if(pDescriptorWrites[i].pDescriptors[d].sampler != VK_NULL_HANDLE)
-						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].sampler), eFrameRef_Read);
-					if(pDescriptorWrites[i].pDescriptors[d].imageView != VK_NULL_HANDLE)
-						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].imageView), eFrameRef_Write);
-					if(pDescriptorWrites[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE)
-						GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].pDescriptors[d].attachmentView), eFrameRef_Write);
 				}
 			}
 
@@ -4037,7 +4030,87 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(layout)), eFrameRef_Read);
 		for(uint32_t i=0; i < setCount; i++)
-			record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(pDescriptorSets[i])), eFrameRef_Read);
+		{
+			ResourceId setId = GetResourceManager()->GetID(MakeRes(pDescriptorSets[i]));
+			record->MarkResourceFrameReferenced(setId, eFrameRef_Read);
+
+			// VKTODOHIGH this should be pre-calculated and updated whenever doing an updatedescriptorset,
+			// rather than on bind like this. Not only is it a better perf tradeoff to do the work on update
+			// but this bind could happen before some update so we need to actually apply these ref's
+			// when submitting the queue.
+
+			VkResourceRecord *setrecord = GetResourceManager()->GetResourceRecord(setId);
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[setrecord->layout];
+
+			for(size_t i=0; i < layout.bindings.size(); i++)
+			{
+				const VulkanCreationInfo::DescSetLayout::Binding &bind = layout.bindings[i];
+				VkDescriptorInfo *bindings = setrecord->descBindings[i];
+
+				FrameRefType ref = eFrameRef_Write;
+
+				switch(bind.descriptorType)
+				{
+					case VK_DESCRIPTOR_TYPE_SAMPLER:
+					case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+					{
+						// mark sampler ref'd for types that include a sampler
+						for(uint32_t b=0; b < bind.arraySize; b++)
+							if(bindings[b].sampler != VK_NULL_HANDLE)
+								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].sampler)), eFrameRef_Read);
+
+						if(bind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
+							break;
+
+						// deliberately fall through for combined image sampler
+					}
+					case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+					{
+						// all above types are read-only
+						ref = eFrameRef_Read;
+
+						// deliberately fall through for all sampled images
+					}
+					case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+					{
+						// mark image ref'd for types that include a image
+						for(uint32_t b=0; b < bind.arraySize; b++)
+							if(bindings[b].imageView != VK_NULL_HANDLE)
+								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].imageView)), ref);
+						break;
+					}
+					case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+					{
+						// all above types are read-only
+						ref = eFrameRef_Read;
+
+						// deliberately fall through for uniform buffers
+					}
+					case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+					{
+						// mark buffer ref'd for types that include a buffer
+						for(uint32_t b=0; b < bind.arraySize; b++)
+							if(bindings[b].bufferView != VK_NULL_HANDLE)
+								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].bufferView)), ref);
+						break;
+					}
+					case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+					{
+						// mark attachment ref'd
+						for(uint32_t b=0; b < bind.arraySize; b++)
+							if(bindings[b].attachmentView != VK_NULL_HANDLE)
+								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].attachmentView)), eFrameRef_Write);
+						break;
+					}
+					default:
+						RDCERR("Unexpected descriptor type");
+				}
+			}
+		}
 	}
 }
 
@@ -6436,9 +6509,22 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 	
 	if(res.Namespace == eResDescriptorSet)
 	{
-		RDCUNIMPLEMENTED("descriptor set initial states not implemented");
+		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+		const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
 
-		// VKTODOHIGH: need to figure out the format/serialisation of these
+		uint32_t numElems = 0;
+		for(size_t i=0; i < layout.bindings.size(); i++)
+			numElems += layout.bindings[i].arraySize;
+
+		VkDescriptorInfo *info = (VkDescriptorInfo *)Serialiser::AllocAlignedBuffer(sizeof(VkDescriptorInfo)*numElems);
+		RDCEraseMem(info, sizeof(VkDescriptorInfo)*numElems);
+
+		uint32_t e=0;
+		for(size_t i=0; i < layout.bindings.size(); i++)
+			for(uint32_t b=0; b < layout.bindings[i].arraySize; b++)
+				info[e++] = record->descBindings[i][b];
+
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(VkResource(MakeNullResource), 0, (byte *)info));
 		return true;
 	}
 	else if(res.Namespace == eResDeviceMemory)
@@ -6550,9 +6636,16 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 		if(res.Namespace == eResDescriptorSet)
 		{
-			RDCUNIMPLEMENTED("descriptor set initial states not implemented");
+			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
 
-			// VKTODOHIGH: need to figure out the format/serialisation of these
+			VkDescriptorInfo *info = (VkDescriptorInfo *)initContents.blob;
+
+			uint32_t numElems = 0;
+			for(size_t i=0; i < layout.bindings.size(); i++)
+				numElems += layout.bindings[i].arraySize;
+
+			m_pSerialiser->SerialiseComplexArray("Bindings", info, numElems);
 		}
 		else if(res.Namespace == eResImage || res.Namespace == eResDeviceMemory)
 		{
@@ -6572,7 +6665,39 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 	{
 		if(res.Namespace == eResDescriptorSet)
 		{
-			RDCUNIMPLEMENTED("Descriptor set initial states not implemented");
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetLayouts[id] ];
+
+			uint32_t numElems;
+			VkDescriptorInfo *bindings = NULL;
+
+			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
+
+			uint32_t numBinds = (uint32_t)layout.bindings.size();
+
+			// allocate memory to keep the descriptorinfo structures around, as well as a WriteDescriptorSet array
+			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(VkDescriptorInfo)*numElems + sizeof(VkWriteDescriptorSet)*numBinds);
+
+			VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)blob;
+			VkDescriptorInfo *info = (VkDescriptorInfo *)(writes + numBinds);
+			memcpy(info, bindings, sizeof(VkDescriptorInfo)*numElems);
+
+			for(uint32_t i=0; i < numBinds; i++)
+			{
+				writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writes[i].pNext = NULL;
+
+				// update whole element (array or single)
+				writes[i].destSet = (VkDescriptorSet)res.handle;
+				writes[i].destBinding = i;
+				writes[i].destArrayElement = 0;
+				writes[i].count = layout.bindings[i].arraySize;
+				writes[i].descriptorType = layout.bindings[i].descriptorType;
+				writes[i].pDescriptors = info;
+
+				info += layout.bindings[i].arraySize;
+			}
+
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(VkResource(MakeNullResource), numBinds, blob));
 		}
 		else if(res.Namespace == eResImage || res.Namespace == eResDeviceMemory)
 		{
@@ -6672,8 +6797,12 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 {
 	if(live.Namespace == eResDescriptorSet)
 	{
-		// VKTODOHIGH: need to figure out the format/serialisation of these
-		RDCUNIMPLEMENTED("descriptor set initial states not implemented");
+		ResourceId id = GetResourceManager()->GetID(live);
+
+		VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)initial.blob;
+
+		VkResult vkr = m_Real.vkUpdateDescriptorSets(GetDev(), initial.num, writes, 0, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
 	}
 	else if(live.Namespace == eResDeviceMemory)
 	{
