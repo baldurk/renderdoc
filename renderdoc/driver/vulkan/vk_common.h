@@ -98,6 +98,7 @@ template<> void Serialiser::Serialise(const char *name, VkPushConstantRange &el)
 template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutBinding &el);
 template<> void Serialiser::Serialise(const char *name, VkDescriptorSetLayoutCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkDescriptorPoolCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkDescriptorInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkWriteDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCopyDescriptorSet &el);
 template<> void Serialiser::Serialise(const char *name, VkCmdPoolCreateInfo &el);
