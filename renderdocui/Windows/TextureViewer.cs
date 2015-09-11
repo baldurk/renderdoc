@@ -3073,6 +3073,10 @@ namespace renderdocui.Windows
 
         private void AutoFitRange()
         {
+            // no log loaded or buffer/empty texture currently being viewed - don't autofit
+            if (!m_Core.LogLoaded || CurrentTexture == null)
+                return;
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
