@@ -231,6 +231,9 @@ class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
 		bool Force_InitialState(GLResource res);
 		bool Need_InitialStateChunk(GLResource res);
 		bool Prepare_InitialState(GLResource res);
+
+		void PrepareTextureInitialContents(ResourceId liveid, ResourceId origid, GLResource res);
+
 		void Create_InitialState(ResourceId id, GLResource live, bool hasData);
 		void Apply_InitialState(GLResource live, InitialContentData initial);
 
