@@ -1127,15 +1127,8 @@ bool WrappedID3D11Device::Serialise_CreateInputLayout(
 		vector<D3D11_INPUT_ELEMENT_DESC> descvec(layouts, layouts+NumElems);
 
 		m_LayoutDescs[ret] = descvec;
-		m_LayoutDXBC[ret] = NULL;
 		if(BytecodeLen > 0 && ShaderBytecode)
-		{
-			DXBC::DXBCFile *dxbc = new DXBC::DXBCFile(ShaderBytecode, BytecodeLen);
-			
-			m_LayoutDXBC[ret] = MakeShaderReflection(dxbc);
-
-			delete dxbc;
-		}
+			m_LayoutShaders[ret] = new WrappedShader(GetIDForResource(ret), new DXBC::DXBCFile(ShaderBytecode, BytecodeLen));
 
 		SAFE_DELETE_ARRAY(ShaderBytecode);
 	}

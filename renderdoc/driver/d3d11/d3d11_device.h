@@ -76,6 +76,7 @@ struct D3D11InitParams : public RDCInitParams
 };
 
 class WrappedID3D11Device;
+class WrappedShader;
 
 // We can pass through all calls to ID3D11Debug without intercepting, this
 // struct isonly here so that we can intercept QueryInterface calls to return
@@ -245,7 +246,7 @@ private:
 
 	set<WrappedID3D11DeviceContext *> m_DeferredContexts;
 	map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
-	map<ID3D11InputLayout *, ShaderReflection *> m_LayoutDXBC;
+	map<ID3D11InputLayout *, WrappedShader*> m_LayoutShaders;
 
 	ResourceId m_ReplayDefCtx;
 	uint32_t m_FirstDefEv;
@@ -308,7 +309,6 @@ public:
 	void AddDebugMessage(DebugMessage msg) { if(m_State < WRITING) m_DebugMessages.push_back(msg); }
 	void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d);
 	const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout) { return m_LayoutDescs[layout]; }
-	ShaderReflection *GetLayoutDXBC(ID3D11InputLayout *layout) { return m_LayoutDXBC[layout]; }
 
 	void ReleaseSwapchainResources(IDXGISwapChain *swap);
 	

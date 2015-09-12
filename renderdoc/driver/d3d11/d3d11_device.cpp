@@ -449,6 +449,11 @@ WrappedID3D11Device::~WrappedID3D11Device()
 		m_DeviceRecord->Delete(GetResourceManager());
 	}
 
+	for(auto it = m_LayoutShaders.begin(); it != m_LayoutShaders.end(); ++it)
+		SAFE_DELETE(it->second);
+	m_LayoutShaders.clear();
+	m_LayoutDescs.clear();
+
 	m_ResourceManager->Shutdown();
 
 	SAFE_DELETE(m_ResourceManager);
@@ -459,11 +464,6 @@ WrappedID3D11Device::~WrappedID3D11Device()
 
 	SAFE_DELETE(m_pSerialiser);
 	SAFE_DELETE(m_pDebugSerialiser);
-
-	for(auto it=m_LayoutDXBC.begin(); it != m_LayoutDXBC.end(); ++it)
-		SAFE_DELETE(it->second);
-	m_LayoutDXBC.clear();
-	m_LayoutDescs.clear();
 	
 	if(RenderDoc::Inst().GetCrashHandler())
 		RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);

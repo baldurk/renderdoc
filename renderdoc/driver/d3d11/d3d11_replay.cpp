@@ -447,8 +447,10 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 	{
 		const vector<D3D11_INPUT_ELEMENT_DESC> &vec = m_pDevice->GetLayoutDesc(rs->IA.Layout);
 
-		ret.m_IA.layout = rm->GetOriginalID(GetIDForResource(rs->IA.Layout));
-		ret.m_IA.Bytecode = m_pDevice->GetLayoutDXBC(rs->IA.Layout);
+		ResourceId layoutId = GetIDForResource(rs->IA.Layout);
+
+		ret.m_IA.layout = rm->GetOriginalID(layoutId);
+		ret.m_IA.Bytecode = GetShader(layoutId);
 
 		create_array_uninit(ret.m_IA.layouts, vec.size());
 
