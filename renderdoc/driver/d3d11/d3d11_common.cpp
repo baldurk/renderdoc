@@ -908,7 +908,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 	ret->DispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
 	ret->DispatchThreadsDimension[2] = dxbc->DispatchThreadsDimension[2];
 
-	ret->Disassembly = dxbc->m_Disassembly;
+	ret->Disassembly = dxbc->GetDisassembly();
 
 	ret->InputSig = dxbc->m_InputSig;
 	ret->OutputSig = dxbc->m_OutputSig;

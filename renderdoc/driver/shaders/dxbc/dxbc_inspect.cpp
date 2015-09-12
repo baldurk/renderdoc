@@ -460,6 +460,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 {
 	m_DebugInfo = NULL;
 
+	m_Disassembled = false;
+
 	RDCASSERT(ByteCodeLength < UINT32_MAX);
 
 	m_ShaderBlob.resize(ByteCodeLength);
@@ -733,13 +735,19 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 			memcpy((uint32_t *)&m_HexDump[0], chunkContents, *chunkSize);
 		}
 	}
-	
-	DisassembleHexDump();
+
+	// get type/version that's used regularly and cheap to fetch
+	FetchTypeVersion();
 
 	// didn't find an rdef means reflection information was stripped.
 	// Attempt to reverse engineer basic info from declarations
 	if(!rdefFound)
+	{
+		// need to disassemble now to guess resources
+		DisassembleHexDump();
+
 		GuessResources();
+	}
 	
 	for(uint32_t chunkIdx = 0; chunkIdx < header->numChunks; chunkIdx++)
 	{
@@ -911,11 +919,9 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 		}
 		else if(*fourcc == FOURCC_SPDB)
 		{
-			m_DebugInfo = new SPDBChunk(fourcc, (uint32_t)m_Instructions[0].offset);
+			m_DebugInfo = new SPDBChunk(fourcc);
 		}
 	}
-
-	MakeDisassembly();
 }
 
 void DXBCFile::GuessResources()
@@ -1304,9 +1310,11 @@ uint32_t ReadVarLenUInt(byte *&s)
 	}
 }
 
-SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
+SPDBChunk::SPDBChunk(void *chunk)
 {
 	m_HasDebugInfo = false;
+
+	uint32_t firstInstructionOffset = 0;
 
 	byte *data = NULL;
 
@@ -1547,6 +1555,8 @@ SPDBChunk::SPDBChunk(void *chunk, uint32_t firstInstructionOffset)
 			{
 				ProcHeader *proc = (ProcHeader *)contents;
 				char *name = (char *)(proc + 1);
+
+				firstInstructionOffset = proc->Offset;
 
 				//RDCDEBUG("Got global procedure start %s %x -> %x", name, proc->Offset, proc->Offset+proc->Length);
 			}

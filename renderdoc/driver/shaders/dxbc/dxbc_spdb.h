@@ -281,7 +281,7 @@ struct PDBStream
 class SPDBChunk : public DXBCDebugChunk
 {
 	public:
-		SPDBChunk(void *data, uint32_t firstInstruction);
+		SPDBChunk(void *data);
 		
 		string GetCompilerSig() const { return m_CompilandDetails.CompilerSig; }
 		string GetEntryFunction() const { return m_Entry; }

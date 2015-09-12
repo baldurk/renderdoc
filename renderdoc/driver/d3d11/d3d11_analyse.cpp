@@ -359,10 +359,12 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
 	bool inputCoverage = false;
 	
-	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
+	for(size_t i=0; i < dxbc->GetNumDeclarations(); i++)
 	{
-		if(dxbc->m_Declarations[i].declaration == OPCODE_DCL_INPUT &&
-			 dxbc->m_Declarations[i].operand.type == TYPE_INPUT_COVERAGE_MASK)
+		const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+
+		if(decl.declaration == OPCODE_DCL_INPUT &&
+			 decl.operand.type == TYPE_INPUT_COVERAGE_MASK)
 		{
 			inputCoverage = true;
 			break;
@@ -763,12 +765,14 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 		}
 	}
 
-	for(size_t i=0; i < dxbc->m_Declarations.size(); i++)
+	for(size_t i=0; i < dxbc->GetNumDeclarations(); i++)
 	{
-		if(dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
-		   dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
+		const DXBC::ASMDecl &decl = dxbc->GetDeclaration(i);
+
+		if(decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_RAW ||
+		   decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED)
 		{
-			uint32_t slot = (uint32_t)dxbc->m_Declarations[i].operand.indices[0].index;
+			uint32_t slot = (uint32_t)decl.operand.indices[0].index;
 
 			if(global.groupshared.size() <= slot)
 			{
@@ -776,11 +780,11 @@ void D3D11DebugManager::CreateShaderGlobalState(ShaderDebug::GlobalState &global
 
 				ShaderDebug::GlobalState::groupsharedMem &mem = global.groupshared[slot];
 
-				mem.structured = (dxbc->m_Declarations[i].declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
+				mem.structured = (decl.declaration == DXBC::OPCODE_DCL_THREAD_GROUP_SHARED_MEMORY_STRUCTURED);
 
-				mem.count = dxbc->m_Declarations[i].count;
+				mem.count = decl.count;
 				if(mem.structured)
-					mem.bytestride= dxbc->m_Declarations[i].stride;
+					mem.bytestride= decl.stride;
 				else
 					mem.bytestride= 4; // raw groupshared is implicitly uint32s
 

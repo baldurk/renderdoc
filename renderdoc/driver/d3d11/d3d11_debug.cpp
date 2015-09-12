@@ -4436,22 +4436,26 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
 		
 		if(lastShader == dxbcGS)
 		{
-			for(size_t i=0; i < dxbcGS->m_Declarations.size(); i++)
+			for(size_t i=0; i < dxbcGS->GetNumDeclarations(); i++)
 			{
-				if(dxbcGS->m_Declarations[i].declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
+				const DXBC::ASMDecl &decl = dxbcGS->GetDeclaration(i);
+
+				if(decl.declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
 				{
-					topo = (D3D11_PRIMITIVE_TOPOLOGY)dxbcGS->m_Declarations[i].outTopology; // enums match
+					topo = (D3D11_PRIMITIVE_TOPOLOGY)decl.outTopology; // enums match
 					break;
 				}
 			}
 		}
 		else if(lastShader == dxbcDS)
 		{
-			for(size_t i=0; i < dxbcDS->m_Declarations.size(); i++)
+			for(size_t i=0; i < dxbcDS->GetNumDeclarations(); i++)
 			{
-				if(dxbcDS->m_Declarations[i].declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
+				const DXBC::ASMDecl &decl = dxbcDS->GetDeclaration(i);
+
+				if(decl.declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
 				{
-					if(dxbcDS->m_Declarations[i].domain == DXBC::DOMAIN_ISOLINE)
+					if(decl.domain == DXBC::DOMAIN_ISOLINE)
 						topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 					else
 						topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;

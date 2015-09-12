@@ -1079,22 +1079,36 @@ public:
 	{
 		public:
 			ShaderEntry() : m_DXBCFile(NULL), m_Details(NULL) {}
-			ShaderEntry(DXBC::DXBCFile *file)
+			ShaderEntry(const byte *code, size_t codeLen)
 			{
-				m_DXBCFile = file;
-				m_Details = MakeShaderReflection(m_DXBCFile);
+				m_Bytecode.assign(code, code + codeLen);
+				m_DXBCFile = NULL;
+				m_Details = NULL;
 			}
 			~ShaderEntry()
 			{
+				m_Bytecode.clear();
 				SAFE_DELETE(m_DXBCFile);
 				SAFE_DELETE(m_Details);
 			}
 
-			DXBC::DXBCFile *GetDXBC() { return m_DXBCFile; }
-			ShaderReflection *GetDetails() { return m_Details; }
+			DXBC::DXBCFile *GetDXBC()
+			{
+				if(m_DXBCFile == NULL && !m_Bytecode.empty())
+					m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+				return m_DXBCFile;
+			}
+			ShaderReflection *GetDetails()
+			{
+				if(m_Details == NULL && GetDXBC() != NULL)
+					m_Details = MakeShaderReflection(m_DXBCFile);
+				return m_Details;
+			}
 		private:
 			ShaderEntry(const ShaderEntry &e);
 			ShaderEntry &operator =(const ShaderEntry &e);
+
+			vector<byte> m_Bytecode;
 
 			DXBC::DXBCFile *m_DXBCFile;
 			ShaderReflection *m_Details;
@@ -1102,10 +1116,10 @@ public:
 
 	static map<ResourceId, ShaderEntry*> m_ShaderList;
 
-	WrappedShader(ResourceId id, DXBC::DXBCFile *file) : m_ID(id)
+	WrappedShader(ResourceId id, const byte *code, size_t codeLen) : m_ID(id)
 	{
 		RDCASSERT(m_ShaderList.find(m_ID) == m_ShaderList.end());
-		m_ShaderList[m_ID] = new ShaderEntry(file);
+		m_ShaderList[m_ID] = new ShaderEntry(code, codeLen);
 	}
 	virtual ~WrappedShader()
 	{
@@ -1131,8 +1145,8 @@ public:
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11Shader<RealShaderType>, AllocPoolCount, AllocPoolMaxByteSize);
 
-	WrappedID3D11Shader(RealShaderType* real, DXBC::DXBCFile *file, WrappedID3D11Device* device)
-		: WrappedDeviceChild<RealShaderType>(real, device), WrappedShader(GetResourceID(), file) {}
+	WrappedID3D11Shader(RealShaderType* real, const byte *code, size_t codeLen, WrappedID3D11Device* device)
+		: WrappedDeviceChild<RealShaderType>(real, device), WrappedShader(GetResourceID(), code, codeLen) {}
 	virtual ~WrappedID3D11Shader() { Shutdown(); }
 };
 

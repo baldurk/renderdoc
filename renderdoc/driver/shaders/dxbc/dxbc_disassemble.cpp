@@ -273,18 +273,32 @@ bool ASMOperand::operator ==(const ASMOperand &o) const
 	return true;
 }
 
-void DXBCFile::DisassembleHexDump()
+void DXBCFile::FetchTypeVersion()
 {
 	if(m_HexDump.empty())
 		return;
 
 	uint32_t *begin = &m_HexDump.front();
 	uint32_t *cur = begin;
-	uint32_t *end = &m_HexDump.back();
 
 	m_Type = VersionToken::ProgramType.Get(cur[0]);
 	m_Version.Major = VersionToken::MajorVersion.Get(cur[0]);
 	m_Version.Minor = VersionToken::MinorVersion.Get(cur[0]);
+}
+
+void DXBCFile::DisassembleHexDump()
+{
+	if(m_Disassembled)
+		return;
+
+	if(m_HexDump.empty())
+		return;
+
+	m_Disassembled = true;
+
+	uint32_t *begin = &m_HexDump.front();
+	uint32_t *cur = begin;
+	uint32_t *end = &m_HexDump.back();
 
 	// check supported types
 	if(	!(m_Version.Major == 0x5 && m_Version.Minor == 0x0) &&
@@ -337,8 +351,10 @@ void DXBCFile::DisassembleHexDump()
 	m_Instructions.push_back(implicitRet);
 }
 
-void DXBCFile::MakeDisassembly()
+void DXBCFile::MakeDisassemblyString()
 {
+	DisassembleHexDump();
+
 	uint32_t *hash = (uint32_t *)&m_ShaderBlob[4]; // hash is 4 uints, starting after the FOURCC of 'DXBC'
 
 	m_Disassembly = StringFormat::Fmt("Shader hash %08x-%08x-%08x-%08x\n\n",

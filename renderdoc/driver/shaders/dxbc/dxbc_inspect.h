@@ -339,24 +339,34 @@ class DXBCFile
 		vector<SigParameter> m_InputSig;
 		vector<SigParameter> m_OutputSig;
 		vector<SigParameter> m_PatchConstantSig;
-		
-		vector<ASMDecl> m_Declarations;							// declarations of inputs, outputs, constant buffers, temp registers etc.
-		vector<ASMOperation> m_Instructions;
-		string m_Disassembly;
 
 		uint32_t DispatchThreadsDimension[3];
 
 		vector<uint32_t> m_HexDump;
 		
 		vector<byte> m_ShaderBlob;
+
+		const string &GetDisassembly()
+		{
+			if(m_Disassembly.empty())
+				MakeDisassemblyString();
+			return m_Disassembly;
+		}
+
+		size_t GetNumDeclarations() { return m_Declarations.size(); }
+		const ASMDecl &GetDeclaration(size_t i) { return m_Declarations[i]; }
+
+		size_t GetNumInstructions() { return m_Instructions.size(); }
+		const ASMOperation &GetInstruction(size_t i) { return m_Instructions[i]; }
 		
 		size_t NumOperands(OpcodeType op);
 	private:
 		DXBCFile(const DXBCFile &o);
 		DXBCFile &operator =(const DXBCFile &o);
 
+		void FetchTypeVersion();
 		void DisassembleHexDump();
-		void MakeDisassembly();
+		void MakeDisassemblyString();
 		void GuessResources();
 
 		// these functions modify tokenStream pointer to point after the item
@@ -368,6 +378,13 @@ class DXBCFile
 
 		CBufferVariableType ParseRDEFType(RDEFHeader *h, char *chunk, uint32_t offset);
 		map<uint32_t, CBufferVariableType> m_Variables;
+
+		bool m_Disassembled;
+
+		vector<ASMDecl> m_Declarations;							// declarations of inputs, outputs, constant buffers, temp registers etc.
+		vector<ASMOperation> m_Instructions;
+
+		string m_Disassembly;
 };
 
 }; // namespace DXBC
