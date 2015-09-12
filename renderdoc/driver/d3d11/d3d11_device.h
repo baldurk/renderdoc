@@ -305,6 +305,8 @@ public:
 
 	const FetchDrawcall *GetDrawcall(uint32_t frameID, uint32_t eventID);
 
+	void FirstFrame(IDXGISwapChain *swap);
+
 	vector<DebugMessage> GetDebugMessages();
 	void AddDebugMessage(DebugMessage msg) { if(m_State < WRITING) m_DebugMessages.push_back(msg); }
 	void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d);

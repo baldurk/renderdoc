@@ -2988,6 +2988,20 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 	}
 }
 
+void WrappedID3D11Device::FirstFrame(IDXGISwapChain *swap)
+{
+	DXGI_SWAP_CHAIN_DESC swapdesc;
+	swap->GetDesc(&swapdesc);
+
+	// if we have to capture the first frame, begin capturing immediately
+	if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
+	{
+		StartFrameCapture(this, swapdesc.OutputWindow);
+
+		m_AppControlledCapture = false;
+	}
+}
+
 HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UINT Flags)
 {
 	if((Flags & DXGI_PRESENT_TEST) != 0)

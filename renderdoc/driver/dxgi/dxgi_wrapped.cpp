@@ -272,6 +272,10 @@ WrappedIDXGISwapChain2::WrappedIDXGISwapChain2(IDXGISwapChain* real, HWND wnd, W
 	}
 
 	SAFE_ADDREF(m_pDevice);
+
+	// we do a 'fake' present right at the start, so that we can capture frame 1, by
+	// going from this fake present to the first present.
+	m_pDevice->FirstFrame(this);
 }
 
 WrappedIDXGISwapChain2::~WrappedIDXGISwapChain2()

@@ -196,7 +196,7 @@
             0,
             0});
             this.queuedCapFrame.Minimum = new decimal(new int[] {
-            2,
+            1,
             0,
             0,
             0});
