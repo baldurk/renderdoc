@@ -2365,6 +2365,7 @@ namespace renderdocui.Windows
                             break;
                         }
                     }
+                    // look for an exact match
                     for (int i = 0; posEl == -1 && i < ui.m_Input.BufferFormats.Length; i++)
                     {
                         FormatElement el = ui.m_Input.BufferFormats[i];
@@ -2377,6 +2378,33 @@ namespace renderdocui.Windows
                             posEl = i;
                             break;
                         }
+                    }
+                    // try anything containing position
+                    for (int i = 0; posEl == -1 && i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
+
+                        if (el.name.ToUpperInvariant().Contains("POSITION"))
+                        {
+                            posEl = i;
+                            break;
+                        }
+                    }
+                    // OK last resort, just look for 'pos'
+                    for (int i = 0; posEl == -1 && i < ui.m_Input.BufferFormats.Length; i++)
+                    {
+                        FormatElement el = ui.m_Input.BufferFormats[i];
+
+                        if (el.name.ToUpperInvariant().Contains("POS"))
+                        {
+                            posEl = i;
+                            break;
+                        }
+                    }
+                    // if we still have absolutely nothing, just use the first available element
+                    if (posEl == -1 && ui.m_Input.BufferFormats.Length > 0)
+                    {
+                        posEl = 0;
                     }
                 }
 
