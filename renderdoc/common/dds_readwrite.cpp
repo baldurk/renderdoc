@@ -925,7 +925,7 @@ dds_data load_dds_from_file(FILE *f)
 				return error;
 		}
 	}
-	else if(header.ddspf.dwFlags == DDPF_FOURCC)
+	else if(header.ddspf.dwFlags & DDPF_FOURCC)
 	{
 		switch(header.ddspf.dwFourCC)
 		{
