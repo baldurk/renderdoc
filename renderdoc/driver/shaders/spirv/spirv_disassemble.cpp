@@ -1412,7 +1412,7 @@ struct SPVModule
 
 void DisassembleSPIRV(SPIRVShaderStage shadType, const vector<uint32_t> &spirv, string &disasm)
 {
-#if defined(RELEASE)
+#if 1
 	return;
 #else
 	if(shadType >= eSPIRVInvalid)
