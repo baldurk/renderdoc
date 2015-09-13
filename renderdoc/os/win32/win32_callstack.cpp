@@ -42,19 +42,19 @@ class Win32Callstack : public Callstack::Stackwalk
 {
 	public:
 		Win32Callstack();
-		Win32Callstack(uint64_t *calls, size_t numLevels);
+		Win32Callstack(DWORD64 *calls, size_t numLevels);
 		~Win32Callstack();
 
-		size_t NumLevels() const { return m_NumLevels; }
-		const uint64_t *GetAddrs() const { return m_AddrStack; }
+		void Set(DWORD64 *calls, size_t numLevels);
+
+		size_t NumLevels() const { return m_AddrStack.size(); }
+		const uint64_t *GetAddrs() const { return &m_AddrStack[0]; }
 	private:
 		Win32Callstack(const Callstack::Stackwalk &other);
 
 		void Collect();
 
-		size_t m_NumLevels;
-		DWORD64 *m_AddrStack;
-		DWORD64 *m_AllocStack;
+		vector<DWORD64> m_AddrStack;
 };
 
 class Win32CallstackResolver : public Callstack::StackResolver
@@ -333,9 +333,8 @@ void Win32Callstack::Collect()
 		stack32.erase(stack32.begin());
 	}
 
-	m_NumLevels = stack32.size();
-	m_AllocStack = m_AddrStack = new DWORD64[m_NumLevels];
-	for(size_t i=0; i < m_NumLevels; i++)
+	m_AddrStack.resize(stack32.size());
+	for(size_t i=0; i < stack32.size(); i++)
 		m_AddrStack[i] = (DWORD64)stack32[i];
 }
 
@@ -343,24 +342,24 @@ Win32Callstack::Win32Callstack()
 {
 	bool ret = InitDbgHelp();
 
-	m_AllocStack = m_AddrStack = NULL;
-	m_NumLevels = 0;
-
 	if(ret && renderdocBase != NULL)
 		Collect();
 }
 
 Win32Callstack::Win32Callstack(DWORD64 *calls, size_t numLevels)
 {
-	m_NumLevels = numLevels;
-	m_AllocStack = m_AddrStack = new DWORD64[m_NumLevels];
-	for(size_t i=0; i < m_NumLevels; i++)
+	Set(calls, numLevels);
+}
+
+void Win32Callstack::Set(DWORD64 *calls, size_t numLevels)
+{
+	m_AddrStack.resize(numLevels);
+	for(size_t i=0; i < numLevels; i++)
 		m_AddrStack[i] = calls[i];
 }
 
 Win32Callstack::~Win32Callstack()
 {
-	SAFE_DELETE_ARRAY(m_AllocStack);
 }
 
 wstring Win32CallstackResolver::pdbBrowse(wstring startingPoint)
@@ -762,9 +761,9 @@ namespace Callstack
 		return new Win32Callstack();
 	}
 
-	Stackwalk *Load(uint64_t *calls, size_t numLevels)
+	Stackwalk *Create()
 	{
-		return new Win32Callstack(calls, numLevels);
+		return new Win32Callstack(NULL, 0);
 	}
 
 	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal)

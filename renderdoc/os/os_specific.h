@@ -140,6 +140,9 @@ namespace Callstack
 	{
 	public:
 		virtual ~Stackwalk() {}
+
+		virtual void Set(uint64_t *calls, size_t numLevels) = 0;
+
 		virtual size_t NumLevels() const = 0;
 		virtual const uint64_t *GetAddrs() const = 0;
 	};
@@ -165,7 +168,7 @@ namespace Callstack
 	void Init();
 
 	Stackwalk *Collect();
-	Stackwalk *Load(uint64_t *calls, size_t numLevels);
+	Stackwalk *Create();
 
 	StackResolver *MakeResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths, volatile bool *killSignal);
 

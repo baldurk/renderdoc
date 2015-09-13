@@ -45,11 +45,16 @@ class LinuxCallstack : public Callstack::Stackwalk
 		}
 		LinuxCallstack(uint64_t *calls, size_t num)
 		{
-			numLevels = (int)RDCMIN(ARRAY_COUNT(addrs), num);
+			Set(calls, num);
+		}
+		~LinuxCallstack() {}
+
+		void Set(uint64_t *calls, size_t num)
+		{
+			numLevels = num;
 			for(int i=0; i < numLevels; i++)
 				addrs[i] = calls[i];
 		}
-		~LinuxCallstack() {}
 
 		size_t NumLevels() const { return size_t(numLevels); }
 		const uint64_t *GetAddrs() const { return addrs; }
@@ -107,9 +112,9 @@ namespace Callstack
 		return new LinuxCallstack();
 	}
 
-	Stackwalk *Load(uint64_t *calls, size_t numLevels)
+	Stackwalk *Create()
 	{
-		return new LinuxCallstack(calls, numLevels);
+		return new LinuxCallstack(NULL, 0);
 	}
 
 	bool GetLoadedModules(char *&buf, size_t &size)

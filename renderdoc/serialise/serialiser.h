@@ -324,7 +324,7 @@ class Serialiser
 		// get the callstack associated with the last scope
 		Callstack::Stackwalk *GetLastCallstack()
 		{
-			return m_pCallstack;
+			return (m_pCallstack && m_pCallstack->NumLevels() > 0) ? m_pCallstack : NULL;
 		}
 
 		//////////////////////////////////////////

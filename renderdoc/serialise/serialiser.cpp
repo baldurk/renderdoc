@@ -131,7 +131,7 @@ void Serialiser::Reset()
 	m_Indent = 0;
 
 	SAFE_DELETE_ARRAY(m_pCallstack);
-	SAFE_DELETE_ARRAY(m_pResolver);
+	SAFE_DELETE(m_pResolver);
 	if(m_Buffer)
 	{
 		FreeAlignedBuffer(m_Buffer);
@@ -392,10 +392,10 @@ void Serialiser::InitCallstackResolver()
 
 void Serialiser::SetCallstack(uint64_t *levels, size_t numLevels)
 {
-	SAFE_DELETE(m_pCallstack);
+	if(m_pCallstack == NULL)
+		m_pCallstack = Callstack::Create();
 
-	if(levels != NULL && numLevels != 0)
-		m_pCallstack = Callstack::Load(levels, numLevels);
+	m_pCallstack->Set(levels, numLevels);
 }
 
 void Serialiser::CreateResolver(void *ths)
