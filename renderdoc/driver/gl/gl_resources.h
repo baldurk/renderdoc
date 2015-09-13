@@ -184,12 +184,12 @@ struct GLResourceRecord : public ResourceRecord
 
 	GLResource Resource;
 
-	void AllocShadowStorage(size_t size, size_t alignment = 16)
+	void AllocShadowStorage(size_t size)
 	{
 		if(ShadowPtr[0] == NULL)
 		{
-			ShadowPtr[0] = Serialiser::AllocAlignedBuffer(size, alignment);
-			ShadowPtr[1] = Serialiser::AllocAlignedBuffer(size, alignment);
+			ShadowPtr[0] = Serialiser::AllocAlignedBuffer(size);
+			ShadowPtr[1] = Serialiser::AllocAlignedBuffer(size);
 		}
 	}
 

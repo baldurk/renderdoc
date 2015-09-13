@@ -702,8 +702,6 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs)
 
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
-	m_CurFileSize = 0;
-
 	m_RealDebugFunc = NULL;
 	m_RealDebugFuncParam = NULL;
 
@@ -2434,7 +2432,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 			RDCDEBUG("Done");	
 		}
 
-		m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+		m_pFileSerialiser->FlushToDisk();
 
 		RenderDoc::Inst().SuccessfullyWrittenLog();
 
@@ -2953,7 +2951,7 @@ void WrappedOpenGL::ReadLogInitialisation()
 	
 	m_pSerialiser->SetDebugText(false);
 	
-	m_pSerialiser->SetBase(firstFrame);
+	m_pSerialiser->SetPersistentBlock(firstFrame);
 }
 
 void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)

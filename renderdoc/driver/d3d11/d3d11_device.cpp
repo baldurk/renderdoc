@@ -295,8 +295,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device* realDevice, D3D11InitPara
 	m_AppControlledCapture = false;
 
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
-
-	m_CurFileSize = 0;
 	
 #if defined(RELEASE)
 	const bool debugSerialiser = false;
@@ -1106,7 +1104,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 	
 	m_pSerialiser->SetDebugText(false);
 	
-	m_pSerialiser->SetBase(firstFrame);
+	m_pSerialiser->SetPersistentBlock(firstFrame);
 }
 
 bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
@@ -2834,7 +2832,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 			RDCDEBUG("Done");	
 		}
 
-		m_CurFileSize += m_pFileSerialiser->FlushToDisk();
+		m_pFileSerialiser->FlushToDisk();
 
 		SAFE_DELETE(m_pFileSerialiser);
 

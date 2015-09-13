@@ -345,6 +345,8 @@ namespace FileIO
 	uint64_t ftell64(FILE *f) { return (uint64_t)::ftell(f); }
 	void fseek64(FILE *f, uint64_t offset, int origin) { ::fseek(f, (long)offset, origin); }
 
+	bool feof(FILE *f) { return ::feof(f) != 0; }
+
 	int fclose(FILE *f) { return ::fclose(f); }
 };
 

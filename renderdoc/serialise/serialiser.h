@@ -80,6 +80,7 @@ typedef const char *(*ChunkLookup)(uint32_t chunkType);
 
 class Serialiser;
 class ScopedContext;
+struct CompressedFileIO;
 
 // holds the memory, length and type for a given chunk, so that it can be
 // passed around and moved between owners before being serialised out
@@ -105,7 +106,7 @@ class Chunk
 #endif
 		
 		// grab current contents of the serialiser into this chunk
-		Chunk(Serialiser *ser, uint32_t chunkType, size_t alignment, bool temp); 
+		Chunk(Serialiser *ser, uint32_t chunkType, bool temp); 
 
 	private:
 		// no copy semantics
@@ -162,10 +163,28 @@ class Serialiser
 			eSerError_UnsupportedVersion,
 		};
 
+		enum SectionFlags
+		{
+			eSectionFlag_None          = 0x0,
+			eSectionFlag_ASCIIStored   = 0x1,
+			eSectionFlag_LZ4Compressed = 0x2,
+		};
+
+		enum SectionType
+		{
+			eSectionType_Unknown = 0,
+			eSectionType_FrameCapture,      // renderdoc/internal/framecapture
+			eSectionType_ResolveDatabase,   // renderdoc/internal/resolvedb
+			eSectionType_FrameBookmarks,    // renderdoc/ui/bookmarks
+			eSectionType_Notes,             // renderdoc/ui/notes
+			eSectionType_Num,
+		};
+
 		// version number of overall file format or chunk organisation. If the contents/meaning/order of
 		// chunks have changed this does not need to be bumped, there are version numbers within each
 		// API that interprets the stream that can be bumped.
-		static const uint64_t SERIALISE_VERSION = 0x00000031;
+		static const uint64_t SERIALISE_VERSION = 0x00000032;
+		static const uint32_t MAGIC_HEADER;
 
 		//////////////////////////////////////////
 		// Init and error handling
@@ -228,46 +247,9 @@ class Serialiser
 		// Set up the base pointer and size. Serialiser will allocate enough for
 		// the rest of the file and keep it all in memory (useful to keep everything
 		// in actual frame data resident in memory).
-		void SetBase(uint64_t offs)
-		{
-			FreeAlignedBuffer(m_Buffer);
+		void SetPersistentBlock(uint64_t offs);
 
-			RDCASSERT(m_BufferSize - offs < 0xffffffff);
-
-			m_CurrentBufferSize = (size_t)(m_BufferSize - offs);
-			m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-			m_ReadOffset = offs;
-
-			ReadFromFile(offs, m_CurrentBufferSize);
-			FileIO::fclose(m_ReadFileHandle);
-			m_ReadFileHandle = 0;
-		}
-
-		void SetOffset(uint64_t offs)
-		{
-			if(m_HasError)
-			{
-				RDCERR("Setting offset with error state serialiser");
-				return;
-			}
-
-			// if we're jumping back before our in-memory window just reset the window
-			// and load it all in from scratch.
-			if(m_Mode == READING && offs < m_ReadOffset)
-			{
-				FreeAlignedBuffer(m_Buffer);
-
-				m_CurrentBufferSize = (size_t)RDCMIN(m_BufferSize, (uint64_t)64*1024);
-				m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-				m_ReadOffset = offs;
-
-				ReadFromFile(offs, m_CurrentBufferSize);
-			}
-
-			RDCASSERT(m_BufferHead && m_Buffer && offs <= GetSize());
-			m_BufferHead = m_Buffer + offs - m_ReadOffset;
-			m_Indent = 0;
-		}
+		void SetOffset(uint64_t offs);
 
 		void Rewind()
 		{
@@ -311,7 +293,7 @@ class Serialiser
 		}
 
 		void InitCallstackResolver();
-		bool HasCallstacks() { return m_HasResolver; }
+		bool HasCallstacks() { return m_KnownSections[eSectionType_ResolveDatabase] != NULL; }
 
 		// get callstack resolver, created with the DB in the file
 		Callstack::StackResolver *GetCallstackResolver()
@@ -553,7 +535,6 @@ class Serialiser
 		// If serialising in, buf must either be NULL in which case allocated
 		// memory will be returned, or it must be already large enough.
 		void SerialiseBuffer(const char *name, byte *&buf, size_t &len);
-		void SkipBuffer();
 		void AlignNextBuffer(const size_t alignment);
 
 		// NOT recommended interface. Useful for specific situations if e.g. you have
@@ -573,10 +554,10 @@ class Serialiser
 		// prints to the debug output log
 		void DebugPrint(const char *fmt, ...);
 
-		static byte *AllocAlignedBuffer(size_t size, size_t align = 16);
+		static byte *AllocAlignedBuffer(size_t size, size_t align = 64);
 		static void FreeAlignedBuffer(byte *buf);
 
-		uint64_t FlushToDisk();
+		void FlushToDisk();
 
 		// set a function used when serialising a text representation
 		// of the chunks
@@ -616,87 +597,10 @@ class Serialiser
 		//////////////////////////////////////////
 		// Raw memory buffer read/write
 
-		void WriteBytes(const byte *buf, size_t nBytes)
-		{
-#ifdef DEBUG_TEXT_SERIALISER
-			if(m_Mode == DEBUGWRITING)
-				return;
-#endif
+		void WriteBytes(const byte *buf, size_t nBytes);
+		void *ReadBytes(size_t nBytes);
 
-			if(m_HasError)
-			{
-				RDCERR("Writing bytes with error state serialiser");
-				return;
-			}
-
-			if(m_Buffer+m_BufferSize < m_BufferHead+nBytes+8)
-			{
-				// reallocate
-				while(m_Buffer+m_BufferSize < m_BufferHead+nBytes+8)
-				{
-					m_BufferSize += 128*1024;
-				}
-
-				byte *newBuf = AllocAlignedBuffer((size_t)m_BufferSize);
-
-				size_t curUsed = m_BufferHead-m_Buffer;
-
-				memcpy(newBuf, m_Buffer, curUsed);
-
-				FreeAlignedBuffer(m_Buffer);
-
-				m_Buffer = newBuf;
-				m_BufferHead = newBuf + curUsed;
-			}
-
-			memcpy(m_BufferHead, buf, nBytes);
-
-			m_BufferHead += nBytes;
-		}
-		void *ReadBytes(size_t nBytes)
-		{
-			if(m_HasError)
-			{
-				RDCERR("Reading bytes with error state serialiser");
-				return NULL;
-			}
-			
-			// if we would read off the end of our current window
-			if(m_BufferHead+nBytes > m_Buffer+m_CurrentBufferSize)
-			{
-				size_t BufferOffset = m_BufferHead-m_Buffer;
-
-				if(nBytes+64 > m_CurrentBufferSize)
-				{
-					FreeAlignedBuffer(m_Buffer);
-					m_CurrentBufferSize = nBytes+64;
-					m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
-				}
-
-				if(BufferOffset > 64)
-				{
-					m_ReadOffset += BufferOffset-64;
-					m_BufferHead = m_Buffer+64;
-				}
-				else
-				{
-					m_BufferHead = m_Buffer+BufferOffset;
-				}
-				
-				// if there's anything left of the file to read in, do so now
-				ReadFromFile(m_ReadOffset, RDCMIN(m_CurrentBufferSize, (size_t)(m_BufferSize-m_ReadOffset)));
-			}
-
-			void *ret = m_BufferHead;
-
-			m_BufferHead += nBytes;
-
-			RDCASSERT(m_BufferHead <= m_Buffer+m_CurrentBufferSize);
-
-			return ret;
-		}
-
-		void ReadFromFile(uint64_t destOffs, size_t chunkLen);
+		void ReadFromFile(uint64_t bufferOffs, size_t length);
 
 		template<class T> void WriteFrom(const T &f)
 		{
@@ -733,25 +637,11 @@ class Serialiser
 
 		//////////////////////////////////////////
 		
-		static const uint32_t MAGIC_HEADER;
-
-		static const size_t BufferAlignment;
-
-		struct DebuggerHeader
-		{
-			DebuggerHeader()
-			{
-				magic = MAGIC_HEADER;
-				version = SERIALISE_VERSION;
-			}
-
-			uint64_t magic;
-			uint64_t version;
-			uint64_t fileSize;
-			uint64_t resolveDBSize;
-		};
+		static const uint64_t BufferAlignment;
 		
 		//////////////////////////////////////////
+
+		uint64_t m_SerVer;
 		
 		Mode m_Mode;
 
@@ -761,7 +651,6 @@ class Serialiser
 
 		int m_Indent;
 
-		bool m_HasResolver;
 		Callstack::Stackwalk *m_pCallstack;
 		Callstack::StackResolver *m_pResolver;
 		Threading::ThreadHandle m_ResolverThread;
@@ -779,11 +668,27 @@ class Serialiser
 
 		// reading from file:
 
-		// where in the actual on-disk file does the data start (ie. after header and symbol DB)
-		uint64_t m_FileStartOffset;
+		struct Section
+		{
+			Section() : type(eSectionType_Unknown), flags(eSectionFlag_None), fileoffset(0), compressedReader(NULL) {}
+			string name;
+			SectionType type;
+			SectionFlags flags;
+
+			uint64_t fileoffset;
+			uint64_t size;
+			vector<byte> data;    // some sections can be loaded entirely into memory
+			CompressedFileIO *compressedReader;
+		};
+
+		// this lists all sections in file order
+		vector<Section*> m_Sections;
+
+		// this lists known sections, some may be NULL
+		Section *m_KnownSections[eSectionType_Num];
 
 		// where does our in-memory window point to in the data stream. ie. m_pBuffer[0] is
-		// m_ReadOffset into the disk stream
+		// m_ReadOffset into the frame capture section
 		uint64_t m_ReadOffset;
 
 		// how big is the current in-memory window
@@ -821,7 +726,6 @@ class ScopedContext
 			, m_DebugSer(debugser)
 #endif
 		{
-			m_Alignment = 0;
 			m_Name = string(n) + " = " + t;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
 			
@@ -839,7 +743,6 @@ class ScopedContext
 			, m_DebugSer(debugser)
 #endif
 		{
-			m_Alignment = 0;
 			m_Name = n;
 			m_Ser->PushContext(m_Name.c_str(), m_Idx, smallChunk);
 
@@ -857,20 +760,14 @@ class ScopedContext
 				End();
 		}
 
-		void SetAlignment(size_t align)
-		{
-			m_Alignment = align;
-		}
-
 		Chunk *Get(bool temporary = false)
 		{
 			End();
-			return new Chunk(m_Ser, m_Idx, m_Alignment, temporary);
+			return new Chunk(m_Ser, m_Idx, temporary);
 		}
 	private:
 		std::string m_Name;
 		uint32_t m_Idx;
-		size_t m_Alignment;
 		Serialiser *m_Ser;
 #ifdef DEBUG_TEXT_SERIALISER
 		Serialiser *m_DebugSer;

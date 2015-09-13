@@ -5182,8 +5182,6 @@ void WrappedID3D11DeviceContext::UpdateSubresource(ID3D11Resource *pDstResource,
 				Serialise_UpdateSubresource(pDstResource, DstSubresource, pDstBox,
 											pSrcData, SrcRowPitch, SrcDepthPitch);
 
-				scope.SetAlignment(32);
-
 				Chunk *chunk = scope.Get();
 
 				record->AddChunk(chunk);
@@ -7133,8 +7131,6 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 				m_pSerialiser->Serialise("context", m_ResourceID);	
 				Serialise_Unmap(pResource, Subresource);
 
-				scope.SetAlignment(32);
-
 				m_ContextRecord->AddChunk(scope.Get());
 			}
 			else if(m_State >= WRITING)
@@ -7161,8 +7157,6 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 					SCOPED_SERIALISE_CONTEXT(UNMAP);
 					m_pSerialiser->Serialise("context", m_ResourceID);	
 					Serialise_Unmap(pResource, Subresource);
-
-					scope.SetAlignment(32);
 
 					Chunk *chunk = scope.Get();
 

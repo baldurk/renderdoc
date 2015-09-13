@@ -164,8 +164,6 @@ class WrappedOpenGL : public IFrameCapturer
 		CaptureFailReason m_FailureReason;
 		bool m_SuccessfulCapture;
 
-		uint64_t m_CurFileSize;
-
 		PerformanceTimer m_FrameTimer;
 		vector<double> m_FrameTimes;
 		double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;

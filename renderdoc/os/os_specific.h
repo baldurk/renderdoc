@@ -200,6 +200,8 @@ namespace FileIO
 	uint64_t ftell64(FILE *f);
 	void fseek64(FILE *f, uint64_t offset, int origin);
 
+	bool feof(FILE *f);
+
 	int fclose(FILE *f);
 };
 

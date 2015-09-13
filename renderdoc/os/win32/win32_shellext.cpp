@@ -108,9 +108,9 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 		if(m_Inited)
 			return HRESULT_FROM_WIN32(ERROR_ALREADY_INITIALIZED);
 
-		byte *buf = new byte[512*1024 + 1];
+		byte *buf = new byte[2*1024*1024 + 1];
 		ULONG numRead = 0;
-		HRESULT hr = pstream->Read(buf, 512*1024, &numRead);
+		HRESULT hr = pstream->Read(buf, 2*1024*1024, &numRead);
 
 		if(hr != S_OK && hr != S_FALSE)
 		{
@@ -122,6 +122,8 @@ struct RDCThumbnailProvider : public IThumbnailProvider, IInitializeWithStream
 
 		m_Ser = new Serialiser(numRead, buf, true);
 		
+		delete[] buf;
+
 		m_Inited = true;
 
 		return S_OK;

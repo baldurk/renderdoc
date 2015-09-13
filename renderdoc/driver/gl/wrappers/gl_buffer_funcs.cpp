@@ -344,9 +344,6 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
 		SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
 		Serialise_glNamedBufferStorageEXT(record->Resource.name, size, data, flags);
 
-		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
-		scope.SetAlignment(64);
-
 		Chunk *chunk = scope.Get();
 
 		{
@@ -368,7 +365,7 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
 			RDCASSERT(record->Map.persistentPtr);
 
 			// persistent maps always need both sets of shadow storage, so allocate up front.
-			record->AllocShadowStorage(size, 64);
+			record->AllocShadowStorage(size);
 		}
 	}
 	else
@@ -544,9 +541,6 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
 
-		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
-		scope.SetAlignment(64);
-
 		Chunk *chunk = scope.Get();
 
 		// if we've already created this is a renaming/data updating call. It should go in
@@ -674,9 +668,6 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
 
 		SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
 		Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
-
-		// for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
-		scope.SetAlignment(64);
 
 		Chunk *chunk = scope.Get();
 
@@ -1752,7 +1743,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
 					m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
 
 					// allocate our shadow storage
-					record->AllocShadowStorage(buflength, 64);
+					record->AllocShadowStorage(buflength);
 					shadow = (byte *)record->GetShadowPtr(0);
 
 					// if we're not invalidating, we need the existing contents
