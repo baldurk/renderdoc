@@ -70,6 +70,8 @@
 						<File Id='D3DCompiler47DLL64' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/d3dcompiler_47.dll' />
 						<File Id='RenderDocSHIM' Name='renderdocshim64.dll' DiskId='1' Source='dist/Release64/renderdocshim64.dll' />
 						
+						<File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release32/renderdoc_app.h' />
+            
 						<RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
 							Key="Software\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
 							Value='RenderDoc Thumbnail Handler' 
