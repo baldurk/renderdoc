@@ -1020,7 +1020,7 @@ namespace renderdocui.Windows
                 {
                     forceCheck = true;
                 }
-                else
+                else if(!forceCheck)
                 {
                     SetUpdateAvailable();
                     return;
