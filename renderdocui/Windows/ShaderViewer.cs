@@ -1772,7 +1772,7 @@ namespace renderdocui.Windows
 
             bool firstStep = true;
 
-            while (true)
+            while (step < m_Trace.states.Length)
             {
                 if (m_Trace.states[step].nextInstruction == runToInstruction)
                     break;
