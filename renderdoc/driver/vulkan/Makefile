@@ -58,7 +58,7 @@ rdoc_vulkan.a: $(STATIC_OBJECTS)
 	ar rcs rdoc_vulkan.a $(STATIC_OBJECTS)
 
 libVKLayerRenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(VULKAN_SDK_SRC)/build/layers/liblayer_utils.so
-	/usr/bin/c++  -fPIC -std=c++11 -DVK_PROTOTYPES -Wpointer-arith -g -Wl,-Bsymbolic -shared -Wl,-soname,libVKLayerRenderdoc.so -o libVKLayerRenderdoc.so $(OBJDIR_OBJECTS) $(OBJDIR_DATA) ../../.obj/os/linux/linux_threading.o ../../.obj/os/linux/linux_stringio.o ../../.obj/os/linux/linux_network.o ../../.obj/os/os_specific.o ../../.obj/serialise/utf8printf.o ../../.obj/serialise/grisu2.o ../../.obj/core/core.o ../../.obj/core/remote_access.o ../../.obj/replay/capture_options.o ../../.obj/replay/type_helpers.o ../../.obj/serialise/serialiser.o ../../.obj/core/resource_manager.o ../../.obj/common/common.o $(VULKAN_SDK_SRC)/build/layers/liblayer_utils.so -Wl,-rpath,/home/greg/renderdoc/vulkan/renderdoc/driver/vulkan/lib/vulkan -lpthread -lrt -ldl -lX11
+	/usr/bin/c++  -fPIC -std=c++11 -DVK_PROTOTYPES -Wpointer-arith -g -Wl,-Bsymbolic -shared -Wl,-soname,libVKLayerRenderdoc.so -o libVKLayerRenderdoc.so $(OBJDIR_OBJECTS) $(OBJDIR_DATA) ../../.obj/os/linux/linux_threading.o ../../.obj/os/linux/linux_stringio.o ../../.obj/os/linux/linux_network.o ../../.obj/os/os_specific.o ../../.obj/serialise/utf8printf.o ../../.obj/serialise/grisu2.o ../../.obj/core/core.o ../../.obj/core/remote_access.o ../../.obj/replay/capture_options.o ../../.obj/replay/type_helpers.o ../../.obj/serialise/serialiser.o ../../.obj/core/resource_manager.o ../../.obj/common/common.o $(VULKAN_SDK_SRC)/build/layers/liblayer_utils.so -Wl,-rpath,$(VULKAN_SDK_SRC)/build/layers -lpthread -lrt -ldl -lX11
 
 .PHONY: clean
 clean:

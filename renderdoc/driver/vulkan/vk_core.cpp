@@ -6571,7 +6571,7 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
+        vkr = device_dispatch_table(d)->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCreateInfo bufInfo = {
@@ -6594,18 +6594,18 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
 
-		device_dispatch_table(cmd)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
+        device_dispatch_table(d)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
 	
-		vkr = device_dispatch_table(cmd)->EndCommandBuffer(cmd);
+        vkr = device_dispatch_table(d)->EndCommandBuffer(cmd);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = device_dispatch_table(q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+        vkr = device_dispatch_table(d)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOMED would be nice to store a fence too at this point
 		// so we can sync on that on serialise rather than syncing
 		// every time.
-		device_dispatch_table(q)->QueueWaitIdle(q);
+        device_dispatch_table(d)->QueueWaitIdle(q);
 
 		device_dispatch_table(d)->DestroyBuffer(d, srcBuf);
 		device_dispatch_table(d)->DestroyBuffer(d, dstBuf);
