@@ -33,6 +33,9 @@
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 
+// gives us an address to identify this dll with
+static int dllLocator=0;
+
 HMODULE GetD3DCompiler()
 {
 	static HMODULE ret = NULL;
@@ -59,6 +62,25 @@ HMODULE GetD3DCompiler()
 			if(ret != NULL) return ret;
 		}
 	}
+
+	// all else failed, couldn't find d3dcompiler loaded,
+	// and couldn't even loadlibrary any version!
+	// we'll have to loadlibrary the version that ships with
+	// RenderDoc.
+	
+	HMODULE hModule = NULL;
+	GetModuleHandleEx(
+		GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+		(LPCTSTR)&dllLocator,
+		&hModule);
+	wchar_t curFile[512] = {0};
+	GetModuleFileNameW(hModule, curFile, 511);
+
+	wstring path = wstring(curFile);
+	path = dirname(path);
+	wstring dll = path + L"/d3dcompiler_47.dll";
+	
+	ret = LoadLibraryW(dll.c_str());
 
 	return ret;
 }

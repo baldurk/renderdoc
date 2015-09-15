@@ -67,7 +67,7 @@
 
 					<Component Id='RenderDocCPP' Win64="yes" Guid='9D5949F9-0447-47B6-829D-77465E1FDAD9'>
 						<File Id='RenderDocCPP' Name='renderdoc.dll' DiskId='1' Source='dist/Release64/renderdoc.dll' KeyPath='yes' />
-						<File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/d3dcompiler_47.dll' />
+						<File Id='D3DCompiler47DLL64' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/d3dcompiler_47.dll' />
 						<File Id='RenderDocSHIM' Name='renderdocshim64.dll' DiskId='1' Source='dist/Release64/renderdocshim64.dll' />
 						
 						<RegistryValue Root="HKLM" Id="RDCCLSID" Action="write" 
@@ -140,6 +140,8 @@
 							<File Id='renderdocX86DLL' Name='renderdoc.dll' DiskId='1' Source='dist/Release64/x86/renderdoc.dll' KeyPath='yes' />
 							<File Id='renderdocshimX86DLL' Name='renderdocshim32.dll' DiskId='1' Source='dist/Release64/x86/renderdocshim32.dll' />
 							<File Id='renderdocX86CMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release64/x86/renderdoccmd.exe' />
+
+							<File Id='D3DCompiler47DLL32' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/x86/d3dcompiler_47.dll' />
 								
 							<RegistryValue Root="HKLM" Id="RDCCLSID32" Action="write" 
 								Key="Software\Wow6432Node\Classes\CLSID\{5D6BF029-A6BA-417A-8523-120492B1DCE3}" 
