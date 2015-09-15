@@ -1065,6 +1065,7 @@ void Serialiser::ReadFromFile(uint64_t bufferOffs, size_t length)
 
 	if(s->flags & eSectionFlag_LZ4Compressed)
 	{
+		RDCASSERT(s->compressedReader);
 		s->compressedReader->Read(m_Buffer + bufferOffs, length);
 	}
 	else
@@ -1128,8 +1129,12 @@ void Serialiser::SetPersistentBlock(uint64_t offs)
 	Section *s = m_KnownSections[eSectionType_FrameCapture];
 	RDCASSERT(s);
 	FileIO::fseek64(m_ReadFileHandle, s->fileoffset, SEEK_SET);
-
-	s->compressedReader->Reset();
+	
+	if(s->flags & eSectionFlag_LZ4Compressed)
+	{
+		RDCASSERT(s->compressedReader);
+		s->compressedReader->Reset();
+	}
 
 	// can't seek arbitrarily in the stream, need to read through the rest
 	while(offs > 0)
@@ -1166,8 +1171,12 @@ void Serialiser::SetOffset(uint64_t offs)
 			Section *s = m_KnownSections[eSectionType_FrameCapture];
 			RDCASSERT(s);
 			FileIO::fseek64(m_ReadFileHandle, s->fileoffset, SEEK_SET);
-
-			s->compressedReader->Reset();
+			
+			if(s->flags & eSectionFlag_LZ4Compressed)
+			{
+				RDCASSERT(s->compressedReader);
+				s->compressedReader->Reset();
+			}
 		}
 
 		FreeAlignedBuffer(m_Buffer);
