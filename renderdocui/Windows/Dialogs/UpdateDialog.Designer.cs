@@ -115,7 +115,6 @@
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Update Available";
-            this.TopMost = true;
             this.ResumeLayout(false);
             this.PerformLayout();
 
