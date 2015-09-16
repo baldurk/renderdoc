@@ -62,22 +62,24 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 struct WrappedVkDispRes : public WrappedVkRes
 {
 	WrappedVkDispRes(VkInstance obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable.inst = *(VkLayerInstanceDispatchTable_ **)(uintptr_t)obj; table.inst = instance_dispatch_table(obj); }
+	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)instance_dispatch_table(obj); }
+
 	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable.inst = *(VkLayerInstanceDispatchTable_ **)(uintptr_t)obj; table.inst = instance_dispatch_table(obj); }
+	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)instance_dispatch_table(obj); }
+	
 	WrappedVkDispRes(VkDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+
 	WrappedVkDispRes(VkQueue obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+
 	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+
+	// VKTODOLOW there's padding here on 32-bit but I don't know if I really care about 32-bit.
 
 	// preserve dispatch table pointer in dispatchable objects
-	union DispatchTableUnion
-	{
-		VkLayerDispatchTable_ *dev;
-		VkLayerInstanceDispatchTable_ *inst;
-	} loaderTable, table;
+	uintptr_t loaderTable, table;
 	uint64_t real;
 	ResourceId id;
 	union
@@ -99,21 +101,25 @@ struct WrappedVkInstance : WrappedVkDispRes
 {
 	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
+	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
 };
 struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
 	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
+	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
 };
 struct WrappedVkDevice : WrappedVkDispRes
 {
 	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
+	typedef VkLayerDispatchTable_ DispatchTableType;
 };
 struct WrappedVkQueue : WrappedVkDispRes
 {
 	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
+	typedef VkLayerDispatchTable_ DispatchTableType;
 };
 struct WrappedVkCmdBuffer : WrappedVkDispRes
 {
@@ -122,6 +128,7 @@ struct WrappedVkCmdBuffer : WrappedVkDispRes
 	static const int AllocPoolCount = 32*1024;
 	static const int AllocPoolMaxByteSize = 2*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
+	typedef VkLayerDispatchTable_ DispatchTableType;
 };
 struct WrappedVkFence : WrappedVkNonDispRes
 {
@@ -349,7 +356,7 @@ UNWRAP_NONDISP_HELPER(VkSwapChainWSI)
 #define WRAPPING_DEBUG 0
 
 template<typename RealType>
-typename UnwrapHelper<RealType>::Outer *GetWrapped(typename RealType obj)
+typename UnwrapHelper<RealType>::Outer *GetWrapped(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 
@@ -367,7 +374,13 @@ typename UnwrapHelper<RealType>::Outer *GetWrapped(typename RealType obj)
 }
 
 template<typename RealType>
-typename RealType Unwrap(typename RealType obj)
+typename UnwrapHelper<RealType>::Outer::DispatchTableType *ObjDisp(RealType obj)
+{
+	return (typename UnwrapHelper<RealType>::Outer::DispatchTableType *)GetWrapped(obj)->table;
+}
+
+template<typename RealType>
+RealType Unwrap(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 
@@ -375,7 +388,7 @@ typename RealType Unwrap(typename RealType obj)
 }
 
 template<typename RealType>
-typename ResourceId GetResID(typename RealType obj)
+ResourceId GetResID(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return ResourceId();
 
@@ -383,7 +396,7 @@ typename ResourceId GetResID(typename RealType obj)
 }
 
 template<typename RealType>
-typename VkResourceRecord *GetRecord(typename RealType obj)
+VkResourceRecord *GetRecord(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return NULL;
 
