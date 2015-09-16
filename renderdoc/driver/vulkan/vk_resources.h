@@ -220,6 +220,102 @@ struct WrappedVkSwapChainWSI : WrappedVkRes
 	typedef VkSwapChainWSI InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapChainWSI);
 };
 
+// template magic voodoo to unwrap types
+template<typename inner> struct UnwrapHelper {};
+
+#define UNWRAP_HELPER(vulkantype) \
+	template<> struct UnwrapHelper<vulkantype> \
+	{ \
+		typedef CONCAT(Wrapped, vulkantype) Outer; \
+		static vulkantype ToHandle(uint64_t real) { return (vulkantype) (uintptr_t)real; } \
+		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) wrapped; } \
+	};
+
+#define UNWRAP_NONDISP_HELPER(vulkantype) \
+	template<> struct UnwrapHelper<vulkantype> \
+	{ \
+		typedef CONCAT(Wrapped, vulkantype) Outer; \
+		static vulkantype ToHandle(uint64_t real) { return vulkantype(real); } \
+		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped.handle; } \
+	};
+
+UNWRAP_HELPER(VkInstance)
+UNWRAP_HELPER(VkPhysicalDevice)
+UNWRAP_HELPER(VkDevice)
+UNWRAP_HELPER(VkQueue)
+UNWRAP_HELPER(VkCmdBuffer)
+UNWRAP_NONDISP_HELPER(VkFence)
+UNWRAP_NONDISP_HELPER(VkDeviceMemory)
+UNWRAP_NONDISP_HELPER(VkBuffer)
+UNWRAP_NONDISP_HELPER(VkImage)
+UNWRAP_NONDISP_HELPER(VkSemaphore)
+UNWRAP_NONDISP_HELPER(VkEvent)
+UNWRAP_NONDISP_HELPER(VkQueryPool)
+UNWRAP_NONDISP_HELPER(VkBufferView)
+UNWRAP_NONDISP_HELPER(VkImageView)
+UNWRAP_NONDISP_HELPER(VkAttachmentView)
+UNWRAP_NONDISP_HELPER(VkShaderModule)
+UNWRAP_NONDISP_HELPER(VkShader)
+UNWRAP_NONDISP_HELPER(VkPipelineCache)
+UNWRAP_NONDISP_HELPER(VkPipelineLayout)
+UNWRAP_NONDISP_HELPER(VkRenderPass)
+UNWRAP_NONDISP_HELPER(VkPipeline)
+UNWRAP_NONDISP_HELPER(VkDescriptorSetLayout)
+UNWRAP_NONDISP_HELPER(VkSampler)
+UNWRAP_NONDISP_HELPER(VkDescriptorPool)
+UNWRAP_NONDISP_HELPER(VkDescriptorSet)
+UNWRAP_NONDISP_HELPER(VkDynamicViewportState)
+UNWRAP_NONDISP_HELPER(VkDynamicRasterState)
+UNWRAP_NONDISP_HELPER(VkDynamicColorBlendState)
+UNWRAP_NONDISP_HELPER(VkDynamicDepthStencilState)
+UNWRAP_NONDISP_HELPER(VkFramebuffer)
+UNWRAP_NONDISP_HELPER(VkCmdPool)
+UNWRAP_NONDISP_HELPER(VkSwapChainWSI)
+
+#define WRAPPING_DEBUG 0
+
+template<typename RealType>
+typename UnwrapHelper<RealType>::Outer *GetWrapped(typename RealType obj)
+{
+	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
+
+	typename UnwrapHelper<RealType>::Outer *wrapped = UnwrapHelper<RealType>::FromHandle(obj);
+
+#if WRAPPING_DEBUG
+	if(obj != VK_NULL_HANDLE && !wrapped->IsAlloc(wrapped))
+	{
+		RDCERR("Trying to unwrap invalid type");
+		return NULL;
+	}
+#endif
+
+	return wrapped;
+}
+
+template<typename RealType>
+typename RealType Unwrap(typename RealType obj)
+{
+	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
+
+	return UnwrapHelper<RealType>::ToHandle(GetWrapped(obj)->real);
+}
+
+template<typename RealType>
+typename ResourceId GetResID(typename RealType obj)
+{
+	if(obj == VK_NULL_HANDLE) return ResourceId();
+
+	return GetWrapped(obj)->id;
+}
+
+template<typename RealType>
+typename VkResourceRecord *GetRecord(typename RealType obj)
+{
+	if(obj == VK_NULL_HANDLE) return NULL;
+
+	return GetWrapped(obj)->record;
+}
+
 enum VkNamespace
 {
 	eResUnknown = 0,
