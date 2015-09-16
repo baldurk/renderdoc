@@ -60,6 +60,11 @@
 #include <vk_wsi_swapchain.h>
 #include <vk_wsi_device_swapchain.h>
 
+#include "api/replay/renderdoc_replay.h"
+
+ResourceFormat MakeResourceFormat(VkFormat fmt);
+PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {

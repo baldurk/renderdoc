@@ -3937,6 +3937,12 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		pipeline = (VkPipeline)GetResourceManager()->GetLiveResource(pipeid).handle;
 
+		// track this while reading, as we need to bind current topology & index byte width to draws
+		if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
+			m_PartialReplayData.state.graphics.pipeline = pipeid;
+		else
+			m_PartialReplayData.state.compute.pipeline = pipeid;
+
 		device_dispatch_table(cmdBuffer)->CmdBindPipeline(cmd, bind, pipeline);
 	}
 
@@ -4437,6 +4443,9 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
+
+		// track this while reading, as we need to bind current topology & index byte width to draws
+		m_PartialReplayData.state.ibuffer.bytewidth = idxType == VK_INDEX_TYPE_UINT32 ? 4 : 2;
 		
 		device_dispatch_table(cmdBuffer)->CmdBindIndexBuffer(cmd, buffer, offs, idxType);
 	}
@@ -7329,8 +7338,13 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 	draw.depthOut = ResourceId();
 
-	// VKTODOHIGH set index byte width here
-	// VKTODOHIGH set topology here
+	ResourceId pipe = m_PartialReplayData.state.graphics.pipeline;
+	if(pipe != ResourceId())
+		draw.topology = MakePrimitiveTopology(m_CreationInfo.m_Pipeline[pipe].topology, m_CreationInfo.m_Pipeline[pipe].patchControlPoints);
+	else
+		draw.topology = eTopology_Unknown;
+
+	draw.indexByteWidth = m_PartialReplayData.state.ibuffer.bytewidth;
 
 	m_CurDrawcallID++;
 	if(hasEvents)
