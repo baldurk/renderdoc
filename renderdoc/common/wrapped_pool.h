@@ -134,7 +134,7 @@ class WrappingPool
 		WrappingPool()
 		{
 #ifdef INCLUDE_TYPE_NAMES
-			RDCDEBUG("WrappingPool<%s>: %p -> %p", GetTypeName<WrapType>::Name(), &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
+			RDCDEBUG("WrappingPool<%s> %d in %.2fMB: %p -> %p", GetTypeName<WrapType>::Name(), PoolCount, float(PoolCount*AllocByteSize)/(1024.0f*1024.0f), &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
 #endif
 
 			RDCCOMPILE_ASSERT(PoolCount*AllocByteSize <= MaxPoolByteSize, "Pool is bigger than max pool size cap");

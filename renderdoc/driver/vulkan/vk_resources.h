@@ -25,8 +25,200 @@
 #pragma once
 
 #include "core/resource_manager.h"
+#include "common/wrapped_pool.h"
 
 #include "vk_common.h"
+
+struct VkResourceRecord;
+
+struct WrappedVkRes
+{
+	WrappedVkRes() : real(0), id(), record(NULL) {}
+
+	// constructor for non-dispatchable types
+	template<typename T> WrappedVkRes(T obj, ResourceId objId) : real(obj.handle), id(objId), record(NULL) {}
+	// constructors for dispatchable types
+	WrappedVkRes(VkInstance obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
+	WrappedVkRes(VkPhysicalDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
+	WrappedVkRes(VkDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
+	WrappedVkRes(VkQueue obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
+	WrappedVkRes(VkCmdBuffer obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
+
+	uint64_t real;
+	ResourceId id;
+	union
+	{
+		VkResourceRecord *record;
+		// Do we need something here for per-object replay information?
+		void *replayInformation;
+	};
+	// dispatch table pointer could be here, at the cost of an extra pointer
+};
+
+// ensure the struct doesn't accidentally get made larger
+RDCCOMPILE_ASSERT(sizeof(WrappedVkRes) == sizeof(uint64_t)*3, "VkWrappedRes has changed size! This is bad");
+
+// these are expanded out so that IDE autocompletion etc works without having to process through macros
+struct WrappedVkInstance : WrappedVkRes
+{
+	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
+};
+struct WrappedVkPhysicalDevice : WrappedVkRes
+{
+	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
+};
+struct WrappedVkDevice : WrappedVkRes
+{
+	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
+};
+struct WrappedVkQueue : WrappedVkRes
+{
+	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
+};
+struct WrappedVkCmdBuffer : WrappedVkRes
+{
+	WrappedVkCmdBuffer(VkCmdBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkCmdBuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer);
+};
+struct WrappedVkFence : WrappedVkRes
+{
+	WrappedVkFence(VkFence obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkFence InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFence);
+};
+struct WrappedVkDeviceMemory : WrappedVkRes
+{
+	WrappedVkDeviceMemory(VkDeviceMemory obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDeviceMemory InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory);
+};
+struct WrappedVkBuffer : WrappedVkRes
+{
+	WrappedVkBuffer(VkBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkBuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer);
+};
+struct WrappedVkImage : WrappedVkRes
+{
+	WrappedVkImage(VkImage obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkImage InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage);
+};
+struct WrappedVkSemaphore : WrappedVkRes
+{
+	WrappedVkSemaphore(VkSemaphore obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkSemaphore InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSemaphore);
+};
+struct WrappedVkEvent : WrappedVkRes
+{
+	WrappedVkEvent(VkEvent obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkEvent InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkEvent);
+};
+struct WrappedVkQueryPool : WrappedVkRes
+{
+	WrappedVkQueryPool(VkQueryPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkQueryPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueryPool);
+};
+struct WrappedVkBufferView : WrappedVkRes
+{
+	WrappedVkBufferView(VkBufferView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkBufferView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView);
+};
+struct WrappedVkImageView : WrappedVkRes
+{
+	WrappedVkImageView(VkImageView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkImageView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView);
+};
+struct WrappedVkAttachmentView : WrappedVkRes
+{
+	WrappedVkAttachmentView(VkAttachmentView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkAttachmentView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView);
+};
+struct WrappedVkShaderModule : WrappedVkRes
+{
+	WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkShaderModule InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule);
+};
+struct WrappedVkShader : WrappedVkRes
+{
+	WrappedVkShader(VkShader obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkShader InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
+};
+struct WrappedVkPipelineCache : WrappedVkRes
+{
+	WrappedVkPipelineCache(VkPipelineCache obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkPipelineCache InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineCache);
+};
+struct WrappedVkPipelineLayout : WrappedVkRes
+{
+	WrappedVkPipelineLayout(VkPipelineLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkPipelineLayout InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout);
+};
+struct WrappedVkRenderPass : WrappedVkRes
+{
+	WrappedVkRenderPass(VkRenderPass obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkRenderPass InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkRenderPass);
+};
+struct WrappedVkPipeline : WrappedVkRes
+{
+	WrappedVkPipeline(VkPipeline obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkPipeline InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline);
+};
+struct WrappedVkDescriptorSetLayout : WrappedVkRes
+{
+	WrappedVkDescriptorSetLayout(VkDescriptorSetLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDescriptorSetLayout InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout);
+};
+struct WrappedVkSampler : WrappedVkRes
+{
+	WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkSampler InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler);
+};
+struct WrappedVkDescriptorPool : WrappedVkRes
+{
+	WrappedVkDescriptorPool(VkDescriptorPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDescriptorPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorPool);
+};
+struct WrappedVkDescriptorSet : WrappedVkRes
+{
+	WrappedVkDescriptorSet(VkDescriptorSet obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDescriptorSet InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet);
+};
+struct WrappedVkDynamicViewportState : WrappedVkRes
+{
+	WrappedVkDynamicViewportState(VkDynamicViewportState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDynamicViewportState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState);
+};
+struct WrappedVkDynamicRasterState : WrappedVkRes
+{
+	WrappedVkDynamicRasterState(VkDynamicRasterState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDynamicRasterState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicRasterState);
+};
+struct WrappedVkDynamicColorBlendState : WrappedVkRes
+{
+	WrappedVkDynamicColorBlendState(VkDynamicColorBlendState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDynamicColorBlendState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicColorBlendState);
+};
+struct WrappedVkDynamicDepthStencilState : WrappedVkRes
+{
+	WrappedVkDynamicDepthStencilState(VkDynamicDepthStencilState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkDynamicDepthStencilState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicDepthStencilState);
+};
+struct WrappedVkFramebuffer : WrappedVkRes
+{
+	WrappedVkFramebuffer(VkFramebuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkFramebuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFramebuffer);
+};
+struct WrappedVkCmdPool : WrappedVkRes
+{
+	WrappedVkCmdPool(VkCmdPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkCmdPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdPool);
+};
+struct WrappedVkSwapChainWSI : WrappedVkRes
+{
+	WrappedVkSwapChainWSI(VkSwapChainWSI obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	typedef VkSwapChainWSI InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapChainWSI);
+};
 
 enum VkNamespace
 {
