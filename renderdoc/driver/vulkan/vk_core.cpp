@@ -625,6 +625,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 #define FETCH_DEVICE_FUNCPTR(func) dummyDeviceTable->func = (CONCAT(PFN_vk, func))dummyDeviceTable->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
 					FETCH_DEVICE_FUNCPTR(CreateSwapChainWSI)
 					FETCH_DEVICE_FUNCPTR(DestroySwapChainWSI)
+					FETCH_DEVICE_FUNCPTR(GetSurfaceInfoWSI)
 					FETCH_DEVICE_FUNCPTR(GetSwapChainInfoWSI)
 					FETCH_DEVICE_FUNCPTR(AcquireNextImageWSI)
 					FETCH_DEVICE_FUNCPTR(QueuePresentWSI)

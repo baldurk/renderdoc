@@ -88,6 +88,7 @@ class VulkanHook : LibraryHook
 			HACK_WSI(vkCreateSwapChainWSI)
 			HACK_WSI(vkDestroySwapChainWSI)
 			HACK_WSI(vkGetSwapChainInfoWSI)
+			HACK_WSI(vkGetSurfaceInfoWSI)
 			HACK_WSI(vkAcquireNextImageWSI)
 			HACK_WSI(vkQueuePresentWSI)
 #undef HACK_WSI

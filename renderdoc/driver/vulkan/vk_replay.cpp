@@ -158,16 +158,84 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 
 	InitSurfaceDescription(surfDesc);
 
-	// VKTODOHIGH need to verify which present modes are present
+	// sensible defaults
+	VkFormat imformat = VK_FORMAT_B8G8R8A8_UNORM;
+	VkPresentModeWSI presentmode = VK_PRESENT_MODE_FIFO_WSI;
+
+	VkResult vkr = VK_SUCCESS;
+
+	// check format and present mode from driver
+	{
+		size_t sz = 0;
+
+		vkr = vt->GetSurfaceInfoWSI(device, (const VkSurfaceDescriptionWSI *)&surfDesc, VK_SURFACE_INFO_TYPE_FORMATS_WSI, &sz, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODOLOW make sure whole pipeline is SRGB correct
+		if(sz > 0)
+		{
+			size_t numFormats = sz / sizeof(VkSurfaceFormatPropertiesWSI);
+			VkSurfaceFormatPropertiesWSI *formats = new VkSurfaceFormatPropertiesWSI[numFormats];
+
+			vkr = vt->GetSurfaceInfoWSI(device, (const VkSurfaceDescriptionWSI *)&surfDesc, VK_SURFACE_INFO_TYPE_FORMATS_WSI, &sz, formats);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			if(numFormats == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
+			{
+				// 1 entry with undefined means no preference, just use our default
+				imformat = VK_FORMAT_B8G8R8A8_UNORM;
+			}
+			else
+			{
+				// since we don't care, if the driver has a preference just pick the first
+				imformat = formats[0].format;
+			}
+
+			SAFE_DELETE_ARRAY(formats);
+		}
+
+		sz = 0;
+
+		vkr = vt->GetSurfaceInfoWSI(device, (const VkSurfaceDescriptionWSI *)&surfDesc, VK_SURFACE_INFO_TYPE_PRESENT_MODES_WSI, &sz, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		if(sz > 0)
+		{
+			size_t numModes = sz / sizeof(VkSurfacePresentModePropertiesWSI);
+			VkSurfacePresentModePropertiesWSI *modes = new VkSurfacePresentModePropertiesWSI[numModes];
+
+			vkr = vt->GetSurfaceInfoWSI(device, (const VkSurfaceDescriptionWSI *)&surfDesc, VK_SURFACE_INFO_TYPE_PRESENT_MODES_WSI, &sz, modes);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			// If mailbox mode is available, use it, as is the lowest-latency non-
+			// tearing mode.  If not, try IMMEDIATE which will usually be available,
+			// and is fastest (though it tears).  If not, fall back to FIFO which is
+			// always available.
+			for (size_t i = 0; i < numModes; i++)
+			{
+				if (modes[i].presentMode == VK_PRESENT_MODE_MAILBOX_WSI)
+				{
+					presentmode = VK_PRESENT_MODE_MAILBOX_WSI;
+					break;
+				}
+
+				if (modes[i].presentMode == VK_PRESENT_MODE_IMMEDIATE_WSI)
+					presentmode = VK_PRESENT_MODE_IMMEDIATE_WSI;
+			}
+
+			SAFE_DELETE_ARRAY(modes);
+		}
+	}
+
 	VkSwapChainCreateInfoWSI swapInfo = {
 			VK_STRUCTURE_TYPE_SWAP_CHAIN_CREATE_INFO_WSI, NULL, (VkSurfaceDescriptionWSI *)&surfDesc,
-			2, VK_FORMAT_B8G8R8A8_UNORM, { width, height },
+			2, imformat, { width, height },
 			VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
-			VK_SURFACE_TRANSFORM_NONE_WSI, 1, VK_PRESENT_MODE_MAILBOX_WSI,
+			VK_SURFACE_TRANSFORM_NONE_WSI, 1, presentmode,
 			old, true,
 	};
 
-	VkResult vkr = vt->CreateSwapChainWSI(device, &swapInfo, &swap);
+	vkr = vt->CreateSwapChainWSI(device, &swapInfo, &swap);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	if(old != VK_NULL_HANDLE)
@@ -206,7 +274,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		VkAttachmentDescription attDesc = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_DESCRIPTION, NULL,
-			VK_FORMAT_B8G8R8A8_UNORM, 1,
+			imformat, 1,
 			VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE,
 			VK_ATTACHMENT_LOAD_OP_DONT_CARE, VK_ATTACHMENT_STORE_OP_DONT_CARE,
 			VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
@@ -251,7 +319,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		VkImageCreateInfo imInfo = {
 			VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL,
-			VK_IMAGE_TYPE_2D, VK_FORMAT_B8G8R8A8_UNORM, { width, height, 1 },
+			VK_IMAGE_TYPE_2D, imformat, { width, height, 1 },
 			1, 1, 1,
 			VK_IMAGE_TILING_OPTIMAL,
 			VK_IMAGE_USAGE_TRANSFER_DESTINATION_BIT,
@@ -285,7 +353,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	{
 		VkAttachmentViewCreateInfo info = {
 			VK_STRUCTURE_TYPE_ATTACHMENT_VIEW_CREATE_INFO, NULL,
-			bb, VK_FORMAT_B8G8R8A8_UNORM, 0, 0, 1,
+			bb, imformat, 0, 0, 1,
 			0 };
 
 		vkr = vt->CreateAttachmentView(device, &info, &bbview);
