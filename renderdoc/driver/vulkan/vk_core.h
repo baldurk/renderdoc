@@ -298,8 +298,6 @@ private:
 			struct
 			{
 				ResourceId pipeline;
-				// VKTODOMED might need something more sophisticated here, for
-				// dynamic offsets
 				vector<ResourceId> descSets;
 			} compute, graphics;
 
@@ -339,7 +337,14 @@ private:
 	};
 	map<ResourceId, SwapInfo> m_SwapChainInfo;
 
-	map<ResourceId, ResourceId> m_DescriptorSetLayouts;
+	// this info is stored in the record on capture, but we
+	// need it on replay too
+	struct DescriptorSetInfo
+	{
+		ResourceId layout;
+		vector<VkDescriptorInfo *> currentBindings;
+	};
+	map<ResourceId, DescriptorSetInfo> m_DescriptorSetInfo;
 
 	VulkanCreationInfo m_CreationInfo;
 

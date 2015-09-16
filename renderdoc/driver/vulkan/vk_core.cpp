@@ -3284,7 +3284,8 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 			GetResourceManager()->AddLiveResource(id, MakeRes(descset));
 
 			// this is stored in the resource record on capture, we need to be able to look to up
-			m_DescriptorSetLayouts[id] = layoutId;
+			m_DescriptorSetInfo[id].layout = layoutId;
+			m_CreationInfo.m_DescSetLayout[layoutId].CreateBindingsArray(m_DescriptorSetInfo[id].currentBindings);
 		}
 	}
 
@@ -3458,7 +3459,7 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 				VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
 
 				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
-					record->descBindings[pDescriptorWrites[i].destBinding][pDescriptorWrites[i].destArrayElement + d] = pDescriptorWrites[i].pDescriptors[d];
+					binding[pDescriptorWrites[i].destArrayElement + d] = pDescriptorWrites[i].pDescriptors[d];
 			}
 
 			if(copyCount > 0)
@@ -4018,9 +4019,41 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 			if(descsets.size() < first + numSets)
 				descsets.resize(first + numSets);
 
-			// VKTODOMED use layout to bake in dynamic offsets?
 			for(uint32_t i=0; i < numSets; i++)
 				descsets[first+i] = descriptorIDs[i];
+
+			// if there are dynamic offsets, bake them into the current bindings by alias'ing
+			// the image layout member (which is never used for buffer views).
+			// This lets us look it up easily when we want to show the current pipeline state
+			RDCCOMPILE_ASSERT(sizeof(VkImageLayout) >= sizeof(uint32_t), "Can't alias image layout for dynamic offset!");
+			if(offsCount > 0)
+			{
+				uint32_t o = 0;
+
+				// spec states that dynamic offsets precisely match all the offsets needed for these
+				// sets, in order of set N before set N+1, binding X before binding X+1 within a set,
+				// and in array element order within a binding
+				for(uint32_t i=0; i < numSets; i++)
+				{
+					const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[descriptorIDs[i]];
+
+					for(size_t b=0; b < layout.bindings.size(); b++)
+					{
+						// not dynamic, doesn't need an offset
+						if(layout.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC &&
+							 layout.bindings[b].descriptorType != VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC)
+							 continue;
+
+						// assign every array element an offset according to array size
+						for(uint32_t a=0; a < layout.bindings[b].arraySize; a++)
+						{
+							RDCASSERT(o < offsCount);
+							uint32_t *alias = (uint32_t *)&m_DescriptorSetInfo[descriptorIDs[i]].currentBindings[b][a].imageLayout;
+							*alias = offs[o++];
+						}
+					}
+				}
+			}
 		}
 	}
 	else if(m_State == READING)
@@ -6700,7 +6733,7 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 	{
 		if(res.Namespace == eResDescriptorSet)
 		{
-			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetLayouts[id] ];
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
 
 			uint32_t numElems;
 			VkDescriptorInfo *bindings = NULL;
@@ -6838,6 +6871,21 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 
 		VkResult vkr = device_dispatch_table(GetDev())->UpdateDescriptorSets(GetDev(), initial.num, writes, 0, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
+
+		// need to blat over the current descriptor set contents, so these are available
+		// when we want to fetch pipeline state
+		vector<VkDescriptorInfo *> &bindings = m_DescriptorSetInfo[GetResourceManager()->GetOriginalID(id)].currentBindings;
+
+		for(uint32_t i=0; i < initial.num; i++)
+		{
+			RDCASSERT(writes[i].destBinding < bindings.size());
+			RDCASSERT(writes[i].destArrayElement == 0);
+
+			VkDescriptorInfo *bind = bindings[writes[i].destBinding];
+
+			for(uint32_t d=0; d < writes[i].count; d++)
+				bind[d] = writes[i].pDescriptors[d];
+		}
 	}
 	else if(live.Namespace == eResDeviceMemory)
 	{
