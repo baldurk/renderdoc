@@ -319,7 +319,7 @@ namespace FileIO
 
 		char buffer[BUFSIZ];
 
-		while(!feof(ff))
+		while(!::feof(ff))
 		{
 			size_t nread = ::fread(buffer, 1, BUFSIZ, ff);
 			::fwrite(buffer, 1, nread, tf);
