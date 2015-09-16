@@ -1732,10 +1732,10 @@ void GLReplay::SavePipelineState()
 
 			if(pipe.m_FB.m_ReadFBO.Color[i].Obj != ResourceId() && !rbCol[i])
 			{
-				gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Mip);
-				gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
+				gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Mip);
+				gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
 				if(pipe.m_FB.m_ReadFBO.Color[i].Layer == 0)
-					gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
+					gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
 			}
 		}
 
@@ -1744,18 +1744,18 @@ void GLReplay::SavePipelineState()
 		
 		if(pipe.m_FB.m_ReadFBO.Depth.Obj != ResourceId() && !rbDepth)
 		{
-			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Mip);
-			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Layer);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Mip);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Layer);
 			if(pipe.m_FB.m_ReadFBO.Depth.Layer == 0)
-				gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Layer);
+				gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Depth.Layer);
 		}
 
 		if(pipe.m_FB.m_ReadFBO.Stencil.Obj != ResourceId() && !rbStencil)
 		{
-			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Mip);
-			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Mip);
+			gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
 			if(pipe.m_FB.m_ReadFBO.Stencil.Layer == 0)
-				gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
+				gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, (GLint*)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
 		}
 
 		create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
