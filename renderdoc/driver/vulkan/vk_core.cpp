@@ -25,8 +25,6 @@
 #include "vk_core.h"
 #include "serialise/string_utils.h"
 
-// VKTODOHIGH need to call vkResetCommandBuffer() before calling vkBeginCommandBuffer()
-
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -629,7 +627,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
 				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
@@ -695,7 +693,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
 				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
@@ -5484,7 +5482,10 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
+		VkResult vkr = device_dispatch_table(cmd)->ResetCommandBuffer(cmd, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
 		device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
 		
     VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -5497,8 +5498,14 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 			device_dispatch_table(cmd)->CmdPipelineBarrier(cmd, src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers[0]);
 		}
 
-		device_dispatch_table(cmd)->EndCommandBuffer(cmd);
-		device_dispatch_table(GetQ())->QueueSubmit(GetQ(), 1, &cmd, VK_NULL_HANDLE);
+		vkr = device_dispatch_table(cmd)->EndCommandBuffer(cmd);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = device_dispatch_table(GetQ())->QueueSubmit(GetQ(), 1, &cmd, VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+		// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
+		// is done before continuing
+		vkr = device_dispatch_table(GetQ())->QueueWaitIdle(GetQ());
+		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
 	return true;
@@ -6621,6 +6628,8 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
+		vkr = device_dispatch_table(d)->ResetCommandBuffer(cmd, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
         vkr = device_dispatch_table(d)->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -6903,7 +6912,9 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 		VkCmdBuffer cmd = GetCmd();
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
-
+		
+		vkr = device_dispatch_table(cmd)->ResetCommandBuffer(cmd, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
 		vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
@@ -7305,7 +7316,9 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-			VkResult vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
+			VkResult vkr = device_dispatch_table(cmd)->ResetCommandBuffer(cmd, 0);
+			RDCASSERT(vkr == VK_SUCCESS);
+			vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			ImgState &st = m_ImageInfo[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
@@ -7335,6 +7348,10 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			vkr = device_dispatch_table(q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+			RDCASSERT(vkr == VK_SUCCESS);
+			// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
+			// is done before continuing
+			vkr = device_dispatch_table(q)->QueueWaitIdle(GetQ());
 			RDCASSERT(vkr == VK_SUCCESS);
 		}
 	}
