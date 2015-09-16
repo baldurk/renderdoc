@@ -149,10 +149,15 @@ private:
 	struct ReplayData
 	{
 		// VKTODOHIGH need to release/destroy these somewhere
-		ReplayData() : inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE), cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE) {}
+		ReplayData()
+			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
+			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
+			, cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE) {}
+
 		VkInstance inst;
 		VkPhysicalDevice phys;
 		VkDevice dev;
+		uint32_t qFamilyIdx;
 		VkQueue q;
 		VkCmdBuffer cmd;
 		VkCmdPool cmdpool;
@@ -509,7 +514,7 @@ public:
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceQueue(
 			VkDevice                                    device,
-			uint32_t                                    queueNodeIndex,
+			uint32_t                                    queueFamilyIndex,
 			uint32_t                                    queueIndex,
 			VkQueue*                                    pQueue));
 

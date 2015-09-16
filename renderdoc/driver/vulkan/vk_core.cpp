@@ -592,10 +592,74 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkPhysicalDevice rmPhys = (VkPhysicalDevice)GetResourceManager()->GetLiveResource(physId).handle;
 
 		VkDevice device;
-		
-		// VKTODOHIGH: find a queue that supports graphics/compute/dma, and if one doesn't exist, add it.
 
-		// VKTODOLOW: check that extensions supported in capture (from createInfo) are supported in replay
+		uint32_t qCount = 0;
+		VkResult vkr = instance_dispatch_table(rmPhys)->GetPhysicalDeviceQueueCount(rmPhys, &qCount);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
+		vkr = instance_dispatch_table(rmPhys)->GetPhysicalDeviceQueueProperties(rmPhys, qCount, props);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		bool found = false;
+		uint32_t qFamilyIdx = 0;
+		VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_DMA_BIT);
+
+		// if we need to change the requested queues, it will point to this
+		VkDeviceQueueCreateInfo *modQueues = NULL;
+
+		for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+		{
+			uint32_t idx = createInfo.pRequestedQueues[i].queueFamilyIndex;
+			RDCASSERT(idx < qCount);
+
+			// this requested queue is one we can use too
+			if((props[idx].queueFlags & search) == search && createInfo.pRequestedQueues[i].queueCount > 0)
+			{
+				qFamilyIdx = idx;
+				found = true;
+				break;
+			}
+		}
+
+		// if we didn't find it, search for which queue family we should add a request for
+		if(!found)
+		{
+			RDCDEBUG("App didn't request a queue family we can use - adding our own");
+
+			for(uint32_t i=0; i < qCount; i++)
+			{
+				if((props[i].queueFlags & search) == search)
+				{
+					qFamilyIdx = i;
+					found = true;
+					break;
+				}
+			}
+
+			if(!found)
+			{
+				SAFE_DELETE_ARRAY(props);
+				RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+			}
+			else
+			{
+				// we found the queue family, add it
+				modQueues = new VkDeviceQueueCreateInfo[createInfo.queueRecordCount + 1];
+				for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+					modQueues[i] = createInfo.pRequestedQueues[i];
+
+				modQueues[createInfo.queueRecordCount].queueFamilyIndex = qFamilyIdx;
+				modQueues[createInfo.queueRecordCount].queueCount = 1;
+
+				createInfo.pRequestedQueues = modQueues;
+				createInfo.queueRecordCount++;
+			}
+		}
+		
+		SAFE_DELETE_ARRAY(props);
+
+		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
 
 		VkResult ret = device_dispatch_table(*pDevice)->CreateDevice(rmPhys, &createInfo, &device);
 
@@ -604,7 +668,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		GetResourceManager()->RegisterResource(res);
 		GetResourceManager()->AddLiveResource(devId, res);
 
-		bool found = false;
+		found = false;
 
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
 		{
@@ -631,12 +695,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				}
 
 				m_PhysicalReplayData[i].dev = device;
-				// VKTODOHIGH: shouldn't be 0, 0
-				VkResult vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
+
+				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
+
+				VkResult vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(device, qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
-				// VKTODOHIGH queueFamilyIndex
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
 				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
@@ -667,6 +732,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 			}
 		}
 
+		SAFE_DELETE_ARRAY(modQueues);
+
 		if(!found)
 			RDCERR("Couldn't find VkPhysicalDevice for vkCreateDevice!");
 	}
@@ -681,8 +748,71 @@ VkResult WrappedVulkan::vkCreateDevice(
 {
 	VkDeviceCreateInfo createInfo = *pCreateInfo;
 
-	// VKTODOHIGH: find a queue that supports all capabilities, and if one doesn't exist, add it.
+	uint32_t qCount = 0;
+	VkResult vkr = instance_dispatch_table(physicalDevice)->GetPhysicalDeviceQueueCount(physicalDevice, &qCount);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
+	vkr = instance_dispatch_table(physicalDevice)->GetPhysicalDeviceQueueProperties(physicalDevice, qCount, props);
+	RDCASSERT(vkr == VK_SUCCESS);
+
+	// find a queue that supports all capabilities, and if one doesn't exist, add it.
 	bool found = false;
+	uint32_t qFamilyIdx = 0;
+	VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_DMA_BIT);
+
+	// if we need to change the requested queues, it will point to this
+	VkDeviceQueueCreateInfo *modQueues = NULL;
+
+	for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+	{
+		uint32_t idx = createInfo.pRequestedQueues[i].queueFamilyIndex;
+		RDCASSERT(idx < qCount);
+
+		// this requested queue is one we can use too
+		if((props[idx].queueFlags & search) == search && createInfo.pRequestedQueues[i].queueCount > 0)
+		{
+			qFamilyIdx = idx;
+			found = true;
+			break;
+		}
+	}
+
+	// if we didn't find it, search for which queue family we should add a request for
+	if(!found)
+	{
+		RDCDEBUG("App didn't request a queue family we can use - adding our own");
+
+		for(uint32_t i=0; i < qCount; i++)
+		{
+			if((props[i].queueFlags & search) == search)
+			{
+				qFamilyIdx = i;
+				found = true;
+				break;
+			}
+		}
+
+		if(!found)
+		{
+			SAFE_DELETE_ARRAY(props);
+			RDCERR("Can't add a queue with required properties for RenderDoc! Unsupported configuration");
+			return VK_UNSUPPORTED;
+		}
+
+		// we found the queue family, add it
+		modQueues = new VkDeviceQueueCreateInfo[createInfo.queueRecordCount + 1];
+		for(uint32_t i=0; i < createInfo.queueRecordCount; i++)
+			modQueues[i] = createInfo.pRequestedQueues[i];
+
+		modQueues[createInfo.queueRecordCount].queueFamilyIndex = qFamilyIdx;
+		modQueues[createInfo.queueRecordCount].queueCount = 1;
+
+		createInfo.pRequestedQueues = modQueues;
+		createInfo.queueRecordCount++;
+	}
+
+	SAFE_DELETE_ARRAY(props);
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
@@ -697,12 +827,13 @@ VkResult WrappedVulkan::vkCreateDevice(
 			if(m_PhysicalReplayData[i].phys == physicalDevice)
 			{
 				m_PhysicalReplayData[i].dev = *pDevice;
-				// VKTODOHIGH: shouldn't be 0, 0
-				VkResult vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
+
+				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
+
+				vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(*pDevice, qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
-				// VKTODOHIGH queueFamilyIndex
-				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
+				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
 				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
@@ -738,6 +869,8 @@ VkResult WrappedVulkan::vkCreateDevice(
 			GetResourceManager()->AddLiveResource(id, res);
 		}
 	}
+
+	SAFE_DELETE_ARRAY(modQueues);
 
 	return ret;
 }

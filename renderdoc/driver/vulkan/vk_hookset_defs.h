@@ -162,7 +162,7 @@
 	HookDefine3(VkResult, vkCreateDevice, VkPhysicalDevice, physicalDevice, const VkDeviceCreateInfo*, pCreateInfo, VkDevice*, pDevice); \
 	HookDefine1(VkResult, vkDestroyDevice, VkDevice, device); \
 	HookDefine3(VkResult, vkGetGlobalExtensionProperties, const char*, pLayerName, uint32_t*, pCount, VkExtensionProperties*, pProperties); \
-	HookDefine4(VkResult, vkGetDeviceQueue, VkDevice, device, uint32_t, queueNodeIndex, uint32_t, queueIndex, VkQueue*, pQueue); \
+	HookDefine4(VkResult, vkGetDeviceQueue, VkDevice, device, uint32_t, queueFamilyIndex, uint32_t, queueIndex, VkQueue*, pQueue); \
 	HookDefine4(VkResult, vkQueueSubmit, VkQueue, queue, uint32_t, cmdBufferCount, const VkCmdBuffer*, pCmdBuffers, VkFence, fence); \
 	HookDefine1(VkResult, vkQueueWaitIdle, VkQueue, queue); \
 	HookDefine1(VkResult, vkDeviceWaitIdle, VkDevice, device); \
