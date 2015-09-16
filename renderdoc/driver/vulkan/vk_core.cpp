@@ -38,8 +38,6 @@ static bool operator <(const VkExtensionProperties &a, const VkExtensionProperti
 	return cmp < 0;
 }
 
-// VKTODOLOW assertion of structure types, handling of pNext or assert == NULL
-
 const char *VkChunkNames[] =
 {
 	"WrappedVulkan::Initialisation",
@@ -177,7 +175,6 @@ void VkInitParams::Set(const VkInstanceCreateInfo* pCreateInfo, ResourceId inst)
 
 	if(pCreateInfo->pAppInfo)
 	{
-		// VKTODOLOW handle app info next pointer
 		RDCASSERT(pCreateInfo->pAppInfo->pNext == NULL);
 
 		AppName = pCreateInfo->pAppInfo->pAppName ? pCreateInfo->pAppInfo->pAppName : "";
@@ -423,6 +420,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 	if(pCreateInfo == NULL)
 		return VK_ERROR_INVALID_POINTER;
 
+	RDCASSERT(pCreateInfo->pAppInfo == NULL || pCreateInfo->pAppInfo->pNext == NULL);
 	RDCASSERT(pCreateInfo->pNext == NULL);
 
 	VkInstance inst = *pInstance;
