@@ -728,21 +728,6 @@ VulkanResourceManager *manager = NULL;
 #define MGR() VulkanResourceManager::GetInstance()
 
 template<>
-string ToStrHelper<false, DescriptorSlotType>::Get(const DescriptorSlotType &el)
-{
-	switch(el)
-	{
-		case DescSetSlot_DescSet:		return "Nested Descriptor";
-		case DescSetSlot_Image:			return "Image View";
-		case DescSetSlot_Memory:		return "Memory";
-		case DescSetSlot_Sampler:		return "Sampler";
-		case DescSetSlot_None:			return "None";
-	}
-
-	return "Unknown";
-}
-
-template<>
 string ToStrHelper<false, VkDeviceCreateFlagBits>::Get(const VkDeviceCreateFlagBits &el)
 {
 	string ret;

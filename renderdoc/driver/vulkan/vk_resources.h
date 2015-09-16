@@ -276,14 +276,5 @@ struct ImgState
 	int arraySize, mipLevels;
 };
 
-enum DescriptorSlotType
-{
-	DescSetSlot_None = 0,
-	DescSetSlot_Sampler,
-	DescSetSlot_Image,
-	DescSetSlot_Memory,
-	DescSetSlot_DescSet,
-};
-
 bool IsBlockFormat(VkFormat f);
 bool IsDepthStencilFormat(VkFormat f);
