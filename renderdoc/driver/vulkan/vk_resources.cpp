@@ -58,6 +58,12 @@ WRAPPED_POOL_INST(WrappedVkCmdPool)
 
 WRAPPED_POOL_INST(WrappedVkSwapChainWSI)
 
+bool IsDispatchableRes(WrappedVkRes *ptr)
+{
+	return (WrappedVkPhysicalDevice::IsAlloc(ptr) || WrappedVkInstance::IsAlloc(ptr)
+					|| WrappedVkDevice::IsAlloc(ptr) || WrappedVkQueue::IsAlloc(ptr) || WrappedVkCmdBuffer::IsAlloc(ptr));
+}
+
 VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr)
 {
 	if(WrappedVkPhysicalDevice::IsAlloc(ptr))           return eResPhysicalDevice;

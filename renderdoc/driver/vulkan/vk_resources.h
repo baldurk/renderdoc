@@ -31,19 +31,24 @@
 
 struct VkResourceRecord;
 
+// VKTODOLOW move layer dispatch table stuff to vk_common.h
+struct VkLayerDispatchTable_;
+struct VkLayerInstanceDispatchTable_;
+VkLayerDispatchTable_ *device_dispatch_table(void* object);
+VkLayerInstanceDispatchTable_ *instance_dispatch_table(void* object);
+
+// empty base class for dispatchable/non-dispatchable. Unfortunately
+// we can't put any members here as the base class is always first,
+// and the dispatch tables that need to be first are the only difference
+// between the two structs
 struct WrappedVkRes
 {
-	WrappedVkRes() : real(0), id(), record(NULL) {}
+};
 
-	// constructor for non-dispatchable types
-	template<typename T> WrappedVkRes(T obj, ResourceId objId) : real(obj.handle), id(objId), record(NULL) {}
-	// constructors for dispatchable types
-	WrappedVkRes(VkInstance obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
-	WrappedVkRes(VkPhysicalDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
-	WrappedVkRes(VkDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
-	WrappedVkRes(VkQueue obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
-	WrappedVkRes(VkCmdBuffer obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL) {}
-
+struct WrappedVkNonDispRes : public WrappedVkRes
+{
+	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real(obj.handle), id(objId), record(NULL) {}
+	
 	uint64_t real;
 	ResourceId id;
 	union
@@ -52,209 +57,238 @@ struct WrappedVkRes
 		// Do we need something here for per-object replay information?
 		void *replayInformation;
 	};
-	// dispatch table pointer could be here, at the cost of an extra pointer
 };
 
-// ensure the struct doesn't accidentally get made larger
-RDCCOMPILE_ASSERT(sizeof(WrappedVkRes) == sizeof(uint64_t)*3, "VkWrappedRes has changed size! This is bad");
+struct WrappedVkDispRes : public WrappedVkRes
+{
+	WrappedVkDispRes(VkInstance obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable.inst = *(VkLayerInstanceDispatchTable_ **)(uintptr_t)obj; table.inst = instance_dispatch_table(obj); }
+	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable.inst = *(VkLayerInstanceDispatchTable_ **)(uintptr_t)obj; table.inst = instance_dispatch_table(obj); }
+	WrappedVkDispRes(VkDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+	WrappedVkDispRes(VkQueue obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable.dev = *(VkLayerDispatchTable_ **)(uintptr_t)obj; table.dev = device_dispatch_table(obj); }
+
+	// preserve dispatch table pointer in dispatchable objects
+	union DispatchTableUnion
+	{
+		VkLayerDispatchTable_ *dev;
+		VkLayerInstanceDispatchTable_ *inst;
+	} loaderTable, table;
+	uint64_t real;
+	ResourceId id;
+	union
+	{
+		VkResourceRecord *record;
+		// Do we need something here for per-object replay information?
+		void *replayInformation;
+	};
+};
+
+// ensure the structs don't accidentally get made larger
+RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == sizeof(uint64_t)*5, "Wrapped resource struct has changed size! This is bad");
+RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(uint64_t)*3, "Wrapped resource struct has changed size! This is bad");
 
 // VKTODOLOW check that the pool counts approximated below are good for typical applications
 
 // these are expanded out so that IDE autocompletion etc works without having to process through macros
-struct WrappedVkInstance : WrappedVkRes
+struct WrappedVkInstance : WrappedVkDispRes
 {
-	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
 };
-struct WrappedVkPhysicalDevice : WrappedVkRes
+struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
-	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
 };
-struct WrappedVkDevice : WrappedVkRes
+struct WrappedVkDevice : WrappedVkDispRes
 {
-	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
 };
-struct WrappedVkQueue : WrappedVkRes
+struct WrappedVkQueue : WrappedVkDispRes
 {
-	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
 };
-struct WrappedVkCmdBuffer : WrappedVkRes
+struct WrappedVkCmdBuffer : WrappedVkDispRes
 {
-	WrappedVkCmdBuffer(VkCmdBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkCmdBuffer(VkCmdBuffer obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkCmdBuffer InnerType;
 	static const int AllocPoolCount = 32*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount);
+	static const int AllocPoolMaxByteSize = 2*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkFence : WrappedVkRes
+struct WrappedVkFence : WrappedVkNonDispRes
 {
-	WrappedVkFence(VkFence obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkFence(VkFence obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkFence InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFence);
 };
-struct WrappedVkDeviceMemory : WrappedVkRes
+struct WrappedVkDeviceMemory : WrappedVkNonDispRes
 {
-	WrappedVkDeviceMemory(VkDeviceMemory obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDeviceMemory(VkDeviceMemory obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDeviceMemory InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkBuffer : WrappedVkRes
+struct WrappedVkBuffer : WrappedVkNonDispRes
 {
-	WrappedVkBuffer(VkBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkBuffer(VkBuffer obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkBuffer InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkImage : WrappedVkRes
+struct WrappedVkImage : WrappedVkNonDispRes
 {
-	WrappedVkImage(VkImage obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkImage(VkImage obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkImage InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkSemaphore : WrappedVkRes
+struct WrappedVkSemaphore : WrappedVkNonDispRes
 {
-	WrappedVkSemaphore(VkSemaphore obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkSemaphore(VkSemaphore obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSemaphore InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSemaphore);
 };
-struct WrappedVkEvent : WrappedVkRes
+struct WrappedVkEvent : WrappedVkNonDispRes
 {
-	WrappedVkEvent(VkEvent obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkEvent(VkEvent obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkEvent InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkEvent);
 };
-struct WrappedVkQueryPool : WrappedVkRes
+struct WrappedVkQueryPool : WrappedVkNonDispRes
 {
-	WrappedVkQueryPool(VkQueryPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkQueryPool(VkQueryPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkQueryPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueryPool);
 };
-struct WrappedVkBufferView : WrappedVkRes
+struct WrappedVkBufferView : WrappedVkNonDispRes
 {
-	WrappedVkBufferView(VkBufferView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkBufferView(VkBufferView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkBufferView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkImageView : WrappedVkRes
+struct WrappedVkImageView : WrappedVkNonDispRes
 {
-	WrappedVkImageView(VkImageView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkImageView(VkImageView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkImageView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkAttachmentView : WrappedVkRes
+struct WrappedVkAttachmentView : WrappedVkNonDispRes
 {
-	WrappedVkAttachmentView(VkAttachmentView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkAttachmentView(VkAttachmentView obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkAttachmentView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkShaderModule : WrappedVkRes
+struct WrappedVkShaderModule : WrappedVkNonDispRes
 {
-	WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkShaderModule InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule, AllocPoolCount);
 };
-struct WrappedVkShader : WrappedVkRes
+struct WrappedVkShader : WrappedVkNonDispRes
 {
-	WrappedVkShader(VkShader obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkShader(VkShader obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkShader InnerType;
 	static const int AllocPoolCount = 32*1024;
-	static const int AllocPoolMaxByteSize = 1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
 };
-struct WrappedVkPipelineCache : WrappedVkRes
+struct WrappedVkPipelineCache : WrappedVkNonDispRes
 {
-	WrappedVkPipelineCache(VkPipelineCache obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkPipelineCache(VkPipelineCache obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkPipelineCache InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineCache);
 };
-struct WrappedVkPipelineLayout : WrappedVkRes
+struct WrappedVkPipelineLayout : WrappedVkNonDispRes
 {
-	WrappedVkPipelineLayout(VkPipelineLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkPipelineLayout(VkPipelineLayout obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkPipelineLayout InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout, AllocPoolCount);
 };
-struct WrappedVkRenderPass : WrappedVkRes
+struct WrappedVkRenderPass : WrappedVkNonDispRes
 {
-	WrappedVkRenderPass(VkRenderPass obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkRenderPass(VkRenderPass obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkRenderPass InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkRenderPass);
 };
-struct WrappedVkPipeline : WrappedVkRes
+struct WrappedVkPipeline : WrappedVkNonDispRes
 {
-	WrappedVkPipeline(VkPipeline obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkPipeline(VkPipeline obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkPipeline InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline, AllocPoolCount);
 };
-struct WrappedVkDescriptorSetLayout : WrappedVkRes
+struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
 {
-	WrappedVkDescriptorSetLayout(VkDescriptorSetLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDescriptorSetLayout(VkDescriptorSetLayout obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDescriptorSetLayout InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout, AllocPoolCount);
 };
-struct WrappedVkSampler : WrappedVkRes
+struct WrappedVkSampler : WrappedVkNonDispRes
 {
-	WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSampler InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler);
 };
-struct WrappedVkDescriptorPool : WrappedVkRes
+struct WrappedVkDescriptorPool : WrappedVkNonDispRes
 {
-	WrappedVkDescriptorPool(VkDescriptorPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDescriptorPool(VkDescriptorPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDescriptorPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorPool);
 };
-struct WrappedVkDescriptorSet : WrappedVkRes
+struct WrappedVkDescriptorSet : WrappedVkNonDispRes
 {
-	WrappedVkDescriptorSet(VkDescriptorSet obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDescriptorSet(VkDescriptorSet obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDescriptorSet InnerType;
 	static const int AllocPoolCount = 256*1024;
 	static const int AllocPoolMaxByteSize = 6*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet, AllocPoolCount, AllocPoolMaxByteSize);
 };
-struct WrappedVkDynamicViewportState : WrappedVkRes
+struct WrappedVkDynamicViewportState : WrappedVkNonDispRes
 {
-	WrappedVkDynamicViewportState(VkDynamicViewportState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDynamicViewportState(VkDynamicViewportState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicViewportState InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState, AllocPoolCount);
 };
-struct WrappedVkDynamicRasterState : WrappedVkRes
+struct WrappedVkDynamicRasterState : WrappedVkNonDispRes
 {
-	WrappedVkDynamicRasterState(VkDynamicRasterState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDynamicRasterState(VkDynamicRasterState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicRasterState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicRasterState);
 };
-struct WrappedVkDynamicColorBlendState : WrappedVkRes
+struct WrappedVkDynamicColorBlendState : WrappedVkNonDispRes
 {
-	WrappedVkDynamicColorBlendState(VkDynamicColorBlendState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDynamicColorBlendState(VkDynamicColorBlendState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicColorBlendState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicColorBlendState);
 };
-struct WrappedVkDynamicDepthStencilState : WrappedVkRes
+struct WrappedVkDynamicDepthStencilState : WrappedVkNonDispRes
 {
-	WrappedVkDynamicDepthStencilState(VkDynamicDepthStencilState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkDynamicDepthStencilState(VkDynamicDepthStencilState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicDepthStencilState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicDepthStencilState);
 };
-struct WrappedVkFramebuffer : WrappedVkRes
+struct WrappedVkFramebuffer : WrappedVkNonDispRes
 {
-	WrappedVkFramebuffer(VkFramebuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkFramebuffer(VkFramebuffer obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkFramebuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFramebuffer);
 };
-struct WrappedVkCmdPool : WrappedVkRes
+struct WrappedVkCmdPool : WrappedVkNonDispRes
 {
-	WrappedVkCmdPool(VkCmdPool obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkCmdPool(VkCmdPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkCmdPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdPool);
 };
-struct WrappedVkSwapChainWSI : WrappedVkRes
+struct WrappedVkSwapChainWSI : WrappedVkNonDispRes
 {
-	WrappedVkSwapChainWSI(VkSwapChainWSI obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
+	WrappedVkSwapChainWSI(VkSwapChainWSI obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSwapChainWSI InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapChainWSI);
 };
 
@@ -264,6 +298,7 @@ template<typename inner> struct UnwrapHelper {};
 #define UNWRAP_HELPER(vulkantype) \
 	template<> struct UnwrapHelper<vulkantype> \
 	{ \
+		typedef WrappedVkDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
 		static vulkantype ToHandle(uint64_t real) { return (vulkantype) (uintptr_t)real; } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) wrapped; } \
@@ -272,6 +307,7 @@ template<typename inner> struct UnwrapHelper {};
 #define UNWRAP_NONDISP_HELPER(vulkantype) \
 	template<> struct UnwrapHelper<vulkantype> \
 	{ \
+		typedef WrappedVkNonDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
 		static vulkantype ToHandle(uint64_t real) { return vulkantype(real); } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped.handle; } \
@@ -392,6 +428,7 @@ enum VkNamespace
 	eResWSISwapChain,
 };
 
+bool IsDispatchableRes(WrappedVkRes *ptr);
 VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr);
 
 #define UNTRANSITIONED_IMG_STATE ((VkImageLayout)0xffffffff)

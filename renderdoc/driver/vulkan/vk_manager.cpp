@@ -239,7 +239,7 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 				t.outputMask = 0;
 				t.srcQueueFamilyIndex = 0;
 				t.destQueueFamilyIndex = 0;
-				t.image = (VkImage)GetCurrentResource(liveid)->real;
+				t.image = GetCurrentHandle<VkImage>(liveid);
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				t.newLayout = state.state;
 				t.subresourceRange = state.range;

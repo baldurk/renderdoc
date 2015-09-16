@@ -53,14 +53,32 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 		{
 			ResourceManager::AddLiveResource(id, GetWrapped(obj));
 		}
+
+		using ResourceManager::AddResourceRecord;
 		
 		template<typename realtype>
 		VkResourceRecord *AddResourceRecord(realtype &obj)
 		{
-			WrappedVkRes *wrapped = GetWrapped(obj);
+			typename UnwrapHelper<realtype>::Outer *wrapped = GetWrapped(obj);
 			VkResourceRecord *ret = wrapped->record = ResourceManager::AddResourceRecord(wrapped->id);
 
 			return ret;
+		}
+		
+		// easy path for getting the unwrapped handle cast to the
+		// write type. Saves a lot of work casting to either WrappedVkNonDispRes
+		// or WrappedVkDispRes depending on the type, then ->real, then casting
+		// when this is all we want to do in most cases
+		template<typename realtype>
+		realtype GetLiveHandle(ResourceId origid)
+		{
+			return UnwrapHelper<realtype>::ToHandle( ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real );
+		}
+
+		template<typename realtype>
+		realtype GetCurrentHandle(ResourceId id)
+		{
+			return UnwrapHelper<realtype>::ToHandle( ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real );
 		}
 		
 		// handling memory & image transitions
@@ -76,7 +94,12 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 
 		ResourceId GetID(WrappedVkRes *res)
 		{
-			return res ? res->id : ResourceId();
+			if(res == NULL) return ResourceId();
+
+			if(IsDispatchableRes(res))
+				return ((WrappedVkDispRes *)res)->id;
+
+			return ((WrappedVkNonDispRes *)res)->id;
 		}
 		
 		bool ResourceTypeRelease(WrappedVkRes *res);

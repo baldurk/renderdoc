@@ -1820,12 +1820,13 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 	return StringFormat::Fmt("VkPresentModeWSI<%d>", el);
 }
 
+// we know the object will be a non-dispatchable object type
 #define SerialiseObject(type, name, obj) \
 			{ \
 				ResourceId id; \
 				if(m_Mode >= WRITING) id = GetResID(obj); \
 				Serialise(name, id); \
-				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : type(MGR()->GetLiveResource(id)->real); \
+				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : MGR()->GetLiveHandle<type>(id); \
 			}
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)
