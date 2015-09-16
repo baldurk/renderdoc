@@ -33,7 +33,7 @@
 class VulkanDebugManager
 {
 	public:
-		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev);
+		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView);
 		~VulkanDebugManager();
 		
 		struct UBO

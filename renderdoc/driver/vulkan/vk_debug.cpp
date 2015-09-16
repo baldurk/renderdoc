@@ -128,7 +128,7 @@ void VulkanDebugManager::UBO::Unmap(const VkLayerDispatchTable *vt, VkDevice dev
 	vt->UnmapMemory(dev, mem);
 }
 
-VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
+VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView)
 {
 	m_PipelineCache = VK_NULL_HANDLE;
 	m_DescriptorPool = VK_NULL_HANDLE;
@@ -138,7 +138,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 	m_LinearSampler = VK_NULL_HANDLE;
 	m_PointSampler = VK_NULL_HANDLE;
 
-	m_FakeBBImView = VK_NULL_HANDLE;
+	m_FakeBBImView = fakeBBView;
 
 	m_CheckerboardDescSetLayout = VK_NULL_HANDLE;
 	m_CheckerboardPipeLayout = VK_NULL_HANDLE;

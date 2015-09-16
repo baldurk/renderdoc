@@ -345,6 +345,7 @@ private:
 			VkDeviceMemory mem;
 			VkImage im;
 
+			VkAttachmentView view;
 			VkFramebuffer fb;
 		};
 		vector<SwapImage> images;
