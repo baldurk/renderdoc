@@ -123,8 +123,7 @@ private:
 
 	VkResourceRecord *m_InstanceRecord;
 		
-	ResourceId m_ContextResourceID;
-	VkResourceRecord *m_ContextRecord;
+	VkResourceRecord *m_FrameCaptureRecord;
 	Chunk *m_HeaderChunk;
 
 	// we record the command buffer records so we can insert them
@@ -397,7 +396,7 @@ private:
 	void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 	void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, bool forceExecute);
 	void AddDrawcall(FetchDrawcall d, bool hasEvents);
-	void AddEvent(VulkanChunkType type, string description, ResourceId ctx = ResourceId());
+	void AddEvent(VulkanChunkType type, string description);
 		
 	// no copy semantics
 	WrappedVulkan(const WrappedVulkan &);
@@ -429,7 +428,7 @@ public:
 	WrappedVulkan(const char *logFilename);
 	~WrappedVulkan();
 
-	ResourceId GetContextResourceID() { return m_ContextResourceID; }
+	ResourceId GetContextResourceID() { return m_FrameCaptureRecord->GetResourceID(); }
 
 	VulkanResourceManager *GetResourceManager() { return m_ResourceManager; }
 	

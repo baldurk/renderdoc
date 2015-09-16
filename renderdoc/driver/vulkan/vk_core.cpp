@@ -364,23 +364,21 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 	RDCEraseEl(m_FakeBBExtent);
 
 	m_ResourceManager = new VulkanResourceManager(m_State, m_pSerialiser, this);
-	
-	m_ContextResourceID = GetResourceManager()->RegisterResource(VkResource(eResSpecial, VK_NULL_HANDLE));
 
 	m_HeaderChunk = NULL;
 
 	if(!RenderDoc::Inst().IsReplayApp())
 	{
-		m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
-		m_ContextRecord->DataInSerialiser = false;
-		m_ContextRecord->Length = 0;
-		m_ContextRecord->NumSubResources = 0;
-		m_ContextRecord->SpecialResource = true;
-		m_ContextRecord->SubResources = NULL;
+		m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+		m_FrameCaptureRecord->DataInSerialiser = false;
+		m_FrameCaptureRecord->Length = 0;
+		m_FrameCaptureRecord->NumSubResources = 0;
+		m_FrameCaptureRecord->SpecialResource = true;
+		m_FrameCaptureRecord->SubResources = NULL;
 	}
 	else
 	{
-		m_ContextRecord = NULL;
+		m_FrameCaptureRecord = NULL;
 
 		ResourceIDGen::SetReplayResourceIDs();
 	}
@@ -934,21 +932,21 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 				{
 					// VKTODOHIGH m_InstanceRecord
 
-					if(m_ContextRecord)
+					if(m_FrameCaptureRecord)
 					{
-						RDCASSERT(m_ContextRecord->GetRefCount() == 1);
-						m_ContextRecord->Delete(GetResourceManager());
-						m_ContextRecord = NULL;
+						RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
+						m_FrameCaptureRecord->Delete(GetResourceManager());
+						m_FrameCaptureRecord = NULL;
 					}
 
 					m_ResourceManager->Shutdown();
 
-					m_ContextRecord = GetResourceManager()->AddResourceRecord(m_ContextResourceID);
-					m_ContextRecord->DataInSerialiser = false;
-					m_ContextRecord->Length = 0;
-					m_ContextRecord->NumSubResources = 0;
-					m_ContextRecord->SpecialResource = true;
-					m_ContextRecord->SubResources = NULL;
+					m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
+					m_FrameCaptureRecord->DataInSerialiser = false;
+					m_FrameCaptureRecord->Length = 0;
+					m_FrameCaptureRecord->NumSubResources = 0;
+					m_FrameCaptureRecord->SpecialResource = true;
+					m_FrameCaptureRecord->SubResources = NULL;
 				}
 				
 				if(m_PhysicalReplayData[i].cmd != VK_NULL_HANDLE)
@@ -1397,7 +1395,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
 		Serialise_vkQueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
 
-		m_ContextRecord->AddChunk(scope.Get());
+		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
 
 	for(uint32_t i=0; i < cmdBufferCount; i++)
@@ -1521,7 +1519,7 @@ VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 		SCOPED_SERIALISE_CONTEXT(QUEUE_WAIT_IDLE);
 		Serialise_vkQueueWaitIdle(queue);
 
-		m_ContextRecord->AddChunk(scope.Get());
+		m_FrameCaptureRecord->AddChunk(scope.Get());
 		GetResourceManager()->MarkResourceFrameReferenced(MakeRes(queue), eFrameRef_Read);
 	}
 
@@ -1549,7 +1547,7 @@ VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 		SCOPED_SERIALISE_CONTEXT(DEVICE_WAIT_IDLE);
 		Serialise_vkDeviceWaitIdle(device);
 
-		m_ContextRecord->AddChunk(scope.Get());
+		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
 
 	return ret;
@@ -1834,7 +1832,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 
 		if(m_State == WRITING_CAPFRAME)
 		{
-			m_ContextRecord->AddChunk(chunk);
+			m_FrameCaptureRecord->AddChunk(chunk);
 
 			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(buffer), eFrameRef_Write);
 			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Read);
@@ -1894,7 +1892,7 @@ VkResult WrappedVulkan::vkBindImageMemory(
 
 		if(m_State == WRITING_CAPFRAME)
 		{
-			m_ContextRecord->AddChunk(chunk);
+			m_FrameCaptureRecord->AddChunk(chunk);
 
 			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(image), eFrameRef_Write);
 			GetResourceManager()->MarkResourceFrameReferenced(MakeRes(mem), eFrameRef_Read);
@@ -3611,7 +3609,7 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
 					Serialise_vkUpdateDescriptorSets(device, 1, &pDescriptorWrites[i], 0, NULL);
 
-					m_ContextRecord->AddChunk(scope.Get());
+					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
 
 				// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
@@ -3625,7 +3623,7 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					SCOPED_SERIALISE_CONTEXT(UPDATE_DESC_SET);
 					Serialise_vkUpdateDescriptorSets(device, 0, NULL, 1, &pDescriptorCopies[i]);
 
-					m_ContextRecord->AddChunk(scope.Get());
+					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
 				
 				// don't have to mark referenced any of the resources pointed to by the descriptor sets - that's handled
@@ -5699,7 +5697,7 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 		record.frameInfo.fileOffset = offset;
 		record.frameInfo.firstEvent = 1;//m_pImmediateContext->GetEventID();
 		record.frameInfo.frameNumber = FrameNumber;
-		record.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
+		record.frameInfo.immContextId = ResourceId();
 		m_FrameRecord.push_back(record);
 
 		GetResourceManager()->CreateInitialContents();
@@ -5731,7 +5729,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 		delete call;
 	}
 
-	m_ContextRecord->AddChunk(scope.Get());
+	m_FrameCaptureRecord->AddChunk(scope.Get());
 }
 
 void WrappedVulkan::AttemptCapture()
@@ -5739,19 +5737,19 @@ void WrappedVulkan::AttemptCapture()
 	m_State = WRITING_CAPFRAME;
 
 	{
-		RDCDEBUG("Immediate Context %llu Attempting capture", GetContextResourceID());
+		RDCDEBUG("Attempting capture");
 
 		//m_SuccessfulCapture = true;
 
-		m_ContextRecord->LockChunks();
-		while(m_ContextRecord->HasChunks())
+		m_FrameCaptureRecord->LockChunks();
+		while(m_FrameCaptureRecord->HasChunks())
 		{
-			Chunk *chunk = m_ContextRecord->GetLastChunk();
+			Chunk *chunk = m_FrameCaptureRecord->GetLastChunk();
 
 			SAFE_DELETE(chunk);
-			m_ContextRecord->PopChunk();
+			m_FrameCaptureRecord->PopChunk();
 		}
-		m_ContextRecord->UnlockChunks();
+		m_FrameCaptureRecord->UnlockChunks();
 	}
 }
 
@@ -7205,8 +7203,6 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			{
 				SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
 
-				SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
-
 				m_pFileSerialiser->Insert(scope.Get(true));
 			}
 
@@ -7248,7 +7244,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 				}
 
 				recordlist.clear();
-				m_ContextRecord->Insert(recordlist);
+				m_FrameCaptureRecord->Insert(recordlist);
 
 				RDCDEBUG("Flushing %u chunks to file serialiser from context record", (uint32_t)recordlist.size());	
 
@@ -7693,9 +7689,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	{
 	case DEVICE_INIT:
 		{
-			SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
-
-			GetResourceManager()->AddLiveResource(immContextId, VkResource(eResSpecial, VK_NULL_HANDLE));
 			break;
 		}
 	case ENUM_PHYSICALS:
@@ -8108,8 +8101,6 @@ void WrappedVulkan::DebugCallback(
 
 void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
-	if(d.context == ResourceId()) d.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-
 	m_AddedDrawcall = true;
 
 	WrappedVulkan *context = this;
@@ -8168,11 +8159,9 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 void WrappedVulkan::AddEvent(VulkanChunkType type, string description, ResourceId ctx)
 {
-	if(ctx == ResourceId()) ctx = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-
 	FetchAPIEvent apievent;
 
-	apievent.context = ctx;
+	apievent.context = ResourceId();
 	apievent.fileOffset = m_CurChunkOffset;
 	apievent.eventID = m_CurEventID;
 
