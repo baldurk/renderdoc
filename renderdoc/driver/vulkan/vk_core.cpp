@@ -402,7 +402,26 @@ WrappedVulkan::~WrappedVulkan()
 	}
 #endif
 
-	// VKTODOMED clean up replay resources here?
+	// should only have one swapchain, since we are only handling the simple case
+	// of one device, etc for now.
+	RDCASSERT(m_SwapChainInfo.size() == 1);
+	for(auto it = m_SwapChainInfo.begin(); it != m_SwapChainInfo.end(); ++it)
+	{
+		for(size_t i=0; i < it->second.images.size(); i++)
+		{
+			// only in the replay app are these 'real' images to be destroyed
+			if(RenderDoc::Inst().IsReplayApp())
+			{
+				// go through our wrapped functions, since the resources need to be deregistered
+				vkDestroyImage(GetDev(), it->second.images[i].im);
+				vkFreeMemory(GetDev(), it->second.images[i].mem);
+			}
+		}
+	}
+	m_SwapChainInfo.clear();
+
+	m_ResourceManager->Shutdown();
+	delete m_ResourceManager;
 }
 
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
@@ -694,6 +713,8 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 #undef FETCH_DEVICE_FUNCPTR
 				}
 
+				// VKTODOLOW not handling multiple devices per physical devices
+				RDCASSERT(m_PhysicalReplayData[i].dev == VK_NULL_HANDLE);
 				m_PhysicalReplayData[i].dev = device;
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
@@ -5532,6 +5553,115 @@ uint32_t WrappedVulkan::ReplayData::GetMemoryIndex(uint32_t resourceRequiredBitm
 bool WrappedVulkan::ReleaseResource(VkResource res)
 {
 	// VKTODOHIGH: release resource with device from resource record
+
+	// VKTODOLOW - this will break if we have multiple devices and resources from each,
+	// but that will likely break other things too.
+	VkDevice dev = GetDev();
+	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+
+	switch(res.Namespace)
+	{
+		case eResWSISwapChain:
+			RDCERR("Should be no swapchain objects created on replay");
+			break;
+
+		case eResUnknown:
+		case eResSpecial:
+		case eResCmdBufferBake:
+			// virtual object - nothing to do
+			break;
+
+		case eResPhysicalDevice:
+		case eResQueue:
+		case eResDescriptorSet:
+			// nothing to do - destroyed with parent object
+			break;
+
+		case eResInstance:
+		{
+			VkInstance instance = (VkInstance)res.handle;
+			dispatch_key key = get_dispatch_key(instance);
+			instance_dispatch_table(instance)->DestroyInstance(instance);
+			destroy_instance_dispatch_table(key);
+			break;
+		}
+		case eResDevice:
+			vt->DestroyDevice((VkDevice)res.handle);
+			break;
+		case eResDeviceMemory:
+			vt->FreeMemory(dev, (VkDeviceMemory)res.handle);
+			break;
+		case eResBuffer:
+			vt->DestroyBuffer(dev, (VkBuffer)res.handle);
+			break;
+		case eResBufferView:
+			vt->DestroyBufferView(dev, (VkBufferView)res.handle);
+			break;
+		case eResImage:
+			vt->DestroyImage(dev, (VkImage)res.handle);
+			break;
+		case eResImageView:
+			vt->DestroyImageView(dev, (VkImageView)res.handle);
+			break;
+		case eResAttachmentView:
+			vt->DestroyAttachmentView(dev, (VkAttachmentView)res.handle);
+			break;
+		case eResFramebuffer:
+			vt->DestroyFramebuffer(dev, (VkFramebuffer)res.handle);
+			break;
+		case eResRenderPass:
+			vt->DestroyRenderPass(dev, (VkRenderPass)res.handle);
+			break;
+		case eResShaderModule:
+			vt->DestroyShaderModule(dev, (VkShaderModule)res.handle);
+			break;
+		case eResShader:
+			vt->DestroyShader(dev, (VkShader)res.handle);
+			break;
+		case eResPipelineCache:
+			vt->DestroyPipelineCache(dev, (VkPipelineCache)res.handle);
+			break;
+		case eResPipelineLayout:
+			vt->DestroyPipelineLayout(dev, (VkPipelineLayout)res.handle);
+			break;
+		case eResPipeline:
+			vt->DestroyPipeline(dev, (VkPipeline)res.handle);
+			break;
+		case eResSampler:
+			vt->DestroySampler(dev, (VkSampler)res.handle);
+			break;
+		case eResDescriptorPool:
+			vt->DestroyDescriptorPool(dev, (VkDescriptorPool)res.handle);
+			break;
+		case eResDescriptorSetLayout:
+			vt->DestroyDescriptorSetLayout(dev, (VkDescriptorSetLayout)res.handle);
+			break;
+		case eResViewportState:
+			vt->DestroyDynamicViewportState(dev, (VkDynamicViewportState)res.handle);
+			break;
+		case eResRasterState:
+			vt->DestroyDynamicViewportState(dev, (VkDynamicViewportState)res.handle);
+			break;
+		case eResColorBlendState:
+			vt->DestroyDynamicColorBlendState(dev, (VkDynamicColorBlendState)res.handle);
+			break;
+		case eResDepthStencilState:
+			vt->DestroyDynamicDepthStencilState(dev, (VkDynamicDepthStencilState)res.handle);
+			break;
+		case eResCmdPool:
+			vt->DestroyCommandPool(dev, (VkCmdPool)res.handle);
+			break;
+		case eResCmdBuffer:
+			vt->DestroyCommandBuffer(dev, (VkCmdBuffer)res.handle);
+			break;
+		case eResFence:
+			// VKTODOLOW
+			//vt->DestroyFence(dev, (VkFence)res.handle);
+			break;
+		case eResSemaphore:
+			vt->DestroySemaphore(dev, (VkSemaphore)res.handle);
+			break;
+	}
 
 	return true;
 }

@@ -521,8 +521,6 @@ void VulkanReplay::InitDebugData()
 	vkr = vt->CreateSampler(dev, &sampInfo, &m_DebugData.m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// VKTODOMED all of this is leaking
-
 	VkPipelineCacheCreateInfo cacheInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, NULL, 0, NULL, 0 };
 
 	vkr = vt->CreatePipelineCache(dev, &cacheInfo, &m_DebugData.m_PipelineCache);

@@ -65,7 +65,35 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 
 			m_CurrentResourceIds.clear();
 
-			ResourceManager::Shutdown();
+			while(!m_InitialContents.empty())
+			{
+				auto it = m_InitialContents.begin();
+				ResourceTypeRelease(it->second.resource);
+				Serialiser::FreeAlignedBuffer(it->second.blob);
+				if(!m_InitialContents.empty())
+					m_InitialContents.erase(m_InitialContents.begin());
+			}
+
+			// have to do this here since we want to do it in reverse order
+			for(auto it = m_LiveResourceMap.end(); it != m_LiveResourceMap.begin();)
+			{
+				// decrement it first since the initial value at .end() is invalid
+				--it;
+				ResourceTypeRelease(it->second);
+			}
+			m_LiveResourceMap.clear();
+
+			for(auto it = m_InframeResourceMap.end(); it != m_InframeResourceMap.begin();)
+			{
+				// decrement it first since the initial value at .end() is invalid
+				--it;
+				ResourceTypeRelease(it->second);
+			}
+			m_InframeResourceMap.clear();
+
+			RDCASSERT(m_ResourceRecords.empty());
+
+			m_Inst = NULL;
 		}
 		
 		inline void RemoveResourceRecord(ResourceId id)
@@ -97,6 +125,9 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 			if(it != m_CurrentResourceIds.end())
 			{
 				ReleaseCurrentResource(it->second);
+				auto origit = m_OriginalIDs.find(it->second);
+				if(origit != m_OriginalIDs.end())
+					EraseLiveResource(origit->second);
 				m_CurrentResourceIds.erase(res);
 			}
 		}

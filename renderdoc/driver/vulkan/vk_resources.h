@@ -32,7 +32,7 @@ enum VkNamespace
 {
 	eResUnknown = 0,
 	eResSpecial,
-	eResGPU,
+	eResPhysicalDevice,
 	eResInstance,
 	eResDevice,
 	eResQueue,
@@ -55,7 +55,6 @@ enum VkNamespace
 	eResDescriptorSet,
 	eResViewportState,
 	eResRasterState,
-	eResMSAAState,
 	eResColorBlendState,
 	eResDepthStencilState,
 	eResCmdPool,
@@ -63,9 +62,6 @@ enum VkNamespace
 	eResCmdBufferBake,
 	eResFence,
 	eResSemaphore,
-	eResEvent,
-	eResWaitEvent,
-	eResQueryPool,
 	
 	eResWSISwapChain,
 };
@@ -97,7 +93,7 @@ struct VkResource
 	}
 };
 
-inline VkResource MakeRes(VkPhysicalDevice o) { return VkResource(eResGPU, (uint64_t)o); }
+inline VkResource MakeRes(VkPhysicalDevice o) { return VkResource(eResPhysicalDevice, (uint64_t)o); }
 inline VkResource MakeRes(VkInstance o) { return VkResource(eResInstance, (uint64_t)o); }
 inline VkResource MakeRes(VkDevice o) { return VkResource(eResDevice, (uint64_t)o); }
 inline VkResource MakeRes(VkQueue o) { return VkResource(eResQueue, (uint64_t)o); }
@@ -126,8 +122,6 @@ inline VkResource MakeRes(VkDynamicColorBlendState o) { return VkResource(eResCo
 inline VkResource MakeRes(VkDynamicDepthStencilState o) { return VkResource(eResDepthStencilState, o.handle); }
 inline VkResource MakeRes(VkFence o) { return VkResource(eResFence, o.handle); }
 inline VkResource MakeRes(VkSemaphore o) { return VkResource(eResSemaphore, o.handle); }
-inline VkResource MakeRes(VkEvent o) { return VkResource(eResEvent, o.handle); }
-inline VkResource MakeRes(VkQueryPool o) { return VkResource(eResQueryPool, o.handle); }
 
 inline VkResource MakeRes(VkSwapChainWSI o) { return VkResource(eResWSISwapChain, o.handle); }
 

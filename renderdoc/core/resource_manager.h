@@ -433,7 +433,6 @@ class ResourceManager : public ResourceRecordHandler
 		LogState m_State;
 		Serialiser *m_pSerialiser;
 
-	private:
 		bool m_InFrame;
 
 		// very coarse lock, protects EVERYTHING. This could certainly be improved and it may be a bottleneck
