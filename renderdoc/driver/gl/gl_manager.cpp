@@ -560,6 +560,11 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_MAX_LOD, &state->maxLod);
 			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_BORDER_COLOR, &state->border[0]);
 			gl.glGetTextureParameterfvEXT(res.name, details.curType, eGL_TEXTURE_LOD_BIAS, &state->lodBias);
+
+			// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+			if(state->wrap[0] == eGL_CLAMP) state->wrap[0] = eGL_CLAMP_TO_EDGE;
+			if(state->wrap[1] == eGL_CLAMP) state->wrap[1] = eGL_CLAMP_TO_EDGE;
+			if(state->wrap[2] == eGL_CLAMP) state->wrap[2] = eGL_CLAMP_TO_EDGE;
 		}
 
 		GLuint tex = 0;

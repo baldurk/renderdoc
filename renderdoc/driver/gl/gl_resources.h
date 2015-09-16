@@ -39,6 +39,12 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 
 bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat, GLenum &dataFormat);
 
+inline void EmulateGLClamp(GLenum pname, GLenum param)
+{
+	if(param == eGL_CLAMP)
+		param = eGL_CLAMP_TO_EDGE;
+}
+
 int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint h, GLuint d);
 
 bool IsCompressedFormat(GLenum internalFormat);

@@ -228,6 +228,9 @@ void WrappedOpenGL::glSamplerParameteri(GLuint sampler, GLenum pname, GLint para
 {
 	m_Real.glSamplerParameteri(sampler, pname, param);
 	
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(param == eGL_CLAMP) param = eGL_CLAMP_TO_EDGE;
+
 	if(m_State >= WRITING)
 	{
 		SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERI);
@@ -263,6 +266,9 @@ bool WrappedOpenGL::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, 
 void WrappedOpenGL::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 {
 	m_Real.glSamplerParameterf(sampler, pname, param);
+	
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(param == (float)eGL_CLAMP) param = (float)eGL_CLAMP_TO_EDGE;
 	
 	if(m_State >= WRITING)
 	{
@@ -303,6 +309,10 @@ void WrappedOpenGL::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLi
 {
 	m_Real.glSamplerParameteriv(sampler, pname, params);
 	
+	GLenum clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = (GLint *)&clamptoedge;
+	
 	if(m_State >= WRITING)
 	{
 		SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIV);
@@ -341,6 +351,10 @@ bool WrappedOpenGL::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname,
 void WrappedOpenGL::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
 {
 	m_Real.glSamplerParameterfv(sampler, pname, params);
+	
+	GLfloat clamptoedge = (float)eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == (float)eGL_CLAMP) params = &clamptoedge;
 	
 	if(m_State >= WRITING)
 	{
@@ -381,6 +395,10 @@ void WrappedOpenGL::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GL
 {
 	m_Real.glSamplerParameterIiv(sampler, pname, params);
 	
+	GLint clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = &clamptoedge;
+	
 	if(m_State >= WRITING)
 	{
 		SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIIV);
@@ -419,6 +437,10 @@ bool WrappedOpenGL::Serialise_glSamplerParameterIuiv(GLuint sampler, GLenum pnam
 void WrappedOpenGL::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
 {
 	m_Real.glSamplerParameterIuiv(sampler, pname, params);
+	
+	GLuint clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = &clamptoedge;
 	
 	if(m_State >= WRITING)
 	{

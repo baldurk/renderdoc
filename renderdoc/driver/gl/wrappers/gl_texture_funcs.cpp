@@ -1094,7 +1094,10 @@ void WrappedOpenGL::Common_glTextureParameteriEXT(GLResourceRecord *record, GLen
 
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
-
+	
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(param == eGL_CLAMP) param = eGL_CLAMP_TO_EDGE;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
 	Serialise_glTextureParameteriEXT(record->Resource.name, target, pname, param);
 
@@ -1175,7 +1178,11 @@ void WrappedOpenGL::Common_glTextureParameterivEXT(GLResourceRecord *record, GLe
 
 	if(m_State != WRITING_CAPFRAME && m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
 		return;
-
+	
+	GLint clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = &clamptoedge;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
 	Serialise_glTextureParameterivEXT(record->Resource.name, target, pname, params);
 
@@ -1256,7 +1263,11 @@ void WrappedOpenGL::Common_glTextureParameterIivEXT(GLResourceRecord *record, GL
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
-
+	
+	GLint clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = &clamptoedge;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIIV);
 	Serialise_glTextureParameterIivEXT(record->Resource.name, target, pname, params);
 	
@@ -1337,7 +1348,11 @@ void WrappedOpenGL::Common_glTextureParameterIuivEXT(GLResourceRecord *record, G
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
-
+	
+	GLuint clamptoedge = eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == eGL_CLAMP) params = &clamptoedge;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIUIV);
 	Serialise_glTextureParameterIuivEXT(record->Resource.name, target, pname, params);
 	
@@ -1415,7 +1430,10 @@ void WrappedOpenGL::Common_glTextureParameterfEXT(GLResourceRecord *record, GLen
 	
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
-
+	
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(param == (float)eGL_CLAMP) param = (float)eGL_CLAMP_TO_EDGE;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERF);
 	Serialise_glTextureParameterfEXT(record->Resource.name, target, pname, param);
 	
@@ -1496,7 +1514,11 @@ void WrappedOpenGL::Common_glTextureParameterfvEXT(GLResourceRecord *record, GLe
 
 	if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() && m_State != WRITING_CAPFRAME)
 		return;
-
+	
+	GLfloat clamptoedge = (float)eGL_CLAMP_TO_EDGE;
+	// CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+	if(*params == (float)eGL_CLAMP) params = &clamptoedge;
+	
 	SCOPED_SERIALISE_CONTEXT(TEXPARAMETERFV);
 	Serialise_glTextureParameterfvEXT(record->Resource.name, target, pname, params);
 
