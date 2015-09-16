@@ -32,6 +32,33 @@ struct VulkanPipelineState
 
 		ResourceId obj;
 		uint32_t flags;
+
+		struct DescriptorSet
+		{
+			ResourceId layout;
+
+			struct DescriptorBinding
+			{
+				uint32_t arraySize;
+				ShaderBindType type;
+				ShaderStageBits stageFlags;
+
+				struct BindingElement
+				{
+					ResourceId view; // buffer, image, attachment
+					ResourceId sampler;
+					uint32_t offset; // for dynamic offsets
+
+					// VKTODOLOW do we want image layout here?
+				};
+
+				// may only be one element if not an array
+				rdctype::array<BindingElement> elems;
+			};
+			rdctype::array<DescriptorBinding> bindings;
+		};
+
+		rdctype::array<DescriptorSet> DescSets;
 	} compute, graphics;
 
 	// VKTODOMED renderpass/subpass?
@@ -47,7 +74,6 @@ struct VulkanPipelineState
 			IndexBuffer() : offs(0) {}
 			ResourceId buf;
 			uint64_t offs;
-			// byte width is latched per-draw for GL
 		} ibuffer;
 	} IA;
 
@@ -66,7 +92,7 @@ struct VulkanPipelineState
 		struct Binding
 		{
 			Binding() : vbufferBinding(0), bytestride(0), perInstance(false) {}
-			uint32_t vbufferBinding; // VKTODO I believe this is the meaning
+			uint32_t vbufferBinding; // VKTODOLOW I believe this is the meaning
 			uint32_t bytestride;
 			bool32 perInstance;
 		};
@@ -88,15 +114,16 @@ struct VulkanPipelineState
 		rdctype::str ShaderName;
 		bool32 customName;
 		ShaderReflection *ShaderDetails;
-		// VKTODOMED this might no longer make sense
+
+		// this is no longer dynamic, like GL, but it's also not trivial, like D3D11.
+		// this contains the mapping between the shader objects in the reflection data
+		// and the descriptor set and binding that they use
 		ShaderBindpointMapping BindpointMapping;
 
 		ShaderStageType stage;
 
 		// VKTODOMED specialization info
 	} VS, TCS, TES, GS, FS, CS;
-
-	// VKTODOHIGH descriptor sets
 
 	struct Tessellation
 	{

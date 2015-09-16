@@ -109,10 +109,11 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
 template<>
 void Serialiser::Serialise(const char *name, BindpointMap &el)
 {
+	Serialise("", el.bindset);
 	Serialise("", el.bind);
 	Serialise("", el.used);
 
-	SIZE_CHECK(BindpointMap, 8);
+	SIZE_CHECK(BindpointMap, 12);
 }
 
 template<>

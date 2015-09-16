@@ -1442,6 +1442,8 @@ void VulkanReplay::SavePipelineState()
 		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
 		VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
+		VulkanResourceManager *rm = m_pDriver->GetResourceManager();
+
 		m_VulkanPipelineState = VulkanPipelineState();
 		
 		// General pipeline properties
@@ -1504,6 +1506,76 @@ void VulkanReplay::SavePipelineState()
 				stages[i]->customName = false;
 				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", p.shaders[i]);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
+			}
+
+			// Descriptor sets
+			create_array_uninit(m_VulkanPipelineState.graphics.DescSets, state.graphics.descSets.size());
+			create_array_uninit(m_VulkanPipelineState.compute.DescSets, state.compute.descSets.size());
+
+			{
+				rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet> *dsts[] = {
+					&m_VulkanPipelineState.graphics.DescSets,
+					&m_VulkanPipelineState.compute.DescSets,
+				};
+				
+				const vector<ResourceId> *srcs[] = {
+					&state.graphics.descSets,
+					&state.compute.descSets,
+				};
+				
+				for(size_t p=0; p < ARRAY_COUNT(srcs); p++)
+				{
+					for(size_t i=0; i < srcs[p]->size(); i++)
+					{
+						ResourceId src = (*srcs[p])[i];
+						VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
+
+						dst.layout = m_pDriver->m_DescriptorSetInfo[src].layout;
+						create_array_uninit(dst.bindings, m_pDriver->m_DescriptorSetInfo[src].currentBindings.size());
+						for(size_t b=0; b < m_pDriver->m_DescriptorSetInfo[src].currentBindings.size(); b++)
+						{
+							VkDescriptorInfo *info = m_pDriver->m_DescriptorSetInfo[src].currentBindings[b];
+							const VulkanCreationInfo::DescSetLayout::Binding &layoutBind = c.m_DescSetLayout[dst.layout].bindings[b];
+
+							dst.bindings[b].arraySize = layoutBind.arraySize;
+							dst.bindings[b].stageFlags = (ShaderStageBits)layoutBind.stageFlags;
+							switch(layoutBind.descriptorType)
+							{
+								case VK_DESCRIPTOR_TYPE_SAMPLER:                 dst.bindings[b].type = eBindType_Sampler; break;
+								case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:  dst.bindings[b].type = eBindType_ImageSampler; break;
+								case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:           dst.bindings[b].type = eBindType_ReadOnlyImage; break;
+								case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:           dst.bindings[b].type = eBindType_ReadWriteImage; break;
+								case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadOnlyTBuffer; break;
+								case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:    dst.bindings[b].type = eBindType_ReadWriteTBuffer; break;
+								case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:          dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
+								case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:          dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
+								case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadOnlyBuffer; break;
+								case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:  dst.bindings[b].type = eBindType_ReadWriteBuffer; break;
+								case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:        dst.bindings[b].type = eBindType_InputAttachment; break;
+								default:
+									dst.bindings[b].type = eBindType_Unknown;
+									RDCERR("Unexpected descriptor type");
+							}
+							
+							create_array_uninit(dst.bindings[b].elems, layoutBind.arraySize);
+							for(uint32_t a=0; a < layoutBind.arraySize; a++)
+							{
+								if(layoutBind.immutableSampler)
+									dst.bindings[b].elems[a].sampler = layoutBind.immutableSampler[a];
+								else if(info->sampler != VK_NULL_HANDLE)
+									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(rm->GetID(MakeRes(info->sampler)));
+
+								// only one of these is ever set
+								if(info->imageView != VK_NULL_HANDLE)
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->imageView)));
+								if(info->bufferView != VK_NULL_HANDLE)
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->bufferView)));
+								if(info->attachmentView != VK_NULL_HANDLE)
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->attachmentView)));
+							}
+						}
+					}
+				}
 			}
 
 			// Tessellation

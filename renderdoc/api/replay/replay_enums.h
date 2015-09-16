@@ -74,6 +74,20 @@ enum ShaderResourceType
 	eResType_TextureCubeArray,
 };
 
+enum ShaderBindType
+{
+	eBindType_Unknown = 0,
+	eBindType_Sampler,
+	eBindType_ImageSampler,
+	eBindType_ReadOnlyImage,
+	eBindType_ReadWriteImage,
+	eBindType_ReadOnlyTBuffer,
+	eBindType_ReadWriteTBuffer,
+	eBindType_ReadOnlyBuffer,
+	eBindType_ReadWriteBuffer,
+	eBindType_InputAttachment,
+};
+
 enum SystemAttribute
 {
 	eAttr_None = 0,
@@ -282,6 +296,19 @@ enum ShaderStageType
 	eShaderStage_Fragment = eShaderStage_Pixel,
 
 	eShaderStage_Compute,
+};
+
+enum ShaderStageBits
+{
+	eStageBits_Vertex       = 1<<eShaderStage_Vertex,
+	eStageBits_Hull         = 1<<eShaderStage_Hull,
+	eStageBits_Tess_Control = 1<<eShaderStage_Tess_Control,
+	eStageBits_Domain       = 1<<eShaderStage_Domain,
+	eStageBits_Tess_Eval    = 1<<eShaderStage_Tess_Eval,
+	eStageBits_Geometry     = 1<<eShaderStage_Geometry,
+	eStageBits_Pixel        = 1<<eShaderStage_Pixel,
+	eStageBits_Fragment     = 1<<eShaderStage_Fragment,
+	eStageBits_Compute      = 1<<eShaderStage_Compute,
 };
 
 enum DebugMessageCategory

@@ -223,6 +223,7 @@ struct ShaderReflection
 
 struct BindpointMap
 {
+	int32_t bindset;
 	int32_t bind;
 	bool32 used;
 };

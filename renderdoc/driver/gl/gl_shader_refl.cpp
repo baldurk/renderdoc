@@ -1808,6 +1808,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 			if(loc >= 0)
 			{
 				gl.glGetUniformiv(curProg, loc, dummyReadback);
+				mapping.Resources[i].bindset = 0;
 				mapping.Resources[i].bind = dummyReadback[0];
 			}
 
@@ -1847,6 +1848,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 				if(idx == GL_INVALID_INDEX)
 				{
+					mapping.Resources[i].bindset = -1;
 					mapping.Resources[i].bind = -1;
 					mapping.Resources[i].used = false;
 				}
@@ -1858,6 +1860,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 					if(atomicIndex == GL_INVALID_INDEX)
 					{
+						mapping.Resources[i].bindset = -1;
 						mapping.Resources[i].bind = -1;
 						mapping.Resources[i].used = false;
 					}
@@ -1871,6 +1874,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
 							eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
 						};
+						mapping.Resources[i].bindset = 0;
 						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, eGL_ATOMIC_COUNTER_BUFFER_BINDING, &mapping.Resources[i].bind);
 						GLint used = 0;
 						gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
@@ -1885,12 +1889,14 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 
 				if(idx == GL_INVALID_INDEX)
 				{
+					mapping.Resources[i].bindset = -1;
 					mapping.Resources[i].bind = -1;
 					mapping.Resources[i].used = false;
 				}
 				else
 				{
 					GLenum prop = eGL_BUFFER_BINDING;
+					mapping.Resources[i].bindset = 0;
 					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &prop, 1, NULL, &mapping.Resources[i].bind);
 					GLint used = 0;
 					gl.glGetProgramResourceiv(curProg, eGL_SHADER_STORAGE_BLOCK, idx, 1, &refEnum[shadIdx], 1, NULL, &used);
@@ -1916,11 +1922,13 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 			if(loc >= 0)
 			{
 				gl.glGetActiveUniformBlockiv(curProg, loc, eGL_UNIFORM_BLOCK_BINDING, dummyReadback);
+				mapping.ConstantBlocks[i].bindset = 0;
 				mapping.ConstantBlocks[i].bind = dummyReadback[0];
 			}
 		}
 		else
 		{
+			mapping.ConstantBlocks[i].bindset = -1;
 			mapping.ConstantBlocks[i].bind = -1;
 		}
 
