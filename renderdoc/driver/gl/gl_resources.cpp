@@ -463,6 +463,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 		case eGL_RGB:
 		case eGL_RGBA:
 		case eGL_DEPTH_COMPONENT:
+		case eGL_STENCIL:
 		case eGL_DEPTH_STENCIL:
 			break;
 		default:
@@ -482,11 +483,12 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 			break;
 	}
 	
-	GLint red, depth;
+	GLint red, depth, stencil;
 	if(gl.glGetInternalformativ)
 	{
 		gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &red);
 		gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_DEPTH_SIZE, sizeof(GLint), &depth);
+		gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_STENCIL_SIZE, sizeof(GLint), &stencil);
 	}
 	else
 	{
@@ -525,6 +527,11 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
 				return eGL_RGBA16;
 			else
 				return eGL_RGBA8;
+		case eGL_STENCIL:
+			if(stencil == 16)
+				return eGL_STENCIL_INDEX16;
+			else
+				return eGL_STENCIL_INDEX8;
 		case eGL_DEPTH_COMPONENT:
 			if(depth == 32)
 				return eGL_DEPTH_COMPONENT32F;
