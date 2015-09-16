@@ -376,6 +376,19 @@ private:
 	void BeginCaptureFrame();
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
+
+	template<typename realtype>
+	void WrapResource(realtype &obj)
+	{
+		RDCASSERT(obj != VK_NULL_HANDLE);
+
+		ResourceId id = ResourceIDGen::GetNewUniqueID();
+		typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
+
+		GetResourceManager()->AddCurrentResource(id, wrapped);
+
+		obj = UnwrapHelper<realtype>::ToHandle((uint64_t)(uintptr_t)wrapped);
+	}
 	
 	// replay
 		
