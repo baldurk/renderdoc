@@ -88,9 +88,6 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 		void ApplyTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states);
 
 		void SerialiseImageStates(Serialiser *ser, map<ResourceId, ImgState> &states, vector<VkImageMemoryBarrier> &transitions);
-		
-	private:
-		bool SerialisableResource(ResourceId id, VkResourceRecord *record);
 
 		ResourceId GetID(WrappedVkRes *res)
 		{
@@ -101,7 +98,10 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 
 			return ((WrappedVkNonDispRes *)res)->id;
 		}
-		
+			
+	private:
+		bool SerialisableResource(ResourceId id, VkResourceRecord *record);
+
 		bool ResourceTypeRelease(WrappedVkRes *res);
 
 		bool Force_InitialState(WrappedVkRes *res);
