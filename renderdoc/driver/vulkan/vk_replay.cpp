@@ -258,6 +258,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		coltrans[i].oldLayout = coltrans[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	}
 
+	curidx = 0;
+
 	if(depth)
 	{
 		VULKANNOTIMP("Allocating depth-stencil image");
