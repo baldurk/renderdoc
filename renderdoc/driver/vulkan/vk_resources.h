@@ -403,6 +403,12 @@ VkResourceRecord *GetRecord(RealType obj)
 	return GetWrapped(obj)->record;
 }
 
+template<typename RealType>
+RealType ToHandle(WrappedVkRes *ptr)
+{
+	return UnwrapHelper<RealType>::ToHandle( ((typename UnwrapHelper<RealType>::Outer *)ptr)->real );
+}
+
 enum VkResourceType
 {
 	eResUnknown = 0,
