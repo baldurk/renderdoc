@@ -234,8 +234,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 			/*.engineVersion =*/ params.EngineVersion,
 			/*.apiVersion =*/ VK_API_VERSION,
 	};
-	// VKTODOLOW handle other API version different to ours
-	RDCASSERT(params.APIVersion == VK_API_VERSION);
+
 	VkInstanceCreateInfo instinfo = {
 			/*.sType =*/ VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
 			/*.pNext =*/ NULL,
