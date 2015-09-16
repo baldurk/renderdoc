@@ -52,7 +52,10 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 		{
 			while(!m_VkResourceRecords.empty())
 			{
-				auto it = m_VkResourceRecords.begin();
+				// VKTODOLOW we pick from the end, on the assumption that in
+				// namespace order (which is resource record order), later entries
+				// always have parents that are earlier.
+				auto it = --(m_VkResourceRecords.end());
 				ResourceId id = it->second->GetResourceID();
 				it->second->Delete(this);
 
