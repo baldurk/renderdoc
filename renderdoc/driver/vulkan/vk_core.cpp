@@ -495,18 +495,6 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	SERIALISE_ELEMENT(uint32_t, physIndex, *pPhysicalDeviceCount);
 	SERIALISE_ELEMENT(ResourceId, physId, GetResourceManager()->GetID(MakeRes(*pPhysicalDevices)));
 
-	uint32_t count;
-	VkPhysicalDevice devices[8]; // VKTODOLOW: dynamically allocate
-	if(m_State < WRITING)
-	{
-		instance = (VkInstance)GetResourceManager()->GetLiveResource(inst).handle;
-		// GSFTODO right instance?
-		VkResult ret = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
-		RDCASSERT(ret == VK_SUCCESS);
-
-		// VKTODOLOW match up physical devices to those available on replay
-	}
-
 	VkPhysicalDevice pd = VK_NULL_HANDLE;
 
 	if(m_State >= WRITING)
@@ -515,7 +503,24 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	}
 	else
 	{
+		uint32_t count;
+		VkPhysicalDevice *devices;
+
+		instance = (VkInstance)GetResourceManager()->GetLiveResource(inst).handle;
+		VkResult vkr = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		RDCASSERT(count > physIndex);
+		devices = new VkPhysicalDevice[count];
+
+		vkr = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODOLOW match up physical devices to those available on replay
+
 		pd = devices[physIndex];
+
+		SAFE_DELETE_ARRAY(devices);
 
 		GetResourceManager()->RegisterResource(MakeRes(pd));
 		GetResourceManager()->AddLiveResource(physId, MakeRes(pd));
@@ -542,11 +547,16 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		VkPhysicalDevice*                           pPhysicalDevices)
 {
 	uint32_t count;
-	VkPhysicalDevice devices[8]; // VKTODOLOW: dynamically allocate
-	VkResult ret = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
 
-	if(ret != VK_SUCCESS)
-		return ret;
+	VkResult vkr = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, NULL);
+
+	if(vkr != VK_SUCCESS)
+		return vkr;
+
+	VkPhysicalDevice *devices = new VkPhysicalDevice[count];
+
+	vkr = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
+	RDCASSERT(vkr == VK_SUCCESS);
 	
 	for(uint32_t i=0; i < count; i++)
 	{
@@ -563,6 +573,8 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 
 	if(pPhysicalDeviceCount) *pPhysicalDeviceCount = count;
 	if(pPhysicalDevices) memcpy(pPhysicalDevices, devices, count*sizeof(VkPhysicalDevice));
+
+	SAFE_DELETE_ARRAY(devices);
 
 	return VK_SUCCESS;
 }
