@@ -1347,7 +1347,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 {
 	VULKANNOTIMP("ClearOutputWindowDepth");
 
-	// VKTODOHIGH: same as FlipOutputWindow but do a depth clear
+	// VKTODOMED: same as FlipOutputWindow but do a depth clear
 }
 
 void VulkanReplay::FlipOutputWindow(uint64_t id)
