@@ -35,7 +35,7 @@ using std::pair;
 
 class WrappedVulkan;
 
-class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecord>
+class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRecord>
 {
 	public: 
 		VulkanResourceManager(LogState s, Serialiser *ser, WrappedVulkan *core)
@@ -44,177 +44,10 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 			if(m_Inst) RDCFATAL("Multiple resource managers");
 			m_Inst = this;
 		}
-		~VulkanResourceManager() {}
+		~VulkanResourceManager() { m_Inst = NULL; }
 		
 		static VulkanResourceManager *GetInstance() { return m_Inst; }
-
-		void Shutdown()
-		{
-			while(!m_VkResourceRecords.empty())
-			{
-				// VKTODOLOW we pick from the end, on the assumption that in
-				// namespace order (which is resource record order), later entries
-				// always have parents that are earlier.
-				auto it = --(m_VkResourceRecords.end());
-				ResourceId id = it->second->GetResourceID();
-				it->second->Delete(this);
-
-				if(!m_VkResourceRecords.empty() && m_VkResourceRecords.begin()->second->GetResourceID() == id)
-					m_VkResourceRecords.erase(m_VkResourceRecords.begin());
-			}
-
-			m_CurrentResourceIds.clear();
-
-			while(!m_InitialContents.empty())
-			{
-				auto it = m_InitialContents.begin();
-				ResourceTypeRelease(it->second.resource);
-				Serialiser::FreeAlignedBuffer(it->second.blob);
-				if(!m_InitialContents.empty())
-					m_InitialContents.erase(m_InitialContents.begin());
-			}
-
-			// have to do this here since we want to do it in reverse order
-			for(auto it = m_LiveResourceMap.end(); it != m_LiveResourceMap.begin();)
-			{
-				// decrement it first since the initial value at .end() is invalid
-				--it;
-				ResourceTypeRelease(it->second);
-			}
-			m_LiveResourceMap.clear();
-
-			for(auto it = m_InframeResourceMap.end(); it != m_InframeResourceMap.begin();)
-			{
-				// decrement it first since the initial value at .end() is invalid
-				--it;
-				ResourceTypeRelease(it->second);
-			}
-			m_InframeResourceMap.clear();
-
-			RDCASSERT(m_ResourceRecords.empty());
-
-			m_Inst = NULL;
-		}
 		
-		inline void RemoveResourceRecord(ResourceId id)
-		{
-			for(auto it = m_VkResourceRecords.begin(); it != m_VkResourceRecords.end(); it++)
-			{
-				if(it->second->GetResourceID() == id)
-				{
-					m_VkResourceRecords.erase(it);
-					break;
-				}
-			}
-			
-			ResourceManager::RemoveResourceRecord(id);
-		}
-
-		// this should take the VkDevice associated too, for release
-		ResourceId RegisterResource(VkResource res)
-		{
-			ResourceId id = ResourceIDGen::GetNewUniqueID();
-			m_CurrentResourceIds[res] = id;
-			AddCurrentResource(id, res);
-			return id;
-		}
-
-		void UnregisterResource(VkResource res)
-		{
-			auto it = m_CurrentResourceIds.find(res);
-			if(it != m_CurrentResourceIds.end())
-			{
-				ReleaseCurrentResource(it->second);
-				auto origit = m_OriginalIDs.find(it->second);
-				if(origit != m_OriginalIDs.end())
-					EraseLiveResource(origit->second);
-				m_CurrentResourceIds.erase(res);
-			}
-		}
-
-		ResourceId GetID(VkResource res)
-		{
-			auto it = m_CurrentResourceIds.find(res);
-			if(it != m_CurrentResourceIds.end())
-				return it->second;
-			return ResourceId();
-		}
-		
-		using ResourceManager::GetCurrentResource;
-
-		VkResource GetCurrentResource(VkResource obj)
-		{
-			return ResourceManager::GetCurrentResource(GetID(obj));
-		}
-		
-		using ResourceManager::HasCurrentResource;
-
-		bool HasCurrentResource(VkResource obj)
-		{
-			return ResourceManager::HasCurrentResource(GetID(obj));
-		}
-
-		VkResourceRecord *AddResourceRecord(ResourceId id)
-		{
-			VkResourceRecord *ret = ResourceManager::AddResourceRecord(id);
-			VkResource res = GetCurrentResource(id);
-
-			m_VkResourceRecords[res] = ret;
-
-			return ret;
-		}
-
-		VkResourceRecord *AddResourceRecord(VkResource res, ResourceId id)
-		{
-			VkResourceRecord *ret = ResourceManager::AddResourceRecord(id);
-			m_VkResourceRecords[res] = ret;
-			return ret;
-		}
-		
-		using ResourceManager::HasResourceRecord;
-
-		bool HasResourceRecord(VkResource res)
-		{
-			auto it = m_VkResourceRecords.find(res);
-			if(it != m_VkResourceRecords.end())
-				return true;
-
-			return ResourceManager::HasResourceRecord(GetID(res));
-		}
-		
-		using ResourceManager::GetResourceRecord;
-
-		VkResourceRecord *GetResourceRecord(VkResource res)
-		{
-			auto it = m_VkResourceRecords.find(res);
-			if(it != m_VkResourceRecords.end())
-				return it->second;
-
-			return ResourceManager::GetResourceRecord(GetID(res));
-		}
-		
-		using ResourceManager::MarkResourceFrameReferenced;
-
-		void MarkResourceFrameReferenced(VkResource res, FrameRefType refType)
-		{
-			if(res.handle == 0) return;
-			ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
-		}
-
-		using ResourceManager::MarkDirtyResource;
-
-		void MarkDirtyResource(VkResource res)
-		{
-			return ResourceManager::MarkDirtyResource(GetID(res));
-		}
-
-		using ResourceManager::MarkCleanResource;
-		
-		void MarkCleanResource(VkResource res)
-		{
-			return ResourceManager::MarkCleanResource(GetID(res));
-		}
-
 		// handling memory & image transitions
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
 			                   uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
@@ -225,21 +58,22 @@ class VulkanResourceManager : public ResourceManager<VkResource, VkResourceRecor
 		
 	private:
 		bool SerialisableResource(ResourceId id, VkResourceRecord *record);
-		
-		bool ResourceTypeRelease(VkResource res);
 
-		bool Force_InitialState(VkResource res);
-		bool Need_InitialStateChunk(VkResource res);
-		bool Prepare_InitialState(VkResource res);
-		bool Serialise_InitialState(VkResource res);
-		void Create_InitialState(ResourceId id, VkResource live, bool hasData);
-		void Apply_InitialState(VkResource live, InitialContentData initial);
+		ResourceId GetID(WrappedVkRes *res)
+		{
+			return res ? res->id : ResourceId();
+		}
+		
+		bool ResourceTypeRelease(WrappedVkRes *res);
+
+		bool Force_InitialState(WrappedVkRes *res);
+		bool Need_InitialStateChunk(WrappedVkRes *res);
+		bool Prepare_InitialState(WrappedVkRes *res);
+		bool Serialise_InitialState(WrappedVkRes *res);
+		void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
+		void Apply_InitialState(WrappedVkRes *live, InitialContentData initial);
 
 		static VulkanResourceManager *m_Inst;
-
-		map<VkResource, VkResourceRecord*> m_VkResourceRecords;
-
-		map<VkResource, ResourceId> m_CurrentResourceIds;
 
 		WrappedVulkan *m_Core;
 };

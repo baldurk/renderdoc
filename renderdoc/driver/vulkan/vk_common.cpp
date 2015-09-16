@@ -1823,9 +1823,9 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 #define SerialiseObject(type, name, obj) \
 			{ \
 				ResourceId id; \
-				if(m_Mode >= WRITING) id = (obj == VK_NULL_HANDLE) ? ResourceId() : MGR()->GetID(MakeRes(obj)); \
+				if(m_Mode >= WRITING) id = GetResID(obj); \
 				Serialise(name, id); \
-				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : type(MGR()->GetLiveResource(id).handle); \
+				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : type(MGR()->GetLiveResource(id)->real); \
 			}
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)

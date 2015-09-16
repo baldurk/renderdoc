@@ -436,12 +436,12 @@ public:
 	VulkanReplay *GetReplay() { return &m_Replay; }
 	
 	// replay interface
-	bool Prepare_InitialState(VkResource res);
-	bool Serialise_InitialState(VkResource res);
-	void Create_InitialState(ResourceId id, VkResource live, bool hasData);
-	void Apply_InitialState(VkResource live, VulkanResourceManager::InitialContentData initial);
+	bool Prepare_InitialState(WrappedVkRes *res);
+	bool Serialise_InitialState(WrappedVkRes *res);
+	void Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData);
+	void Apply_InitialState(WrappedVkRes *live, VulkanResourceManager::InitialContentData initial);
 
-	bool ReleaseResource(VkResource res);
+	bool ReleaseResource(WrappedVkRes *res);
 
 	void Initialise(VkInitParams &params);
 	void ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
@@ -449,8 +449,6 @@ public:
 
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
-
-	void DestroyObject(VkResource res, ResourceId id);
 	
 	// Device initialization
 

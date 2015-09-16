@@ -31,7 +31,7 @@ struct VulkanCreationInfo
 {
 	struct Pipeline
 	{
-		void Init(VulkanResourceManager *rm, const VkGraphicsPipelineCreateInfo* pCreateInfo);
+		void Init(const VkGraphicsPipelineCreateInfo* pCreateInfo);
 		
 		// VkGraphicsPipelineCreateInfo
     VkPipelineCreateFlags flags;
@@ -113,7 +113,7 @@ struct VulkanCreationInfo
 
 	struct ViewportScissor
 	{
-		void Init(VulkanResourceManager *rm, const VkDynamicViewportStateCreateInfo* pCreateInfo);
+		void Init(const VkDynamicViewportStateCreateInfo* pCreateInfo);
 		
 		vector<VkViewport> viewports;
 		vector<VkRect2D> scissors;
@@ -122,7 +122,7 @@ struct VulkanCreationInfo
 
 	struct Raster
 	{
-		void Init(VulkanResourceManager *rm, const VkDynamicRasterStateCreateInfo* pCreateInfo);
+		void Init(const VkDynamicRasterStateCreateInfo* pCreateInfo);
 		
     float depthBias;
     float depthBiasClamp;
@@ -133,7 +133,7 @@ struct VulkanCreationInfo
 
 	struct Blend
 	{
-		void Init(VulkanResourceManager *rm, const VkDynamicColorBlendStateCreateInfo* pCreateInfo);
+		void Init(const VkDynamicColorBlendStateCreateInfo* pCreateInfo);
 		
 		float blendConst[4];
 	};
@@ -141,7 +141,7 @@ struct VulkanCreationInfo
 
 	struct DepthStencil
 	{
-		void Init(VulkanResourceManager *rm, const VkDynamicDepthStencilStateCreateInfo* pCreateInfo);
+		void Init(const VkDynamicDepthStencilStateCreateInfo* pCreateInfo);
 		
     float minDepthBounds;
     float maxDepthBounds;
@@ -154,7 +154,7 @@ struct VulkanCreationInfo
 
 	struct Framebuffer
 	{
-		void Init(VulkanResourceManager *rm, const VkFramebufferCreateInfo* pCreateInfo);
+		void Init(const VkFramebufferCreateInfo* pCreateInfo);
 
 		struct Attachment
 		{
@@ -168,7 +168,7 @@ struct VulkanCreationInfo
 
 	struct DescSetLayout
 	{
-		void Init(VulkanResourceManager *rm, const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
+		void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
 
 		void CreateBindingsArray(vector<VkDescriptorInfo*> &descBindings);
 

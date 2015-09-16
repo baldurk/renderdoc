@@ -24,7 +24,7 @@
 
 #include "vk_info.h"
 
-void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *rm, const VkGraphicsPipelineCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
 
@@ -33,7 +33,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *rm, const VkGraph
 		// VkPipelineShaderStageCreateInfo
 		RDCEraseEl(shaders);
 		for(uint32_t i=0; i < pCreateInfo->stageCount; i++)
-			shaders[ pCreateInfo->pStages[i].stage ] = rm->GetOriginalID(rm->GetID(MakeRes(pCreateInfo->pStages[i].shader)));
+			shaders[ pCreateInfo->pStages[i].stage ] = GetResID(pCreateInfo->pStages[i].shader);
 
 		if(pCreateInfo->pVertexInputState)
 		{
@@ -110,7 +110,7 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *rm, const VkGraph
 		}
 }
 
-void VulkanCreationInfo::ViewportScissor::Init(VulkanResourceManager *rm, const VkDynamicViewportStateCreateInfo* pCreateInfo)
+void VulkanCreationInfo::ViewportScissor::Init(const VkDynamicViewportStateCreateInfo* pCreateInfo)
 {
 	viewports.resize(pCreateInfo->viewportAndScissorCount);
 	scissors.resize(pCreateInfo->viewportAndScissorCount);
@@ -122,7 +122,7 @@ void VulkanCreationInfo::ViewportScissor::Init(VulkanResourceManager *rm, const 
 	}
 }
 
-void VulkanCreationInfo::Raster::Init(VulkanResourceManager *rm, const VkDynamicRasterStateCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Raster::Init(const VkDynamicRasterStateCreateInfo* pCreateInfo)
 {
 	depthBias = pCreateInfo->depthBias;
 	depthBiasClamp = pCreateInfo->depthBiasClamp;
@@ -130,13 +130,13 @@ void VulkanCreationInfo::Raster::Init(VulkanResourceManager *rm, const VkDynamic
 	lineWidth = pCreateInfo->lineWidth;
 }
 
-void VulkanCreationInfo::Blend::Init(VulkanResourceManager *rm, const VkDynamicColorBlendStateCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Blend::Init(const VkDynamicColorBlendStateCreateInfo* pCreateInfo)
 {
 	RDCCOMPILE_ASSERT(sizeof(blendConst) == sizeof(pCreateInfo->blendConst), "blend constant size mismatch!");
 	memcpy(blendConst, pCreateInfo->blendConst, sizeof(blendConst));
 }
 
-void VulkanCreationInfo::DepthStencil::Init(VulkanResourceManager *rm, const VkDynamicDepthStencilStateCreateInfo* pCreateInfo)
+void VulkanCreationInfo::DepthStencil::Init(const VkDynamicDepthStencilStateCreateInfo* pCreateInfo)
 {
 	minDepthBounds = pCreateInfo->minDepthBounds;
 	maxDepthBounds = pCreateInfo->maxDepthBounds;
@@ -146,7 +146,7 @@ void VulkanCreationInfo::DepthStencil::Init(VulkanResourceManager *rm, const VkD
 	stencilBackRef = pCreateInfo->stencilBackRef;
 }
 
-void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *rm, const VkFramebufferCreateInfo* pCreateInfo)
+void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreateInfo)
 {
 	width = pCreateInfo->width;
 	height = pCreateInfo->height;
@@ -154,10 +154,10 @@ void VulkanCreationInfo::Framebuffer::Init(VulkanResourceManager *rm, const VkFr
 
 	attachments.resize(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
-		attachments[i].view = rm->GetOriginalID(rm->GetID(MakeRes(pCreateInfo->pAttachments[i].view)));
+		attachments[i].view = GetResID(pCreateInfo->pAttachments[i].view);
 }
 
-void VulkanCreationInfo::DescSetLayout::Init(VulkanResourceManager *rm, const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
+void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
 	bindings.resize(pCreateInfo->count);
 	for(uint32_t i=0; i < pCreateInfo->count; i++)
@@ -171,7 +171,7 @@ void VulkanCreationInfo::DescSetLayout::Init(VulkanResourceManager *rm, const Vk
 			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
 
 			for(uint32_t s=0; s < bindings[i].arraySize; s++)
-				bindings[i].immutableSampler[s] = rm->GetID(MakeRes(pCreateInfo->pBinding[i].pImmutableSamplers[s]));
+				bindings[i].immutableSampler[s] = GetResID(pCreateInfo->pBinding[i].pImmutableSamplers[s]);
 		}
 	}
 }

@@ -1287,15 +1287,15 @@ void VulkanReplay::SavePipelineState()
 								if(layoutBind.immutableSampler)
 									dst.bindings[b].elems[a].sampler = layoutBind.immutableSampler[a];
 								else if(info->sampler != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(rm->GetID(MakeRes(info->sampler)));
+									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(GetResID(info->sampler));
 
 								// only one of these is ever set
 								if(info->imageView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->imageView)));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->imageView));
 								if(info->bufferView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->bufferView)));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->bufferView));
 								if(info->attachmentView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(rm->GetID(MakeRes(info->attachmentView)));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->attachmentView));
 							}
 						}
 					}

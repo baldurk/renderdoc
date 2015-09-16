@@ -394,65 +394,6 @@ enum VkNamespace
 
 VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr);
 
-enum NullInitialiser { MakeNullResource };
-
-struct VkResource
-{
-	VkResource() { Namespace = eResUnknown; handle = VK_NULL_HANDLE; }
-	VkResource(NullInitialiser) { Namespace = eResUnknown; handle = VK_NULL_HANDLE; }
-	VkResource(VkNamespace n, uint64_t o) { Namespace = n; handle = o; }
-	VkNamespace Namespace;
-	uint64_t handle;
-
-	bool operator ==(const VkResource &o) const
-	{
-		return Namespace == o.Namespace && handle == o.handle;
-	}
-
-	bool operator !=(const VkResource &o) const
-	{
-		return !(*this == o);
-	}
-
-	bool operator <(const VkResource &o) const
-	{
-		if(Namespace != o.Namespace) return Namespace < o.Namespace;
-		return handle < o.handle;
-	}
-};
-
-inline VkResource MakeRes(VkPhysicalDevice o) { return VkResource(eResPhysicalDevice, (uint64_t)o); }
-inline VkResource MakeRes(VkInstance o) { return VkResource(eResInstance, (uint64_t)o); }
-inline VkResource MakeRes(VkDevice o) { return VkResource(eResDevice, (uint64_t)o); }
-inline VkResource MakeRes(VkQueue o) { return VkResource(eResQueue, (uint64_t)o); }
-inline VkResource MakeRes(VkCmdBuffer o) { return VkResource(eResCmdBuffer, (uint64_t)o); }
-inline VkResource MakeRes(VkCmdPool o) { return VkResource(eResCmdPool, o.handle); }
-inline VkResource MakeRes(VkDeviceMemory o) { return VkResource(eResDeviceMemory, o.handle); }
-inline VkResource MakeRes(VkBuffer o) { return VkResource(eResBuffer, o.handle); }
-inline VkResource MakeRes(VkBufferView o) { return VkResource(eResBufferView, o.handle); }
-inline VkResource MakeRes(VkImage o) { return VkResource(eResImage, o.handle); }
-inline VkResource MakeRes(VkImageView o) { return VkResource(eResImageView, o.handle); }
-inline VkResource MakeRes(VkAttachmentView o) { return VkResource(eResAttachmentView, o.handle); }
-inline VkResource MakeRes(VkFramebuffer o) { return VkResource(eResFramebuffer, o.handle); }
-inline VkResource MakeRes(VkRenderPass o) { return VkResource(eResRenderPass, o.handle); }
-inline VkResource MakeRes(VkShader o) { return VkResource(eResShader, o.handle); }
-inline VkResource MakeRes(VkShaderModule o) { return VkResource(eResShaderModule, o.handle); }
-inline VkResource MakeRes(VkPipeline o) { return VkResource(eResPipeline, o.handle); }
-inline VkResource MakeRes(VkPipelineCache o) { return VkResource(eResPipelineCache, o.handle); }
-inline VkResource MakeRes(VkPipelineLayout o) { return VkResource(eResPipelineLayout, o.handle); }
-inline VkResource MakeRes(VkSampler o) { return VkResource(eResSampler, o.handle); }
-inline VkResource MakeRes(VkDescriptorSet o) { return VkResource(eResDescriptorSet, o.handle); }
-inline VkResource MakeRes(VkDescriptorPool o) { return VkResource(eResDescriptorPool, o.handle); }
-inline VkResource MakeRes(VkDescriptorSetLayout o) { return VkResource(eResDescriptorSetLayout, o.handle); }
-inline VkResource MakeRes(VkDynamicViewportState o) { return VkResource(eResViewportState, o.handle); }
-inline VkResource MakeRes(VkDynamicRasterState o) { return VkResource(eResRasterState, o.handle); }
-inline VkResource MakeRes(VkDynamicColorBlendState o) { return VkResource(eResColorBlendState, o.handle); }
-inline VkResource MakeRes(VkDynamicDepthStencilState o) { return VkResource(eResDepthStencilState, o.handle); }
-inline VkResource MakeRes(VkFence o) { return VkResource(eResFence, o.handle); }
-inline VkResource MakeRes(VkSemaphore o) { return VkResource(eResSemaphore, o.handle); }
-
-inline VkResource MakeRes(VkSwapChainWSI o) { return VkResource(eResWSISwapChain, o.handle); }
-
 #define UNTRANSITIONED_IMG_STATE ((VkImageLayout)0xffffffff)
 
 struct ImageRegionState
@@ -475,7 +416,7 @@ struct ImageRegionState
 struct VkResourceRecord : public ResourceRecord
 {
 	public:
-		static const NullInitialiser NullResource = MakeNullResource;
+		enum { NullResource = (unsigned int)NULL };
 
 		VkResourceRecord(ResourceId id) :
 			ResourceRecord(id, true),

@@ -60,7 +60,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	{
 		const VkImageMemoryBarrier &t = transitions[ti];
 		
-		ResourceId id = GetID(MakeRes(t.image));
+		ResourceId id = GetResID(t.image);
 		
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
@@ -239,7 +239,7 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 				t.outputMask = 0;
 				t.srcQueueFamilyIndex = 0;
 				t.destQueueFamilyIndex = 0;
-				t.image = (VkImage)GetCurrentResource(liveid).handle;
+				t.image = (VkImage)GetCurrentResource(liveid)->real;
 				t.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 				t.newLayout = state.state;
 				t.subresourceRange = state.range;
@@ -432,39 +432,39 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 	}
 }
 
-bool VulkanResourceManager::Force_InitialState(VkResource res)
+bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res)
 {
 	// VKTODOMED don't want to be forcing device memory initial state, need to
 	// know which objects have dirtied their bound memory.
-	return (res.Namespace == eResDeviceMemory);
+	return WrappedVkDeviceMemory::IsAlloc(res);
 }
 
-bool VulkanResourceManager::Need_InitialStateChunk(VkResource res)
+bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)
 {
 	return true;
 }
 
-bool VulkanResourceManager::Prepare_InitialState(VkResource res)
+bool VulkanResourceManager::Prepare_InitialState(WrappedVkRes *res)
 {
 	return m_Core->Prepare_InitialState(res);
 }
 
-bool VulkanResourceManager::Serialise_InitialState(VkResource res)
+bool VulkanResourceManager::Serialise_InitialState(WrappedVkRes *res)
 {
 	return m_Core->Serialise_InitialState(res);
 }
 
-void VulkanResourceManager::Create_InitialState(ResourceId id, VkResource live, bool hasData)
+void VulkanResourceManager::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
 {
 	return m_Core->Create_InitialState(id, live, hasData);
 }
 
-void VulkanResourceManager::Apply_InitialState(VkResource live, InitialContentData initial)
+void VulkanResourceManager::Apply_InitialState(WrappedVkRes *live, InitialContentData initial)
 {
 	return m_Core->Apply_InitialState(live, initial);
 }
 
-bool VulkanResourceManager::ResourceTypeRelease(VkResource res)
+bool VulkanResourceManager::ResourceTypeRelease(WrappedVkRes *res)
 {
 	return m_Core->ReleaseResource(res);
 }

@@ -1075,23 +1075,14 @@ VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
         return util_GetExtensionProperties(0, NULL, pCount, pProperties);
 }
 
-void WrappedVulkan::DestroyObject(VkResource res, ResourceId id)
-{
-	GetResourceManager()->MarkCleanResource(id);
-	VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-	if(record)
-		record->Delete(GetResourceManager());
-	GetResourceManager()->UnregisterResource(res);
-
-	if(m_ImageInfo.find(id) != m_ImageInfo.end())
-		m_ImageInfo.erase(id);
-}
-
 #define DESTROY_IMPL(type, func) \
 	VkResult WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
-		DestroyObject(MakeRes(obj), GetResourceManager()->GetID(MakeRes(obj))); \
-		return device_dispatch_table(device)->func(device, obj); \
+		WrappedVkRes *wrapped = GetWrapped(obj);
+		GetResourceManager()->MarkCleanResource(wrapped->id); \
+		if(wrapped->record) wrapped->record->Delete(GetResourceManager()); \
+		if(m_ImageInfo.find(wrapped->id) != m_ImageInfo.end()) m_ImageInfo.erase(wrapped->id); \
+		return device_dispatch_table(device)->func(Unwrap(device), type(wrapped->real)); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
