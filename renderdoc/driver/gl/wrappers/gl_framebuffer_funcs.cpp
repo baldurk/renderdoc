@@ -1643,6 +1643,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer,
 
 void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum internalformat, GLsizei width, GLsizei height)
 {
+	internalformat = GetSizedFormat(m_Real, eGL_RENDERBUFFER, internalformat);
+
 	m_Real.glNamedRenderbufferStorageEXT(renderbuffer, internalformat, width, height);
 	
 	ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
@@ -1671,6 +1673,8 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
 
 void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
 {
+	internalformat = GetSizedFormat(m_Real, eGL_RENDERBUFFER, internalformat);
+
 	m_Real.glRenderbufferStorage(target, internalformat, width, height);
 	
 	ResourceId rb = GetCtxData().m_Renderbuffer;
@@ -1745,6 +1749,8 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageMultisampleEXT(GLuint re
 
 void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
 {
+	internalformat = GetSizedFormat(m_Real, eGL_RENDERBUFFER, internalformat);
+
 	m_Real.glNamedRenderbufferStorageMultisampleEXT(renderbuffer, samples, internalformat, width, height);
 	
 	ResourceId rb = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), renderbuffer));
@@ -1773,6 +1779,8 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
 
 void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height)
 {
+	internalformat = GetSizedFormat(m_Real, eGL_RENDERBUFFER, internalformat);
+
 	m_Real.glRenderbufferStorageMultisample(target, samples, internalformat, width, height);
 
 	ResourceId rb = GetCtxData().m_Renderbuffer;
