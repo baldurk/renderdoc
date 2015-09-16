@@ -27,15 +27,6 @@
 
 // VKTODOHIGH need to call vkResetCommandBuffer() before calling vkBeginCommandBuffer()
 
-// VKTODOHIGH check final semantics for lifetimes - e.g. shaders & shader modules can be freed
-// after shaders are used to create a pipeline, but for most things (views and resources,
-// resources and memory, descriptor set bindings and the resources they point to) the app is
-// responsible for correctly managing their lifetime, so we shouldn't have to ensure they are
-// refcounted and kept around - just need to account for bugs and resources/memory/etc not
-// being present on replay.
-// We should ref these by ID so that we handle these records going
-// away without crashing on dereference
-
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -1237,6 +1228,17 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(cmd);
 		for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
 			GetResourceManager()->MarkDirtyResource(*it);
+
+		// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
+		for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
+		{
+			GetResourceManager()->MarkResourceFrameReferenced(*it, eFrameRef_Read);
+
+			VkResourceRecord *setrecord = GetResourceManager()->GetResourceRecord(*it);
+
+			for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
+				GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+		}
 
 		if(m_State == WRITING_CAPFRAME)
 		{
@@ -3431,6 +3433,10 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 
 					m_ContextRecord->AddChunk(scope.Get());
 				}
+
+				// don't have to mark referenced any of the resources pointed to by the descriptor set - that's handled
+				// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
+				GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorWrites[i].destSet), eFrameRef_Write);
 			}
 
 			for(uint32_t i=0; i < copyCount; i++)
@@ -3442,7 +3448,10 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					m_ContextRecord->AddChunk(scope.Get());
 				}
 				
-				// VKTODOHIGH need to MarkResourceFrameReferenced the source descriptors
+				// don't have to mark referenced any of the resources pointed to by the descriptor sets - that's handled
+				// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
+				GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorCopies[i].destSet), eFrameRef_Write);
+				GetResourceManager()->MarkResourceFrameReferenced(MakeRes(pDescriptorCopies[i].srcSet), eFrameRef_Read);
 			}
 		}
 
@@ -3452,15 +3461,74 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 			for(uint32_t i=0; i < writeCount; i++)
 			{
 				VkResourceRecord *record = GetResourceManager()->GetResourceRecord(MakeRes(pDescriptorWrites[i].destSet));
-
-				// VKTODOHIGH need to add some kind of parent ref on copied elements here
+				const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
 
 				RDCASSERT(pDescriptorWrites[i].destBinding < record->descBindings.size());
 				
 				VkDescriptorInfo *binding = record->descBindings[pDescriptorWrites[i].destBinding];
 
+				FrameRefType ref = eFrameRef_Write;
+
+				switch(layout.bindings[pDescriptorWrites[i].destBinding].descriptorType)
+				{
+					case VK_DESCRIPTOR_TYPE_SAMPLER:
+					case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+					case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+					case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+					case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+						ref = eFrameRef_Read;
+						break;
+					case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+					case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+						ref = eFrameRef_Write;
+						break;
+					default:
+						RDCERR("Unexpected descriptor type");
+				}
+
+				// We need to handle the cases where these bindings are stale:
+				// ie. image handle 0xf00baa is allocated
+				// bound into a descriptor set
+				// image is released
+				// descriptor set is bound but this image is never used by shader etc.
+				//
+				// worst case, a new image or something has been added with this handle -
+				// in this case we end up ref'ing an image that isn't actually used.
+				// Worst worst case, we ref an image as write when actually it's not, but
+				// this is likewise not a serious problem, and rather difficult to solve
+				// (would need to version handles somehow, but don't have enough bits
+				// to do that reliably).
+				//
+				// This is handled by RemoveBindFrameRef silently dropping id == ResourceId()
+
 				for(uint32_t d=0; d < pDescriptorWrites[i].count; d++)
-					binding[pDescriptorWrites[i].destArrayElement + d] = pDescriptorWrites[i].pDescriptors[d];
+				{
+					VkDescriptorInfo &bind = binding[pDescriptorWrites[i].destArrayElement + d];
+
+					if(bind.attachmentView != VK_NULL_HANDLE)
+						record->RemoveBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.attachmentView)));
+					if(bind.bufferView != VK_NULL_HANDLE)
+						record->RemoveBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.bufferView)));
+					if(bind.imageView != VK_NULL_HANDLE)
+						record->RemoveBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.imageView)));
+					if(bind.sampler != VK_NULL_HANDLE)
+						record->RemoveBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.sampler)));
+
+					bind = pDescriptorWrites[i].pDescriptors[d];
+
+					if(bind.attachmentView != VK_NULL_HANDLE)
+						record->AddBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.attachmentView)), ref);
+					if(bind.bufferView != VK_NULL_HANDLE)
+						record->AddBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.bufferView)), ref);
+					if(bind.imageView != VK_NULL_HANDLE)
+						record->AddBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.imageView)), ref);
+					if(bind.sampler != VK_NULL_HANDLE)
+						record->AddBindFrameRef(GetResourceManager()->GetID(MakeRes(bind.sampler)), ref);
+				}
 			}
 
 			if(copyCount > 0)
@@ -4096,87 +4164,7 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(layout)), eFrameRef_Read);
 		for(uint32_t i=0; i < setCount; i++)
-		{
-			ResourceId setId = GetResourceManager()->GetID(MakeRes(pDescriptorSets[i]));
-			record->MarkResourceFrameReferenced(setId, eFrameRef_Read);
-
-			// VKTODOHIGH this should be pre-calculated and updated whenever doing an updatedescriptorset,
-			// rather than on bind like this. Not only is it a better perf tradeoff to do the work on update
-			// but this bind could happen before some update so we need to actually apply these ref's
-			// when submitting the queue.
-
-			VkResourceRecord *setrecord = GetResourceManager()->GetResourceRecord(setId);
-			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[setrecord->layout];
-
-			for(size_t i=0; i < layout.bindings.size(); i++)
-			{
-				const VulkanCreationInfo::DescSetLayout::Binding &bind = layout.bindings[i];
-				VkDescriptorInfo *bindings = setrecord->descBindings[i];
-
-				FrameRefType ref = eFrameRef_Write;
-
-				switch(bind.descriptorType)
-				{
-					case VK_DESCRIPTOR_TYPE_SAMPLER:
-					case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-					{
-						// mark sampler ref'd for types that include a sampler
-						for(uint32_t b=0; b < bind.arraySize; b++)
-							if(bindings[b].sampler != VK_NULL_HANDLE)
-								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].sampler)), eFrameRef_Read);
-
-						if(bind.descriptorType == VK_DESCRIPTOR_TYPE_SAMPLER)
-							break;
-
-						// deliberately fall through for combined image sampler
-					}
-					case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-					{
-						// all above types are read-only
-						ref = eFrameRef_Read;
-
-						// deliberately fall through for all sampled images
-					}
-					case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
-					{
-						// mark image ref'd for types that include a image
-						for(uint32_t b=0; b < bind.arraySize; b++)
-							if(bindings[b].imageView != VK_NULL_HANDLE)
-								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].imageView)), ref);
-						break;
-					}
-					case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
-					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-					case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-					{
-						// all above types are read-only
-						ref = eFrameRef_Read;
-
-						// deliberately fall through for uniform buffers
-					}
-					case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
-					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-					case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
-					{
-						// mark buffer ref'd for types that include a buffer
-						for(uint32_t b=0; b < bind.arraySize; b++)
-							if(bindings[b].bufferView != VK_NULL_HANDLE)
-								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].bufferView)), ref);
-						break;
-					}
-					case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
-					{
-						// mark attachment ref'd
-						for(uint32_t b=0; b < bind.arraySize; b++)
-							if(bindings[b].attachmentView != VK_NULL_HANDLE)
-								record->MarkResourceFrameReferenced(GetResourceManager()->GetID(MakeRes(bindings[b].attachmentView)), eFrameRef_Write);
-						break;
-					}
-					default:
-						RDCERR("Unexpected descriptor type");
-				}
-			}
-		}
+			record->boundDescSets.insert(GetResourceManager()->GetID(MakeRes(pDescriptorSets[i])));
 	}
 }
 
@@ -6174,7 +6162,12 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 				// we invert the usual scheme - we make the swapchain record take parent refs
 				// on these images, so that we can just ref the swapchain on present and pull
 				// in all the images
-				GetResourceManager()->GetResourceRecord(MakeRes(swapChain))->AddParent(record);
+				VkResourceRecord *swaprecord = GetResourceManager()->GetResourceRecord(MakeRes(swapChain));
+
+				swaprecord->AddParent(record);
+				// decrement refcount on swap images, so that they are only ref'd from the swapchain
+				// (and will be deleted when it is deleted)
+				record->Delete(GetResourceManager());
 			}
 			else
 			{

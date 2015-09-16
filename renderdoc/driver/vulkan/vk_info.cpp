@@ -180,5 +180,8 @@ void VulkanCreationInfo::DescSetLayout::CreateBindingsArray(vector<VkDescriptorI
 {
 	descBindings.resize(bindings.size());
 	for(size_t i=0; i < bindings.size(); i++)
+	{
 		descBindings[i] = new VkDescriptorInfo[bindings[i].arraySize];
+		memset(descBindings[i], 0, sizeof(VkDescriptorInfo)*bindings[i].arraySize);
+	}
 }

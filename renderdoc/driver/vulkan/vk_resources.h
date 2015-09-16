@@ -173,6 +173,7 @@ struct VkResourceRecord : public ResourceRecord
 		{
 			SwapChunks(bakedCommands);
 			dirtied.swap(bakedCommands->dirtied);
+			boundDescSets.swap(bakedCommands->boundDescSets);
 		}
 
 		// need to only track current memory binding,
@@ -197,15 +198,56 @@ struct VkResourceRecord : public ResourceRecord
 			return memory;
 		}
 
+		void AddBindFrameRef(ResourceId id, FrameRefType ref)
+		{
+			if(id == ResourceId())
+			{
+				RDCERR("Unexpected NULL resource ID being added as a bind frame ref");
+				return;
+			}
+
+			if(bindFrameRefs[id].first == 0)
+			{
+				bindFrameRefs[id] = std::make_pair(1, ref);
+			}
+			else
+			{
+				// be conservative - mark refs as read before write if we see a write and a read ref on it
+				if(ref == eFrameRef_Write && bindFrameRefs[id].second == eFrameRef_Read)
+					bindFrameRefs[id].second = eFrameRef_ReadBeforeWrite;
+				bindFrameRefs[id].first++;
+			}
+		}
+
+		void RemoveBindFrameRef(ResourceId id)
+		{
+			// ignore any NULL IDs - probably an object that was
+			// deleted since it was bound.
+			if(id == ResourceId()) return;
+
+			if(--bindFrameRefs[id].first == 0)
+				bindFrameRefs.erase(id);
+		}
+
 		VkResourceRecord *bakedCommands;
 
 		// a list of resources that are made dirty by submitting this command buffer
 		set<ResourceId> dirtied;
 
+		// a list of descriptor sets that are bound at any point in this command buffer
+		// used to look up all the frame refs per-desc set and apply them on queue
+		// submit with latest binding refs.
+		set<ResourceId> boundDescSets;
+
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.
 		ResourceId layout;
 		vector<VkDescriptorInfo *> descBindings;
+
+		// contains the framerefs (ref counted) for the bound resources
+		// in the binding slots. Updated when updating descriptor sets
+		// and then applied in a block on descriptor set bind.
+		map<ResourceId, pair<int, FrameRefType> > bindFrameRefs;
 
 	private:
 		VkResourceRecord *memory;
