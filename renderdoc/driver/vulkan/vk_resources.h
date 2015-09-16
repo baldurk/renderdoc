@@ -354,6 +354,8 @@ enum VkNamespace
 	eResWSISwapChain,
 };
 
+VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr);
+
 enum NullInitialiser { MakeNullResource };
 
 struct VkResource

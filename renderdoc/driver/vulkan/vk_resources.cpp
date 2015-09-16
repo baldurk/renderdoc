@@ -58,6 +58,44 @@ WRAPPED_POOL_INST(WrappedVkCmdPool)
 
 WRAPPED_POOL_INST(WrappedVkSwapChainWSI)
 
+VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr)
+{
+	if(WrappedVkPhysicalDevice::IsAlloc(ptr))           return eResPhysicalDevice;
+	if(WrappedVkInstance::IsAlloc(ptr))                 return eResInstance;
+	if(WrappedVkDevice::IsAlloc(ptr))                   return eResDevice;
+	if(WrappedVkQueue::IsAlloc(ptr))                    return eResQueue;
+	if(WrappedVkDeviceMemory::IsAlloc(ptr))             return eResDeviceMemory;
+	if(WrappedVkBuffer::IsAlloc(ptr))                   return eResBuffer;
+	if(WrappedVkBufferView::IsAlloc(ptr))               return eResBufferView;
+	if(WrappedVkImage::IsAlloc(ptr))                    return eResImage;
+	if(WrappedVkImageView::IsAlloc(ptr))                return eResImageView;
+	if(WrappedVkAttachmentView::IsAlloc(ptr))           return eResAttachmentView;
+	if(WrappedVkFramebuffer::IsAlloc(ptr))              return eResFramebuffer;
+	if(WrappedVkRenderPass::IsAlloc(ptr))               return eResRenderPass;
+	if(WrappedVkShaderModule::IsAlloc(ptr))             return eResShaderModule;
+	if(WrappedVkShader::IsAlloc(ptr))                   return eResShader;
+	if(WrappedVkPipelineCache::IsAlloc(ptr))            return eResPipelineCache;
+	if(WrappedVkPipelineLayout::IsAlloc(ptr))           return eResPipelineLayout;
+	if(WrappedVkPipeline::IsAlloc(ptr))                 return eResPipeline;
+	if(WrappedVkSampler::IsAlloc(ptr))                  return eResSampler;
+	if(WrappedVkDescriptorPool::IsAlloc(ptr))           return eResDescriptorPool;
+	if(WrappedVkDescriptorSetLayout::IsAlloc(ptr))      return eResDescriptorSetLayout;
+	if(WrappedVkDescriptorSet::IsAlloc(ptr))            return eResDescriptorSet;
+	if(WrappedVkDynamicViewportState::IsAlloc(ptr))     return eResViewportState;
+	if(WrappedVkDynamicRasterState::IsAlloc(ptr))       return eResRasterState;
+	if(WrappedVkDynamicColorBlendState::IsAlloc(ptr))   return eResColorBlendState;
+	if(WrappedVkDynamicDepthStencilState::IsAlloc(ptr)) return eResDepthStencilState;
+	if(WrappedVkCmdPool::IsAlloc(ptr))                  return eResCmdPool;
+	if(WrappedVkCmdBuffer::IsAlloc(ptr))                return eResCmdBuffer;
+	if(WrappedVkFence::IsAlloc(ptr))                    return eResFence;
+	if(WrappedVkSemaphore::IsAlloc(ptr))                return eResSemaphore;
+	if(WrappedVkSwapChainWSI::IsAlloc(ptr))             return eResWSISwapChain;
+
+	RDCERR("Unknown type for ptr 0x%p", ptr);
+
+	return eResUnknown;
+}
+
 bool IsBlockFormat(VkFormat f)
 {
 	switch(f)
