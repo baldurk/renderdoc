@@ -58,6 +58,8 @@ struct WrappedVkRes
 // ensure the struct doesn't accidentally get made larger
 RDCCOMPILE_ASSERT(sizeof(WrappedVkRes) == sizeof(uint64_t)*3, "VkWrappedRes has changed size! This is bad");
 
+// VKTODOLOW check that the pool counts approximated below are good for typical applications
+
 // these are expanded out so that IDE autocompletion etc works without having to process through macros
 struct WrappedVkInstance : WrappedVkRes
 {
@@ -82,7 +84,9 @@ struct WrappedVkQueue : WrappedVkRes
 struct WrappedVkCmdBuffer : WrappedVkRes
 {
 	WrappedVkCmdBuffer(VkCmdBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkCmdBuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer);
+	typedef VkCmdBuffer InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount);
 };
 struct WrappedVkFence : WrappedVkRes
 {
@@ -92,17 +96,26 @@ struct WrappedVkFence : WrappedVkRes
 struct WrappedVkDeviceMemory : WrappedVkRes
 {
 	WrappedVkDeviceMemory(VkDeviceMemory obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkDeviceMemory InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory);
+	typedef VkDeviceMemory InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkBuffer : WrappedVkRes
 {
 	WrappedVkBuffer(VkBuffer obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkBuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer);
+	typedef VkBuffer InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkImage : WrappedVkRes
 {
 	WrappedVkImage(VkImage obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkImage InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage);
+	typedef VkImage InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkSemaphore : WrappedVkRes
 {
@@ -122,27 +135,41 @@ struct WrappedVkQueryPool : WrappedVkRes
 struct WrappedVkBufferView : WrappedVkRes
 {
 	WrappedVkBufferView(VkBufferView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkBufferView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView);
+	typedef VkBufferView InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkImageView : WrappedVkRes
 {
 	WrappedVkImageView(VkImageView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkImageView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView);
+	typedef VkImageView InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkAttachmentView : WrappedVkRes
 {
 	WrappedVkAttachmentView(VkAttachmentView obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkAttachmentView InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView);
+	typedef VkAttachmentView InnerType;
+	static const int AllocPoolCount = 128*1024;
+	static const int AllocPoolMaxByteSize = 3*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkShaderModule : WrappedVkRes
 {
 	WrappedVkShaderModule(VkShaderModule obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkShaderModule InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule);
+	typedef VkShaderModule InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule, AllocPoolCount);
 };
 struct WrappedVkShader : WrappedVkRes
 {
 	WrappedVkShader(VkShader obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkShader InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
+	typedef VkShader InnerType;
+	static const int AllocPoolCount = 32*1024;
+	static const int AllocPoolMaxByteSize = 1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
 };
 struct WrappedVkPipelineCache : WrappedVkRes
 {
@@ -152,7 +179,9 @@ struct WrappedVkPipelineCache : WrappedVkRes
 struct WrappedVkPipelineLayout : WrappedVkRes
 {
 	WrappedVkPipelineLayout(VkPipelineLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkPipelineLayout InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout);
+	typedef VkPipelineLayout InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout, AllocPoolCount);
 };
 struct WrappedVkRenderPass : WrappedVkRes
 {
@@ -162,12 +191,16 @@ struct WrappedVkRenderPass : WrappedVkRes
 struct WrappedVkPipeline : WrappedVkRes
 {
 	WrappedVkPipeline(VkPipeline obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkPipeline InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline);
+	typedef VkPipeline InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline, AllocPoolCount);
 };
 struct WrappedVkDescriptorSetLayout : WrappedVkRes
 {
 	WrappedVkDescriptorSetLayout(VkDescriptorSetLayout obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkDescriptorSetLayout InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout);
+	typedef VkDescriptorSetLayout InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout, AllocPoolCount);
 };
 struct WrappedVkSampler : WrappedVkRes
 {
@@ -182,12 +215,17 @@ struct WrappedVkDescriptorPool : WrappedVkRes
 struct WrappedVkDescriptorSet : WrappedVkRes
 {
 	WrappedVkDescriptorSet(VkDescriptorSet obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkDescriptorSet InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet);
+	typedef VkDescriptorSet InnerType;
+	static const int AllocPoolCount = 256*1024;
+	static const int AllocPoolMaxByteSize = 6*1024*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet, AllocPoolCount, AllocPoolMaxByteSize);
 };
 struct WrappedVkDynamicViewportState : WrappedVkRes
 {
 	WrappedVkDynamicViewportState(VkDynamicViewportState obj, ResourceId objId) : WrappedVkRes(obj, objId) {}
-	typedef VkDynamicViewportState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState);
+	typedef VkDynamicViewportState InnerType;
+	static const int AllocPoolCount = 32*1024;
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState, AllocPoolCount);
 };
 struct WrappedVkDynamicRasterState : WrappedVkRes
 {
