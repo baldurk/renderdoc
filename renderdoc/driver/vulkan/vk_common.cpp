@@ -728,6 +728,48 @@ VulkanResourceManager *manager = NULL;
 #define MGR() VulkanResourceManager::GetInstance()
 
 template<>
+string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(eResUnknown)
+		TOSTR_CASE_STRINGIZE(eResPhysicalDevice)
+		TOSTR_CASE_STRINGIZE(eResInstance)
+		TOSTR_CASE_STRINGIZE(eResDevice)
+		TOSTR_CASE_STRINGIZE(eResQueue)
+		TOSTR_CASE_STRINGIZE(eResDeviceMemory)
+		TOSTR_CASE_STRINGIZE(eResBuffer)
+		TOSTR_CASE_STRINGIZE(eResBufferView)
+		TOSTR_CASE_STRINGIZE(eResImage)
+		TOSTR_CASE_STRINGIZE(eResImageView)
+		TOSTR_CASE_STRINGIZE(eResAttachmentView)
+		TOSTR_CASE_STRINGIZE(eResFramebuffer)
+		TOSTR_CASE_STRINGIZE(eResRenderPass)
+		TOSTR_CASE_STRINGIZE(eResShaderModule)
+		TOSTR_CASE_STRINGIZE(eResShader)
+		TOSTR_CASE_STRINGIZE(eResPipelineCache)
+		TOSTR_CASE_STRINGIZE(eResPipelineLayout)
+		TOSTR_CASE_STRINGIZE(eResPipeline)
+		TOSTR_CASE_STRINGIZE(eResSampler)
+		TOSTR_CASE_STRINGIZE(eResDescriptorPool)
+		TOSTR_CASE_STRINGIZE(eResDescriptorSetLayout)
+		TOSTR_CASE_STRINGIZE(eResDescriptorSet)
+		TOSTR_CASE_STRINGIZE(eResViewportState)
+		TOSTR_CASE_STRINGIZE(eResRasterState)
+		TOSTR_CASE_STRINGIZE(eResColorBlendState)
+		TOSTR_CASE_STRINGIZE(eResDepthStencilState)
+		TOSTR_CASE_STRINGIZE(eResCmdPool)
+		TOSTR_CASE_STRINGIZE(eResCmdBuffer)
+		TOSTR_CASE_STRINGIZE(eResFence)
+		TOSTR_CASE_STRINGIZE(eResSemaphore)
+		TOSTR_CASE_STRINGIZE(eResWSISwapChain)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkResourceType<%d>", el);
+}
+
+template<>
 string ToStrHelper<false, VkDeviceCreateFlagBits>::Get(const VkDeviceCreateFlagBits &el)
 {
 	string ret;

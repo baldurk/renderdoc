@@ -403,10 +403,9 @@ VkResourceRecord *GetRecord(RealType obj)
 	return GetWrapped(obj)->record;
 }
 
-enum VkNamespace
+enum VkResourceType
 {
 	eResUnknown = 0,
-	eResSpecial,
 	eResPhysicalDevice,
 	eResInstance,
 	eResDevice,
@@ -434,7 +433,6 @@ enum VkNamespace
 	eResDepthStencilState,
 	eResCmdPool,
 	eResCmdBuffer,
-	eResCmdBufferBake,
 	eResFence,
 	eResSemaphore,
 	
@@ -442,7 +440,7 @@ enum VkNamespace
 };
 
 bool IsDispatchableRes(WrappedVkRes *ptr);
-VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr);
+VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);
 
 #define UNTRANSITIONED_IMG_STATE ((VkImageLayout)0xffffffff)
 

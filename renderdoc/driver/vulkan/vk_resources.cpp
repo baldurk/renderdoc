@@ -64,7 +64,7 @@ bool IsDispatchableRes(WrappedVkRes *ptr)
 					|| WrappedVkDevice::IsAlloc(ptr) || WrappedVkQueue::IsAlloc(ptr) || WrappedVkCmdBuffer::IsAlloc(ptr));
 }
 
-VkNamespace IdentifyTypeByPtr(WrappedVkRes *ptr)
+VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 {
 	if(WrappedVkPhysicalDevice::IsAlloc(ptr))           return eResPhysicalDevice;
 	if(WrappedVkInstance::IsAlloc(ptr))                 return eResInstance;
