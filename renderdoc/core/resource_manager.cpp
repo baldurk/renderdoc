@@ -36,7 +36,10 @@ namespace ResourceIDGen
 
 	void SetReplayResourceIDs()
 	{
-		globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter|0x1000000000000000ULL));
+		// separate replay IDs from live IDs by adding a value when replaying.
+		// 1000000000000000000 live IDs before we overlap replay IDs gives
+		// almost 32 years generating 100000 IDs per frame at 10000 FPS.
+		globalIDCounter = RDCMAX(uint64_t(globalIDCounter), uint64_t(globalIDCounter+1000000000000000000ULL));
 	}
 };
 
