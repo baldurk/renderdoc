@@ -24,6 +24,7 @@
     <ClCompile Include="rdtrace.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
+    <ClCompile Include="vk_debug.cpp" />
     <ClCompile Include="vk_hooks_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -52,6 +53,7 @@
   <ItemGroup>
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_core.h" />
+    <ClInclude Include="vk_debug.h" />
     <ClInclude Include="vk_hookset.h" />
     <ClInclude Include="vk_hookset_defs.h" />
     <ClInclude Include="vk_info.h" />

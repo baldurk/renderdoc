@@ -50,6 +50,7 @@ vk_manager.o \
 vk_resources.o \
 LoaderAndTools/layers/vk_layer_table.o \
 vk_replay.o \
+vk_debug.o \
 vk_info.o \
 vk_replay_linux.o \
 )

@@ -11,6 +11,7 @@
     <ClCompile Include="vk_hooks_linux.cpp" />
     <ClCompile Include="vk_resources.cpp" />
     <ClCompile Include="vk_info.cpp" />
+    <ClCompile Include="vk_debug.cpp" />
     <ClCompile Include="rdtrace.cpp" />
     <ClCompile Include="LoaderAndTools\layers\vk_layer_table.cpp">
       <Filter>ext</Filter>
@@ -28,6 +29,7 @@
     <ClInclude Include="vk_resources.h" />
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_info.h" />
+    <ClInclude Include="vk_debug.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="ext">

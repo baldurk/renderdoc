@@ -106,6 +106,7 @@ class WrappedVulkan
 {
 private:
 	friend class VulkanReplay;
+	friend class VulkanDebugManager;
 	
 	enum {
 		eInitialContents_Copy = 0,
@@ -152,7 +153,7 @@ private:
 		ReplayData()
 			: inst(VK_NULL_HANDLE), phys(VK_NULL_HANDLE)
 			, qFamilyIdx(0), dev(VK_NULL_HANDLE), q(VK_NULL_HANDLE)
-			, cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE) {}
+			, cmd(VK_NULL_HANDLE), cmdpool(VK_NULL_HANDLE), debugMan(NULL) {}
 
 		VkInstance inst;
 		VkPhysicalDevice phys;
@@ -161,6 +162,8 @@ private:
 		VkQueue q;
 		VkCmdBuffer cmd;
 		VkCmdPool cmdpool;
+
+		VulkanDebugManager *debugMan;
 
 		uint32_t GetMemoryIndex(uint32_t resourceRequiredBitmask, uint32_t allocRequiredProps, uint32_t allocUndesiredProps); 
 
@@ -187,6 +190,9 @@ private:
 	};
 	ExtensionSupport globalExts;
 	map<ResourceId, ExtensionSupport> deviceExts;
+	
+	VulkanDebugManager *GetDebugManager()
+	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].debugMan; }
 
 	VkDevice GetDev()    { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].dev; }
 	VkQueue GetQ()       { RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].q;   }
@@ -332,11 +338,14 @@ private:
 		VkExtent2D extent;
 		int arraySize;
 
+		VkRenderPass rp;
+
 		struct SwapImage
 		{
 			VkDeviceMemory mem;
 			VkImage im;
-			ImageRegionState state;
+
+			VkFramebuffer fb;
 		};
 		vector<SwapImage> images;
 	};

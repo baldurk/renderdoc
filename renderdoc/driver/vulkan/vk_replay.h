@@ -58,6 +58,7 @@ using std::map;
 #define VULKANNOTIMP(...) RDCDEBUG("Vulkan not implemented - " __VA_ARGS__)
 
 class WrappedVulkan;
+class VulkanDebugManager;
 
 class VulkanReplay : public IReplayDriver
 {
@@ -214,46 +215,5 @@ class VulkanReplay : public IReplayDriver
 		
 		WrappedVulkan *m_pDriver;
 
-		// Debug data
-
-		struct UBO
-		{
-			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
-			void Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size);
-			void Destroy(const VkLayerDispatchTable *vk, VkDevice dev);
-
-			void *Map(const VkLayerDispatchTable *vk, VkDevice dev, VkDeviceSize offset = 0, VkDeviceSize size = 0);
-			void Unmap(const VkLayerDispatchTable *vk, VkDevice dev);
-
-			VkBuffer buf;
-			VkDeviceMemory mem;
-			VkBufferView view;
-		};
-
-		struct
-		{
-			VkPipelineCache m_PipelineCache;
-			VkDescriptorPool m_DescriptorPool;
-			VkDynamicColorBlendState m_DynamicCBStateWhite;
-			VkDynamicRasterState m_DynamicRSState;
-			VkDynamicDepthStencilState m_DynamicDSStateDisabled;
-			VkSampler m_LinearSampler, m_PointSampler;
-
-			VkImageView m_FakeBBImView;
-
-			VkDescriptorSetLayout m_CheckerboardDescSetLayout;
-			VkPipelineLayout m_CheckerboardPipeLayout;
-			VkDescriptorSet m_CheckerboardDescSet;
-			VkPipeline m_CheckerboardPipeline;
-			UBO m_CheckerboardUBO;
-
-			VkDescriptorSetLayout m_TexDisplayDescSetLayout;
-			VkPipelineLayout m_TexDisplayPipeLayout;
-			VkDescriptorSet m_TexDisplayDescSet;
-			VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
-			UBO m_TexDisplayUBO;
-		} m_DebugData;
-
-		void InitDebugData();
-		void ShutdownDebugData();
+		VulkanDebugManager &GetDebugManager();
 };

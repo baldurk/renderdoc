@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "vk_core.h"
+#include "vk_debug.h"
+
 #include "serialise/string_utils.h"
 
 #include "maths/formatpacking.h"
@@ -406,7 +408,7 @@ WrappedVulkan::~WrappedVulkan()
 	}
 #endif
 
-	// should only have one swapchain, since we are only handling the simple case
+	// VKTODOLOW should only have one swapchain, since we are only handling the simple case
 	// of one device, etc for now.
 	RDCASSERT(m_SwapChainInfo.size() == 1);
 	for(auto it = m_SwapChainInfo.begin(); it != m_SwapChainInfo.end(); ++it)
@@ -420,6 +422,16 @@ WrappedVulkan::~WrappedVulkan()
 				vkDestroyImage(GetDev(), it->second.images[i].im);
 				vkFreeMemory(GetDev(), it->second.images[i].mem);
 			}
+			
+			if(it->second.images[i].fb != VK_NULL_HANDLE)
+			{
+				device_dispatch_table(GetDev())->DestroyFramebuffer(GetDev(), it->second.images[i].fb);
+			}
+		}
+
+		if(it->second.rp != VK_NULL_HANDLE)
+		{
+			device_dispatch_table(GetDev())->DestroyRenderPass(GetDev(), it->second.rp);
 		}
 	}
 	m_SwapChainInfo.clear();
@@ -734,6 +746,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				vkr = device_dispatch_table(*pDevice)->CreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 
+				// VKTODOHIGH hack, need to properly handle multiple devices etc and
+				// not have this 'current swap chain device' thing.
+				m_SwapPhysDevice = (int)i;
+
+				// VKTODOLOW leaking debug manager
+				m_PhysicalReplayData[i].debugMan = new VulkanDebugManager(this, device);
+
 #if defined(FORCE_VALIDATION_LAYER)
 				if(device_dispatch_table(*pDevice)->DbgCreateMsgCallback)
 				{
@@ -866,6 +885,12 @@ VkResult WrappedVulkan::vkCreateDevice(
 				vkr = device_dispatch_table(*pDevice)->CreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 				found = true;
+
+				// VKTODOHIGH hack, need to properly handle multiple devices etc and
+				// not have this 'current swap chain device' thing.
+				m_SwapPhysDevice = (int)i;
+				
+				m_PhysicalReplayData[i].debugMan = new VulkanDebugManager(this, *pDevice);
 				break;
 			}
 		}
@@ -6694,6 +6719,15 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 		RDCWARN("Presenting multiple swapchains at once - only first will be processed");
 	}
 	
+	// VKTODOLOW handle present info pNext
+	RDCASSERT(pPresentInfo->pNext == NULL);
+	
+	ResourceId swapid = GetResourceManager()->GetID(MakeRes(pPresentInfo->swapChains[0]));
+
+	const SwapInfo &swapInfo = m_SwapChainInfo[swapid];
+
+	VkImage backbuffer = swapInfo.images[pPresentInfo->imageIndices[0]].im;
+
 	if(m_State == WRITING_IDLE)
 	{
 		m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
@@ -6739,16 +6773,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 		{
 			RDCLOG("Finished capture, Frame %u", m_FrameCounter);
 
-			ResourceId swapid = GetResourceManager()->GetID(MakeRes(pPresentInfo->swapChains[0]));
-
 			GetResourceManager()->MarkResourceFrameReferenced(swapid, eFrameRef_Read);
-
-			// VKTODOLOW handle present info pNext
-			RDCASSERT(pPresentInfo->pNext == NULL);
-
-			const SwapInfo &swapInfo = m_SwapChainInfo[swapid];
-
-			VkImage backbuffer = swapInfo.images[pPresentInfo->imageIndices[0]].im;
 
 			EndCaptureFrame(backbuffer);
 			FinishCapture();
@@ -7756,6 +7781,21 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 			m_FakeBBIm = (VkImage)GetResourceManager()->GetLiveResource(bbid).handle;
 			m_FakeBBExtent = m_ImageInfo[liveBBid].extent;
 			m_FakeBBFmt = MakeResourceFormat(m_ImageInfo[liveBBid].format);
+	
+			{
+				VkImageViewCreateInfo bbviewInfo = {
+					VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+					m_FakeBBIm, VK_IMAGE_VIEW_TYPE_2D,
+					m_ImageInfo[liveBBid].format,
+					{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+					{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
+				};
+				
+				// VKTODOMED used for texture display, but eventually will have to be created on the fly
+				// for whichever image we're viewing (and cached), not specifically created here.
+				VkResult vkr = device_dispatch_table(GetDev())->CreateImageView(GetDev(), &bbviewInfo, &GetDebugManager()->m_FakeBBImView);
+				RDCASSERT(vkr == VK_SUCCESS);
+			}
 
 			bool HasCallstack = false;
 			m_pSerialiser->Serialise("HasCallstack", HasCallstack);	
