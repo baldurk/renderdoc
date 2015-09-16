@@ -216,8 +216,6 @@ class VulkanReplay : public IReplayDriver
 
 		// Debug data
 
-		void InitDebugData();
-
 		struct UBO
 		{
 			UBO() : buf(VK_NULL_HANDLE), mem(VK_NULL_HANDLE), view(VK_NULL_HANDLE) {}
@@ -232,24 +230,30 @@ class VulkanReplay : public IReplayDriver
 			VkBufferView view;
 		};
 
-		VkPipelineCache m_PipelineCache;
-		VkDescriptorPool m_DescriptorPool;
-		VkDynamicColorBlendState m_DynamicCBStateWhite;
-		VkDynamicRasterState m_DynamicRSState;
-		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
-		VkSampler m_LinearSampler, m_PointSampler;
+		struct
+		{
+			VkPipelineCache m_PipelineCache;
+			VkDescriptorPool m_DescriptorPool;
+			VkDynamicColorBlendState m_DynamicCBStateWhite;
+			VkDynamicRasterState m_DynamicRSState;
+			VkDynamicDepthStencilState m_DynamicDSStateDisabled;
+			VkSampler m_LinearSampler, m_PointSampler;
 
-		VkImageView m_FakeBBImView;
-		
-		VkDescriptorSetLayout m_CheckerboardDescSetLayout;
-		VkPipelineLayout m_CheckerboardPipeLayout;
-		VkDescriptorSet m_CheckerboardDescSet;
-		VkPipeline m_CheckerboardPipeline;
-		UBO m_CheckerboardUBO;
-		
-		VkDescriptorSetLayout m_TexDisplayDescSetLayout;
-		VkPipelineLayout m_TexDisplayPipeLayout;
-		VkDescriptorSet m_TexDisplayDescSet;
-		VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
-		UBO m_TexDisplayUBO;
+			VkImageView m_FakeBBImView;
+
+			VkDescriptorSetLayout m_CheckerboardDescSetLayout;
+			VkPipelineLayout m_CheckerboardPipeLayout;
+			VkDescriptorSet m_CheckerboardDescSet;
+			VkPipeline m_CheckerboardPipeline;
+			UBO m_CheckerboardUBO;
+
+			VkDescriptorSetLayout m_TexDisplayDescSetLayout;
+			VkPipelineLayout m_TexDisplayPipeLayout;
+			VkDescriptorSet m_TexDisplayDescSet;
+			VkPipeline m_TexDisplayPipeline, m_TexDisplayBlendPipeline;
+			UBO m_TexDisplayUBO;
+		} m_DebugData;
+
+		void InitDebugData();
+		void ShutdownDebugData();
 };
