@@ -48,6 +48,21 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 		
 		static VulkanResourceManager *GetInstance() { return m_Inst; }
 		
+		template<typename realtype>
+		void AddLiveResource(ResourceId id, realtype obj)
+		{
+			ResourceManager::AddLiveResource(id, GetWrapped(obj));
+		}
+		
+		template<typename realtype>
+		VkResourceRecord *AddResourceRecord(realtype &obj)
+		{
+			WrappedVkRes *wrapped = GetWrapped(obj);
+			VkResourceRecord *ret = wrapped->record = ResourceManager::AddResourceRecord(wrapped->id);
+
+			return ret;
+		}
+		
 		// handling memory & image transitions
 		void RecordTransitions(vector< pair<ResourceId, ImageRegionState> > &trans, map<ResourceId, ImgState> &states,
 			                   uint32_t numTransitions, const VkImageMemoryBarrier *transitions);
