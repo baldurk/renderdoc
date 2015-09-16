@@ -467,6 +467,11 @@ struct ImageRegionState
 	VkImageLayout state;
 };
 
+inline bool operator <(const VkDescriptorSet a, const VkDescriptorSet b)
+{
+	return a.handle < b.handle;
+}
+
 struct VkResourceRecord : public ResourceRecord
 {
 	public:
@@ -554,7 +559,7 @@ struct VkResourceRecord : public ResourceRecord
 		// a list of descriptor sets that are bound at any point in this command buffer
 		// used to look up all the frame refs per-desc set and apply them on queue
 		// submit with latest binding refs.
-		set<ResourceId> boundDescSets;
+		set<VkDescriptorSet> boundDescSets;
 
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.
