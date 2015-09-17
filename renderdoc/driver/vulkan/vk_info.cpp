@@ -24,18 +24,22 @@
 
 #include "vk_info.h"
 
+template<typename realtype>
+static ResourceId GetIDFromReal(realtype real)
+{
+	return ((WrappedVkNonDispRes *)VKMGR()->GetWrapper(RealVkRes(real.handle)))->id;
+}
+
 void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCreateInfo)
 {
 		flags = pCreateInfo->flags;
 
 		// need to figure out which states are valid to be NULL
 		
-		RDCASSERT(0 && "GetResID won't work here - these are unwrapped");
-
 		// VkPipelineShaderStageCreateInfo
 		RDCEraseEl(shaders);
 		for(uint32_t i=0; i < pCreateInfo->stageCount; i++)
-			shaders[ pCreateInfo->pStages[i].stage ] = GetResID(pCreateInfo->pStages[i].shader);
+			shaders[ pCreateInfo->pStages[i].stage ] = GetIDFromReal(pCreateInfo->pStages[i].shader);
 
 		if(pCreateInfo->pVertexInputState)
 		{
@@ -156,7 +160,7 @@ void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreat
 
 	attachments.resize(pCreateInfo->attachmentCount);
 	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
-		attachments[i].view = GetResID(pCreateInfo->pAttachments[i].view);
+		attachments[i].view = GetIDFromReal(pCreateInfo->pAttachments[i].view);
 }
 
 void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
@@ -173,7 +177,7 @@ void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateIn
 			bindings[i].immutableSampler = new ResourceId[bindings[i].arraySize];
 
 			for(uint32_t s=0; s < bindings[i].arraySize; s++)
-				bindings[i].immutableSampler[s] = GetResID(pCreateInfo->pBinding[i].pImmutableSamplers[s]);
+				bindings[i].immutableSampler[s] = GetIDFromReal(pCreateInfo->pBinding[i].pImmutableSamplers[s]);
 		}
 	}
 }

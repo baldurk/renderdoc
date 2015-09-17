@@ -29,6 +29,12 @@
 
 #include "serialise/string_utils.h"
 
+template<typename realtype>
+static ResourceId GetIDFromReal(realtype real)
+{
+	return ((WrappedVkNonDispRes *)VKMGR()->GetWrapper(RealVkRes(real.handle)))->id;
+}
+
 // VKTODOMED should share this between shader and C++ - need #include support in glslang
 struct displayuniforms
 {
@@ -1313,20 +1319,18 @@ void VulkanReplay::SavePipelineState()
 							create_array_uninit(dst.bindings[b].elems, layoutBind.arraySize);
 							for(uint32_t a=0; a < layoutBind.arraySize; a++)
 							{
-								RDCASSERT(0 && "GetResID won't work here - these are unwrapped");
-
 								if(layoutBind.immutableSampler)
 									dst.bindings[b].elems[a].sampler = layoutBind.immutableSampler[a];
 								else if(info->sampler != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(GetResID(info->sampler));
+									dst.bindings[b].elems[a].sampler = rm->GetOriginalID(GetIDFromReal(info->sampler));
 
 								// only one of these is ever set
 								if(info->imageView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->imageView));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetIDFromReal(info->imageView));
 								if(info->bufferView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->bufferView));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetIDFromReal(info->bufferView));
 								if(info->attachmentView != VK_NULL_HANDLE)
-									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetResID(info->attachmentView));
+									dst.bindings[b].elems[a].view = rm->GetOriginalID(GetIDFromReal(info->attachmentView));
 							}
 						}
 					}

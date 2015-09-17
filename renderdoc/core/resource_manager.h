@@ -1134,7 +1134,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, Recor
 	SCOPED_LOCK(m_Lock);
 	
 	if(real == (RealResourceType)RecordType::NullResource)
-		return (RealResourceType)RecordType::NullResource;
+		return (WrappedResourceType)RecordType::NullResource;
 
 	if(real != (RealResourceType)RecordType::NullResource && !HasWrapper(real))
 	{

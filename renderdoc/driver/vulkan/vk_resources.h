@@ -55,6 +55,7 @@ struct RealVkRes
 	RealVkRes(uint64_t nondisp) : handle(nondisp) {}
 
 	bool operator ==(const RealVkRes o) const { return handle == o.handle; }
+	bool operator !=(const RealVkRes o) const { return handle != o.handle; }
 	bool operator < (const RealVkRes o) const { return handle <  o.handle; }
 
 	uint64_t handle;
