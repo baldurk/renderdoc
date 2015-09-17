@@ -61,20 +61,20 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 
 struct WrappedVkDispRes : public WrappedVkRes
 {
-	WrappedVkDispRes(VkInstance obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)instance_dispatch_table(obj); }
+	WrappedVkDispRes(VkInstance obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)instance_dispatch_table(obj); }
+	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable = *(uintptr_t*)obj; }
 	
-	WrappedVkDispRes(VkDevice obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+	WrappedVkDispRes(VkDevice obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkQueue obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
-	{ loaderTable = *(uintptr_t*)obj; table = (uintptr_t)device_dispatch_table(obj); }
+	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	{ loaderTable = *(uintptr_t*)obj; }
 
 	// VKTODOLOW there's padding here on 32-bit but I don't know if I really care about 32-bit.
 
@@ -102,24 +102,28 @@ struct WrappedVkInstance : WrappedVkDispRes
 	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
 	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
+	enum { UseInstanceDispatchTable = true, };
 };
 struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
 	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
 	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
+	enum { UseInstanceDispatchTable = true, };
 };
 struct WrappedVkDevice : WrappedVkDispRes
 {
 	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
 	typedef VkLayerDispatchTable_ DispatchTableType;
+	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkQueue : WrappedVkDispRes
 {
 	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
 	typedef VkLayerDispatchTable_ DispatchTableType;
+	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkCmdBuffer : WrappedVkDispRes
 {
@@ -129,6 +133,7 @@ struct WrappedVkCmdBuffer : WrappedVkDispRes
 	static const int AllocPoolMaxByteSize = 2*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 	typedef VkLayerDispatchTable_ DispatchTableType;
+	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkFence : WrappedVkNonDispRes
 {

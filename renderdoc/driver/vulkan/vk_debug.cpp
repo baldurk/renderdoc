@@ -81,7 +81,7 @@ struct stringdata
 
 void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDeviceSize size)
 {
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkBufferCreateInfo bufInfo = {
 		VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
@@ -196,7 +196,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	m_Device = dev;
 	
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
 
@@ -704,7 +704,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 VulkanDebugManager::~VulkanDebugManager()
 {
 	VkDevice dev = m_Device;
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
 
@@ -857,7 +857,7 @@ void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, fl
 
 void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text)
 {
-	const VkLayerDispatchTable *vt = device_dispatch_table(m_Device);
+	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
 
 	// VKTODOMED needs to be optimised to do all in one cmd buffer with
 	// a start/stop pair of calls that map a UBO, then do each draw with

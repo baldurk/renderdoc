@@ -97,7 +97,7 @@ void VulkanReplay::OutputWindow::SetDS(VkDeviceMemory mem, VkImage img)
 
 void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 {
-	const VkLayerDispatchTable *vt = device_dispatch_table(device);
+	const VkLayerDispatchTable *vt = ObjDisp(device);
 
 	vt->DeviceWaitIdle(device);
 	
@@ -143,7 +143,7 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 
 void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, bool depth)
 {
-	const VkLayerDispatchTable *vt = device_dispatch_table(device);
+	const VkLayerDispatchTable *vt = ObjDisp(device);
 	
 	// save the old swapchain so it isn't destroyed
 	VkSwapChainWSI old = swap;
@@ -498,7 +498,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	// VKTODOMED this should be all created offline, including separate host and
 	// readback buffers
@@ -623,7 +623,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
@@ -790,7 +790,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 	
@@ -908,7 +908,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 	
 	VkSemaphore sem;
 	VkSemaphoreCreateInfo semInfo = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT };
@@ -966,7 +966,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
@@ -1005,7 +1005,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
-	const VkLayerDispatchTable *vt = device_dispatch_table(dev);
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 

@@ -51,8 +51,29 @@
 extern VkLayerDispatchTable *dummyDeviceTable;
 extern VkLayerInstanceDispatchTable *dummyInstanceTable;
 
-#define device_dispatch_table(dev) (dummyDeviceTable ? dummyDeviceTable : device_dispatch_table(dev))
-#define instance_dispatch_table(inst) (dummyInstanceTable ? dummyInstanceTable : instance_dispatch_table(inst))
+template<typename wrappedtype>
+void SetDispatchTable(bool writing, wrappedtype *wrapped)
+{
+	if(writing)
+	{
+		wrapped->table = wrappedtype::UseInstanceDispatchTable
+			? (uintptr_t)instance_dispatch_table((void *)wrapped->real)
+			: (uintptr_t)device_dispatch_table((void *)wrapped->real);
+	}
+	else
+	{
+		wrapped->table = wrappedtype::UseInstanceDispatchTable
+			? (uintptr_t)dummyInstanceTable
+			: (uintptr_t)dummyDeviceTable;
+	}
+}
+
+template<typename wrappedtype> inline void SetTableIfDispatchable(bool writing, wrappedtype *obj) {}
+template<> inline void SetTableIfDispatchable(bool writing, WrappedVkInstance *obj)       { SetDispatchTable(writing, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, WrappedVkPhysicalDevice *obj) { SetDispatchTable(writing, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, WrappedVkDevice *obj)         { SetDispatchTable(writing, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, WrappedVkQueue *obj)          { SetDispatchTable(writing, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, WrappedVkCmdBuffer *obj)      { SetDispatchTable(writing, obj); }
 
 using std::vector;
 using std::list;
@@ -376,7 +397,7 @@ private:
 	void BeginCaptureFrame();
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
-
+	
 	template<typename realtype>
 	ResourceId WrapResource(realtype &obj)
 	{
@@ -384,6 +405,8 @@ private:
 
 		ResourceId id = ResourceIDGen::GetNewUniqueID();
 		typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
+		
+		SetTableIfDispatchable(m_State >= WRITING, wrapped);
 
 		GetResourceManager()->AddCurrentResource(id, wrapped);
 
