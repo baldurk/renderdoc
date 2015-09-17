@@ -256,7 +256,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 
 	// GSFTODO: Fix this
 	// VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
-	VkResult ret = ObjDisp(inst)->CreateInstance(&instinfo, &inst);
+	VkResult ret = dummyInstanceTable->CreateInstance(&instinfo, &inst);
 
 	WrapResource(inst);
 	GetResourceManager()->AddLiveResource(params.InstanceID, inst);
@@ -460,7 +460,9 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkInstance inst = *pInstance;
 
-	VkResult ret = ObjDisp(*pInstance)->CreateInstance(pCreateInfo, &inst);
+	VkResult ret = instance_dispatch_table(*pInstance)->CreateInstance(pCreateInfo, &inst);
+
+	WrapResource(inst);
 
 	if(ret != VK_SUCCESS)
 		return ret;
@@ -475,7 +477,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	// VKTODOLOW we should try and fetch vkDbgCreateMsgCallback ourselves if it isn't
 	// already loaded
-	PFN_vkDbgCreateMsgCallback dcmc_fn = ObjDisp(*pInstance)->DbgCreateMsgCallback;
+	PFN_vkDbgCreateMsgCallback dcmc_fn = ObjDisp(inst)->DbgCreateMsgCallback;
 	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && dcmc_fn)
 	{
 		VkFlags flags = VK_DBG_REPORT_INFO_BIT |
@@ -485,8 +487,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 										VK_DBG_REPORT_DEBUG_BIT;
 		dcmc_fn(inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
 	}
-
-	WrapResource(inst);
 
 	if(m_State >= WRITING)
 	{
@@ -851,10 +851,12 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
-	VkResult ret = ObjDisp(*pDevice)->CreateDevice(physicalDevice, &createInfo, pDevice);
+	VkResult ret = device_dispatch_table(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
 
 	if(ret == VK_SUCCESS)
 	{
+		ResourceId id = WrapResource(*pDevice);
+		
 		found = false;
 
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
@@ -889,8 +891,6 @@ VkResult WrappedVulkan::vkCreateDevice(
 		if(!found)
 			RDCERR("Couldn't find VkPhysicalDevice for vkCreateDevice!");
 
-		ResourceId id = WrapResource(*pDevice);
-		
 		if(m_State >= WRITING)
 		{
 			Chunk *chunk = NULL;
