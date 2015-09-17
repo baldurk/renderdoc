@@ -35,6 +35,9 @@ using std::pair;
 
 class WrappedVulkan;
 
+// VKTODOLOW maybe make this a bit nicer? I'm not sure.
+#define VKMGR() VulkanResourceManager::GetInstance()
+
 class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, VkResourceRecord>
 {
 	public: 

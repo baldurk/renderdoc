@@ -724,9 +724,6 @@ PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patch
 
 // VKTODOMED need a Deserialise or otherwise deallocate function to release buffers or new'd memory
 
-VulkanResourceManager *manager = NULL;
-#define MGR() VulkanResourceManager::GetInstance()
-
 template<>
 string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 {
@@ -1868,7 +1865,7 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 				ResourceId id; \
 				if(m_Mode >= WRITING) id = GetResID(obj); \
 				Serialise(name, id); \
-				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : Unwrap(MGR()->GetLiveHandle<type>(id)); \
+				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : Unwrap(VKMGR()->GetLiveHandle<type>(id)); \
 			}
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)
