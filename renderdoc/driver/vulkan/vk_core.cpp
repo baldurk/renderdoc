@@ -541,13 +541,13 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 		VkPhysicalDevice *devices;
 
 		instance = GetResourceManager()->GetLiveHandle<VkInstance>(inst);
-		VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(instance, &count, NULL);
+		VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		RDCASSERT(count > physIndex);
 		devices = new VkPhysicalDevice[count];
 
-		vkr = ObjDisp(instance)->EnumeratePhysicalDevices(instance, &count, devices);
+		vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOLOW match up physical devices to those available on replay
@@ -564,7 +564,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	data.inst = instance;
 	data.phys = pd;
 
-	ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(pd, &data.memProps);
+	ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &data.memProps);
 
 	data.readbackMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 	data.uploadMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
@@ -582,14 +582,14 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 {
 	uint32_t count;
 
-	VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(instance, &count, NULL);
+	VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
 
 	if(vkr != VK_SUCCESS)
 		return vkr;
 
 	VkPhysicalDevice *devices = new VkPhysicalDevice[count];
 
-	vkr = ObjDisp(instance)->EnumeratePhysicalDevices(instance, &count, devices);
+	vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	for(uint32_t i=0; i < count; i++)
@@ -629,11 +629,11 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		VkDevice device;
 
 		uint32_t qCount = 0;
-		VkResult vkr = ObjDisp(rmPhys)->GetPhysicalDeviceQueueCount(rmPhys, &qCount);
+		VkResult vkr = ObjDisp(rmPhys)->GetPhysicalDeviceQueueCount(Unwrap(rmPhys), &qCount);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
-		vkr = ObjDisp(rmPhys)->GetPhysicalDeviceQueueProperties(rmPhys, qCount, props);
+		vkr = ObjDisp(rmPhys)->GetPhysicalDeviceQueueProperties(Unwrap(rmPhys), qCount, props);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		bool found = false;
@@ -696,7 +696,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
 
-		VkResult ret = ObjDisp(*pDevice)->CreateDevice(rmPhys, &createInfo, &device);
+		VkResult ret = ObjDisp(*pDevice)->CreateDevice(Unwrap(rmPhys), &createInfo, &device);
 
 		WrapResource(device);
 		GetResourceManager()->AddLiveResource(devId, device);
@@ -733,15 +733,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
 
-				VkResult vkr = ObjDisp(*pDevice)->GetDeviceQueue(device, qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = ObjDisp(*pDevice)->GetDeviceQueue(Unwrap(device), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-				vkr = ObjDisp(*pDevice)->CreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = ObjDisp(*pDevice)->CreateCommandPool(Unwrap(device), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 #if defined(FORCE_VALIDATION_LAYER)
@@ -752,7 +752,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 						VK_DBG_REPORT_PERF_WARN_BIT |
 						VK_DBG_REPORT_ERROR_BIT |
 						VK_DBG_REPORT_DEBUG_BIT;
-					vkr = ObjDisp(*pDevice)->DbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+					vkr = ObjDisp(*pDevice)->DbgCreateMsgCallback(Unwrap(m_PhysicalReplayData[i].inst), flags, &DebugCallbackStatic, this, &m_MsgCallback);
 					RDCASSERT(vkr == VK_SUCCESS);
 					RDCLOG("Created dbg callback");
 				}
@@ -784,11 +784,11 @@ VkResult WrappedVulkan::vkCreateDevice(
 	VkDeviceCreateInfo createInfo = *pCreateInfo;
 
 	uint32_t qCount = 0;
-	VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(physicalDevice, &qCount);
+	VkResult vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(Unwrap(physicalDevice), &qCount);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkPhysicalDeviceQueueProperties *props = new VkPhysicalDeviceQueueProperties[qCount];
-	vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(physicalDevice, qCount, props);
+	vkr = ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(Unwrap(physicalDevice), qCount, props);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// find a queue that supports all capabilities, and if one doesn't exist, add it.
@@ -867,15 +867,15 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
 
-				vkr = ObjDisp(*pDevice)->GetDeviceQueue(*pDevice, qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
+				vkr = ObjDisp(*pDevice)->GetDeviceQueue(Unwrap(*pDevice), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-				vkr = ObjDisp(*pDevice)->CreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = ObjDisp(*pDevice)->CreateCommandPool(Unwrap(*pDevice), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(*pDevice), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 				found = true;
 
@@ -970,7 +970,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFeatures(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(physicalDevice, pFeatures);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), pFeatures);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
@@ -978,7 +978,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
     VkFormat                                    format,
     VkFormatProperties*                         pFormatProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceFormatProperties(physicalDevice, format, pFormatProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceFormatProperties(Unwrap(physicalDevice), format, pFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
@@ -989,28 +989,28 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
     VkImageUsageFlags                           usage,
     VkImageFormatProperties*                    pImageFormatProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(physicalDevice, format, type, tiling, usage, pImageFormatProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceImageFormatProperties(Unwrap(physicalDevice), format, type, tiling, usage, pImageFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceLimits(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceLimits*                     pLimits)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceLimits(physicalDevice, pLimits);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceLimits(Unwrap(physicalDevice), pLimits);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(physicalDevice, pProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceProperties(Unwrap(physicalDevice), pProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceQueueCount(
     VkPhysicalDevice                            physicalDevice,
     uint32_t*                                   pCount)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(physicalDevice, pCount);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueCount(Unwrap(physicalDevice), pCount);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceQueueProperties(
@@ -1018,14 +1018,14 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceQueueProperties(
     uint32_t                                    count,
     VkPhysicalDeviceQueueProperties*            pQueueProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(physicalDevice, count, pQueueProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceQueueProperties(Unwrap(physicalDevice), count, pQueueProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceMemoryProperties*           pMemoryProperties)
 {
-	return ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(physicalDevice, pMemoryProperties);
+	return ObjDisp(physicalDevice)->GetPhysicalDeviceMemoryProperties(Unwrap(physicalDevice), pMemoryProperties);
 }
 
 VkResult WrappedVulkan::vkGetImageSubresourceLayout(
