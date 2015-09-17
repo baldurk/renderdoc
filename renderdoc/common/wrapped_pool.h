@@ -130,15 +130,18 @@ class WrappingPool
 #endif
 		}
 
+		static const size_t AllocCount = PoolCount;
+		static const size_t AllocMaxByteSize = MaxPoolByteSize;
+		static const size_t AllocByteSize;
+
 	private:
 		WrappingPool()
 		{
 #ifdef INCLUDE_TYPE_NAMES
-			RDCDEBUG("WrappingPool<%s> %d in %.2fMB: %p -> %p", GetTypeName<WrapType>::Name(), PoolCount, float(PoolCount*AllocByteSize)/(1024.0f*1024.0f), &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
+			// hack - print in kB because float printing relies on statics that might not be initialised
+			// yet in loading order. Ugly :(
+			RDCDEBUG("WrappingPool<%s> %d in %dkB: %p -> %p", GetTypeName<WrapType>::Name(), PoolCount, (PoolCount*AllocByteSize)/1024, &m_ImmediatePool.items[0], &m_ImmediatePool.items[AllocCount-1]);
 #endif
-
-			RDCCOMPILE_ASSERT(PoolCount*AllocByteSize <= MaxPoolByteSize, "Pool is bigger than max pool size cap");
-			RDCCOMPILE_ASSERT(PoolCount > 2, "Pool isn't greater than 2 in size. Bad parameters?"); // make sure parameters are sane
 		}
 		~WrappingPool()
 		{
@@ -147,9 +150,6 @@ class WrappingPool
 
 			m_AdditionalPools.clear();
 		}
-
-		static const size_t AllocCount = PoolCount;
-		static const size_t AllocByteSize;
 
 		Threading::CriticalSection m_Lock;
 
@@ -259,5 +259,7 @@ class WrappingPool
 
 #define WRAPPED_POOL_INST(a) \
 	a::PoolType a::m_Pool; \
-	const size_t a::PoolType::AllocByteSize = sizeof(a); \
+	template<> const size_t a::PoolType::AllocByteSize = sizeof(a); \
+	RDCCOMPILE_ASSERT(a::PoolType::AllocCount*a::PoolType::AllocByteSize <= a::PoolType::AllocMaxByteSize, "Pool is bigger than max pool size cap"); \
+	RDCCOMPILE_ASSERT(a::PoolType::AllocCount > 2, "Pool isn't greater than 2 in size. Bad parameters?"); \
 	DECL_TYPENAME(a);
