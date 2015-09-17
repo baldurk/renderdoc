@@ -27,22 +27,28 @@
 layout (binding = 3) uniform sampler2D tex0;
 layout (location = 0) out vec4 color_out;
 
+// LunarG sample driver doesn't support in/out blocks yet it seems
+/*
 in v2f
 {
 	vec4 tex;
 	vec2 glyphuv;
 } IN;
+*/
+
+layout (location = 0) in vec4 INtex;
+layout (location = 1) in vec2 INglyphuv;
 
 void main(void)
 {
 	float text = 0;
 
-	if(IN.glyphuv.x >= 0.0f && IN.glyphuv.x <= 1.0f && 
-	   IN.glyphuv.y >= 0.0f && IN.glyphuv.y <= 1.0f)
+	if(INglyphuv.x >= 0.0f && INglyphuv.x <= 1.0f && 
+	   INglyphuv.y >= 0.0f && INglyphuv.y <= 1.0f)
 	{
 		vec2 uv;
-		uv.x = mix(IN.tex.x, IN.tex.z, IN.glyphuv.x);
-		uv.y = mix(IN.tex.y, IN.tex.w, IN.glyphuv.y);
+		uv.x = mix(INtex.x, INtex.z, INglyphuv.x);
+		uv.y = mix(INtex.y, INtex.w, INglyphuv.y);
 		text = texture(tex0, uv.xy).x;
 	}
 

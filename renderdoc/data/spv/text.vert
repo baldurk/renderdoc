@@ -57,11 +57,17 @@ out gl_PerVertex
 	float gl_ClipDistance[];
 };
 
+// LunarG sample driver doesn't support in/out blocks yet it seems
+/*
 out v2f
 {
 	vec4 tex;
 	vec2 glyphuv;
 } OUT;
+*/
+
+layout (location = 0) out vec4 OUTtex;
+layout (location = 1) out vec2 OUTglyphuv;
 
 void main(void)
 {
@@ -85,8 +91,8 @@ void main(void)
 
 	glyph G = glyphs.data[ str.chars[strindex].x ];
 	
-	OUT.glyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
-	OUT.tex = G.uvdata * general.CharacterSize.xyxy;
+	OUTglyphuv.xy = (pos.xy - G.posdata.xy) * G.posdata.zw;
+	OUTtex = G.uvdata * general.CharacterSize.xyxy;
 
 	const vec3 cols[5] = vec3[5](vec3(0, 0, 0),
 								 vec3(1, 0, 0),
