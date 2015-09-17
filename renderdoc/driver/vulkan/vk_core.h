@@ -432,7 +432,7 @@ private:
 				const char*         pLayerPrefix,
 				const char*         pMsg);
 	
-	static void VKAPI DebugCallbackStatic(
+	static void DebugCallbackStatic(
 				VkFlags             msgFlags,
 				VkDbgObjectType     objType,
 				uint64_t            srcObject,

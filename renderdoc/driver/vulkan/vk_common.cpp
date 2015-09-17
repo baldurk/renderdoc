@@ -2588,7 +2588,7 @@ void Serialiser::Serialise(const char *name, VkSpecializationMapEntry &el)
 	Serialise("constantId", el.constantId);
 	uint64_t size = el.size;
 	Serialise("size", size);
-	if(m_Mode == READING) el.size = size;
+	if(m_Mode == READING) el.size = (size_t)size;
 	Serialise("offset", el.offset);
 }
 
@@ -2599,7 +2599,7 @@ void Serialiser::Serialise(const char *name, VkSpecializationInfo &el)
 
 	uint64_t dataSize = el.dataSize;
 	Serialise("dataSize", el.dataSize);
-	size_t sz = dataSize;
+	size_t sz = (size_t)dataSize;
 	if(m_Mode == READING) el.pData = NULL;
 	SerialiseBuffer("pData", (byte *&)el.pData, sz);
 
@@ -2617,15 +2617,15 @@ void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el)
 
 	uint64_t initialSize = el.initialSize;
 	Serialise("codeSize", initialSize);
-	el.initialSize = initialSize;
+	el.initialSize = (size_t)initialSize;
 
-	size_t sz = initialSize;
+	size_t sz = (size_t)initialSize;
 	if(m_Mode == READING) el.initialData = NULL;
 	SerialiseBuffer("initialData", (byte *&)el.initialData, sz);
 
 	uint64_t maxSize = el.maxSize;
 	Serialise("maxSize", maxSize);
-	el.maxSize = maxSize;
+	el.maxSize = (size_t)maxSize;
 }
 
 template<>
@@ -2663,9 +2663,9 @@ void Serialiser::Serialise(const char *name, VkShaderModuleCreateInfo &el)
 
 	uint64_t codeSize = el.codeSize;
 	Serialise("codeSize", codeSize);
-	el.codeSize = codeSize;
+	el.codeSize = (size_t)codeSize;
 
-	size_t sz = codeSize;
+	size_t sz = (size_t)codeSize;
 	if(m_Mode == READING) el.pCode = NULL;
 	SerialiseBuffer("pCode", (byte *&)el.pCode, sz);
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
