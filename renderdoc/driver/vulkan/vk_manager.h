@@ -35,7 +35,7 @@ using std::pair;
 
 class WrappedVulkan;
 
-class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRecord>
+class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, VkResourceRecord>
 {
 	public: 
 		VulkanResourceManager(LogState s, Serialiser *ser, WrappedVulkan *core)
@@ -72,13 +72,13 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 		template<typename realtype>
 		realtype GetLiveHandle(ResourceId origid)
 		{
-			return UnwrapHelper<realtype>::ToHandle( ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real );
+			return ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real.As<realtype>();
 		}
 
 		template<typename realtype>
 		realtype GetCurrentHandle(ResourceId id)
 		{
-			return UnwrapHelper<realtype>::ToHandle( ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real );
+			return ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real.As<realtype>();
 		}
 		
 		// handling memory & image transitions
@@ -111,7 +111,9 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, VkResourceRe
 
 			AddCurrentResource(id, wrapped);
 
-			obj = UnwrapHelper<realtype>::ToHandle((uint64_t)(uintptr_t)wrapped);
+			AddWrapper(wrapped, UnwrapHelper<realtype>::ToRealRes(obj));
+
+			obj = realtype((uint64_t)wrapped);
 
 			return id;
 		}

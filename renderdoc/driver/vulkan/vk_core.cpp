@@ -1083,7 +1083,7 @@ VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
 		GetResourceManager()->ReleaseCurrentResource(wrapped->id); \
 		if(wrapped->record) wrapped->record->Delete(GetResourceManager()); \
 		if(m_ImageInfo.find(wrapped->id) != m_ImageInfo.end()) m_ImageInfo.erase(wrapped->id); \
-		return ObjDisp(device)->func(Unwrap(device), type(wrapped->real)); \
+		return ObjDisp(device)->func(Unwrap(device), wrapped->real.As<type>()); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
@@ -1117,7 +1117,7 @@ VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
 	GetResourceManager()->MarkCleanResource(wrapped->id);
 	if(wrapped->record) wrapped->record->Delete(GetResourceManager());
-	return ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), (VkCmdBuffer)(uintptr_t)wrapped->real);
+	return ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), wrapped->real.As<VkCmdBuffer>());
 }
 
 
@@ -1664,7 +1664,7 @@ VkResult WrappedVulkan::vkFreeMemory(
 	if(wrapped->record) wrapped->record->Delete(GetResourceManager());
 	GetResourceManager()->ReleaseCurrentResource(wrapped->id);
 
-	return ObjDisp(device)->FreeMemory(Unwrap(device), VkDeviceMemory(wrapped->real));
+	return ObjDisp(device)->FreeMemory(Unwrap(device), wrapped->real.As<VkDeviceMemory>());
 }
 
 VkResult WrappedVulkan::vkMapMemory(
@@ -5669,87 +5669,87 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 
 		case eResInstance:
 		{
-			VkInstance instance = (VkInstance)disp->real;
+			VkInstance instance = disp->real.As<VkInstance>();
 			dispatch_key key = get_dispatch_key(instance);
 			ObjDisp(instance)->DestroyInstance(instance);
 			destroy_instance_dispatch_table(key);
 			break;
 		}
 		case eResDevice:
-			vt->DestroyDevice((VkDevice)disp->real);
+			vt->DestroyDevice(disp->real.As<VkDevice>());
 			break;
 		case eResDeviceMemory:
-			vt->FreeMemory(dev, (VkDeviceMemory)nondisp->real);
+			vt->FreeMemory(dev, nondisp->real.As<VkDeviceMemory>());
 			break;
 		case eResBuffer:
-			vt->DestroyBuffer(dev, (VkBuffer)nondisp->real);
+			vt->DestroyBuffer(dev, nondisp->real.As<VkBuffer>());
 			break;
 		case eResBufferView:
-			vt->DestroyBufferView(dev, (VkBufferView)nondisp->real);
+			vt->DestroyBufferView(dev, nondisp->real.As<VkBufferView>());
 			break;
 		case eResImage:
-			vt->DestroyImage(dev, (VkImage)nondisp->real);
+			vt->DestroyImage(dev, nondisp->real.As<VkImage>());
 			break;
 		case eResImageView:
-			vt->DestroyImageView(dev, (VkImageView)nondisp->real);
+			vt->DestroyImageView(dev, nondisp->real.As<VkImageView>());
 			break;
 		case eResAttachmentView:
-			vt->DestroyAttachmentView(dev, (VkAttachmentView)nondisp->real);
+			vt->DestroyAttachmentView(dev, nondisp->real.As<VkAttachmentView>());
 			break;
 		case eResFramebuffer:
-			vt->DestroyFramebuffer(dev, (VkFramebuffer)nondisp->real);
+			vt->DestroyFramebuffer(dev, nondisp->real.As<VkFramebuffer>());
 			break;
 		case eResRenderPass:
-			vt->DestroyRenderPass(dev, (VkRenderPass)nondisp->real);
+			vt->DestroyRenderPass(dev, nondisp->real.As<VkRenderPass>());
 			break;
 		case eResShaderModule:
-			vt->DestroyShaderModule(dev, (VkShaderModule)nondisp->real);
+			vt->DestroyShaderModule(dev, nondisp->real.As<VkShaderModule>());
 			break;
 		case eResShader:
-			vt->DestroyShader(dev, (VkShader)nondisp->real);
+			vt->DestroyShader(dev, nondisp->real.As<VkShader>());
 			break;
 		case eResPipelineCache:
-			vt->DestroyPipelineCache(dev, (VkPipelineCache)nondisp->real);
+			vt->DestroyPipelineCache(dev, nondisp->real.As<VkPipelineCache>());
 			break;
 		case eResPipelineLayout:
-			vt->DestroyPipelineLayout(dev, (VkPipelineLayout)nondisp->real);
+			vt->DestroyPipelineLayout(dev, nondisp->real.As<VkPipelineLayout>());
 			break;
 		case eResPipeline:
-			vt->DestroyPipeline(dev, (VkPipeline)nondisp->real);
+			vt->DestroyPipeline(dev, nondisp->real.As<VkPipeline>());
 			break;
 		case eResSampler:
-			vt->DestroySampler(dev, (VkSampler)nondisp->real);
+			vt->DestroySampler(dev, nondisp->real.As<VkSampler>());
 			break;
 		case eResDescriptorPool:
-			vt->DestroyDescriptorPool(dev, (VkDescriptorPool)nondisp->real);
+			vt->DestroyDescriptorPool(dev, nondisp->real.As<VkDescriptorPool>());
 			break;
 		case eResDescriptorSetLayout:
-			vt->DestroyDescriptorSetLayout(dev, (VkDescriptorSetLayout)nondisp->real);
+			vt->DestroyDescriptorSetLayout(dev, nondisp->real.As<VkDescriptorSetLayout>());
 			break;
 		case eResViewportState:
-			vt->DestroyDynamicViewportState(dev, (VkDynamicViewportState)nondisp->real);
+			vt->DestroyDynamicViewportState(dev, nondisp->real.As<VkDynamicViewportState>());
 			break;
 		case eResRasterState:
-			vt->DestroyDynamicViewportState(dev, (VkDynamicViewportState)nondisp->real);
+			vt->DestroyDynamicViewportState(dev, nondisp->real.As<VkDynamicViewportState>());
 			break;
 		case eResColorBlendState:
-			vt->DestroyDynamicColorBlendState(dev, (VkDynamicColorBlendState)nondisp->real);
+			vt->DestroyDynamicColorBlendState(dev, nondisp->real.As<VkDynamicColorBlendState>());
 			break;
 		case eResDepthStencilState:
-			vt->DestroyDynamicDepthStencilState(dev, (VkDynamicDepthStencilState)nondisp->real);
+			vt->DestroyDynamicDepthStencilState(dev, nondisp->real.As<VkDynamicDepthStencilState>());
 			break;
 		case eResCmdPool:
-			vt->DestroyCommandPool(dev, (VkCmdPool)nondisp->real);
+			vt->DestroyCommandPool(dev, nondisp->real.As<VkCmdPool>());
 			break;
 		case eResCmdBuffer:
-			vt->DestroyCommandBuffer(dev, (VkCmdBuffer)disp->real);
+			vt->DestroyCommandBuffer(dev, disp->real.As<VkCmdBuffer>());
 			break;
 		case eResFence:
 			// VKTODOLOW
-			//vt->DestroyFence(dev, (VkFence)nondisp->real);
+			//vt->DestroyFence(dev, nondisp->real.As<VkFence>());
 			break;
 		case eResSemaphore:
-			vt->DestroySemaphore(dev, (VkSemaphore)nondisp->real);
+			vt->DestroySemaphore(dev, nondisp->real.As<VkSemaphore>());
 			break;
 	}
 
@@ -7731,8 +7731,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 
 		MemState &meminfo = m_MemoryInfo[id];
 		
-		VkBuffer srcBuf = (VkBuffer)(uintptr_t)initial.resource;
-		VkDeviceMemory dstMem = (VkDeviceMemory)(uintptr_t)live; // maintain the wrapping, for consistency
+		VkBuffer srcBuf = (VkBuffer)(uint64_t)initial.resource;
+		VkDeviceMemory dstMem = (VkDeviceMemory)(uint64_t)live; // maintain the wrapping, for consistency
 
 		VkResult vkr = VK_SUCCESS;
 

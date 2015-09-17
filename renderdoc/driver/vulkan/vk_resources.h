@@ -45,11 +45,27 @@ struct WrappedVkRes
 {
 };
 
+// dummy standin for a typeless real resource
+// stored in a uint64_t, with function to cast back
+// if we know what type it is
+struct RealVkRes
+{
+	RealVkRes() : handle(VK_NULL_HANDLE) {} 
+	RealVkRes(void *disp) : handle((uint64_t)disp) {}
+	RealVkRes(uint64_t nondisp) : handle(nondisp) {}
+
+	bool operator ==(const RealVkRes o) const { return handle == o.handle; }
+	bool operator < (const RealVkRes o) const { return handle <  o.handle; }
+
+	uint64_t handle;
+	template<typename T> T As() { return (T)handle; }
+};
+
 struct WrappedVkNonDispRes : public WrappedVkRes
 {
 	template<typename T> WrappedVkNonDispRes(T obj, ResourceId objId) : real(obj.handle), id(objId), record(NULL) {}
 	
-	uint64_t real;
+	RealVkRes real;
 	ResourceId id;
 	union
 	{
@@ -61,26 +77,26 @@ struct WrappedVkNonDispRes : public WrappedVkRes
 
 struct WrappedVkDispRes : public WrappedVkRes
 {
-	WrappedVkDispRes(VkInstance obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkInstance obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkPhysicalDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 	
-	WrappedVkDispRes(VkDevice obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkDevice obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkQueue obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
-	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((uint64_t)(uintptr_t)obj), id(objId), record(NULL)
+	WrappedVkDispRes(VkCmdBuffer obj, ResourceId objId) : table(0), real((void *)obj), id(objId), record(NULL)
 	{ loaderTable = *(uintptr_t*)obj; }
 
 	// VKTODOLOW there's padding here on 32-bit but I don't know if I really care about 32-bit.
 
 	// preserve dispatch table pointer in dispatchable objects
 	uintptr_t loaderTable, table;
-	uint64_t real;
+	RealVkRes real;
 	ResourceId id;
 	union
 	{
@@ -91,7 +107,7 @@ struct WrappedVkDispRes : public WrappedVkRes
 };
 
 // ensure the structs don't accidentally get made larger
-RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == sizeof(uint64_t)*5, "Wrapped resource struct has changed size! This is bad");
+RDCCOMPILE_ASSERT(sizeof(WrappedVkDispRes) == (sizeof(uint64_t)*3 + sizeof(uintptr_t)*2), "Wrapped resource struct has changed size! This is bad");
 RDCCOMPILE_ASSERT(sizeof(WrappedVkNonDispRes) == sizeof(uint64_t)*3, "Wrapped resource struct has changed size! This is bad");
 
 // VKTODOLOW check that the pool counts approximated below are good for typical applications
@@ -312,7 +328,7 @@ template<typename inner> struct UnwrapHelper {};
 	{ \
 		typedef WrappedVkDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
-		static vulkantype ToHandle(uint64_t real) { return (vulkantype) (uintptr_t)real; } \
+		static RealVkRes ToRealRes(vulkantype real) { return RealVkRes((void *)real); } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) wrapped; } \
 	};
 
@@ -321,7 +337,7 @@ template<typename inner> struct UnwrapHelper {};
 	{ \
 		typedef WrappedVkNonDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
-		static vulkantype ToHandle(uint64_t real) { return vulkantype(real); } \
+		static RealVkRes ToRealRes(vulkantype real) { return RealVkRes(real.handle); } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped.handle; } \
 	};
 
@@ -389,7 +405,7 @@ RealType Unwrap(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 
-	return UnwrapHelper<RealType>::ToHandle(GetWrapped(obj)->real);
+	return GetWrapped(obj)->real.As<RealType>();
 }
 
 template<typename RealType>
@@ -411,7 +427,7 @@ VkResourceRecord *GetRecord(RealType obj)
 template<typename RealType>
 RealType ToHandle(WrappedVkRes *ptr)
 {
-	return UnwrapHelper<RealType>::ToHandle( ((typename UnwrapHelper<RealType>::Outer *)ptr)->real );
+	return ((typename UnwrapHelper<RealType>::Outer *)ptr)->real.As<RealType>();
 }
 
 enum VkResourceType

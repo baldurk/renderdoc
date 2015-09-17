@@ -57,8 +57,8 @@ void SetDispatchTable(bool writing, wrappedtype *wrapped)
 	if(writing)
 	{
 		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)instance_dispatch_table((void *)wrapped->real)
-			: (uintptr_t)device_dispatch_table((void *)wrapped->real);
+			? (uintptr_t)instance_dispatch_table((void *)wrapped->real.handle)
+			: (uintptr_t)device_dispatch_table((void *)wrapped->real.handle);
 	}
 	else
 	{

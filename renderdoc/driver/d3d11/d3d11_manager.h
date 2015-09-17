@@ -132,7 +132,7 @@ private:
 	bool contexts[32];
 };
 
-class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, D3D11ResourceRecord>
+class D3D11ResourceManager : public ResourceManager<ID3D11DeviceChild*, ID3D11DeviceChild*, D3D11ResourceRecord>
 {
 	public:
 		D3D11ResourceManager(LogState state, Serialiser *ser, WrappedID3D11Device *dev)

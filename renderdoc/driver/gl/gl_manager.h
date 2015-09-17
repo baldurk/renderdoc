@@ -31,7 +31,7 @@
 
 class WrappedOpenGL;
 
-class GLResourceManager : public ResourceManager<GLResource, GLResourceRecord>
+class GLResourceManager : public ResourceManager<GLResource, GLResource, GLResourceRecord>
 {
 	public: 
 		GLResourceManager(LogState state, Serialiser *ser, WrappedOpenGL *gl)
