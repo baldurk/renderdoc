@@ -398,23 +398,6 @@ private:
 	void FinishCapture();
 	void EndCaptureFrame(VkImage presentImage);
 	
-	template<typename realtype>
-	ResourceId WrapResource(realtype &obj)
-	{
-		RDCASSERT(obj != VK_NULL_HANDLE);
-
-		ResourceId id = ResourceIDGen::GetNewUniqueID();
-		typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
-		
-		SetTableIfDispatchable(m_State >= WRITING, wrapped);
-
-		GetResourceManager()->AddCurrentResource(id, wrapped);
-
-		obj = UnwrapHelper<realtype>::ToHandle((uint64_t)(uintptr_t)wrapped);
-
-		return id;
-	}
-	
 	// replay
 		
 	vector<FetchAPIEvent> m_CurEvents, m_Events;
@@ -487,6 +470,24 @@ public:
 	vector<FetchFrameRecord> &GetFrameRecord() { return m_FrameRecord; }
 	FetchAPIEvent GetEvent(uint32_t eventID);
 	
+	// VKTODOLOW move this to resource manager
+	template<typename realtype>
+	ResourceId WrapResource(realtype &obj)
+	{
+		RDCASSERT(obj != VK_NULL_HANDLE);
+
+		ResourceId id = ResourceIDGen::GetNewUniqueID();
+		typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
+		
+		SetTableIfDispatchable(m_State >= WRITING, wrapped);
+
+		GetResourceManager()->AddCurrentResource(id, wrapped);
+
+		obj = UnwrapHelper<realtype>::ToHandle((uint64_t)(uintptr_t)wrapped);
+
+		return id;
+	}
+
 	// Device initialization
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance(

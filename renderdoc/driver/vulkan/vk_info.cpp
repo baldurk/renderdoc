@@ -29,6 +29,8 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		flags = pCreateInfo->flags;
 
 		// need to figure out which states are valid to be NULL
+		
+		RDCASSERT(0 && "GetResID won't work here - these are unwrapped");
 
 		// VkPipelineShaderStageCreateInfo
 		RDCEraseEl(shaders);

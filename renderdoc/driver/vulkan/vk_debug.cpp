@@ -89,11 +89,11 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 		VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
 	};
 
-	VkResult vkr = vt->CreateBuffer(dev, &bufInfo, &buf);
+	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkMemoryRequirements mrq;
-	vkr = vt->GetBufferMemoryRequirements(dev, buf, &mrq);
+	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), buf, &mrq);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED maybe don't require host visible, and do map & copy?
@@ -102,10 +102,10 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 		size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 	};
 
-	vkr = vt->AllocMemory(dev, &allocInfo, &mem);
+	vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &mem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	vkr = vt->BindBufferMemory(dev, buf, mem, 0);
+	vkr = vt->BindBufferMemory(Unwrap(dev), buf, mem, 0);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkBufferViewCreateInfo bufviewInfo = {
@@ -114,7 +114,7 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 		VK_FORMAT_UNDEFINED, 0, size,
 	};
 
-	vkr = vt->CreateBufferView(dev, &bufviewInfo, &view);
+	vkr = vt->CreateBufferView(Unwrap(dev), &bufviewInfo, &view);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -123,21 +123,21 @@ void VulkanDebugManager::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice d
 	VkResult vkr = VK_SUCCESS;
 	if(view != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyBufferView(dev, view);
+		vkr = vt->DestroyBufferView(Unwrap(dev), view);
 		RDCASSERT(vkr == VK_SUCCESS);
 		view = VK_NULL_HANDLE;
 	}
 	
 	if(buf != VK_NULL_HANDLE)
 	{
-		vkr = vt->DestroyBuffer(dev, buf);
+		vkr = vt->DestroyBuffer(Unwrap(dev), buf);
 		RDCASSERT(vkr == VK_SUCCESS);
 		buf = VK_NULL_HANDLE;
 	}
 
 	if(mem != VK_NULL_HANDLE)
 	{
-		vkr = vt->FreeMemory(dev, mem);
+		vkr = vt->FreeMemory(Unwrap(dev), mem);
 		RDCASSERT(vkr == VK_SUCCESS);
 		mem = VK_NULL_HANDLE;
 	}
@@ -146,14 +146,14 @@ void VulkanDebugManager::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice d
 void *VulkanDebugManager::UBO::Map(const VkLayerDispatchTable *vt, VkDevice dev, VkDeviceSize offset, VkDeviceSize size)
 {
 	void *ptr = NULL;
-	VkResult vkr = vt->MapMemory(dev, mem, offset, size, 0, (void **)&ptr);
+	VkResult vkr = vt->MapMemory(Unwrap(dev), mem, offset, size, 0, (void **)&ptr);
 	RDCASSERT(vkr == VK_SUCCESS);
 	return ptr;
 }
 
 void VulkanDebugManager::UBO::Unmap(const VkLayerDispatchTable *vt, VkDevice dev)
 {
-	vt->UnmapMemory(dev, mem);
+	vt->UnmapMemory(Unwrap(dev), mem);
 }
 
 VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView)
@@ -200,6 +200,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	VkResult vkr = VK_SUCCESS;
 
+	RDCWARN("These must all be wrapped, for consistency's sake");
+
 	VkSamplerCreateInfo sampInfo = {
 		VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO, NULL,
 		VK_TEX_FILTER_LINEAR, VK_TEX_FILTER_LINEAR,
@@ -212,19 +214,19 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE,
 	};
 
-	vkr = vt->CreateSampler(dev, &sampInfo, &m_LinearSampler);
+	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_LinearSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	sampInfo.minFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.magFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.mipMode = VK_TEX_MIPMAP_MODE_NEAREST;
 
-	vkr = vt->CreateSampler(dev, &sampInfo, &m_PointSampler);
+	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkPipelineCacheCreateInfo cacheInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, NULL, 0, NULL, 0 };
 
-	vkr = vt->CreatePipelineCache(dev, &cacheInfo, &m_PipelineCache);
+	vkr = vt->CreatePipelineCache(Unwrap(dev), &cacheInfo, &m_PipelineCache);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	{
@@ -238,7 +240,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -253,7 +255,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -270,7 +272,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			ARRAY_COUNT(layoutBinding), &layoutBinding[0],
 		};
 
-		vkr = vt->CreateDescriptorSetLayout(dev, &descsetLayoutInfo, &m_TextDescSetLayout);
+		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_TextDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -280,17 +282,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		0, NULL, // push constant ranges
 	};
 	
-	vkr = vt->CreatePipelineLayout(dev, &pipeLayoutInfo, &m_TexDisplayPipeLayout);
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_TexDisplayPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	pipeLayoutInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(dev, &pipeLayoutInfo, &m_CheckerboardPipeLayout);
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_CheckerboardPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	pipeLayoutInfo.pSetLayouts = &m_TextDescSetLayout;
 	
-	vkr = vt->CreatePipelineLayout(dev, &pipeLayoutInfo, &m_TextPipeLayout);
+	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_TextPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VkDescriptorTypeCount descPoolTypes[] = {
@@ -303,19 +305,19 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
     ARRAY_COUNT(descPoolTypes), &descPoolTypes[0],
 	};
 	
-	vkr = vt->CreateDescriptorPool(dev, VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3, &descpoolInfo, &m_DescriptorPool);
+	vkr = vt->CreateDescriptorPool(Unwrap(dev), VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3, &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	uint32_t count;
-	vkr = vt->AllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		&m_CheckerboardDescSetLayout, &m_CheckerboardDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	vkr = vt->AllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		&m_TexDisplayDescSetLayout, &m_TexDisplayDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	vkr = vt->AllocDescriptorSets(dev, m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
+	vkr = vt->AllocDescriptorSets(Unwrap(dev), m_DescriptorPool, VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		&m_TextDescSetLayout, &m_TextDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
@@ -324,10 +326,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	RDCCOMPILE_ASSERT(sizeof(displayuniforms) <= 128, "tex display size");
 		
-	m_TextGeneralUBO.Create(driver, dev, 128);
+	m_TextGeneralUBO.Create(driver, Unwrap(dev), 128);
 	RDCCOMPILE_ASSERT(sizeof(fontuniforms) <= 128, "font uniforms size");
 
-	m_TextStringUBO.Create(driver, dev, 4096);
+	m_TextStringUBO.Create(driver, Unwrap(dev), 4096);
 	RDCCOMPILE_ASSERT(sizeof(stringdata) <= 4096, "font uniforms size");
 
 	VkDynamicRasterStateCreateInfo rsInfo = {
@@ -335,7 +337,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		0.0f, 0.0f, 0.0f, 1.0f,
 	};
 
-	vkr = vt->CreateDynamicRasterState(dev, &rsInfo, &m_DynamicRSState);
+	vkr = vt->CreateDynamicRasterState(Unwrap(dev), &rsInfo, &m_DynamicRSState);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VkDynamicColorBlendStateCreateInfo cbInfo = {
@@ -343,7 +345,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		{ 1.0f, 1.0f, 1.0f, 1.0f },
 	};
 
-	vkr = vt->CreateDynamicColorBlendState(dev, &cbInfo, &m_DynamicCBStateWhite);
+	vkr = vt->CreateDynamicColorBlendState(Unwrap(dev), &cbInfo, &m_DynamicCBStateWhite);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VkDynamicDepthStencilStateCreateInfo dsInfo = {
@@ -351,7 +353,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		0.0f, 1.0f, 0xff, 0xff, 0, 0,
 	};
 
-	vkr = vt->CreateDynamicDepthStencilState(dev, &dsInfo, &m_DynamicDSStateDisabled);
+	vkr = vt->CreateDynamicDepthStencilState(Unwrap(dev), &dsInfo, &m_DynamicDSStateDisabled);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	string shaderSources[] = {
@@ -381,7 +383,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			shaderSources[i].size(), (void *)&shaderSources[i][0], 0,
 		};
 
-		vkr = vt->CreateShaderModule(dev, &modinfo, &module[i]);
+		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, &module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkShaderCreateInfo shadinfo = {
@@ -389,7 +391,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			module[i], "main", 0,
 		};
 
-		vkr = vt->CreateShader(dev, &shadinfo, &shader[i]);
+		vkr = vt->CreateShader(Unwrap(dev), &shadinfo, &shader[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -460,21 +462,21 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	stages[0].shader = shader[BLITVS];
 	stages[1].shader = shader[CHECKERBOARDFS];
 
-	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_CheckerboardPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), m_PipelineCache, 1, &pipeInfo, &m_CheckerboardPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	stages[1].shader = shader[TEXDISPLAYFS];
 
 	pipeInfo.layout = m_TexDisplayPipeLayout;
 
-	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), m_PipelineCache, 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	attState.blendEnable = true;
 	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
 	attState.destBlendColor = VK_BLEND_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), m_PipelineCache, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -484,15 +486,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	pipeInfo.layout = m_TextPipeLayout;
 
-	vkr = vt->CreateGraphicsPipelines(dev, m_PipelineCache, 1, &pipeInfo, &m_TextPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), m_PipelineCache, 1, &pipeInfo, &m_TextPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
-		vkr = vt->DestroyShader(dev, shader[i]);
+		vkr = vt->DestroyShader(Unwrap(dev), shader[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = vt->DestroyShaderModule(dev, module[i]);
+		vkr = vt->DestroyShaderModule(Unwrap(dev), module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 
@@ -540,16 +542,16 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 		// create and fill image
 		{
-			vkr = vt->CreateImage(dev, &imInfo, &m_TextAtlas);
+			vkr = vt->CreateImage(Unwrap(dev), &imInfo, &m_TextAtlas);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			VkMemoryRequirements mrq;
-			vkr = vt->GetImageMemoryRequirements(dev, m_TextAtlas, &mrq);
+			vkr = vt->GetImageMemoryRequirements(Unwrap(dev), m_TextAtlas, &mrq);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			VkImageSubresource subr = { VK_IMAGE_ASPECT_COLOR, 0, 0 };
 			VkSubresourceLayout layout = { 0 };
-			vt->GetImageSubresourceLayout(dev, m_TextAtlas, &subr, &layout);
+			vt->GetImageSubresourceLayout(Unwrap(dev), m_TextAtlas, &subr, &layout);
 
 			// allocate readback memory
 			VkMemoryAllocInfo allocInfo = {
@@ -557,9 +559,9 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 				mrq.size, driver->GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = vt->AllocMemory(dev, &allocInfo, &m_TextAtlasMem);
+			vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &m_TextAtlasMem);
 			RDCASSERT(vkr == VK_SUCCESS);
-			vkr = vt->BindImageMemory(dev, m_TextAtlas, m_TextAtlasMem, 0);
+			vkr = vt->BindImageMemory(Unwrap(dev), m_TextAtlas, m_TextAtlasMem, 0);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkImageViewCreateInfo viewInfo = {
@@ -572,7 +574,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 			// VKTODOMED used for texture display, but eventually will have to be created on the fly
 			// for whichever image we're viewing (and cached), not specifically created here.
-			VkResult vkr = vt->CreateImageView(dev, &viewInfo, &m_TextAtlasView);
+			VkResult vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_TextAtlasView);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			// need to transition image into valid state, then upload
@@ -606,7 +608,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			vt->QueueWaitIdle(q);
 
 			byte *pData = NULL;
-			vkr = vt->MapMemory(dev, m_TextAtlasMem, 0, 0, 0, (void **)&pData);
+			vkr = vt->MapMemory(Unwrap(dev), m_TextAtlasMem, 0, 0, 0, (void **)&pData);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			RDCASSERT(pData != NULL);
@@ -618,7 +620,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 				buf += width;
 			}
 
-			vkr = vt->UnmapMemory(dev, m_TextAtlasMem);
+			vkr = vt->UnmapMemory(Unwrap(dev), m_TextAtlasMem);
 			RDCASSERT(vkr == VK_SUCCESS);
 		}
 
@@ -697,7 +699,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	if(m_FakeBBImView == VK_NULL_HANDLE)
 		writeCount--;
 
-	vkr = vt->UpdateDescriptorSets(dev, writeCount, writeSet, 0, NULL);
+	vkr = vt->UpdateDescriptorSets(Unwrap(dev), writeCount, writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 

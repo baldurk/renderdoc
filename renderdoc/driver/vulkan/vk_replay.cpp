@@ -145,6 +145,8 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 {
 	const VkLayerDispatchTable *vt = ObjDisp(device);
 	
+	RDCASSERT(0 && "These must all be wrapped, for consistency's sake");
+
 	// save the old swapchain so it isn't destroyed
 	VkSwapChainWSI old = swap;
 	swap = VK_NULL_HANDLE;
@@ -1284,6 +1286,8 @@ void VulkanReplay::SavePipelineState()
 							create_array_uninit(dst.bindings[b].elems, layoutBind.arraySize);
 							for(uint32_t a=0; a < layoutBind.arraySize; a++)
 							{
+								RDCASSERT(0 && "GetResID won't work here - these are unwrapped");
+
 								if(layoutBind.immutableSampler)
 									dst.bindings[b].elems[a].sampler = layoutBind.immutableSampler[a];
 								else if(info->sampler != VK_NULL_HANDLE)
