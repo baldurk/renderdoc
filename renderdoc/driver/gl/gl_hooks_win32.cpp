@@ -523,12 +523,15 @@ class OpenGLHook : LibraryHook
 		{
 			HWND w = WindowFromDC(dc);
 
-			RECT r;
-			GetClientRect(w, &r);
+			if(w != NULL)
+			{
+				RECT r;
+				GetClientRect(w, &r);
 
-			glhooks.GetDriver()->WindowSize(w, r.right-r.left, r.bottom-r.top);
+				glhooks.GetDriver()->WindowSize(w, r.right - r.left, r.bottom - r.top);
 
-			glhooks.GetDriver()->SwapBuffers(w);
+				glhooks.GetDriver()->SwapBuffers(w);
+			}
 
 			return glhooks.SwapBuffers_hook()(dc);
 		}
