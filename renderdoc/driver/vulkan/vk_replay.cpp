@@ -25,7 +25,7 @@
 #include "vk_replay.h"
 #include "vk_core.h"
 #include "vk_resources.h"
-#include "vk_layer_table.h"
+#include "LoaderAndTools/layers/vk_layer_table.h"
 
 #include "serialise/string_utils.h"
 

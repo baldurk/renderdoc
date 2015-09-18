@@ -173,7 +173,7 @@ static inline void *loader_aligned_alloc(size_t alignment, size_t size) { return
 #include <assert.h>
 #include <stdio.h>
 #include <io.h>
-#include <stdbool.h>
+//#include <stdbool.h>
 #include <shlwapi.h>
 #ifdef __cplusplus
 #include <iostream>
@@ -213,7 +213,7 @@ static bool loader_platform_file_exists(const char *path)
 
 static bool loader_platform_is_path_absolute(const char *path)
 {
-    return !PathIsRelative(path);
+    return !PathIsRelativeA(path);
 }
 
 // WIN32 runtime doesn't have dirname().
@@ -267,12 +267,12 @@ static char *loader_platform_basename(char *pathname)
 typedef HMODULE loader_platform_dl_handle;
 static loader_platform_dl_handle loader_platform_open_library(const char* libPath)
 {
-    return LoadLibrary(libPath);
+    return LoadLibraryA(libPath);
 }
 static char * loader_platform_open_library_error(const char* libPath)
 {
     static char errorMsg[120];
-    snprintf(errorMsg, 119, "Failed to open dynamic library \"%s\"", libPath);
+    _snprintf_s(errorMsg, 119, "Failed to open dynamic library \"%s\"", libPath);
     return errorMsg;
 }
 static void loader_platform_close_library(loader_platform_dl_handle library)
@@ -289,7 +289,7 @@ static void * loader_platform_get_proc_address(loader_platform_dl_handle library
 static char * loader_platform_get_proc_address_error(const char *name)
 {
     static char errorMsg[120];
-    snprintf(errorMsg, 119, "Failed to find function \"%s\" in dynamic library", name);
+    _snprintf_s(errorMsg, 119, "Failed to find function \"%s\" in dynamic library", name);
     return errorMsg;
 }
 

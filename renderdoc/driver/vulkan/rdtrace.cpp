@@ -24,14 +24,14 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "vk_loader_platform.h"
-#include "vk_dispatch_table_helper.h"
+#include "LoaderAndTools/loader/vk_loader_platform.h"
+#include "LoaderAndTools/build/layers/vk_dispatch_table_helper.h"
 #include "vk_layer.h"
-#include "vk_layer_table.h"
-#include "vk_layer_extension_utils.h"
+#include "LoaderAndTools/layers/vk_layer_table.h"
+#include "LoaderAndTools/layers/vk_layer_extension_utils.h"
 // The following is #included again to catch certain OS-specific functions
 // being used:
-#include "vk_loader_platform.h"
+#include "LoaderAndTools/loader/vk_loader_platform.h"
 
 // Renderdoc Includes
 
@@ -49,6 +49,11 @@
 
 #ifdef far
 #undef far
+#endif
+
+#ifdef WIN32
+#undef VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
 
 // Renderdoc State
@@ -109,6 +114,11 @@ VK_LAYER_EXPORT VkResult VKAPI vkGetGlobalLayerProperties(
                                    rdt_GlobalLayers,
                                    pCount, pProperties);
 }
+
+#ifdef WIN32
+#undef VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT
+#endif
 
 // Renderdoc Intercepts
 
@@ -183,6 +193,11 @@ DefineHooks();
 
 #undef HookInit
 #define HookInit(function) if (!strcmp(pName, STRINGIZE(function))) return (PFN_vkVoidFunction) function;
+
+#ifdef WIN32
+#undef VK_LAYER_EXPORT
+#define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
+#endif
 
 // proc addr routines
 

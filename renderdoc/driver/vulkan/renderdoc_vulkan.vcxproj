@@ -19,12 +19,17 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="LoaderAndTools\layers\vk_layer_extension_utils.cpp" />
+    <ClCompile Include="LoaderAndTools\layers\vk_layer_table.cpp" />
+    <ClCompile Include="rdtrace.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
     <ClCompile Include="vk_hooks_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="vk_hooks_win32.cpp" />
+    <ClCompile Include="vk_hooks_win32.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Profile|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="vk_info.cpp" />
     <ClCompile Include="vk_manager.cpp" />
     <ClCompile Include="vk_replay.cpp" />

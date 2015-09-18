@@ -44,19 +44,19 @@ using std::string;
 
 // template helpers
 template <class T>
-struct is_pointer
+struct renderdoc_is_pointer
 {
   enum {value = false};
 };
 
 template <class T>
-struct is_pointer<T *>
+struct renderdoc_is_pointer<T *>
 {
   enum {value = true};
 };
 
 template <class T>
-struct is_pointer<const T *>
+struct renderdoc_is_pointer<const T *>
 {
   enum {value = true};
 };
@@ -72,7 +72,7 @@ struct ToStr
 	template<class T>
 	static string Get(const T &el)
 	{
-		return ToStrHelper<is_pointer<T>::value, T>::Get(el);
+		return ToStrHelper<renderdoc_is_pointer<T>::value, T>::Get(el);
 	}
 };
 

@@ -39,8 +39,8 @@
 // layer includes
 
 #include "vk_layer.h"
-#include "vk_layer_table.h"
-#include "vk_layer_extension_utils.h"
+#include "LoaderAndTools/layers/vk_layer_table.h"
+#include "LoaderAndTools/layers/vk_layer_extension_utils.h"
 
 using std::vector;
 using std::list;

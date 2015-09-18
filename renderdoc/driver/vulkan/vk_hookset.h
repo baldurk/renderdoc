@@ -33,5 +33,6 @@
 
 struct VulkanFunctions
 {
-	HookInitVulkan()
+	HookInitVulkanInstance();
+	HookInitVulkanDevice();
 };
