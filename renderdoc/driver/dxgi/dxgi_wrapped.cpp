@@ -384,7 +384,7 @@ HRESULT WrappedIDXGISwapChain2::GetBuffer(
 		RDCERR("Querying swapchain buffers via D3D10 interface UUIDs is not supported");
 		return E_NOINTERFACE;
 	}
-	else if(riid != __uuidof(ID3D11Texture2D) && riid == __uuidof(ID3D11Resource))
+	else if(riid != __uuidof(ID3D11Texture2D) && riid != __uuidof(ID3D11Resource))
 	{
 		RDCERR("Unsupported or unrecognised UUID passed to IDXGISwapChain::GetBuffer - %s", ToStr::Get(riid).c_str());
 		return E_NOINTERFACE;
