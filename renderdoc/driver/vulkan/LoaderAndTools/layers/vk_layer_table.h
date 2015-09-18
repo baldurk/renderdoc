@@ -49,3 +49,7 @@ VkLayerInstanceDispatchTable *get_dispatch_table(instance_table_map &map, void* 
 
 void destroy_device_dispatch_table(dispatch_key key);
 void destroy_instance_dispatch_table(dispatch_key key);
+
+void destroy_dispatch_table(device_table_map &map, dispatch_key key);
+void destroy_dispatch_table(instance_table_map &map, dispatch_key key);
+
