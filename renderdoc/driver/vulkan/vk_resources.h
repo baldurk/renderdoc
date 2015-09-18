@@ -34,8 +34,8 @@ struct VkResourceRecord;
 // VKTODOLOW move layer dispatch table stuff to vk_common.h
 struct VkLayerDispatchTable_;
 struct VkLayerInstanceDispatchTable_;
-VkLayerDispatchTable_ *device_dispatch_table(void* object);
-VkLayerInstanceDispatchTable_ *instance_dispatch_table(void* object);
+//VkLayerDispatchTable_ *device_dispatch_table(void* object);
+//VkLayerInstanceDispatchTable_ *instance_dispatch_table(void* object);
 
 // empty base class for dispatchable/non-dispatchable. Unfortunately
 // we can't put any members here as the base class is always first,

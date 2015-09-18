@@ -208,7 +208,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetDeviceProcAddr(VkDevice device, co
 
     /* loader uses this to force layer initialization; device object is wrapped */
     if (!strcmp("vkGetDeviceProcAddr", pName)) {
-        initDeviceTable((const VkBaseLayerObject *) device);
+        initDeviceTable(renderdoc_device_table_map, (const VkBaseLayerObject *) device);
         return (PFN_vkVoidFunction) vkGetDeviceProcAddr;
     }
 
@@ -220,9 +220,9 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetDeviceProcAddr(VkDevice device, co
         return (PFN_vkVoidFunction) vkDestroyDevice;
     else
     {
-        if (device_dispatch_table(device)->GetDeviceProcAddr == NULL)
+        if (get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceProcAddr == NULL)
             return NULL;
-        return device_dispatch_table(device)->GetDeviceProcAddr(device, pName);
+        return get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceProcAddr(device, pName);
     }
 }
 
@@ -233,7 +233,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetInstanceProcAddr(VkInstance instan
 
     /* loader uses this to force layer initialization; instance object is wrapped */
     if (!strcmp("vkGetInstanceProcAddr", pName)) {
-        initInstanceTable((const VkBaseLayerObject *) instance);
+        initInstanceTable(renderdoc_instance_table_map, (const VkBaseLayerObject *) instance);
         if (shadowVulkan == NULL) {
             shadowVulkan = new WrappedVulkan("");
         }
@@ -249,8 +249,8 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetInstanceProcAddr(VkInstance instan
     if (!strcmp("vkGetGlobalLayerProperties", pName))
         return (PFN_vkVoidFunction) vkGetGlobalLayerProperties;
 
-    if (instance_dispatch_table(instance)->GetInstanceProcAddr == NULL)
+    if (get_dispatch_table(renderdoc_instance_table_map, instance)->GetInstanceProcAddr == NULL)
         return NULL;
-    return instance_dispatch_table(instance)->GetInstanceProcAddr(instance, pName);
+    return get_dispatch_table(renderdoc_instance_table_map, instance)->GetInstanceProcAddr(instance, pName);
 }
 

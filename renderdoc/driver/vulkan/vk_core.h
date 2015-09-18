@@ -51,14 +51,17 @@
 extern VkLayerDispatchTable *dummyDeviceTable;
 extern VkLayerInstanceDispatchTable *dummyInstanceTable;
 
+extern device_table_map renderdoc_device_table_map;
+extern instance_table_map renderdoc_instance_table_map;
+
 template<typename wrappedtype>
 void SetDispatchTable(bool writing, wrappedtype *wrapped)
 {
 	if(writing)
 	{
 		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)instance_dispatch_table((void *)wrapped->real.handle)
-			: (uintptr_t)device_dispatch_table((void *)wrapped->real.handle);
+			? (uintptr_t)get_dispatch_table(renderdoc_instance_table_map, (void *)wrapped->real.handle)
+			: (uintptr_t)get_dispatch_table(renderdoc_device_table_map, (void *)wrapped->real.handle);
 	}
 	else
 	{

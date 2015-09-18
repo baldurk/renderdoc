@@ -31,6 +31,9 @@
 
 #include "jpeg-compressor/jpge.h"
 
+device_table_map renderdoc_device_table_map;
+instance_table_map renderdoc_instance_table_map;
+
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -460,7 +463,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkInstance inst = *pInstance;
 
-	VkResult ret = instance_dispatch_table(*pInstance)->CreateInstance(pCreateInfo, &inst);
+	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, *pInstance)->CreateInstance(pCreateInfo, &inst);
 
 	GetResourceManager()->WrapResource(inst);
 
@@ -515,7 +518,7 @@ VkResult WrappedVulkan::vkDestroyInstance(
 
 	GetResourceManager()->ReleaseCurrentResource(GetResID(instance));
 
-        destroy_instance_dispatch_table(key);
+        destroy_dispatch_table(renderdoc_instance_table_map, key);
 
 	return VK_SUCCESS;
 }
@@ -851,7 +854,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
-	VkResult ret = device_dispatch_table(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
+	VkResult ret = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -965,7 +968,7 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 
         dispatch_key key = get_dispatch_key(device);
 	VkResult ret = ObjDisp(device)->DestroyDevice(device);
-        destroy_device_dispatch_table(key);
+        destroy_dispatch_table(renderdoc_device_table_map, key);
 
 	GetResourceManager()->ReleaseCurrentResource(GetResID(device));
 
@@ -5672,7 +5675,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			VkInstance instance = disp->real.As<VkInstance>();
 			dispatch_key key = get_dispatch_key(instance);
 			ObjDisp(instance)->DestroyInstance(instance);
-			destroy_instance_dispatch_table(key);
+			destroy_dispatch_table(renderdoc_instance_table_map, key);
 			break;
 		}
 		case eResDevice:
