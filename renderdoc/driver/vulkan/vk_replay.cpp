@@ -25,7 +25,6 @@
 #include "vk_replay.h"
 #include "vk_core.h"
 #include "vk_resources.h"
-#include "LoaderAndTools/layers/vk_layer_table.h"
 
 #include "serialise/string_utils.h"
 
@@ -1793,6 +1792,16 @@ void VulkanReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataS
 // in vk_replay_platform.cpp
 bool LoadVulkanLibrary();
 
+static VkLayerDispatchTable replayDeviceTable = {0};
+static VkLayerInstanceDispatchTable replayInstanceTable = {0};
+
+VkLayerDispatchTable *dummyDeviceTable = NULL;
+VkLayerInstanceDispatchTable *dummyInstanceTable = NULL;
+
+#if !defined(WIN32)
+#include <dlfcn.h>
+#endif
+
 ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
 	RDCDEBUG("Creating a VulkanReplay replay device");
@@ -1813,6 +1822,192 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
 	{
 		RDCERR("Incompatible VulkanReplay serialise version, expected %d got %d", VkInitParams::VK_SERIALISE_VERSION, initParams.SerialiseVersion);
 		return eReplayCreate_APIIncompatibleVersion;
+	}
+
+	dummyDeviceTable = &replayDeviceTable;
+	dummyInstanceTable = &replayInstanceTable;
+
+#ifdef WIN32
+
+#define GetProcAddr(type, name) (type)GetProcAddress(LoadLibraryA("vulkan.0.dll"), STRINGIZE(CONCAT(vk, name)))
+
+#else
+
+	void *libhandle = dlopen("libvulkan.so", RTLD_NOW);
+
+#define GetProcAddr(type, name) (type)dlsym(libhandle, STRINGIZE(CONCAT(vk, name)))
+
+#endif
+
+	{
+		VkLayerDispatchTable &table = replayDeviceTable;
+
+		table.GetDeviceProcAddr = GetProcAddr(PFN_vkGetDeviceProcAddr, GetDeviceProcAddr);
+		table.CreateDevice = GetProcAddr(PFN_vkCreateDevice, CreateDevice);
+		table.DestroyDevice = GetProcAddr(PFN_vkDestroyDevice, DestroyDevice);
+		table.GetDeviceQueue = GetProcAddr(PFN_vkGetDeviceQueue, GetDeviceQueue);
+		table.QueueSubmit = GetProcAddr(PFN_vkQueueSubmit, QueueSubmit);
+		table.QueueWaitIdle = GetProcAddr(PFN_vkQueueWaitIdle, QueueWaitIdle);
+		table.DeviceWaitIdle = GetProcAddr(PFN_vkDeviceWaitIdle, DeviceWaitIdle);
+		table.AllocMemory = GetProcAddr(PFN_vkAllocMemory, AllocMemory);
+		table.FreeMemory = GetProcAddr(PFN_vkFreeMemory, FreeMemory);
+		table.MapMemory = GetProcAddr(PFN_vkMapMemory, MapMemory);
+		table.UnmapMemory = GetProcAddr(PFN_vkUnmapMemory, UnmapMemory);
+		table.FlushMappedMemoryRanges = GetProcAddr(PFN_vkFlushMappedMemoryRanges, FlushMappedMemoryRanges);
+		table.InvalidateMappedMemoryRanges = GetProcAddr(PFN_vkInvalidateMappedMemoryRanges, InvalidateMappedMemoryRanges);
+		table.GetDeviceMemoryCommitment = GetProcAddr(PFN_vkGetDeviceMemoryCommitment, GetDeviceMemoryCommitment);
+		table.GetImageSparseMemoryRequirements = GetProcAddr(PFN_vkGetImageSparseMemoryRequirements, GetImageSparseMemoryRequirements);
+		table.GetImageMemoryRequirements = GetProcAddr(PFN_vkGetImageMemoryRequirements, GetImageMemoryRequirements);
+		table.GetBufferMemoryRequirements = GetProcAddr(PFN_vkGetBufferMemoryRequirements, GetBufferMemoryRequirements);
+		table.BindImageMemory = GetProcAddr(PFN_vkBindImageMemory, BindImageMemory);
+		table.BindBufferMemory = GetProcAddr(PFN_vkBindBufferMemory, BindBufferMemory);
+		table.QueueBindSparseBufferMemory = GetProcAddr(PFN_vkQueueBindSparseBufferMemory, QueueBindSparseBufferMemory);
+		table.QueueBindSparseImageOpaqueMemory = GetProcAddr(PFN_vkQueueBindSparseImageOpaqueMemory, QueueBindSparseImageOpaqueMemory);
+		table.QueueBindSparseImageMemory = GetProcAddr(PFN_vkQueueBindSparseImageMemory, QueueBindSparseImageMemory);
+		table.CreateFence = GetProcAddr(PFN_vkCreateFence, CreateFence);
+		table.DestroyFence = GetProcAddr(PFN_vkDestroyFence, DestroyFence);
+		table.GetFenceStatus = GetProcAddr(PFN_vkGetFenceStatus, GetFenceStatus);
+		table.ResetFences = GetProcAddr(PFN_vkResetFences, ResetFences);
+		table.WaitForFences = GetProcAddr(PFN_vkWaitForFences, WaitForFences);
+		table.CreateSemaphore = GetProcAddr(PFN_vkCreateSemaphore, CreateSemaphore);
+		table.DestroySemaphore = GetProcAddr(PFN_vkDestroySemaphore, DestroySemaphore);
+		table.QueueSignalSemaphore = GetProcAddr(PFN_vkQueueSignalSemaphore, QueueSignalSemaphore);
+		table.QueueWaitSemaphore = GetProcAddr(PFN_vkQueueWaitSemaphore, QueueWaitSemaphore);
+		table.CreateEvent = GetProcAddr(PFN_vkCreateEvent, CreateEvent);
+		table.DestroyEvent = GetProcAddr(PFN_vkDestroyEvent, DestroyEvent);
+		table.GetEventStatus = GetProcAddr(PFN_vkGetEventStatus, GetEventStatus);
+		table.SetEvent = GetProcAddr(PFN_vkSetEvent, SetEvent);
+		table.ResetEvent = GetProcAddr(PFN_vkResetEvent, ResetEvent);
+		table.CreateQueryPool = GetProcAddr(PFN_vkCreateQueryPool, CreateQueryPool);
+		table.DestroyQueryPool = GetProcAddr(PFN_vkDestroyQueryPool, DestroyQueryPool);
+		table.GetQueryPoolResults = GetProcAddr(PFN_vkGetQueryPoolResults, GetQueryPoolResults);
+		table.CreateBuffer = GetProcAddr(PFN_vkCreateBuffer, CreateBuffer);
+		table.DestroyBuffer = GetProcAddr(PFN_vkDestroyBuffer, DestroyBuffer);
+		table.CreateBufferView = GetProcAddr(PFN_vkCreateBufferView, CreateBufferView);
+		table.DestroyBufferView = GetProcAddr(PFN_vkDestroyBufferView, DestroyBufferView);
+		table.CreateImage = GetProcAddr(PFN_vkCreateImage, CreateImage);
+		table.DestroyImage = GetProcAddr(PFN_vkDestroyImage, DestroyImage);
+		table.GetImageSubresourceLayout = GetProcAddr(PFN_vkGetImageSubresourceLayout, GetImageSubresourceLayout);
+		table.CreateImageView = GetProcAddr(PFN_vkCreateImageView, CreateImageView);
+		table.DestroyImageView = GetProcAddr(PFN_vkDestroyImageView, DestroyImageView);
+		table.CreateAttachmentView = GetProcAddr(PFN_vkCreateAttachmentView, CreateAttachmentView);
+		table.DestroyAttachmentView = GetProcAddr(PFN_vkDestroyAttachmentView, DestroyAttachmentView);
+		table.CreateShaderModule = GetProcAddr(PFN_vkCreateShaderModule, CreateShaderModule);
+		table.DestroyShaderModule = GetProcAddr(PFN_vkDestroyShaderModule, DestroyShaderModule);
+		table.CreateShader = GetProcAddr(PFN_vkCreateShader, CreateShader);
+		table.DestroyShader = GetProcAddr(PFN_vkDestroyShader, DestroyShader);
+		table.CreatePipelineCache = GetProcAddr(PFN_vkCreatePipelineCache, CreatePipelineCache);
+		table.DestroyPipelineCache = GetProcAddr(PFN_vkDestroyPipelineCache, DestroyPipelineCache);
+		table.GetPipelineCacheSize = GetProcAddr(PFN_vkGetPipelineCacheSize, GetPipelineCacheSize);
+		table.GetPipelineCacheData = GetProcAddr(PFN_vkGetPipelineCacheData, GetPipelineCacheData);
+		table.MergePipelineCaches = GetProcAddr(PFN_vkMergePipelineCaches, MergePipelineCaches);
+		table.CreateGraphicsPipelines = GetProcAddr(PFN_vkCreateGraphicsPipelines, CreateGraphicsPipelines);
+		table.CreateComputePipelines = GetProcAddr(PFN_vkCreateComputePipelines, CreateComputePipelines);
+		table.DestroyPipeline = GetProcAddr(PFN_vkDestroyPipeline, DestroyPipeline);
+		table.CreatePipelineLayout = GetProcAddr(PFN_vkCreatePipelineLayout, CreatePipelineLayout);
+		table.DestroyPipelineLayout = GetProcAddr(PFN_vkDestroyPipelineLayout, DestroyPipelineLayout);
+		table.CreateSampler = GetProcAddr(PFN_vkCreateSampler, CreateSampler);
+		table.DestroySampler = GetProcAddr(PFN_vkDestroySampler, DestroySampler);
+		table.CreateDescriptorSetLayout = GetProcAddr(PFN_vkCreateDescriptorSetLayout, CreateDescriptorSetLayout);
+		table.DestroyDescriptorSetLayout = GetProcAddr(PFN_vkDestroyDescriptorSetLayout, DestroyDescriptorSetLayout);
+		table.CreateDescriptorPool = GetProcAddr(PFN_vkCreateDescriptorPool, CreateDescriptorPool);
+		table.DestroyDescriptorPool = GetProcAddr(PFN_vkDestroyDescriptorPool, DestroyDescriptorPool);
+		table.ResetDescriptorPool = GetProcAddr(PFN_vkResetDescriptorPool, ResetDescriptorPool);
+		table.AllocDescriptorSets = GetProcAddr(PFN_vkAllocDescriptorSets, AllocDescriptorSets);
+		table.FreeDescriptorSets = GetProcAddr(PFN_vkFreeDescriptorSets, FreeDescriptorSets);
+		table.UpdateDescriptorSets = GetProcAddr(PFN_vkUpdateDescriptorSets, UpdateDescriptorSets);
+		table.CreateDynamicViewportState = GetProcAddr(PFN_vkCreateDynamicViewportState, CreateDynamicViewportState);
+		table.DestroyDynamicViewportState = GetProcAddr(PFN_vkDestroyDynamicViewportState, DestroyDynamicViewportState);
+		table.CreateDynamicRasterState = GetProcAddr(PFN_vkCreateDynamicRasterState, CreateDynamicRasterState);
+		table.DestroyDynamicRasterState = GetProcAddr(PFN_vkDestroyDynamicRasterState, DestroyDynamicRasterState);
+		table.CreateDynamicColorBlendState = GetProcAddr(PFN_vkCreateDynamicColorBlendState, CreateDynamicColorBlendState);
+		table.DestroyDynamicColorBlendState = GetProcAddr(PFN_vkDestroyDynamicColorBlendState, DestroyDynamicColorBlendState);
+		table.CreateDynamicDepthStencilState = GetProcAddr(PFN_vkCreateDynamicDepthStencilState, CreateDynamicDepthStencilState);
+		table.DestroyDynamicDepthStencilState = GetProcAddr(PFN_vkDestroyDynamicDepthStencilState, DestroyDynamicDepthStencilState);
+		table.CreateFramebuffer = GetProcAddr(PFN_vkCreateFramebuffer, CreateFramebuffer);
+		table.DestroyFramebuffer = GetProcAddr(PFN_vkDestroyFramebuffer, DestroyFramebuffer);
+		table.CreateRenderPass = GetProcAddr(PFN_vkCreateRenderPass, CreateRenderPass);
+		table.DestroyRenderPass = GetProcAddr(PFN_vkDestroyRenderPass, DestroyRenderPass);
+		table.GetRenderAreaGranularity = GetProcAddr(PFN_vkGetRenderAreaGranularity, GetRenderAreaGranularity);
+		table.CreateCommandPool = GetProcAddr(PFN_vkCreateCommandPool, CreateCommandPool);
+		table.DestroyCommandPool = GetProcAddr(PFN_vkDestroyCommandPool, DestroyCommandPool);
+		table.ResetCommandPool = GetProcAddr(PFN_vkResetCommandPool, ResetCommandPool);
+		table.CreateCommandBuffer = GetProcAddr(PFN_vkCreateCommandBuffer, CreateCommandBuffer);
+		table.DestroyCommandBuffer = GetProcAddr(PFN_vkDestroyCommandBuffer, DestroyCommandBuffer);
+		table.BeginCommandBuffer = GetProcAddr(PFN_vkBeginCommandBuffer, BeginCommandBuffer);
+		table.EndCommandBuffer = GetProcAddr(PFN_vkEndCommandBuffer, EndCommandBuffer);
+		table.ResetCommandBuffer = GetProcAddr(PFN_vkResetCommandBuffer, ResetCommandBuffer);
+		table.CmdBindPipeline = GetProcAddr(PFN_vkCmdBindPipeline, CmdBindPipeline);
+		table.CmdBindDynamicViewportState = GetProcAddr(PFN_vkCmdBindDynamicViewportState, CmdBindDynamicViewportState);
+		table.CmdBindDynamicRasterState = GetProcAddr(PFN_vkCmdBindDynamicRasterState, CmdBindDynamicRasterState);
+		table.CmdBindDynamicColorBlendState = GetProcAddr(PFN_vkCmdBindDynamicColorBlendState, CmdBindDynamicColorBlendState);
+		table.CmdBindDynamicDepthStencilState = GetProcAddr(PFN_vkCmdBindDynamicDepthStencilState, CmdBindDynamicDepthStencilState);
+		table.CmdBindDescriptorSets = GetProcAddr(PFN_vkCmdBindDescriptorSets, CmdBindDescriptorSets);
+		table.CmdBindVertexBuffers = GetProcAddr(PFN_vkCmdBindVertexBuffers, CmdBindVertexBuffers);
+		table.CmdBindIndexBuffer = GetProcAddr(PFN_vkCmdBindIndexBuffer, CmdBindIndexBuffer);
+		table.CmdDraw = GetProcAddr(PFN_vkCmdDraw, CmdDraw);
+		table.CmdDrawIndexed = GetProcAddr(PFN_vkCmdDrawIndexed, CmdDrawIndexed);
+		table.CmdDrawIndirect = GetProcAddr(PFN_vkCmdDrawIndirect, CmdDrawIndirect);
+		table.CmdDrawIndexedIndirect = GetProcAddr(PFN_vkCmdDrawIndexedIndirect, CmdDrawIndexedIndirect);
+		table.CmdDispatch = GetProcAddr(PFN_vkCmdDispatch, CmdDispatch);
+		table.CmdDispatchIndirect = GetProcAddr(PFN_vkCmdDispatchIndirect, CmdDispatchIndirect);
+		table.CmdCopyBuffer = GetProcAddr(PFN_vkCmdCopyBuffer, CmdCopyBuffer);
+		table.CmdCopyImage = GetProcAddr(PFN_vkCmdCopyImage, CmdCopyImage);
+		table.CmdBlitImage = GetProcAddr(PFN_vkCmdBlitImage, CmdBlitImage);
+		table.CmdCopyBufferToImage = GetProcAddr(PFN_vkCmdCopyBufferToImage, CmdCopyBufferToImage);
+		table.CmdCopyImageToBuffer = GetProcAddr(PFN_vkCmdCopyImageToBuffer, CmdCopyImageToBuffer);
+		table.CmdUpdateBuffer = GetProcAddr(PFN_vkCmdUpdateBuffer, CmdUpdateBuffer);
+		table.CmdFillBuffer = GetProcAddr(PFN_vkCmdFillBuffer, CmdFillBuffer);
+		table.CmdClearColorImage = GetProcAddr(PFN_vkCmdClearColorImage, CmdClearColorImage);
+		table.CmdClearDepthStencilImage = GetProcAddr(PFN_vkCmdClearDepthStencilImage, CmdClearDepthStencilImage);
+		table.CmdClearColorAttachment = GetProcAddr(PFN_vkCmdClearColorAttachment, CmdClearColorAttachment);
+		table.CmdClearDepthStencilAttachment = GetProcAddr(PFN_vkCmdClearDepthStencilAttachment, CmdClearDepthStencilAttachment);
+		table.CmdResolveImage = GetProcAddr(PFN_vkCmdResolveImage, CmdResolveImage);
+		table.CmdSetEvent = GetProcAddr(PFN_vkCmdSetEvent, CmdSetEvent);
+		table.CmdResetEvent = GetProcAddr(PFN_vkCmdResetEvent, CmdResetEvent);
+		table.CmdWaitEvents = GetProcAddr(PFN_vkCmdWaitEvents, CmdWaitEvents);
+		table.CmdPipelineBarrier = GetProcAddr(PFN_vkCmdPipelineBarrier, CmdPipelineBarrier);
+		table.CmdBeginQuery = GetProcAddr(PFN_vkCmdBeginQuery, CmdBeginQuery);
+		table.CmdEndQuery = GetProcAddr(PFN_vkCmdEndQuery, CmdEndQuery);
+		table.CmdResetQueryPool = GetProcAddr(PFN_vkCmdResetQueryPool, CmdResetQueryPool);
+		table.CmdWriteTimestamp = GetProcAddr(PFN_vkCmdWriteTimestamp, CmdWriteTimestamp);
+		table.CmdCopyQueryPoolResults = GetProcAddr(PFN_vkCmdCopyQueryPoolResults, CmdCopyQueryPoolResults);
+		table.CmdPushConstants = GetProcAddr(PFN_vkCmdPushConstants, CmdPushConstants);
+		table.CmdBeginRenderPass = GetProcAddr(PFN_vkCmdBeginRenderPass, CmdBeginRenderPass);
+		table.CmdNextSubpass = GetProcAddr(PFN_vkCmdNextSubpass, CmdNextSubpass);
+		table.CmdEndRenderPass = GetProcAddr(PFN_vkCmdEndRenderPass, CmdEndRenderPass);
+		table.CmdExecuteCommands = GetProcAddr(PFN_vkCmdExecuteCommands, CmdExecuteCommands);
+		table.GetSurfaceInfoWSI = GetProcAddr(PFN_vkGetSurfaceInfoWSI, GetSurfaceInfoWSI);
+		table.CreateSwapChainWSI = GetProcAddr(PFN_vkCreateSwapChainWSI, CreateSwapChainWSI);
+		table.DestroySwapChainWSI = GetProcAddr(PFN_vkDestroySwapChainWSI, DestroySwapChainWSI);
+		table.GetSwapChainInfoWSI = GetProcAddr(PFN_vkGetSwapChainInfoWSI, GetSwapChainInfoWSI);
+		table.AcquireNextImageWSI = GetProcAddr(PFN_vkAcquireNextImageWSI, AcquireNextImageWSI);
+		table.QueuePresentWSI = GetProcAddr(PFN_vkQueuePresentWSI, QueuePresentWSI);
+		table.DbgCreateMsgCallback = GetProcAddr(PFN_vkDbgCreateMsgCallback, DbgCreateMsgCallback);
+		table.DbgDestroyMsgCallback = GetProcAddr(PFN_vkDbgDestroyMsgCallback, DbgDestroyMsgCallback);
+	}
+
+	{
+		VkLayerInstanceDispatchTable &table = replayInstanceTable;
+
+		table.GetInstanceProcAddr = GetProcAddr(PFN_vkGetInstanceProcAddr, GetInstanceProcAddr);
+		table.CreateInstance = GetProcAddr(PFN_vkCreateInstance, CreateInstance);
+		table.DestroyInstance = GetProcAddr(PFN_vkDestroyInstance, DestroyInstance);
+		table.EnumeratePhysicalDevices = GetProcAddr(PFN_vkEnumeratePhysicalDevices, EnumeratePhysicalDevices);
+		table.GetPhysicalDeviceFeatures = GetProcAddr(PFN_vkGetPhysicalDeviceFeatures, GetPhysicalDeviceFeatures);
+		table.GetPhysicalDeviceImageFormatProperties = GetProcAddr(PFN_vkGetPhysicalDeviceImageFormatProperties, GetPhysicalDeviceImageFormatProperties);
+		table.GetPhysicalDeviceFormatProperties = GetProcAddr(PFN_vkGetPhysicalDeviceFormatProperties, GetPhysicalDeviceFormatProperties);
+		table.GetPhysicalDeviceLimits = GetProcAddr(PFN_vkGetPhysicalDeviceLimits, GetPhysicalDeviceLimits);
+		table.GetPhysicalDeviceSparseImageFormatProperties = GetProcAddr(PFN_vkGetPhysicalDeviceSparseImageFormatProperties, GetPhysicalDeviceSparseImageFormatProperties);
+		table.GetPhysicalDeviceProperties = GetProcAddr(PFN_vkGetPhysicalDeviceProperties, GetPhysicalDeviceProperties);
+		table.GetPhysicalDeviceQueueCount = GetProcAddr(PFN_vkGetPhysicalDeviceQueueCount, GetPhysicalDeviceQueueCount);
+		table.GetPhysicalDeviceQueueProperties = GetProcAddr(PFN_vkGetPhysicalDeviceQueueProperties, GetPhysicalDeviceQueueProperties);
+		table.GetPhysicalDeviceMemoryProperties = GetProcAddr(PFN_vkGetPhysicalDeviceMemoryProperties, GetPhysicalDeviceMemoryProperties);
+		table.GetPhysicalDeviceExtensionProperties = GetProcAddr(PFN_vkGetPhysicalDeviceExtensionProperties, GetPhysicalDeviceExtensionProperties);
+		table.GetPhysicalDeviceLayerProperties = GetProcAddr(PFN_vkGetPhysicalDeviceLayerProperties, GetPhysicalDeviceLayerProperties);
+		table.GetPhysicalDeviceSurfaceSupportWSI = GetProcAddr(PFN_vkGetPhysicalDeviceSurfaceSupportWSI, GetPhysicalDeviceSurfaceSupportWSI);
+		table.DbgCreateMsgCallback = GetProcAddr(PFN_vkDbgCreateMsgCallback, DbgCreateMsgCallback);
+		table.DbgDestroyMsgCallback = GetProcAddr(PFN_vkDbgDestroyMsgCallback, DbgDestroyMsgCallback);
 	}
 	
 	WrappedVulkan *vk = new WrappedVulkan(logfile);

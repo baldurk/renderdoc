@@ -38,9 +38,21 @@
 
 // layer includes
 
+#ifdef WIN32
+// undefined clashing windows #defines
+#undef CreateEvent
+#undef CreateSemaphore
+#endif
+
 #include "vk_layer.h"
 #include "LoaderAndTools/layers/vk_layer_table.h"
 #include "LoaderAndTools/layers/vk_layer_extension_utils.h"
+
+extern VkLayerDispatchTable *dummyDeviceTable;
+extern VkLayerInstanceDispatchTable *dummyInstanceTable;
+
+#define device_dispatch_table(dev) (dummyDeviceTable ? dummyDeviceTable : device_dispatch_table(dev))
+#define instance_dispatch_table(inst) (dummyInstanceTable ? dummyInstanceTable : instance_dispatch_table(inst))
 
 using std::vector;
 using std::list;

@@ -261,7 +261,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 			/*.ppEnabledExtensionNames =*/ extscstr,
 	};
 
-	VkInstance inst;
+	VkInstance inst = {0};
 
 	// GSFTODO: Fix this
 	// VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
@@ -616,6 +616,20 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				// GSFTODO hack
 				//void PopulateDeviceHooks(VkDevice d, VkInstance i);
 				//PopulateDeviceHooks(device, m_PhysicalReplayData[i].inst);
+
+				// fill out replay functions. Maybe this should be somewhere else.
+				// VKTODOLOW this won't work with multiple devices - will need a replay device table for each
+				{
+					RDCASSERT(dummyDeviceTable);
+
+#define FETCH_DEVICE_FUNCPTR(func) dummyDeviceTable->func = (CONCAT(PFN_vk, func))dummyDeviceTable->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
+					FETCH_DEVICE_FUNCPTR(CreateSwapChainWSI)
+					FETCH_DEVICE_FUNCPTR(DestroySwapChainWSI)
+					FETCH_DEVICE_FUNCPTR(GetSwapChainInfoWSI)
+					FETCH_DEVICE_FUNCPTR(AcquireNextImageWSI)
+					FETCH_DEVICE_FUNCPTR(QueuePresentWSI)
+#undef FETCH_DEVICE_FUNCPTR
+				}
 
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODOHIGH: shouldn't be 0, 0

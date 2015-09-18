@@ -25,10 +25,17 @@
 #pragma once
 
 #include "vk_common.h"
-#include "vk_layer.h"
 #include "api/replay/renderdoc_replay.h"
 #include "replay/replay_driver.h"
 #include "core/core.h"
+
+#ifdef WIN32
+// undefined clashing windows #defines
+#undef CreateEvent
+#undef CreateSemaphore
+#endif
+
+#include "vk_layer.h"
 
 #if defined(WIN32)
 
