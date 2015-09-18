@@ -125,8 +125,12 @@ struct CachedHookData
 		// instead, skip modifying the import descriptors, it will hook the 'real' d3d functions
 		// and we can call them and have fraps + renderdoc playing nicely together.
 		// we also exclude some other overlay renderers here, such as steam's
+		//
+		// Also we exclude ourselves here - just in case the application has already loaded
+		// renderdoc.dll, or tries to load it.
 		if(strstr(lowername, "fraps") ||
-		   strstr(lowername, "gameoverlayrenderer"))
+		   strstr(lowername, "gameoverlayrenderer") ||
+		   strstr(lowername, "renderdoc"))
 				return;
 
 		// for safety (and because we don't need to), ignore these modules
