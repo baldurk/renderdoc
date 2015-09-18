@@ -55,10 +55,6 @@
 
 WrappedVulkan *shadowVulkan = NULL;
 
-// probably should not be extern in final release
-extern device_table_map renderdoc_device_table_map;
-extern instance_table_map renderdoc_instance_table_map;
-
 // Layer Intercepts
 
 static const VkLayerProperties rdt_physicaldevice_layers[] = {
@@ -197,7 +193,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetDeviceProcAddr(VkDevice device, co
 
     /* loader uses this to force layer initialization; device object is wrapped */
     if (!strcmp("vkGetDeviceProcAddr", pName)) {
-        initDeviceTable(renderdoc_device_table_map, (const VkBaseLayerObject *) device);
+        initDeviceTable((const VkBaseLayerObject *) device);
         return (PFN_vkVoidFunction) vkGetDeviceProcAddr;
     }
 
@@ -209,9 +205,9 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetDeviceProcAddr(VkDevice device, co
         return (PFN_vkVoidFunction) vkDestroyDevice;
     else
     {
-        if (get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceProcAddr == NULL)
+        if (device_dispatch_table(device)->GetDeviceProcAddr == NULL)
             return NULL;
-        return get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceProcAddr(device, pName);
+        return device_dispatch_table(device)->GetDeviceProcAddr(device, pName);
     }
 }
 
@@ -222,7 +218,7 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetInstanceProcAddr(VkInstance instan
 
     /* loader uses this to force layer initialization; instance object is wrapped */
     if (!strcmp("vkGetInstanceProcAddr", pName)) {
-        initInstanceTable(renderdoc_instance_table_map, (const VkBaseLayerObject *) instance);
+        initInstanceTable((const VkBaseLayerObject *) instance);
         if (shadowVulkan == NULL) {
             shadowVulkan = new WrappedVulkan("");
         }
@@ -238,8 +234,8 @@ VK_LAYER_EXPORT PFN_vkVoidFunction VKAPI vkGetInstanceProcAddr(VkInstance instan
     if (!strcmp("vkGetGlobalLayerProperties", pName))
         return (PFN_vkVoidFunction) vkGetGlobalLayerProperties;
 
-    if (get_dispatch_table(renderdoc_instance_table_map, instance)->GetInstanceProcAddr == NULL)
+    if (instance_dispatch_table(instance)->GetInstanceProcAddr == NULL)
         return NULL;
-    return get_dispatch_table(renderdoc_instance_table_map, instance)->GetInstanceProcAddr(instance, pName);
+    return instance_dispatch_table(instance)->GetInstanceProcAddr(instance, pName);
 }
 

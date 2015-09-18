@@ -49,10 +49,6 @@ static bool operator <(const VkExtensionProperties &a, const VkExtensionProperti
 	return cmp < 0;
 }
 
-// probably should not be extern in final release
-device_table_map renderdoc_device_table_map;
-instance_table_map renderdoc_instance_table_map;
-
 // VKTODOLOW assertion of structure types, handling of pNext or assert == NULL
 
 const char *VkChunkNames[] =
@@ -269,7 +265,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 
 	// GSFTODO: Fix this
 	// VkResult ret = m_Real.vkCreateInstance(&instinfo, &inst);
-	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, inst)->CreateInstance(&instinfo, &inst);
+	VkResult ret = instance_dispatch_table(inst)->CreateInstance(&instinfo, &inst);
 
 	GetResourceManager()->RegisterResource(MakeRes(inst));
 	GetResourceManager()->AddLiveResource(params.InstanceID, MakeRes(inst));
@@ -417,7 +413,7 @@ WrappedVulkan::~WrappedVulkan()
 		// VKTODOMED [0] isn't right..
 		// GSFTODO Fix this
 		// m_Real.vkDbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
-		get_dispatch_table(renderdoc_instance_table_map, m_PhysicalReplayData[0].inst)->DbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
+		instance_dispatch_table(m_PhysicalReplayData[0].inst)->DbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
 	}
 #endif
 
@@ -442,7 +438,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkInstance inst = *pInstance;
 
-	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, *pInstance)->CreateInstance(pCreateInfo, &inst);
+	VkResult ret = instance_dispatch_table(*pInstance)->CreateInstance(pCreateInfo, &inst);
 
 	if(ret != VK_SUCCESS)
 		return ret;
@@ -457,7 +453,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	// VKTODOLOW we should try and fetch vkDbgCreateMsgCallback ourselves if it isn't
 	// already loaded
-	PFN_vkDbgCreateMsgCallback dcmc_fn = get_dispatch_table(renderdoc_instance_table_map, *pInstance)->DbgCreateMsgCallback;
+	PFN_vkDbgCreateMsgCallback dcmc_fn = instance_dispatch_table(*pInstance)->DbgCreateMsgCallback;
 	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && dcmc_fn)
 	{
 		VkFlags flags = VK_DBG_REPORT_INFO_BIT |
@@ -486,19 +482,19 @@ VkResult WrappedVulkan::vkDestroyInstance(
 		VkInstance                                  instance)
 {
         dispatch_key key = get_dispatch_key(instance);
-	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, instance)->DestroyInstance(instance);
+	VkResult ret = instance_dispatch_table(instance)->DestroyInstance(instance);
 
 	if(ret != VK_SUCCESS)
 		return ret;
 	
 	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback != VK_NULL_HANDLE)
 	{
-		get_dispatch_table(renderdoc_instance_table_map, instance)->DbgDestroyMsgCallback(instance, m_MsgCallback);
+		instance_dispatch_table(instance)->DbgDestroyMsgCallback(instance, m_MsgCallback);
 	}
 
 	GetResourceManager()->UnregisterResource(MakeRes(instance));
 
-        destroy_dispatch_table(renderdoc_instance_table_map, key);
+        destroy_instance_dispatch_table(key);
 
 	return VK_SUCCESS;
 }
@@ -518,7 +514,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	{
 		instance = (VkInstance)GetResourceManager()->GetLiveResource(inst).handle;
 		// GSFTODO right instance?
-		VkResult ret = get_dispatch_table(renderdoc_instance_table_map, instance)->EnumeratePhysicalDevices(instance, &count, devices);
+		VkResult ret = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
 		RDCASSERT(ret == VK_SUCCESS);
 
 		// VKTODOLOW match up physical devices to those available on replay
@@ -542,7 +538,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 	data.inst = instance;
 	data.phys = pd;
 
-	get_dispatch_table(renderdoc_instance_table_map, pd)->GetPhysicalDeviceMemoryProperties(pd, &data.memProps);
+	instance_dispatch_table(pd)->GetPhysicalDeviceMemoryProperties(pd, &data.memProps);
 
 	data.readbackMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT);
 	data.uploadMemIndex = data.GetMemoryIndex(~0U, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, 0);
@@ -560,7 +556,7 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 {
 	uint32_t count;
 	VkPhysicalDevice devices[8]; // VKTODOLOW: dynamically allocate
-	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, instance)->EnumeratePhysicalDevices(instance, &count, devices);
+	VkResult ret = instance_dispatch_table(instance)->EnumeratePhysicalDevices(instance, &count, devices);
 
 	if(ret != VK_SUCCESS)
 		return ret;
@@ -603,7 +599,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		// VKTODOLOW: check that extensions supported in capture (from createInfo) are supported in replay
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateDevice(rmPhys, &createInfo, &device);
+		VkResult ret = device_dispatch_table(*pDevice)->CreateDevice(rmPhys, &createInfo, &device);
 
 		VkResource res = MakeRes(device);
 
@@ -623,27 +619,27 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				m_PhysicalReplayData[i].dev = device;
 				// VKTODOHIGH: shouldn't be 0, 0
-				VkResult vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->GetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(device, 0, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
-				vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(device, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = device_dispatch_table(*pDevice)->CreateCommandBuffer(device, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 #if defined(FORCE_VALIDATION_LAYER)
-				if(get_dispatch_table(renderdoc_device_table_map, *pDevice)->DbgCreateMsgCallback)
+				if(device_dispatch_table(*pDevice)->DbgCreateMsgCallback)
 				{
 					VkFlags flags = VK_DBG_REPORT_INFO_BIT |
 						VK_DBG_REPORT_WARN_BIT |
 						VK_DBG_REPORT_PERF_WARN_BIT |
 						VK_DBG_REPORT_ERROR_BIT |
 						VK_DBG_REPORT_DEBUG_BIT;
-					vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->DbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
+					vkr = device_dispatch_table(*pDevice)->DbgCreateMsgCallback(m_PhysicalReplayData[i].inst, flags, &DebugCallbackStatic, this, &m_MsgCallback);
 					RDCASSERT(vkr == VK_SUCCESS);
 					RDCLOG("Created dbg callback");
 				}
@@ -677,7 +673,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateDevice(physicalDevice, &createInfo, pDevice);
+	VkResult ret = device_dispatch_table(*pDevice)->CreateDevice(physicalDevice, &createInfo, pDevice);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -689,16 +685,16 @@ VkResult WrappedVulkan::vkCreateDevice(
 			{
 				m_PhysicalReplayData[i].dev = *pDevice;
 				// VKTODOHIGH: shouldn't be 0, 0
-				VkResult vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->GetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = device_dispatch_table(*pDevice)->GetDeviceQueue(*pDevice, 0, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				// VKTODOHIGH queueFamilyIndex
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, 0, 0 };
-				vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = device_dispatch_table(*pDevice)->CreateCommandPool(*pDevice, &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = device_dispatch_table(*pDevice)->CreateCommandBuffer(*pDevice, &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 				found = true;
 				break;
@@ -764,7 +760,7 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 				}
 
 				if(m_PhysicalReplayData[i].cmd != VK_NULL_HANDLE)
-					get_dispatch_table(renderdoc_device_table_map, device)->DestroyCommandBuffer(device, m_PhysicalReplayData[i].cmd);
+					device_dispatch_table(device)->DestroyCommandBuffer(device, m_PhysicalReplayData[i].cmd);
 
 				m_PhysicalReplayData[i] = ReplayData();
 				break;
@@ -773,8 +769,8 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 	}
 
         dispatch_key key = get_dispatch_key(device);
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->DestroyDevice(device);
-        destroy_dispatch_table(renderdoc_device_table_map, key);
+	VkResult ret = device_dispatch_table(device)->DestroyDevice(device);
+        destroy_device_dispatch_table(key);
 
 	GetResourceManager()->UnregisterResource(MakeRes(device));
 
@@ -785,7 +781,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFeatures(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceFeatures*                   pFeatures)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceFeatures(physicalDevice, pFeatures);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceFeatures(physicalDevice, pFeatures);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
@@ -793,7 +789,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceFormatProperties(
     VkFormat                                    format,
     VkFormatProperties*                         pFormatProperties)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceFormatProperties(physicalDevice, format, pFormatProperties);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceFormatProperties(physicalDevice, format, pFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
@@ -804,28 +800,28 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceImageFormatProperties(
     VkImageUsageFlags                           usage,
     VkImageFormatProperties*                    pImageFormatProperties)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceImageFormatProperties(physicalDevice, format, type, tiling, usage, pImageFormatProperties);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceImageFormatProperties(physicalDevice, format, type, tiling, usage, pImageFormatProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceLimits(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceLimits*                     pLimits)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceLimits(physicalDevice, pLimits);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceLimits(physicalDevice, pLimits);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceProperties*                 pProperties)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceProperties(physicalDevice, pProperties);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceProperties(physicalDevice, pProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceQueueCount(
     VkPhysicalDevice                            physicalDevice,
     uint32_t*                                   pCount)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceQueueCount(physicalDevice, pCount);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceQueueCount(physicalDevice, pCount);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceQueueProperties(
@@ -833,14 +829,14 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceQueueProperties(
     uint32_t                                    count,
     VkPhysicalDeviceQueueProperties*            pQueueProperties)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceQueueProperties(physicalDevice, count, pQueueProperties);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceQueueProperties(physicalDevice, count, pQueueProperties);
 }
 
 VkResult WrappedVulkan::vkGetPhysicalDeviceMemoryProperties(
     VkPhysicalDevice                            physicalDevice,
     VkPhysicalDeviceMemoryProperties*           pMemoryProperties)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceMemoryProperties(physicalDevice, pMemoryProperties);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceMemoryProperties(physicalDevice, pMemoryProperties);
 }
 
 VkResult WrappedVulkan::vkGetImageSubresourceLayout(
@@ -849,7 +845,7 @@ VkResult WrappedVulkan::vkGetImageSubresourceLayout(
 			const VkImageSubresource*                   pSubresource,
 			VkSubresourceLayout*                        pLayout)
 {
-	return get_dispatch_table(renderdoc_device_table_map, device)->GetImageSubresourceLayout(device, image, pSubresource, pLayout);
+	return device_dispatch_table(device)->GetImageSubresourceLayout(device, image, pSubresource, pLayout);
 }
 
 VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
@@ -857,7 +853,7 @@ VkResult WrappedVulkan::vkGetBufferMemoryRequirements(
 		VkBuffer                                    buffer,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	return get_dispatch_table(renderdoc_device_table_map, device)->GetBufferMemoryRequirements(device, buffer, pMemoryRequirements);
+	return device_dispatch_table(device)->GetBufferMemoryRequirements(device, buffer, pMemoryRequirements);
 }
 
 VkResult WrappedVulkan::vkGetImageMemoryRequirements(
@@ -865,7 +861,7 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 		VkImage                                     image,
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
-	return get_dispatch_table(renderdoc_device_table_map, device)->GetImageMemoryRequirements(device, image, pMemoryRequirements);
+	return device_dispatch_table(device)->GetImageMemoryRequirements(device, image, pMemoryRequirements);
 }
 
 VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
@@ -900,7 +896,7 @@ void WrappedVulkan::DestroyObject(VkResource res, ResourceId id)
 	VkResult WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
 		DestroyObject(MakeRes(obj), GetResourceManager()->GetID(MakeRes(obj))); \
-		return get_dispatch_table(renderdoc_device_table_map, device)->func(device, obj); \
+		return device_dispatch_table(device)->func(device, obj); \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
@@ -943,7 +939,7 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 	if(m_State == READING)
 	{
 		VkQueue queue;
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceQueue((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, nodeIdx, idx, &queue);
+		VkResult ret = device_dispatch_table(device)->GetDeviceQueue((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, nodeIdx, idx, &queue);
 
 		VkResource res = MakeRes(queue);
 
@@ -960,7 +956,7 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
     uint32_t                                    queueIndex,
     VkQueue*                                    pQueue)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->GetDeviceQueue(device, queueNodeIndex, queueIndex, pQueue);
+	VkResult ret = device_dispatch_table(device)->GetDeviceQueue(device, queueNodeIndex, queueIndex, pQueue);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -1045,7 +1041,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 	{
 		m_SubmittedFences.insert(fenceId);
 
-		get_dispatch_table(renderdoc_device_table_map, queue)->QueueSubmit(rmqueue, numCmds, cmds, fence);
+		device_dispatch_table(queue)->QueueSubmit(rmqueue, numCmds, cmds, fence);
 
 		for(uint32_t i=0; i < numCmds; i++)
 		{
@@ -1157,7 +1153,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 			m_SubmittedFences.insert(fenceId);
 
-			get_dispatch_table(renderdoc_device_table_map, queue)->QueueSubmit(rmqueue, (uint32_t)trimmedCmds.size(), &trimmedCmds[0], fence);
+			device_dispatch_table(queue)->QueueSubmit(rmqueue, (uint32_t)trimmedCmds.size(), &trimmedCmds[0], fence);
 
 			for(uint32_t i=0; i < numCmds; i++)
 			{
@@ -1169,7 +1165,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		{
 			m_SubmittedFences.insert(fenceId);
 
-			get_dispatch_table(renderdoc_device_table_map, queue)->QueueSubmit(rmqueue, numCmds, cmds, fence);
+			device_dispatch_table(queue)->QueueSubmit(rmqueue, numCmds, cmds, fence);
 
 			for(uint32_t i=0; i < numCmds; i++)
 			{
@@ -1208,7 +1204,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
     const VkCmdBuffer*                          pCmdBuffers,
     VkFence                                     fence)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, queue)->QueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
+	VkResult ret = device_dispatch_table(queue)->QueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
 
 	if(m_State == WRITING_CAPFRAME)
 	{
@@ -1252,7 +1248,7 @@ bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(VkQueue queue, VkSemaphore 
 	
 	if(m_State < WRITING)
 	{
-		get_dispatch_table(renderdoc_device_table_map, queue)->QueueSignalSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
+		device_dispatch_table(queue)->QueueSignalSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
 				(VkSemaphore)GetResourceManager()->GetLiveResource(sid).handle);
 	}
 
@@ -1261,7 +1257,7 @@ bool WrappedVulkan::Serialise_vkQueueSignalSemaphore(VkQueue queue, VkSemaphore 
 
 VkResult WrappedVulkan::vkQueueSignalSemaphore(VkQueue queue, VkSemaphore semaphore)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, queue)->QueueSignalSemaphore(queue, semaphore);
+	VkResult ret = device_dispatch_table(queue)->QueueSignalSemaphore(queue, semaphore);
 	
 	if(m_State >= WRITING)
 	{
@@ -1283,7 +1279,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(VkQueue queue, VkSemaphore se
 	
 	if(m_State < WRITING)
 	{
-		get_dispatch_table(renderdoc_device_table_map, queue)->QueueWaitSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
+		device_dispatch_table(queue)->QueueWaitSemaphore((VkQueue)GetResourceManager()->GetLiveResource(qid).handle,
 				(VkSemaphore)GetResourceManager()->GetLiveResource(sid).handle);
 	}
 
@@ -1292,7 +1288,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitSemaphore(VkQueue queue, VkSemaphore se
 
 VkResult WrappedVulkan::vkQueueWaitSemaphore(VkQueue queue, VkSemaphore semaphore)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, queue)->QueueWaitSemaphore(queue, semaphore);
+	VkResult ret = device_dispatch_table(queue)->QueueWaitSemaphore(queue, semaphore);
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
@@ -1313,7 +1309,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(VkQueue queue)
 	
 	if(m_State < WRITING_CAPFRAME)
 	{
-		get_dispatch_table(renderdoc_device_table_map, queue)->QueueWaitIdle((VkQueue)GetResourceManager()->GetLiveResource(id).handle);
+		device_dispatch_table(queue)->QueueWaitIdle((VkQueue)GetResourceManager()->GetLiveResource(id).handle);
 	}
 
 	return true;
@@ -1321,7 +1317,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(VkQueue queue)
 
 VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, queue)->QueueWaitIdle(queue);
+	VkResult ret = device_dispatch_table(queue)->QueueWaitIdle(queue);
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
@@ -1341,7 +1337,7 @@ bool WrappedVulkan::Serialise_vkDeviceWaitIdle(VkDevice device)
 	
 	if(m_State < WRITING)
 	{
-		get_dispatch_table(renderdoc_device_table_map, device)->DeviceWaitIdle((VkDevice)GetResourceManager()->GetLiveResource(id).handle);
+		device_dispatch_table(device)->DeviceWaitIdle((VkDevice)GetResourceManager()->GetLiveResource(id).handle);
 	}
 
 	return true;
@@ -1349,7 +1345,7 @@ bool WrappedVulkan::Serialise_vkDeviceWaitIdle(VkDevice device)
 
 VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->DeviceWaitIdle(device);
+	VkResult ret = device_dispatch_table(device)->DeviceWaitIdle(device);
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
@@ -1379,7 +1375,7 @@ bool WrappedVulkan::Serialise_vkAllocMemory(
 
 		// VKTODOLOW may need to re-write info to change memory type index to the
 		// appropriate index on replay
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->AllocMemory((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &mem);
+		VkResult ret = device_dispatch_table(device)->AllocMemory((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &mem);
 		
 		ResourceId live;
 
@@ -1404,7 +1400,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 			const VkMemoryAllocInfo*                    pAllocInfo,
 			VkDeviceMemory*                             pMem)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->AllocMemory(device, pAllocInfo, pMem);
+	VkResult ret = device_dispatch_table(device)->AllocMemory(device, pAllocInfo, pMem);
 	
 	if(ret == VK_SUCCESS)
 	{
@@ -1456,7 +1452,7 @@ VkResult WrappedVulkan::vkFreeMemory(
 		record->Delete(GetResourceManager());
 	GetResourceManager()->UnregisterResource(MakeRes(mem));
 
-	return get_dispatch_table(renderdoc_device_table_map, device)->FreeMemory(device, mem);
+	return device_dispatch_table(device)->FreeMemory(device, mem);
 }
 
 VkResult WrappedVulkan::vkMapMemory(
@@ -1467,7 +1463,7 @@ VkResult WrappedVulkan::vkMapMemory(
 			VkMemoryMapFlags                            flags,
 			void**                                      ppData)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->MapMemory(device, mem, offset, size, flags, ppData);
+	VkResult ret = device_dispatch_table(device)->MapMemory(device, mem, offset, size, flags, ppData);
 
 	if(ret == VK_SUCCESS && ppData)
 	{
@@ -1524,7 +1520,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		mem = (VkDeviceMemory)GetResourceManager()->GetLiveResource(id).handle;
 
 		void *mapPtr = NULL;
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->MapMemory(rmDev, mem, memOffset, memSize, flags, &mapPtr);
+		VkResult ret = device_dispatch_table(device)->MapMemory(rmDev, mem, memOffset, memSize, flags, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -1534,7 +1530,7 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		{
 			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
 
-			ret = get_dispatch_table(renderdoc_device_table_map, device)->UnmapMemory(rmDev, mem);
+			ret = device_dispatch_table(device)->UnmapMemory(rmDev, mem);
 			
 			if(ret != VK_SUCCESS)
 				RDCERR("Error unmapping memory on replay: 0x%08x", ret);
@@ -1550,7 +1546,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
     VkDevice                                    device,
     VkDeviceMemory                              mem)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->UnmapMemory(device, mem);
+	VkResult ret = device_dispatch_table(device)->UnmapMemory(device, mem);
 	
 	if(m_State >= WRITING)
 	{
@@ -1614,7 +1610,7 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufId).handle;
 		mem = (VkDeviceMemory)GetResourceManager()->GetLiveResource(memId).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, device)->BindBufferMemory(rmDev, buffer, mem, offs);
+		device_dispatch_table(device)->BindBufferMemory(rmDev, buffer, mem, offs);
 	}
 
 	return true;
@@ -1654,7 +1650,7 @@ VkResult WrappedVulkan::vkBindBufferMemory(
 		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
 
-	return get_dispatch_table(renderdoc_device_table_map, device)->BindBufferMemory(device, buffer, mem, memOffset);
+	return device_dispatch_table(device)->BindBufferMemory(device, buffer, mem, memOffset);
 }
 
 bool WrappedVulkan::Serialise_vkBindImageMemory(
@@ -1674,7 +1670,7 @@ bool WrappedVulkan::Serialise_vkBindImageMemory(
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgId).handle;
 		mem = (VkDeviceMemory)GetResourceManager()->GetLiveResource(memId).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, device)->BindImageMemory(rmDev, image, mem, offs);
+		device_dispatch_table(device)->BindImageMemory(rmDev, image, mem, offs);
 	}
 
 	return true;
@@ -1714,7 +1710,7 @@ VkResult WrappedVulkan::vkBindImageMemory(
 		record->SetMemoryRecord(GetResourceManager()->GetResourceRecord(MakeRes(mem)));
 	}
 
-	return get_dispatch_table(renderdoc_device_table_map, device)->BindImageMemory(device, image, mem, memOffset);
+	return device_dispatch_table(device)->BindImageMemory(device, image, mem, memOffset);
 }
 
 bool WrappedVulkan::Serialise_vkCreateBuffer(
@@ -1730,7 +1726,7 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 	{
 		VkBuffer buf = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateBuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &buf);
+		VkResult ret = device_dispatch_table(device)->CreateBuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &buf);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -1751,7 +1747,7 @@ VkResult WrappedVulkan::vkCreateBuffer(
 			const VkBufferCreateInfo*                   pCreateInfo,
 			VkBuffer*                                   pBuffer)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateBuffer(device, pCreateInfo, pBuffer);
+	VkResult ret = device_dispatch_table(device)->CreateBuffer(device, pCreateInfo, pBuffer);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -1794,7 +1790,7 @@ bool WrappedVulkan::Serialise_vkCreateBufferView(
 	{
 		VkBufferView view = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateBufferView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
+		VkResult ret = device_dispatch_table(device)->CreateBufferView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -1815,7 +1811,7 @@ VkResult WrappedVulkan::vkCreateBufferView(
 			const VkBufferViewCreateInfo*               pCreateInfo,
 			VkBufferView*                               pView)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateBufferView(device, pCreateInfo, pView);
+	VkResult ret = device_dispatch_table(device)->CreateBufferView(device, pCreateInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -1859,7 +1855,7 @@ bool WrappedVulkan::Serialise_vkCreateImage(
 	{
 		VkImage img = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateImage((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &img);
+		VkResult ret = device_dispatch_table(device)->CreateImage((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &img);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -1905,7 +1901,7 @@ VkResult WrappedVulkan::vkCreateImage(
 			const VkImageCreateInfo*                    pCreateInfo,
 			VkImage*                                    pImage)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateImage(device, pCreateInfo, pImage);
+	VkResult ret = device_dispatch_table(device)->CreateImage(device, pCreateInfo, pImage);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -1975,7 +1971,7 @@ bool WrappedVulkan::Serialise_vkCreateImageView(
 	{
 		VkImageView view = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateImageView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
+		VkResult ret = device_dispatch_table(device)->CreateImageView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -1996,7 +1992,7 @@ VkResult WrappedVulkan::vkCreateImageView(
     const VkImageViewCreateInfo*                pCreateInfo,
     VkImageView*                                pView)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateImageView(device, pCreateInfo, pView);
+	VkResult ret = device_dispatch_table(device)->CreateImageView(device, pCreateInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2040,7 +2036,7 @@ bool WrappedVulkan::Serialise_vkCreateAttachmentView(
 	{
 		VkAttachmentView view = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateAttachmentView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
+		VkResult ret = device_dispatch_table(device)->CreateAttachmentView((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &view);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2061,7 +2057,7 @@ VkResult WrappedVulkan::vkCreateAttachmentView(
     const VkAttachmentViewCreateInfo*           pCreateInfo,
     VkAttachmentView*                           pView)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateAttachmentView(device, pCreateInfo, pView);
+	VkResult ret = device_dispatch_table(device)->CreateAttachmentView(device, pCreateInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2107,7 +2103,7 @@ bool WrappedVulkan::Serialise_vkCreateShaderModule(
 	{
 		VkShaderModule sh = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateShaderModule((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sh);
+		VkResult ret = device_dispatch_table(device)->CreateShaderModule((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sh);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2128,7 +2124,7 @@ VkResult WrappedVulkan::vkCreateShaderModule(
 		const VkShaderModuleCreateInfo*             pCreateInfo,
 		VkShaderModule*                             pShaderModule)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateShaderModule(device, pCreateInfo, pShaderModule);
+	VkResult ret = device_dispatch_table(device)->CreateShaderModule(device, pCreateInfo, pShaderModule);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2171,7 +2167,7 @@ bool WrappedVulkan::Serialise_vkCreateShader(
 	{
 		VkShader sh = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateShader((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sh);
+		VkResult ret = device_dispatch_table(device)->CreateShader((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sh);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2192,7 +2188,7 @@ VkResult WrappedVulkan::vkCreateShader(
     const VkShaderCreateInfo*                   pCreateInfo,
     VkShader*                                   pShader)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateShader(device, pCreateInfo, pShader);
+	VkResult ret = device_dispatch_table(device)->CreateShader(device, pCreateInfo, pShader);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2240,7 +2236,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineCache(
 	{
 		VkPipelineCache cache = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreatePipelineCache((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &cache);
+		VkResult ret = device_dispatch_table(device)->CreatePipelineCache((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &cache);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2261,7 +2257,7 @@ VkResult WrappedVulkan::vkCreatePipelineCache(
 		const VkPipelineCacheCreateInfo*            pCreateInfo,
 		VkPipelineCache*                            pPipelineCache)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreatePipelineCache(device, pCreateInfo, pPipelineCache);
+	VkResult ret = device_dispatch_table(device)->CreatePipelineCache(device, pCreateInfo, pPipelineCache);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2313,7 +2309,7 @@ bool WrappedVulkan::Serialise_vkCreateGraphicsPipelines(
 		VkDevice rmDev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 		pipelineCache = (VkPipelineCache)GetResourceManager()->GetLiveResource(cacheId).handle;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateGraphicsPipelines(rmDev, pipelineCache, 1, &info, &pipe);
+		VkResult ret = device_dispatch_table(device)->CreateGraphicsPipelines(rmDev, pipelineCache, 1, &info, &pipe);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2336,7 +2332,7 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
 			VkPipeline*                                 pPipelines)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateGraphicsPipelines(device, pipelineCache, count, pCreateInfos, pPipelines);
+	VkResult ret = device_dispatch_table(device)->CreateGraphicsPipelines(device, pipelineCache, count, pCreateInfos, pPipelines);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2400,7 +2396,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorPool(
 
 		VkDevice rmDev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDescriptorPool(rmDev, pooluse, maxs, &info, &pool);
+		VkResult ret = device_dispatch_table(device)->CreateDescriptorPool(rmDev, pooluse, maxs, &info, &pool);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2423,7 +2419,7 @@ VkResult WrappedVulkan::vkCreateDescriptorPool(
 			const VkDescriptorPoolCreateInfo*           pCreateInfo,
 			VkDescriptorPool*                           pDescriptorPool)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDescriptorPool(device, poolUsage, maxSets, pCreateInfo, pDescriptorPool);
+	VkResult ret = device_dispatch_table(device)->CreateDescriptorPool(device, poolUsage, maxSets, pCreateInfo, pDescriptorPool);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2472,7 +2468,7 @@ bool WrappedVulkan::Serialise_vkCreateDescriptorSetLayout(
 
 		VkDevice rmDev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDescriptorSetLayout(rmDev, &info, &layout);
+		VkResult ret = device_dispatch_table(device)->CreateDescriptorSetLayout(rmDev, &info, &layout);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2493,7 +2489,7 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 		const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
 		VkDescriptorSetLayout*                      pSetLayout)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDescriptorSetLayout(device, pCreateInfo, pSetLayout);
+	VkResult ret = device_dispatch_table(device)->CreateDescriptorSetLayout(device, pCreateInfo, pSetLayout);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2538,7 +2534,7 @@ bool WrappedVulkan::Serialise_vkCreatePipelineLayout(
 
 		VkDevice rmDev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreatePipelineLayout(rmDev, &info, &layout);
+		VkResult ret = device_dispatch_table(device)->CreatePipelineLayout(rmDev, &info, &layout);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2559,7 +2555,7 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		const VkPipelineLayoutCreateInfo*           pCreateInfo,
 		VkPipelineLayout*                           pPipelineLayout)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreatePipelineLayout(device, pCreateInfo, pPipelineLayout);
+	VkResult ret = device_dispatch_table(device)->CreatePipelineLayout(device, pCreateInfo, pPipelineLayout);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2604,7 +2600,7 @@ bool WrappedVulkan::Serialise_vkCreateSampler(
 	{
 		VkSampler samp = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateSampler((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &samp);
+		VkResult ret = device_dispatch_table(device)->CreateSampler((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &samp);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2625,7 +2621,7 @@ VkResult WrappedVulkan::vkCreateSampler(
 			const VkSamplerCreateInfo*                  pCreateInfo,
 			VkSampler*                                  pSampler)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateSampler(device, pCreateInfo, pSampler);
+	VkResult ret = device_dispatch_table(device)->CreateSampler(device, pCreateInfo, pSampler);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2668,7 +2664,7 @@ bool WrappedVulkan::Serialise_vkCreateSemaphore(
 	{
 		VkSemaphore sem = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateSemaphore((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sem);
+		VkResult ret = device_dispatch_table(device)->CreateSemaphore((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &sem);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2689,7 +2685,7 @@ VkResult WrappedVulkan::vkCreateSemaphore(
 			const VkSemaphoreCreateInfo*                pCreateInfo,
 			VkSemaphore*                                pSemaphore)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateSemaphore(device, pCreateInfo, pSemaphore);
+	VkResult ret = device_dispatch_table(device)->CreateSemaphore(device, pCreateInfo, pSemaphore);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2735,7 +2731,7 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 		// use original ID
 		m_CreationInfo.m_Framebuffer[id].Init(GetResourceManager(), &info);
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateFramebuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &fb);
+		VkResult ret = device_dispatch_table(device)->CreateFramebuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &fb);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2756,7 +2752,7 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateFramebuffer(device, pCreateInfo, pFramebuffer);
+	VkResult ret = device_dispatch_table(device)->CreateFramebuffer(device, pCreateInfo, pFramebuffer);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2804,7 +2800,7 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(
 	{
 		VkRenderPass rp = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateRenderPass((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &rp);
+		VkResult ret = device_dispatch_table(device)->CreateRenderPass((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &rp);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2825,7 +2821,7 @@ VkResult WrappedVulkan::vkCreateRenderPass(
 			const VkRenderPassCreateInfo*               pCreateInfo,
 			VkRenderPass*                               pRenderPass)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateRenderPass(device, pCreateInfo, pRenderPass);
+	VkResult ret = device_dispatch_table(device)->CreateRenderPass(device, pCreateInfo, pRenderPass);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2873,7 +2869,7 @@ bool WrappedVulkan::Serialise_vkCreateDynamicViewportState(
 		// use original ID
 		m_CreationInfo.m_VPScissor[id].Init(GetResourceManager(), &info);
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicViewportState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
+		VkResult ret = device_dispatch_table(device)->CreateDynamicViewportState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2894,7 +2890,7 @@ VkResult WrappedVulkan::vkCreateDynamicViewportState(
 			const VkDynamicViewportStateCreateInfo*           pCreateInfo,
 			VkDynamicViewportState*                           pState)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicViewportState(device, pCreateInfo, pState);
+	VkResult ret = device_dispatch_table(device)->CreateDynamicViewportState(device, pCreateInfo, pState);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2940,7 +2936,7 @@ bool WrappedVulkan::Serialise_vkCreateDynamicRasterState(
 		// use original ID
 		m_CreationInfo.m_Raster[id].Init(GetResourceManager(), &info);
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicRasterState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
+		VkResult ret = device_dispatch_table(device)->CreateDynamicRasterState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -2961,7 +2957,7 @@ VkResult WrappedVulkan::vkCreateDynamicRasterState(
 			const VkDynamicRasterStateCreateInfo*           pCreateInfo,
 			VkDynamicRasterState*                           pState)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicRasterState(device, pCreateInfo, pState);
+	VkResult ret = device_dispatch_table(device)->CreateDynamicRasterState(device, pCreateInfo, pState);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3007,7 +3003,7 @@ bool WrappedVulkan::Serialise_vkCreateDynamicColorBlendState(
 		// use original ID
 		m_CreationInfo.m_Blend[id].Init(GetResourceManager(), &info);
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicColorBlendState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
+		VkResult ret = device_dispatch_table(device)->CreateDynamicColorBlendState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -3028,7 +3024,7 @@ VkResult WrappedVulkan::vkCreateDynamicColorBlendState(
 			const VkDynamicColorBlendStateCreateInfo*           pCreateInfo,
 			VkDynamicColorBlendState*                           pState)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicColorBlendState(device, pCreateInfo, pState);
+	VkResult ret = device_dispatch_table(device)->CreateDynamicColorBlendState(device, pCreateInfo, pState);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3074,7 +3070,7 @@ bool WrappedVulkan::Serialise_vkCreateDynamicDepthStencilState(
 		// use original ID
 		m_CreationInfo.m_DepthStencil[id].Init(GetResourceManager(), &info);
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicDepthStencilState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
+		VkResult ret = device_dispatch_table(device)->CreateDynamicDepthStencilState((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &state);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -3095,7 +3091,7 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 			const VkDynamicDepthStencilStateCreateInfo*           pCreateInfo,
 			VkDynamicDepthStencilState*                           pState)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateDynamicDepthStencilState(device, pCreateInfo, pState);
+	VkResult ret = device_dispatch_table(device)->CreateDynamicDepthStencilState(device, pCreateInfo, pState);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3140,7 +3136,7 @@ bool WrappedVulkan::Serialise_vkCreateCommandPool(
 	{
 		VkCmdPool pool = VK_NULL_HANDLE;
 
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateCommandPool((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &pool);
+		VkResult ret = device_dispatch_table(device)->CreateCommandPool((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &pool);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -3161,7 +3157,7 @@ VkResult WrappedVulkan::vkCreateCommandPool(
 			const VkCmdPoolCreateInfo*                  pCreateInfo,
 			VkCmdPool*                                  pCmdPool)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateCommandPool(device, pCreateInfo, pCmdPool);
+	VkResult ret = device_dispatch_table(device)->CreateCommandPool(device, pCreateInfo, pCmdPool);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3197,7 +3193,7 @@ VkResult WrappedVulkan::vkResetCommandPool(
 			VkCmdPoolResetFlags                         flags)
 {
 	// VKTODOMED do I need to serialise this? just a driver hint..
-	return get_dispatch_table(renderdoc_device_table_map, device)->ResetCommandPool(device, cmdPool, flags);
+	return device_dispatch_table(device)->ResetCommandPool(device, cmdPool, flags);
 }
 
 
@@ -3208,7 +3204,7 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 	const VkCmdBufferCreateInfo* pCreateInfo,
 	VkCmdBuffer*                   pCmdBuffer)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateCommandBuffer(device, pCreateInfo, pCmdBuffer);
+	VkResult ret = device_dispatch_table(device)->CreateCommandBuffer(device, pCreateInfo, pCmdBuffer);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3262,7 +3258,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		VkDescriptorSetLayout layout = (VkDescriptorSetLayout)GetResourceManager()->GetLiveResource(layoutId).handle;
 
 		uint32_t cnt = 0;
-		VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->AllocDescriptorSets(rmDev, descriptorPool, usage, 1, &layout, &descset, &cnt);
+		VkResult ret = device_dispatch_table(device)->AllocDescriptorSets(rmDev, descriptorPool, usage, 1, &layout, &descset, &cnt);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -3290,7 +3286,7 @@ VkResult WrappedVulkan::vkAllocDescriptorSets(
 		VkDescriptorSet*                            pDescriptorSets,
 		uint32_t*                                   pCount)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->AllocDescriptorSets(device, descriptorPool, setUsage, count, pSetLayouts, pDescriptorSets, pCount);
+	VkResult ret = device_dispatch_table(device)->AllocDescriptorSets(device, descriptorPool, setUsage, count, pSetLayouts, pDescriptorSets, pCount);
 	
 	RDCASSERT(pCount == NULL || *pCount == count); // VKTODOMED: find out what *pCount < count means
 
@@ -3342,7 +3338,7 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
     uint32_t                                    count,
     const VkDescriptorSet*                      pDescriptorSets)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->FreeDescriptorSets(device, descriptorPool, count, pDescriptorSets);
+	VkResult ret = device_dispatch_table(device)->FreeDescriptorSets(device, descriptorPool, count, pDescriptorSets);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3390,9 +3386,9 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 		VkDevice rmDev = (VkDevice)GetResourceManager()->GetLiveResource(devId).handle;
 
 		if(writes)
-			get_dispatch_table(renderdoc_device_table_map, device)->UpdateDescriptorSets(rmDev, 1, &writeDesc, 0, NULL);
+			device_dispatch_table(device)->UpdateDescriptorSets(rmDev, 1, &writeDesc, 0, NULL);
 		else
-			get_dispatch_table(renderdoc_device_table_map, device)->UpdateDescriptorSets(rmDev, 0, NULL, 1, &copyDesc);
+			device_dispatch_table(device)->UpdateDescriptorSets(rmDev, 0, NULL, 1, &copyDesc);
 	}
 
 	return true;
@@ -3405,7 +3401,7 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 		uint32_t                                    copyCount,
 		const VkCopyDescriptorSet*                  pDescriptorCopies)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->UpdateDescriptorSets(device, writeCount, pDescriptorWrites, copyCount, pDescriptorCopies);
+	VkResult ret = device_dispatch_table(device)->UpdateDescriptorSets(device, writeCount, pDescriptorWrites, copyCount, pDescriptorCopies);
 	
 	if(ret == VK_SUCCESS)
 	{
@@ -3516,7 +3512,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				m_PartialReplayData.renderPassActive = false;
 
 				VkCmdBuffer cmd = VK_NULL_HANDLE;
-				VkResult ret = get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CreateCommandBuffer(device, &createInfo, &cmd);
+				VkResult ret = device_dispatch_table(cmdBuffer)->CreateCommandBuffer(device, &createInfo, &cmd);
 
 				if(ret != VK_SUCCESS)
 				{
@@ -3533,7 +3529,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				// add one-time submit flag as this partial cmd buffer will only be submitted once
 				info.flags |= VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT;
 
-				get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->BeginCommandBuffer(cmd, &info);
+				device_dispatch_table(cmdBuffer)->BeginCommandBuffer(cmd, &info);
 			}
 		}
 	}
@@ -3546,7 +3542,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 
 		if(!GetResourceManager()->HasLiveResource(bakeId))
 		{
-			VkResult ret = get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CreateCommandBuffer(device, &createInfo, &cmd);
+			VkResult ret = device_dispatch_table(cmdBuffer)->CreateCommandBuffer(device, &createInfo, &cmd);
 
 			if(ret != VK_SUCCESS)
 			{
@@ -3572,7 +3568,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			m_CmdBufferInfo[liveBaked].device = VK_NULL_HANDLE;
 		}
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->BeginCommandBuffer(cmd, &info);
+		device_dispatch_table(cmdBuffer)->BeginCommandBuffer(cmd, &info);
 	}
 
 	return true;
@@ -3605,7 +3601,7 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 		}
 	}
 
-	return get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->BeginCommandBuffer(cmdBuffer, pBeginInfo);
+	return device_dispatch_table(cmdBuffer)->BeginCommandBuffer(cmdBuffer, pBeginInfo);
 }
 
 bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
@@ -3631,9 +3627,9 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 			RDCDEBUG("Ending partial command buffer for %llu baked to %llu", cmdId, bakeId);
 
 			if(m_PartialReplayData.renderPassActive)
-				get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdEndRenderPass(PartialCmdBuf());
+				device_dispatch_table(cmdBuffer)->CmdEndRenderPass(PartialCmdBuf());
 
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->EndCommandBuffer(PartialCmdBuf());
+			device_dispatch_table(cmdBuffer)->EndCommandBuffer(PartialCmdBuf());
 
 			m_PartialReplayData.partialParent = ResourceId();
 		}
@@ -3646,7 +3642,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 		GetResourceManager()->RemoveReplacement(cmdId);
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->EndCommandBuffer(cmd);
+		device_dispatch_table(cmdBuffer)->EndCommandBuffer(cmd);
 
 		if(!m_CurEvents.empty())
 		{
@@ -3684,7 +3680,7 @@ VkResult WrappedVulkan::vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 		record->Bake();
 	}
 
-	return get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->EndCommandBuffer(cmdBuffer);
+	return device_dispatch_table(cmdBuffer)->EndCommandBuffer(cmdBuffer);
 }
 
 bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdBufferResetFlags flags)
@@ -3726,7 +3722,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 
 		if(!GetResourceManager()->HasLiveResource(bakeId))
 		{
-			VkResult ret = get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CreateCommandBuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &cmd);
+			VkResult ret = device_dispatch_table(cmdBuffer)->CreateCommandBuffer((VkDevice)GetResourceManager()->GetLiveResource(devId).handle, &info, &cmd);
 
 			if(ret != VK_SUCCESS)
 			{
@@ -3752,7 +3748,7 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 			m_CmdBufferInfo[liveBaked].device = VK_NULL_HANDLE;
 		}
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->ResetCommandBuffer(cmd, fl);
+		device_dispatch_table(cmdBuffer)->ResetCommandBuffer(cmd, fl);
 	}
 
 	return true;
@@ -3790,7 +3786,7 @@ VkResult WrappedVulkan::vkResetCommandBuffer(
 		}
 	}
 
-	return get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->ResetCommandBuffer(cmdBuffer, flags);
+	return device_dispatch_table(cmdBuffer)->ResetCommandBuffer(cmdBuffer, flags);
 }
 
 // Command buffer building functions
@@ -3809,7 +3805,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			m_PartialReplayData.renderPassActive = true;
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBeginRenderPass(PartialCmdBuf(), &beginInfo, cont);
+			device_dispatch_table(cmdBuffer)->CmdBeginRenderPass(PartialCmdBuf(), &beginInfo, cont);
 
 			m_PartialReplayData.state.renderPass = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(MakeRes(beginInfo.renderPass)));
 			m_PartialReplayData.state.framebuffer = GetResourceManager()->GetOriginalID(GetResourceManager()->GetID(MakeRes(beginInfo.framebuffer)));
@@ -3820,7 +3816,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBeginRenderPass(cmd, &beginInfo, cont);
+		device_dispatch_table(cmdBuffer)->CmdBeginRenderPass(cmd, &beginInfo, cont);
 
 		const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3841,7 +3837,7 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
 			VkRenderPassContents                        contents)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBeginRenderPass(cmdBuffer, pRenderPassBegin, contents);
+	device_dispatch_table(cmdBuffer)->CmdBeginRenderPass(cmdBuffer, pRenderPassBegin, contents);
 
 	if(m_State >= WRITING)
 	{
@@ -3867,7 +3863,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
 			m_PartialReplayData.renderPassActive = false;
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdEndRenderPass(PartialCmdBuf());
+			device_dispatch_table(cmdBuffer)->CmdEndRenderPass(PartialCmdBuf());
 
 			m_PartialReplayData.state.renderPass = ResourceId();
 			m_PartialReplayData.state.framebuffer = ResourceId();
@@ -3878,7 +3874,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdEndRenderPass(cmd);
+		device_dispatch_table(cmdBuffer)->CmdEndRenderPass(cmd);
 	}
 
 	return true;
@@ -3887,7 +3883,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 void WrappedVulkan::vkCmdEndRenderPass(
 			VkCmdBuffer                                 cmdBuffer)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdEndRenderPass(cmdBuffer);
+	device_dispatch_table(cmdBuffer)->CmdEndRenderPass(cmdBuffer);
 
 	if(m_State >= WRITING)
 	{
@@ -3915,7 +3911,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindPipeline(PartialCmdBuf(), bind, pipeline);
+			device_dispatch_table(cmdBuffer)->CmdBindPipeline(PartialCmdBuf(), bind, pipeline);
 			if(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
 				m_PartialReplayData.state.graphics.pipeline = pipeid;
 			else
@@ -3927,7 +3923,7 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		pipeline = (VkPipeline)GetResourceManager()->GetLiveResource(pipeid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindPipeline(cmd, bind, pipeline);
+		device_dispatch_table(cmdBuffer)->CmdBindPipeline(cmd, bind, pipeline);
 	}
 
 	return true;
@@ -3938,7 +3934,7 @@ void WrappedVulkan::vkCmdBindPipeline(
 			VkPipelineBindPoint                         pipelineBindPoint,
 			VkPipeline                                  pipeline)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindPipeline(cmdBuffer, pipelineBindPoint, pipeline);
+	device_dispatch_table(cmdBuffer)->CmdBindPipeline(cmdBuffer, pipelineBindPoint, pipeline);
 
 	if(m_State >= WRITING)
 	{
@@ -3991,7 +3987,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDescriptorSets(PartialCmdBuf(), bind, layout, first, numSets, sets, offsCount, offs);
+			device_dispatch_table(cmdBuffer)->CmdBindDescriptorSets(PartialCmdBuf(), bind, layout, first, numSets, sets, offsCount, offs);
 
 			vector<ResourceId> &descsets =
 				(bind == VK_PIPELINE_BIND_POINT_GRAPHICS)
@@ -4012,7 +4008,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		layout = (VkPipelineLayout)GetResourceManager()->GetLiveResource(layoutid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDescriptorSets(cmd, bind, layout, first, numSets, sets, offsCount, offs);
+		device_dispatch_table(cmdBuffer)->CmdBindDescriptorSets(cmd, bind, layout, first, numSets, sets, offsCount, offs);
 	}
 
 	if(m_State < WRITING)
@@ -4034,7 +4030,7 @@ void WrappedVulkan::vkCmdBindDescriptorSets(
 			uint32_t                                    dynamicOffsetCount,
 			const uint32_t*                             pDynamicOffsets)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDescriptorSets(cmdBuffer, pipelineBindPoint, layout, firstSet, setCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
+	device_dispatch_table(cmdBuffer)->CmdBindDescriptorSets(cmdBuffer, pipelineBindPoint, layout, firstSet, setCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
 
 	if(m_State >= WRITING)
 	{
@@ -4143,7 +4139,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicViewportState(PartialCmdBuf(), dynamicViewportState);
+			device_dispatch_table(cmdBuffer)->CmdBindDynamicViewportState(PartialCmdBuf(), dynamicViewportState);
 			m_PartialReplayData.state.dynamicVP = stateid;
 		}
 	}
@@ -4152,7 +4148,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicViewportState = (VkDynamicViewportState)GetResourceManager()->GetLiveResource(stateid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicViewportState(cmd, dynamicViewportState);
+		device_dispatch_table(cmdBuffer)->CmdBindDynamicViewportState(cmd, dynamicViewportState);
 	}
 
 	return true;
@@ -4162,7 +4158,7 @@ void WrappedVulkan::vkCmdBindDynamicViewportState(
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicViewportState                      dynamicViewportState)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicViewportState(cmdBuffer, dynamicViewportState);
+	device_dispatch_table(cmdBuffer)->CmdBindDynamicViewportState(cmdBuffer, dynamicViewportState);
 
 	if(m_State >= WRITING)
 	{
@@ -4189,7 +4185,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicRasterState(PartialCmdBuf(), dynamicRasterState);
+			device_dispatch_table(cmdBuffer)->CmdBindDynamicRasterState(PartialCmdBuf(), dynamicRasterState);
 			m_PartialReplayData.state.dynamicRS = stateid;
 		}
 	}
@@ -4198,7 +4194,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicRasterState = (VkDynamicRasterState)GetResourceManager()->GetLiveResource(stateid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicRasterState(cmd, dynamicRasterState);
+		device_dispatch_table(cmdBuffer)->CmdBindDynamicRasterState(cmd, dynamicRasterState);
 	}
 
 	return true;
@@ -4208,7 +4204,7 @@ void WrappedVulkan::vkCmdBindDynamicRasterState(
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicRasterState                      dynamicRasterState)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicRasterState(cmdBuffer, dynamicRasterState);
+	device_dispatch_table(cmdBuffer)->CmdBindDynamicRasterState(cmdBuffer, dynamicRasterState);
 
 	if(m_State >= WRITING)
 	{
@@ -4235,7 +4231,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicColorBlendState(PartialCmdBuf(), dynamicColorBlendState);
+			device_dispatch_table(cmdBuffer)->CmdBindDynamicColorBlendState(PartialCmdBuf(), dynamicColorBlendState);
 			m_PartialReplayData.state.dynamicCB = stateid;
 		}
 	}
@@ -4244,7 +4240,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicColorBlendState = (VkDynamicColorBlendState)GetResourceManager()->GetLiveResource(stateid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicColorBlendState(cmd, dynamicColorBlendState);
+		device_dispatch_table(cmdBuffer)->CmdBindDynamicColorBlendState(cmd, dynamicColorBlendState);
 	}
 
 	return true;
@@ -4254,7 +4250,7 @@ void WrappedVulkan::vkCmdBindDynamicColorBlendState(
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicColorBlendState                    dynamicColorBlendState)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicColorBlendState(cmdBuffer, dynamicColorBlendState);
+	device_dispatch_table(cmdBuffer)->CmdBindDynamicColorBlendState(cmdBuffer, dynamicColorBlendState);
 
 	if(m_State >= WRITING)
 	{
@@ -4281,7 +4277,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicDepthStencilState(PartialCmdBuf(), dynamicDepthStencilState);
+			device_dispatch_table(cmdBuffer)->CmdBindDynamicDepthStencilState(PartialCmdBuf(), dynamicDepthStencilState);
 			m_PartialReplayData.state.dynamicDS = stateid;
 		}
 	}
@@ -4290,7 +4286,7 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		dynamicDepthStencilState = (VkDynamicDepthStencilState)GetResourceManager()->GetLiveResource(stateid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicDepthStencilState(cmd, dynamicDepthStencilState);
+		device_dispatch_table(cmdBuffer)->CmdBindDynamicDepthStencilState(cmd, dynamicDepthStencilState);
 	}
 
 	return true;
@@ -4300,7 +4296,7 @@ void WrappedVulkan::vkCmdBindDynamicDepthStencilState(
 			VkCmdBuffer                                 cmdBuffer,
 			VkDynamicDepthStencilState                  dynamicDepthStencilState)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindDynamicDepthStencilState(cmdBuffer, dynamicDepthStencilState);
+	device_dispatch_table(cmdBuffer)->CmdBindDynamicDepthStencilState(cmdBuffer, dynamicDepthStencilState);
 
 	if(m_State >= WRITING)
 	{
@@ -4354,7 +4350,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindVertexBuffers(PartialCmdBuf(), start, count, &bufs[0], &offs[0]);
+			device_dispatch_table(cmdBuffer)->CmdBindVertexBuffers(PartialCmdBuf(), start, count, &bufs[0], &offs[0]);
 
 			if(m_PartialReplayData.state.vbuffers.size() < start + count)
 				m_PartialReplayData.state.vbuffers.resize(start + count);
@@ -4370,7 +4366,7 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindVertexBuffers(cmd, start, count, &bufs[0], &offs[0]);
+		device_dispatch_table(cmdBuffer)->CmdBindVertexBuffers(cmd, start, count, &bufs[0], &offs[0]);
 	}
 
 	return true;
@@ -4383,7 +4379,7 @@ void WrappedVulkan::vkCmdBindVertexBuffers(
     const VkBuffer*                             pBuffers,
     const VkDeviceSize*                         pOffsets)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
+	device_dispatch_table(cmdBuffer)->CmdBindVertexBuffers(cmdBuffer, startBinding, bindingCount, pBuffers, pOffsets);
 
 	if(m_State >= WRITING)
 	{
@@ -4416,7 +4412,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindIndexBuffer(PartialCmdBuf(), buffer, offs, idxType);
+			device_dispatch_table(cmdBuffer)->CmdBindIndexBuffer(PartialCmdBuf(), buffer, offs, idxType);
 
 			m_PartialReplayData.state.ibuffer.buf = bufid;
 			m_PartialReplayData.state.ibuffer.offs = offs;
@@ -4428,7 +4424,7 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 		
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindIndexBuffer(cmd, buffer, offs, idxType);
+		device_dispatch_table(cmdBuffer)->CmdBindIndexBuffer(cmd, buffer, offs, idxType);
 	}
 
 	return true;
@@ -4440,7 +4436,7 @@ void WrappedVulkan::vkCmdBindIndexBuffer(
     VkDeviceSize                                offset,
     VkIndexType                                 indexType)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBindIndexBuffer(cmdBuffer, buffer, offset, indexType);
+	device_dispatch_table(cmdBuffer)->CmdBindIndexBuffer(cmdBuffer, buffer, offset, indexType);
 
 	if(m_State >= WRITING)
 	{
@@ -4470,13 +4466,13 @@ bool WrappedVulkan::Serialise_vkCmdDraw(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDraw(PartialCmdBuf(), firstVtx, vtxCount, firstInst, instCount);
+			device_dispatch_table(cmdBuffer)->CmdDraw(PartialCmdBuf(), firstVtx, vtxCount, firstInst, instCount);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDraw(buf, firstVtx, vtxCount, firstInst, instCount);
+		device_dispatch_table(cmdBuffer)->CmdDraw(buf, firstVtx, vtxCount, firstInst, instCount);
 
 		const string desc = m_pSerialiser->GetDebugStr();
 
@@ -4510,7 +4506,7 @@ void WrappedVulkan::vkCmdDraw(
 	uint32_t       firstInstance,
 	uint32_t       instanceCount)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDraw(cmdBuffer, firstVertex, vertexCount, firstInstance, instanceCount);
+	device_dispatch_table(cmdBuffer)->CmdDraw(cmdBuffer, firstVertex, vertexCount, firstInstance, instanceCount);
 
 	if(m_State >= WRITING)
 	{
@@ -4550,7 +4546,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBlitImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions, f);
+			device_dispatch_table(cmdBuffer)->CmdBlitImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions, f);
 	}
 	else if(m_State == READING)
 	{
@@ -4558,7 +4554,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBlitImage(cmd, srcImage, srclayout, destImage, dstlayout, count, regions, f);
+		device_dispatch_table(cmdBuffer)->CmdBlitImage(cmd, srcImage, srclayout, destImage, dstlayout, count, regions, f);
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -4576,7 +4572,7 @@ void WrappedVulkan::vkCmdBlitImage(
 			const VkImageBlit*                          pRegions,
 			VkTexFilter                                 filter)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdBlitImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions, filter);
+	device_dispatch_table(cmdBuffer)->CmdBlitImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions, filter);
 
 	if(m_State >= WRITING)
 	{
@@ -4617,7 +4613,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions);
+			device_dispatch_table(cmdBuffer)->CmdCopyImage(PartialCmdBuf(), srcImage, srclayout, destImage, dstlayout, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4625,7 +4621,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(srcid).handle;
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(dstid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImage(cmd, srcImage, srclayout, destImage, dstlayout, count, regions);
+		device_dispatch_table(cmdBuffer)->CmdCopyImage(cmd, srcImage, srclayout, destImage, dstlayout, count, regions);
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -4642,7 +4638,7 @@ void WrappedVulkan::vkCmdCopyImage(
 			uint32_t                                    regionCount,
 			const VkImageCopy*                          pRegions)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
+	device_dispatch_table(cmdBuffer)->CmdCopyImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
 
 	if(m_State >= WRITING)
 	{
@@ -4681,7 +4677,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBufferToImage(PartialCmdBuf(), srcBuffer, destImage, destImageLayout, count, regions);
+			device_dispatch_table(cmdBuffer)->CmdCopyBufferToImage(PartialCmdBuf(), srcBuffer, destImage, destImageLayout, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4689,7 +4685,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 		destImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBufferToImage(cmd, srcBuffer, destImage, destImageLayout, count, regions);
+		device_dispatch_table(cmdBuffer)->CmdCopyBufferToImage(cmd, srcBuffer, destImage, destImageLayout, count, regions);
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -4705,7 +4701,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 			uint32_t                                    regionCount,
 			const VkBufferImageCopy*                    pRegions)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBufferToImage(cmdBuffer, srcBuffer, destImage, destImageLayout, regionCount, pRegions);
+	device_dispatch_table(cmdBuffer)->CmdCopyBufferToImage(cmdBuffer, srcBuffer, destImage, destImageLayout, regionCount, pRegions);
 
 	if(m_State >= WRITING)
 	{
@@ -4745,7 +4741,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImageToBuffer(PartialCmdBuf(), srcImage, layout, destBuffer, count, regions);
+			device_dispatch_table(cmdBuffer)->CmdCopyImageToBuffer(PartialCmdBuf(), srcImage, layout, destBuffer, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4753,7 +4749,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(
 		srcImage = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImageToBuffer(cmd, srcImage, layout, destBuffer, count, regions);
+		device_dispatch_table(cmdBuffer)->CmdCopyImageToBuffer(cmd, srcImage, layout, destBuffer, count, regions);
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -4769,7 +4765,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 		uint32_t                                    regionCount,
 		const VkBufferImageCopy*                    pRegions)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyImageToBuffer(cmdBuffer, srcImage, srcImageLayout, destBuffer, regionCount, pRegions);
+	device_dispatch_table(cmdBuffer)->CmdCopyImageToBuffer(cmdBuffer, srcImage, srcImageLayout, destBuffer, regionCount, pRegions);
 
 	if(m_State >= WRITING)
 	{
@@ -4807,7 +4803,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(dstid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBuffer(PartialCmdBuf(), srcBuffer, destBuffer, count, regions);
+			device_dispatch_table(cmdBuffer)->CmdCopyBuffer(PartialCmdBuf(), srcBuffer, destBuffer, count, regions);
 	}
 	else if(m_State == READING)
 	{
@@ -4815,7 +4811,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 		srcBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(srcid).handle;
 		destBuffer = (VkBuffer)GetResourceManager()->GetLiveResource(dstid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBuffer(cmd, srcBuffer, destBuffer, count, regions);
+		device_dispatch_table(cmdBuffer)->CmdCopyBuffer(cmd, srcBuffer, destBuffer, count, regions);
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -4830,7 +4826,7 @@ void WrappedVulkan::vkCmdCopyBuffer(
 			uint32_t                                    regionCount,
 			const VkBufferCopy*                         pRegions)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdCopyBuffer(cmdBuffer, srcBuffer, destBuffer, regionCount, pRegions);
+	device_dispatch_table(cmdBuffer)->CmdCopyBuffer(cmdBuffer, srcBuffer, destBuffer, regionCount, pRegions);
 
 	if(m_State >= WRITING)
 	{
@@ -4869,14 +4865,14 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorImage(PartialCmdBuf(), image, layout, &col, count, ranges);
+			device_dispatch_table(cmdBuffer)->CmdClearColorImage(PartialCmdBuf(), image, layout, &col, count, ranges);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorImage(cmd, image, layout, &col, count, ranges);
+		device_dispatch_table(cmdBuffer)->CmdClearColorImage(cmd, image, layout, &col, count, ranges);
 	}
 
 	SAFE_DELETE_ARRAY(ranges);
@@ -4892,7 +4888,7 @@ void WrappedVulkan::vkCmdClearColorImage(
 			uint32_t                                    rangeCount,
 			const VkImageSubresourceRange*              pRanges)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorImage(cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
+	device_dispatch_table(cmdBuffer)->CmdClearColorImage(cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
 
 	if(m_State >= WRITING)
 	{
@@ -4928,14 +4924,14 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilImage(PartialCmdBuf(), image, l, d, s, count, ranges);
+			device_dispatch_table(cmdBuffer)->CmdClearDepthStencilImage(PartialCmdBuf(), image, l, d, s, count, ranges);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		image = (VkImage)GetResourceManager()->GetLiveResource(imgid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilImage(cmd, image, l, d, s, count, ranges);
+		device_dispatch_table(cmdBuffer)->CmdClearDepthStencilImage(cmd, image, l, d, s, count, ranges);
 	}
 
 	SAFE_DELETE_ARRAY(ranges);
@@ -4952,7 +4948,7 @@ void WrappedVulkan::vkCmdClearDepthStencilImage(
 			uint32_t                                    rangeCount,
 			const VkImageSubresourceRange*              pRanges)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilImage(cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
+	device_dispatch_table(cmdBuffer)->CmdClearDepthStencilImage(cmdBuffer, image, imageLayout, depth, stencil, rangeCount, pRanges);
 
 	if(m_State >= WRITING)
 	{
@@ -4985,13 +4981,13 @@ bool WrappedVulkan::Serialise_vkCmdClearColorAttachment(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorAttachment(PartialCmdBuf(), att, layout, &col, count, rects);
+			device_dispatch_table(cmdBuffer)->CmdClearColorAttachment(PartialCmdBuf(), att, layout, &col, count, rects);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorAttachment(cmdBuffer, att, layout, &col, count, rects);
+		device_dispatch_table(cmdBuffer)->CmdClearColorAttachment(cmdBuffer, att, layout, &col, count, rects);
 
 		const string desc = m_pSerialiser->GetDebugStr();
 
@@ -5022,7 +5018,7 @@ void WrappedVulkan::vkCmdClearColorAttachment(
 			uint32_t                                    rectCount,
 			const VkRect3D*                             pRects)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearColorAttachment(cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
+	device_dispatch_table(cmdBuffer)->CmdClearColorAttachment(cmdBuffer, colorAttachment, imageLayout, pColor, rectCount, pRects);
 
 	if(m_State >= WRITING)
 	{
@@ -5057,13 +5053,13 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilAttachment(PartialCmdBuf(), asp, lay, d, s, count, rects);
+			device_dispatch_table(cmdBuffer)->CmdClearDepthStencilAttachment(PartialCmdBuf(), asp, lay, d, s, count, rects);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilAttachment(cmd, asp, lay, d, s, count, rects);
+		device_dispatch_table(cmdBuffer)->CmdClearDepthStencilAttachment(cmd, asp, lay, d, s, count, rects);
 	}
 
 	SAFE_DELETE_ARRAY(rects);
@@ -5080,7 +5076,7 @@ void WrappedVulkan::vkCmdClearDepthStencilAttachment(
 			uint32_t                                    rectCount,
 			const VkRect3D*                             pRects)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdClearDepthStencilAttachment(cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
+	device_dispatch_table(cmdBuffer)->CmdClearDepthStencilAttachment(cmdBuffer, imageAspectMask, imageLayout, depth, stencil, rectCount, pRects);
 
 	if(m_State >= WRITING)
 	{
@@ -5148,7 +5144,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
 		{
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdPipelineBarrier(PartialCmdBuf(), src, dest, region, memCount, (const void **)&mems[0]);
+			device_dispatch_table(cmdBuffer)->CmdPipelineBarrier(PartialCmdBuf(), src, dest, region, memCount, (const void **)&mems[0]);
 
 			ResourceId cmd = GetResourceManager()->GetID(MakeRes(PartialCmdBuf()));
 			GetResourceManager()->RecordTransitions(m_CmdBufferInfo[cmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
@@ -5158,7 +5154,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdPipelineBarrier(cmd, src, dest, region, memCount, (const void **)&mems[0]);
+		device_dispatch_table(cmdBuffer)->CmdPipelineBarrier(cmd, src, dest, region, memCount, (const void **)&mems[0]);
 		
 		ResourceId rmcmd = GetResourceManager()->GetID(MakeRes(cmdBuffer));
 		GetResourceManager()->RecordTransitions(m_CmdBufferInfo[rmcmd].imgtransitions, m_ImageInfo, (uint32_t)imTrans.size(), &imTrans[0]);
@@ -5178,7 +5174,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 			uint32_t                                    memBarrierCount,
 			const void* const*                          ppMemBarriers)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdPipelineBarrier(cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
+	device_dispatch_table(cmdBuffer)->CmdPipelineBarrier(cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
 
 	if(m_State >= WRITING)
 	{
@@ -5214,14 +5210,14 @@ VkResult WrappedVulkan::vkDbgCreateMsgCallback(
 	void*                               pUserData,
 	VkDbgMsgCallback*                   pMsgCallback)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, instance)->DbgCreateMsgCallback(instance, msgFlags, pfnMsgCallback, pUserData, pMsgCallback);
+	return instance_dispatch_table(instance)->DbgCreateMsgCallback(instance, msgFlags, pfnMsgCallback, pUserData, pMsgCallback);
 }
 
 VkResult WrappedVulkan::vkDbgDestroyMsgCallback(
 	VkInstance                          instance,
 	VkDbgMsgCallback                    msgCallback)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, instance)->DbgDestroyMsgCallback(instance, msgCallback);
+	return instance_dispatch_table(instance)->DbgDestroyMsgCallback(instance, msgCallback);
 }
 	
 bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
@@ -5443,7 +5439,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		get_dispatch_table(renderdoc_device_table_map, cmd)->BeginCommandBuffer(cmd, &beginInfo);
+		device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
 		
     VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
@@ -5453,11 +5449,11 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 			vector<void *> barriers;
 			for(size_t i=0; i < imgTransitions.size(); i++)
 				barriers.push_back(&imgTransitions[i]);
-			get_dispatch_table(renderdoc_device_table_map, cmd)->CmdPipelineBarrier(cmd, src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers[0]);
+			device_dispatch_table(cmd)->CmdPipelineBarrier(cmd, src_stages, dest_stages, false, (uint32_t)imgTransitions.size(), (const void *const *)&barriers[0]);
 		}
 
-		get_dispatch_table(renderdoc_device_table_map, cmd)->EndCommandBuffer(cmd);
-		get_dispatch_table(renderdoc_device_table_map, GetQ())->QueueSubmit(GetQ(), 1, &cmd, VK_NULL_HANDLE);
+		device_dispatch_table(cmd)->EndCommandBuffer(cmd);
+		device_dispatch_table(GetQ())->QueueSubmit(GetQ(), 1, &cmd, VK_NULL_HANDLE);
 	}
 
 	return true;
@@ -5480,7 +5476,7 @@ void WrappedVulkan::FinishCapture()
 
 	//m_SuccessfulCapture = false;
 
-	get_dispatch_table(renderdoc_device_table_map, GetDev())->DeviceWaitIdle(GetDev());
+	device_dispatch_table(GetDev())->DeviceWaitIdle(GetDev());
 }
 
 void WrappedVulkan::ReadLogInitialisation()
@@ -5595,7 +5591,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	Serialise_BeginCaptureFrame(!partial);
 	
-	get_dispatch_table(renderdoc_device_table_map, GetDev())->DeviceWaitIdle(GetDev());
+	device_dispatch_table(GetDev())->DeviceWaitIdle(GetDev());
 
 	m_pSerialiser->PopContext(NULL, header);
 
@@ -5677,8 +5673,8 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	if(m_PartialReplayData.resultPartialCmdBuffer != VK_NULL_HANDLE)
 	{
-		get_dispatch_table(renderdoc_device_table_map, GetDev())->DeviceWaitIdle(m_PartialReplayData.partialDevice);
-		get_dispatch_table(renderdoc_device_table_map, GetDev())->DestroyCommandBuffer(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdBuffer);
+		device_dispatch_table(GetDev())->DeviceWaitIdle(m_PartialReplayData.partialDevice);
+		device_dispatch_table(GetDev())->DestroyCommandBuffer(m_PartialReplayData.partialDevice, m_PartialReplayData.resultPartialCmdBuffer);
 		m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
 	}
 
@@ -5796,13 +5792,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexed(PartialCmdBuf(), firstIdx, idxCount, vtxOffs, firstInst, instCount);
+			device_dispatch_table(cmdBuffer)->CmdDrawIndexed(PartialCmdBuf(), firstIdx, idxCount, vtxOffs, firstInst, instCount);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer buf = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexed(buf, firstIdx, idxCount, vtxOffs, firstInst, instCount);
+		device_dispatch_table(cmdBuffer)->CmdDrawIndexed(buf, firstIdx, idxCount, vtxOffs, firstInst, instCount);
 	}
 
 	return true;
@@ -5816,7 +5812,7 @@ void WrappedVulkan::vkCmdDrawIndexed(
 	uint32_t       firstInstance,
 	uint32_t       instanceCount)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexed(cmdBuffer, firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
+	device_dispatch_table(cmdBuffer)->CmdDrawIndexed(cmdBuffer, firstIndex, indexCount, vertexOffset, firstInstance, instanceCount);
 
 	if(m_State >= WRITING)
 	{
@@ -5848,14 +5844,14 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
+			device_dispatch_table(cmdBuffer)->CmdDrawIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndirect(cmd, buffer, offs, cnt, strd);
+		device_dispatch_table(cmdBuffer)->CmdDrawIndirect(cmd, buffer, offs, cnt, strd);
 	}
 
 	return true;
@@ -5868,7 +5864,7 @@ void WrappedVulkan::vkCmdDrawIndirect(
 		uint32_t                                    count,
 		uint32_t                                    stride)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndirect(cmdBuffer, buffer, offset, count, stride);
+	device_dispatch_table(cmdBuffer)->CmdDrawIndirect(cmdBuffer, buffer, offset, count, stride);
 
 	if(m_State >= WRITING)
 	{
@@ -5900,14 +5896,14 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexedIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
+			device_dispatch_table(cmdBuffer)->CmdDrawIndexedIndirect(PartialCmdBuf(), buffer, offs, cnt, strd);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexedIndirect(cmd, buffer, offs, cnt, strd);
+		device_dispatch_table(cmdBuffer)->CmdDrawIndexedIndirect(cmd, buffer, offs, cnt, strd);
 	}
 
 	return true;
@@ -5920,7 +5916,7 @@ void WrappedVulkan::vkCmdDrawIndexedIndirect(
 		uint32_t                                    count,
 		uint32_t                                    stride)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDrawIndexedIndirect(cmdBuffer, buffer, offset, count, stride);
+	device_dispatch_table(cmdBuffer)->CmdDrawIndexedIndirect(cmdBuffer, buffer, offset, count, stride);
 
 	if(m_State >= WRITING)
 	{
@@ -5947,13 +5943,13 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatch(PartialCmdBuf(), x, y, z);
+			device_dispatch_table(cmdBuffer)->CmdDispatch(PartialCmdBuf(), x, y, z);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatch(cmd, X, Y, Z);
+		device_dispatch_table(cmdBuffer)->CmdDispatch(cmd, X, Y, Z);
 	}
 
 	return true;
@@ -5965,7 +5961,7 @@ void WrappedVulkan::vkCmdDispatch(
 	uint32_t       y,
 	uint32_t       z)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatch(cmdBuffer, x, y, z);
+	device_dispatch_table(cmdBuffer)->CmdDispatch(cmdBuffer, x, y, z);
 
 	if(m_State >= WRITING)
 	{
@@ -5992,14 +5988,14 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
 		if(IsPartialCmd(cmdid) && InPartialRange())
-			get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatchIndirect(PartialCmdBuf(), buffer, offs);
+			device_dispatch_table(cmdBuffer)->CmdDispatchIndirect(PartialCmdBuf(), buffer, offs);
 	}
 	else if(m_State == READING)
 	{
 		VkCmdBuffer cmd = (VkCmdBuffer)GetResourceManager()->GetLiveResource(cmdid).handle;
 		buffer = (VkBuffer)GetResourceManager()->GetLiveResource(bufid).handle;
 
-		get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatchIndirect(cmd, buffer, offs);
+		device_dispatch_table(cmdBuffer)->CmdDispatchIndirect(cmd, buffer, offs);
 	}
 
 	return true;
@@ -6010,7 +6006,7 @@ void WrappedVulkan::vkCmdDispatchIndirect(
 			VkBuffer                                    buffer,
 			VkDeviceSize                                offset)
 {
-	get_dispatch_table(renderdoc_device_table_map, cmdBuffer)->CmdDispatchIndirect(cmdBuffer, buffer, offset);
+	device_dispatch_table(cmdBuffer)->CmdDispatchIndirect(cmdBuffer, buffer, offset);
 
 	if(m_State >= WRITING)
 	{
@@ -6032,7 +6028,7 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceSupportWSI(
 		const VkSurfaceDescriptionWSI*          pSurfaceDescription,
 		VkBool32*                               pSupported)
 {
-	return get_dispatch_table(renderdoc_instance_table_map, physicalDevice)->GetPhysicalDeviceSurfaceSupportWSI(physicalDevice, queueFamilyIndex, pSurfaceDescription, pSupported);
+	return instance_dispatch_table(physicalDevice)->GetPhysicalDeviceSurfaceSupportWSI(physicalDevice, queueFamilyIndex, pSurfaceDescription, pSupported);
 }
 
 VkResult WrappedVulkan::vkGetSurfaceInfoWSI(
@@ -6042,7 +6038,7 @@ VkResult WrappedVulkan::vkGetSurfaceInfoWSI(
 		size_t*                                  pDataSize,
 		void*                                    pData)
 {
-	return get_dispatch_table(renderdoc_device_table_map, device)->GetSurfaceInfoWSI(device, pSurfaceDescription, infoType, pDataSize, pData);
+	return device_dispatch_table(device)->GetSurfaceInfoWSI(device, pSurfaceDescription, infoType, pDataSize, pData);
 }
 
 bool WrappedVulkan::Serialise_vkGetSwapChainInfoWSI(
@@ -6087,7 +6083,7 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 	if(pDataSize == NULL)
 		pDataSize = &dummySize;
 
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->GetSwapChainInfoWSI(device, swapChain, infoType, pDataSize, pData);
+	VkResult ret = device_dispatch_table(device)->GetSwapChainInfoWSI(device, swapChain, infoType, pDataSize, pData);
 
 	if(infoType == VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI && pData && m_State >= WRITING)
 	{
@@ -6141,7 +6137,7 @@ VkResult WrappedVulkan::vkAcquireNextImageWSI(
 		uint32_t*                                pImageIndex)
 {
 	// VKTODOLOW: does this need to be intercepted/serialised?
-	return get_dispatch_table(renderdoc_device_table_map, device)->AcquireNextImageWSI(device, swapChain, timeout, semaphore, pImageIndex);
+	return device_dispatch_table(device)->AcquireNextImageWSI(device, swapChain, timeout, semaphore, pImageIndex);
 }
 
 bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
@@ -6160,7 +6156,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 		VkResult vkr = VK_SUCCESS;
 
     		size_t swapChainImagesSize;
-    		vkr = get_dispatch_table(renderdoc_device_table_map, device)->GetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
+    		vkr = device_dispatch_table(device)->GetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
     		RDCASSERT(vkr == VK_SUCCESS);
 
 		numIms = uint32_t(swapChainImagesSize/sizeof(VkSwapChainImagePropertiesWSI));
@@ -6207,12 +6203,12 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 			VkDeviceMemory mem = VK_NULL_HANDLE;
 			VkImage im = VK_NULL_HANDLE;
 
-			VkResult vkr = get_dispatch_table(renderdoc_device_table_map, device)->CreateImage(dev, &imInfo, &im);
+			VkResult vkr = device_dispatch_table(device)->CreateImage(dev, &imInfo, &im);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkMemoryRequirements mrq = {0};
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, device)->GetImageMemoryRequirements(dev, im, &mrq);
+			vkr = device_dispatch_table(device)->GetImageMemoryRequirements(dev, im, &mrq);
 			RDCASSERT(vkr == VK_SUCCESS);
 			
 			VkMemoryAllocInfo allocInfo = {
@@ -6220,10 +6216,10 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 				mrq.size, GetGPULocalMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, device)->AllocMemory(dev, &allocInfo, &mem);
+			vkr = device_dispatch_table(device)->AllocMemory(dev, &allocInfo, &mem);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, device)->BindImageMemory(dev, im, mem, 0);
+			vkr = device_dispatch_table(device)->BindImageMemory(dev, im, mem, 0);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			GetResourceManager()->RegisterResource(MakeRes(mem));
@@ -6264,7 +6260,7 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 		const VkSwapChainCreateInfoWSI*         pCreateInfo,
 		VkSwapChainWSI*                         pSwapChain)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->CreateSwapChainWSI(device, pCreateInfo, pSwapChain);
+	VkResult ret = device_dispatch_table(device)->CreateSwapChainWSI(device, pCreateInfo, pSwapChain);
 	
 	if(ret == VK_SUCCESS)
 	{
@@ -6294,7 +6290,7 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 			// serialise out the swap chain images
 			{
 				size_t swapChainImagesSize;
-				VkResult ret = get_dispatch_table(renderdoc_device_table_map, device)->GetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
+				VkResult ret = device_dispatch_table(device)->GetSwapChainInfoWSI(device, *pSwapChain, VK_SWAP_CHAIN_INFO_TYPE_IMAGES_WSI, &swapChainImagesSize, NULL);
 				RDCASSERT(ret == VK_SUCCESS);
 
 				uint32_t numSwapImages = uint32_t(swapChainImagesSize)/sizeof(VkSwapChainImagePropertiesWSI);
@@ -6348,7 +6344,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			VkQueue                                 queue,
 			VkPresentInfoWSI*                       pPresentInfo)
 {
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, queue)->QueuePresentWSI(queue, pPresentInfo);
+	VkResult ret = device_dispatch_table(queue)->QueuePresentWSI(queue, pPresentInfo);
 
 	if(ret != VK_SUCCESS || pPresentInfo->swapChainCount == 0)
 		return ret;
@@ -6570,12 +6566,12 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
 		};
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->AllocMemory(d, &allocInfo, &mem);
+		vkr = device_dispatch_table(d)->AllocMemory(d, &allocInfo, &mem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-        vkr = get_dispatch_table(renderdoc_device_table_map, d)->BeginCommandBuffer(cmd, &beginInfo);
+        vkr = device_dispatch_table(d)->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCreateInfo bufInfo = {
@@ -6586,33 +6582,33 @@ bool WrappedVulkan::Prepare_InitialState(VkResource res)
 
 		VkBuffer srcBuf, dstBuf;
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->CreateBuffer(d, &bufInfo, &srcBuf);
+		vkr = device_dispatch_table(d)->CreateBuffer(d, &bufInfo, &srcBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->CreateBuffer(d, &bufInfo, &dstBuf);
+		vkr = device_dispatch_table(d)->CreateBuffer(d, &bufInfo, &dstBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->BindBufferMemory(d, srcBuf, (VkDeviceMemory)res.handle, 0);
+		vkr = device_dispatch_table(d)->BindBufferMemory(d, srcBuf, (VkDeviceMemory)res.handle, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->BindBufferMemory(d, dstBuf, mem, 0);
+		vkr = device_dispatch_table(d)->BindBufferMemory(d, dstBuf, mem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
 
-        get_dispatch_table(renderdoc_device_table_map, d)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
+        device_dispatch_table(d)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
 	
-        vkr = get_dispatch_table(renderdoc_device_table_map, d)->EndCommandBuffer(cmd);
+        vkr = device_dispatch_table(d)->EndCommandBuffer(cmd);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-        vkr = get_dispatch_table(renderdoc_device_table_map, d)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+        vkr = device_dispatch_table(d)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOMED would be nice to store a fence too at this point
 		// so we can sync on that on serialise rather than syncing
 		// every time.
-        get_dispatch_table(renderdoc_device_table_map, d)->QueueWaitIdle(q);
+        device_dispatch_table(d)->QueueWaitIdle(q);
 
-		get_dispatch_table(renderdoc_device_table_map, d)->DestroyBuffer(d, srcBuf);
-		get_dispatch_table(renderdoc_device_table_map, d)->DestroyBuffer(d, dstBuf);
+		device_dispatch_table(d)->DestroyBuffer(d, srcBuf);
+		device_dispatch_table(d)->DestroyBuffer(d, dstBuf);
 
 		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(MakeRes(mem), (uint32_t)meminfo.size, NULL));
 
@@ -6668,13 +6664,13 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 			VkDevice d = GetDev();
 
 			byte *ptr = NULL;
-			get_dispatch_table(renderdoc_device_table_map, d)->MapMemory(d, (VkDeviceMemory)initContents.resource.handle, 0, 0, 0, (void **)&ptr);
+			device_dispatch_table(d)->MapMemory(d, (VkDeviceMemory)initContents.resource.handle, 0, 0, 0, (void **)&ptr);
 
 			size_t dataSize = (size_t)initContents.num;
 
 			m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
 
-			get_dispatch_table(renderdoc_device_table_map, d)->UnmapMemory(d, (VkDeviceMemory)initContents.resource.handle);
+			device_dispatch_table(d)->UnmapMemory(d, (VkDeviceMemory)initContents.resource.handle);
 		}
 	}
 	else
@@ -6736,7 +6732,7 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 				dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
 			};
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, d)->AllocMemory(d, &allocInfo, &mem);
+			vkr = device_dispatch_table(d)->AllocMemory(d, &allocInfo, &mem);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			VkBufferCreateInfo bufInfo = {
@@ -6747,20 +6743,20 @@ bool WrappedVulkan::Serialise_InitialState(VkResource res)
 
 			VkBuffer buf;
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, d)->CreateBuffer(d, &bufInfo, &buf);
+			vkr = device_dispatch_table(d)->CreateBuffer(d, &bufInfo, &buf);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, d)->BindBufferMemory(d, buf, mem, 0);
+			vkr = device_dispatch_table(d)->BindBufferMemory(d, buf, mem, 0);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			byte *ptr = NULL;
-			get_dispatch_table(renderdoc_device_table_map, d)->MapMemory(d, mem, 0, 0, 0, (void **)&ptr);
+			device_dispatch_table(d)->MapMemory(d, mem, 0, 0, 0, (void **)&ptr);
 
 			// VKTODOLOW could deserialise directly into this ptr if we serialised
 			// size separately.
 			memcpy(ptr, data, dataSize);
 
-			get_dispatch_table(renderdoc_device_table_map, d)->UnmapMemory(d, mem);
+			device_dispatch_table(d)->UnmapMemory(d, mem);
 
 			// VKTODOMED leaking the memory here! needs to be cleaned up with the buffer
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(MakeRes(buf), eInitialContents_Copy, NULL));
@@ -6817,7 +6813,7 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 
 		VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)initial.blob;
 
-		VkResult vkr = get_dispatch_table(renderdoc_device_table_map, GetDev())->UpdateDescriptorSets(GetDev(), initial.num, writes, 0, NULL);
+		VkResult vkr = device_dispatch_table(GetDev())->UpdateDescriptorSets(GetDev(), initial.num, writes, 0, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
 	}
 	else if(live.Namespace == eResDeviceMemory)
@@ -6843,7 +6839,7 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 
 		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, cmd)->BeginCommandBuffer(cmd, &beginInfo);
+		vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCreateInfo bufInfo = {
@@ -6855,28 +6851,28 @@ void WrappedVulkan::Apply_InitialState(VkResource live, VulkanResourceManager::I
 		VkBuffer dstBuf;
 		
 		// VKTODOMED this should be created once up front, not every time
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->CreateBuffer(d, &bufInfo, &dstBuf);
+		vkr = device_dispatch_table(d)->CreateBuffer(d, &bufInfo, &dstBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, d)->BindBufferMemory(d, dstBuf, dstMem, 0);
+		vkr = device_dispatch_table(d)->BindBufferMemory(d, dstBuf, dstMem, 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
 
-		get_dispatch_table(renderdoc_device_table_map, cmd)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
+		device_dispatch_table(cmd)->CmdCopyBuffer(cmd, srcBuf, dstBuf, 1, &region);
 	
-		vkr = get_dispatch_table(renderdoc_device_table_map, cmd)->EndCommandBuffer(cmd);
+		vkr = device_dispatch_table(cmd)->EndCommandBuffer(cmd);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = get_dispatch_table(renderdoc_device_table_map, q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+		vkr = device_dispatch_table(q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOMED would be nice to store a fence too at this point
 		// so we can sync on that on serialise rather than syncing
 		// every time.
-		get_dispatch_table(renderdoc_device_table_map, q)->QueueWaitIdle(q);
+		device_dispatch_table(q)->QueueWaitIdle(q);
 
-		get_dispatch_table(renderdoc_device_table_map, d)->DestroyBuffer(d, dstBuf);
+		device_dispatch_table(d)->DestroyBuffer(d, dstBuf);
 	}
 	else if(live.Namespace == eResImage)
 	{
@@ -7244,7 +7240,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 
 			VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
 
-			VkResult vkr = get_dispatch_table(renderdoc_device_table_map, cmd)->BeginCommandBuffer(cmd, &beginInfo);
+			VkResult vkr = device_dispatch_table(cmd)->BeginCommandBuffer(cmd, &beginInfo);
 			RDCASSERT(vkr == VK_SUCCESS);
 
 			ImgState &st = m_ImageInfo[GetResourceManager()->GetLiveID(m_FakeBBImgId)];
@@ -7265,15 +7261,15 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			void *barrier = (void *)&t;
 
 			st.subresourceStates[0].state = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-			get_dispatch_table(renderdoc_device_table_map, cmd)->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
+			device_dispatch_table(cmd)->CmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, (void **)&barrier);
 
 			VkClearColorValue clearColor = { { 0.0f, 0.0f, 0.0f, 1.0f, } };
-			get_dispatch_table(renderdoc_device_table_map, cmd)->CmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
+			device_dispatch_table(cmd)->CmdClearColorImage(cmd, m_FakeBBIm, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, &clearColor, 1, &t.subresourceRange);
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, cmd)->EndCommandBuffer(cmd);
+			vkr = device_dispatch_table(cmd)->EndCommandBuffer(cmd);
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			vkr = get_dispatch_table(renderdoc_device_table_map, q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
+			vkr = device_dispatch_table(q)->QueueSubmit(q, 1, &cmd, VK_NULL_HANDLE);
 			RDCASSERT(vkr == VK_SUCCESS);
 		}
 	}
