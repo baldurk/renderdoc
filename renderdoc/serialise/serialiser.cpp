@@ -1116,37 +1116,50 @@ void Serialiser::FreeAlignedBuffer(byte *buf)
 
 void Serialiser::SetPersistentBlock(uint64_t offs)
 {
+	// as long as this is called immediately after pushing the chunk context at the
+	// offset, we will always have the start in memory, as we keep 64 bytes of
+	// a backwards window even if we had to shift the currently in-memory bytes
+	// while reading the chunk header
+	RDCASSERT(m_ReadOffset <= offs);
+
+	// also can't persistent block ahead of where we are
+	RDCASSERT(offs < (m_BufferHead - m_Buffer) + m_ReadOffset);
+
+	// ensure sane offset
+	RDCASSERT(offs < m_BufferSize);
+
+	size_t persistentSize = (size_t)(m_BufferSize - offs);
+	
+	// allocate our persistent buffer
+	byte *newBuf = AllocAlignedBuffer(persistentSize);
+	
+	// save where buffer head was as file-offset
+	uint64_t prevOffs = uint64_t(m_BufferHead - m_Buffer) + m_ReadOffset;
+
+	// find the range of the persistent block that we have in memory
+	byte *persistentBase = m_Buffer + (offs - m_ReadOffset);
+	size_t persistentInMemory = RDCMIN(persistentSize, size_t(m_CurrentBufferSize - (offs - m_ReadOffset)));
+	
+	memcpy(newBuf, persistentBase, persistentInMemory);
+
 	FreeAlignedBuffer(m_Buffer);
-
-	RDCASSERT(m_BufferSize - offs < 0xffffffff);
-
-	m_CurrentBufferSize = (size_t)(m_BufferSize - offs);
-	m_BufferHead = m_Buffer = AllocAlignedBuffer(m_CurrentBufferSize);
+	
+	m_CurrentBufferSize = persistentSize;
+	m_Buffer = newBuf;
 	m_ReadOffset = offs;
+
+	// set the head back to where it was
+	m_BufferHead = m_Buffer + (prevOffs - offs);
+
+	// if we didn't read everything, read the rest
+	if(persistentInMemory < persistentSize)
+	{
+		ReadFromFile(persistentInMemory, persistentSize - persistentInMemory);
+	}
 
 	RDCASSERT(m_ReadFileHandle);
 	
-	Section *s = m_KnownSections[eSectionType_FrameCapture];
-	RDCASSERT(s);
-	FileIO::fseek64(m_ReadFileHandle, s->fileoffset, SEEK_SET);
-	
-	if(s->flags & eSectionFlag_LZ4Compressed)
-	{
-		RDCASSERT(s->compressedReader);
-		s->compressedReader->Reset();
-	}
-
-	// can't seek arbitrarily in the stream, need to read through the rest
-	while(offs > 0)
-	{
-		// read at most buffer size at a time.
-		size_t chunkSize = RDCMIN(m_CurrentBufferSize, (size_t)offs);
-		ReadFromFile(0, chunkSize);
-		offs -= chunkSize;
-	}
-
-	// now read the rest
-	ReadFromFile(0, m_CurrentBufferSize);
+	// close the file handle
 	FileIO::fclose(m_ReadFileHandle);
 	m_ReadFileHandle = 0;
 }

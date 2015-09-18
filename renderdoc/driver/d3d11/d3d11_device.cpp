@@ -1001,34 +1001,11 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
 
 void WrappedID3D11Device::ReadLogInitialisation()
 {
-	uint64_t lastFrame = 0;
-	uint64_t firstFrame = 0;
+	uint64_t frameOffset = 0;
 
 	LazyInit();
 
 	m_pSerialiser->SetDebugText(true);
-
-	m_pSerialiser->Rewind();
-
-	uint32_t captureChunkIdx = 0;
-
-	while(!m_pSerialiser->AtEnd())
-	{
-		m_pSerialiser->SkipToChunk(CAPTURE_SCOPE, &captureChunkIdx);
-
-		// found a capture chunk
-		if(!m_pSerialiser->AtEnd())
-		{
-			lastFrame = m_pSerialiser->GetOffset();
-			if(firstFrame == 0)
-				firstFrame = m_pSerialiser->GetOffset();
-
-			// skip this chunk
-			m_pSerialiser->PushContext(NULL, CAPTURE_SCOPE, false);
-			m_pSerialiser->SkipCurrentChunk();
-			m_pSerialiser->PopContext(NULL, CAPTURE_SCOPE);
-		}
-	}
 
 	m_pSerialiser->Rewind();
 
@@ -1053,6 +1030,12 @@ void WrappedID3D11Device::ReadLogInitialisation()
 		uint64_t offset = m_pSerialiser->GetOffset();
 
 		D3D11ChunkType context = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, 1, false);
+	
+		if(context == CAPTURE_SCOPE)
+		{
+			// immediately read rest of log into memory
+			m_pSerialiser->SetPersistentBlock(offset);
+		}
 
 		chunkIdx++;
 
@@ -1060,10 +1043,12 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
 		m_pSerialiser->PopContext(NULL, context);
 		
-		RenderDoc::Inst().SetProgress(FileInitialRead, float(chunkIdx)/float(captureChunkIdx));
+		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
 
 		if(context == CAPTURE_SCOPE)
 		{
+			frameOffset = offset;
+
 			GetResourceManager()->ApplyInitialContents();
 
 			m_pImmediateContext->ReplayLog(READING, 0, 0, false);
@@ -1076,15 +1061,10 @@ void WrappedID3D11Device::ReadLogInitialisation()
 		chunkInfos[context].count++;
 
 		if(context == CAPTURE_SCOPE)
-		{
-			if(m_pSerialiser->GetOffset() > lastFrame)
-				break;
-		}
+			break;
 
 		if(m_pSerialiser->AtEnd())
-		{
 			break;
-		}
 	}
 
 	for(auto it=chunkInfos.begin(); it != chunkInfos.end(); ++it)
@@ -1100,11 +1080,9 @@ void WrappedID3D11Device::ReadLogInitialisation()
 				);
 	}
 
-	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - firstFrame);
+	RDCDEBUG("Allocating %llu persistant bytes of memory for the log.", m_pSerialiser->GetSize() - frameOffset);
 	
 	m_pSerialiser->SetDebugText(false);
-	
-	m_pSerialiser->SetPersistentBlock(firstFrame);
 }
 
 bool WrappedID3D11Device::Prepare_InitialState(ID3D11DeviceChild *res)
