@@ -80,7 +80,11 @@ BOOL APIENTRY DllMain( HMODULE hModule,
 						)
 {
 	if(ul_reason_for_call == DLL_PROCESS_ATTACH)
-		return add_hooks();
+	{
+		BOOL ret = add_hooks();
+		SetLastError(0);
+		return ret;
+	}
 
 	return TRUE;
 }

@@ -384,12 +384,16 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false, false);
 
+			SetLastError(0);
+
 			return ret;
 		}
 
 		static BOOL WINAPI wglDeleteContext_hooked(HGLRC rc)
 		{
 			glhooks.GetDriver()->DeleteContext(rc);
+
+			SetLastError(0);
 
 			return glhooks.wglDeleteContext_hook()(rc);
 		}
@@ -404,6 +408,8 @@ class OpenGLHook : LibraryHook
 			data.ctx = ret;
 
 			glhooks.GetDriver()->CreateContext(data, NULL, GetInitParamsForDC(dc), false, false);
+
+			SetLastError(0);
 
 			return ret;
 		}
@@ -480,6 +486,8 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->CreateContext(data, hShareContext, GetInitParamsForDC(dc), core, true);
 
+			SetLastError(0);
+
 			return ret;
 		}
 		
@@ -516,6 +524,8 @@ class OpenGLHook : LibraryHook
 
 			glhooks.GetDriver()->ActivateContext(data);
 
+			SetLastError(0);
+
 			return ret;
 		}
 
@@ -531,6 +541,8 @@ class OpenGLHook : LibraryHook
 				glhooks.GetDriver()->WindowSize(w, r.right - r.left, r.bottom - r.top);
 
 				glhooks.GetDriver()->SwapBuffers(w);
+
+				SetLastError(0);
 			}
 
 			return glhooks.SwapBuffers_hook()(dc);
