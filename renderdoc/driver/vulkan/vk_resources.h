@@ -406,7 +406,9 @@ RealType Unwrap(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 
-	return GetWrapped(obj)->real.As<RealType>();
+	RealVkRes res = GetWrapped(obj)->real;
+
+	return res.As<RealType>();
 }
 
 template<typename RealType>
@@ -428,7 +430,9 @@ VkResourceRecord *GetRecord(RealType obj)
 template<typename RealType>
 RealType ToHandle(WrappedVkRes *ptr)
 {
-	return ((typename UnwrapHelper<RealType>::Outer *)ptr)->real.As<RealType>();
+	RealVkRes res = ((typename UnwrapHelper<RealType>::Outer *)ptr)->real;
+
+	return res.As<RealType>();
 }
 
 enum VkResourceType
