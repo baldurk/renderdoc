@@ -5839,7 +5839,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 		{
 			VkInstance instance = disp->real.As<VkInstance>();
 			dispatch_key key = get_dispatch_key(instance);
-			ObjDisp(instance)->DestroyInstance(instance);
+			((WrappedVkInstance::DispatchTableType *)disp->table)->DestroyInstance(instance);
 			destroy_dispatch_table(renderdoc_instance_table_map, key);
 			break;
 		}
