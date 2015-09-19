@@ -706,7 +706,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				{
 					RDCASSERT(dummyDeviceTable);
 
-#define FETCH_DEVICE_FUNCPTR(func) dummyDeviceTable->func = (CONCAT(PFN_vk, func))dummyDeviceTable->GetDeviceProcAddr(device, STRINGIZE(CONCAT(vk, func)));
+#define FETCH_DEVICE_FUNCPTR(func) dummyDeviceTable->func = (CONCAT(PFN_vk, func))dummyDeviceTable->GetDeviceProcAddr(Unwrap(device), STRINGIZE(CONCAT(vk, func)));
 					FETCH_DEVICE_FUNCPTR(CreateSwapChainWSI)
 					FETCH_DEVICE_FUNCPTR(DestroySwapChainWSI)
 					FETCH_DEVICE_FUNCPTR(GetSurfaceInfoWSI)
@@ -722,15 +722,15 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
 
-				VkResult vkr = ObjDisp(*pDevice)->GetDeviceQueue(Unwrap(device), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
+				VkResult vkr = ObjDisp(device)->GetDeviceQueue(Unwrap(device), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
-				vkr = ObjDisp(*pDevice)->CreateCommandPool(Unwrap(device), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
+				vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
-				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
+				vkr = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				found = true;
