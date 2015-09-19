@@ -3669,15 +3669,7 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
 	if(ret == VK_SUCCESS)
 	{
 		for(uint32_t i=0; i < count; i++)
-		{
-			ResourceId id = GetResID(pDescriptorSets[i]);
-
-			GetResourceManager()->MarkCleanResource(id);
-			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-			if(record)
-				record->Delete(GetResourceManager());
 			GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
-		}
 	}
 
 	return ret;
