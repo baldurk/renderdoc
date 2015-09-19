@@ -721,7 +721,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				m_PhysicalReplayData[i].dev = device;
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
-
+				
+				// VKTODOMED this is a hack - need a more reliable way of doing this
+				// when we serialise the relevant vkGetDeviceQueue, we'll search for this handle and replace it with the wrapped version
 				VkResult vkr = ObjDisp(device)->GetDeviceQueue(Unwrap(device), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
 
@@ -736,6 +738,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalReplayData[i].cmd);
+
 				found = true;
 				break;
 			}
@@ -1103,8 +1106,15 @@ bool WrappedVulkan::Serialise_vkGetDeviceQueue(
 		VkQueue queue;
 		VkResult ret = ObjDisp(device)->GetDeviceQueue(Unwrap(device), nodeIdx, idx, &queue);
 
+		VkQueue real = queue;
+
 		GetResourceManager()->WrapResource(Unwrap(device), queue);
 		GetResourceManager()->AddLiveResource(queueId, queue);
+		
+		// VKTODOMED hack - fixup unwrapped queue objects, because we tried to fill them
+		// out early
+		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+			if(m_PhysicalReplayData[i].q == real) m_PhysicalReplayData[i].q = queue;
 	}
 
 	return true;
