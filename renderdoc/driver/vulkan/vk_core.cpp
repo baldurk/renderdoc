@@ -1447,19 +1447,19 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		for(auto it = record->bakedCommands->dirtied.begin(); it != record->bakedCommands->dirtied.end(); ++it)
 			GetResourceManager()->MarkDirtyResource(*it);
 
-		// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
-		for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
-		{
-			GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
-
-			VkResourceRecord *setrecord = GetRecord(*it);
-
-			for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
-				GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
-		}
-
 		if(m_State == WRITING_CAPFRAME)
 		{
+			// for each bound descriptor set, mark it referenced as well as all resources currently bound to it
+			for(auto it = record->bakedCommands->boundDescSets.begin(); it != record->bakedCommands->boundDescSets.end(); ++it)
+			{
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(*it), eFrameRef_Read);
+
+				VkResourceRecord *setrecord = GetRecord(*it);
+
+				for(auto refit = setrecord->bindFrameRefs.begin(); refit != setrecord->bindFrameRefs.end(); ++refit)
+					GetResourceManager()->MarkResourceFrameReferenced(refit->first, refit->second.second);
+			}
+
 			// pull in frame refs from this baked command buffer
 			record->bakedCommands->AddResourceReferences(GetResourceManager());
 
