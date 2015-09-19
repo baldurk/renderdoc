@@ -25,127 +25,125 @@
 #pragma once
 
 #define HookInitVulkanInstance() \
-	HookInit(vkCreateInstance); \
-	HookInit(vkDestroyInstance); \
-	HookInit(vkEnumeratePhysicalDevices); \
-	HookInit(vkGetPhysicalDeviceFeatures); \
-	HookInit(vkGetPhysicalDeviceFormatProperties); \
-	HookInit(vkGetPhysicalDeviceImageFormatProperties); \
-	HookInit(vkGetPhysicalDeviceLimits); \
-	HookInit(vkGetPhysicalDeviceProperties); \
-	HookInit(vkGetPhysicalDeviceQueueCount); \
-	HookInit(vkGetPhysicalDeviceQueueProperties); \
-	HookInit(vkGetPhysicalDeviceMemoryProperties); \
-	HookInit(vkDbgCreateMsgCallback); \
-	HookInit(vkDbgDestroyMsgCallback); \
-	HookInit(vkGetPhysicalDeviceSurfaceSupportWSI)
+	HookInit(CreateInstance); \
+	HookInit(DestroyInstance); \
+	HookInit(EnumeratePhysicalDevices); \
+	HookInit(GetPhysicalDeviceFeatures); \
+	HookInit(GetPhysicalDeviceFormatProperties); \
+	HookInit(GetPhysicalDeviceImageFormatProperties); \
+	HookInit(GetPhysicalDeviceLimits); \
+	HookInit(GetPhysicalDeviceProperties); \
+	HookInit(GetPhysicalDeviceQueueCount); \
+	HookInit(GetPhysicalDeviceQueueProperties); \
+	HookInit(GetPhysicalDeviceMemoryProperties); \
+	HookInit(DbgCreateMsgCallback); \
+	HookInit(DbgDestroyMsgCallback); \
+	HookInit(GetPhysicalDeviceSurfaceSupportWSI)
 
 #define HookInitVulkanDevice() \
-	HookInit(vkCreateDevice); \
-	HookInit(vkDestroyDevice); \
-	HookInit(vkGetGlobalExtensionProperties); \
-	HookInit(vkGetDeviceQueue); \
-	HookInit(vkQueueSubmit); \
-	HookInit(vkQueueWaitIdle); \
-	HookInit(vkDeviceWaitIdle); \
-	HookInit(vkAllocMemory); \
-	HookInit(vkFreeMemory); \
-	HookInit(vkMapMemory); \
-	HookInit(vkUnmapMemory); \
-	HookInit(vkBindBufferMemory); \
-	HookInit(vkBindImageMemory); \
-	HookInit(vkCreateBuffer); \
-	HookInit(vkDestroyBuffer); \
-	HookInit(vkCreateBufferView); \
-	HookInit(vkDestroyBufferView); \
-	HookInit(vkCreateImage); \
-	HookInit(vkDestroyImage); \
-	HookInit(vkGetImageSubresourceLayout); \
-	HookInit(vkGetBufferMemoryRequirements); \
-	HookInit(vkGetImageMemoryRequirements); \
-	HookInit(vkCreateImageView); \
-	HookInit(vkDestroyImageView); \
-	HookInit(vkCreateAttachmentView); \
-	HookInit(vkDestroyAttachmentView); \
-	HookInit(vkCreateShader); \
-	HookInit(vkDestroyShader); \
-	HookInit(vkCreateShaderModule); \
-	HookInit(vkDestroyShaderModule); \
-	HookInit(vkCreateGraphicsPipelines); \
-	HookInit(vkDestroyPipeline); \
-	HookInit(vkCreatePipelineCache); \
-	HookInit(vkDestroyPipelineCache); \
-	HookInit(vkCreatePipelineLayout); \
-	HookInit(vkDestroyPipelineLayout); \
-	HookInit(vkCreateSemaphore); \
-	HookInit(vkDestroySemaphore); \
-	HookInit(vkQueueSignalSemaphore); \
-	HookInit(vkQueueWaitSemaphore); \
-	HookInit(vkCreateSampler); \
-	HookInit(vkDestroySampler); \
-	HookInit(vkCreateDescriptorSetLayout); \
-	HookInit(vkDestroyDescriptorSetLayout); \
-	HookInit(vkCreateDescriptorPool); \
-	HookInit(vkDestroyDescriptorPool); \
-	HookInit(vkAllocDescriptorSets); \
-	HookInit(vkUpdateDescriptorSets); \
-	HookInit(vkFreeDescriptorSets); \
-	HookInit(vkCreateDynamicViewportState); \
-	HookInit(vkDestroyDynamicViewportState); \
-	HookInit(vkCreateDynamicRasterState); \
-	HookInit(vkDestroyDynamicRasterState); \
-	HookInit(vkCreateDynamicColorBlendState); \
-	HookInit(vkDestroyDynamicColorBlendState); \
-	HookInit(vkCreateDynamicDepthStencilState); \
-	HookInit(vkDestroyDynamicDepthStencilState); \
-	HookInit(vkCreateCommandPool); \
-	HookInit(vkDestroyCommandPool); \
-	HookInit(vkResetCommandPool); \
-	HookInit(vkCreateCommandBuffer); \
-	HookInit(vkDestroyCommandBuffer); \
-	HookInit(vkBeginCommandBuffer); \
-	HookInit(vkEndCommandBuffer); \
-	HookInit(vkResetCommandBuffer); \
-	HookInit(vkCmdBindPipeline); \
-	HookInit(vkCmdBindDynamicViewportState); \
-	HookInit(vkCmdBindDynamicRasterState); \
-	HookInit(vkCmdBindDynamicColorBlendState); \
-	HookInit(vkCmdBindDynamicDepthStencilState); \
-	HookInit(vkCmdBindDescriptorSets); \
-	HookInit(vkCmdBindVertexBuffers); \
-	HookInit(vkCmdBindIndexBuffer); \
-	HookInit(vkCmdDraw); \
-	HookInit(vkCmdDrawIndirect); \
-	HookInit(vkCmdDrawIndexed); \
-	HookInit(vkCmdDrawIndexedIndirect); \
-	HookInit(vkCmdDispatch); \
-	HookInit(vkCmdDispatchIndirect); \
-	HookInit(vkCmdCopyBufferToImage); \
-	HookInit(vkCmdCopyImageToBuffer); \
-	HookInit(vkCmdCopyBuffer); \
-	HookInit(vkCmdCopyImage); \
-	HookInit(vkCmdBlitImage); \
-	HookInit(vkCmdClearColorImage); \
-	HookInit(vkCmdClearDepthStencilImage); \
-	HookInit(vkCmdClearColorAttachment); \
-	HookInit(vkCmdClearDepthStencilAttachment); \
-	HookInit(vkCmdPipelineBarrier); \
-	HookInit(vkCreateFramebuffer); \
-	HookInit(vkDestroyFramebuffer); \
-	HookInit(vkCreateRenderPass); \
-	HookInit(vkDestroyRenderPass); \
-	HookInit(vkCmdBeginRenderPass); \
-	HookInit(vkCmdEndRenderPass); \
-	HookInit(vkCmdDbgMarkerBegin); \
-	HookInit(vkCmdDbgMarkerEnd); \
-	HookInit(vkDbgCreateMsgCallback); \
-	HookInit(vkDbgDestroyMsgCallback); \
-	HookInit(vkCreateSwapChainWSI); \
-	HookInit(vkDestroySwapChainWSI); \
-	HookInit(vkGetSurfaceInfoWSI); \
-	HookInit(vkGetSwapChainInfoWSI); \
-	HookInit(vkAcquireNextImageWSI); \
-	HookInit(vkQueuePresentWSI)
+	HookInit(GetDeviceProcAddr); \
+	HookInit(CreateDevice); \
+	HookInit(DestroyDevice); \
+	HookInit(GetDeviceQueue); \
+	HookInit(QueueSubmit); \
+	HookInit(QueueWaitIdle); \
+	HookInit(DeviceWaitIdle); \
+	HookInit(AllocMemory); \
+	HookInit(FreeMemory); \
+	HookInit(MapMemory); \
+	HookInit(UnmapMemory); \
+	HookInit(BindBufferMemory); \
+	HookInit(BindImageMemory); \
+	HookInit(CreateBuffer); \
+	HookInit(DestroyBuffer); \
+	HookInit(CreateBufferView); \
+	HookInit(DestroyBufferView); \
+	HookInit(CreateImage); \
+	HookInit(DestroyImage); \
+	HookInit(GetImageSubresourceLayout); \
+	HookInit(GetBufferMemoryRequirements); \
+	HookInit(GetImageMemoryRequirements); \
+	HookInit(CreateImageView); \
+	HookInit(DestroyImageView); \
+	HookInit(CreateAttachmentView); \
+	HookInit(DestroyAttachmentView); \
+	HookInit(CreateShader); \
+	HookInit(DestroyShader); \
+	HookInit(CreateShaderModule); \
+	HookInit(DestroyShaderModule); \
+	HookInit(CreateGraphicsPipelines); \
+	HookInit(DestroyPipeline); \
+	HookInit(CreatePipelineCache); \
+	HookInit(DestroyPipelineCache); \
+	HookInit(CreatePipelineLayout); \
+	HookInit(DestroyPipelineLayout); \
+	HookInit(CreateSemaphore); \
+	HookInit(DestroySemaphore); \
+	HookInit(QueueSignalSemaphore); \
+	HookInit(QueueWaitSemaphore); \
+	HookInit(CreateSampler); \
+	HookInit(DestroySampler); \
+	HookInit(CreateDescriptorSetLayout); \
+	HookInit(DestroyDescriptorSetLayout); \
+	HookInit(CreateDescriptorPool); \
+	HookInit(DestroyDescriptorPool); \
+	HookInit(AllocDescriptorSets); \
+	HookInit(UpdateDescriptorSets); \
+	HookInit(FreeDescriptorSets); \
+	HookInit(CreateDynamicViewportState); \
+	HookInit(DestroyDynamicViewportState); \
+	HookInit(CreateDynamicRasterState); \
+	HookInit(DestroyDynamicRasterState); \
+	HookInit(CreateDynamicColorBlendState); \
+	HookInit(DestroyDynamicColorBlendState); \
+	HookInit(CreateDynamicDepthStencilState); \
+	HookInit(DestroyDynamicDepthStencilState); \
+	HookInit(CreateCommandPool); \
+	HookInit(DestroyCommandPool); \
+	HookInit(ResetCommandPool); \
+	HookInit(CreateCommandBuffer); \
+	HookInit(DestroyCommandBuffer); \
+	HookInit(BeginCommandBuffer); \
+	HookInit(EndCommandBuffer); \
+	HookInit(ResetCommandBuffer); \
+	HookInit(CmdBindPipeline); \
+	HookInit(CmdBindDynamicViewportState); \
+	HookInit(CmdBindDynamicRasterState); \
+	HookInit(CmdBindDynamicColorBlendState); \
+	HookInit(CmdBindDynamicDepthStencilState); \
+	HookInit(CmdBindDescriptorSets); \
+	HookInit(CmdBindVertexBuffers); \
+	HookInit(CmdBindIndexBuffer); \
+	HookInit(CmdDraw); \
+	HookInit(CmdDrawIndirect); \
+	HookInit(CmdDrawIndexed); \
+	HookInit(CmdDrawIndexedIndirect); \
+	HookInit(CmdDispatch); \
+	HookInit(CmdDispatchIndirect); \
+	HookInit(CmdCopyBufferToImage); \
+	HookInit(CmdCopyImageToBuffer); \
+	HookInit(CmdCopyBuffer); \
+	HookInit(CmdCopyImage); \
+	HookInit(CmdBlitImage); \
+	HookInit(CmdClearColorImage); \
+	HookInit(CmdClearDepthStencilImage); \
+	HookInit(CmdClearColorAttachment); \
+	HookInit(CmdClearDepthStencilAttachment); \
+	HookInit(CmdPipelineBarrier); \
+	HookInit(CreateFramebuffer); \
+	HookInit(DestroyFramebuffer); \
+	HookInit(CreateRenderPass); \
+	HookInit(DestroyRenderPass); \
+	HookInit(CmdBeginRenderPass); \
+	HookInit(CmdEndRenderPass); \
+	HookInit(DbgCreateMsgCallback); \
+	HookInit(DbgDestroyMsgCallback); \
+	HookInit(CreateSwapChainWSI); \
+	HookInit(DestroySwapChainWSI); \
+	HookInit(GetSurfaceInfoWSI); \
+	HookInit(GetSwapChainInfoWSI); \
+	HookInit(AcquireNextImageWSI); \
+	HookInit(QueuePresentWSI)
 
 #define DefineHooks() \
 	HookDefine2(VkResult, vkCreateInstance, const VkInstanceCreateInfo*, pCreateInfo, VkInstance*, pInstance); \
@@ -161,7 +159,6 @@
 	HookDefine2(VkResult, vkGetPhysicalDeviceMemoryProperties, VkPhysicalDevice, physicalDevice, VkPhysicalDeviceMemoryProperties*, pMemoryProperties); \
 	HookDefine3(VkResult, vkCreateDevice, VkPhysicalDevice, physicalDevice, const VkDeviceCreateInfo*, pCreateInfo, VkDevice*, pDevice); \
 	HookDefine1(VkResult, vkDestroyDevice, VkDevice, device); \
-	HookDefine3(VkResult, vkGetGlobalExtensionProperties, const char*, pLayerName, uint32_t*, pCount, VkExtensionProperties*, pProperties); \
 	HookDefine4(VkResult, vkGetDeviceQueue, VkDevice, device, uint32_t, queueFamilyIndex, uint32_t, queueIndex, VkQueue*, pQueue); \
 	HookDefine4(VkResult, vkQueueSubmit, VkQueue, queue, uint32_t, cmdBufferCount, const VkCmdBuffer*, pCmdBuffers, VkFence, fence); \
 	HookDefine1(VkResult, vkQueueWaitIdle, VkQueue, queue); \
@@ -254,8 +251,6 @@
 	HookDefine2(VkResult, vkDestroyRenderPass, VkDevice, device, VkRenderPass, renderPass); \
 	HookDefine3(void, vkCmdBeginRenderPass, VkCmdBuffer, cmdBuffer, const VkRenderPassBeginInfo*, pRenderPassBegin, VkRenderPassContents, contents); \
 	HookDefine1(void, vkCmdEndRenderPass, VkCmdBuffer, cmdBuffer); \
-	HookDefine2(void, vkCmdDbgMarkerBegin, VkCmdBuffer, cmdBuffer, const char*, pMarker); \
-	HookDefine1(void, vkCmdDbgMarkerEnd, VkCmdBuffer, cmdBuffer); \
 	HookDefine5(VkResult, vkDbgCreateMsgCallback, VkInstance, instance, VkFlags, msgFlags, const PFN_vkDbgMsgCallback, pfnMsgCallback, void*, pUserData, VkDbgMsgCallback*, pMsgCallback); \
 	HookDefine2(VkResult, vkDbgDestroyMsgCallback, VkInstance, instance, VkDbgMsgCallback, msgCallback); \
 	HookDefine4(VkResult, vkGetPhysicalDeviceSurfaceSupportWSI, VkPhysicalDevice, physicalDevice, uint32_t, queueFamilyIndex, const VkSurfaceDescriptionWSI*, pSurfaceDescription, VkBool32*, pSupported); \

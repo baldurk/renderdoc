@@ -24,15 +24,35 @@
 
 #pragma once
 
-#include "vk_common.h"
+// layer includes
 
-#include "vk_hookset_defs.h"
+#ifdef WIN32
+// undefined clashing windows #defines
+#undef CreateEvent
+#undef CreateSemaphore
+#endif
 
-#undef HookInit
-#define HookInit(funcname) CONCAT(PFN_, funcname) funcname
+#include "vk_layer.h"
 
-struct VulkanFunctions
+void InitReplayTables();
+void InitDeviceReplayTables(VkDevice device);
+
+VkLayerDispatchTable *GetDeviceDispatchTable(void *device);
+VkLayerInstanceDispatchTable *GetInstanceDispatchTable(void *instance);
+
+template<typename parenttype, typename wrappedtype>
+void SetDispatchTable(bool writing, parenttype parent, wrappedtype *wrapped)
 {
-	HookInitVulkanInstance();
-	HookInitVulkanDevice();
-};
+	if(writing)
+	{
+		wrapped->table = wrappedtype::UseInstanceDispatchTable
+			? (uintptr_t)GetInstanceDispatchTable((void *)parent)
+			: (uintptr_t)GetDeviceDispatchTable((void *)parent);
+	}
+	else
+	{
+		wrapped->table = wrappedtype::UseInstanceDispatchTable
+			? (uintptr_t)GetInstanceDispatchTable(NULL)
+			: (uintptr_t)GetDeviceDispatchTable(NULL);
+	}
+}

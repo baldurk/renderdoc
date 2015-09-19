@@ -160,15 +160,6 @@ private:
 	};
 	vector<ReplayData> m_PhysicalReplayData;
 	int m_SwapPhysDevice;
-
-	struct ExtensionSupport
-	{
-		vector<VkExtensionProperties> renderdoc;
-		vector<VkExtensionProperties> driver;
-		vector<VkExtensionProperties> extensions;
-	};
-	ExtensionSupport globalExts;
-	map<ResourceId, ExtensionSupport> deviceExts;
 	
 	VulkanDebugManager *GetDebugManager()
 	{ RDCASSERT(m_SwapPhysDevice >= 0); return m_PhysicalReplayData[m_SwapPhysDevice].debugMan; }
@@ -491,13 +482,6 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyDevice(
 		VkDevice                                    device));
 	
-	// Extension discovery functions
-
-	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetGlobalExtensionProperties(
-			const char*                                 pLayerName,
-			uint32_t*                                   pCount,
-			VkExtensionProperties*                      pProperties));
-
 	// Queue functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetDeviceQueue(

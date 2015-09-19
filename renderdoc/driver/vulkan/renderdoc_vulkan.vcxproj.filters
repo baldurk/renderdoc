@@ -10,17 +10,11 @@
     <ClCompile Include="vk_resources.cpp" />
     <ClCompile Include="vk_info.cpp" />
     <ClCompile Include="vk_debug.cpp" />
-    <ClCompile Include="LoaderAndTools\layers\vk_layer_table.cpp">
-      <Filter>ext</Filter>
-    </ClCompile>
-    <ClCompile Include="LoaderAndTools\layers\vk_layer_extension_utils.cpp">
-      <Filter>ext</Filter>
-    </ClCompile>
     <ClCompile Include="vk_tracelayer.cpp" />
+    <ClCompile Include="vk_dispatchtables.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_core.h" />
-    <ClInclude Include="vk_hookset.h" />
     <ClInclude Include="vk_hookset_defs.h" />
     <ClInclude Include="vk_manager.h" />
     <ClInclude Include="vk_replay.h" />
@@ -28,10 +22,6 @@
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_info.h" />
     <ClInclude Include="vk_debug.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Filter Include="ext">
-      <UniqueIdentifier>{170618b5-5523-497e-a798-4cad26474162}</UniqueIdentifier>
-    </Filter>
+    <ClInclude Include="vk_dispatchtables.h" />
   </ItemGroup>
 </Project>

@@ -31,9 +31,6 @@
 
 #include "jpeg-compressor/jpge.h"
 
-device_table_map renderdoc_device_table_map;
-instance_table_map renderdoc_instance_table_map;
-
 // VKTODOLOW dirty buffers should propagate through to their memory somehow
 // images can be separately dirty since we can't just copy their memory
 // (tiling could be different)
@@ -256,7 +253,7 @@ void WrappedVulkan::Initialise(VkInitParams &params)
 
 	VkInstance inst = {0};
 
-	VkResult ret = dummyInstanceTable->CreateInstance(&instinfo, &inst);
+	VkResult ret = GetInstanceDispatchTable(NULL)->CreateInstance(&instinfo, &inst);
 
 	GetResourceManager()->WrapResource(inst, inst);
 	GetResourceManager()->AddLiveResource(params.InstanceID, inst);
@@ -292,50 +289,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 		m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 	}
 
-#define AddExtSupport(list, name, version) { VkExtensionProperties props = { name, version }; list.push_back(props); }
-	
-	AddExtSupport(globalExts.renderdoc, "VK_Renderdoc", 0);
-	AddExtSupport(globalExts.renderdoc, "VK_WSI_swapchain", 0);
-
-#undef AddExtSupport
-
 	m_SwapPhysDevice = -1;
-
-	uint32_t extCount = 0;
-	vkGetGlobalExtensionProperties(NULL, &extCount, NULL);
-
-	globalExts.driver.resize(extCount);
-	vkGetGlobalExtensionProperties(NULL, &extCount, &globalExts.driver[0]);
-
-	std::sort(globalExts.driver.begin(), globalExts.driver.end());
-
-	for(size_t i=0; i < globalExts.driver.size(); i++)
-		RDCDEBUG("Driver Ext %d: %s", i, globalExts.driver[i].extName);
-
-	// intersection of extensions
-	{
-		size_t len = RDCMIN(globalExts.renderdoc.size(), globalExts.driver.size());
-		for(size_t i=0, j=0; i < globalExts.renderdoc.size() && j < globalExts.driver.size(); )
-		{
-			string a = globalExts.renderdoc[i].extName;
-			string b = globalExts.driver[j].extName;
-
-			if(a == b)
-			{
-				globalExts.extensions.push_back(globalExts.renderdoc[i]);
-				i++;
-				j++;
-			}
-			else if(a < b)
-			{
-				i++;
-			}
-			else if(b < a)
-			{
-				j++;
-			}
-		}
-	}
 
 	m_Replay.SetDriver(this);
 
@@ -440,9 +394,8 @@ WrappedVulkan::~WrappedVulkan()
 	if(m_PhysicalReplayData[0].inst != VK_NULL_HANDLE)
 	{
 		VkInstance instance = Unwrap(m_PhysicalReplayData[0].inst);
-		dispatch_key key = get_dispatch_key(instance);
+
 		ObjDisp(m_PhysicalReplayData[0].inst)->DestroyInstance(instance);
-		destroy_dispatch_table(renderdoc_instance_table_map, key);
 	}
 }
 
@@ -465,7 +418,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 
 	VkInstance inst = *pInstance;
 
-	VkResult ret = get_dispatch_table(renderdoc_instance_table_map, *pInstance)->CreateInstance(pCreateInfo, &inst);
+	VkResult ret = GetInstanceDispatchTable(*pInstance)->CreateInstance(pCreateInfo, &inst);
 
 	GetResourceManager()->WrapResource(inst, inst);
 
@@ -494,7 +447,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 VkResult WrappedVulkan::vkDestroyInstance(
 		VkInstance                                  instance)
 {
-	dispatch_key key = get_dispatch_key(instance);
 	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
 
 	if(ret != VK_SUCCESS)
@@ -513,8 +465,6 @@ VkResult WrappedVulkan::vkDestroyInstance(
 	GetResourceManager()->ReleaseWrappedResource(instance);
 
 	m_ResourceManager->Shutdown();
-
-	destroy_dispatch_table(renderdoc_instance_table_map, key);
 
 	return VK_SUCCESS;
 }
@@ -705,7 +655,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
 
-		VkResult ret = dummyDeviceTable->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
+		VkResult ret = GetDeviceDispatchTable(NULL)->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
 
 		GetResourceManager()->WrapResource(device, device);
 		GetResourceManager()->AddLiveResource(devId, device);
@@ -716,20 +666,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 		{
 			if(m_PhysicalReplayData[i].phys == physicalDevice)
 			{
-				// fill out replay functions. Maybe this should be somewhere else.
-				// VKTODOLOW this won't work with multiple devices - will need a replay device table for each
-				{
-					RDCASSERT(dummyDeviceTable);
-
-#define FETCH_DEVICE_FUNCPTR(func) dummyDeviceTable->func = (CONCAT(PFN_vk, func))dummyDeviceTable->GetDeviceProcAddr(Unwrap(device), STRINGIZE(CONCAT(vk, func)));
-					FETCH_DEVICE_FUNCPTR(CreateSwapChainWSI)
-					FETCH_DEVICE_FUNCPTR(DestroySwapChainWSI)
-					FETCH_DEVICE_FUNCPTR(GetSurfaceInfoWSI)
-					FETCH_DEVICE_FUNCPTR(GetSwapChainInfoWSI)
-					FETCH_DEVICE_FUNCPTR(AcquireNextImageWSI)
-					FETCH_DEVICE_FUNCPTR(QueuePresentWSI)
-#undef FETCH_DEVICE_FUNCPTR
-				}
+				InitDeviceReplayTables(Unwrap(device));
 
 				// VKTODOLOW not handling multiple devices per physical devices
 				RDCASSERT(m_PhysicalReplayData[i].dev == VK_NULL_HANDLE);
@@ -843,7 +780,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 	RDCDEBUG("Might want to fiddle with createinfo - e.g. to remove VK_RenderDoc from set of extensions or similar");
 
-	VkResult ret = get_dispatch_table(renderdoc_device_table_map, *pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
+	VkResult ret = GetDeviceDispatchTable(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, pDevice);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -939,9 +876,7 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 			GetResourceManager()->ReleaseWrappedResource(queues[i]);
 	}
 
-	dispatch_key key = get_dispatch_key(device);
 	VkResult ret = ObjDisp(device)->DestroyDevice(Unwrap(device));
-	destroy_dispatch_table(renderdoc_device_table_map, key);
 	
 	// VKTODOLOW on replay we're releasing this after resource manager
 	// shutdown. Yes it's a hack, yes it's ugly.
@@ -1036,22 +971,6 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 		VkMemoryRequirements*                       pMemoryRequirements)
 {
 	return ObjDisp(device)->GetImageMemoryRequirements(Unwrap(device), Unwrap(image), pMemoryRequirements);
-}
-
-VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
-    const char*                                 pLayerName,
-    uint32_t*                                   pCount,
-    VkExtensionProperties*                      pProperties)
-{
-	if(pLayerName == NULL)
-	{
-		if(pCount) *pCount = uint32_t(globalExts.extensions.size());
-		if(pProperties)
-			memcpy(pProperties, &globalExts.extensions[0], sizeof(VkExtensionProperties)*globalExts.extensions.size());
-		return VK_SUCCESS;
-	}
-
-	return util_GetExtensionProperties(0, NULL, pCount, pProperties);
 }
 
 #define DESTROY_IMPL(type, func) \
@@ -5868,9 +5787,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 		case eResInstance:
 		{
 			VkInstance instance = disp->real.As<VkInstance>();
-			dispatch_key key = get_dispatch_key(instance);
 			((WrappedVkInstance::DispatchTableType *)disp->table)->DestroyInstance(instance);
-			destroy_dispatch_table(renderdoc_instance_table_map, key);
 			break;
 		}
 		case eResDevice:

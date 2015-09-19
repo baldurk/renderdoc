@@ -62,40 +62,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 
-// layer includes
-
-#ifdef WIN32
-// undefined clashing windows #defines
-#undef CreateEvent
-#undef CreateSemaphore
-#endif
-
-#include "vk_layer.h"
-#include "LoaderAndTools/layers/vk_layer_table.h"
-#include "LoaderAndTools/layers/vk_layer_extension_utils.h"
-
-extern VkLayerDispatchTable *dummyDeviceTable;
-extern VkLayerInstanceDispatchTable *dummyInstanceTable;
-
-extern device_table_map renderdoc_device_table_map;
-extern instance_table_map renderdoc_instance_table_map;
-
-template<typename parenttype, typename wrappedtype>
-void SetDispatchTable(bool writing, parenttype parent, wrappedtype *wrapped)
-{
-	if(writing)
-	{
-		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)get_dispatch_table(renderdoc_instance_table_map, (void *)parent)
-			: (uintptr_t)get_dispatch_table(renderdoc_device_table_map, (void *)parent);
-	}
-	else
-	{
-		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)dummyInstanceTable
-			: (uintptr_t)dummyDeviceTable;
-	}
-}
+#include "vk_dispatchtables.h"
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patchControlPoints);

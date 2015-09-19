@@ -19,8 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="LoaderAndTools\layers\vk_layer_extension_utils.cpp" />
-    <ClCompile Include="LoaderAndTools\layers\vk_layer_table.cpp" />
+    <ClCompile Include="vk_dispatchtables.cpp" />
     <ClCompile Include="vk_tracelayer.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
@@ -48,7 +47,7 @@
     <ClInclude Include="vk_common.h" />
     <ClInclude Include="vk_core.h" />
     <ClInclude Include="vk_debug.h" />
-    <ClInclude Include="vk_hookset.h" />
+    <ClInclude Include="vk_dispatchtables.h" />
     <ClInclude Include="vk_hookset_defs.h" />
     <ClInclude Include="vk_info.h" />
     <ClInclude Include="vk_manager.h" />
