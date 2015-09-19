@@ -92,7 +92,7 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 	VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &buf);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(buf);
+	VKMGR()->WrapResource(Unwrap(dev), buf);
 
 	VkMemoryRequirements mrq;
 	vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), Unwrap(buf), &mrq);
@@ -107,7 +107,7 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 	vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &mem);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(mem);
+	VKMGR()->WrapResource(Unwrap(dev), mem);
 
 	vkr = vt->BindBufferMemory(Unwrap(dev), Unwrap(buf), Unwrap(mem), 0);
 	RDCASSERT(vkr == VK_SUCCESS);
@@ -121,7 +121,7 @@ void VulkanDebugManager::UBO::Create(WrappedVulkan *driver, VkDevice dev, VkDevi
 	vkr = vt->CreateBufferView(Unwrap(dev), &bufviewInfo, &view);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(view);
+	VKMGR()->WrapResource(Unwrap(dev), view);
 }
 
 void VulkanDebugManager::UBO::Destroy(const VkLayerDispatchTable *vt, VkDevice dev)
@@ -224,7 +224,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_LinearSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_LinearSampler);
+	VKMGR()->WrapResource(Unwrap(dev), m_LinearSampler);
 
 	sampInfo.minFilter = VK_TEX_FILTER_NEAREST;
 	sampInfo.magFilter = VK_TEX_FILTER_NEAREST;
@@ -233,14 +233,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateSampler(Unwrap(dev), &sampInfo, &m_PointSampler);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_PointSampler);
+	VKMGR()->WrapResource(Unwrap(dev), m_PointSampler);
 
 	VkPipelineCacheCreateInfo cacheInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, NULL, 0, NULL, 0 };
 
 	vkr = vt->CreatePipelineCache(Unwrap(dev), &cacheInfo, &m_PipelineCache);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_PipelineCache);
+	VKMGR()->WrapResource(Unwrap(dev), m_PipelineCache);
 
 	{
 		// VKTODOLOW not sure if these stage flags VK_SHADER_STAGE_... work yet?
@@ -256,7 +256,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_CheckerboardDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(m_CheckerboardDescSetLayout);
+		VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardDescSetLayout);
 	}
 
 	{
@@ -273,7 +273,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_TexDisplayDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(m_TexDisplayDescSetLayout);
+		VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayDescSetLayout);
 	}
 
 	{
@@ -292,7 +292,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		vkr = vt->CreateDescriptorSetLayout(Unwrap(dev), &descsetLayoutInfo, &m_TextDescSetLayout);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(m_TextDescSetLayout);
+		VKMGR()->WrapResource(Unwrap(dev), m_TextDescSetLayout);
 	}
 
 	VkPipelineLayoutCreateInfo pipeLayoutInfo = {
@@ -304,21 +304,21 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_TexDisplayPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_TexDisplayPipeLayout);
+	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayPipeLayout);
 
 	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_CheckerboardDescSetLayout);
 	
 	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_CheckerboardPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_CheckerboardPipeLayout);
+	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardPipeLayout);
 
 	pipeLayoutInfo.pSetLayouts = UnwrapPtr(m_TextDescSetLayout);
 	
 	vkr = vt->CreatePipelineLayout(Unwrap(dev), &pipeLayoutInfo, &m_TextPipeLayout);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_TextPipeLayout);
+	VKMGR()->WrapResource(Unwrap(dev), m_TextPipeLayout);
 
 	VkDescriptorTypeCount descPoolTypes[] = {
 		{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024, },
@@ -333,26 +333,26 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateDescriptorPool(Unwrap(dev), VK_DESCRIPTOR_POOL_USAGE_ONE_SHOT, 3, &descpoolInfo, &m_DescriptorPool);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_DescriptorPool);
+	VKMGR()->WrapResource(Unwrap(dev), m_DescriptorPool);
 	
 	uint32_t count;
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_CheckerboardDescSetLayout), &m_CheckerboardDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_CheckerboardDescSet);
+	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_TexDisplayDescSetLayout), &m_TexDisplayDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_TexDisplayDescSet);
+	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayDescSet);
 	
 	vkr = vt->AllocDescriptorSets(Unwrap(dev), Unwrap(m_DescriptorPool), VK_DESCRIPTOR_SET_USAGE_STATIC, 1,
 		UnwrapPtr(m_TextDescSetLayout), &m_TextDescSet, &count);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_TextDescSet);
+	VKMGR()->WrapResource(Unwrap(dev), m_TextDescSet);
 
 	m_CheckerboardUBO.Create(driver, dev, 128);
 	m_TexDisplayUBO.Create(driver, dev, 128);
@@ -373,7 +373,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateDynamicRasterState(Unwrap(dev), &rsInfo, &m_DynamicRSState);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_DynamicRSState);
+	VKMGR()->WrapResource(Unwrap(dev), m_DynamicRSState);
 	
 	VkDynamicColorBlendStateCreateInfo cbInfo = {
 		VK_STRUCTURE_TYPE_DYNAMIC_COLOR_BLEND_STATE_CREATE_INFO, NULL,
@@ -383,7 +383,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateDynamicColorBlendState(Unwrap(dev), &cbInfo, &m_DynamicCBStateWhite);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_DynamicCBStateWhite);
+	VKMGR()->WrapResource(Unwrap(dev), m_DynamicCBStateWhite);
 	
 	VkDynamicDepthStencilStateCreateInfo dsInfo = {
 		VK_STRUCTURE_TYPE_DYNAMIC_DEPTH_STENCIL_STATE_CREATE_INFO, NULL,
@@ -393,7 +393,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateDynamicDepthStencilState(Unwrap(dev), &dsInfo, &m_DynamicDSStateDisabled);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(m_DynamicDSStateDisabled);
+	VKMGR()->WrapResource(Unwrap(dev), m_DynamicDSStateDisabled);
 	
 	string shaderSources[] = {
 		GetEmbeddedResource(blitvs_spv),
@@ -425,7 +425,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		vkr = vt->CreateShaderModule(Unwrap(dev), &modinfo, &module[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(module[i]);
+		VKMGR()->WrapResource(Unwrap(dev), module[i]);
 
 		VkShaderCreateInfo shadinfo = {
 			VK_STRUCTURE_TYPE_SHADER_CREATE_INFO, NULL,
@@ -435,7 +435,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		vkr = vt->CreateShader(Unwrap(dev), &shadinfo, &shader[i]);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(shader[i]);
+		VKMGR()->WrapResource(Unwrap(dev), shader[i]);
 	}
 
 	VkPipelineShaderStageCreateInfo stages[2] = {
@@ -508,7 +508,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_CheckerboardPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	VKMGR()->WrapResource(m_CheckerboardPipeline);
+	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
 	
 	stages[0].shader = Unwrap(shader[BLITVS]);
 	stages[1].shader = Unwrap(shader[TEXDISPLAYFS]);
@@ -518,7 +518,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	VKMGR()->WrapResource(m_TexDisplayPipeline);
+	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayPipeline);
 
 	attState.blendEnable = true;
 	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
@@ -527,7 +527,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TexDisplayBlendPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	VKMGR()->WrapResource(m_TexDisplayBlendPipeline);
+	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayBlendPipeline);
 
 	ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 	
@@ -539,7 +539,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TextPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
-	VKMGR()->WrapResource(m_TextPipeline);
+	VKMGR()->WrapResource(Unwrap(dev), m_TextPipeline);
 
 	for(size_t i=0; i < ARRAY_COUNT(module); i++)
 	{
@@ -599,7 +599,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			vkr = vt->CreateImage(Unwrap(dev), &imInfo, &m_TextAtlas);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
-			VKMGR()->WrapResource(m_TextAtlas);
+			VKMGR()->WrapResource(Unwrap(dev), m_TextAtlas);
 
 			VkMemoryRequirements mrq;
 			vkr = vt->GetImageMemoryRequirements(Unwrap(dev), Unwrap(m_TextAtlas), &mrq);
@@ -618,7 +618,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &m_TextAtlasMem);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
-			VKMGR()->WrapResource(m_TextAtlasMem);
+			VKMGR()->WrapResource(Unwrap(dev), m_TextAtlasMem);
 
 			vkr = vt->BindImageMemory(Unwrap(dev), Unwrap(m_TextAtlas), Unwrap(m_TextAtlasMem), 0);
 			RDCASSERT(vkr == VK_SUCCESS);
@@ -636,7 +636,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 			vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &m_TextAtlasView);
 			RDCASSERT(vkr == VK_SUCCESS);
 				
-			VKMGR()->WrapResource(m_TextAtlasView);
+			VKMGR()->WrapResource(Unwrap(dev), m_TextAtlasView);
 
 			// need to transition image into valid state, then upload
 			VkCmdBuffer cmd = driver->GetCmd();

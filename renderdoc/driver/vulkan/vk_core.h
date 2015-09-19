@@ -54,14 +54,14 @@ extern VkLayerInstanceDispatchTable *dummyInstanceTable;
 extern device_table_map renderdoc_device_table_map;
 extern instance_table_map renderdoc_instance_table_map;
 
-template<typename wrappedtype>
-void SetDispatchTable(bool writing, wrappedtype *wrapped)
+template<typename parenttype, typename wrappedtype>
+void SetDispatchTable(bool writing, parenttype parent, wrappedtype *wrapped)
 {
 	if(writing)
 	{
 		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)get_dispatch_table(renderdoc_instance_table_map, (void *)wrapped->real.handle)
-			: (uintptr_t)get_dispatch_table(renderdoc_device_table_map, (void *)wrapped->real.handle);
+			? (uintptr_t)get_dispatch_table(renderdoc_instance_table_map, (void *)parent)
+			: (uintptr_t)get_dispatch_table(renderdoc_device_table_map, (void *)parent);
 	}
 	else
 	{
@@ -71,12 +71,18 @@ void SetDispatchTable(bool writing, wrappedtype *wrapped)
 	}
 }
 
-template<typename wrappedtype> inline void SetTableIfDispatchable(bool writing, wrappedtype *obj) {}
-template<> inline void SetTableIfDispatchable(bool writing, WrappedVkInstance *obj)       { SetDispatchTable(writing, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, WrappedVkPhysicalDevice *obj) { SetDispatchTable(writing, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, WrappedVkDevice *obj)         { SetDispatchTable(writing, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, WrappedVkQueue *obj)          { SetDispatchTable(writing, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, WrappedVkCmdBuffer *obj)      { SetDispatchTable(writing, obj); }
+template<typename parenttype, typename wrappedtype>
+inline void SetTableIfDispatchable(bool writing, parenttype parent, wrappedtype *obj) {}
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkInstance *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkPhysicalDevice *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkDevice *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkQueue *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkCmdBuffer *obj)
+{ SetDispatchTable(writing, parent, obj); }
 
 using std::vector;
 using std::list;

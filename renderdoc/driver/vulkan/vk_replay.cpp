@@ -245,7 +245,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	vkr = vt->CreateSwapChainWSI(Unwrap(device), &swapInfo, &swap);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VKMGR()->WrapResource(swap);
+	VKMGR()->WrapResource(Unwrap(device), swap);
 
 	if(old != VK_NULL_HANDLE)
 		vt->DestroySwapChainWSI(Unwrap(device), Unwrap(old));
@@ -263,7 +263,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 	for(size_t i=0; i < numImgs; i++)
 	{
 		colimg[i] = imgs[i].image;
-		VKMGR()->WrapResource(colimg[i]);
+		VKMGR()->WrapResource(Unwrap(device), colimg[i]);
 		coltrans[i].image = Unwrap(colimg[i]);
 		coltrans[i].oldLayout = coltrans[i].newLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	}
@@ -314,7 +314,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, &renderpass);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(renderpass);
+		VKMGR()->WrapResource(Unwrap(device), renderpass);
 	}
 
 	{
@@ -329,7 +329,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		VkResult vkr = vt->CreateDynamicViewportState(Unwrap(device), &vpInfo, &fullVP);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(fullVP);
+		VKMGR()->WrapResource(Unwrap(device), fullVP);
 	}
 
 	{
@@ -346,7 +346,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		VkResult vkr = vt->CreateImage(Unwrap(device), &imInfo, &bb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(bb);
+		VKMGR()->WrapResource(Unwrap(device), bb);
 
 		VkMemoryRequirements mrq = {0};
 
@@ -361,7 +361,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->AllocMemory(Unwrap(device), &allocInfo, &bbmem);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(bbmem);
+		VKMGR()->WrapResource(Unwrap(device), bbmem);
 
 		vkr = vt->BindImageMemory(Unwrap(device), Unwrap(bb), Unwrap(bbmem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
@@ -379,7 +379,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateAttachmentView(Unwrap(device), &info, &bbview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(bbview);
+		VKMGR()->WrapResource(Unwrap(device), bbview);
 
 		VkAttachmentBindInfo attBind = { Unwrap(bbview), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
@@ -393,7 +393,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, &fb);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(fb);
+		VKMGR()->WrapResource(Unwrap(device), fb);
 	}
 
 	if(dsimg != VK_NULL_HANDLE)
@@ -406,7 +406,7 @@ void VulkanReplay::OutputWindow::Create(WrappedVulkan *driver, VkDevice device, 
 		vkr = vt->CreateAttachmentView(Unwrap(device), &info, &dsview);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VKMGR()->WrapResource(dsview);
+		VKMGR()->WrapResource(Unwrap(device), dsview);
 	}
 }
 

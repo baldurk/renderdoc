@@ -104,15 +104,15 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 			return ((WrappedVkNonDispRes *)res)->id;
 		}
 		
-		template<typename realtype>
-		ResourceId WrapResource(realtype &obj)
+		template<typename parenttype, typename realtype>
+		ResourceId WrapResource(parenttype parentObj, realtype &obj)
 		{
 			RDCASSERT(obj != VK_NULL_HANDLE);
 
 			ResourceId id = ResourceIDGen::GetNewUniqueID();
 			typename UnwrapHelper<realtype>::Outer *wrapped = new typename UnwrapHelper<realtype>::Outer(obj, id);
 			
-			SetTableIfDispatchable(m_State >= WRITING, wrapped);
+			SetTableIfDispatchable(m_State >= WRITING, parentObj, wrapped);
 
 			AddCurrentResource(id, wrapped);
 
