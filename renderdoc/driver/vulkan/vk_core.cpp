@@ -5838,6 +5838,8 @@ uint32_t WrappedVulkan::ReplayData::GetMemoryIndex(uint32_t resourceRequiredBitm
 
 bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 {
+	if(res == NULL) return true;
+
 	// VKTODOHIGH: release resource with device from resource record
 
 	// VKTODOLOW - this will break if we have multiple devices and resources from each,
@@ -5855,8 +5857,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 
 		case eResUnknown:
-			RDCBREAK();
-			// virtual object - nothing to do
+			RDCERR("Unknown resource type!");
 			break;
 
 		case eResPhysicalDevice:
