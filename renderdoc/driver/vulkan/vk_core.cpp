@@ -3907,7 +3907,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				m_PartialReplayData.renderPassActive = false;
 
 				VkCmdBuffer cmd = VK_NULL_HANDLE;
-				VkResult ret = ObjDisp(cmdBuffer)->CreateCommandBuffer(Unwrap(device), &createInfo, &cmd);
+				VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &createInfo, &cmd);
 
 				if(ret != VK_SUCCESS)
 				{
@@ -3924,7 +3924,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				// add one-time submit flag as this partial cmd buffer will only be submitted once
 				info.flags |= VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT;
 
-				ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmd), &info);
+				ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &info);
 			}
 		}
 	}
