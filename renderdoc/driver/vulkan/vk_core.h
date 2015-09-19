@@ -36,54 +36,6 @@
 #include "vk_manager.h"
 #include "vk_replay.h"
 
-// layer includes
-
-#ifdef WIN32
-// undefined clashing windows #defines
-#undef CreateEvent
-#undef CreateSemaphore
-#endif
-
-#include "vk_layer.h"
-#include "LoaderAndTools/layers/vk_layer_table.h"
-#include "LoaderAndTools/layers/vk_layer_extension_utils.h"
-
-extern VkLayerDispatchTable *dummyDeviceTable;
-extern VkLayerInstanceDispatchTable *dummyInstanceTable;
-
-extern device_table_map renderdoc_device_table_map;
-extern instance_table_map renderdoc_instance_table_map;
-
-template<typename parenttype, typename wrappedtype>
-void SetDispatchTable(bool writing, parenttype parent, wrappedtype *wrapped)
-{
-	if(writing)
-	{
-		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)get_dispatch_table(renderdoc_instance_table_map, (void *)parent)
-			: (uintptr_t)get_dispatch_table(renderdoc_device_table_map, (void *)parent);
-	}
-	else
-	{
-		wrapped->table = wrappedtype::UseInstanceDispatchTable
-			? (uintptr_t)dummyInstanceTable
-			: (uintptr_t)dummyDeviceTable;
-	}
-}
-
-template<typename parenttype, typename wrappedtype>
-inline void SetTableIfDispatchable(bool writing, parenttype parent, wrappedtype *obj) {}
-template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkInstance *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkPhysicalDevice *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkDevice *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkQueue *obj)
-{ SetDispatchTable(writing, parent, obj); }
-template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkCmdBuffer *obj)
-{ SetDispatchTable(writing, parent, obj); }
-
 using std::vector;
 using std::list;
 

@@ -31,12 +31,6 @@
 
 struct VkResourceRecord;
 
-// VKTODOLOW move layer dispatch table stuff to vk_common.h
-struct VkLayerDispatchTable_;
-struct VkLayerInstanceDispatchTable_;
-//VkLayerDispatchTable_ *device_dispatch_table(void* object);
-//VkLayerInstanceDispatchTable_ *instance_dispatch_table(void* object);
-
 // empty base class for dispatchable/non-dispatchable. Unfortunately
 // we can't put any members here as the base class is always first,
 // and the dispatch tables that need to be first are the only difference
@@ -119,28 +113,28 @@ struct WrappedVkInstance : WrappedVkDispRes
 {
 	WrappedVkInstance(VkInstance obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
-	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
+	typedef VkLayerInstanceDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
 };
 struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
 	WrappedVkPhysicalDevice(VkPhysicalDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
-	typedef VkLayerInstanceDispatchTable_ DispatchTableType;
+	typedef VkLayerInstanceDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
 };
 struct WrappedVkDevice : WrappedVkDispRes
 {
 	WrappedVkDevice(VkDevice obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
-	typedef VkLayerDispatchTable_ DispatchTableType;
+	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkQueue : WrappedVkDispRes
 {
 	WrappedVkQueue(VkQueue obj, ResourceId objId) : WrappedVkDispRes(obj, objId) {}
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
-	typedef VkLayerDispatchTable_ DispatchTableType;
+	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkCmdBuffer : WrappedVkDispRes
@@ -150,7 +144,7 @@ struct WrappedVkCmdBuffer : WrappedVkDispRes
 	static const int AllocPoolCount = 32*1024;
 	static const int AllocPoolMaxByteSize = 2*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
-	typedef VkLayerDispatchTable_ DispatchTableType;
+	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
 };
 struct WrappedVkFence : WrappedVkNonDispRes
@@ -445,6 +439,19 @@ RealType ToHandle(WrappedVkRes *ptr)
 
 	return res.As<RealType>();
 }
+
+template<typename parenttype, typename wrappedtype>
+inline void SetTableIfDispatchable(bool writing, parenttype parent, wrappedtype *obj) {}
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkInstance *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkPhysicalDevice *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkDevice *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkQueue *obj)
+{ SetDispatchTable(writing, parent, obj); }
+template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkCmdBuffer *obj)
+{ SetDispatchTable(writing, parent, obj); }
 
 enum VkResourceType
 {
