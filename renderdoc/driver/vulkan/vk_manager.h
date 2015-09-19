@@ -75,14 +75,14 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 		template<typename realtype>
 		realtype GetLiveHandle(ResourceId origid)
 		{
-			RealVkRes res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real;
+			RealVkRes &res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real;
 			return res.As<realtype>();
 		}
 
 		template<typename realtype>
 		realtype GetCurrentHandle(ResourceId id)
 		{
-			RealVkRes res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real;
+			RealVkRes &res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real;
 			return res.As<realtype>();
 		}
 		
@@ -121,6 +121,17 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 			obj = realtype((uint64_t)wrapped);
 
 			return id;
+		}
+		
+		template<typename realtype>
+		void ReleaseWrappedResource(realtype obj)
+		{
+			ResourceId id = GetResID(obj);
+			ResourceManager::MarkCleanResource(id);
+			ResourceManager::RemoveWrapper(UnwrapHelper<realtype>::ToRealRes(Unwrap(obj)));
+			ResourceManager::ReleaseCurrentResource(id);
+			if(GetRecord(obj)) GetRecord(obj)->Delete(this);
+			delete GetWrapped(obj);
 		}
 			
 	private:

@@ -584,8 +584,7 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 
 		vt->EndCommandBuffer(Unwrap(cmd));
 
-		VkCmdBuffer unwrapped = Unwrap(cmd);
-		vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+		vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 
 		vt->QueueWaitIdle(Unwrap(q));
 	}
@@ -778,8 +777,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 		// VKTODOMED will need a way to disable blend for other things
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, cfg.rawoutput ? Unwrap(GetDebugManager()->m_TexDisplayPipeline) : Unwrap(GetDebugManager()->m_TexDisplayBlendPipeline));
-		VkDescriptorSet descset = Unwrap(GetDebugManager()->m_TexDisplayDescSet);
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, &descset, 0, NULL);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_TexDisplayPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_TexDisplayDescSet), 0, NULL);
 
 		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
 		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
@@ -795,8 +793,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 
-	VkCmdBuffer unwrapped = Unwrap(cmd);
-	vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
@@ -850,8 +847,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
-		VkDescriptorSet descset = Unwrap(GetDebugManager()->m_CheckerboardDescSet);
-		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, &descset, 0, NULL);
+		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 0, NULL);
 
 		vt->CmdBindDynamicViewportState(Unwrap(cmd), outw.fullVP);
 		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
@@ -865,8 +861,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 	vkr = vt->EndCommandBuffer(Unwrap(cmd));
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	VkCmdBuffer unwrapped = Unwrap(cmd);
-	vkr = vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+	vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
@@ -978,8 +973,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 
-	VkCmdBuffer unwrapped = Unwrap(cmd);
-	vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 	
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
@@ -1011,8 +1005,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 
-	VkCmdBuffer unwrapped = Unwrap(cmd);
-	vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 	
 	// VKTODOMED ideally all the commands from Bind to Flip would be recorded
 	// into a single command buffer and we can just have several allocated
@@ -1076,11 +1069,9 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
 
 	vt->EndCommandBuffer(Unwrap(cmd));
 	
-	VkCmdBuffer unwrapped = Unwrap(cmd);
-	vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+	vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 
-	VkSwapChainWSI swap = Unwrap(outw.swap);
-	VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, &swap, &outw.curidx };
+	VkPresentInfoWSI presentInfo = { VK_STRUCTURE_TYPE_QUEUE_PRESENT_INFO_WSI, NULL, 1, UnwrapPtr(outw.swap), &outw.curidx };
 
 	vt->QueuePresentWSI(Unwrap(q), &presentInfo);
 

@@ -34,7 +34,7 @@ struct VulkanCreationInfo
 		void Init(const VkGraphicsPipelineCreateInfo* pCreateInfo);
 		
 		// VkGraphicsPipelineCreateInfo
-    VkPipelineCreateFlags flags;
+		VkPipelineCreateFlags flags;
 
 		// VkPipelineShaderStageCreateInfo
 		ResourceId shaders[6];
@@ -68,31 +68,31 @@ struct VulkanCreationInfo
 		uint32_t viewportCount;
 
 		// VkPipelineRasterStateCreateInfo
-    bool depthClipEnable;
-    bool rasterizerDiscardEnable;
-    VkFillMode fillMode;
-    VkCullMode cullMode;
-    VkFrontFace frontFace;
-		
+		bool depthClipEnable;
+		bool rasterizerDiscardEnable;
+		VkFillMode fillMode;
+		VkCullMode cullMode;
+		VkFrontFace frontFace;
+
 		// VkPipelineMultisampleStateCreateInfo
-    uint32_t rasterSamples;
-    bool sampleShadingEnable;
-    float minSampleShading;
-    VkSampleMask sampleMask;
-		
+		uint32_t rasterSamples;
+		bool sampleShadingEnable;
+		float minSampleShading;
+		VkSampleMask sampleMask;
+
 		// VkPipelineDepthStencilStateCreateInfo
-    bool depthTestEnable;
-    bool depthWriteEnable;
-    VkCompareOp depthCompareOp;
-    bool depthBoundsEnable;
-    bool stencilTestEnable;
-    VkStencilOpState front;
-    VkStencilOpState back;
+		bool depthTestEnable;
+		bool depthWriteEnable;
+		VkCompareOp depthCompareOp;
+		bool depthBoundsEnable;
+		bool stencilTestEnable;
+		VkStencilOpState front;
+		VkStencilOpState back;
 
 		// VkPipelineColorBlendStateCreateInfo
-    bool alphaToCoverageEnable;
-    bool logicOpEnable;
-    VkLogicOp logicOp;
+		bool alphaToCoverageEnable;
+		bool logicOpEnable;
+		VkLogicOp logicOp;
 
 		struct Attachment
 		{
@@ -124,10 +124,10 @@ struct VulkanCreationInfo
 	{
 		void Init(const VkDynamicRasterStateCreateInfo* pCreateInfo);
 		
-    float depthBias;
-    float depthBiasClamp;
-    float slopeScaledDepthBias;
-    float lineWidth;
+		float depthBias;
+		float depthBiasClamp;
+		float slopeScaledDepthBias;
+		float lineWidth;
 	};
 	map<ResourceId, Raster> m_Raster;
 
@@ -142,13 +142,13 @@ struct VulkanCreationInfo
 	struct DepthStencil
 	{
 		void Init(const VkDynamicDepthStencilStateCreateInfo* pCreateInfo);
-		
-    float minDepthBounds;
-    float maxDepthBounds;
-    uint32_t stencilReadMask;
-    uint32_t stencilWriteMask;
-    uint32_t stencilFrontRef;
-    uint32_t stencilBackRef;
+
+		float minDepthBounds;
+		float maxDepthBounds;
+		uint32_t stencilReadMask;
+		uint32_t stencilWriteMask;
+		uint32_t stencilFrontRef;
+		uint32_t stencilBackRef;
 	};
 	map<ResourceId, DepthStencil> m_DepthStencil;
 

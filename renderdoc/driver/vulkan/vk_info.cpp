@@ -72,31 +72,31 @@ void VulkanCreationInfo::Pipeline::Init(const VkGraphicsPipelineCreateInfo* pCre
 		viewportCount = pCreateInfo->pViewportState->viewportCount;
 
 		// VkPipelineRasterStateCreateInfo
-    depthClipEnable = pCreateInfo->pRasterState->depthClipEnable ? true : false;
-    rasterizerDiscardEnable = pCreateInfo->pRasterState->rasterizerDiscardEnable ? true : false;
-    fillMode = pCreateInfo->pRasterState->fillMode;
-    cullMode = pCreateInfo->pRasterState->cullMode;
-    frontFace = pCreateInfo->pRasterState->frontFace;
-		
+		depthClipEnable = pCreateInfo->pRasterState->depthClipEnable ? true : false;
+		rasterizerDiscardEnable = pCreateInfo->pRasterState->rasterizerDiscardEnable ? true : false;
+		fillMode = pCreateInfo->pRasterState->fillMode;
+		cullMode = pCreateInfo->pRasterState->cullMode;
+		frontFace = pCreateInfo->pRasterState->frontFace;
+
 		// VkPipelineMultisampleStateCreateInfo
-    rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
-    sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
-    minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
-    sampleMask = pCreateInfo->pMultisampleState->sampleMask;
-		
+		rasterSamples = pCreateInfo->pMultisampleState->rasterSamples;
+		sampleShadingEnable = pCreateInfo->pMultisampleState->sampleShadingEnable ? true : false;
+		minSampleShading = pCreateInfo->pMultisampleState->minSampleShading;
+		sampleMask = pCreateInfo->pMultisampleState->sampleMask;
+
 		// VkPipelineDepthStencilStateCreateInfo
-    depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
-    depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
-    depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
-    depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsEnable ? true : false;
-    stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
-    front = pCreateInfo->pDepthStencilState->front;
-    back = pCreateInfo->pDepthStencilState->back;
+		depthTestEnable = pCreateInfo->pDepthStencilState->depthTestEnable ? true : false;
+		depthWriteEnable = pCreateInfo->pDepthStencilState->depthWriteEnable ? true : false;
+		depthCompareOp = pCreateInfo->pDepthStencilState->depthCompareOp;
+		depthBoundsEnable = pCreateInfo->pDepthStencilState->depthBoundsEnable ? true : false;
+		stencilTestEnable = pCreateInfo->pDepthStencilState->stencilTestEnable ? true : false;
+		front = pCreateInfo->pDepthStencilState->front;
+		back = pCreateInfo->pDepthStencilState->back;
 
 		// VkPipelineColorBlendStateCreateInfo
-    alphaToCoverageEnable = pCreateInfo->pColorBlendState->alphaToCoverageEnable ? true : false;
-    logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
-    logicOp = pCreateInfo->pColorBlendState->logicOp;
+		alphaToCoverageEnable = pCreateInfo->pColorBlendState->alphaToCoverageEnable ? true : false;
+		logicOpEnable = pCreateInfo->pColorBlendState->logicOpEnable ? true : false;
+		logicOp = pCreateInfo->pColorBlendState->logicOp;
 
 		attachments.resize(pCreateInfo->pColorBlendState->attachmentCount);
 

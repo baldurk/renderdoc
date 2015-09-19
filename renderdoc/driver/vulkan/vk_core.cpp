@@ -505,7 +505,7 @@ VkResult WrappedVulkan::vkCreateInstance(
 VkResult WrappedVulkan::vkDestroyInstance(
 		VkInstance                                  instance)
 {
-        dispatch_key key = get_dispatch_key(instance);
+	dispatch_key key = get_dispatch_key(instance);
 	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
 
 	if(ret != VK_SUCCESS)
@@ -516,9 +516,9 @@ VkResult WrappedVulkan::vkDestroyInstance(
 		ObjDisp(instance)->DbgDestroyMsgCallback(Unwrap(instance), m_MsgCallback);
 	}
 
-	GetResourceManager()->ReleaseCurrentResource(GetResID(instance));
+	GetResourceManager()->ReleaseWrappedResource(instance);
 
-        destroy_dispatch_table(renderdoc_instance_table_map, key);
+	destroy_dispatch_table(renderdoc_instance_table_map, key);
 
 	return VK_SUCCESS;
 }
@@ -597,14 +597,24 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 	
 	for(uint32_t i=0; i < count; i++)
 	{
-		GetResourceManager()->WrapResource(devices[i]);
-
-		if(m_State >= WRITING)
+		// it's perfectly valid for enumerate type functions to return the same handle
+		// each time. If that happens, we will already have a wrapper created so just
+		// return the wrapped object to the user and do nothing else
+		if(GetResourceManager()->HasWrapper(RealVkRes((void *)devices[i])))
 		{
-			SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
-			Serialise_vkEnumeratePhysicalDevices(instance, &i, &devices[i]);
+			devices[i] = (VkPhysicalDevice)GetResourceManager()->GetWrapper(RealVkRes((void *)devices[i]));
+		}
+		else
+		{
+			GetResourceManager()->WrapResource(devices[i]);
 
-			m_InstanceRecord->AddChunk(scope.Get());
+			if(m_State >= WRITING)
+			{
+				SCOPED_SERIALISE_CONTEXT(ENUM_PHYSICALS);
+				Serialise_vkEnumeratePhysicalDevices(instance, &i, &devices[i]);
+
+				m_InstanceRecord->AddChunk(scope.Get());
+			}
 		}
 	}
 
@@ -870,10 +880,11 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 				m_PhysicalReplayData[i].qFamilyIdx = qFamilyIdx;
 
-				vkr = ObjDisp(*pDevice)->GetDeviceQueue(Unwrap(*pDevice), qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
+				// we call our own vkGetDeviceQueue so that its initialisation is properly serialised in case when
+				// the application fetches this queue it gets the same handle - the already wrapped one created
+				// here will be returned.
+				vkr = vkGetDeviceQueue(*pDevice, qFamilyIdx, 0, &m_PhysicalReplayData[i].q);
 				RDCASSERT(vkr == VK_SUCCESS);
-
-				GetResourceManager()->WrapResource(m_PhysicalReplayData[i].q);
 
 				VkCmdPoolCreateInfo poolInfo = { VK_STRUCTURE_TYPE_CMD_POOL_CREATE_INFO, NULL, qFamilyIdx, VK_CMD_POOL_CREATE_RESET_COMMAND_BUFFER_BIT };
 				vkr = ObjDisp(*pDevice)->CreateCommandPool(Unwrap(*pDevice), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
@@ -881,7 +892,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 				GetResourceManager()->WrapResource(m_PhysicalReplayData[i].cmdpool);
 
-				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_PhysicalReplayData[i].cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
 				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(*pDevice), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 				found = true;
@@ -966,11 +977,11 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 		}
 	}
 
-        dispatch_key key = get_dispatch_key(device);
+	dispatch_key key = get_dispatch_key(device);
 	VkResult ret = ObjDisp(device)->DestroyDevice(device);
-        destroy_dispatch_table(renderdoc_device_table_map, key);
+	destroy_dispatch_table(renderdoc_device_table_map, key);
 
-	GetResourceManager()->ReleaseCurrentResource(GetResID(device));
+	GetResourceManager()->ReleaseWrappedResource(device);
 
 	return ret;
 }
@@ -1064,29 +1075,27 @@ VkResult WrappedVulkan::vkGetImageMemoryRequirements(
 
 VkResult WrappedVulkan::vkGetGlobalExtensionProperties(
     const char*                                 pLayerName,
-                uint32_t*                                   pCount,
-                VkExtensionProperties*                      pProperties)
+    uint32_t*                                   pCount,
+    VkExtensionProperties*                      pProperties)
 {
-        if(pLayerName == NULL)
-        {
-                if(pCount) *pCount = uint32_t(globalExts.extensions.size());
-                if(pProperties)
-                        memcpy(pProperties, &globalExts.extensions[0], sizeof(VkExtensionProperties)*globalExts.extensions.size());
-                return VK_SUCCESS;
-        }
+	if(pLayerName == NULL)
+	{
+		if(pCount) *pCount = uint32_t(globalExts.extensions.size());
+		if(pProperties)
+			memcpy(pProperties, &globalExts.extensions[0], sizeof(VkExtensionProperties)*globalExts.extensions.size());
+		return VK_SUCCESS;
+	}
 
-        return util_GetExtensionProperties(0, NULL, pCount, pProperties);
+	return util_GetExtensionProperties(0, NULL, pCount, pProperties);
 }
 
 #define DESTROY_IMPL(type, func) \
 	VkResult WrappedVulkan::vk ## func(VkDevice device, type obj) \
 	{ \
-		WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(obj); \
-		GetResourceManager()->MarkCleanResource(wrapped->id); \
-		GetResourceManager()->ReleaseCurrentResource(wrapped->id); \
-		if(wrapped->record) wrapped->record->Delete(GetResourceManager()); \
-		if(m_ImageInfo.find(wrapped->id) != m_ImageInfo.end()) m_ImageInfo.erase(wrapped->id); \
-		return ObjDisp(device)->func(Unwrap(device), wrapped->real.As<type>()); \
+		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
+		VkResult ret = ObjDisp(device)->func(Unwrap(device), Unwrap(obj)); \
+		GetResourceManager()->ReleaseWrappedResource(obj); \
+		return ret; \
 	}
 
 DESTROY_IMPL(VkBuffer, DestroyBuffer)
@@ -1159,27 +1168,37 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 
 	if(ret == VK_SUCCESS)
 	{
-		ResourceId id = GetResourceManager()->WrapResource(*pQueue);
-
-		if(m_State >= WRITING)
+		// it's perfectly valid for enumerate type functions to return the same handle
+		// each time. If that happens, we will already have a wrapper created so just
+		// return the wrapped object to the user and do nothing else
+		if(GetResourceManager()->HasWrapper(RealVkRes((void *)*pQueue)))
 		{
-			Chunk *chunk = NULL;
-
-			{
-				SCOPED_SERIALISE_CONTEXT(GET_DEVICE_QUEUE);
-				Serialise_vkGetDeviceQueue(device, queueNodeIndex, queueIndex, pQueue);
-
-				chunk = scope.Get();
-			}
-
-			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
-			RDCASSERT(record);
-
-			record->AddChunk(chunk);
+			*pQueue = (VkQueue)GetResourceManager()->GetWrapper(RealVkRes((void *)*pQueue));
 		}
 		else
 		{
-			GetResourceManager()->AddLiveResource(id, *pQueue);
+			ResourceId id = GetResourceManager()->WrapResource(*pQueue);
+
+			if(m_State >= WRITING)
+			{
+				Chunk *chunk = NULL;
+
+				{
+					SCOPED_SERIALISE_CONTEXT(GET_DEVICE_QUEUE);
+					Serialise_vkGetDeviceQueue(device, queueNodeIndex, queueIndex, pQueue);
+
+					chunk = scope.Get();
+				}
+
+				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
+				RDCASSERT(record);
+
+				record->AddChunk(chunk);
+			}
+			else
+			{
+				GetResourceManager()->AddLiveResource(id, *pQueue);
+			}
 		}
 	}
 
@@ -1663,11 +1682,11 @@ VkResult WrappedVulkan::vkFreeMemory(
 	// we just need to clean up after ourselves on replay
 	WrappedVkNonDispRes *wrapped = (WrappedVkNonDispRes *)GetWrapped(mem);
 	m_MemoryInfo.erase(wrapped->id);
-	GetResourceManager()->MarkCleanResource(wrapped->id);
-	if(wrapped->record) wrapped->record->Delete(GetResourceManager());
-	GetResourceManager()->ReleaseCurrentResource(wrapped->id);
+	VkResult res = ObjDisp(device)->FreeMemory(Unwrap(device), wrapped->real.As<VkDeviceMemory>());
 
-	return ObjDisp(device)->FreeMemory(Unwrap(device), wrapped->real.As<VkDeviceMemory>());
+	GetResourceManager()->ReleaseWrappedResource(mem);
+
+	return res;
 }
 
 VkResult WrappedVulkan::vkMapMemory(
@@ -3568,7 +3587,7 @@ VkResult WrappedVulkan::vkFreeDescriptorSets(
 			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
 			if(record)
 				record->Delete(GetResourceManager());
-			GetResourceManager()->ReleaseCurrentResource(id);
+			GetResourceManager()->ReleaseWrappedResource(pDescriptorSets[i]);
 		}
 	}
 
@@ -5853,8 +5872,8 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 		ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 		RDCASSERT(vkr == VK_SUCCESS);
 		
-    VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-    VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		VkPipelineStageFlags src_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		VkPipelineStageFlags dest_stages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
 		if(!imgTransitions.empty())
 		{
@@ -5866,8 +5885,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
 
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
-		VkCmdBuffer unwrapped = Unwrap(cmd);
-		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 		// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
 		// is done before continuing
@@ -6547,35 +6565,44 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 
 		for(size_t i=0; i < numImages; i++)
 		{
-			ResourceId id = GetResourceManager()->WrapResource(images[i].image);
-
-			if(m_State >= WRITING)
+			// these were all wrapped and serialised on swapchain create - we just have to
+			// return the wrapped image in that case
+			if(GetResourceManager()->HasWrapper(RealVkRes(images[i].image.handle)))
 			{
-				Chunk *chunk = NULL;
-
-				{
-					SCOPED_SERIALISE_CONTEXT(PRESENT_IMAGE);
-					Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &i, (void *)&images[i]);
-
-					chunk = scope.Get();
-				}
-
-				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(images[i].image);
-				record->AddChunk(chunk);
-
-				// we invert the usual scheme - we make the swapchain record take parent refs
-				// on these images, so that we can just ref the swapchain on present and pull
-				// in all the images
-				VkResourceRecord *swaprecord = GetRecord(swapChain);
-
-				swaprecord->AddParent(record);
-				// decrement refcount on swap images, so that they are only ref'd from the swapchain
-				// (and will be deleted when it is deleted)
-				record->Delete(GetResourceManager());
+				images[i].image = (VkImage)(uint64_t)GetResourceManager()->GetWrapper(RealVkRes(images[i].image.handle));
 			}
 			else
 			{
-				GetResourceManager()->AddLiveResource(id, images[i].image);
+				ResourceId id = GetResourceManager()->WrapResource(images[i].image);
+
+				if(m_State >= WRITING)
+				{
+					Chunk *chunk = NULL;
+
+					{
+						SCOPED_SERIALISE_CONTEXT(PRESENT_IMAGE);
+						Serialise_vkGetSwapChainInfoWSI(device, swapChain, infoType, &i, (void *)&images[i]);
+
+						chunk = scope.Get();
+					}
+
+					VkResourceRecord *record = GetResourceManager()->AddResourceRecord(images[i].image);
+					record->AddChunk(chunk);
+
+					// we invert the usual scheme - we make the swapchain record take parent refs
+					// on these images, so that we can just ref the swapchain on present and pull
+					// in all the images
+					VkResourceRecord *swaprecord = GetRecord(swapChain);
+
+					swaprecord->AddParent(record);
+					// decrement refcount on swap images, so that they are only ref'd from the swapchain
+					// (and will be deleted when it is deleted)
+					record->Delete(GetResourceManager());
+				}
+				else
+				{
+					GetResourceManager()->AddLiveResource(id, images[i].image);
+				}
 			}
 		}
 	}
@@ -7161,8 +7188,7 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 				vkr = vt->EndCommandBuffer(Unwrap(cmd));
 				RDCASSERT(vkr == VK_SUCCESS);
 
-				VkCmdBuffer unwrapped = Unwrap(cmd);
-				vkr = vt->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+				vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 				RDCASSERT(vkr == VK_SUCCESS);
 
 				// wait queue idle
@@ -7484,8 +7510,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkCmdBuffer unwrapped = Unwrap(cmd);
-		vkr = ObjDisp(d)->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+		vkr = ObjDisp(d)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOMED would be nice to store a fence too at this point
@@ -7774,8 +7799,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		VkCmdBuffer unwrapped = Unwrap(cmd);
-		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, &unwrapped, VK_NULL_HANDLE);
+		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		// VKTODOMED would be nice to store a fence too at this point
@@ -8179,8 +8203,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			VkCmdBuffer unwrapped = Unwrap(cmd);
-			vkr = ObjDisp(q)->QueueSubmit(q, 1, &unwrapped, VK_NULL_HANDLE);
+			vkr = ObjDisp(q)->QueueSubmit(q, 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 			RDCASSERT(vkr == VK_SUCCESS);
 			// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
 			// is done before continuing

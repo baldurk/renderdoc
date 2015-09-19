@@ -60,6 +60,7 @@ struct RealVkRes
 
 	uint64_t handle;
 	template<typename T> T As() { return (T)handle; }
+	template<typename T> T *AsPtr() { return (T*)&handle; }
 };
 
 struct WrappedVkNonDispRes : public WrappedVkRes
@@ -406,9 +407,19 @@ RealType Unwrap(RealType obj)
 {
 	if(obj == VK_NULL_HANDLE) return VK_NULL_HANDLE;
 
-	RealVkRes res = GetWrapped(obj)->real;
+	RealVkRes &res = GetWrapped(obj)->real;
 
 	return res.As<RealType>();
+}
+
+template<typename RealType>
+RealType *UnwrapPtr(RealType obj)
+{
+	if(obj == VK_NULL_HANDLE) return NULL;
+
+	RealVkRes &res = GetWrapped(obj)->real;
+
+	return res.AsPtr<RealType>();
 }
 
 template<typename RealType>
@@ -430,7 +441,7 @@ VkResourceRecord *GetRecord(RealType obj)
 template<typename RealType>
 RealType ToHandle(WrappedVkRes *ptr)
 {
-	RealVkRes res = ((typename UnwrapHelper<RealType>::Outer *)ptr)->real;
+	RealVkRes &res = ((typename UnwrapHelper<RealType>::Outer *)ptr)->real;
 
 	return res.As<RealType>();
 }
