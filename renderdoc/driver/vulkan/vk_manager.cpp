@@ -436,7 +436,16 @@ bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res)
 {
 	// VKTODOMED don't want to be forcing device memory initial state, need to
 	// know which objects have dirtied their bound memory.
-	return WrappedVkDeviceMemory::IsAlloc(res);
+	if(!WrappedVkDeviceMemory::IsAlloc(res))
+		return false;
+
+	WrappedVkDeviceMemory *devmem = (WrappedVkDeviceMemory *)res;
+
+	// debug-only resources we don't want initial states for
+	if(devmem->record == NULL)
+		return false;
+
+	return false;
 }
 
 bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)
