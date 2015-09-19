@@ -131,6 +131,11 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 		void ReleaseWrappedResource(realtype obj)
 		{
 			ResourceId id = GetResID(obj);
+
+			auto origit = m_OriginalIDs.find(id);
+			if(origit != m_OriginalIDs.end())
+				EraseLiveResource(origit->second);
+
 			ResourceManager::MarkCleanResource(id);
 			ResourceManager::RemoveWrapper(UnwrapHelper<realtype>::ToRealRes(Unwrap(obj)));
 			ResourceManager::ReleaseCurrentResource(id);

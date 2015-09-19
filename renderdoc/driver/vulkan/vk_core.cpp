@@ -425,10 +425,25 @@ WrappedVulkan::~WrappedVulkan()
 		//if(it->second.vp != VK_NULL_HANDLE)
 			//ObjDisp(GetDev())->DestroyDynamicViewportState(Unwrap(GetDev()), it->second.vp);
 	}
+
 	m_SwapChainInfo.clear();
 
 	m_ResourceManager->Shutdown();
 	delete m_ResourceManager;
+	
+	// VKTODOLOW shutdown order is really up in the air
+	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		if(m_PhysicalReplayData[i].dev != VK_NULL_HANDLE)
+			vkDestroyDevice(m_PhysicalReplayData[i].dev);
+
+	// VKTODOLOW only one instance
+	if(m_PhysicalReplayData[0].inst != VK_NULL_HANDLE)
+	{
+		VkInstance instance = Unwrap(m_PhysicalReplayData[0].inst);
+		dispatch_key key = get_dispatch_key(instance);
+		ObjDisp(m_PhysicalReplayData[0].inst)->DestroyInstance(instance);
+		destroy_dispatch_table(renderdoc_instance_table_map, key);
+	}
 }
 
 const char * WrappedVulkan::GetChunkName(uint32_t idx)
@@ -927,8 +942,11 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 	dispatch_key key = get_dispatch_key(device);
 	VkResult ret = ObjDisp(device)->DestroyDevice(Unwrap(device));
 	destroy_dispatch_table(renderdoc_device_table_map, key);
-
-	GetResourceManager()->ReleaseWrappedResource(device);
+	
+	// VKTODOLOW on replay we're releasing this after resource manager
+	// shutdown. Yes it's a hack, yes it's ugly.
+	if(m_State >= WRITING)
+		GetResourceManager()->ReleaseWrappedResource(device);
 
 	return ret;
 }
@@ -5837,9 +5855,16 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 		case eResPhysicalDevice:
 		case eResQueue:
 		case eResDescriptorSet:
+		case eResCmdBuffer:
 			// nothing to do - destroyed with parent object
 			break;
-
+			
+		// VKTODOLOW shut down order needs examining, in future need to figure
+		// out when/how to shut these down
+		case eResInstance:
+		case eResDevice:
+			break;
+		/*
 		case eResInstance:
 		{
 			VkInstance instance = disp->real.As<VkInstance>();
@@ -5849,8 +5874,9 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 		}
 		case eResDevice:
-			vt->DestroyDevice(disp->real.As<VkDevice>());
+			//vt->DestroyDevice(disp->real.As<VkDevice>());
 			break;
+		*/
 		case eResDeviceMemory:
 			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>());
 			break;
@@ -5913,9 +5939,6 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			break;
 		case eResCmdPool:
 			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCmdPool>());
-			break;
-		case eResCmdBuffer:
-			vt->DestroyCommandBuffer(Unwrap(dev), disp->real.As<VkCmdBuffer>());
 			break;
 		case eResFence:
 			// VKTODOLOW
