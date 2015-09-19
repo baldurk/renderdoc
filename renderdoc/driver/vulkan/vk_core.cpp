@@ -7589,8 +7589,17 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 		RDCLOG("Starting capture, frame %u", m_FrameCounter);
 	}
+
+	vector<VkSwapChainWSI> unwrappedSwaps;
 	
-	return ObjDisp(queue)->QueuePresentWSI(Unwrap(queue), pPresentInfo);
+	VkPresentInfoWSI unwrappedInfo = *pPresentInfo;
+
+	for(uint32_t i=0; i < unwrappedInfo.swapChainCount; i++)
+		unwrappedSwaps.push_back(Unwrap(unwrappedInfo.swapChains[i]));
+
+	unwrappedInfo.swapChains = &unwrappedSwaps.front();
+
+	return ObjDisp(queue)->QueuePresentWSI(Unwrap(queue), &unwrappedInfo);
 }
 
 bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
@@ -7676,7 +7685,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
 		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, ToHandle<VkDeviceMemory>(res), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
-		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, mem, 0);
+		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(mem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
