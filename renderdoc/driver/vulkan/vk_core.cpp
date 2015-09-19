@@ -568,7 +568,7 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(
 
 		SAFE_DELETE_ARRAY(devices);
 
-		GetResourceManager()->WrapResource(inst, pd);
+		GetResourceManager()->WrapResource(instance, pd);
 		GetResourceManager()->AddLiveResource(physId, pd);
 	}
 
