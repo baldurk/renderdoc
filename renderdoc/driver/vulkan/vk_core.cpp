@@ -718,7 +718,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		// VKTODOLOW: check that extensions and layers supported in capture (from createInfo) are supported in replay
 
-		VkResult ret = ObjDisp(*pDevice)->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
+		VkResult ret = dummyDeviceTable->CreateDevice(Unwrap(physicalDevice), &createInfo, &device);
 
 		GetResourceManager()->WrapResource(device, device);
 		GetResourceManager()->AddLiveResource(devId, device);
