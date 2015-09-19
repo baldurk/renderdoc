@@ -598,6 +598,9 @@ struct VkResourceRecord : public ResourceRecord
 		// submit with latest binding refs.
 		set<VkDescriptorSet> boundDescSets;
 
+		// queues associated with this instance, so they can be shut down on destruction
+		vector<VkQueue> queues;
+
 		// descriptor set bindings for this descriptor set. Filled out on
 		// create from the layout.
 		ResourceId layout;

@@ -502,18 +502,30 @@ VkResult WrappedVulkan::vkCreateInstance(
 VkResult WrappedVulkan::vkDestroyInstance(
 		VkInstance                                  instance)
 {
-	dispatch_key key = get_dispatch_key(instance);
-	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
-
-	if(ret != VK_SUCCESS)
-		return ret;
-	
 	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback != VK_NULL_HANDLE)
 	{
 		ObjDisp(instance)->DbgDestroyMsgCallback(Unwrap(instance), m_MsgCallback);
 	}
 
+	dispatch_key key = get_dispatch_key(instance);
+	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
+
+	if(ret != VK_SUCCESS)
+		return ret;
+
+	if(m_FrameCaptureRecord)
+	{
+		RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
+		m_FrameCaptureRecord->Delete(GetResourceManager());
+		m_FrameCaptureRecord = NULL;
+	}
+
+	for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
+		GetResourceManager()->ReleaseWrappedResource(m_PhysicalReplayData[i].phys);
+
 	GetResourceManager()->ReleaseWrappedResource(instance);
+
+	m_ResourceManager->Shutdown();
 
 	destroy_dispatch_table(renderdoc_instance_table_map, key);
 
@@ -862,6 +874,24 @@ VkResult WrappedVulkan::vkCreateDevice(
 	{
 		ResourceId id = GetResourceManager()->WrapResource(*pDevice, *pDevice);
 		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_DEVICE);
+				Serialise_vkCreateDevice(physicalDevice, &createInfo, pDevice);
+
+				chunk = scope.Get();
+			}
+
+			m_InstanceRecord->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, *pDevice);
+		}
+		
 		found = false;
 
 		for(size_t i=0; i < m_PhysicalReplayData.size(); i++)
@@ -902,24 +932,6 @@ VkResult WrappedVulkan::vkCreateDevice(
 
 		if(!found)
 			RDCERR("Couldn't find VkPhysicalDevice for vkCreateDevice!");
-
-		if(m_State >= WRITING)
-		{
-			Chunk *chunk = NULL;
-
-			{
-				SCOPED_SERIALISE_CONTEXT(CREATE_DEVICE);
-				Serialise_vkCreateDevice(physicalDevice, &createInfo, pDevice);
-
-				chunk = scope.Get();
-			}
-
-			m_InstanceRecord->AddChunk(chunk);
-		}
-		else
-		{
-			GetResourceManager()->AddLiveResource(id, *pDevice);
-		}
 	}
 
 	SAFE_DELETE_ARRAY(modQueues);
@@ -936,27 +948,6 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 		{
 			if(m_PhysicalReplayData[i].dev == device)
 			{
-				if(i == (size_t)m_SwapPhysDevice)
-				{
-					// VKTODOHIGH m_InstanceRecord
-
-					if(m_FrameCaptureRecord)
-					{
-						RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
-						m_FrameCaptureRecord->Delete(GetResourceManager());
-						m_FrameCaptureRecord = NULL;
-					}
-
-					m_ResourceManager->Shutdown();
-
-					m_FrameCaptureRecord = GetResourceManager()->AddResourceRecord(ResourceIDGen::GetNewUniqueID());
-					m_FrameCaptureRecord->DataInSerialiser = false;
-					m_FrameCaptureRecord->Length = 0;
-					m_FrameCaptureRecord->NumSubResources = 0;
-					m_FrameCaptureRecord->SpecialResource = true;
-					m_FrameCaptureRecord->SubResources = NULL;
-				}
-				
 				if(m_PhysicalReplayData[i].cmd != VK_NULL_HANDLE)
 					ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), Unwrap(m_PhysicalReplayData[i].cmd));
 
@@ -967,10 +958,14 @@ VkResult WrappedVulkan::vkDestroyDevice(VkDevice device)
 				break;
 			}
 		}
+
+		vector<VkQueue> &queues = m_InstanceRecord->queues;
+		for(size_t i=0; i < queues.size(); i++)
+			GetResourceManager()->ReleaseWrappedResource(queues[i]);
 	}
 
 	dispatch_key key = get_dispatch_key(device);
-	VkResult ret = ObjDisp(device)->DestroyDevice(device);
+	VkResult ret = ObjDisp(device)->DestroyDevice(Unwrap(device));
 	destroy_dispatch_table(renderdoc_device_table_map, key);
 
 	GetResourceManager()->ReleaseWrappedResource(device);
@@ -1192,6 +1187,8 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 
 				VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueue);
 				RDCASSERT(record);
+
+				m_InstanceRecord->queues.push_back(*pQueue);
 
 				record->AddChunk(chunk);
 			}
@@ -5878,77 +5875,77 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			vt->DestroyDevice(disp->real.As<VkDevice>());
 			break;
 		case eResDeviceMemory:
-			vt->FreeMemory(dev, nondisp->real.As<VkDeviceMemory>());
+			vt->FreeMemory(Unwrap(dev), nondisp->real.As<VkDeviceMemory>());
 			break;
 		case eResBuffer:
-			vt->DestroyBuffer(dev, nondisp->real.As<VkBuffer>());
+			vt->DestroyBuffer(Unwrap(dev), nondisp->real.As<VkBuffer>());
 			break;
 		case eResBufferView:
-			vt->DestroyBufferView(dev, nondisp->real.As<VkBufferView>());
+			vt->DestroyBufferView(Unwrap(dev), nondisp->real.As<VkBufferView>());
 			break;
 		case eResImage:
-			vt->DestroyImage(dev, nondisp->real.As<VkImage>());
+			vt->DestroyImage(Unwrap(dev), nondisp->real.As<VkImage>());
 			break;
 		case eResImageView:
-			vt->DestroyImageView(dev, nondisp->real.As<VkImageView>());
+			vt->DestroyImageView(Unwrap(dev), nondisp->real.As<VkImageView>());
 			break;
 		case eResAttachmentView:
-			vt->DestroyAttachmentView(dev, nondisp->real.As<VkAttachmentView>());
+			vt->DestroyAttachmentView(Unwrap(dev), nondisp->real.As<VkAttachmentView>());
 			break;
 		case eResFramebuffer:
-			vt->DestroyFramebuffer(dev, nondisp->real.As<VkFramebuffer>());
+			vt->DestroyFramebuffer(Unwrap(dev), nondisp->real.As<VkFramebuffer>());
 			break;
 		case eResRenderPass:
-			vt->DestroyRenderPass(dev, nondisp->real.As<VkRenderPass>());
+			vt->DestroyRenderPass(Unwrap(dev), nondisp->real.As<VkRenderPass>());
 			break;
 		case eResShaderModule:
-			vt->DestroyShaderModule(dev, nondisp->real.As<VkShaderModule>());
+			vt->DestroyShaderModule(Unwrap(dev), nondisp->real.As<VkShaderModule>());
 			break;
 		case eResShader:
-			vt->DestroyShader(dev, nondisp->real.As<VkShader>());
+			vt->DestroyShader(Unwrap(dev), nondisp->real.As<VkShader>());
 			break;
 		case eResPipelineCache:
-			vt->DestroyPipelineCache(dev, nondisp->real.As<VkPipelineCache>());
+			vt->DestroyPipelineCache(Unwrap(dev), nondisp->real.As<VkPipelineCache>());
 			break;
 		case eResPipelineLayout:
-			vt->DestroyPipelineLayout(dev, nondisp->real.As<VkPipelineLayout>());
+			vt->DestroyPipelineLayout(Unwrap(dev), nondisp->real.As<VkPipelineLayout>());
 			break;
 		case eResPipeline:
-			vt->DestroyPipeline(dev, nondisp->real.As<VkPipeline>());
+			vt->DestroyPipeline(Unwrap(dev), nondisp->real.As<VkPipeline>());
 			break;
 		case eResSampler:
-			vt->DestroySampler(dev, nondisp->real.As<VkSampler>());
+			vt->DestroySampler(Unwrap(dev), nondisp->real.As<VkSampler>());
 			break;
 		case eResDescriptorPool:
-			vt->DestroyDescriptorPool(dev, nondisp->real.As<VkDescriptorPool>());
+			vt->DestroyDescriptorPool(Unwrap(dev), nondisp->real.As<VkDescriptorPool>());
 			break;
 		case eResDescriptorSetLayout:
-			vt->DestroyDescriptorSetLayout(dev, nondisp->real.As<VkDescriptorSetLayout>());
+			vt->DestroyDescriptorSetLayout(Unwrap(dev), nondisp->real.As<VkDescriptorSetLayout>());
 			break;
 		case eResViewportState:
-			vt->DestroyDynamicViewportState(dev, nondisp->real.As<VkDynamicViewportState>());
+			vt->DestroyDynamicViewportState(Unwrap(dev), nondisp->real.As<VkDynamicViewportState>());
 			break;
 		case eResRasterState:
-			vt->DestroyDynamicViewportState(dev, nondisp->real.As<VkDynamicViewportState>());
+			vt->DestroyDynamicViewportState(Unwrap(dev), nondisp->real.As<VkDynamicViewportState>());
 			break;
 		case eResColorBlendState:
-			vt->DestroyDynamicColorBlendState(dev, nondisp->real.As<VkDynamicColorBlendState>());
+			vt->DestroyDynamicColorBlendState(Unwrap(dev), nondisp->real.As<VkDynamicColorBlendState>());
 			break;
 		case eResDepthStencilState:
-			vt->DestroyDynamicDepthStencilState(dev, nondisp->real.As<VkDynamicDepthStencilState>());
+			vt->DestroyDynamicDepthStencilState(Unwrap(dev), nondisp->real.As<VkDynamicDepthStencilState>());
 			break;
 		case eResCmdPool:
-			vt->DestroyCommandPool(dev, nondisp->real.As<VkCmdPool>());
+			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCmdPool>());
 			break;
 		case eResCmdBuffer:
-			vt->DestroyCommandBuffer(dev, disp->real.As<VkCmdBuffer>());
+			vt->DestroyCommandBuffer(Unwrap(dev), disp->real.As<VkCmdBuffer>());
 			break;
 		case eResFence:
 			// VKTODOLOW
-			//vt->DestroyFence(dev, nondisp->real.As<VkFence>());
+			//vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
 			break;
 		case eResSemaphore:
-			vt->DestroySemaphore(dev, nondisp->real.As<VkSemaphore>());
+			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>());
 			break;
 	}
 
