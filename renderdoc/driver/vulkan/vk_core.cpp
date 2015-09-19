@@ -7023,11 +7023,11 @@ VkResult WrappedVulkan::vkCreateSwapChainWSI(
 
 						GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
 
-						VkAttachmentBindInfo attBind = { swapImInfo.view, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+						VkAttachmentBindInfo attBind = { Unwrap(swapImInfo.view), VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
 
 						VkFramebufferCreateInfo fbinfo = {
 							VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO, NULL,
-							swapInfo.rp,
+							Unwrap(swapInfo.rp),
 							1, &attBind,
 							(uint32_t)pCreateInfo->imageExtent.width, (uint32_t)pCreateInfo->imageExtent.height, 1,
 						};

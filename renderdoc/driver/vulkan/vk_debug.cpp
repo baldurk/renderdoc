@@ -941,7 +941,7 @@ void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, fl
 
 void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, float x, float y, const char *text)
 {
-	const VkLayerDispatchTable *vt = ObjDisp(m_Device);
+	const VkLayerDispatchTable *vt = ObjDisp(textstate.cmd);
 
 	// VKTODOMED needs to be optimised to do all in one cmd buffer with
 	// a start/stop pair of calls that map a UBO, then do each draw with
@@ -989,7 +989,6 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
 		};
 		vt->CmdBeginRenderPass(Unwrap(textstate.cmd), &rpbegin, VK_RENDER_PASS_CONTENTS_INLINE);
 
-		// VKTODOMED will need a way to disable blend for other things
 		vt->CmdBindPipeline(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 0, NULL);
 
