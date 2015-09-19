@@ -7,18 +7,16 @@
     <ClCompile Include="vk_replay_linux.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
-    <ClCompile Include="vk_hooks_win32.cpp" />
-    <ClCompile Include="vk_hooks_linux.cpp" />
     <ClCompile Include="vk_resources.cpp" />
     <ClCompile Include="vk_info.cpp" />
     <ClCompile Include="vk_debug.cpp" />
-    <ClCompile Include="rdtrace.cpp" />
     <ClCompile Include="LoaderAndTools\layers\vk_layer_table.cpp">
       <Filter>ext</Filter>
     </ClCompile>
     <ClCompile Include="LoaderAndTools\layers\vk_layer_extension_utils.cpp">
       <Filter>ext</Filter>
     </ClCompile>
+    <ClCompile Include="vk_tracelayer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="vk_core.h" />
