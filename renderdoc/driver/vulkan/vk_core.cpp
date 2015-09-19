@@ -6177,6 +6177,8 @@ void WrappedVulkan::ReadLogInitialisation()
 		// for whichever image we're viewing (and cached), not specifically created here.
 		VkResult vkr = ObjDisp(GetDev())->CreateImageView(Unwrap(GetDev()), &bbviewInfo, &fakeBBImView);
 		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(GetDev()), fakeBBImView);
 	}
 	
 	// VKTODOLOW maybe better place to put this?
