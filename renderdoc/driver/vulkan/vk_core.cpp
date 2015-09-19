@@ -2046,7 +2046,9 @@ VkResult WrappedVulkan::vkCreateBufferView(
 			const VkBufferViewCreateInfo*               pCreateInfo,
 			VkBufferView*                               pView)
 {
-	VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), pCreateInfo, pView);
+	VkBufferViewCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.buffer = Unwrap(unwrappedInfo.buffer);
+	VkResult ret = ObjDisp(device)->CreateBufferView(Unwrap(device), &unwrappedInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2227,7 +2229,9 @@ VkResult WrappedVulkan::vkCreateImageView(
     const VkImageViewCreateInfo*                pCreateInfo,
     VkImageView*                                pView)
 {
-	VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), pCreateInfo, pView);
+	VkImageViewCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+	VkResult ret = ObjDisp(device)->CreateImageView(Unwrap(device), &unwrappedInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2292,7 +2296,9 @@ VkResult WrappedVulkan::vkCreateAttachmentView(
     const VkAttachmentViewCreateInfo*           pCreateInfo,
     VkAttachmentView*                           pView)
 {
-	VkResult ret = ObjDisp(device)->CreateAttachmentView(Unwrap(device), pCreateInfo, pView);
+	VkAttachmentViewCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.image = Unwrap(unwrappedInfo.image);
+	VkResult ret = ObjDisp(device)->CreateAttachmentView(Unwrap(device), &unwrappedInfo, pView);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2423,7 +2429,9 @@ VkResult WrappedVulkan::vkCreateShader(
     const VkShaderCreateInfo*                   pCreateInfo,
     VkShader*                                   pShader)
 {
-	VkResult ret = ObjDisp(device)->CreateShader(Unwrap(device), pCreateInfo, pShader);
+	VkShaderCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.module = Unwrap(unwrappedInfo.module);
+	VkResult ret = ObjDisp(device)->CreateShader(Unwrap(device), &unwrappedInfo, pShader);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2566,7 +2574,30 @@ VkResult WrappedVulkan::vkCreateGraphicsPipelines(
 			const VkGraphicsPipelineCreateInfo*         pCreateInfos,
 			VkPipeline*                                 pPipelines)
 {
-	VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count, pCreateInfos, pPipelines);
+	// VKTODOLOW this should be a persistent per-thread array that resizes up
+	// to a high water mark, so we don't have to allocate
+	VkGraphicsPipelineCreateInfo *unwrappedInfos = new VkGraphicsPipelineCreateInfo[count];
+	for(uint32_t i=0; i < count; i++)
+	{
+		VkPipelineShaderStageCreateInfo *unwrappedStages = new VkPipelineShaderStageCreateInfo[pCreateInfos[i].stageCount];
+		for(uint32_t j=0; j < pCreateInfos[j].stageCount; j++)
+		{
+			unwrappedStages[i] = unwrappedInfos[i].pStages[j];
+			unwrappedStages[i].shader = Unwrap(unwrappedStages[i].shader);
+		}
+
+		unwrappedInfos[i] = pCreateInfos[i];
+		unwrappedInfos[i].pStages = unwrappedStages;
+		unwrappedInfos[i].layout = Unwrap(unwrappedInfos[i].layout);
+		unwrappedInfos[i].renderPass = Unwrap(unwrappedInfos[i].renderPass);
+		unwrappedInfos[i].basePipelineHandle = Unwrap(unwrappedInfos[i].basePipelineHandle);
+	}
+
+	VkResult ret = ObjDisp(device)->CreateGraphicsPipelines(Unwrap(device), Unwrap(pipelineCache), count, unwrappedInfos, pPipelines);
+	
+	for(uint32_t i=0; i < count; i++)
+		delete[] unwrappedInfos[i].pStages;
+	SAFE_DELETE_ARRAY(unwrappedInfos);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2721,7 +2752,29 @@ VkResult WrappedVulkan::vkCreateDescriptorSetLayout(
 		const VkDescriptorSetLayoutCreateInfo*      pCreateInfo,
 		VkDescriptorSetLayout*                      pSetLayout)
 {
-	VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), pCreateInfo, pSetLayout);
+	// VKTODOLOW this should be a persistent per-thread array that resizes up
+	// to a high water mark, so we don't have to allocate
+	VkDescriptorSetLayoutBinding *unwrapped = new VkDescriptorSetLayoutBinding[pCreateInfo->count];
+	for(uint32_t i=0; i < pCreateInfo->count; i++)
+	{
+		unwrapped[i] = pCreateInfo->pBinding[i];
+
+		if(unwrapped[i].pImmutableSamplers)
+		{
+			VkSampler *unwrappedSamplers = new VkSampler[unwrapped[i].arraySize];
+			for(uint32_t j=0; j < unwrapped[i].arraySize; j++)
+				unwrappedSamplers[j] = Unwrap(unwrapped[i].pImmutableSamplers[j]);
+			unwrapped[i].pImmutableSamplers = unwrappedSamplers;
+		}
+	}
+
+	VkDescriptorSetLayoutCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.pBinding = unwrapped;
+	VkResult ret = ObjDisp(device)->CreateDescriptorSetLayout(Unwrap(device), &unwrappedInfo, pSetLayout);
+	
+	for(uint32_t i=0; i < pCreateInfo->count; i++)
+		delete[] unwrapped[i].pImmutableSamplers;
+	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2786,7 +2839,18 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 		const VkPipelineLayoutCreateInfo*           pCreateInfo,
 		VkPipelineLayout*                           pPipelineLayout)
 {
-	VkResult ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), pCreateInfo, pPipelineLayout);
+	// VKTODOLOW this should be a persistent per-thread array that resizes up
+	// to a high water mark, so we don't have to allocate
+	VkDescriptorSetLayout *unwrapped = new VkDescriptorSetLayout[pCreateInfo->descriptorSetCount];
+	for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
+		unwrapped[i] = Unwrap(pCreateInfo->pSetLayouts[i]);
+
+	VkPipelineLayoutCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.pSetLayouts = unwrapped;
+
+	VkResult ret = ObjDisp(device)->CreatePipelineLayout(Unwrap(device), &unwrappedInfo, pPipelineLayout);
+
+	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -2983,7 +3047,22 @@ VkResult WrappedVulkan::vkCreateFramebuffer(
 			const VkFramebufferCreateInfo*              pCreateInfo,
 			VkFramebuffer*                              pFramebuffer)
 {
-	VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), pCreateInfo, pFramebuffer);
+	// VKTODOLOW this should be a persistent per-thread array that resizes up
+	// to a high water mark, so we don't have to allocate
+	VkAttachmentBindInfo *unwrapped = new VkAttachmentBindInfo[pCreateInfo->attachmentCount];
+	for(uint32_t i=0; i < pCreateInfo->attachmentCount; i++)
+	{
+		unwrapped[i] = pCreateInfo->pAttachments[i];
+		unwrapped[i].view = Unwrap(unwrapped[i].view);
+	}
+
+	VkFramebufferCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+	unwrappedInfo.pAttachments = unwrapped;
+
+	VkResult ret = ObjDisp(device)->CreateFramebuffer(Unwrap(device), &unwrappedInfo, pFramebuffer);
+
+	SAFE_DELETE_ARRAY(unwrapped);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3434,7 +3513,9 @@ VkResult WrappedVulkan::vkCreateCommandBuffer(
 	const VkCmdBufferCreateInfo* pCreateInfo,
 	VkCmdBuffer*                   pCmdBuffer)
 {
-	VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), pCreateInfo, pCmdBuffer);
+	VkCmdBufferCreateInfo unwrappedInfo = *pCreateInfo;
+	unwrappedInfo.cmdPool = Unwrap(unwrappedInfo.cmdPool);
+	VkResult ret = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &unwrappedInfo, pCmdBuffer);
 
 	if(ret == VK_SUCCESS)
 	{
@@ -3637,8 +3718,57 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 		uint32_t                                    copyCount,
 		const VkCopyDescriptorSet*                  pDescriptorCopies)
 {
-	VkResult ret = ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, pDescriptorWrites, copyCount, pDescriptorCopies);
+	VkResult ret = VK_SUCCESS;
 	
+	{
+		// VKTODOLOW this should be a persistent per-thread array that resizes up
+		// to a high water mark, so we don't have to allocate
+		vector<VkDescriptorInfo> desc;
+
+		uint32_t numInfos = 0;
+		for(uint32_t i=0; i < writeCount; i++) numInfos += pDescriptorWrites[i].count;
+
+		// ensure we don't resize while looping so we can take pointers
+		desc.resize(numInfos);
+
+		VkWriteDescriptorSet *unwrappedWrites = new VkWriteDescriptorSet[writeCount];
+		VkCopyDescriptorSet *unwrappedCopies = new VkCopyDescriptorSet[copyCount];
+		
+		uint32_t curInfo = 0;
+		for(uint32_t i=0; i < writeCount; i++)
+		{
+			unwrappedWrites[i] = pDescriptorWrites[i];
+			unwrappedWrites[i].destSet = Unwrap(unwrappedWrites[i].destSet);
+
+			VkDescriptorInfo *unwrappedInfos = &desc[curInfo];
+			curInfo += pDescriptorWrites[i].count;
+
+			for(uint32_t j=0; j < pDescriptorWrites[i].count; j++)
+			{
+				unwrappedInfos[j] = unwrappedWrites[i].pDescriptors[j];
+				unwrappedInfos[j].bufferView = Unwrap(unwrappedInfos[j].bufferView);
+				unwrappedInfos[j].sampler = Unwrap(unwrappedInfos[j].sampler);
+				unwrappedInfos[j].imageView = Unwrap(unwrappedInfos[j].imageView);
+				unwrappedInfos[j].attachmentView = Unwrap(unwrappedInfos[j].attachmentView);
+			}
+			
+			unwrappedWrites[i].pDescriptors = unwrappedInfos;
+		}
+
+		for(uint32_t i=0; i < copyCount; i++)
+		{
+			unwrappedCopies[i] = pDescriptorCopies[i];
+			unwrappedCopies[i].destSet = Unwrap(unwrappedCopies[i].destSet);
+			unwrappedCopies[i].srcSet = Unwrap(unwrappedCopies[i].srcSet);
+		}
+
+		ret = ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
+		
+		for(uint32_t i=0; i < writeCount; i++) delete[] unwrappedWrites[i].pDescriptors;
+		SAFE_DELETE_ARRAY(unwrappedWrites);
+		SAFE_DELETE_ARRAY(unwrappedCopies);
+	}
+
 	if(ret == VK_SUCCESS)
 	{
 		if(m_State == WRITING_CAPFRAME)
@@ -3898,7 +4028,11 @@ VkResult WrappedVulkan::vkBeginCommandBuffer(
 		}
 	}
 
-	return ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmdBuffer), pBeginInfo);
+	VkCmdBufferBeginInfo unwrappedInfo = *pBeginInfo;
+	unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+
+	return ObjDisp(cmdBuffer)->BeginCommandBuffer(Unwrap(cmdBuffer), &unwrappedInfo);
 }
 
 bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
@@ -4133,7 +4267,10 @@ void WrappedVulkan::vkCmdBeginRenderPass(
 			const VkRenderPassBeginInfo*                pRenderPassBegin,
 			VkRenderPassContents                        contents)
 {
-	ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), pRenderPassBegin, contents);
+	VkRenderPassBeginInfo unwrappedInfo = *pRenderPassBegin;
+	unwrappedInfo.renderPass = Unwrap(unwrappedInfo.renderPass);
+	unwrappedInfo.framebuffer = Unwrap(unwrappedInfo.framebuffer);
+	ObjDisp(cmdBuffer)->CmdBeginRenderPass(Unwrap(cmdBuffer), &unwrappedInfo, contents);
 
 	if(m_State >= WRITING)
 	{
@@ -5490,7 +5627,47 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 			uint32_t                                    memBarrierCount,
 			const void* const*                          ppMemBarriers)
 {
-	ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
+
+	{
+		// VKTODOLOW this should be a persistent per-thread array that resizes up
+		// to a high water mark, so we don't have to allocate
+		vector<VkImageMemoryBarrier> im;
+		vector<VkBufferMemoryBarrier> buf;
+
+		// ensure we don't resize while looping so we can take pointers
+		im.reserve(memBarrierCount);
+		buf.reserve(memBarrierCount);
+
+		void **unwrappedBarriers = new void*[memBarrierCount];
+
+		for(uint32_t i=0; i < memBarrierCount; i++)
+		{
+			VkGenericStruct *header = (VkGenericStruct *)ppMemBarriers[i];
+
+			if(header->type == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+			{
+				VkImageMemoryBarrier barrier = *(VkImageMemoryBarrier *)header;
+				barrier.image = Unwrap(barrier.image);
+				im.push_back(barrier);
+				unwrappedBarriers[i] = &im.back();
+			}
+			else if(header->type == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
+			{
+				VkBufferMemoryBarrier barrier = *(VkBufferMemoryBarrier *)header;
+				barrier.buffer = Unwrap(barrier.buffer);
+				buf.push_back(barrier);
+				unwrappedBarriers[i] = &buf.back();
+			}
+			else
+			{
+				unwrappedBarriers[i] = (void *)ppMemBarriers[i];
+			}
+		}
+
+		ObjDisp(cmdBuffer)->CmdPipelineBarrier(Unwrap(cmdBuffer), srcStageMask, destStageMask, byRegion, memBarrierCount, unwrappedBarriers);
+
+		SAFE_DELETE_ARRAY(unwrappedBarriers);
+	}
 
 	if(m_State >= WRITING)
 	{
