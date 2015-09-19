@@ -102,6 +102,12 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 			return ((WrappedVkNonDispRes *)res)->id;
 		}
 		
+		template<typename realtype>
+		WrappedVkNonDispRes *GetNonDispWrapper(realtype real)
+		{
+			return (WrappedVkNonDispRes *)GetWrapper(RealVkRes(real.handle));
+		}
+
 		template<typename parenttype, typename realtype>
 		ResourceId WrapResource(parenttype parentObj, realtype &obj)
 		{
