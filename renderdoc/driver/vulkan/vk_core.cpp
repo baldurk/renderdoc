@@ -1346,13 +1346,13 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 					ResourceId partial = GetResID(PartialCmdBuf());
 					RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
 					trimmedCmdIds.push_back(partial);
-					trimmedCmds.push_back(PartialCmdBuf());
+					trimmedCmds.push_back(Unwrap(PartialCmdBuf()));
 				}
 				else if(m_LastEventID >= end)
 				{
 					RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
 					trimmedCmdIds.push_back(cmdIds[c]);
-					trimmedCmds.push_back(GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdIds[c]));
+					trimmedCmds.push_back(Unwrap(GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdIds[c])));
 				}
 				else
 				{

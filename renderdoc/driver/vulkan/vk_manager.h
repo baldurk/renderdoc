@@ -75,15 +75,13 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 		template<typename realtype>
 		realtype GetLiveHandle(ResourceId origid)
 		{
-			RealVkRes &res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid))->real;
-			return res.As<realtype>();
+			return realtype( (uint64_t) ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetLiveResource(origid)) );
 		}
 
 		template<typename realtype>
 		realtype GetCurrentHandle(ResourceId id)
 		{
-			RealVkRes &res = ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id))->real;
-			return res.As<realtype>();
+			return realtype( (uint64_t) ((typename UnwrapHelper<realtype>::ParentType *)ResourceManager::GetCurrentResource(id)) );
 		}
 		
 		// handling memory & image transitions
