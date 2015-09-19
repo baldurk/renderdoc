@@ -5837,6 +5837,11 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 {
 	if(res == NULL) return true;
 
+	// VKTODOHIGH: Device-associated resources must be released before the device is
+	// shutdown. This needs a rethink while writing - really everything should be cleaned
+	// up explicitly by us or the app.
+	if(m_State >= WRITING) return true;
+
 	// VKTODOHIGH: release resource with device from resource record
 
 	// VKTODOLOW - this will break if we have multiple devices and resources from each,
