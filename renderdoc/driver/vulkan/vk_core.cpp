@@ -1074,7 +1074,7 @@ DESTROY_IMPL(VkSwapChainWSI, DestroySwapChainWSI)
 VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 {
 	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
-	GetResourceManager()->MarkCleanResource(wrapped->id);
+
 	if(wrapped->record)
 	{
 		if(wrapped->record->bakedCommands)
@@ -1083,8 +1083,13 @@ VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 			wrapped->record->bakedCommands = NULL;
 		}
 		wrapped->record->Delete(GetResourceManager());
+		wrapped->record = NULL;
 	}
-	return ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), wrapped->real.As<VkCmdBuffer>());
+	VkResult ret = ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), wrapped->real.As<VkCmdBuffer>());
+
+	GetResourceManager()->ReleaseWrappedResource(obj);
+
+	return ret;
 }
 
 
