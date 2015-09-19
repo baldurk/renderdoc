@@ -445,7 +445,7 @@ bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res)
 	if(devmem->record == NULL)
 		return false;
 
-	return false;
+	return true;
 }
 
 bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)
