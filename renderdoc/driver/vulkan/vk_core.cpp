@@ -1545,7 +1545,7 @@ bool WrappedVulkan::Serialise_vkQueueWaitIdle(VkQueue queue)
 
 VkResult WrappedVulkan::vkQueueWaitIdle(VkQueue queue)
 {
-	VkResult ret = ObjDisp(queue)->QueueWaitIdle(queue);
+	VkResult ret = ObjDisp(queue)->QueueWaitIdle(Unwrap(queue));
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
@@ -1574,7 +1574,7 @@ bool WrappedVulkan::Serialise_vkDeviceWaitIdle(VkDevice device)
 
 VkResult WrappedVulkan::vkDeviceWaitIdle(VkDevice device)
 {
-	VkResult ret = ObjDisp(device)->DeviceWaitIdle(device);
+	VkResult ret = ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
 	
 	if(m_State >= WRITING_CAPFRAME)
 	{
@@ -3764,7 +3764,6 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 
 		ret = ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), writeCount, unwrappedWrites, copyCount, unwrappedCopies);
 		
-		for(uint32_t i=0; i < writeCount; i++) delete[] unwrappedWrites[i].pDescriptors;
 		SAFE_DELETE_ARRAY(unwrappedWrites);
 		SAFE_DELETE_ARRAY(unwrappedCopies);
 	}
