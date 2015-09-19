@@ -275,21 +275,20 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 			memcpy(envp[i], environ[srci], len);
 			strcat(envp[i], ":");
 			strcat(envp[i], localpath.c_str());
-			strcat(envp[i], "/../../renderdoc/driver/vulkan");
 		}
 		else if(!strncmp(environ[srci], "VK_DEVICE_LAYERS=", sizeof("VK_DEVICE_LAYERS=")-1))
 		{
 			devicelayers = true;
-			envp[i] = new char[len+sizeof(":Renderdoc")];
+			envp[i] = new char[len+sizeof(":RenderDoc")];
 			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":Renderdoc");
+			strcat(envp[i], ":RenderDoc");
 		}
 		else if(!strncmp(environ[srci], "VK_INSTANCE_LAYERS=", sizeof("VK_INSTANCE_LAYERS=")-1))
 		{
 			instancelayers = true;
-			envp[i] = new char[len+sizeof(":Renderdoc")];
+			envp[i] = new char[len+sizeof(":RenderDoc")];
 			memcpy(envp[i], environ[srci], len);
-			strcat(envp[i], ":Renderdoc");
+			strcat(envp[i], ":RenderDoc");
 		}
 		else if(!strncmp(environ[srci], "RENDERDOC_", sizeof("RENDERDOC_")-1))
 		{
@@ -326,7 +325,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
 	if(!layerdirs)
 	{
-		string e = StringFormat::Fmt("VK_LAYER_DIRS=%s/../../renderdoc/driver/vulkan", localpath.c_str());
+		string e = StringFormat::Fmt("VK_LAYER_DIRS=%s", localpath.c_str());
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;
@@ -335,7 +334,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
 	if(!devicelayers)
 	{
-		string e = StringFormat::Fmt("VK_DEVICE_LAYERS=Renderdoc");
+		string e = StringFormat::Fmt("VK_DEVICE_LAYERS=RenderDoc");
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;
@@ -344,7 +343,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
 	if(!instancelayers)
 	{
-		string e = StringFormat::Fmt("VK_INSTANCE_LAYERS=Renderdoc");
+		string e = StringFormat::Fmt("VK_INSTANCE_LAYERS=RenderDoc");
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;

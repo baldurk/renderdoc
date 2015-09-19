@@ -3,7 +3,7 @@
     "layer" : {
         "name": "RenderDoc",
         "type": "GLOBAL",
-        "library_path": "./libVKLayerRenderdoc.so",
+        "library_path": "./librenderdoc.so",
         "abi_versions": "1.0.0",
         "implementation_version": "1.0.0",
         "description": "Debugging capture layer for RenderDoc"

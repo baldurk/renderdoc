@@ -89,7 +89,7 @@ static const VkLayerProperties physLayers[] = {
 		"RenderDoc",
 			VK_API_VERSION,
 			VK_MAKE_VERSION(RENDERDOC_VERSION_MAJOR, RENDERDOC_VERSION_MINOR, 0),
-			"layer: implements RenderDoc tracing",
+			"Debugging capture layer for RenderDoc",
 	}
 };
 
