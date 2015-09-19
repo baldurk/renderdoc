@@ -1120,7 +1120,15 @@ VkResult WrappedVulkan::vkDestroyCommandBuffer(VkDevice device, VkCmdBuffer obj)
 {
 	WrappedVkDispRes *wrapped = (WrappedVkDispRes *)GetWrapped(obj);
 	GetResourceManager()->MarkCleanResource(wrapped->id);
-	if(wrapped->record) wrapped->record->Delete(GetResourceManager());
+	if(wrapped->record)
+	{
+		if(wrapped->record->bakedCommands)
+		{
+			wrapped->record->bakedCommands->Delete(GetResourceManager());
+			wrapped->record->bakedCommands = NULL;
+		}
+		wrapped->record->Delete(GetResourceManager());
+	}
 	return ObjDisp(device)->DestroyCommandBuffer(Unwrap(device), wrapped->real.As<VkCmdBuffer>());
 }
 
