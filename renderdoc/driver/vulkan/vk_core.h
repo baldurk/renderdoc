@@ -209,8 +209,6 @@ private:
 	vector<ReplayData> m_PhysicalReplayData;
 	int m_SwapPhysDevice;
 
-	VkDbgMsgCallback m_MsgCallback;
-	
 	struct ExtensionSupport
 	{
 		vector<VkExtensionProperties> renderdoc;

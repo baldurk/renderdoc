@@ -396,16 +396,6 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 WrappedVulkan::~WrappedVulkan()
 {
-#if defined(FORCE_VALIDATION_LAYER)
-	if(m_MsgCallback != VK_NULL_HANDLE)
-	{
-		// VKTODOMED [0] isn't right..
-		// GSFTODO Fix this
-		// m_Real.vkDbgDestroyMsgCallback(m_PhysicalReplayData[0].inst, m_MsgCallback);
-		ObjDisp(m_PhysicalReplayData[0].inst)->DbgDestroyMsgCallback(Unwrap(m_PhysicalReplayData[0].inst), m_MsgCallback);
-	}
-#endif
-
 	// VKTODOLOW should only have one swapchain, since we are only handling the simple case
 	// of one device, etc for now.
 	RDCASSERT(m_SwapChainInfo.size() == 1);
@@ -475,19 +465,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 	}
 #endif
 
-	// VKTODOLOW we should try and fetch vkDbgCreateMsgCallback ourselves if it isn't
-	// already loaded
-	PFN_vkDbgCreateMsgCallback dcmc_fn = ObjDisp(inst)->DbgCreateMsgCallback;
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && dcmc_fn)
-	{
-		VkFlags flags = VK_DBG_REPORT_INFO_BIT |
-										VK_DBG_REPORT_WARN_BIT |
-										VK_DBG_REPORT_PERF_WARN_BIT |
-										VK_DBG_REPORT_ERROR_BIT |
-										VK_DBG_REPORT_DEBUG_BIT;
-		dcmc_fn(Unwrap(inst), flags, &DebugCallbackStatic, this, &m_MsgCallback);
-	}
-
 	if(m_State >= WRITING)
 	{
 		m_InitParams.Set(pCreateInfo, GetResID(inst));
@@ -502,11 +479,6 @@ VkResult WrappedVulkan::vkCreateInstance(
 VkResult WrappedVulkan::vkDestroyInstance(
 		VkInstance                                  instance)
 {
-	if(RenderDoc::Inst().GetCaptureOptions().DebugDeviceMode && m_MsgCallback != VK_NULL_HANDLE)
-	{
-		ObjDisp(instance)->DbgDestroyMsgCallback(Unwrap(instance), m_MsgCallback);
-	}
-
 	dispatch_key key = get_dispatch_key(instance);
 	VkResult ret = ObjDisp(instance)->DestroyInstance(Unwrap(instance));
 
@@ -760,24 +732,6 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
 				vkr = ObjDisp(*pDevice)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
-
-#if defined(FORCE_VALIDATION_LAYER)
-				if(ObjDisp(*pDevice)->DbgCreateMsgCallback)
-				{
-					VkFlags flags = VK_DBG_REPORT_INFO_BIT |
-						VK_DBG_REPORT_WARN_BIT |
-						VK_DBG_REPORT_PERF_WARN_BIT |
-						VK_DBG_REPORT_ERROR_BIT |
-						VK_DBG_REPORT_DEBUG_BIT;
-					vkr = ObjDisp(*pDevice)->DbgCreateMsgCallback(Unwrap(m_PhysicalReplayData[i].inst), flags, &DebugCallbackStatic, this, &m_MsgCallback);
-					RDCASSERT(vkr == VK_SUCCESS);
-					RDCLOG("Created dbg callback");
-				}
-				else
-				{
-					RDCLOG("No dbg callback");
-				}
-#endif
 
 				found = true;
 				break;
