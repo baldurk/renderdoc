@@ -729,10 +729,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 				vkr = ObjDisp(device)->CreateCommandPool(Unwrap(device), &poolInfo, &m_PhysicalReplayData[i].cmdpool);
 				RDCASSERT(vkr == VK_SUCCESS);
 
-				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, m_PhysicalReplayData[i].cmdpool, VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
+				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalReplayData[i].cmdpool);
+
+				VkCmdBufferCreateInfo cmdInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_CREATE_INFO, NULL, Unwrap(m_PhysicalReplayData[i].cmdpool), VK_CMD_BUFFER_LEVEL_PRIMARY, 0 };
 				vkr = ObjDisp(device)->CreateCommandBuffer(Unwrap(device), &cmdInfo, &m_PhysicalReplayData[i].cmd);
 				RDCASSERT(vkr == VK_SUCCESS);
 
+				GetResourceManager()->WrapResource(Unwrap(device), m_PhysicalReplayData[i].cmd);
 				found = true;
 				break;
 			}
@@ -3519,7 +3522,7 @@ bool WrappedVulkan::Serialise_vkAllocDescriptorSets(
 		VkDescriptorSetLayout layout = GetResourceManager()->GetLiveHandle<VkDescriptorSetLayout>(layoutId);
 
 		uint32_t cnt = 0;
-		VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), descriptorPool, usage, 1, &layout, &descset, &cnt);
+		VkResult ret = ObjDisp(device)->AllocDescriptorSets(Unwrap(device), Unwrap(descriptorPool), usage, 1, UnwrapPtr(layout), &descset, &cnt);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -7931,7 +7934,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
 		RDCASSERT(vkr == VK_SUCCESS);
 
-		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, dstMem, 0);
+		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
 		RDCASSERT(vkr == VK_SUCCESS);
 
 		VkBufferCopy region = { 0, 0, meminfo.size };
@@ -8342,7 +8345,7 @@ void WrappedVulkan::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t 
 			vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
 			RDCASSERT(vkr == VK_SUCCESS);
 
-			vkr = ObjDisp(q)->QueueSubmit(q, 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+			vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
 			RDCASSERT(vkr == VK_SUCCESS);
 			// VKTODOMED while we're reusing cmd buffer, we have to ensure this one
 			// is done before continuing

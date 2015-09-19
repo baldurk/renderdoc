@@ -109,10 +109,10 @@ void VulkanReplay::OutputWindow::Destroy(WrappedVulkan *driver, VkDevice device)
 	
 	if(bb != VK_NULL_HANDLE)
 	{
-		vt->DestroyRenderPass(Unwrap(device), renderpass);
+		vt->DestroyRenderPass(Unwrap(device), Unwrap(renderpass));
 		renderpass = VK_NULL_HANDLE;
 
-		vt->DestroyDynamicViewportState(Unwrap(device), fullVP);
+		vt->DestroyDynamicViewportState(Unwrap(device), Unwrap(fullVP));
 		fullVP = VK_NULL_HANDLE;
 		
 		vt->DestroyImage(Unwrap(device), Unwrap(bb));
@@ -849,7 +849,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 		vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeline));
 		vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(GetDebugManager()->m_CheckerboardPipeLayout), 0, 1, UnwrapPtr(GetDebugManager()->m_CheckerboardDescSet), 0, NULL);
 
-		vt->CmdBindDynamicViewportState(Unwrap(cmd), outw.fullVP);
+		vt->CmdBindDynamicViewportState(Unwrap(cmd), Unwrap(outw.fullVP));
 		vt->CmdBindDynamicRasterState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicRSState));
 		vt->CmdBindDynamicColorBlendState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicCBStateWhite));
 		vt->CmdBindDynamicDepthStencilState(Unwrap(cmd), Unwrap(GetDebugManager()->m_DynamicDSStateDisabled));
