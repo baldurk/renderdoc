@@ -41,7 +41,6 @@
 	HookInit(GetPhysicalDeviceSurfaceSupportWSI)
 
 #define HookInitVulkanDevice() \
-	HookInit(GetDeviceProcAddr); \
 	HookInit(CreateDevice); \
 	HookInit(DestroyDevice); \
 	HookInit(GetDeviceQueue); \

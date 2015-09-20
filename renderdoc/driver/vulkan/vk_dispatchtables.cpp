@@ -59,6 +59,7 @@ void InitReplayTables()
 	
 	{
 		VkLayerDispatchTable &table = replayDeviceTable;
+		HookInit(GetDeviceProcAddr);
 		HookInitVulkanDevice();
 	}
 
