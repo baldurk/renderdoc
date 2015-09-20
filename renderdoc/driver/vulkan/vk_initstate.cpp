@@ -1,0 +1,429 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2015 Baldur Karlsson
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+#include "vk_core.h"
+
+bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
+{
+	ResourceId id = GetResourceManager()->GetID(res);
+
+	RDCDEBUG("Prepare_InitialState %llu", id);
+
+	VkResourceType type = IdentifyTypeByPtr(res);
+	
+	if(type == eResDescriptorSet)
+	{
+		VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+		const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
+
+		uint32_t numElems = 0;
+		for(size_t i=0; i < layout.bindings.size(); i++)
+			numElems += layout.bindings[i].arraySize;
+
+		VkDescriptorInfo *info = (VkDescriptorInfo *)Serialiser::AllocAlignedBuffer(sizeof(VkDescriptorInfo)*numElems);
+		RDCEraseMem(info, sizeof(VkDescriptorInfo)*numElems);
+
+		uint32_t e=0;
+		for(size_t i=0; i < layout.bindings.size(); i++)
+			for(uint32_t b=0; b < layout.bindings[i].arraySize; b++)
+				info[e++] = record->descBindings[i][b];
+
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, 0, (byte *)info));
+		return true;
+	}
+	else if(type == eResDeviceMemory)
+	{
+		if(m_MemoryInfo.find(id) == m_MemoryInfo.end())
+		{
+			RDCERR("Couldn't find memory info");
+			return false;
+		}
+
+		MemState &meminfo = m_MemoryInfo[id];
+
+		VkResult vkr = VK_SUCCESS;
+
+		VkDevice d = GetDev();
+		VkQueue q = GetQ();
+		VkCmdBuffer cmd = GetCmd();
+
+		VkDeviceMemory mem = VK_NULL_HANDLE;
+		
+		// VKTODOMED should get mem requirements for buffer - copy might enforce
+		// some restrictions?
+		VkMemoryRequirements mrq = { meminfo.size, 16, ~0U };
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			meminfo.size, GetReadbackMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		GetResourceManager()->WrapResource(Unwrap(d), mem);
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = ObjDisp(d)->ResetCommandBuffer(Unwrap(cmd), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		// since these are very short lived, they are not wrapped
+		VkBuffer srcBuf, dstBuf;
+
+		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &srcBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), srcBuf, ToHandle<VkDeviceMemory>(res), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(mem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCopy region = { 0, 0, meminfo.size };
+
+		ObjDisp(d)->CmdCopyBuffer(Unwrap(cmd), srcBuf, dstBuf, 1, &region);
+
+		vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = ObjDisp(d)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODOMED would be nice to store a fence too at this point
+		// so we can sync on that on serialise rather than syncing
+		// every time.
+		ObjDisp(d)->QueueWaitIdle(Unwrap(q));
+
+		ObjDisp(d)->DestroyBuffer(Unwrap(d), srcBuf);
+		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
+
+		GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(mem), (uint32_t)meminfo.size, NULL));
+
+		return true;
+	}
+	else if(type == eResImage)
+	{
+		RDCUNIMPLEMENTED("image initial states not implemented");
+
+		if(m_ImageInfo.find(id) == m_ImageInfo.end())
+		{
+			RDCERR("Couldn't find image info");
+			return false;
+		}
+
+		// VKTODOHIGH: need to copy off contents to memory somewhere else
+
+		return true;
+	}
+	else
+	{
+		RDCERR("Unhandled resource type %d", type);
+	}
+
+	return false;
+}
+
+bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
+{
+	SERIALISE_ELEMENT(VkResourceType, type, IdentifyTypeByPtr(res));
+	SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(res));
+
+	if(m_State < WRITING) res = GetResourceManager()->GetLiveResource(id);
+	
+	if(m_State >= WRITING)
+	{
+		VulkanResourceManager::InitialContentData initContents = GetResourceManager()->GetInitialContents(id);
+
+		if(type == eResDescriptorSet)
+		{
+			VkResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[record->layout];
+
+			VkDescriptorInfo *info = (VkDescriptorInfo *)initContents.blob;
+
+			uint32_t numElems = 0;
+			for(size_t i=0; i < layout.bindings.size(); i++)
+				numElems += layout.bindings[i].arraySize;
+
+			m_pSerialiser->SerialiseComplexArray("Bindings", info, numElems);
+		}
+		else if(type == eResImage || type == eResDeviceMemory)
+		{
+			VkDevice d = GetDev();
+
+			byte *ptr = NULL;
+			ObjDisp(d)->MapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource), 0, 0, 0, (void **)&ptr);
+
+			size_t dataSize = (size_t)initContents.num;
+
+			m_pSerialiser->SerialiseBuffer("data", ptr, dataSize);
+
+			ObjDisp(d)->UnmapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource));
+		}
+	}
+	else
+	{
+		if(type == eResDescriptorSet)
+		{
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
+
+			uint32_t numElems;
+			VkDescriptorInfo *bindings = NULL;
+
+			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
+
+			uint32_t numBinds = (uint32_t)layout.bindings.size();
+
+			// allocate memory to keep the descriptorinfo structures around, as well as a WriteDescriptorSet array
+			byte *blob = Serialiser::AllocAlignedBuffer(sizeof(VkDescriptorInfo)*numElems + sizeof(VkWriteDescriptorSet)*numBinds);
+
+			VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)blob;
+			VkDescriptorInfo *info = (VkDescriptorInfo *)(writes + numBinds);
+			memcpy(info, bindings, sizeof(VkDescriptorInfo)*numElems);
+
+			for(uint32_t i=0; i < numBinds; i++)
+			{
+				writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+				writes[i].pNext = NULL;
+
+				// update whole element (array or single)
+				writes[i].destSet = ToHandle<VkDescriptorSet>(res);
+				writes[i].destBinding = i;
+				writes[i].destArrayElement = 0;
+				writes[i].count = layout.bindings[i].arraySize;
+				writes[i].descriptorType = layout.bindings[i].descriptorType;
+				writes[i].pDescriptors = info;
+
+				info += layout.bindings[i].arraySize;
+			}
+
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, numBinds, blob));
+		}
+		else if(type == eResImage || type == eResDeviceMemory)
+		{
+			byte *data = NULL;
+			size_t dataSize = 0;
+			m_pSerialiser->SerialiseBuffer("data", data, dataSize);
+
+			VkResult vkr = VK_SUCCESS;
+
+			VkDevice d = GetDev();
+
+			VkDeviceMemory mem = VK_NULL_HANDLE;
+
+			// VKTODOMED should get mem requirements for buffer - copy might enforce
+			// some restrictions?
+			VkMemoryRequirements mrq = { dataSize, 16, ~0U };
+
+			VkMemoryAllocInfo allocInfo = {
+				VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+				dataSize, GetUploadMemoryIndex(mrq.memoryTypeBits),
+			};
+
+			vkr = ObjDisp(d)->AllocMemory(Unwrap(d), &allocInfo, &mem);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(d), mem);
+
+			VkBufferCreateInfo bufInfo = {
+				VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+				dataSize, VK_BUFFER_USAGE_GENERAL, 0,
+				VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+			};
+
+			VkBuffer buf;
+
+			vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &buf);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			GetResourceManager()->WrapResource(Unwrap(d), buf);
+
+			vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), Unwrap(buf), Unwrap(mem), 0);
+			RDCASSERT(vkr == VK_SUCCESS);
+
+			byte *ptr = NULL;
+			ObjDisp(d)->MapMemory(Unwrap(d), Unwrap(mem), 0, 0, 0, (void **)&ptr);
+
+			// VKTODOLOW could deserialise directly into this ptr if we serialised
+			// size separately.
+			memcpy(ptr, data, dataSize);
+
+			ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(mem));
+
+			// VKTODOMED leaking the memory here! needs to be cleaned up with the buffer
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Copy, NULL));
+		}
+	}
+
+	return true;
+}
+
+void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool hasData)
+{
+	VkResourceType type = IdentifyTypeByPtr(live);
+	
+	if(type == eResDescriptorSet)
+	{
+		RDCERR("Unexpected attempt to create initial state for descriptor set");
+	}
+	else if(type == eResImage)
+	{
+		RDCUNIMPLEMENTED("image initial states not implemented");
+
+		if(m_ImageInfo.find(id) == m_ImageInfo.end())
+		{
+			RDCERR("Couldn't find image info");
+			return;
+		}
+
+		ImgState &img = m_ImageInfo[id];
+
+		if(img.subresourceStates[0].range.aspect == VK_IMAGE_ASPECT_COLOR)
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
+		else
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearDepthStencilImage, NULL));
+	}
+	else if(type == eResDeviceMemory)
+	{
+		RDCERR("Unexpected attempt to create initial state for memory");
+	}
+	else if(type == eResFramebuffer)
+	{
+		RDCWARN("Framebuffer without initial state! should clear all attachments");
+	}
+	else
+	{
+		RDCERR("Unhandled resource type %d", type);
+	}
+}
+
+void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager::InitialContentData initial)
+{
+	VkResourceType type = IdentifyTypeByPtr(live);
+	
+	ResourceId id = GetResourceManager()->GetID(live);
+
+	if(type == eResDescriptorSet)
+	{
+		VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)initial.blob;
+
+		VkResult vkr = ObjDisp(GetDev())->UpdateDescriptorSets(Unwrap(GetDev()), initial.num, writes, 0, NULL);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// need to blat over the current descriptor set contents, so these are available
+		// when we want to fetch pipeline state
+		vector<VkDescriptorInfo *> &bindings = m_DescriptorSetInfo[GetResourceManager()->GetOriginalID(id)].currentBindings;
+
+		for(uint32_t i=0; i < initial.num; i++)
+		{
+			RDCASSERT(writes[i].destBinding < bindings.size());
+			RDCASSERT(writes[i].destArrayElement == 0);
+
+			VkDescriptorInfo *bind = bindings[writes[i].destBinding];
+
+			for(uint32_t d=0; d < writes[i].count; d++)
+				bind[d] = writes[i].pDescriptors[d];
+		}
+	}
+	else if(type == eResDeviceMemory)
+	{
+		if(m_MemoryInfo.find(id) == m_MemoryInfo.end())
+		{
+			RDCERR("Couldn't find memory info");
+			return;
+		}
+
+		MemState &meminfo = m_MemoryInfo[id];
+		
+		VkBuffer srcBuf = (VkBuffer)(uint64_t)initial.resource;
+		VkDeviceMemory dstMem = (VkDeviceMemory)(uint64_t)live; // maintain the wrapping, for consistency
+
+		VkResult vkr = VK_SUCCESS;
+
+		VkDevice d = GetDev();
+		VkQueue q = GetQ();
+		VkCmdBuffer cmd = GetCmd();
+
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+		
+		vkr = ObjDisp(cmd)->ResetCommandBuffer(Unwrap(cmd), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			meminfo.size, VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		// since this is short lived it isn't wrapped. Note that we want
+		// to cache this up front, so it will then be wrapped
+		VkBuffer dstBuf;
+		
+		// VKTODOMED this should be created once up front, not every time
+		vkr = ObjDisp(d)->CreateBuffer(Unwrap(d), &bufInfo, &dstBuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = ObjDisp(d)->BindBufferMemory(Unwrap(d), dstBuf, Unwrap(dstMem), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCopy region = { 0, 0, meminfo.size };
+
+		ObjDisp(cmd)->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), dstBuf, 1, &region);
+	
+		vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = ObjDisp(q)->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		// VKTODOMED would be nice to store a fence too at this point
+		// so we can sync on that on serialise rather than syncing
+		// every time.
+		ObjDisp(q)->QueueWaitIdle(Unwrap(q));
+
+		ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf);
+	}
+	else if(type == eResImage)
+	{
+		// VKTODOHIGH: need to copy initial copy to live
+		RDCUNIMPLEMENTED("image initial states not implemented");
+	}
+	else
+	{
+		RDCERR("Unhandled resource type %d", type);
+	}
+}
+

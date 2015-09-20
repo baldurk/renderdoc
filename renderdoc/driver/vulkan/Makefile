@@ -13,6 +13,8 @@ OBJDIR=.obj
 OBJECTS=vk_dispatchtables.o \
 vk_tracelayer.o \
 vk_core.o \
+vk_initstate.o \
+vk_memory.o \
 vk_common.o \
 vk_manager.o \
 vk_resources.o \
@@ -20,6 +22,16 @@ vk_debug.o \
 vk_replay.o \
 vk_info.o \
 vk_replay_linux.o \
+wrappers/vk_cmd_funcs.o \
+wrappers/vk_descriptor_funcs.o \
+wrappers/vk_device_funcs.o \
+wrappers/vk_draw_funcs.o \
+wrappers/vk_get_funcs.o \
+wrappers/vk_misc_funcs.o \
+wrappers/vk_queue_funcs.o \
+wrappers/vk_resource_funcs.o \
+wrappers/vk_shader_funcs.o \
+wrappers/vk_wsi_funcs.o
 
 .PHONY: all
 all: rdoc_vulkan.a

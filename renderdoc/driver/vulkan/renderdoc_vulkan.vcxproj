@@ -20,6 +20,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="vk_dispatchtables.cpp" />
+    <ClCompile Include="vk_initstate.cpp" />
+    <ClCompile Include="vk_memory.cpp" />
     <ClCompile Include="vk_tracelayer.cpp" />
     <ClCompile Include="vk_common.cpp" />
     <ClCompile Include="vk_core.cpp" />
@@ -32,6 +34,16 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_resources.cpp" />
+    <ClCompile Include="wrappers\vk_cmd_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_descriptor_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_device_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_draw_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_get_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_misc_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_queue_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_resource_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_shader_funcs.cpp" />
+    <ClCompile Include="wrappers\vk_wsi_funcs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\shaders\spirv\renderdoc_spirv.vcxproj">
