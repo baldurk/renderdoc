@@ -138,4 +138,5 @@ librenderdoc.so: $(OBJDIR_OBJECTS) $(OBJDIR_DATA) $(LIBS)
 clean:
 	rm -rf librenderdoc.so $(OBJDIR)
 	cd driver/gl && $(MAKE) clean
+	cd driver/vulkan && $(MAKE) clean
 	cd driver/shaders/spirv && $(MAKE) clean
