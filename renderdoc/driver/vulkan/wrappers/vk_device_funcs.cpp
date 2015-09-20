@@ -216,7 +216,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(
 
 		bool found = false;
 		uint32_t qFamilyIdx = 0;
-		VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_DMA_BIT);
+		VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT);
 
 		// if we need to change the requested queues, it will point to this
 		VkDeviceQueueCreateInfo *modQueues = NULL;
@@ -342,7 +342,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 	// find a queue that supports all capabilities, and if one doesn't exist, add it.
 	bool found = false;
 	uint32_t qFamilyIdx = 0;
-	VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_DMA_BIT);
+	VkQueueFlags search = (VK_QUEUE_GRAPHICS_BIT);
 
 	// if we need to change the requested queues, it will point to this
 	VkDeviceQueueCreateInfo *modQueues = NULL;
