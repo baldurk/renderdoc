@@ -35,6 +35,8 @@
 #include "common/common.h"
 #include "common/threading.h"
 
+#include "data/version.h"
+
 // this should be in the vulkan definition header
 #ifdef WIN32
 #undef VK_LAYER_EXPORT
