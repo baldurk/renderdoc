@@ -38,7 +38,7 @@ class WrappedVulkan;
 // VKTODOLOW maybe make this a bit nicer? I'm not sure.
 #define VKMGR() VulkanResourceManager::GetInstance()
 
-class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, VkResourceRecord>
+class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHandle, VkResourceRecord>
 {
 	public: 
 		VulkanResourceManager(LogState s, Serialiser *ser, WrappedVulkan *core)
@@ -105,7 +105,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 		template<typename realtype>
 		WrappedVkNonDispRes *GetNonDispWrapper(realtype real)
 		{
-			return (WrappedVkNonDispRes *)GetWrapper(RealVkRes(real.handle));
+			return (WrappedVkNonDispRes *)GetWrapper(ToTypedHandle(real));
 		}
 
 		template<typename parenttype, typename realtype>
@@ -120,7 +120,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 
 			AddCurrentResource(id, wrapped);
 
-			AddWrapper(wrapped, UnwrapHelper<realtype>::ToRealRes(obj));
+			AddWrapper(wrapped, ToTypedHandle(obj));
 
 			obj = realtype((uint64_t)wrapped);
 
@@ -137,7 +137,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, RealVkRes, V
 				EraseLiveResource(origit->second);
 
 			ResourceManager::MarkCleanResource(id);
-			ResourceManager::RemoveWrapper(UnwrapHelper<realtype>::ToRealRes(Unwrap(obj)));
+			ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 			ResourceManager::ReleaseCurrentResource(id);
 			if(GetRecord(obj)) GetRecord(obj)->Delete(this);
 			delete GetWrapped(obj);

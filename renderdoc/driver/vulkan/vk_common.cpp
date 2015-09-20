@@ -758,6 +758,8 @@ string ToStrHelper<false, VkResourceType>::Get(const VkResourceType &el)
 		TOSTR_CASE_STRINGIZE(eResCmdPool)
 		TOSTR_CASE_STRINGIZE(eResCmdBuffer)
 		TOSTR_CASE_STRINGIZE(eResFence)
+		TOSTR_CASE_STRINGIZE(eResEvent)
+		TOSTR_CASE_STRINGIZE(eResQueryPool)
 		TOSTR_CASE_STRINGIZE(eResSemaphore)
 		TOSTR_CASE_STRINGIZE(eResWSISwapChain)
 		default: break;

@@ -39,6 +39,44 @@ struct WrappedVkRes
 {
 };
 
+enum VkResourceType
+{
+	eResUnknown = 0,
+	eResPhysicalDevice,
+	eResInstance,
+	eResDevice,
+	eResQueue,
+	eResDeviceMemory,
+	eResBuffer,
+	eResBufferView,
+	eResImage,
+	eResImageView,
+	eResAttachmentView,
+	eResFramebuffer,
+	eResRenderPass,
+	eResShaderModule,
+	eResShader,
+	eResPipelineCache,
+	eResPipelineLayout,
+	eResPipeline,
+	eResSampler,
+	eResDescriptorPool,
+	eResDescriptorSetLayout,
+	eResDescriptorSet,
+	eResViewportState,
+	eResRasterState,
+	eResColorBlendState,
+	eResDepthStencilState,
+	eResCmdPool,
+	eResCmdBuffer,
+	eResFence,
+	eResEvent,
+	eResQueryPool,
+	eResSemaphore,
+	
+	eResWSISwapChain,
+};
+
 // dummy standin for a typeless real resource
 // stored in a uint64_t, with function to cast back
 // if we know what type it is
@@ -55,6 +93,35 @@ struct RealVkRes
 	uint64_t handle;
 	template<typename T> T As() { return (T)handle; }
 	template<typename T> T *AsPtr() { return (T*)&handle; }
+};
+
+// since handles can overlap (ie. handle 1 might be valid for many types
+// if the ICD is using indexing or state packing instead of true pointers)
+// when storing wrapper object <-> real object we have to store the type
+// with the handle to avoid clashes
+struct TypedRealHandle
+{
+	TypedRealHandle() : type(eResUnknown), real((void *)NULL) {}
+	TypedRealHandle(unsigned int i) : type(eResUnknown), real((void *)NULL) {}
+
+	VkResourceType type;
+	RealVkRes real;
+
+	bool operator <(const TypedRealHandle o) const
+	{
+		if(type != o.type)
+			return type < o.type;
+		return real < o.real;
+	}
+
+	bool operator ==(const TypedRealHandle o) const
+	{
+		return type == o.type && real == o.real;
+	}
+	bool operator !=(const TypedRealHandle o) const
+	{
+		return !(*this == o);
+	}
 };
 
 struct WrappedVkNonDispRes : public WrappedVkRes
@@ -115,6 +182,7 @@ struct WrappedVkInstance : WrappedVkDispRes
 	typedef VkInstance InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkInstance);
 	typedef VkLayerInstanceDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
+	enum { TypeEnum = eResInstance, };
 };
 struct WrappedVkPhysicalDevice : WrappedVkDispRes
 {
@@ -122,6 +190,7 @@ struct WrappedVkPhysicalDevice : WrappedVkDispRes
 	typedef VkPhysicalDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPhysicalDevice);
 	typedef VkLayerInstanceDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = true, };
+	enum { TypeEnum = eResPhysicalDevice, };
 };
 struct WrappedVkDevice : WrappedVkDispRes
 {
@@ -129,6 +198,7 @@ struct WrappedVkDevice : WrappedVkDispRes
 	typedef VkDevice InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDevice);
 	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
+	enum { TypeEnum = eResDevice, };
 };
 struct WrappedVkQueue : WrappedVkDispRes
 {
@@ -136,6 +206,7 @@ struct WrappedVkQueue : WrappedVkDispRes
 	typedef VkQueue InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueue);
 	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
+	enum { TypeEnum = eResQueue, };
 };
 struct WrappedVkCmdBuffer : WrappedVkDispRes
 {
@@ -146,11 +217,13 @@ struct WrappedVkCmdBuffer : WrappedVkDispRes
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdBuffer, AllocPoolCount, AllocPoolMaxByteSize);
 	typedef VkLayerDispatchTable DispatchTableType;
 	enum { UseInstanceDispatchTable = false, };
+	enum { TypeEnum = eResCmdBuffer, };
 };
 struct WrappedVkFence : WrappedVkNonDispRes
 {
 	WrappedVkFence(VkFence obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkFence InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFence);
+	enum { TypeEnum = eResFence, };
 };
 struct WrappedVkDeviceMemory : WrappedVkNonDispRes
 {
@@ -159,6 +232,7 @@ struct WrappedVkDeviceMemory : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDeviceMemory, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResDeviceMemory, };
 };
 struct WrappedVkBuffer : WrappedVkNonDispRes
 {
@@ -167,6 +241,7 @@ struct WrappedVkBuffer : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResBuffer, };
 };
 struct WrappedVkImage : WrappedVkNonDispRes
 {
@@ -175,21 +250,25 @@ struct WrappedVkImage : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImage, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResImage, };
 };
 struct WrappedVkSemaphore : WrappedVkNonDispRes
 {
 	WrappedVkSemaphore(VkSemaphore obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSemaphore InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSemaphore);
+	enum { TypeEnum = eResSemaphore, };
 };
 struct WrappedVkEvent : WrappedVkNonDispRes
 {
 	WrappedVkEvent(VkEvent obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkEvent InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkEvent);
+	enum { TypeEnum = eResEvent, };
 };
 struct WrappedVkQueryPool : WrappedVkNonDispRes
 {
 	WrappedVkQueryPool(VkQueryPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkQueryPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkQueryPool);
+	enum { TypeEnum = eResQueryPool, };
 };
 struct WrappedVkBufferView : WrappedVkNonDispRes
 {
@@ -198,6 +277,7 @@ struct WrappedVkBufferView : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResBufferView, };
 };
 struct WrappedVkImageView : WrappedVkNonDispRes
 {
@@ -206,6 +286,7 @@ struct WrappedVkImageView : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResImageView, };
 };
 struct WrappedVkAttachmentView : WrappedVkNonDispRes
 {
@@ -214,6 +295,7 @@ struct WrappedVkAttachmentView : WrappedVkNonDispRes
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResAttachmentView, };
 };
 struct WrappedVkShaderModule : WrappedVkNonDispRes
 {
@@ -221,6 +303,7 @@ struct WrappedVkShaderModule : WrappedVkNonDispRes
 	typedef VkShaderModule InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShaderModule, AllocPoolCount);
+	enum { TypeEnum = eResShaderModule, };
 };
 struct WrappedVkShader : WrappedVkNonDispRes
 {
@@ -228,11 +311,13 @@ struct WrappedVkShader : WrappedVkNonDispRes
 	typedef VkShader InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkShader);
+	enum { TypeEnum = eResShader, };
 };
 struct WrappedVkPipelineCache : WrappedVkNonDispRes
 {
 	WrappedVkPipelineCache(VkPipelineCache obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkPipelineCache InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineCache);
+	enum { TypeEnum = eResPipelineCache, };
 };
 struct WrappedVkPipelineLayout : WrappedVkNonDispRes
 {
@@ -240,11 +325,13 @@ struct WrappedVkPipelineLayout : WrappedVkNonDispRes
 	typedef VkPipelineLayout InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipelineLayout, AllocPoolCount);
+	enum { TypeEnum = eResPipelineLayout, };
 };
 struct WrappedVkRenderPass : WrappedVkNonDispRes
 {
 	WrappedVkRenderPass(VkRenderPass obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkRenderPass InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkRenderPass);
+	enum { TypeEnum = eResRenderPass, };
 };
 struct WrappedVkPipeline : WrappedVkNonDispRes
 {
@@ -252,6 +339,7 @@ struct WrappedVkPipeline : WrappedVkNonDispRes
 	typedef VkPipeline InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkPipeline, AllocPoolCount);
+	enum { TypeEnum = eResPipeline, };
 };
 struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
 {
@@ -259,16 +347,19 @@ struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
 	typedef VkDescriptorSetLayout InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSetLayout, AllocPoolCount);
+	enum { TypeEnum = eResDescriptorSetLayout, };
 };
 struct WrappedVkSampler : WrappedVkNonDispRes
 {
 	WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSampler InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler);
+	enum { TypeEnum = eResSampler, };
 };
 struct WrappedVkDescriptorPool : WrappedVkNonDispRes
 {
 	WrappedVkDescriptorPool(VkDescriptorPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDescriptorPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorPool);
+	enum { TypeEnum = eResDescriptorPool, };
 };
 struct WrappedVkDescriptorSet : WrappedVkNonDispRes
 {
@@ -277,6 +368,7 @@ struct WrappedVkDescriptorSet : WrappedVkNonDispRes
 	static const int AllocPoolCount = 256*1024;
 	static const int AllocPoolMaxByteSize = 6*1024*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDescriptorSet, AllocPoolCount, AllocPoolMaxByteSize);
+	enum { TypeEnum = eResDescriptorSet, };
 };
 struct WrappedVkDynamicViewportState : WrappedVkNonDispRes
 {
@@ -284,36 +376,43 @@ struct WrappedVkDynamicViewportState : WrappedVkNonDispRes
 	typedef VkDynamicViewportState InnerType;
 	static const int AllocPoolCount = 32*1024;
 	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicViewportState, AllocPoolCount);
+	enum { TypeEnum = eResViewportState, };
 };
 struct WrappedVkDynamicRasterState : WrappedVkNonDispRes
 {
 	WrappedVkDynamicRasterState(VkDynamicRasterState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicRasterState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicRasterState);
+	enum { TypeEnum = eResRasterState, };
 };
 struct WrappedVkDynamicColorBlendState : WrappedVkNonDispRes
 {
 	WrappedVkDynamicColorBlendState(VkDynamicColorBlendState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicColorBlendState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicColorBlendState);
+	enum { TypeEnum = eResColorBlendState, };
 };
 struct WrappedVkDynamicDepthStencilState : WrappedVkNonDispRes
 {
 	WrappedVkDynamicDepthStencilState(VkDynamicDepthStencilState obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkDynamicDepthStencilState InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkDynamicDepthStencilState);
+	enum { TypeEnum = eResDepthStencilState, };
 };
 struct WrappedVkFramebuffer : WrappedVkNonDispRes
 {
 	WrappedVkFramebuffer(VkFramebuffer obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkFramebuffer InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkFramebuffer);
+	enum { TypeEnum = eResFramebuffer, };
 };
 struct WrappedVkCmdPool : WrappedVkNonDispRes
 {
 	WrappedVkCmdPool(VkCmdPool obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkCmdPool InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkCmdPool);
+	enum { TypeEnum = eResCmdPool, };
 };
 struct WrappedVkSwapChainWSI : WrappedVkNonDispRes
 {
 	WrappedVkSwapChainWSI(VkSwapChainWSI obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
 	typedef VkSwapChainWSI InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSwapChainWSI);
+	enum { TypeEnum = eResWSISwapChain, };
 };
 
 // template magic voodoo to unwrap types
@@ -324,7 +423,8 @@ template<typename inner> struct UnwrapHelper {};
 	{ \
 		typedef WrappedVkDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
-		static RealVkRes ToRealRes(vulkantype real) { return RealVkRes((void *)real); } \
+		static TypedRealHandle ToTypedHandle(vulkantype real) \
+		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes((void *)real); return h; } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) wrapped; } \
 	};
 
@@ -333,7 +433,8 @@ template<typename inner> struct UnwrapHelper {};
 	{ \
 		typedef WrappedVkNonDispRes ParentType; \
 		typedef CONCAT(Wrapped, vulkantype) Outer; \
-		static RealVkRes ToRealRes(vulkantype real) { return RealVkRes(real.handle); } \
+		static TypedRealHandle ToTypedHandle(vulkantype real) \
+		{ TypedRealHandle h; h.type = (VkResourceType)Outer::TypeEnum; h.real = RealVkRes(real.handle); return h; } \
 		static Outer *FromHandle(vulkantype wrapped) { return (Outer *) (uintptr_t)wrapped.handle; } \
 	};
 
@@ -440,6 +541,12 @@ RealType ToHandle(WrappedVkRes *ptr)
 	return res.As<RealType>();
 }
 
+template<typename RealType>
+TypedRealHandle ToTypedHandle(RealType obj)
+{
+	return UnwrapHelper<RealType>::ToTypedHandle(obj);
+}
+
 template<typename parenttype, typename wrappedtype>
 inline void SetTableIfDispatchable(bool writing, parenttype parent, wrappedtype *obj) {}
 template<> inline void SetTableIfDispatchable(bool writing, VkInstance parent, WrappedVkInstance *obj)
@@ -452,42 +559,6 @@ template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, Wra
 { SetDispatchTable(writing, parent, obj); }
 template<> inline void SetTableIfDispatchable(bool writing, VkDevice parent, WrappedVkCmdBuffer *obj)
 { SetDispatchTable(writing, parent, obj); }
-
-enum VkResourceType
-{
-	eResUnknown = 0,
-	eResPhysicalDevice,
-	eResInstance,
-	eResDevice,
-	eResQueue,
-	eResDeviceMemory,
-	eResBuffer,
-	eResBufferView,
-	eResImage,
-	eResImageView,
-	eResAttachmentView,
-	eResFramebuffer,
-	eResRenderPass,
-	eResShaderModule,
-	eResShader,
-	eResPipelineCache,
-	eResPipelineLayout,
-	eResPipeline,
-	eResSampler,
-	eResDescriptorPool,
-	eResDescriptorSetLayout,
-	eResDescriptorSet,
-	eResViewportState,
-	eResRasterState,
-	eResColorBlendState,
-	eResDepthStencilState,
-	eResCmdPool,
-	eResCmdBuffer,
-	eResFence,
-	eResSemaphore,
-	
-	eResWSISwapChain,
-};
 
 bool IsDispatchableRes(WrappedVkRes *ptr);
 VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr);

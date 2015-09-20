@@ -199,6 +199,12 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			// VKTODOLOW
 			//vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
 			break;
+		case eResEvent:
+			// VKTODOLOW
+			break;
+		case eResQueryPool:
+			// VKTODOLOW
+			break;
 		case eResSemaphore:
 			vt->DestroySemaphore(Unwrap(dev), nondisp->real.As<VkSemaphore>());
 			break;

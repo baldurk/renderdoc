@@ -102,9 +102,9 @@ VkResult WrappedVulkan::vkGetSwapChainInfoWSI(
 		{
 			// these were all wrapped and serialised on swapchain create - we just have to
 			// return the wrapped image in that case
-			if(GetResourceManager()->HasWrapper(RealVkRes(images[i].image.handle)))
+			if(GetResourceManager()->HasWrapper(ToTypedHandle(images[i].image)))
 			{
-				images[i].image = (VkImage)(uint64_t)GetResourceManager()->GetWrapper(RealVkRes(images[i].image.handle));
+				images[i].image = (VkImage)(uint64_t)GetResourceManager()->GetWrapper(ToTypedHandle(images[i].image));
 			}
 			else
 			{

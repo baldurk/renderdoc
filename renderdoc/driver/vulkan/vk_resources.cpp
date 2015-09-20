@@ -94,6 +94,8 @@ VkResourceType IdentifyTypeByPtr(WrappedVkRes *ptr)
 	if(WrappedVkCmdPool::IsAlloc(ptr))                  return eResCmdPool;
 	if(WrappedVkCmdBuffer::IsAlloc(ptr))                return eResCmdBuffer;
 	if(WrappedVkFence::IsAlloc(ptr))                    return eResFence;
+	if(WrappedVkEvent::IsAlloc(ptr))                    return eResEvent;
+	if(WrappedVkQueryPool::IsAlloc(ptr))                return eResQueryPool;
 	if(WrappedVkSemaphore::IsAlloc(ptr))                return eResSemaphore;
 	if(WrappedVkSwapChainWSI::IsAlloc(ptr))             return eResWSISwapChain;
 

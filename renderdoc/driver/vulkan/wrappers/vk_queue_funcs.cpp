@@ -69,9 +69,9 @@ VkResult WrappedVulkan::vkGetDeviceQueue(
 		// it's perfectly valid for enumerate type functions to return the same handle
 		// each time. If that happens, we will already have a wrapper created so just
 		// return the wrapped object to the user and do nothing else
-		if(GetResourceManager()->HasWrapper(RealVkRes((void *)*pQueue)))
+		if(GetResourceManager()->HasWrapper(ToTypedHandle(*pQueue)))
 		{
-			*pQueue = (VkQueue)GetResourceManager()->GetWrapper(RealVkRes((void *)*pQueue));
+			*pQueue = (VkQueue)GetResourceManager()->GetWrapper(ToTypedHandle(*pQueue));
 		}
 		else
 		{

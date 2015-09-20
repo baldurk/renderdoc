@@ -165,9 +165,9 @@ VkResult WrappedVulkan::vkEnumeratePhysicalDevices(
 		// it's perfectly valid for enumerate type functions to return the same handle
 		// each time. If that happens, we will already have a wrapper created so just
 		// return the wrapped object to the user and do nothing else
-		if(GetResourceManager()->HasWrapper(RealVkRes((void *)devices[i])))
+		if(GetResourceManager()->HasWrapper(ToTypedHandle(devices[i])))
 		{
-			devices[i] = (VkPhysicalDevice)GetResourceManager()->GetWrapper(RealVkRes((void *)devices[i]));
+			devices[i] = (VkPhysicalDevice)GetResourceManager()->GetWrapper(ToTypedHandle(devices[i]));
 		}
 		else
 		{
