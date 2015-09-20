@@ -355,10 +355,9 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 	if(m_State == READING)
 	{
 		AddEvent(DRAW_FEEDBACK, desc);
-		string name = "glDrawTransformFeedback(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
+		string name = "glDrawTransformFeedback(<?>)";
 		
-		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedback() display");
+		GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedback() display");
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -420,10 +419,9 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 	if(m_State == READING)
 	{
 		AddEvent(DRAW_FEEDBACK_INSTANCED, desc);
-		string name = "glDrawTransformFeedbackInstanced(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
+		string name = "glDrawTransformFeedbackInstanced(<?>)";
 		
-		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
+		GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -485,10 +483,9 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 	if(m_State == READING)
 	{
 		AddEvent(DRAW_FEEDBACK_STREAM, desc);
-		string name = "glDrawTransformFeedbackStream(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
+		string name = "glDrawTransformFeedbackStream(<?>)";
 		
-		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
+		GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -551,10 +548,9 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 	if(m_State == READING)
 	{
 		AddEvent(DRAW_FEEDBACK_STREAM_INSTANCED, desc);
-		string name = "glDrawTransformFeedbackStreamInstanced(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ")";
+		string name = "glDrawTransformFeedbackStreamInstanced(<?>)";
 		
-		RDCUNIMPLEMENTED("Not fetching feedback object count for glDrawTransformFeedbackStreamInstanced() display");
+		GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackStreamInstanced() display");
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -618,8 +614,6 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 	{
 		AddEvent(DRAWARRAYS, desc);
 		string name = "glDrawArrays(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
@@ -685,11 +679,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
 		
 		AddEvent(DRAWARRAYS_INDIRECT, desc);
 		string name = "glDrawArraysIndirect(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", <" +
-						ToStr::Get(params.first) + ", " +
 						ToStr::Get(params.count) + ", " +
-						ToStr::Get(params.instanceCount) + ", " +
-						ToStr::Get(params.baseInstance) + ">)";
+						ToStr::Get(params.instanceCount) + ">)";
 		
 		FetchDrawcall draw;
 		draw.name = name;
@@ -752,8 +743,6 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 	{
 		AddEvent(DRAWARRAYS_INSTANCED, desc);
 		string name = "glDrawArraysInstanced(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ", " +
 						ToStr::Get(InstanceCount) + ")";
 
@@ -820,11 +809,8 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 	{
 		AddEvent(DRAWARRAYS_INSTANCEDBASEINSTANCE, desc);
 		string name = "glDrawArraysInstancedBaseInstance(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(First) + ", " +
 						ToStr::Get(Count) + ", " +
-						ToStr::Get(InstanceCount) + ", " +
-						ToStr::Get(BaseInstance) + ")";
+						ToStr::Get(InstanceCount) + ")";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -963,10 +949,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 	{
 		AddEvent(DRAWELEMENTS, desc);
 		string name = "glDrawElements(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ")";
+						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1038,12 +1021,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
 
 		AddEvent(DRAWELEMENTS_INDIRECT, desc);
 		string name = "glDrawElementsIndirect(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Type) + ", <" +
 						ToStr::Get(params.count) + ", " +
-						ToStr::Get(params.instanceCount) + ", " + 
-						ToStr::Get(params.baseVertex) + ", " +
-						ToStr::Get(params.baseInstance) + ">)";
+						ToStr::Get(params.instanceCount) + ">)";
 		
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1119,10 +1098,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 	{
 		AddEvent(DRAWRANGEELEMENTS, desc);
 		string name = "glDrawRangeElements(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ")";
+						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1199,11 +1175,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 	{
 		AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
 		string name = "glDrawRangeElementsBaseVertex(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(BaseVtx) + ")";
+						ToStr::Get(Count) + ")";
 		
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1278,11 +1250,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 	{
 		AddEvent(DRAWELEMENTS_BASEVERTEX, desc);
 		string name = "glDrawElementsBaseVertex(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(BaseVtx) + ")";
+						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1357,11 +1325,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 	{
 		AddEvent(DRAWELEMENTS_INSTANCED, desc);
 		string name = "glDrawElementsInstanced(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(InstCount) + ")";
+						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1437,12 +1401,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
 		string name = "glDrawElementsInstancedBaseInstance(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
-						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(InstCount) + ", " + 
-						ToStr::Get(BaseInstance) + ")";
+						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1518,12 +1477,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
 		string name = "glDrawElementsInstancedBaseVertex(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(InstCount) + ", " + 
-						ToStr::Get(BaseVertex) + ")";
+						ToStr::Get(InstCount) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1600,13 +1555,8 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(GLen
 	{
 		AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE, desc);
 		string name = "glDrawElementsInstancedBaseVertexBaseInstance(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", " +
 						ToStr::Get(Count) + ", " +
-						ToStr::Get(Type) + ", " +
-						ToStr::Get(IdxOffset) + ", " +
-						ToStr::Get(InstCount) + ", " + 
-						ToStr::Get(BaseVertex) + ", " +
-						ToStr::Get(BaseInstance) + ")";
+						ToStr::Get(InstCount) + ")";
 
 		uint32_t IdxSize =
 		    Type == eGL_UNSIGNED_BYTE  ? 1
@@ -1715,7 +1665,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 	if(m_State == READING)
 	{
 		string name = "glMultiDrawArrays(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
@@ -1737,8 +1686,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 			multidraw.vertexOffset = firstArray[i];
 		
 			multidraw.name = "glMultiDrawArrays[" + ToStr::Get(i) + "](" +
-						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.vertexOffset) + ")";
+						ToStr::Get(multidraw.numIndices) + ")";
 
 			multidraw.flags |= eDraw_Drawcall;
 
@@ -1868,8 +1816,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 	if(m_State == READING)
 	{
 		string name = "glMultiDrawElements(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
-						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
@@ -1892,8 +1838,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 			multidraw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
 		
 			multidraw.name = "glMultiDrawElements[" + ToStr::Get(i) + "](" +
-						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.indexOffset) + ")";
+						ToStr::Get(multidraw.numIndices) + ")";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
@@ -2024,8 +1969,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 	if(m_State == READING)
 	{
 		string name = "glMultiDrawElementsBaseVertex(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
-						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
 		uint32_t IdxSize =
@@ -2055,9 +1998,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 			multidraw.vertexOffset = baseArray[i];
 		
 			multidraw.name = "glMultiDrawElementsBaseVertex[" + ToStr::Get(i) + "](" +
-						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.indexOffset) + ", " +
-						ToStr::Get(multidraw.vertexOffset) + ")";
+						ToStr::Get(multidraw.numIndices) + ")";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
 			
@@ -2177,7 +2118,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 	if(m_State == READING)
 	{
 		string name = "glMultiDrawArraysIndirect(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
@@ -2214,9 +2154,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 		
 			multidraw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
 						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.numInstances) + ", " +
-						ToStr::Get(multidraw.vertexOffset) + ", " +
-						ToStr::Get(multidraw.instanceOffset) + ">)";
+						ToStr::Get(multidraw.numInstances) + ">)";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
@@ -2337,8 +2275,6 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 	if(m_State == READING)
 	{
 		string name = "glMultiDrawElementsIndirect(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
-						ToStr::Get(Type) + "," + 
 						ToStr::Get(Count) + ")";
 
 		FetchDrawcall draw;
@@ -2377,9 +2313,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 		
 			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](<" +
 						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.numInstances) + ", " +
-						ToStr::Get(multidraw.indexOffset) + ", " +
-						ToStr::Get(multidraw.instanceOffset) + ">)";
+						ToStr::Get(multidraw.numInstances) + ">)";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
 
@@ -2504,10 +2438,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 
 	if(m_State == READING)
 	{
-		string name = "glMultiDrawArraysIndirectCountARB(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + ", <" +
-						ToStr::Get(realdrawcount) + "> " +
-						ToStr::Get(MaxCount) + ")";
+		string name = "glMultiDrawArraysIndirectCountARB(<" +
+						ToStr::Get(realdrawcount) + ">)";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2543,9 +2475,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 		
 			multidraw.name = "glMultiDrawArraysIndirect[" + ToStr::Get(i) + "](<" +
 						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.numInstances) + ", " +
-						ToStr::Get(multidraw.vertexOffset) + ", " +
-						ToStr::Get(multidraw.instanceOffset) + ">)";
+						ToStr::Get(multidraw.numInstances) + ">)";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_Instanced|eDraw_Indirect;
 
@@ -2676,11 +2606,8 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 	
 	if(m_State == READING)
 	{
-		string name = "glMultiDrawElementsIndirectCountARB(" +
-						( Mode == eGL_POINTS ? "GL_POINTS" : ToStr::Get(Mode) ) + "," +
-						ToStr::Get(Type) + ", <" + 
-						ToStr::Get(realdrawcount) + ">, " +
-						ToStr::Get(MaxCount) + ")";
+		string name = "glMultiDrawElementsIndirectCountARB(<" + 
+						ToStr::Get(realdrawcount) + ">)";
 
 		FetchDrawcall draw;
 		draw.name = name;
@@ -2718,9 +2645,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 		
 			multidraw.name = "glMultiDrawElementsIndirect[" + ToStr::Get(i) + "](" +
 						ToStr::Get(multidraw.numIndices) + ", " +
-						ToStr::Get(multidraw.numInstances) + ", " +
-						ToStr::Get(multidraw.indexOffset) + ", " +
-						ToStr::Get(multidraw.instanceOffset) + ")";
+						ToStr::Get(multidraw.numInstances) + ")";
 
 			multidraw.flags |= eDraw_Drawcall|eDraw_UseIBuffer|eDraw_Instanced|eDraw_Indirect;
 
