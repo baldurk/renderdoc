@@ -221,7 +221,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 	const int numEnvAdd = 7;
 	// LD_LIBRARY_PATH
 	// LD_PRELOAD
-	// VK_LAYER_DIRS
+	// VK_LAYER_PATH
 	// VK_DEVICE_LAYERS
 	// VK_INSTANCE_LAYERS
 	// RENDERDOC_CAPTUREOPTS
@@ -268,7 +268,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 			memcpy(envp[i], environ[srci], len);
 			strcat(envp[i], ":librenderdoc.so");
 		}
-		else if(!strncmp(environ[srci], "VK_LAYER_DIRS=", sizeof("VK_LAYER_DIRS=")-1))
+		else if(!strncmp(environ[srci], "VK_LAYER_PATH=", sizeof("VK_LAYER_PATH=")-1))
 		{
 			layerdirs = true;
 			envp[i] = new char[len+1+localpath.length()+30];
@@ -325,7 +325,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
 
 	if(!layerdirs)
 	{
-		string e = StringFormat::Fmt("VK_LAYER_DIRS=%s", localpath.c_str());
+		string e = StringFormat::Fmt("VK_LAYER_PATH=%s", localpath.c_str());
 		envp[i] = new char[e.length()+1];
 		memcpy(envp[i], e.c_str(), e.length()+1);
 		i++;
