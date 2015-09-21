@@ -183,8 +183,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 		for(uint32_t c=0; c < numCmds; c++)
 		{
-			AddEvent(QUEUE_SUBMIT, "");
 			string name = "[" + ToStr::Get(cmdIds[c]) + "]";
+
+			AddEvent(QUEUE_SUBMIT, "cmd " + name);
 
 			FetchDrawcall draw;
 			draw.name = name;
