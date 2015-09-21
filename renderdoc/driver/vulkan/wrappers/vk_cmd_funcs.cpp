@@ -534,7 +534,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 		// VKTODOMED change the name to show render pass load-op
 		AddEvent(BEGIN_RENDERPASS, desc);
 		FetchDrawcall draw;
-		draw.name = "Command Buffer Start";
+		draw.name = "Render Pass Start";
 		draw.flags |= eDraw_Clear;
 
 		AddDrawcall(draw, true);
