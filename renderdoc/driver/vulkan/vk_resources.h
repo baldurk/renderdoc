@@ -415,6 +415,11 @@ struct WrappedVkSwapChainWSI : WrappedVkNonDispRes
 	enum { TypeEnum = eResWSISwapChain, };
 };
 
+// VKTODOMED Need to find out which resources can validly return duplicate
+// handles for unique creates. E.g. if there are the same input parameters
+// to multiple create calls - perhaps it is valid for any handle to be
+// returned twice.
+
 // template magic voodoo to unwrap types
 template<typename inner> struct UnwrapHelper {};
 

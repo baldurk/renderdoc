@@ -169,7 +169,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 {
 	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
 
-	m_PipelineCache = VK_NULL_HANDLE;
 	m_DescriptorPool = VK_NULL_HANDLE;
 	m_DynamicCBStateWhite = VK_NULL_HANDLE;
 	m_DynamicRSState = VK_NULL_HANDLE;
@@ -234,13 +233,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	RDCASSERT(vkr == VK_SUCCESS);
 
 	VKMGR()->WrapResource(Unwrap(dev), m_PointSampler);
-
-	VkPipelineCacheCreateInfo cacheInfo = { VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO, NULL, 0, NULL, 0 };
-
-	vkr = vt->CreatePipelineCache(Unwrap(dev), &cacheInfo, &m_PipelineCache);
-	RDCASSERT(vkr == VK_SUCCESS);
-
-	VKMGR()->WrapResource(Unwrap(dev), m_PipelineCache);
 
 	{
 		// VKTODOLOW not sure if these stage flags VK_SHADER_STAGE_... work yet?
@@ -505,7 +497,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	stages[0].shader = Unwrap(shader[BLITVS]);
 	stages[1].shader = Unwrap(shader[CHECKERBOARDFS]);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_CheckerboardPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_CheckerboardPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_CheckerboardPipeline);
@@ -515,7 +507,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	pipeInfo.layout = Unwrap(m_TexDisplayPipeLayout);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TexDisplayPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayPipeline);
@@ -524,7 +516,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	attState.srcBlendColor = VK_BLEND_SRC_ALPHA;
 	attState.destBlendColor = VK_BLEND_ONE_MINUS_SRC_ALPHA;
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TexDisplayBlendPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TexDisplayBlendPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_TexDisplayBlendPipeline);
@@ -536,7 +528,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	pipeInfo.layout = Unwrap(m_TextPipeLayout);
 
-	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), Unwrap(m_PipelineCache), 1, &pipeInfo, &m_TextPipeline);
+	vkr = vt->CreateGraphicsPipelines(Unwrap(dev), VK_NULL_HANDLE, 1, &pipeInfo, &m_TextPipeline);
 	RDCASSERT(vkr == VK_SUCCESS);
 	
 	VKMGR()->WrapResource(Unwrap(dev), m_TextPipeline);
@@ -770,13 +762,6 @@ VulkanDebugManager::~VulkanDebugManager()
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
 	VkResult vkr = VK_SUCCESS;
-
-	if(m_PipelineCache != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyPipelineCache(Unwrap(dev), Unwrap(m_PipelineCache));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(m_PipelineCache);
-	}
 
 	if(m_DescriptorPool != VK_NULL_HANDLE)
 	{

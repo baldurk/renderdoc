@@ -63,7 +63,6 @@ class VulkanDebugManager
 		};
 
 		// VKTODOLOW make this all private/wrapped up
-		VkPipelineCache m_PipelineCache;
 		VkDescriptorPool m_DescriptorPool;
 		VkDynamicColorBlendState m_DynamicCBStateWhite;
 		VkDynamicRasterState m_DynamicRSState;
