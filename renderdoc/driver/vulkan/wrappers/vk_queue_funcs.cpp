@@ -365,6 +365,9 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 			// ref the parent command buffer by itself, this will pull in the cmd buffer pool
 			GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+			
+			if(fence != VK_NULL_HANDLE)
+				GetResourceManager()->MarkResourceFrameReferenced(GetResID(fence), eFrameRef_Read);
 
 			m_CmdBufferRecords.push_back(record->bakedCommands);
 			record->bakedCommands->AddRef();
