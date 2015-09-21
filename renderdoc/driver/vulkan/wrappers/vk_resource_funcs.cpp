@@ -145,6 +145,7 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mapOffset = offset;
 				it->second.mapSize = size == 0 ? it->second.size : size;
 				it->second.mapFlags = flags;
+				it->second.mapFlushed = false;
 			}
 		}
 		else if(m_State >= WRITING)
@@ -182,8 +183,11 @@ bool WrappedVulkan::Serialise_vkUnmapMemory(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
 
+		// VKTODOLOW figure out what alignments there are on mapping, so we only map the region
+		// we're going to modify. For no, offset/size is handled in the memcpy before and we
+		// map the whole region
 		void *mapPtr = NULL;
-		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), memOffset, memSize, flags, &mapPtr);
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, flags, &mapPtr);
 
 		if(ret != VK_SUCCESS)
 		{
@@ -226,19 +230,27 @@ VkResult WrappedVulkan::vkUnmapMemory(
 			{
 				if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
 				{
-					SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
-					Serialise_vkUnmapMemory(device, mem);
-
-					VkResourceRecord *record = GetRecord(mem);
-
-					if(m_State == WRITING_IDLE)
+					if(!it->second.mapFlushed)
 					{
-						record->AddChunk(scope.Get());
+						SCOPED_SERIALISE_CONTEXT(UNMAP_MEM);
+						Serialise_vkUnmapMemory(device, mem);
+
+						VkResourceRecord *record = GetRecord(mem);
+
+						if(m_State == WRITING_IDLE)
+						{
+							record->AddChunk(scope.Get());
+						}
+						else
+						{
+							m_FrameCaptureRecord->AddChunk(scope.Get());
+							GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Write);
+						}
 					}
 					else
 					{
-						m_FrameCaptureRecord->AddChunk(scope.Get());
-						GetResourceManager()->MarkResourceFrameReferenced(GetResID(mem), eFrameRef_Write);
+						// VKTODOLOW for now assuming flushes cover all writes. Technically
+						// this is true for all non-coherent memory types.
 					}
 				}
 				else
@@ -252,6 +264,59 @@ VkResult WrappedVulkan::vkUnmapMemory(
 	}
 
 	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkFlushMappedMemoryRanges(
+			VkDevice                                    device,
+			uint32_t                                    memRangeCount,
+			const VkMappedMemoryRange*                  pMemRanges)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
+	SERIALISE_ELEMENT(ResourceId, id, GetResID(pMemRanges->mem));
+
+	auto it = m_MemoryInfo.find(id);
+
+	SERIALISE_ELEMENT(VkMemoryMapFlags, flags, it->second.mapFlags);
+	SERIALISE_ELEMENT(uint64_t, memOffset, pMemRanges->offset);
+	SERIALISE_ELEMENT(uint64_t, memSize, pMemRanges->size);
+
+	// VKTODOHIGH: this is really horrible - this could be write-combined memory that we're
+	// reading from to get the latest data. This saves on having to fetch the data some
+	// other way and provide an interception buffer to the app, but is awful.
+	// we're also not doing any diff range checks, just serialising the whole memory region.
+	// In vulkan the common case will be one memory region for a large number of distinct
+	// bits of data so most maps will not change the whole region.
+	SERIALISE_ELEMENT_BUF(byte*, data, (byte *)it->second.mappedPtr + (size_t)memOffset, (size_t)memSize);
+
+	if(m_State < WRITING)
+	{
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+		VkDeviceMemory mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(id);
+
+		// VKTODOLOW figure out what alignments there are on mapping, so we only map the region
+		// we're going to modify. For no, offset/size is handled in the memcpy before and we
+		// map the whole region
+		void *mapPtr = NULL;
+		VkResult ret = ObjDisp(device)->MapMemory(Unwrap(device), Unwrap(mem), 0, 0, flags, &mapPtr);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Error mapping memory on replay: 0x%08x", ret);
+		}
+		else
+		{
+			memcpy((byte *)mapPtr+memOffset, data, (size_t)memSize);
+
+			ret = ObjDisp(device)->UnmapMemory(Unwrap(device), Unwrap(mem));
+			
+			if(ret != VK_SUCCESS)
+				RDCERR("Error unmapping memory on replay: 0x%08x", ret);
+		}
+
+		SAFE_DELETE_ARRAY(data);
+	}
+
+	return true;
 }
 
 VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
@@ -272,7 +337,17 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 
 	for(uint32_t i=0; i < memRangeCount; i++)
 	{
-		RDCDEBUG("FlushMemory(%p, %llu, %llu)", pMemRanges[i].mem, pMemRanges[i].offset, pMemRanges[i].size);
+		auto it = m_MemoryInfo.find(GetResID(pMemRanges[i].mem));
+		it->second.mapFlushed = true;
+
+		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME && !it->second.mapFlushed)
+		{
+			SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
+			Serialise_vkFlushMappedMemoryRanges(device, 1, pMemRanges+i);
+
+			m_FrameCaptureRecord->AddChunk(scope.Get());
+			GetResourceManager()->MarkResourceFrameReferenced(GetResID(pMemRanges[i].mem), eFrameRef_Write);
+		}
 	}
 
 	return ret;

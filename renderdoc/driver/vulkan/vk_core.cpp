@@ -50,6 +50,7 @@ const char *VkChunkNames[] =
 	
 	"vkAllocMemory",
 	"vkUnmapMemory",
+	"vkFlushMappedMemoryRanges",
 	"vkFreeMemory",
 
 	"vkCreateCommandPool",
@@ -883,6 +884,9 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case UNMAP_MEM:
 		Serialise_vkUnmapMemory(VK_NULL_HANDLE, VK_NULL_HANDLE);
+		break;
+	case FLUSH_MEM:
+		Serialise_vkFlushMappedMemoryRanges(VK_NULL_HANDLE, 0, NULL);
 		break;
 	case FREE_MEM:
 		// VKTODOMED see vkFreeMemory

@@ -701,11 +701,12 @@ struct VkResourceRecord : public ResourceRecord
 struct MemState
 {
 	MemState()
-		: mapOffset(0), mapSize(0), size(0), mapFlags(0), mappedPtr(0)
+		: mapOffset(0), mapSize(0), size(0), mapFlags(0), mappedPtr(0), mapFlushed(false)
 	{ }
 	VkDeviceSize mapOffset, mapSize;
 	VkDeviceSize size;
 	VkMemoryMapFlags mapFlags;
+	bool mapFlushed;
 	void *mappedPtr;
 };
 struct ImgState

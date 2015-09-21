@@ -148,6 +148,7 @@ enum VulkanChunkType
 
 	ALLOC_MEM,
 	UNMAP_MEM,
+	FLUSH_MEM,
 	FREE_MEM,
 	
 	CREATE_CMD_POOL,
