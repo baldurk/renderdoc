@@ -1245,10 +1245,10 @@ void VulkanReplay::SavePipelineState()
 
 			for(size_t i=0; i < ARRAY_COUNT(stages); i++)
 			{
-				stages[i]->Shader = p.shaders[i];
+				stages[i]->Shader = rm->GetOriginalID(p.shaders[i]);
 				stages[i]->ShaderDetails = NULL;
 				stages[i]->customName = false;
-				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", p.shaders[i]);
+				stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Shader);
 				stages[i]->stage = ShaderStageType(eShaderStage_Vertex + i);
 			}
 
