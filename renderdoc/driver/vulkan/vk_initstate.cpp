@@ -196,12 +196,12 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 	{
 		if(type == eResDescriptorSet)
 		{
-			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
-
 			uint32_t numElems;
 			VkDescriptorInfo *bindings = NULL;
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
+
+			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
 
 			uint32_t numBinds = (uint32_t)layout.bindings.size();
 
@@ -212,23 +212,47 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			VkDescriptorInfo *info = (VkDescriptorInfo *)(writes + numBinds);
 			memcpy(info, bindings, sizeof(VkDescriptorInfo)*numElems);
 
-			for(uint32_t i=0; i < numBinds; i++)
+			uint32_t validBinds = numBinds;
+
+			// i is the writedescriptor that we're updating, could be
+			// lower than j if a writedescriptor ended up being no-op and
+			// was skipped. j is the actual index.
+			for(uint32_t i=0, j=0; j < numBinds; j++)
 			{
 				writes[i].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 				writes[i].pNext = NULL;
 
 				// update whole element (array or single)
 				writes[i].destSet = ToHandle<VkDescriptorSet>(res);
-				writes[i].destBinding = i;
+				writes[i].destBinding = j;
 				writes[i].destArrayElement = 0;
-				writes[i].count = layout.bindings[i].arraySize;
-				writes[i].descriptorType = layout.bindings[i].descriptorType;
+				writes[i].count = layout.bindings[j].arraySize;
+				writes[i].descriptorType = layout.bindings[j].descriptorType;
 				writes[i].pDescriptors = info;
 
-				info += layout.bindings[i].arraySize;
+				info += layout.bindings[j].arraySize;
+
+				// VKTODOMED this should check to see if the actual descriptor
+				// bits used by this element in the layout are set. For now
+				// we're mostly concerned with descriptors that were alloc'd and
+				// never written to, so are completely empty.
+				// Also needs to handle arrays properly - we are very
+				// all-or-nothing with this check
+				if(writes[i].pDescriptors->bufferView == VK_NULL_HANDLE &&
+						writes[i].pDescriptors->sampler == VK_NULL_HANDLE &&
+						writes[i].pDescriptors->imageView == VK_NULL_HANDLE &&
+						writes[i].pDescriptors->attachmentView == VK_NULL_HANDLE)
+					writes[i].count = 0;
+
+				// if this write became completely null and void, skip it
+				// and start writing the next one in here
+				if(writes[i].count == 0)
+					validBinds--;
+				else
+					i++;
 			}
 
-			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, numBinds, blob));
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, validBinds, blob));
 		}
 		else if(type == eResImage || type == eResDeviceMemory)
 		{
@@ -337,6 +361,10 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	if(type == eResDescriptorSet)
 	{
 		VkWriteDescriptorSet *writes = (VkWriteDescriptorSet *)initial.blob;
+
+		// if it ended up that no descriptors were valid, just skip
+		if(initial.num == 0)
+			return;
 
 		VkResult vkr = ObjDisp(GetDev())->UpdateDescriptorSets(Unwrap(GetDev()), initial.num, writes, 0, NULL);
 		RDCASSERT(vkr == VK_SUCCESS);
