@@ -1522,8 +1522,11 @@ uint32_t Serialiser::PushContext(const char *name, uint32_t chunkIdx, bool small
 	}
 	else
 	{
-		// reset debug text
-		m_DebugText = "";
+		if(m_Indent == 0)
+		{
+			// reset debug text
+			m_DebugText = "";
+		}
 
 		if(chunkIdx > 0)
 		{
