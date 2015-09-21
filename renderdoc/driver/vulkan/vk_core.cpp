@@ -719,7 +719,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	while(1)
 	{
-		if(m_State == EXECUTING && m_RootEventID > endEventID && m_CmdBuffersInProgress == 0)
+		if(m_State == EXECUTING && m_RootEventID > endEventID)
 		{
 			// we can just break out if we've done all the events desired.
 			// note that the command buffer events aren't 'real' and we just blaze through them
