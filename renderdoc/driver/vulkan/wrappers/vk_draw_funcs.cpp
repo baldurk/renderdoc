@@ -294,7 +294,7 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
 		SCOPED_SERIALISE_CONTEXT(COPY_BUF2IMG);
-		Serialise_vkCmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, regionCount, pRegions);
+		Serialise_vkCmdCopyBufferToImage(cmdBuffer, srcBuffer, destImage, destImageLayout, regionCount, pRegions);
 
 		record->AddChunk(scope.Get());
 
@@ -490,7 +490,7 @@ void WrappedVulkan::vkCmdClearColorImage(
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
 		SCOPED_SERIALISE_CONTEXT(CLEAR_COLOR);
-		Serialise_vkCmdClearColorImage(Unwrap(cmdBuffer), Unwrap(image), imageLayout, pColor, rangeCount, pRanges);
+		Serialise_vkCmdClearColorImage(cmdBuffer, image, imageLayout, pColor, rangeCount, pRanges);
 
 		record->AddChunk(scope.Get());
 		record->MarkResourceFrameReferenced(GetResID(image), eFrameRef_Write);

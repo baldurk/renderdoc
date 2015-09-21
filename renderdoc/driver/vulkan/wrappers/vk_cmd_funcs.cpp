@@ -1251,7 +1251,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		VkResourceRecord *record = GetRecord(cmdBuffer);
 
 		SCOPED_SERIALISE_CONTEXT(PIPELINE_BARRIER);
-		Serialise_vkCmdPipelineBarrier(Unwrap(cmdBuffer), srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
+		Serialise_vkCmdPipelineBarrier(cmdBuffer, srcStageMask, destStageMask, byRegion, memBarrierCount, ppMemBarriers);
 
 		record->AddChunk(scope.Get());
 
