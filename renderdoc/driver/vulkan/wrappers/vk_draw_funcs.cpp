@@ -284,6 +284,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(
 		destImage = GetResourceManager()->GetLiveHandle<VkImage>(imgid);
 
 		ObjDisp(cmdBuffer)->CmdCopyBufferToImage(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destImage), destImageLayout, count, regions);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(COPY_BUF2IMG, desc);
+			string name = "vkCmdCopyBufferToImage(" +
+				ToStr::Get(bufid) + "," +
+				ToStr::Get(imgid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Copy;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -422,6 +437,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(
 		destBuffer = GetResourceManager()->GetLiveHandle<VkBuffer>(dstid);
 
 		ObjDisp(cmdBuffer)->CmdCopyBuffer(Unwrap(cmdBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count, regions);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(COPY_BUF, desc);
+			string name = "vkCmdCopyBuffer(" +
+				ToStr::Get(srcid) + "," +
+				ToStr::Get(dstid) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Copy;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(regions);
@@ -694,6 +724,21 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilAttachment(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdClearDepthStencilAttachment(Unwrap(cmdBuffer), asp, lay, d, s, count, rects);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(CLEAR_DEPTHSTENCIL_ATTACH, desc);
+			string name = "vkCmdClearDepthStencilAttachment(" +
+				ToStr::Get(d) + "," +
+				ToStr::Get(s) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.flags |= eDraw_Clear|eDraw_ClearDepthStencil;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	SAFE_DELETE_ARRAY(rects);
@@ -756,6 +801,27 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(
 		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
 
 		ObjDisp(cmdBuffer)->CmdDrawIndexed(Unwrap(cmdBuffer), firstIdx, idxCount, vtxOffs, firstInst, instCount);
+
+		const string desc = m_pSerialiser->GetDebugStr();
+
+		{
+			AddEvent(DRAW_INDEXED, desc);
+			string name = "vkCmdDrawIndexed(" +
+				ToStr::Get(idxCount) + "," +
+				ToStr::Get(instCount) + ")";
+
+			FetchDrawcall draw;
+			draw.name = name;
+			draw.numIndices = idxCount;
+			draw.numInstances = instCount;
+			draw.indexOffset = firstIdx;
+			draw.vertexOffset = vtxOffs;
+			draw.instanceOffset = firstInst;
+
+			draw.flags |= eDraw_Drawcall|eDraw_UseIBuffer;
+
+			AddDrawcall(draw, true);
+		}
 	}
 
 	return true;
