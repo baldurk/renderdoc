@@ -1308,7 +1308,7 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 
 	apievent.context = ResourceId();
 	apievent.fileOffset = m_CurChunkOffset;
-	apievent.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].eventCount : m_RootEventID;
+	apievent.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
 
 	apievent.eventDesc = description;
 
