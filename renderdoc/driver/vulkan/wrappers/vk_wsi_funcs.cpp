@@ -899,8 +899,6 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 					for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
 						m_pFileSerialiser->Insert(it->second);
-
-					m_CmdBufferRecords[i]->Delete(GetResourceManager());
 				}
 
 				recordlist.clear();
@@ -922,6 +920,10 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 			SAFE_DELETE(m_HeaderChunk);
 
 			m_State = WRITING_IDLE;
+
+			// delete cmd buffers now - had to keep them alive until after serialiser flush.
+			for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
+				m_CmdBufferRecords[i]->Delete(GetResourceManager());
 			
 			GetResourceManager()->MarkUnwrittenResources();
 
