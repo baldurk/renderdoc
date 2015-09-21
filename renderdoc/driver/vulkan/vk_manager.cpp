@@ -60,7 +60,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	{
 		const VkImageMemoryBarrier &t = transitions[ti];
 		
-		ResourceId id = GetResID(t.image);
+		ResourceId id = GetNonDispWrapper(t.image)->id;
 		
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
@@ -279,6 +279,14 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 		TRDBG("Applying transition to %llu", GetOriginalID(id));
 
+		auto stit = states.find(id);
+
+		if(stit == states.end())
+		{
+			TRDBG("Didn't find ID in image states");
+			continue;
+		}
+
 		uint32_t nummips = t.range.mipLevels;
 		uint32_t numslices = t.range.arraySize;
 		if(nummips == VK_LAST_MIP_LEVEL) nummips = states[id].mipLevels;
@@ -290,15 +298,11 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 
 		if(t.prevstate == t.state) continue;
 
-		auto stit = states.find(id);
-
 		TRDBG("Transition of %s (%u->%u, %u->%u) from %s to %s",
 				ToStr::Get(t.range.aspect).c_str(),
 				t.range.baseMipLevel, t.range.mipLevels,
 				t.range.baseArraySlice, t.range.arraySize,
 				ToStr::Get(t.prevstate).c_str(), ToStr::Get(t.state).c_str());
-
-		if(stit == states.end()) continue;
 
 		bool done = false;
 
