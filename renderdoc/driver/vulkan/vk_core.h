@@ -531,6 +531,21 @@ public:
 			VkQueue                                     queue,
 			VkSemaphore                                 semaphore));
 
+	// Fence functions
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFence(
+			VkDevice                                    device,
+			const VkFenceCreateInfo*                    pCreateInfo,
+			VkFence*                                    pFence));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyFence(
+			VkDevice                                    device,
+			VkFence                                     fence));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetFenceStatus(
+			VkDevice                                    device,
+			VkFence                                     fence));
+
 	// Memory functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkAllocMemory(
@@ -553,6 +568,11 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkUnmapMemory(
 			VkDevice                                    device,
 			VkDeviceMemory                              mem));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkFlushMappedMemoryRanges(
+			VkDevice                                    device,
+			uint32_t                                    memRangeCount,
+			const VkMappedMemoryRange*                  pMemRanges));
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetBufferMemoryRequirements(
 			VkDevice                                    device,

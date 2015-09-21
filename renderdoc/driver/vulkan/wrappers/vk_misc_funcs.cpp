@@ -51,6 +51,7 @@ DESTROY_IMPL(VkDynamicRasterState, DestroyDynamicRasterState)
 DESTROY_IMPL(VkDynamicColorBlendState, DestroyDynamicColorBlendState)
 DESTROY_IMPL(VkDynamicDepthStencilState, DestroyDynamicDepthStencilState)
 DESTROY_IMPL(VkSemaphore, DestroySemaphore)
+DESTROY_IMPL(VkFence, DestroyFence)
 DESTROY_IMPL(VkCmdPool, DestroyCommandPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
@@ -196,8 +197,7 @@ bool WrappedVulkan::ReleaseResource(WrappedVkRes *res)
 			vt->DestroyCommandPool(Unwrap(dev), nondisp->real.As<VkCmdPool>());
 			break;
 		case eResFence:
-			// VKTODOLOW
-			//vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
+			vt->DestroyFence(Unwrap(dev), nondisp->real.As<VkFence>());
 			break;
 		case eResEvent:
 			// VKTODOLOW
@@ -374,6 +374,106 @@ bool WrappedVulkan::Serialise_vkCreateFramebuffer(
 	}
 
 	return true;
+}
+
+bool WrappedVulkan::Serialise_vkCreateFence(
+			VkDevice                                    device,
+			const VkFenceCreateInfo*                pCreateInfo,
+			VkFence*                                pFence)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
+	SERIALISE_ELEMENT(VkFenceCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pFence));
+
+	if(m_State == READING)
+	{
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+		VkFence sem = VK_NULL_HANDLE;
+
+		VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), &info, &sem);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+		}
+		else
+		{
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), sem);
+			GetResourceManager()->AddLiveResource(id, sem);
+		}
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkCreateFence(
+			VkDevice                                device,
+			const VkFenceCreateInfo*                pCreateInfo,
+			VkFence*                                pFence)
+{
+	VkResult ret = ObjDisp(device)->CreateFence(Unwrap(device), pCreateInfo, pFence);
+
+	if(ret == VK_SUCCESS)
+	{
+		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pFence);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
+				Serialise_vkCreateFence(device, pCreateInfo, pFence);
+
+				chunk = scope.Get();
+			}
+
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, *pFence);
+		}
+	}
+
+	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkGetFenceStatus(
+			VkDevice                                device,
+			VkFence                                 fence)
+{
+	SERIALISE_ELEMENT(ResourceId, id, GetResID(device));
+	SERIALISE_ELEMENT(ResourceId, fid, GetResID(fence));
+	
+	if(m_State < WRITING)
+	{
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(id);
+
+		// VKTODOLOW conservatively assume we have to wait for the device to be idle
+		// this could probably be smarter
+		ObjDisp(device)->DeviceWaitIdle(Unwrap(device));
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkGetFenceStatus(
+			VkDevice                                device,
+			VkFence                                 fence)
+{
+	VkResult ret = ObjDisp(device)->GetFenceStatus(Unwrap(device), Unwrap(fence));
+	
+	if(m_State >= WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(GET_FENCE_STATUS);
+		Serialise_vkGetFenceStatus(device, fence);
+
+		m_FrameCaptureRecord->AddChunk(scope.Get());
+	}
+
+	return ret;
 }
 
 VkResult WrappedVulkan::vkCreateFramebuffer(

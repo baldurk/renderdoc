@@ -963,12 +963,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		Serialise_vkCreateSemaphore(VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case CREATE_FENCE:
-		//VKTODOMED:
-		//Serialise_vkCreateFence(VK_NULL_HANDLE, NULL, NULL);
+		Serialise_vkCreateFence(VK_NULL_HANDLE, NULL, NULL);
 		break;
 	case GET_FENCE_STATUS:
-		//VKTODOMED:
-		//Serialise_vkGetFenceStatus(VK_NULL_HANDLE);
+		Serialise_vkGetFenceStatus(VK_NULL_HANDLE, VK_NULL_HANDLE);
 		break;
 	case WAIT_FENCES:
 		//VKTODOMED:

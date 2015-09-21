@@ -51,6 +51,7 @@
 	HookInit(FreeMemory); \
 	HookInit(MapMemory); \
 	HookInit(UnmapMemory); \
+	HookInit(FlushMappedMemoryRanges); \
 	HookInit(BindBufferMemory); \
 	HookInit(BindImageMemory); \
 	HookInit(CreateBuffer); \
@@ -80,6 +81,9 @@
 	HookInit(DestroySemaphore); \
 	HookInit(QueueSignalSemaphore); \
 	HookInit(QueueWaitSemaphore); \
+	HookInit(CreateFence); \
+	HookInit(GetFenceStatus); \
+	HookInit(DestroyFence); \
 	HookInit(CreateSampler); \
 	HookInit(DestroySampler); \
 	HookInit(CreateDescriptorSetLayout); \
@@ -166,6 +170,7 @@
 	HookDefine2(VkResult, vkFreeMemory, VkDevice, device, VkDeviceMemory, mem); \
 	HookDefine6(VkResult, vkMapMemory, VkDevice, device, VkDeviceMemory, mem, VkDeviceSize, offset, VkDeviceSize, size, VkMemoryMapFlags, flags, void**, ppData); \
 	HookDefine2(VkResult, vkUnmapMemory, VkDevice, device, VkDeviceMemory, mem); \
+	HookDefine3(VkResult, vkFlushMappedMemoryRanges, VkDevice, device, uint32_t, memRangeCount, const VkMappedMemoryRange*, pMemRanges); \
 	HookDefine4(VkResult, vkBindBufferMemory, VkDevice, device, VkBuffer, buffer, VkDeviceMemory, mem, VkDeviceSize, memOffset); \
 	HookDefine4(VkResult, vkBindImageMemory, VkDevice, device, VkImage, image, VkDeviceMemory, mem, VkDeviceSize, memOffset); \
 	HookDefine3(VkResult, vkCreateBuffer, VkDevice, device, const VkBufferCreateInfo*, pCreateInfo, VkBuffer*, pBuffer); \
@@ -195,6 +200,9 @@
 	HookDefine2(VkResult, vkDestroySemaphore, VkDevice, device, VkSemaphore, semaphore); \
 	HookDefine2(VkResult, vkQueueSignalSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
 	HookDefine2(VkResult, vkQueueWaitSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
+	HookDefine3(VkResult, vkCreateFence, VkDevice, device, const VkFenceCreateInfo*, pCreateInfo, VkFence*, pFence); \
+	HookDefine2(VkResult, vkDestroyFence, VkDevice, device, VkFence, fence); \
+	HookDefine2(VkResult, vkGetFenceStatus, VkDevice, device, VkFence, fence); \
 	HookDefine3(VkResult, vkCreateSampler, VkDevice, device, const VkSamplerCreateInfo*, pCreateInfo, VkSampler*, pSampler); \
 	HookDefine2(VkResult, vkDestroySampler, VkDevice, device, VkSampler, sampler); \
 	HookDefine3(VkResult, vkCreateDescriptorSetLayout, VkDevice, device, const VkDescriptorSetLayoutCreateInfo*, pCreateInfo, VkDescriptorSetLayout*, pSetLayout); \

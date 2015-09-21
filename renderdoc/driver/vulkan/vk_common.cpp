@@ -926,6 +926,19 @@ string ToStrHelper<false, VkCmdBufferOptimizeFlagBits>::Get(const VkCmdBufferOpt
 }
 
 template<>
+string ToStrHelper<false, VkFenceCreateFlagBits>::Get(const VkFenceCreateFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_FENCE_CREATE_SIGNALED_BIT) ret += " | VK_FENCE_CREATE_SIGNALED_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
 {
 	string ret;
@@ -1375,6 +1388,38 @@ string ToStrHelper<false, VkDescriptorSetUsage>::Get(const VkDescriptorSetUsage 
 	}
 	
 	return StringFormat::Fmt("VkDescriptorSetUsage<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkMemoryHeapFlagBits>::Get(const VkMemoryHeapFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_MEMORY_HEAP_HOST_LOCAL)          ret += " | VK_MEMORY_HEAP_HOST_LOCAL";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkMemoryPropertyFlagBits>::Get(const VkMemoryPropertyFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT)          ret += " | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT)     ret += " | VK_MEMORY_PROPERTY_HOST_NON_COHERENT_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT)         ret += " | VK_MEMORY_PROPERTY_HOST_UNCACHED_BIT";
+	if(el & VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT)   ret += " | VK_MEMORY_PROPERTY_HOST_WRITE_COMBINED_BIT";
+	if(el & VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT)      ret += " | VK_MEMORY_PROPERTY_LAZILY_ALLOCATED_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+	else
+		ret = "VK_MEMORY_PROPERTY_DEVICE_ONLY";
+
+	return ret;
 }
 
 template<>
@@ -2539,6 +2584,18 @@ void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el)
 	// VKTODOLOW if this enum gets any bits, cast to Vk*FlagBits
 	// for strongly typed serialising
 	Serialise("flags", el.flags);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkFenceCreateInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+
+	Serialise("flags", (VkFenceCreateFlagBits &)el.flags);
 }
 
 template<>

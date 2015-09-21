@@ -113,6 +113,7 @@ template<> void Serialiser::Serialise(const char *name, VkCmdBufferCreateInfo &e
 template<> void Serialiser::Serialise(const char *name, VkCmdBufferBeginInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkStencilOpState &el);
 template<> void Serialiser::Serialise(const char *name, VkSemaphoreCreateInfo &el);
+template<> void Serialiser::Serialise(const char *name, VkFenceCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkSamplerCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkPipelineCacheCreateInfo &el);
 template<> void Serialiser::Serialise(const char *name, VkShaderCreateInfo &el);

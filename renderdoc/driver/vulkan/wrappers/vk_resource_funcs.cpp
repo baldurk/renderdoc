@@ -254,6 +254,30 @@ VkResult WrappedVulkan::vkUnmapMemory(
 	return ret;
 }
 
+VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
+			VkDevice                                    device,
+			uint32_t                                    memRangeCount,
+			const VkMappedMemoryRange*                  pMemRanges)
+{
+	VkMappedMemoryRange *unwrapped = new VkMappedMemoryRange[memRangeCount];
+	for(uint32_t i=0; i < memRangeCount; i++)
+	{
+		unwrapped[i] = pMemRanges[i];
+		unwrapped[i].mem = Unwrap(unwrapped[i].mem);
+	}
+
+	VkResult ret = ObjDisp(device)->FlushMappedMemoryRanges(Unwrap(device), memRangeCount, unwrapped);
+
+	SAFE_DELETE_ARRAY(unwrapped);
+
+	for(uint32_t i=0; i < memRangeCount; i++)
+	{
+		RDCDEBUG("FlushMemory(%p, %llu, %llu)", pMemRanges[i].mem, pMemRanges[i].offset, pMemRanges[i].size);
+	}
+
+	return ret;
+}
+
 // Generic API object functions
 
 bool WrappedVulkan::Serialise_vkBindBufferMemory(
