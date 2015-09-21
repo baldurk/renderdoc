@@ -60,7 +60,7 @@ void VulkanResourceManager::RecordTransitions(vector< pair<ResourceId, ImageRegi
 	{
 		const VkImageMemoryBarrier &t = transitions[ti];
 		
-		ResourceId id = GetNonDispWrapper(t.image)->id;
+		ResourceId id = m_State < WRITING ? GetNonDispWrapper(t.image)->id : GetResID(t.image);
 		
 		uint32_t nummips = t.subresourceRange.mipLevels;
 		uint32_t numslices = t.subresourceRange.arraySize;
