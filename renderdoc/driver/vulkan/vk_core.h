@@ -191,16 +191,20 @@ private:
 		vector< pair<ResourceId, ImageRegionState> > imgtransitions;
 
 		// used on replay
+		vector<FetchAPIEvent> curEvents;
+		list<DrawcallTreeNode *> drawStack;
+
 		DrawcallTreeNode *draw; // the root draw to copy from when submitting
 		uint32_t eventCount; // how many events are in this cmd buffer, for quick skipping
+		uint32_t curEventID; // current event ID while reading or executing
 		uint32_t drawCount; // similar to above
 	};
 	map<ResourceId, CmdBufferInfo> m_CmdBufferInfo;
 
-	// on replay, the current command buffer we're handling (we know
-	// that these don't overlap as that disjoint ordering is guaranteed
-	// on capture).
-	ResourceId m_CurCmdBufferID;
+	// on replay, the current command buffer for the last chunk we
+	// handled.
+	ResourceId m_LastCmdBufferID;
+	int m_CmdBuffersInProgress;
 
 	struct PartialReplayData
 	{
@@ -299,7 +303,7 @@ private:
 	} m_PartialReplayData;
 
 	bool IsPartialCmd(ResourceId cmdid) { return cmdid == m_PartialReplayData.partialParent; }
-	bool InPartialRange() { return m_CurEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
+	bool InPartialRange() { return m_CmdBufferInfo[m_PartialReplayData.partialParent].curEventID <= m_LastEventID - m_PartialReplayData.baseEvent; }
 	VkCmdBuffer PartialCmdBuf() { return m_PartialReplayData.resultPartialCmdBuffer; }
 
 	struct SwapInfo
@@ -350,11 +354,11 @@ private:
 	
 	// replay
 		
-	vector<FetchAPIEvent> m_CurEvents, m_Events;
+	vector<FetchAPIEvent> m_RootEvents, m_Events;
 	bool m_AddedDrawcall;
 
 	uint64_t m_CurChunkOffset;
-	uint32_t m_CurEventID, m_CurDrawcallID;
+	uint32_t m_RootEventID, m_RootDrawcallID;
 	uint32_t m_FirstEventID, m_LastEventID;
 		
 	DrawcallTreeNode m_ParentDrawcall;
@@ -362,6 +366,14 @@ private:
 	void RefreshIDs(vector<DrawcallTreeNode> &nodes, uint32_t baseEventID, uint32_t baseDrawID);
 
 	list<DrawcallTreeNode *> m_DrawcallStack;
+
+	list<DrawcallTreeNode *> &GetDrawcallStack()
+	{
+		if(m_LastCmdBufferID != ResourceId())
+			return m_CmdBufferInfo[m_LastCmdBufferID].drawStack;
+
+		return m_DrawcallStack;
+	}
 	
 	void ProcessChunk(uint64_t offset, VulkanChunkType context);
 	void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);

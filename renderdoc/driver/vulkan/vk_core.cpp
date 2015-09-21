@@ -296,12 +296,12 @@ WrappedVulkan::WrappedVulkan(const char *logFilename)
 
 	m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 	
-	m_CurEventID = 1;
-	m_CurDrawcallID = 1;
+	m_RootEventID = 1;
+	m_RootDrawcallID = 1;
 	m_FirstEventID = 0;
 	m_LastEventID = ~0U;
 
-	m_CurCmdBufferID = ResourceId();
+	m_LastCmdBufferID = ResourceId();
 
 	m_PartialReplayData.renderPassActive = false;
 	m_PartialReplayData.resultPartialCmdBuffer = VK_NULL_HANDLE;
@@ -680,12 +680,14 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	m_pSerialiser->PopContext(NULL, header);
 
-	m_CurEvents.clear();
+	m_RootEvents.clear();
+
+	m_CmdBuffersInProgress = 0;
 	
 	if(m_State == EXECUTING)
 	{
 		FetchAPIEvent ev = GetEvent(startEventID);
-		m_CurEventID = ev.eventID;
+		m_RootEventID = ev.eventID;
 
 		// if not partial, we need to be sure to replay
 		// past the command buffer records, so can't
@@ -704,8 +706,8 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 	}
 	else if(m_State == READING)
 	{
-		m_CurEventID = 1;
-		m_CurDrawcallID = 1;
+		m_RootEventID = 1;
+		m_RootDrawcallID = 1;
 		m_FirstEventID = 0;
 		m_LastEventID = ~0U;
 	}
@@ -717,7 +719,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 	while(1)
 	{
-		if(m_State == EXECUTING && m_CurEventID > endEventID && m_CurCmdBufferID == ResourceId())
+		if(m_State == EXECUTING && m_RootEventID > endEventID && m_CmdBuffersInProgress == 0)
 		{
 			// we can just break out if we've done all the events desired.
 			// note that the command buffer events aren't 'real' and we just blaze through them
@@ -728,6 +730,8 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
 		VulkanChunkType context = (VulkanChunkType)m_pSerialiser->PushContext(NULL, 1, false);
 
+		m_LastCmdBufferID = ResourceId();
+
 		ContextProcessChunk(offset, context, false);
 		
 		RenderDoc::Inst().SetProgress(FileInitialRead, float(offset)/float(m_pSerialiser->GetSize()));
@@ -736,8 +740,11 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 		// but for now this will do.
 		if(context == CONTEXT_CAPTURE_FOOTER)
 			break;
-		
-		m_CurEventID++;
+
+		if(m_LastCmdBufferID != ResourceId())
+			m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
+		else
+			m_RootEventID++;
 	}
 
 	if(m_State == READING)
@@ -774,14 +781,10 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 
 	uint64_t cOffs = m_pSerialiser->GetOffset();
 
-	WrappedVulkan *context = this;
-
-	LogState state = context->m_State;
+	LogState state = m_State;
 
 	if(forceExecute)
-		context->m_State = EXECUTING;
-	else
-		context->m_State = m_State;
+		m_State = EXECUTING;
 
 	m_AddedDrawcall = false;
 
@@ -789,76 +792,36 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk, 
 
 	m_pSerialiser->PopContext(NULL, chunk);
 	
-	if(context->m_State == READING && chunk == SET_MARKER)
+	if(m_State == READING && chunk == SET_MARKER)
 	{
 		// no push/pop necessary
 	}
-	else if(context->m_State == READING && chunk == BEGIN_EVENT)
+	else if(m_State == READING && chunk == BEGIN_EVENT)
 	{
 		// push down the drawcallstack to the latest drawcall
-		context->m_DrawcallStack.push_back(&context->m_DrawcallStack.back()->children.back());
+		GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
 	}
-	else if(context->m_State == READING && chunk == END_EVENT)
+	else if(m_State == READING && chunk == END_EVENT)
 	{
 		// refuse to pop off further than the root drawcall (mismatched begin/end events e.g.)
-		RDCASSERT(context->m_DrawcallStack.size() > 1);
-		if(context->m_DrawcallStack.size() > 1)
-			context->m_DrawcallStack.pop_back();
+		RDCASSERT(GetDrawcallStack().size() > 1);
+		if(GetDrawcallStack().size() > 1)
+			GetDrawcallStack().pop_back();
 	}
-	else if(chunk == BEGIN_CMD_BUFFER)
+	else if(m_State == READING && (chunk == BEGIN_CMD_BUFFER || chunk == END_CMD_BUFFER))
 	{
-		if(context->m_State == READING)
-		{
-			DrawcallTreeNode *draw = new DrawcallTreeNode;
-
-			RDCASSERT(m_CurCmdBufferID != ResourceId());
-			m_CmdBufferInfo[m_CurCmdBufferID].draw = draw;
-
-			context->m_DrawcallStack.push_back(draw);
-		}
-
-		// we know that command buffers always come before any other events,
-		// so we aren't trashing useful data here.
-		// We restart the count from 1 to account for a fake marker at the
-		// start of the command buffer, but the events and drawcalls recorded
-		// locally into the command buffers drawcall in m_CmdBufferInfo are
-		// 0-based. Then on queue submit we just increment all child
-		// events/drawcalls by the current 'next' ID and insert them into
-		// the tree.
-		// this happens on reading AND executing to make sure event IDs stay
-		// consistent
-		m_CurEventID = 1;
-		m_CurDrawcallID = 1;
+		// don't add these events - they will be handled when inserted in-line into queue submit
 	}
-	else if(chunk == END_CMD_BUFFER)
-	{
-		if(context->m_State == READING)
-		{
-			RDCASSERT(m_CurCmdBufferID != ResourceId());
-			m_CmdBufferInfo[m_CurCmdBufferID].eventCount = m_CurEventID;
-			m_CmdBufferInfo[m_CurCmdBufferID].drawCount = m_CurDrawcallID;
-
-			if(context->m_DrawcallStack.size() > 1)
-				context->m_DrawcallStack.pop_back();
-		}
-
-		m_CurCmdBufferID = ResourceId();
-
-		// reset to starting event/drawcall IDs as we might be doing the actual
-		// frame events now
-		m_CurEventID = 1;
-		m_CurDrawcallID = 1;
-	}
-	else if(context->m_State == READING)
+	else if(m_State == READING)
 	{
 		if(!m_AddedDrawcall)
-			context->AddEvent(chunk, m_pSerialiser->GetDebugStr());
+			AddEvent(chunk, m_pSerialiser->GetDebugStr());
 	}
 
 	m_AddedDrawcall = false;
 	
 	if(forceExecute)
-		context->m_State = state;
+		m_State = state;
 }
 
 void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
@@ -1279,11 +1242,9 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 {
 	m_AddedDrawcall = true;
 
-	WrappedVulkan *context = this;
-
 	FetchDrawcall draw = d;
-	draw.eventID = m_CurEventID;
-	draw.drawcallID = m_CurDrawcallID;
+	draw.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEventID : m_RootEventID;
+	draw.drawcallID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].drawCount : m_RootDrawcallID;
 
 	for(int i=0; i < 8; i++)
 		draw.outputs[i] = ResourceId();
@@ -1298,17 +1259,25 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 
 	draw.indexByteWidth = m_PartialReplayData.state.ibuffer.bytewidth;
 
-	m_CurDrawcallID++;
+	if(m_LastCmdBufferID != ResourceId())
+		m_CmdBufferInfo[m_LastCmdBufferID].drawCount++;
+	else
+		m_RootDrawcallID++;
+
 	if(hasEvents)
 	{
+		vector<FetchAPIEvent> &srcEvents = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].curEvents : m_RootEvents;
+
+		// VKTODOLOW the whole 'context' filter thing will go away so this will be
+		// a straight copy
 		vector<FetchAPIEvent> evs;
-		evs.reserve(m_CurEvents.size());
-		for(size_t i=0; i < m_CurEvents.size(); )
+		evs.reserve(srcEvents.size());
+		for(size_t i=0; i < srcEvents.size(); )
 		{
-			if(m_CurEvents[i].context == draw.context)
+			if(srcEvents[i].context == draw.context)
 			{
-				evs.push_back(m_CurEvents[i]);
-				m_CurEvents.erase(m_CurEvents.begin()+i);
+				evs.push_back(srcEvents[i]);
+				srcEvents.erase(srcEvents.begin()+i);
 			}
 			else
 			{
@@ -1323,11 +1292,11 @@ void WrappedVulkan::AddDrawcall(FetchDrawcall d, bool hasEvents)
 	
 	// should have at least the root drawcall here, push this drawcall
 	// onto the back's children list.
-	if(!context->m_DrawcallStack.empty())
+	if(!GetDrawcallStack().empty())
 	{
 		DrawcallTreeNode node(draw);
 		node.children.insert(node.children.begin(), draw.children.elems, draw.children.elems+draw.children.count);
-		context->m_DrawcallStack.back()->children.push_back(node);
+		GetDrawcallStack().back()->children.push_back(node);
 	}
 	else
 		RDCERR("Somehow lost drawcall stack!");
@@ -1339,7 +1308,7 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 
 	apievent.context = ResourceId();
 	apievent.fileOffset = m_CurChunkOffset;
-	apievent.eventID = m_CurEventID;
+	apievent.eventID = m_LastCmdBufferID != ResourceId() ? m_CmdBufferInfo[m_LastCmdBufferID].eventCount : m_RootEventID;
 
 	apievent.eventDesc = description;
 
@@ -1350,9 +1319,12 @@ void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
 		memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t)*stack->NumLevels());
 	}
 
-	m_CurEvents.push_back(apievent);
+	if(m_LastCmdBufferID != ResourceId())
+		m_CmdBufferInfo[m_LastCmdBufferID].curEvents.push_back(apievent);
+	else
+		m_RootEvents.push_back(apievent);
 
-	if(m_State == READING && m_CurCmdBufferID == ResourceId())
+	if(m_State == READING && m_CmdBuffersInProgress == 0)
 		m_Events.push_back(apievent);
 }
 

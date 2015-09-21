@@ -177,9 +177,9 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 		AddDrawcall(draw, true);
 
 		// add command buffer draws under here
-		m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+		GetDrawcallStack().push_back(&GetDrawcallStack().back()->children.back());
 
-		m_CurEventID++;
+		m_RootEventID++;
 
 		for(uint32_t c=0; c < numCmds; c++)
 		{
@@ -193,47 +193,47 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(
 
 			AddDrawcall(draw, true);
 
-			DrawcallTreeNode &d = m_DrawcallStack.back()->children.back();
+			DrawcallTreeNode &d = GetDrawcallStack().back()->children.back();
 
 			// copy DrawcallTreeNode children
 			d.children = m_CmdBufferInfo[cmdIds[c]].draw->children;
 
 			// assign new event and drawIDs
-			RefreshIDs(d.children, m_CurEventID, m_CurDrawcallID);
+			RefreshIDs(d.children, m_RootEventID, m_RootDrawcallID);
 
-			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_CurEventID);
+			m_PartialReplayData.cmdBufferSubmits[cmdIds[c]].push_back(m_RootEventID);
 
 			// 1 extra for the [0] virtual event for the command buffer
-			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
-			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
+			m_RootEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
 		// the outer loop will increment the event ID but we've handled
 		// it ourselves, so 'undo' that.
-		m_CurEventID--;
+		m_RootEventID--;
 
 		// done adding command buffers
 		m_DrawcallStack.pop_back();
 	}
 	else if(m_State == EXECUTING)
 	{
-		m_CurEventID++;
+		m_RootEventID++;
 
-		uint32_t startEID = m_CurEventID;
+		uint32_t startEID = m_RootEventID;
 
 		// advance m_CurEventID to match the events added when reading
 		for(uint32_t c=0; c < numCmds; c++)
 		{
 			// 1 extra for the [0] virtual event for the command buffer
-			m_CurEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
-			m_CurDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
+			m_RootEventID += 1+m_CmdBufferInfo[cmdIds[c]].eventCount;
+			m_RootDrawcallID += m_CmdBufferInfo[cmdIds[c]].drawCount;
 		}
 
-		m_CurEventID--;
+		m_RootEventID--;
 
-		if(m_LastEventID < m_CurEventID)
+		if(m_LastEventID < m_RootEventID)
 		{
-			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_CurEventID);
+			RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
 
 			uint32_t eid = startEID;
 

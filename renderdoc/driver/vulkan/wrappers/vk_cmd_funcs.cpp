@@ -165,9 +165,11 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		device = m_CmdBufferInfo[cmdId].device;
 		createInfo = m_CmdBufferInfo[cmdId].createInfo;
 	}
-	else
+
+	if(m_State < WRITING)
 	{
-		m_CurCmdBufferID = bakeId;
+		m_LastCmdBufferID = cmdId;
+		m_CmdBuffersInProgress++;
 	}
 	
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
@@ -212,6 +214,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 				ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &info);
 			}
 		}
+
+		m_CmdBufferInfo[cmdId].curEventID = 0;
 	}
 	else if(m_State == READING)
 	{
@@ -244,8 +248,16 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 		}
 
 		{
-			ResourceId liveBaked = GetResourceManager()->GetLiveID(bakeId);
-			m_CmdBufferInfo[liveBaked].device = VK_NULL_HANDLE;
+			DrawcallTreeNode *draw = new DrawcallTreeNode;
+			m_CmdBufferInfo[cmdId].draw = draw;
+			
+			// On queue submit we increment all child events/drawcalls by
+			// m_CurEventID insert them into the tree.
+			m_CmdBufferInfo[cmdId].curEventID = 0;
+			m_CmdBufferInfo[cmdId].eventCount = 0;
+			m_CmdBufferInfo[cmdId].drawCount = 0;
+
+			m_CmdBufferInfo[cmdId].drawStack.push_back(draw);
 		}
 
 		ObjDisp(device)->BeginCommandBuffer(Unwrap(cmd), &info);
@@ -299,6 +311,12 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 	SERIALISE_ELEMENT(ResourceId, bakeId, bakedCmdId);
 
+	if(m_State < WRITING)
+	{
+		m_LastCmdBufferID = cmdId;
+		m_CmdBuffersInProgress--;
+	}
+	
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdId))
@@ -314,7 +332,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 			m_PartialReplayData.partialParent = ResourceId();
 		}
 
-		m_CurEventID--;
+		m_CmdBufferInfo[cmdId].curEventID = 0;
 	}
 	else if(m_State == READING)
 	{
@@ -324,7 +342,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 		ObjDisp(cmdBuffer)->EndCommandBuffer(Unwrap(cmdBuffer));
 
-		if(!m_CurEvents.empty())
+		if(!m_CmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
 		{
 			FetchDrawcall draw;
 			draw.name = "API Calls";
@@ -332,9 +350,26 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 
 			// the outer loop will increment the event ID but we've not
 			// actually added anything just wrapped up the existing EIDs.
-			m_CurEventID--;
+			m_CmdBufferInfo[m_LastCmdBufferID].curEventID--;
 
 			AddDrawcall(draw, true);
+		}
+
+		{
+			if(GetDrawcallStack().size() > 1)
+				GetDrawcallStack().pop_back();
+		}
+
+		{
+			m_CmdBufferInfo[bakeId].draw = m_CmdBufferInfo[m_LastCmdBufferID].draw;
+			m_CmdBufferInfo[bakeId].curEventID = 0;
+			m_CmdBufferInfo[bakeId].eventCount = m_CmdBufferInfo[m_LastCmdBufferID].curEventID;
+			m_CmdBufferInfo[bakeId].drawCount = m_CmdBufferInfo[m_LastCmdBufferID].drawCount;
+			
+			m_CmdBufferInfo[m_LastCmdBufferID].draw = NULL;
+			m_CmdBufferInfo[m_LastCmdBufferID].curEventID = 0;
+			m_CmdBufferInfo[m_LastCmdBufferID].eventCount = 0;
+			m_CmdBufferInfo[m_LastCmdBufferID].drawCount = 0;
 		}
 	}
 
@@ -423,11 +458,6 @@ bool WrappedVulkan::Serialise_vkResetCommandBuffer(VkCmdBuffer cmdBuffer, VkCmdB
 		{
 			cmd = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(bakeId);
 		}
-		
-		{
-			ResourceId liveBaked = GetResourceManager()->GetLiveID(bakeId);
-			m_CmdBufferInfo[liveBaked].device = VK_NULL_HANDLE;
-		}
 
 		ObjDisp(device)->ResetCommandBuffer(Unwrap(cmd), fl);
 	}
@@ -476,6 +506,9 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(
 	SERIALISE_ELEMENT(VkRenderPassBeginInfo, beginInfo, *pRenderPassBegin);
 	SERIALISE_ELEMENT(VkRenderPassContents, cont, contents);
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
@@ -539,6 +572,9 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
@@ -588,6 +624,9 @@ bool WrappedVulkan::Serialise_vkCmdBindPipeline(
 	SERIALISE_ELEMENT(VkPipelineBindPoint, bind, pipelineBindPoint);
 	SERIALISE_ELEMENT(ResourceId, pipeid, GetResID(pipeline));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		if(IsPartialCmd(cmdid) && InPartialRange())
@@ -655,6 +694,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDescriptorSets(
 
 	SERIALISE_ELEMENT(uint32_t, numSets, setCount);
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	ResourceId *descriptorIDs = new ResourceId[numSets];
 
 	VkDescriptorSet *sets = (VkDescriptorSet *)pDescriptorSets;
@@ -784,6 +826,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicViewportState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResID(dynamicViewportState));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		dynamicViewportState = GetResourceManager()->GetLiveHandle<VkDynamicViewportState>(stateid);
@@ -832,6 +877,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicRasterState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResID(dynamicRasterState));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		dynamicRasterState = GetResourceManager()->GetLiveHandle<VkDynamicRasterState>(stateid);
@@ -880,6 +928,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicColorBlendState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResID(dynamicColorBlendState));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		dynamicColorBlendState = GetResourceManager()->GetLiveHandle<VkDynamicColorBlendState>(stateid);
@@ -927,6 +978,9 @@ bool WrappedVulkan::Serialise_vkCmdBindDynamicDepthStencilState(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(ResourceId, stateid, GetResID(dynamicDepthStencilState));
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		dynamicDepthStencilState = GetResourceManager()->GetLiveHandle<VkDynamicDepthStencilState>(stateid);
@@ -978,6 +1032,9 @@ bool WrappedVulkan::Serialise_vkCmdBindVertexBuffers(
 	SERIALISE_ELEMENT(uint32_t, start, startBinding);
 	SERIALISE_ELEMENT(uint32_t, count, bindingCount);
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	vector<ResourceId> bufids;
 	vector<VkBuffer> bufs;
 	vector<VkDeviceSize> offs;
@@ -1072,6 +1129,9 @@ bool WrappedVulkan::Serialise_vkCmdBindIndexBuffer(
 	SERIALISE_ELEMENT(uint64_t, offs, offset);
 	SERIALISE_ELEMENT(VkIndexType, idxType, indexType);
 
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == EXECUTING)
 	{
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
@@ -1131,6 +1191,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	SERIALISE_ELEMENT(VkPipelineStageFlags, src, srcStageMask);
 	SERIALISE_ELEMENT(VkPipelineStageFlags, dest, destStageMask);
+	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
 	
 	SERIALISE_ELEMENT(VkBool32, region, byRegion);
 
@@ -1282,6 +1345,9 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	m_pSerialiser->Serialise("Name", name);
 	
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
 	if(m_State == READING)
 	{
 		FetchDrawcall draw;
@@ -1313,7 +1379,10 @@ bool WrappedVulkan::Serialise_vkCmdDbgMarkerEnd(VkCmdBuffer cmdBuffer)
 {
 	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
 	
-	if(m_State == READING && !m_CurEvents.empty())
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == READING && !m_CmdBufferInfo[m_LastCmdBufferID].curEvents.empty())
 	{
 		FetchDrawcall draw;
 		draw.name = "API Calls";

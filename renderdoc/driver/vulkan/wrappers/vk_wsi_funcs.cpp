@@ -889,19 +889,15 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 
 				map<int32_t, Chunk *> recordlist;
 
-				// ensure all command buffer records are disjoint and all present before queue submits
+				// ensure all command buffer records within the frame evne if recorded before, but
+				// otherwise order must be preserved (vs. queue submits and desc set updates)
 				for(size_t i=0; i < m_CmdBufferRecords.size(); i++)
 				{
-					recordlist.clear();
 					m_CmdBufferRecords[i]->Insert(recordlist);
 
 					RDCDEBUG("Adding %u chunks to file serialiser from command buffer %llu", (uint32_t)recordlist.size(), m_CmdBufferRecords[i]->GetResourceID());	
-
-					for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-						m_pFileSerialiser->Insert(it->second);
 				}
 
-				recordlist.clear();
 				m_FrameCaptureRecord->Insert(recordlist);
 
 				RDCDEBUG("Flushing %u chunks to file serialiser from context record", (uint32_t)recordlist.size());	
