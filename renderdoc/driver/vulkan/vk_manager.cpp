@@ -218,14 +218,16 @@ void VulkanResourceManager::SerialiseImageStates(Serialiser *m_pSerialiser, map<
 		SERIALISE_ELEMENT(ResourceId, id, srcit->first);
 		SERIALISE_ELEMENT(uint32_t, NumStates, (uint32_t)srcit->second.subresourceStates.size());
 
-		ResourceId liveid; if(m_State < WRITING) liveid = GetLiveID(id);
+		ResourceId liveid;
+		if(m_State < WRITING && HasLiveResource(id))
+			liveid = GetLiveID(id);
 		auto dstit = states.find(id);
 
 		for(uint32_t m=0; m < NumStates; m++)
 		{
 			SERIALISE_ELEMENT(ImageRegionState, state, srcit->second.subresourceStates[m]);
 
-			if(m_State < WRITING && srcit != states.end())
+			if(m_State < WRITING && liveid != ResourceId() && srcit != states.end())
 			{
 				VkImageMemoryBarrier t;
 				t.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
