@@ -346,6 +346,10 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	{
 		RDCWARN("Framebuffer without initial state! should clear all attachments");
 	}
+	else if(type == eResBuffer)
+	{
+		// don't have to do anything for buffers, initial state is all handled by memory
+	}
 	else
 	{
 		RDCERR("Unhandled resource type %d", type);

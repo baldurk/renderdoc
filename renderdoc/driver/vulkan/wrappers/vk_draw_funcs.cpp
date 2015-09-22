@@ -248,7 +248,6 @@ void WrappedVulkan::vkCmdCopyImage(
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 
-		// VKTODOHIGH init states not implemented yet...
 		record->dirtied.insert(GetResID(destImage));
 		{
 			VkResourceRecord *im = GetRecord(destImage);
@@ -412,8 +411,7 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
 
-		// VKTODOMED: need to dirty the memory bound to the buffer?
-		record->dirtied.insert(GetResID(destBuffer));
+		// Don't dirty the buffer, just the memory behind it.
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
@@ -499,8 +497,7 @@ void WrappedVulkan::vkCmdCopyBuffer(
 		record->MarkResourceFrameReferenced(GetResID(srcBuffer), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetResID(destBuffer), eFrameRef_Write);
 		
-		// VKTODOMED: need to dirty the memory bound to the buffer?
-		record->dirtied.insert(GetResID(destBuffer));
+		// Don't dirty the buffer, just the memory behind it.
 		{
 			VkResourceRecord *buf = GetRecord(destBuffer);
 			if(buf->GetMemoryRecord())
