@@ -333,8 +333,11 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 				   it->range.baseArraySlice == t.range.baseArraySlice &&
 				   it->range.arraySize == numslices)
 				{
-					RDCASSERT(t.prevstate == UNTRANSITIONED_IMG_STATE || it->state == UNTRANSITIONED_IMG_STATE ||
-					          it->state == t.prevstate);
+					/*
+					RDCASSERT(t.prevstate == UNTRANSITIONED_IMG_STATE || it->state == UNTRANSITIONED_IMG_STATE || // renderdoc untracked/ignored
+					          it->state == t.prevstate || // valid transition
+										t.prevstate == VK_IMAGE_LAYOUT_UNDEFINED); // can transition from UNDEFINED to any state
+					*/
 					t.prevstate = it->state;
 					it->state = t.state;
 
