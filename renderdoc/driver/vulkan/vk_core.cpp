@@ -755,9 +755,15 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 			break;
 
 		if(m_LastCmdBufferID != ResourceId())
-			m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
+		{
+			// these events are completely omitted, so don't increment the curEventID
+			if(context != BEGIN_CMD_BUFFER && context != END_CMD_BUFFER)
+				m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
+		}
 		else
+		{
 			m_RootEventID++;
+		}
 	}
 
 	if(m_State == READING)
