@@ -342,7 +342,15 @@ class Serialiser
 			}
 			else if(m_Mode == READING)
 			{
+				const uint32_t maxElems = numElems;
+
 				ReadInto(numElems);
+				
+				if(numElems > maxElems)
+				{
+					RDCERR("Unexpected number of POD array elements: %u for capacity %u", numElems, maxElems);
+					numElems = maxElems;
+				}
 
 				if(numElems > 0)
 				{
