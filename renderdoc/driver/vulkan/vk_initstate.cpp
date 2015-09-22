@@ -134,7 +134,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 	}
 	else if(type == eResImage)
 	{
-		RDCUNIMPLEMENTED("image initial states not implemented");
+		VULKANNOTIMP("image initial states not implemented");
 
 		if(m_ImageInfo.find(id) == m_ImageInfo.end())
 		{
@@ -178,7 +178,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", info, numElems);
 		}
-		else if(type == eResImage || type == eResDeviceMemory)
+		else if(type == eResDeviceMemory)
 		{
 			VkDevice d = GetDev();
 
@@ -191,6 +191,10 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			ObjDisp(d)->UnmapMemory(Unwrap(d), ToHandle<VkDeviceMemory>(initContents.resource));
 		}
+		else if(type == eResImage)
+		{
+			VULKANNOTIMP("image initial states not implemented");
+		}
 	}
 	else
 	{
@@ -200,6 +204,8 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			VkDescriptorInfo *bindings = NULL;
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
+
+			RDCASSERT(res != NULL);
 
 			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
 
@@ -254,7 +260,7 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, validBinds, blob));
 		}
-		else if(type == eResImage || type == eResDeviceMemory)
+		else if(type == eResDeviceMemory)
 		{
 			byte *data = NULL;
 			size_t dataSize = 0;
@@ -308,6 +314,10 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 			// VKTODOMED leaking the memory here! needs to be cleaned up with the buffer
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(GetWrapped(buf), eInitialContents_Copy, NULL));
 		}
+		else if(type == eResImage)
+		{
+			VULKANNOTIMP("image initial states not implemented");
+		}
 	}
 
 	return true;
@@ -323,15 +333,18 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	}
 	else if(type == eResImage)
 	{
-		RDCUNIMPLEMENTED("image initial states not implemented");
+		VULKANNOTIMP("image initial states not implemented");
 
-		if(m_ImageInfo.find(id) == m_ImageInfo.end())
+		ResourceId liveid = GetResourceManager()->GetLiveID(id);
+
+		if(m_ImageInfo.find(liveid) == m_ImageInfo.end())
 		{
-			RDCERR("Couldn't find image info");
+			RDCERR("Couldn't find image info for %llu", id);
+			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
 			return;
 		}
 
-		ImgState &img = m_ImageInfo[id];
+		ImgState &img = m_ImageInfo[liveid];
 
 		if(img.subresourceStates[0].range.aspect == VK_IMAGE_ASPECT_COLOR)
 			GetResourceManager()->SetInitialContents(id, VulkanResourceManager::InitialContentData(NULL, eInitialContents_ClearColorImage, NULL));
@@ -451,7 +464,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live, VulkanResourceManager
 	else if(type == eResImage)
 	{
 		// VKTODOHIGH: need to copy initial copy to live
-		RDCUNIMPLEMENTED("image initial states not implemented");
+		VULKANNOTIMP("image initial states not implemented");
 	}
 	else
 	{
