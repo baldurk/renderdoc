@@ -262,7 +262,7 @@ class OpenGLHook : LibraryHook
 	public:
 		OpenGLHook()
 		{
-			LibraryHooks::GetInstance().RegisterHook("libGL.so", this);
+			//LibraryHooks::GetInstance().RegisterHook("libGL.so", this);
 			
 			RDCEraseEl(GL);
 
