@@ -340,7 +340,7 @@ VkResult WrappedVulkan::vkFlushMappedMemoryRanges(
 		auto it = m_MemoryInfo.find(GetResID(pMemRanges[i].mem));
 		it->second.mapFlushed = true;
 
-		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME && !it->second.mapFlushed)
+		if(ret == VK_SUCCESS && m_State >= WRITING_CAPFRAME)
 		{
 			SCOPED_SERIALISE_CONTEXT(FLUSH_MEM);
 			Serialise_vkFlushMappedMemoryRanges(device, 1, pMemRanges+i);
