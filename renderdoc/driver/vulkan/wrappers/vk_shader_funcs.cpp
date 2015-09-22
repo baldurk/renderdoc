@@ -91,6 +91,12 @@ VkResult WrappedVulkan::vkCreatePipelineLayout(
 
 			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pPipelineLayout);
 			record->AddChunk(chunk);
+
+			for(uint32_t i=0; i < pCreateInfo->descriptorSetCount; i++)
+			{
+				VkResourceRecord *layoutrecord = GetRecord(pCreateInfo->pSetLayouts[i]);
+				record->AddParent(layoutrecord);
+			}
 		}
 		else
 		{
