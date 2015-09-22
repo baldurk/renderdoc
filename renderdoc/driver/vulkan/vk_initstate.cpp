@@ -198,14 +198,14 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 	}
 	else
 	{
+		RDCASSERT(res != NULL);
+
 		if(type == eResDescriptorSet)
 		{
 			uint32_t numElems;
 			VkDescriptorInfo *bindings = NULL;
 
 			m_pSerialiser->SerialiseComplexArray("Bindings", bindings, numElems);
-
-			RDCASSERT(res != NULL);
 
 			const VulkanCreationInfo::DescSetLayout &layout = m_CreationInfo.m_DescSetLayout[ m_DescriptorSetInfo[id].layout ];
 
@@ -353,7 +353,7 @@ void WrappedVulkan::Create_InitialState(ResourceId id, WrappedVkRes *live, bool 
 	}
 	else if(type == eResDeviceMemory)
 	{
-		RDCERR("Unexpected attempt to create initial state for memory");
+		// ignore, it was probably dirty but not referenced in the frame
 	}
 	else if(type == eResFramebuffer)
 	{

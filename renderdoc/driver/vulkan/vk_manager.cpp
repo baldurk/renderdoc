@@ -438,20 +438,56 @@ void VulkanResourceManager::ApplyTransitions(vector< pair<ResourceId, ImageRegio
 	}
 }
 
+void VulkanResourceManager::Hack_PropagateReferencesToMemory()
+{
+	// very nasty - prevents us re-processing the same entries when we loop
+	// around to recursively propagate references.
+	std::set<ResourceId> processed;
+
+	// VKTODOMED this is hack, should be done earlier, but for now it works.
+	// iterate through every referenced resource and make sure its memory is referenced
+	// too.
+	for(auto it = m_FrameReferencedResources.begin(); it != m_FrameReferencedResources.end(); ++it)
+	{
+		ResourceId id = it->first;
+
+		if(processed.find(id) != processed.end()) continue;
+		processed.insert(id);
+
+		VkResourceRecord *record = GetResourceRecord(id);
+
+		if(record && record->GetMemoryRecord())
+		{
+			RDCLOG("Propagating reference from %llu to %llu", record->GetResourceID(), record->GetMemoryRecord()->GetResourceID());
+			// mark it as read-before-write so that we ensure there are initial states serialised for it.
+			MarkResourceFrameReferenced(record->GetMemoryRecord()->GetResourceID(), eFrameRef_ReadBeforeWrite);
+		}
+		else if(record && HasCurrentResource(id))
+		{
+			// also extra hack - framebuffers and views and things need to mark their
+			// parents referenced so that we can eventually come to the image or buffer
+			// with a memory record.
+			WrappedVkRes *res = GetCurrentResource(id);
+
+			if(WrappedVkBufferView::IsAlloc(res) ||
+					WrappedVkImageView::IsAlloc(res) ||
+					WrappedVkAttachmentView::IsAlloc(res) ||
+					WrappedVkFramebuffer::IsAlloc(res))
+			{
+				record->MarkParentsReferenced(this, eFrameRef_Read);
+
+				RDCLOG("Propagating references to parents from %llu", record->GetResourceID());
+
+				// reset to start so we can do this recursively - nasty I know.
+				it = m_FrameReferencedResources.begin();
+			}
+		}
+	}
+}
+
 bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res)
 {
-	// VKTODOMED don't want to be forcing device memory initial state, need to
-	// know which objects have dirtied their bound memory.
-	if(!WrappedVkDeviceMemory::IsAlloc(res))
-		return false;
-
-	WrappedVkDeviceMemory *devmem = (WrappedVkDeviceMemory *)res;
-
-	// debug-only resources we don't want initial states for
-	if(devmem->record == NULL)
-		return false;
-
-	return true;
+	return false;
 }
 
 bool VulkanResourceManager::Need_InitialStateChunk(WrappedVkRes *res)

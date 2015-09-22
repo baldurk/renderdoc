@@ -882,6 +882,8 @@ VkResult WrappedVulkan::vkQueuePresentWSI(
 				m_pFileSerialiser->Insert(scope.Get(true));
 			}
 
+			GetResourceManager()->Hack_PropagateReferencesToMemory();
+
 			RDCDEBUG("Inserting Resource Serialisers");	
 
 			GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);

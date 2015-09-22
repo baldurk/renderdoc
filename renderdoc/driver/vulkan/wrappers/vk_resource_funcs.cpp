@@ -88,6 +88,10 @@ VkResult WrappedVulkan::vkAllocMemory(
 			RDCASSERT(record);
 
 			record->AddChunk(chunk);
+
+			// VKTODOMED always treat memory as dirty for now, so its initial state
+			// is guaranteed to be prepared
+			GetResourceManager()->MarkDirtyResource(id);
 		}
 		else
 		{
