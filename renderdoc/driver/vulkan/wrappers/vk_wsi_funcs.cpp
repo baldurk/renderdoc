@@ -29,6 +29,11 @@
 
 #include "jpeg-compressor/jpge.h"
 
+struct xcb_connection_t;
+
+// bit of a hack
+namespace Keyboard { void UseConnection(xcb_connection_t *conn); }
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // WSI extension
 
@@ -164,6 +169,17 @@ bool WrappedVulkan::Serialise_vkCreateSwapChainWSI(
 	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
 	SERIALISE_ELEMENT(VkSwapChainCreateInfoWSI, info, *pCreateInfo);
 	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pSwapChain));
+
+	if(pCreateInfo && pCreateInfo->pSurfaceDescription)
+	{
+		VkSurfaceDescriptionWindowWSI *surf = (VkSurfaceDescriptionWindowWSI*)pCreateInfo->pSurfaceDescription;
+
+		if(surf->platform == VK_PLATFORM_XCB_WSI)
+		{
+			VkPlatformHandleXcbWSI *handle = (VkPlatformHandleXcbWSI *)surf->pPlatformHandle;
+			Keyboard::UseConnection(handle->connection);
+		}
+	}
 
 	uint32_t numIms = 0;
 

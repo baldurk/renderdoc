@@ -37,6 +37,8 @@
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
 
+#include <xcb/xcb_keysyms.h>
+
 #include <iconv.h>
 
 // for dladdr
@@ -55,13 +57,15 @@ namespace Keyboard
 	{
 	}
 	
-	Display *CurrentXDisplay = NULL;
+	xcb_connection_t *connection;
+	xcb_key_symbols_t *symbols;
 
-	void CloneDisplay(Display *dpy)
+	void CloneDisplay(Display *dpy) {}
+
+	void UseConnection(xcb_connection_t *conn)
 	{
-		if(CurrentXDisplay || dpy == NULL) return;
-
-		CurrentXDisplay = XOpenDisplay(XDisplayString(dpy));
+		connection = conn;
+		symbols = xcb_key_symbols_alloc(conn);
 	}
 
 	void AddInputWindow(void *wnd)
@@ -77,7 +81,7 @@ namespace Keyboard
 	{
 		KeySym ks = 0;
 		
-		if(CurrentXDisplay == NULL) return false;
+		if(symbols == NULL) return false;
 
 		if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z) ks = key;
 		if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9) ks = key;
@@ -116,18 +120,29 @@ namespace Keyboard
 
 		if(ks == 0)
 			return false;
+
+		xcb_keycode_t *keyCodes = xcb_key_symbols_get_keycode(symbols, ks);
+
+		if(!keyCodes)
+			return false;
+
+		xcb_query_keymap_cookie_t keymapcookie = xcb_query_keymap(connection);
+		xcb_query_keymap_reply_t *keys = xcb_query_keymap_reply(connection, keymapcookie, NULL);
+
+		bool ret = false;
 		
-		KeyCode kc = XKeysymToKeycode(CurrentXDisplay, ks);
-		
-		char keyState[32];
-		XQueryKeymap(CurrentXDisplay, keyState);
-		
-		int byteIdx = (kc/8);
-		int bitMask = 1 << (kc%8);
-		
-		uint8_t keyByte = (uint8_t)keyState[byteIdx];
-		
-		return (keyByte & bitMask) != 0;
+		if(keys && keyCodes[0] != XCB_NO_SYMBOL)
+		{
+			int byteIdx = (keyCodes[0]/8);
+			int bitMask = 1 << (keyCodes[0]%8);
+
+			ret = (keys->keys[byteIdx] & bitMask) != 0;
+		}
+
+		free(keyCodes);
+		free(keys);
+
+		return ret;
 	}
 }
 

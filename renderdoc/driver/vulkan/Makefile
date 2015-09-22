@@ -7,7 +7,6 @@ MACROS=-DLINUX \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I../../ -I../../3rdparty/ -I$(VULKAN_SDK)/include/vulkan
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
-LDFLAGS=-lpthread -lrt -shared -ldl -lX11
 OBJDIR=.obj
 OBJECTS=vk_dispatchtables.o \
 vk_tracelayer.o \

@@ -7,7 +7,7 @@ MACROS=-DLINUX \
 			 -DGIT_COMMIT_HASH="\"$(COMMIT)\""
 CFLAGS=-c -Wall -Werror -Wno-unused -Wno-unknown-pragmas -fPIC $(MACROS) -I. -I3rdparty/
 CPPFLAGS=-std=c++11 -g -Wno-reorder -fvisibility=hidden -fvisibility-inlines-hidden
-LDFLAGS=-lpthread -lrt -shared -ldl -lX11
+LDFLAGS=-lpthread -lrt -shared -ldl -lX11 -lxcb-keysyms
 LIBS=driver/gl/rdoc_gl.a driver/vulkan/rdoc_vulkan.a driver/shaders/spirv/rdoc_spirv.a $(VULKAN_SDK_SRC)/build/layers/liblayer_utils.so
 OBJDIR=.obj
 OBJECTS=replay/replay_output.o \
