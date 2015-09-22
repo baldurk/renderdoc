@@ -1920,8 +1920,8 @@ static void SerialiseNext(Serialiser *ser, const void *&pNext)
 	// VKTODOLOW serialise out whether there is a next structure, its type, and contents
 	if(ser->IsReading())
 		pNext = NULL;
-	else
-		RDCASSERT(pNext == NULL);
+	//else
+		//RDCASSERT(pNext == NULL);
 }
 
 template<typename T>

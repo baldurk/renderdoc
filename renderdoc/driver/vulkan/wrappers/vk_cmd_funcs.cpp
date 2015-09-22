@@ -1204,7 +1204,7 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
 
 	for(uint32_t i=0; i < memCount; i++)
 	{
-		SERIALISE_ELEMENT(VkStructureType, stype, ((VkGenericStruct *)ppMemBarriers[i])->type);
+		SERIALISE_ELEMENT(VkStructureType, stype, ((VkGenericStruct *)ppMemBarriers[i])->sType);
 
 		if(stype == VK_STRUCTURE_TYPE_MEMORY_BARRIER)
 		{
@@ -1284,14 +1284,14 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 		{
 			VkGenericStruct *header = (VkGenericStruct *)ppMemBarriers[i];
 
-			if(header->type == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
+			if(header->sType == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
 			{
 				VkImageMemoryBarrier barrier = *(VkImageMemoryBarrier *)header;
 				barrier.image = Unwrap(barrier.image);
 				im.push_back(barrier);
 				unwrappedBarriers[i] = &im.back();
 			}
-			else if(header->type == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
+			else if(header->sType == VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER)
 			{
 				VkBufferMemoryBarrier barrier = *(VkBufferMemoryBarrier *)header;
 				barrier.buffer = Unwrap(barrier.buffer);
@@ -1322,7 +1322,7 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 
 		for(uint32_t i=0; i < memBarrierCount; i++)
 		{
-			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->type;
+			VkStructureType stype = ((VkGenericStruct *)ppMemBarriers[i])->sType;
 
 			if(stype == VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER)
 				imTrans.push_back(*((VkImageMemoryBarrier *)ppMemBarriers[i]));

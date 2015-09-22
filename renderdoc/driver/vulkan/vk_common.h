@@ -70,7 +70,7 @@ PrimitiveTopology MakePrimitiveTopology(VkPrimitiveTopology Topo, uint32_t patch
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {
-	VkStructureType type;
+	VkStructureType sType;
 	const VkGenericStruct *pNext;
 };
 
