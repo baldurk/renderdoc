@@ -170,6 +170,11 @@ void WrappedVulkan::vkCmdBlitImage(
 		record->AddChunk(scope.Get());
 
 		record->dirtied.insert(GetResID(destImage));
+		{
+			VkResourceRecord *im = GetRecord(destImage);
+			if(im->GetMemoryRecord())
+				record->dirtied.insert(im->GetMemoryRecord()->GetResourceID());
+		}
 		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 	}
@@ -244,7 +249,12 @@ void WrappedVulkan::vkCmdCopyImage(
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 
 		// VKTODOHIGH init states not implemented yet...
-		//record->dirtied.insert(GetResID(destImage));
+		record->dirtied.insert(GetResID(destImage));
+		{
+			VkResourceRecord *im = GetRecord(destImage);
+			if(im->GetMemoryRecord())
+				record->dirtied.insert(im->GetMemoryRecord()->GetResourceID());
+		}
 	}
 }
 
@@ -326,6 +336,11 @@ void WrappedVulkan::vkCmdCopyBufferToImage(
 		record->AddChunk(scope.Get());
 
 		record->dirtied.insert(GetResID(destImage));
+		{
+			VkResourceRecord *im = GetRecord(destImage);
+			if(im->GetMemoryRecord())
+				record->dirtied.insert(im->GetMemoryRecord()->GetResourceID());
+		}
 		record->MarkResourceFrameReferenced(GetResID(srcBuffer), eFrameRef_Read);
 		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
 	}
@@ -399,6 +414,11 @@ void WrappedVulkan::vkCmdCopyImageToBuffer(
 
 		// VKTODOMED: need to dirty the memory bound to the buffer?
 		record->dirtied.insert(GetResID(destBuffer));
+		{
+			VkResourceRecord *buf = GetRecord(destBuffer);
+			if(buf->GetMemoryRecord())
+				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+		}
 	}
 }
 
@@ -481,6 +501,11 @@ void WrappedVulkan::vkCmdCopyBuffer(
 		
 		// VKTODOMED: need to dirty the memory bound to the buffer?
 		record->dirtied.insert(GetResID(destBuffer));
+		{
+			VkResourceRecord *buf = GetRecord(destBuffer);
+			if(buf->GetMemoryRecord())
+				record->dirtied.insert(buf->GetMemoryRecord()->GetResourceID());
+		}
 	}
 }
 
