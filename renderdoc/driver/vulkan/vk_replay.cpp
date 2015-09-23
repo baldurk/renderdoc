@@ -486,7 +486,7 @@ vector<ResourceId> VulkanReplay::GetTextures()
 	ResourceFormat fakeBBfmt;
 	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
 
-	texs.push_back(id);
+	texs.push_back(m_pDriver->GetResourceManager()->GetLiveID(id));
 	return texs;
 }
 	
@@ -632,17 +632,36 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 
 	OutputWindow &outw = it->second;
 
-	ResourceId resid;
-	VkImage fakeBBIm = VK_NULL_HANDLE;
-	VkExtent3D fakeBBext;
-	ResourceFormat fakeBBfmt;
-	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
-	
 	VkDevice dev = m_pDriver->GetDev();
 	VkCmdBuffer cmd = m_pDriver->GetCmd();
 	VkQueue q = m_pDriver->GetQ();
 	const VkLayerDispatchTable *vt = ObjDisp(dev);
 
+	const ImgState &iminfo = m_pDriver->m_ImageInfo[cfg.texid];
+	VkImage liveIm = m_pDriver->GetResourceManager()->GetCurrentHandle<VkImage>(cfg.texid);
+
+	// VKTODOMED handle multiple subresources with different layouts etc
+	VkImageLayout origLayout = iminfo.subresourceStates[0].state;
+	VkImageView liveImView = VK_NULL_HANDLE;
+
+	// VKTODOLOW this view should be cached
+	{
+		VkImageViewCreateInfo viewInfo = {
+			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
+			Unwrap(liveIm), VK_IMAGE_VIEW_TYPE_2D,
+			iminfo.format,
+			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
+			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
+		};
+
+		// VKTODOMED used for texture display, but eventually will have to be created on the fly
+		// for whichever image we're viewing (and cached), not specifically created here.
+		VkResult vkr = vt->CreateImageView(Unwrap(dev), &viewInfo, &liveImView);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		m_pDriver->GetResourceManager()->WrapResource(Unwrap(dev), liveImView);
+	}
+	
 	// VKTODOHIGH once we stop doing DeviceWaitIdle/QueueWaitIdle all over, this
 	// needs to be ring-buffered
 	displayuniforms *data = (displayuniforms *)GetDebugManager()->m_TexDisplayUBO.Map(vt, dev);
@@ -657,10 +676,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	data->Scale = cfg.scale;
 	data->HDRMul = -1.0f;
 
-	int32_t tex_x = fakeBBext.width;
-	int32_t tex_y = fakeBBext.height;
-	int32_t tex_z = fakeBBext.depth;
-	
+	int32_t tex_x = iminfo.extent.width;
+	int32_t tex_y = iminfo.extent.height;
+	int32_t tex_z = iminfo.extent.depth;
+
 	if(cfg.scale <= 0.0f)
 	{
 		float xscale = float(outw.width)/float(tex_x);
@@ -727,7 +746,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	
 	VkDescriptorInfo desc = {0};
 	desc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc.imageView = Unwrap(GetDebugManager()->m_FakeBBImView);
+	desc.imageView = Unwrap(liveImView);
 	desc.sampler = Unwrap(GetDebugManager()->m_PointSampler);
 	if(cfg.mip == 0 && cfg.scale < 1.0f)
 		desc.sampler = Unwrap(GetDebugManager()->m_LinearSampler);
@@ -740,11 +759,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	VkResult vkr = vt->UpdateDescriptorSets(Unwrap(dev), 1, &writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	// VKTODOHIGH find out the actual current image state
-	VkImageMemoryBarrier fakeTrans = {
+	VkImageMemoryBarrier srcimTrans = {
 		VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
-		0, 0, VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-		0, 0, Unwrap(fakeBBIm),
+		0, 0, origLayout, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+		0, 0, Unwrap(liveIm),
 		{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1 } };
 
 	VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
@@ -754,10 +772,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
 	RDCASSERT(vkr == VK_SUCCESS);
 
-	void *barrier = (void *)&fakeTrans;
+	void *barrier = (void *)&srcimTrans;
 
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
-	fakeTrans.oldLayout = fakeTrans.newLayout;
+	srcimTrans.oldLayout = srcimTrans.newLayout;
 
 	{
 		VkClearValue clearval = {0};
@@ -782,7 +800,7 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 		vt->CmdEndRenderPass(Unwrap(cmd));
 	}
 
-	fakeTrans.newLayout = VK_IMAGE_LAYOUT_PRESENT_SOURCE_WSI;
+	srcimTrans.newLayout = origLayout;
 	vt->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 1, &barrier);
 
 	vt->EndCommandBuffer(Unwrap(cmd));
@@ -793,6 +811,10 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
 	// into a single command buffer and we can just have several allocated
 	// ring-buffer style
 	vt->QueueWaitIdle(Unwrap(q));
+
+	vkr = vt->DestroyImageView(Unwrap(dev), Unwrap(liveImView));
+	RDCASSERT(vkr == VK_SUCCESS);
+	VKMGR()->ReleaseWrappedResource(liveImView);
 
 	return false;
 }
@@ -1133,24 +1155,26 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	VkExtent3D fakeBBext;
 	ResourceFormat fakeBBfmt;
 	m_pDriver->GetFakeBB(resid, fakeBBIm, fakeBBext, fakeBBfmt);
+	
+	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
 
 	FetchTexture ret;
 	ret.arraysize = 1;
-	ret.byteSize = fakeBBext.width*fakeBBext.height*4;
+	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4;
 	ret.creationFlags = eTextureCreate_SwapBuffer|eTextureCreate_SRV|eTextureCreate_RTV;
 	ret.cubemap = false;
 	ret.customName = false;
 	ret.depth = 1;
-	ret.width = fakeBBext.width;
-	ret.height = fakeBBext.height;
+	ret.width = iminfo.extent.width;
+	ret.height = iminfo.extent.height;
 	ret.dimension = 2;
-	ret.ID = id;
+	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	ret.mips = 1;
 	ret.msQual = 0;
 	ret.msSamp = 1;
 	ret.name = "WSI Presentable Image";
 	ret.numSubresources = 1;
-	ret.format = fakeBBfmt;
+	ret.format = MakeResourceFormat(iminfo.format);
 	return ret;
 }
 

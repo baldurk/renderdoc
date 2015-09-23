@@ -165,7 +165,7 @@ void VulkanDebugManager::UBO::Unmap(const VkLayerDispatchTable *vt, VkDevice dev
 	vt->UnmapMemory(Unwrap(dev), Unwrap(mem));
 }
 
-VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView)
+VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 {
 	// VKTODOLOW needs tidy up - isn't scalable. Needs more classes like UBO above.
 
@@ -175,8 +175,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 	m_DynamicDSStateDisabled = VK_NULL_HANDLE;
 	m_LinearSampler = VK_NULL_HANDLE;
 	m_PointSampler = VK_NULL_HANDLE;
-
-	m_FakeBBImView = fakeBBView;
 
 	m_CheckerboardDescSetLayout = VK_NULL_HANDLE;
 	m_CheckerboardPipeLayout = VK_NULL_HANDLE;
@@ -696,7 +694,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		m_TextGlyphUBO.Unmap(vt, dev);
 	}
 
-	VkDescriptorInfo desc[7];
+	VkDescriptorInfo desc[6];
 	RDCEraseEl(desc);
 	
 	// checkerboard
@@ -704,17 +702,15 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 
 	// tex display
 	desc[1].bufferView = Unwrap(m_TexDisplayUBO.view);
-	desc[2].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc[2].imageView = Unwrap(m_FakeBBImView);
-	desc[2].sampler = Unwrap(m_LinearSampler);
+	// image descriptor is updated right before rendering
 
 	// text
-	desc[3].bufferView = Unwrap(m_TextGeneralUBO.view);
-	desc[4].bufferView = Unwrap(m_TextGlyphUBO.view);
-	desc[5].bufferView = Unwrap(m_TextStringUBO.view);
-	desc[6].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-	desc[6].imageView = Unwrap(m_TextAtlasView);
-	desc[6].sampler = Unwrap(m_LinearSampler);
+	desc[2].bufferView = Unwrap(m_TextGeneralUBO.view);
+	desc[3].bufferView = Unwrap(m_TextGlyphUBO.view);
+	desc[4].bufferView = Unwrap(m_TextStringUBO.view);
+	desc[5].imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	desc[5].imageView = Unwrap(m_TextAtlasView);
+	desc[5].sampler = Unwrap(m_LinearSampler);
 
 	VkWriteDescriptorSet writeSet[] = {
 		{
@@ -727,32 +723,23 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkIm
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[3]
+			Unwrap(m_TextDescSet), 0, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[2]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[4]
+			Unwrap(m_TextDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[3]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[5]
+			Unwrap(m_TextDescSet), 2, 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, &desc[4]
 		},
 		{
 			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[6]
-		},
-			// this one is last so that we can skip it if we don't have m_FakeBBImView
-		{
-			VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL,
-			Unwrap(m_TexDisplayDescSet), 1, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[2]
+			Unwrap(m_TextDescSet), 3, 0, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &desc[5]
 		},
 	};
 
-	uint32_t writeCount = (uint32_t)ARRAY_COUNT(writeSet);
-	if(m_FakeBBImView == VK_NULL_HANDLE)
-		writeCount--;
-
-	vkr = vt->UpdateDescriptorSets(Unwrap(dev), writeCount, writeSet, 0, NULL);
+	vkr = vt->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
 	RDCASSERT(vkr == VK_SUCCESS);
 }
 
@@ -803,13 +790,6 @@ VulkanDebugManager::~VulkanDebugManager()
 		vkr = vt->DestroySampler(Unwrap(dev), Unwrap(m_PointSampler));
 		RDCASSERT(vkr == VK_SUCCESS);
 		VKMGR()->ReleaseWrappedResource(m_PointSampler);
-	}
-
-	if(m_FakeBBImView != VK_NULL_HANDLE)
-	{
-		vkr = vt->DestroyImageView(Unwrap(dev), Unwrap(m_FakeBBImView));
-		RDCASSERT(vkr == VK_SUCCESS);
-		VKMGR()->ReleaseWrappedResource(m_FakeBBImView);
 	}
 
 	if(m_CheckerboardDescSetLayout != VK_NULL_HANDLE)

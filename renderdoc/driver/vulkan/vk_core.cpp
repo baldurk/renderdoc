@@ -659,28 +659,9 @@ void WrappedVulkan::ReadLogInitialisation()
 	            m_PhysicalReplayData[m_SwapPhysDevice].cmd != VK_NULL_HANDLE &&
 	            m_PhysicalReplayData[m_SwapPhysDevice].cmdpool != VK_NULL_HANDLE);
 
-	VkImageView fakeBBImView;
-
-	{
-		VkImageViewCreateInfo bbviewInfo = {
-			VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, NULL,
-			Unwrap(m_FakeBBIm), VK_IMAGE_VIEW_TYPE_2D,
-			(VkFormat)m_FakeBBFmt.rawType,
-			{ VK_CHANNEL_SWIZZLE_R, VK_CHANNEL_SWIZZLE_G, VK_CHANNEL_SWIZZLE_B, VK_CHANNEL_SWIZZLE_A },
-			{ VK_IMAGE_ASPECT_COLOR, 0, 1, 0, 1, }
-		};
-
-		// VKTODOMED used for texture display, but eventually will have to be created on the fly
-		// for whichever image we're viewing (and cached), not specifically created here.
-		VkResult vkr = ObjDisp(GetDev())->CreateImageView(Unwrap(GetDev()), &bbviewInfo, &fakeBBImView);
-		RDCASSERT(vkr == VK_SUCCESS);
-
-		GetResourceManager()->WrapResource(Unwrap(GetDev()), fakeBBImView);
-	}
-	
 	// VKTODOLOW maybe better place to put this?
 	// VKTODOLOW leaking debug manager
-	m_PhysicalReplayData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev(), fakeBBImView);
+	m_PhysicalReplayData[m_SwapPhysDevice].debugMan = new VulkanDebugManager(this, GetDev());
 }
 
 void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial)

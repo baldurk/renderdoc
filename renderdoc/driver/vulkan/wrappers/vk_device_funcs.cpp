@@ -456,7 +456,7 @@ VkResult WrappedVulkan::vkCreateDevice(
 				// not have this 'current swap chain device' thing.
 				m_SwapPhysDevice = (int)i;
 				
-				m_PhysicalReplayData[i].debugMan = new VulkanDebugManager(this, *pDevice, VK_NULL_HANDLE);
+				m_PhysicalReplayData[i].debugMan = new VulkanDebugManager(this, *pDevice);
 				break;
 			}
 		}

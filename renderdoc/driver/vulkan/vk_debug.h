@@ -43,7 +43,7 @@ struct TextPrintState
 class VulkanDebugManager
 {
 	public:
-		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev, VkImageView fakeBBView);
+		VulkanDebugManager(WrappedVulkan *driver, VkDevice dev);
 		~VulkanDebugManager();
 
 		void RenderText(const TextPrintState &textstate, float x, float y, const char *fmt, ...);
@@ -68,8 +68,6 @@ class VulkanDebugManager
 		VkDynamicRasterState m_DynamicRSState;
 		VkDynamicDepthStencilState m_DynamicDSStateDisabled;
 		VkSampler m_LinearSampler, m_PointSampler;
-
-		VkImageView m_FakeBBImView;
 
 		VkDescriptorSetLayout m_CheckerboardDescSetLayout;
 		VkPipelineLayout m_CheckerboardPipeLayout;
