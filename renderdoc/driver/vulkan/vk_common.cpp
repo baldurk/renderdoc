@@ -939,6 +939,42 @@ string ToStrHelper<false, VkFenceCreateFlagBits>::Get(const VkFenceCreateFlagBit
 }
 
 template<>
+string ToStrHelper<false, VkQueryPipelineStatisticFlagBits>::Get(const VkQueryPipelineStatisticFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_QUERY_PIPELINE_STATISTIC_IA_VERTICES_BIT)     ret += " | VK_QUERY_PIPELINE_STATISTIC_IA_VERTICES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_IA_PRIMITIVES_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_IA_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_VS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_VS_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_GS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_GS_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_GS_PRIMITIVES_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_GS_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_C_INVOCATIONS_BIT)   ret += " | VK_QUERY_PIPELINE_STATISTIC_C_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_C_PRIMITIVES_BIT)    ret += " | VK_QUERY_PIPELINE_STATISTIC_C_PRIMITIVES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_FS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_FS_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_TCS_PATCHES_BIT)     ret += " | VK_QUERY_PIPELINE_STATISTIC_TCS_PATCHES_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_TES_INVOCATIONS_BIT) ret += " | VK_QUERY_PIPELINE_STATISTIC_TES_INVOCATIONS_BIT";
+	if(el & VK_QUERY_PIPELINE_STATISTIC_CS_INVOCATIONS_BIT)  ret += " | VK_QUERY_PIPELINE_STATISTIC_CS_INVOCATIONS_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
+string ToStrHelper<false, VkQueryControlFlagBits>::Get(const VkQueryControlFlagBits &el)
+{
+	string ret;
+
+	if(el & VK_QUERY_CONTROL_CONSERVATIVE_BIT) ret += " | VK_QUERY_CONTROL_CONSERVATIVE_BIT";
+	
+	if(!ret.empty())
+		ret = ret.substr(3);
+
+	return ret;
+}
+
+template<>
 string ToStrHelper<false, VkShaderStageFlagBits>::Get(const VkShaderStageFlagBits &el)
 {
 	string ret;
@@ -1388,6 +1424,19 @@ string ToStrHelper<false, VkDescriptorSetUsage>::Get(const VkDescriptorSetUsage 
 	}
 	
 	return StringFormat::Fmt("VkDescriptorSetUsage<%d>", el);
+}
+
+template<>
+string ToStrHelper<false, VkQueryType>::Get(const VkQueryType &el)
+{
+	switch(el)
+	{
+		TOSTR_CASE_STRINGIZE(VK_QUERY_TYPE_OCCLUSION)
+		TOSTR_CASE_STRINGIZE(VK_QUERY_TYPE_PIPELINE_STATISTICS)
+		default: break;
+	}
+	
+	return StringFormat::Fmt("VkQueryType<%d>", el);
 }
 
 template<>
@@ -2570,6 +2619,20 @@ void Serialiser::Serialise(const char *name, VkStencilOpState &el)
 	Serialise("stencilPassOp", el.stencilPassOp);
 	Serialise("stencilDepthFailOp", el.stencilDepthFailOp);
 	Serialise("stencilCompareOp", el.stencilCompareOp);
+}
+
+template<>
+void Serialiser::Serialise(const char *name, VkQueryPoolCreateInfo &el)
+{
+	ScopedContext scope(this, this, name, "VkQueryPoolCreateInfo", 0, true);
+
+	RDCASSERT(m_Mode < WRITING || el.sType == VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
+	Serialise("sType", el.sType);
+	SerialiseNext(this, el.pNext);
+
+	Serialise("queryType", el.queryType);
+	Serialise("slots", el.slots);
+	Serialise("pipelineStatistics", (VkQueryPipelineStatisticFlagBits &)el.pipelineStatistics);
 }
 
 template<>

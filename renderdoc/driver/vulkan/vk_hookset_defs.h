@@ -84,6 +84,9 @@
 	HookInit(CreateFence); \
 	HookInit(GetFenceStatus); \
 	HookInit(DestroyFence); \
+	HookInit(CreateQueryPool); \
+	HookInit(GetQueryPoolResults); \
+	HookInit(DestroyQueryPool); \
 	HookInit(CreateSampler); \
 	HookInit(DestroySampler); \
 	HookInit(CreateDescriptorSetLayout); \
@@ -134,6 +137,9 @@
 	HookInit(CmdClearColorAttachment); \
 	HookInit(CmdClearDepthStencilAttachment); \
 	HookInit(CmdPipelineBarrier); \
+	HookInit(CmdBeginQuery); \
+	HookInit(CmdEndQuery); \
+	HookInit(CmdResetQueryPool); \
 	HookInit(CreateFramebuffer); \
 	HookInit(DestroyFramebuffer); \
 	HookInit(CreateRenderPass); \
@@ -203,6 +209,9 @@
 	HookDefine2(VkResult, vkQueueWaitSemaphore, VkQueue, queue, VkSemaphore, semaphore); \
 	HookDefine3(VkResult, vkCreateFence, VkDevice, device, const VkFenceCreateInfo*, pCreateInfo, VkFence*, pFence); \
 	HookDefine2(VkResult, vkDestroyFence, VkDevice, device, VkFence, fence); \
+	HookDefine3(VkResult, vkCreateQueryPool, VkDevice, device, const VkQueryPoolCreateInfo*, pCreateInfo, VkQueryPool*, pQueryPool); \
+	HookDefine2(VkResult, vkDestroyQueryPool, VkDevice, device, VkQueryPool, queryPool); \
+	HookDefine7(VkResult, vkGetQueryPoolResults, VkDevice, device, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount, size_t*, pDataSize, void*, pData, VkQueryResultFlags, flags); \
 	HookDefine2(VkResult, vkGetFenceStatus, VkDevice, device, VkFence, fence); \
 	HookDefine3(VkResult, vkCreateSampler, VkDevice, device, const VkSamplerCreateInfo*, pCreateInfo, VkSampler*, pSampler); \
 	HookDefine2(VkResult, vkDestroySampler, VkDevice, device, VkSampler, sampler); \
@@ -254,6 +263,9 @@
 	HookDefine6(void, vkCmdClearColorAttachment, VkCmdBuffer, cmdBuffer, uint32_t, colorAttachment, VkImageLayout, imageLayout, const VkClearColorValue*, pColor, uint32_t, rectCount, const VkRect3D*, pRects); \
 	HookDefine7(void, vkCmdClearDepthStencilAttachment, VkCmdBuffer, cmdBuffer, VkImageAspectFlags, imageAspectMask, VkImageLayout, imageLayout, float, depth, uint32_t, stencil, uint32_t, rectCount, const VkRect3D*, pRects); \
 	HookDefine6(void, vkCmdPipelineBarrier, VkCmdBuffer, cmdBuffer, VkPipelineStageFlags, srcStageMask, VkPipelineStageFlags, destStageMask, VkBool32, byRegion, uint32_t, memBarrierCount, const void* const*, ppMemBarriers); \
+	HookDefine4(void, vkCmdBeginQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot, VkQueryControlFlags, flags); \
+	HookDefine3(void, vkCmdEndQuery, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, slot); \
+	HookDefine4(void, vkCmdResetQueryPool, VkCmdBuffer, cmdBuffer, VkQueryPool, queryPool, uint32_t, startQuery, uint32_t, queryCount); \
 	HookDefine3(VkResult, vkCreateFramebuffer, VkDevice, device, const VkFramebufferCreateInfo*, pCreateInfo, VkFramebuffer*, pFramebuffer); \
 	HookDefine2(VkResult, vkDestroyFramebuffer, VkDevice, device, VkFramebuffer, framebuffer); \
 	HookDefine3(VkResult, vkCreateRenderPass, VkDevice, device, const VkRenderPassCreateInfo*, pCreateInfo, VkRenderPass*, pRenderPass); \

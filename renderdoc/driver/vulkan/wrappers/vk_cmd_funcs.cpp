@@ -1336,6 +1336,168 @@ void WrappedVulkan::vkCmdPipelineBarrier(
 	}
 }
 
+bool WrappedVulkan::Serialise_vkCmdBeginQuery(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    slot,
+    VkQueryControlFlags                         flags)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
+	SERIALISE_ELEMENT(uint32_t, s, slot);
+	SERIALISE_ELEMENT(VkQueryControlFlagBits, f, (VkQueryControlFlagBits)flags); // serialise as 'bits' type to get nice enum values
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdBeginQuery(Unwrap(cmdBuffer), Unwrap(queryPool), s, f);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+		
+		ObjDisp(cmdBuffer)->CmdBeginQuery(Unwrap(cmdBuffer), Unwrap(queryPool), s, f);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdBeginQuery(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    slot,
+    VkQueryControlFlags                         flags)
+{
+	ObjDisp(cmdBuffer)->CmdBeginQuery(Unwrap(cmdBuffer), Unwrap(queryPool), slot, flags);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY);
+		Serialise_vkCmdBeginQuery(cmdBuffer, queryPool, slot, flags);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdEndQuery(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    slot)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
+	SERIALISE_ELEMENT(uint32_t, s, slot);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdEndQuery(Unwrap(cmdBuffer), Unwrap(queryPool), s);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+		
+		ObjDisp(cmdBuffer)->CmdEndQuery(Unwrap(cmdBuffer), Unwrap(queryPool), s);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdEndQuery(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    slot)
+{
+	ObjDisp(cmdBuffer)->CmdEndQuery(Unwrap(cmdBuffer), Unwrap(queryPool), slot);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		SCOPED_SERIALISE_CONTEXT(END_QUERY);
+		Serialise_vkCmdEndQuery(cmdBuffer, queryPool, slot);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+	}
+}
+
+bool WrappedVulkan::Serialise_vkCmdResetQueryPool(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    startQuery,
+    uint32_t                                    queryCount)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, qid, GetResID(queryPool));
+	SERIALISE_ELEMENT(uint32_t, start, startQuery);
+	SERIALISE_ELEMENT(uint32_t, count, queryCount);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	if(m_State == EXECUTING)
+	{
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdResetQueryPool(Unwrap(cmdBuffer), Unwrap(queryPool), start, count);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		queryPool = GetResourceManager()->GetLiveHandle<VkQueryPool>(qid);
+		
+		ObjDisp(cmdBuffer)->CmdResetQueryPool(Unwrap(cmdBuffer), Unwrap(queryPool), start, count);
+	}
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdResetQueryPool(
+    VkCmdBuffer                                 cmdBuffer,
+    VkQueryPool                                 queryPool,
+    uint32_t                                    startQuery,
+    uint32_t                                    queryCount)
+{
+	ObjDisp(cmdBuffer)->CmdResetQueryPool(Unwrap(cmdBuffer), Unwrap(queryPool), startQuery, queryCount);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		SCOPED_SERIALISE_CONTEXT(RESET_QUERY_POOL);
+		Serialise_vkCmdResetQueryPool(cmdBuffer, queryPool, startQuery, queryCount);
+
+		record->AddChunk(scope.Get());
+		record->MarkResourceFrameReferenced(GetResID(queryPool), eFrameRef_Read);
+	}
+}
+
 bool WrappedVulkan::Serialise_vkCmdDbgMarkerBegin(
 			VkCmdBuffer  cmdBuffer,
 			const char*     pMarker)

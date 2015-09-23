@@ -85,6 +85,8 @@ const char *VkChunkNames[] =
 	"vkGetFenceStatus",
 	"vkWaitForFences",
 
+	"vkCreateQueryPool",
+
 	"vkAllocDescriptorSets",
 	"vkUpdateDescriptorSets",
 
@@ -124,6 +126,9 @@ const char *VkChunkNames[] =
 	"vkCmdClearDepthStencilAttachment",
 	"vkCmdPipelineBarrier",
 	"vkCmdWriteTimestamp",
+	"vkCmdBeginQuery",
+	"vkCmdEndQuery",
+	"vkCmdResetQueryPool",
 	"vkCmdDraw",
 	"vkCmdDrawIndirect",
 	"vkCmdDrawIndexed",
@@ -959,6 +964,10 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		//Serialise_vkWaitForFences(VK_NULL_HANDLE, 0, NULL, VK_FALSE, 0.0f);
 		break;
 
+	case CREATE_QUERY_POOL:
+		Serialise_vkCreateQueryPool(VK_NULL_HANDLE, NULL, NULL);
+		break;
+
 	case ALLOC_DESC_SET:
 		Serialise_vkAllocDescriptorSets(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_DESCRIPTOR_SET_USAGE_MAX_ENUM, 0, NULL, NULL, NULL);
 		break;
@@ -1066,6 +1075,15 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case WRITE_TIMESTAMP:
 		//VKTODOMED:
 		//Serialise_vkCmdWriteTimestamp(VK_NULL_HANDLE, VK_TIMESTAMP_TYPE_MAX_ENUM, VK_NULL_HANDLE, 0);
+		break;
+	case BEGIN_QUERY:
+		Serialise_vkCmdBeginQuery(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
+		break;
+	case END_QUERY:
+		Serialise_vkCmdEndQuery(VK_NULL_HANDLE, VK_NULL_HANDLE, 0);
+		break;
+	case RESET_QUERY_POOL:
+		Serialise_vkCmdResetQueryPool(VK_NULL_HANDLE, VK_NULL_HANDLE, 0, 0);
 		break;
 	case DRAW:
 		Serialise_vkCmdDraw(VK_NULL_HANDLE, 0, 0, 0, 0);

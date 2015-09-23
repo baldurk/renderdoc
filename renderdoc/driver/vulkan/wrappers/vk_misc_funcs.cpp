@@ -53,6 +53,7 @@ DESTROY_IMPL(VkDynamicDepthStencilState, DestroyDynamicDepthStencilState)
 DESTROY_IMPL(VkSemaphore, DestroySemaphore)
 DESTROY_IMPL(VkFence, DestroyFence)
 DESTROY_IMPL(VkCmdPool, DestroyCommandPool)
+DESTROY_IMPL(VkQueryPool, DestroyQueryPool)
 DESTROY_IMPL(VkFramebuffer, DestroyFramebuffer)
 DESTROY_IMPL(VkRenderPass, DestroyRenderPass)
 DESTROY_IMPL(VkSwapChainWSI, DestroySwapChainWSI)
@@ -864,6 +865,82 @@ VkResult WrappedVulkan::vkCreateDynamicDepthStencilState(
 	}
 
 	return ret;
+}
+
+bool WrappedVulkan::Serialise_vkCreateQueryPool(
+		VkDevice                                    device,
+		const VkQueryPoolCreateInfo*                pCreateInfo,
+		VkQueryPool*                                pQueryPool)
+{
+	SERIALISE_ELEMENT(ResourceId, devId, GetResID(device));
+	SERIALISE_ELEMENT(VkQueryPoolCreateInfo, info, *pCreateInfo);
+	SERIALISE_ELEMENT(ResourceId, id, GetResID(*pQueryPool));
+
+	if(m_State == READING)
+	{
+		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+		VkQueryPool pool = VK_NULL_HANDLE;
+
+		VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), &info, &pool);
+
+		if(ret != VK_SUCCESS)
+		{
+			RDCERR("Failed on resource serialise-creation, VkResult: 0x%08x", ret);
+		}
+		else
+		{
+			ResourceId live = GetResourceManager()->WrapResource(Unwrap(device), pool);
+			GetResourceManager()->AddLiveResource(id, pool);
+		}
+	}
+
+	return true;
+}
+
+VkResult WrappedVulkan::vkCreateQueryPool(
+		VkDevice                                    device,
+		const VkQueryPoolCreateInfo*                pCreateInfo,
+		VkQueryPool*                                pQueryPool)
+{
+	VkResult ret = ObjDisp(device)->CreateQueryPool(Unwrap(device), pCreateInfo, pQueryPool);
+
+	if(ret == VK_SUCCESS)
+	{
+		ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pQueryPool);
+		
+		if(m_State >= WRITING)
+		{
+			Chunk *chunk = NULL;
+
+			{
+				SCOPED_SERIALISE_CONTEXT(CREATE_QUERY_POOL);
+				Serialise_vkCreateQueryPool(device, pCreateInfo, pQueryPool);
+
+				chunk = scope.Get();
+			}
+
+			VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pQueryPool);
+			record->AddChunk(chunk);
+		}
+		else
+		{
+			GetResourceManager()->AddLiveResource(id, *pQueryPool);
+		}
+	}
+
+	return ret;
+}
+
+VkResult WrappedVulkan::vkGetQueryPoolResults(
+		VkDevice                                    device,
+		VkQueryPool                                 queryPool,
+		uint32_t                                    startQuery,
+		uint32_t                                    queryCount,
+		size_t*                                     pDataSize,
+		void*                                       pData,
+		VkQueryResultFlags                          flags)
+{
+	return ObjDisp(device)->GetQueryPoolResults(Unwrap(device), Unwrap(queryPool), startQuery, queryCount, pDataSize, pData, flags);
 }
 
 VkResult WrappedVulkan::vkDbgCreateMsgCallback(

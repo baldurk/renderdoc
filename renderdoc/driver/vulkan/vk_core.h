@@ -524,6 +524,26 @@ public:
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDeviceWaitIdle(
 			VkDevice                                    device));
 
+	// Query pool functions
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateQueryPool(
+			VkDevice                                    device,
+			const VkQueryPoolCreateInfo*                pCreateInfo,
+			VkQueryPool*                                pQueryPool));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkDestroyQueryPool(
+			VkDevice                                    device,
+			VkQueryPool                                 queryPool));
+
+	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkGetQueryPoolResults(
+			VkDevice                                    device,
+			VkQueryPool                                 queryPool,
+			uint32_t                                    startQuery,
+			uint32_t                                    queryCount,
+			size_t*                                     pDataSize,
+			void*                                       pData,
+			VkQueryResultFlags                          flags));
+
 	// Semaphore functions
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateSemaphore(
@@ -1031,6 +1051,23 @@ public:
 			VkBool32                                    byRegion,
 			uint32_t                                    memBarrierCount,
 			const void* const*                          ppMemBarriers));
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdBeginQuery(
+			VkCmdBuffer                                 cmdBuffer,
+			VkQueryPool                                 queryPool,
+			uint32_t                                    slot,
+			VkQueryControlFlags                         flags));
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdEndQuery(
+			VkCmdBuffer                                 cmdBuffer,
+			VkQueryPool                                 queryPool,
+			uint32_t                                    slot));
+
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResetQueryPool(
+			VkCmdBuffer                                 cmdBuffer,
+			VkQueryPool                                 queryPool,
+			uint32_t                                    startQuery,
+			uint32_t                                    queryCount));
 
 	IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateFramebuffer(
 			VkDevice                                    device,
