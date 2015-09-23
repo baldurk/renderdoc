@@ -487,6 +487,16 @@ vector<ResourceId> VulkanReplay::GetTextures()
 	m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
 
 	texs.push_back(m_pDriver->GetResourceManager()->GetLiveID(id));
+
+	for(auto it = m_pDriver->m_ImageInfo.begin(); it != m_pDriver->m_ImageInfo.end(); ++it)
+	{
+		// skip textures that aren't from the capture
+		if(m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+			 continue;
+
+		texs.push_back(it->first);
+	}
+
 	return texs;
 }
 	
@@ -1158,21 +1168,22 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 	
 	const ImgState &iminfo = m_pDriver->m_ImageInfo[id];
 
+	// VKTODOMED this should be fleshed out
 	FetchTexture ret;
-	ret.arraysize = 1;
-	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4;
-	ret.creationFlags = eTextureCreate_SwapBuffer|eTextureCreate_SRV|eTextureCreate_RTV;
+	ret.arraysize = iminfo.arraySize;
+	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4; // VKTODOMED calculate proper byte size
+	ret.creationFlags = (id == resid ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
 	ret.cubemap = false;
 	ret.customName = false;
-	ret.depth = 1;
 	ret.width = iminfo.extent.width;
 	ret.height = iminfo.extent.height;
+	ret.depth = iminfo.extent.depth;
 	ret.dimension = 2;
 	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
-	ret.mips = 1;
+	ret.mips = iminfo.mipLevels;
 	ret.msQual = 0;
 	ret.msSamp = 1;
-	ret.name = "WSI Presentable Image";
+	ret.name = (id == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
 	ret.numSubresources = 1;
 	ret.format = MakeResourceFormat(iminfo.format);
 	return ret;
