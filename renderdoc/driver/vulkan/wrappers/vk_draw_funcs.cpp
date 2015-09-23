@@ -180,6 +180,83 @@ void WrappedVulkan::vkCmdBlitImage(
 	}
 }
 
+bool WrappedVulkan::Serialise_vkCmdResolveImage(
+			VkCmdBuffer                                 cmdBuffer,
+			VkImage                                     srcImage,
+			VkImageLayout                               srcImageLayout,
+			VkImage                                     destImage,
+			VkImageLayout                               destImageLayout,
+			uint32_t                                    regionCount,
+			const VkImageResolve*                       pRegions)
+{
+	SERIALISE_ELEMENT(ResourceId, cmdid, GetResID(cmdBuffer));
+	SERIALISE_ELEMENT(ResourceId, srcid, GetResID(srcImage));
+	SERIALISE_ELEMENT(VkImageLayout, srclayout, srcImageLayout);
+	SERIALISE_ELEMENT(ResourceId, dstid, GetResID(destImage));
+	SERIALISE_ELEMENT(VkImageLayout, dstlayout, destImageLayout);
+
+	if(m_State < WRITING)
+		m_LastCmdBufferID = cmdid;
+	
+	SERIALISE_ELEMENT(uint32_t, count, regionCount);
+	SERIALISE_ELEMENT_ARR(VkImageResolve, regions, pRegions, count);
+	
+	if(m_State == EXECUTING)
+	{
+		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
+		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
+
+		if(IsPartialCmd(cmdid) && InPartialRange())
+		{
+			cmdBuffer = PartialCmdBuf();
+			ObjDisp(cmdBuffer)->CmdResolveImage(Unwrap(cmdBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
+		}
+	}
+	else if(m_State == READING)
+	{
+		cmdBuffer = GetResourceManager()->GetLiveHandle<VkCmdBuffer>(cmdid);
+		srcImage = GetResourceManager()->GetLiveHandle<VkImage>(srcid);
+		destImage = GetResourceManager()->GetLiveHandle<VkImage>(dstid);
+
+		ObjDisp(cmdBuffer)->CmdResolveImage(Unwrap(cmdBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage), dstlayout, count, regions);
+	}
+
+	SAFE_DELETE_ARRAY(regions);
+
+	return true;
+}
+
+void WrappedVulkan::vkCmdResolveImage(
+			VkCmdBuffer                                 cmdBuffer,
+			VkImage                                     srcImage,
+			VkImageLayout                               srcImageLayout,
+			VkImage                                     destImage,
+			VkImageLayout                               destImageLayout,
+			uint32_t                                    regionCount,
+			const VkImageResolve*                       pRegions)
+{
+	ObjDisp(cmdBuffer)->CmdResolveImage(Unwrap(cmdBuffer), Unwrap(srcImage), srcImageLayout, Unwrap(destImage), destImageLayout, regionCount, pRegions);
+
+	if(m_State >= WRITING)
+	{
+		VkResourceRecord *record = GetRecord(cmdBuffer);
+
+		SCOPED_SERIALISE_CONTEXT(RESOLVE_IMG);
+		Serialise_vkCmdResolveImage(cmdBuffer, srcImage, srcImageLayout, destImage, destImageLayout, regionCount, pRegions);
+
+		record->AddChunk(scope.Get());
+
+		record->dirtied.insert(GetResID(destImage));
+		{
+			VkResourceRecord *im = GetRecord(destImage);
+			if(im->GetMemoryRecord())
+				record->dirtied.insert(im->GetMemoryRecord()->GetResourceID());
+		}
+		record->MarkResourceFrameReferenced(GetResID(srcImage), eFrameRef_Read);
+		record->MarkResourceFrameReferenced(GetResID(destImage), eFrameRef_Write);
+	}
+}
+
 bool WrappedVulkan::Serialise_vkCmdCopyImage(
 			VkCmdBuffer                                 cmdBuffer,
 			VkImage                                     srcImage,

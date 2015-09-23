@@ -965,6 +965,15 @@ public:
 			const VkImageBlit*                          pRegions,
 			VkTexFilter                                 filter));
 
+	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdResolveImage(
+			VkCmdBuffer                                 cmdBuffer,
+			VkImage                                     srcImage,
+			VkImageLayout                               srcImageLayout,
+			VkImage                                     destImage,
+			VkImageLayout                               destImageLayout,
+			uint32_t                                    regionCount,
+			const VkImageResolve*                       pRegions));
+
 	IMPLEMENT_FUNCTION_SERIALISED(void, vkCmdCopyBufferToImage(
 			VkCmdBuffer                                 cmdBuffer,
 			VkBuffer                                    srcBuffer,

@@ -117,12 +117,12 @@ const char *VkChunkNames[] =
 	"vkCmdCopyBuffer",
 	"vkCmdCopyImage",
 	"vkCmdBlitImage",
+	"vkCmdResolveImage",
 	"vkCmdClearColorImage",
 	"vkCmdClearDepthStencilImage",
 	"vkCmdClearColorAttachment",
 	"vkCmdClearDepthStencilAttachment",
 	"vkCmdPipelineBarrier",
-	"vkCmdResolveImage",
 	"vkCmdWriteTimestamp",
 	"vkCmdDraw",
 	"vkCmdDrawIndirect",
@@ -1039,6 +1039,12 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 	case COPY_IMG:
 		Serialise_vkCmdCopyImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
 		break;
+	case BLIT_IMG:
+		Serialise_vkCmdBlitImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL, VK_TEX_FILTER_MAX_ENUM);
+		break;
+	case RESOLVE_IMG:
+		Serialise_vkCmdResolveImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_MAX_ENUM, 0, NULL);
+		break;
 	case COPY_BUF:
 		Serialise_vkCmdCopyBuffer(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
 		break;
@@ -1056,10 +1062,6 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 		break;
 	case PIPELINE_BARRIER:
 		Serialise_vkCmdPipelineBarrier(VK_NULL_HANDLE, 0, 0, VK_FALSE, 0, NULL);
-		break;
-	case RESOLVE_IMAGE:
-		//VKTODOMED:
-		//Serialise_vkCmdResolveImage(VK_NULL_HANDLE, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, NULL);
 		break;
 	case WRITE_TIMESTAMP:
 		//VKTODOMED:
