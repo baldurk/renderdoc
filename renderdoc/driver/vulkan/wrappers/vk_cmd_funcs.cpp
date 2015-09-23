@@ -215,7 +215,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			}
 		}
 
-		m_CmdBufferInfo[cmdId].curEventID = 0;
+		m_CmdBufferInfo[cmdId].curEventID = 1;
 	}
 	else if(m_State == READING)
 	{
@@ -252,8 +252,8 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(
 			m_CmdBufferInfo[cmdId].draw = draw;
 			
 			// On queue submit we increment all child events/drawcalls by
-			// m_CurEventID insert them into the tree.
-			m_CmdBufferInfo[cmdId].curEventID = 0;
+			// m_RootEventID insert them into the tree.
+			m_CmdBufferInfo[cmdId].curEventID = 1;
 			m_CmdBufferInfo[cmdId].eventCount = 0;
 			m_CmdBufferInfo[cmdId].drawCount = 0;
 
@@ -348,11 +348,13 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 			draw.name = "API Calls";
 			draw.flags |= eDraw_SetMarker;
 
-			// the outer loop will increment the event ID but we've not
-			// actually added anything just wrapped up the existing EIDs.
+			// VKTODOLOW hack, give this drawcall the same event ID as its last child, by
+			// decrementing then incrementing again.
 			m_CmdBufferInfo[m_LastCmdBufferID].curEventID--;
 
 			AddDrawcall(draw, true);
+			
+			m_CmdBufferInfo[m_LastCmdBufferID].curEventID++;
 		}
 
 		{
@@ -364,6 +366,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(VkCmdBuffer cmdBuffer)
 			m_CmdBufferInfo[bakeId].draw = m_CmdBufferInfo[m_LastCmdBufferID].draw;
 			m_CmdBufferInfo[bakeId].curEventID = 0;
 			m_CmdBufferInfo[bakeId].eventCount = m_CmdBufferInfo[m_LastCmdBufferID].curEventID-1;
+			RDCASSERT(m_CmdBufferInfo[m_LastCmdBufferID].curEventID >= 1);
 			m_CmdBufferInfo[bakeId].drawCount = m_CmdBufferInfo[m_LastCmdBufferID].drawCount;
 			
 			m_CmdBufferInfo[m_LastCmdBufferID].draw = NULL;
