@@ -910,8 +910,6 @@ namespace renderdocui.Windows
             }
         }
 
-        List<ScintillaNET.Range> m_PrevRanges = new List<ScintillaNET.Range>();
-
         void scintilla1_Click(object sender, EventArgs e)
         {
             ScintillaNET.Scintilla scintilla1 = sender as ScintillaNET.Scintilla;
@@ -920,12 +918,7 @@ namespace renderdocui.Windows
 
             var match = Regex.Match(word, "^[rvogst][0-9]+$");
 
-            foreach (ScintillaNET.Range r in m_PrevRanges)
-            {
-                r.ClearIndicator(4);
-            }
-
-            m_PrevRanges.Clear();
+            scintilla1.GetRange().ClearIndicator(4);
 
             bool highlighted = false;
 
@@ -973,11 +966,7 @@ namespace renderdocui.Windows
                 var matches = Regex.Matches(scintilla1.Text, word + "\\.[xyzwrgba]+");
 
                 foreach (Match m in matches)
-                {
-                    var r = scintilla1.GetRange(m.Index, m.Index + m.Length);
-                    m_PrevRanges.Add(r);
-                    r.SetIndicator(4);
-                }
+                    scintilla1.GetRange(m.Index, m.Index + m.Length).SetIndicator(4);
             }
             else if(m_Trace != null)
             {
@@ -1005,11 +994,7 @@ namespace renderdocui.Windows
                             var matches = Regex.Matches(scintilla1.Text, @"\b" + word + @"\b");
 
                             foreach (Match m in matches)
-                            {
-                                var r = scintilla1.GetRange(m.Index, m.Index + m.Length);
-                                m_PrevRanges.Add(r);
-                                r.SetIndicator(4);
-                            }
+                                scintilla1.GetRange(m.Index, m.Index + m.Length).SetIndicator(4);
 
                             highlighted = true;
                             break;
