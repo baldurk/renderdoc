@@ -685,7 +685,10 @@ namespace renderdocui.Windows
 
         void list_SelectedIndexChanged(object sender, EventArgs e)
         {
+            int idx = m_FileList.SelectedIndex;
 
+            if (idx >= 0 && idx < m_Scintillas.Count)
+                (m_Scintillas[idx].Parent as DockContent).Show();
         }
 
         private void AddFileList()
