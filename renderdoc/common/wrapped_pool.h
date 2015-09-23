@@ -41,7 +41,7 @@ template<class T> class GetTypeName { public: static const char *Name(); };
 template<class C> class FriendMaker { public: typedef C Type; };
 
 // allocate each class in its own pool so we can identify the type by the pointer
-template<typename WrapType, int PoolCount = 8192, int MaxPoolByteSize = 1024*1024>
+template<typename WrapType, int PoolCount = 8192, int MaxPoolByteSize = 1024*1024, bool DebugClear = true>
 class WrappingPool
 {
 	public:
@@ -215,7 +215,8 @@ class WrappingPool
 				allocated[idx] = false;
 
 #if !defined(RELEASE)
-				memset(p, 0xfe, AllocByteSize);
+				if(DebugClear)
+					memset(p, 0xfe, AllocByteSize);
 #endif
 			}
 

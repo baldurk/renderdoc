@@ -130,7 +130,7 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 		}
 		
 		template<typename realtype>
-		void ReleaseWrappedResource(realtype obj)
+		void ReleaseWrappedResource(realtype obj, bool clearID = false)
 		{
 			ResourceId id = GetResID(obj);
 
@@ -142,6 +142,24 @@ class VulkanResourceManager : public ResourceManager<WrappedVkRes*, TypedRealHan
 			ResourceManager::RemoveWrapper(ToTypedHandle(Unwrap(obj)));
 			ResourceManager::ReleaseCurrentResource(id);
 			if(GetRecord(obj)) GetRecord(obj)->Delete(this);
+			if(clearID)
+			{
+				// note the nulling of the wrapped object's ID here is rather unpleasant,
+				// but the lesser of two evils to ensure that stale descriptor set slots
+				// referencing the object behave safely. To do this correctly we would need
+				// to maintain a list of back-references to every descriptor set that has
+				// this object bound, and invalidate them. Instead we just make sure the ID
+				// is always something sensible, since we know the deallocation doesn't
+				// free the memory - the object is pool-allocated.
+				// If a new object is allocated in that pool slot, it will still be a valid
+				// ID and if the resource isn't ever referenced elsewhere, it will just be
+				// a non-live ID to be ignored.
+
+				if(IsDispatchableRes(GetWrapped(obj)))
+					((WrappedVkDispRes *)GetWrapped(obj))->id = ResourceId();
+				else
+					((WrappedVkNonDispRes *)GetWrapped(obj))->id = ResourceId();
+			}
 			delete GetWrapped(obj);
 		}
 			

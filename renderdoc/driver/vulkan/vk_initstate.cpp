@@ -238,21 +238,73 @@ bool WrappedVulkan::Serialise_InitialState(WrappedVkRes *res)
 
 				info += layout.bindings[j].arraySize;
 
-				// VKTODOMED this should check to see if the actual descriptor
-				// bits used by this element in the layout are set. For now
-				// we're mostly concerned with descriptors that were alloc'd and
-				// never written to, so are completely empty.
-				// Also needs to handle arrays properly - we are very
-				// all-or-nothing with this check
+				// check that the resources we need for this write are present,
+				// as some might have been skipped due to stale descriptor set
+				// slots or otherwise unreferenced objects (the descriptor set
+				// initial contents do not cause a frame reference for their
+				// resources
+				bool valid = true;
+
+				// quick check for slots that were completely uninitialised
+				// and so don't have valid data
 				if(writes[i].pDescriptors->bufferView == VK_NULL_HANDLE &&
 						writes[i].pDescriptors->sampler == VK_NULL_HANDLE &&
 						writes[i].pDescriptors->imageView == VK_NULL_HANDLE &&
 						writes[i].pDescriptors->attachmentView == VK_NULL_HANDLE)
-					writes[i].count = 0;
+				{
+					valid = false;
+				}
+				else
+				{
+					switch(writes[i].descriptorType)
+					{
+						case VK_DESCRIPTOR_TYPE_SAMPLER:
+						{
+							for(uint32_t d=0; d < writes[i].count; d++)
+								valid &= (writes[i].pDescriptors[d].sampler != VK_NULL_HANDLE);
+							break;
+						}
+						case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+						{
+							for(uint32_t d=0; d < writes[i].count; d++)
+							{
+								valid &= (writes[i].pDescriptors[d].sampler != VK_NULL_HANDLE);
+								valid &= (writes[i].pDescriptors[d].imageView != VK_NULL_HANDLE);
+							}
+							break;
+						}
+						case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+						case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+						{
+							for(uint32_t d=0; d < writes[i].count; d++)
+								valid &= (writes[i].pDescriptors[d].imageView != VK_NULL_HANDLE);
+							break;
+						}
+						case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+						case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+						case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+						case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+						{
+							for(uint32_t d=0; d < writes[i].count; d++)
+								valid &= (writes[i].pDescriptors[d].bufferView != VK_NULL_HANDLE);
+							break;
+						}
+						case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+						{
+							for(uint32_t d=0; d < writes[i].count; d++)
+								valid &= (writes[i].pDescriptors[d].attachmentView != VK_NULL_HANDLE);
+							break;
+						}
+						default:
+							RDCERR("Unexpected descriptor type %d", writes[i].descriptorType);
+					}
+				}
 
-				// if this write became completely null and void, skip it
+				// if this write is not valid, skip it
 				// and start writing the next one in here
-				if(writes[i].count == 0)
+				if(!valid)
 					validBinds--;
 				else
 					i++;

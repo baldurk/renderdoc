@@ -1961,7 +1961,7 @@ string ToStrHelper<false, VkPresentModeWSI>::Get(const VkPresentModeWSI &el)
 				ResourceId id; \
 				if(m_Mode >= WRITING) id = GetResID(obj); \
 				Serialise(name, id); \
-				if(m_Mode < WRITING) obj = (id == ResourceId()) ? VK_NULL_HANDLE : Unwrap(VKMGR()->GetLiveHandle<type>(id)); \
+				if(m_Mode < WRITING) obj = (id == ResourceId() || !VKMGR()->HasLiveResource(id)) ? VK_NULL_HANDLE : Unwrap(VKMGR()->GetLiveHandle<type>(id)); \
 			}
 
 static void SerialiseNext(Serialiser *ser, const void *&pNext)

@@ -344,9 +344,66 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 
 		if(writes)
-			ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 1, &writeDesc, 0, NULL);
+		{
+			// check for validity - if a resource wasn't referenced other than in this update
+			// (ie. the descriptor set was overwritten or never bound), then the write descriptor
+			// will be invalid with some missing handles. It's safe though to just skip this
+			// update as we only get here if it's never used.
+
+			bool valid = true;
+
+			switch(writeDesc.descriptorType)
+			{
+				case VK_DESCRIPTOR_TYPE_SAMPLER:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+						valid &= (writeDesc.pDescriptors[i].sampler != VK_NULL_HANDLE);
+					break;
+				}
+				case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+					{
+						valid &= (writeDesc.pDescriptors[i].sampler != VK_NULL_HANDLE);
+						valid &= (writeDesc.pDescriptors[i].imageView != VK_NULL_HANDLE);
+					}
+					break;
+				}
+				case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+				case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+						valid &= (writeDesc.pDescriptors[i].imageView != VK_NULL_HANDLE);
+					break;
+				}
+				case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+				case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+				case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+						valid &= (writeDesc.pDescriptors[i].bufferView != VK_NULL_HANDLE);
+					break;
+				}
+				case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+				{
+					for(uint32_t i=0; i < writeDesc.count; i++)
+						valid &= (writeDesc.pDescriptors[i].attachmentView != VK_NULL_HANDLE);
+					break;
+				}
+				default:
+					RDCERR("Unexpected descriptor type %d", writeDesc.descriptorType);
+			}
+
+			if(valid)
+				ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 1, &writeDesc, 0, NULL);
+		}
 		else
+		{
 			ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 0, NULL, 1, &copyDesc);
+		}
 	}
 
 	return true;
@@ -436,8 +493,6 @@ VkResult WrappedVulkan::vkUpdateDescriptorSets(
 					m_FrameCaptureRecord->AddChunk(scope.Get());
 				}
 				
-				// don't have to mark referenced any of the resources pointed to by the descriptor sets - that's handled
-				// on queue submission by marking ref'd all the current bindings of the sets referenced by the cmd buffer
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].destSet), eFrameRef_Write);
 				GetResourceManager()->MarkResourceFrameReferenced(GetResID(pDescriptorCopies[i].srcSet), eFrameRef_Read);
 			}

@@ -29,7 +29,7 @@
 	{ \
 		if(m_ImageInfo.find(GetResID(obj)) != m_ImageInfo.end()) m_ImageInfo.erase(GetResID(obj)); \
 		VkResult ret = ObjDisp(device)->func(Unwrap(device), Unwrap(obj)); \
-		GetResourceManager()->ReleaseWrappedResource(obj); \
+		GetResourceManager()->ReleaseWrappedResource(obj, true); \
 		return ret; \
 	}
 

@@ -276,7 +276,7 @@ struct WrappedVkBufferView : WrappedVkNonDispRes
 	typedef VkBufferView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize);
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBufferView, AllocPoolCount, AllocPoolMaxByteSize, false);
 	enum { TypeEnum = eResBufferView, };
 };
 struct WrappedVkImageView : WrappedVkNonDispRes
@@ -285,7 +285,7 @@ struct WrappedVkImageView : WrappedVkNonDispRes
 	typedef VkImageView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize);
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkImageView, AllocPoolCount, AllocPoolMaxByteSize, false);
 	enum { TypeEnum = eResImageView, };
 };
 struct WrappedVkAttachmentView : WrappedVkNonDispRes
@@ -294,7 +294,7 @@ struct WrappedVkAttachmentView : WrappedVkNonDispRes
 	typedef VkAttachmentView InnerType;
 	static const int AllocPoolCount = 128*1024;
 	static const int AllocPoolMaxByteSize = 3*1024*1024;
-	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize);
+	ALLOCATE_WITH_WRAPPED_POOL(WrappedVkAttachmentView, AllocPoolCount, AllocPoolMaxByteSize, false);
 	enum { TypeEnum = eResAttachmentView, };
 };
 struct WrappedVkShaderModule : WrappedVkNonDispRes
@@ -352,7 +352,9 @@ struct WrappedVkDescriptorSetLayout : WrappedVkNonDispRes
 struct WrappedVkSampler : WrappedVkNonDispRes
 {
 	WrappedVkSampler(VkSampler obj, ResourceId objId) : WrappedVkNonDispRes(obj, objId) {}
-	typedef VkSampler InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler);
+	static const int AllocPoolCount = 8192;
+	static const int AllocPoolMaxByteSize = 1024*1024;
+	typedef VkSampler InnerType; ALLOCATE_WITH_WRAPPED_POOL(WrappedVkSampler, AllocPoolCount, AllocPoolMaxByteSize, false);
 	enum { TypeEnum = eResSampler, };
 };
 struct WrappedVkDescriptorPool : WrappedVkNonDispRes
