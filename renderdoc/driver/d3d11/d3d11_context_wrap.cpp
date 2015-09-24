@@ -4677,6 +4677,13 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 
 HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContextState, ID3D11CommandList **ppCommandList)
 {
+	if(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+	{
+		m_pDevice->AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+			"It is invalid to call FinishCommandList on an immediate context. The call has been dropped from the capture.");
+		return DXGI_ERROR_INVALID_CALL;
+	}
+
 	DrainAnnotationQueue();
 
 	ID3D11CommandList *real = NULL;

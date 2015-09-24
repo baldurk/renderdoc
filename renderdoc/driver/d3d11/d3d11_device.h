@@ -306,7 +306,7 @@ public:
 	void FirstFrame(IDXGISwapChain *swap);
 
 	vector<DebugMessage> GetDebugMessages();
-	void AddDebugMessage(DebugMessage msg) { if(m_State < WRITING) m_DebugMessages.push_back(msg); }
+	void AddDebugMessage(DebugMessage msg);
 	void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d);
 	const vector<D3D11_INPUT_ELEMENT_DESC> &GetLayoutDesc(ID3D11InputLayout *layout) { return m_LayoutDescs[layout]; }
 

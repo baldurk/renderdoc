@@ -706,10 +706,13 @@ void WrappedID3D11Device::LazyInit()
 
 void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src, std::string d)
 {
-	if(m_State == READING || src == eDbgSource_RuntimeWarning)
+	// Only add runtime warnings while executing.
+	// While reading, add the messages from the log, and while writing add messages
+	// we add (on top of the API debug messages)
+	if(m_State != EXECUTING || src == eDbgSource_RuntimeWarning)
 	{
 		DebugMessage msg;
-		msg.eventID = m_pImmediateContext->GetEventID();
+		msg.eventID = m_State >= WRITING ? 0 : m_pImmediateContext->GetEventID();
 		msg.messageID = 0;
 		msg.source = src;
 		msg.category = c;
@@ -719,15 +722,23 @@ void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSe
 	}
 }
 
+void WrappedID3D11Device::AddDebugMessage(DebugMessage msg)
+{
+	if(m_State != EXECUTING || msg.source == eDbgSource_RuntimeWarning)
+		m_DebugMessages.push_back(msg);
+}
+
 vector<DebugMessage> WrappedID3D11Device::GetDebugMessages()
 {
 	vector<DebugMessage> ret;
 	
+	// if reading, m_DebugMessages will contain all the messages (we
+	// don't try and fetch anything from the API). If writing,
+	// m_DebugMessages will contain any manually-added messages.
+	ret.swap(m_DebugMessages);
+	
 	if(m_State < WRITING)
-	{
-		ret.swap(m_DebugMessages);
 		return ret;
-	}
 
 	if(!m_pInfoQueue)
 		return ret;
@@ -2481,6 +2492,8 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 	record.frameInfo.frameNumber = m_FrameCounter+1;
 	record.frameInfo.captureTime = Timing::GetUnixTimestamp();
 	m_FrameRecord.push_back(record);
+
+	m_DebugMessages.clear();
 
 	GetResourceManager()->ClearReferencedResources();
 
