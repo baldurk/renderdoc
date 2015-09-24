@@ -1170,20 +1170,20 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
 
 	// VKTODOMED this should be fleshed out
 	FetchTexture ret;
+	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	ret.arraysize = iminfo.arraySize;
 	ret.byteSize = iminfo.extent.width*iminfo.extent.height*4; // VKTODOMED calculate proper byte size
-	ret.creationFlags = (id == resid ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
+	ret.creationFlags = (ret.ID == resid ? eTextureCreate_SwapBuffer : 0)|eTextureCreate_SRV|eTextureCreate_RTV;
 	ret.cubemap = false;
 	ret.customName = false;
 	ret.width = iminfo.extent.width;
 	ret.height = iminfo.extent.height;
 	ret.depth = iminfo.extent.depth;
 	ret.dimension = 2;
-	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 	ret.mips = iminfo.mipLevels;
 	ret.msQual = 0;
 	ret.msSamp = 1;
-	ret.name = (id == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
+	ret.name = (ret.ID == resid ? "WSI Presentable Image" : StringFormat::Fmt("Image %llu", ret.ID));
 	ret.numSubresources = 1;
 	ret.format = MakeResourceFormat(iminfo.format);
 	return ret;
