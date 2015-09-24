@@ -4346,7 +4346,7 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
 		RDCASSERT(record);
 
-		if(record->datatype == TextureBinding(target) && m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
+		if(record->datatype == eGL_TEXTURE_BINDING_BUFFER && m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
 		{
 			GetResourceManager()->MarkDirtyResource(texId);
 			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
@@ -4455,7 +4455,7 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target, G
 		GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
 		RDCASSERT(record);
 
-		if(record->datatype == TextureBinding(target) && m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
+		if(record->datatype == eGL_TEXTURE_BINDING_BUFFER && m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
 		{
 			GetResourceManager()->MarkDirtyResource(texId);
 			GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
