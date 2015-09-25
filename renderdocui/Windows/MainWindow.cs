@@ -1566,6 +1566,11 @@ namespace renderdocui.Windows
             Help.ShowHelp(this, "renderdoc.chm");
         }
 
+        private void showTipsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            (new Dialogs.TipsDialog(m_Core)).ShowDialog();
+        }
+
         private void nightlybuildsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Process.Start("https://renderdoc.org/builds");

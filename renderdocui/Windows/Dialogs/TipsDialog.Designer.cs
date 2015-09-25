@@ -37,7 +37,7 @@
             this.tipTitle = new System.Windows.Forms.Label();
             this.tipPicture = new System.Windows.Forms.PictureBox();
             this.tipLink = new System.Windows.Forms.LinkLabel();
-            this.tipText = new System.Windows.Forms.TextBox();
+            this.tipText = new System.Windows.Forms.Label();
             close = new System.Windows.Forms.Button();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -103,6 +103,7 @@
             tableLayoutPanel1.SetColumnSpan(this.tipBox, 3);
             this.tipBox.Controls.Add(tableLayoutPanel2);
             this.tipBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tipBox.Font = new System.Drawing.Font("Arial", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tipBox.Location = new System.Drawing.Point(3, 3);
             this.tipBox.Name = "tipBox";
             this.tipBox.Size = new System.Drawing.Size(544, 286);
@@ -134,10 +135,10 @@
             this.tipTitle.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tipTitle.AutoSize = true;
-            this.tipTitle.Font = new System.Drawing.Font("Microsoft Sans Serif", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tipTitle.Font = new System.Drawing.Font("Arial", 15.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tipTitle.Location = new System.Drawing.Point(3, 0);
             this.tipTitle.Name = "tipTitle";
-            this.tipTitle.Size = new System.Drawing.Size(532, 25);
+            this.tipTitle.Size = new System.Drawing.Size(532, 24);
             this.tipTitle.TabIndex = 0;
             this.tipTitle.Text = "Tip #X: Tip Title";
             this.tipTitle.TextAlign = System.Drawing.ContentAlignment.TopCenter;
@@ -155,10 +156,11 @@
             // tipLink
             // 
             this.tipLink.AutoSize = true;
+            this.tipLink.Font = new System.Drawing.Font("Arial", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.tipLink.Location = new System.Drawing.Point(7, 244);
             this.tipLink.Margin = new System.Windows.Forms.Padding(7);
             this.tipLink.Name = "tipLink";
-            this.tipLink.Size = new System.Drawing.Size(141, 13);
+            this.tipLink.Size = new System.Drawing.Size(164, 16);
             this.tipLink.TabIndex = 3;
             this.tipLink.TabStop = true;
             this.tipLink.Text = "https://renderdoc.org/tips/1";
@@ -166,13 +168,13 @@
             // 
             // tipText
             // 
-            this.tipText.BackColor = System.Drawing.SystemColors.Window;
+            this.tipText.BackColor = System.Drawing.Color.Transparent;
             this.tipText.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tipText.Location = new System.Drawing.Point(3, 28);
-            this.tipText.Multiline = true;
+            this.tipText.Font = new System.Drawing.Font("Arial", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.tipText.Location = new System.Drawing.Point(3, 24);
             this.tipText.Name = "tipText";
-            this.tipText.ReadOnly = true;
-            this.tipText.Size = new System.Drawing.Size(532, 146);
+            this.tipText.Padding = new System.Windows.Forms.Padding(10);
+            this.tipText.Size = new System.Drawing.Size(532, 153);
             this.tipText.TabIndex = 4;
             this.tipText.Text = "Tip Text";
             // 
@@ -206,7 +208,7 @@
         private System.Windows.Forms.Label tipTitle;
         private System.Windows.Forms.PictureBox tipPicture;
         private System.Windows.Forms.LinkLabel tipLink;
-        private System.Windows.Forms.TextBox tipText;
+        private System.Windows.Forms.Label tipText;
         private System.Windows.Forms.Button randomTip;
     }
 }

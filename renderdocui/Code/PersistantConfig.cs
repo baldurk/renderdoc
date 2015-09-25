@@ -107,6 +107,8 @@ namespace renderdocui.Code
 
         public DateTime DegradedLog_LastUpdate = new DateTime(2015, 01, 01);
 
+        public bool Tips_SeenFirst = false;
+
         public bool AllowGlobalHook = false;
 
         public void SetupFormatting()
