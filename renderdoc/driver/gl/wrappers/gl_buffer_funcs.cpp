@@ -150,7 +150,11 @@ bool WrappedOpenGL::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 	}
 	else if(m_State < WRITING)
 	{
-		if(Id == ResourceId())
+		if(Target == eGL_NONE)
+		{
+			// ...
+		}
+		else if(Id == ResourceId())
 		{
 			m_Real.glBindBuffer(Target, 0);
 		}
