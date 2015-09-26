@@ -1817,11 +1817,18 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 	{
 		string name = "glMultiDrawElements(" +
 						ToStr::Get(Count) + ")";
+		
+		uint32_t IdxSize =
+		    Type == eGL_UNSIGNED_BYTE  ? 1
+		  : Type == eGL_UNSIGNED_SHORT ? 2
+		  : /*Type == eGL_UNSIGNED_INT*/ 4;
 
 		FetchDrawcall draw;
 		draw.name = name;
 
 		draw.flags |= eDraw_MultiDraw;
+		draw.indexByteWidth = IdxSize;
+		draw.numIndices = 0;
 
 		draw.topology = MakePrimitiveTopology(m_Real, Mode);
 		
@@ -1836,6 +1843,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 			FetchDrawcall multidraw;
 			multidraw.numIndices = countArray[i];
 			multidraw.indexOffset = (uint32_t) uint64_t(idxOffsArray[i])&0xFFFFFFFF;
+			multidraw.indexByteWidth = IdxSize;
 		
 			multidraw.name = "glMultiDrawElements[" + ToStr::Get(i) + "](" +
 						ToStr::Get(multidraw.numIndices) + ")";
