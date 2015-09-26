@@ -20,6 +20,9 @@ OBJECTS_DIR = .obj
 # include path for core renderdoc API
 INCLUDEPATH += $$_PRO_FILE_PWD_/../renderdoc/api/replay
 
+# Allow includes relative to the root
+INCLUDEPATH += $$_PRO_FILE_PWD_/
+
 # For ToolWindowManager
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/toolwindowmanager
 # For FlowLayout
