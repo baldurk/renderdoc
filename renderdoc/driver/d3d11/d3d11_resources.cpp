@@ -61,6 +61,7 @@ map<ResourceId,WrappedID3D11Texture2D::TextureEntry> WrappedTexture<ID3D11Textur
 map<ResourceId,WrappedID3D11Texture3D::TextureEntry> WrappedTexture<ID3D11Texture3D, D3D11_TEXTURE3D_DESC>::m_TextureList;
 map<ResourceId,WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
 map<ResourceId,WrappedShader::ShaderEntry*> WrappedShader::m_ShaderList;
+Threading::CriticalSection WrappedShader::m_ShaderListLock;
 
 UINT GetMipForSubresource(ID3D11Resource *res, int Subresource)
 {

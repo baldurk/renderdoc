@@ -289,6 +289,8 @@ public:
 
 	D3D11Replay *GetReplay() { return &m_Replay; }
 
+	Threading::CriticalSection &D3DLock() { return m_D3DLock; }
+
 	WrappedID3D11DeviceContext *GetImmediateContext() { return m_pImmediateContext; }
 	size_t GetNumDeferredContexts() { return m_DeferredContexts.size(); }
 	void AddDeferredContext(WrappedID3D11DeviceContext *defctx);

@@ -477,6 +477,8 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
 
 void WrappedID3D11DeviceContext::FreeCaptureData()
 {
+	SCOPED_LOCK(m_pDevice->D3DLock());
+
 	for(auto it = WrappedID3D11Buffer::m_BufferList.begin(); it != WrappedID3D11Buffer::m_BufferList.end(); ++it)
 	{
 		D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(it->first);

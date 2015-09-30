@@ -769,12 +769,16 @@ public:
 	WrappedID3D11Buffer(ID3D11Buffer* real, uint32_t byteLength, WrappedID3D11Device* device)
 		: WrappedResource(real, device)
 	{
+		SCOPED_LOCK(m_pDevice->D3DLock());
+
 		RDCASSERT(m_BufferList.find(GetResourceID()) == m_BufferList.end());
 		m_BufferList[GetResourceID()] = BufferEntry(this, byteLength);
 	}
 
 	virtual ~WrappedID3D11Buffer()
 	{
+		SCOPED_LOCK(m_pDevice->D3DLock());
+
 		if(m_BufferList.find(GetResourceID()) != m_BufferList.end())
 			m_BufferList.erase(GetResourceID());
 
@@ -805,6 +809,8 @@ public:
 	{
 		if(type != TEXDISPLAY_UNKNOWN)
 		{
+			SCOPED_LOCK(m_pDevice->D3DLock());
+
 			RDCASSERT(m_TextureList.find(GetResourceID()) == m_TextureList.end());
 			m_TextureList[GetResourceID()] = TextureEntry(this, type);
 		}
@@ -812,6 +818,8 @@ public:
 
 	virtual ~WrappedTexture()
 	{
+		SCOPED_LOCK(m_pDevice->D3DLock());
+
 		if(m_TextureList.find(GetResourceID()) != m_TextureList.end())
 			m_TextureList.erase(GetResourceID());
 
@@ -1115,14 +1123,19 @@ public:
 	};
 
 	static map<ResourceId, ShaderEntry*> m_ShaderList;
+	static Threading::CriticalSection m_ShaderListLock;
 
 	WrappedShader(ResourceId id, const byte *code, size_t codeLen) : m_ID(id)
 	{
+		SCOPED_LOCK(m_ShaderListLock);
+
 		RDCASSERT(m_ShaderList.find(m_ID) == m_ShaderList.end());
 		m_ShaderList[m_ID] = new ShaderEntry(code, codeLen);
 	}
 	virtual ~WrappedShader()
 	{
+		SCOPED_LOCK(m_ShaderListLock);
+
 		auto it = m_ShaderList.find(m_ID);
 		if(it != m_ShaderList.end())
 		{
@@ -1131,8 +1144,8 @@ public:
 		}
 	}
 
-	DXBC::DXBCFile *GetDXBC() { return m_ShaderList[m_ID]->GetDXBC(); }
-	ShaderReflection *GetDetails() { return m_ShaderList[m_ID]->GetDetails(); }
+	DXBC::DXBCFile *GetDXBC() { SCOPED_LOCK(m_ShaderListLock); return m_ShaderList[m_ID]->GetDXBC(); }
+	ShaderReflection *GetDetails() { SCOPED_LOCK(m_ShaderListLock); return m_ShaderList[m_ID]->GetDetails(); }
 private:
 	ResourceId m_ID;
 };
