@@ -151,49 +151,51 @@ int RENDERDOC_CC SetCaptureOptionF32(RENDERDOC_CaptureOption opt, float val);
 uint32_t RENDERDOC_CC GetCaptureOptionU32(RENDERDOC_CaptureOption opt);
 float RENDERDOC_CC GetCaptureOptionF32(RENDERDOC_CaptureOption opt);
 
-void RENDERDOC_CC GetAPIVersion_1_0_0(int *major, int *minor, int *patch)
+void RENDERDOC_CC GetAPIVersion_1_0_1(int *major, int *minor, int *patch)
 {
 	if(major) *major = 1;
 	if(minor) *minor = 0;
-	if(patch) *patch = 0;
+	if(patch) *patch = 1;
 }
 
-RENDERDOC_API_1_0_0 api_1_0_0;
-void Init_1_0_0()
+RENDERDOC_API_1_0_1 api_1_0_1;
+void Init_1_0_1()
 {
-	api_1_0_0.GetAPIVersion = &GetAPIVersion_1_0_0;
+	RENDERDOC_API_1_0_1 &api = api_1_0_1;
 
-	api_1_0_0.SetCaptureOptionU32 = &SetCaptureOptionU32;
-	api_1_0_0.SetCaptureOptionF32 = &SetCaptureOptionF32;
+	api.GetAPIVersion = &GetAPIVersion_1_0_1;
 
-	api_1_0_0.GetCaptureOptionU32 = &GetCaptureOptionU32;
-	api_1_0_0.GetCaptureOptionF32 = &GetCaptureOptionF32;
+	api.SetCaptureOptionU32 = &SetCaptureOptionU32;
+	api.SetCaptureOptionF32 = &SetCaptureOptionF32;
 
-	api_1_0_0.SetFocusToggleKeys = &SetFocusToggleKeys;
-	api_1_0_0.SetCaptureKeys = &SetCaptureKeys;
+	api.GetCaptureOptionU32 = &GetCaptureOptionU32;
+	api.GetCaptureOptionF32 = &GetCaptureOptionF32;
 
-	api_1_0_0.GetOverlayBits = &GetOverlayBits;
-	api_1_0_0.MaskOverlayBits = &MaskOverlayBits;
+	api.SetFocusToggleKeys = &SetFocusToggleKeys;
+	api.SetCaptureKeys = &SetCaptureKeys;
 
-	api_1_0_0.Shutdown = &Shutdown;
-	api_1_0_0.UnloadCrashHandler = &UnloadCrashHandler;
+	api.GetOverlayBits = &GetOverlayBits;
+	api.MaskOverlayBits = &MaskOverlayBits;
 
-	api_1_0_0.SetLogFilePathTemplate = &SetLogFilePathTemplate;
-	api_1_0_0.GetLogFilePathTemplate = &GetLogFilePathTemplate;
+	api.Shutdown = &Shutdown;
+	api.UnloadCrashHandler = &UnloadCrashHandler;
 
-	api_1_0_0.GetNumCaptures = &GetNumCaptures;
-	api_1_0_0.GetCapture = &GetCapture;
+	api.SetLogFilePathTemplate = &SetLogFilePathTemplate;
+	api.GetLogFilePathTemplate = &GetLogFilePathTemplate;
 
-	api_1_0_0.TriggerCapture = &TriggerCapture;
+	api.GetNumCaptures = &GetNumCaptures;
+	api.GetCapture = &GetCapture;
 
-	api_1_0_0.IsRemoteAccessConnected = &IsRemoteAccessConnected;
-	api_1_0_0.LaunchReplayUI = &LaunchReplayUI;
+	api.TriggerCapture = &TriggerCapture;
 
-	api_1_0_0.SetActiveWindow = &SetActiveWindow;
+	api.IsRemoteAccessConnected = &IsRemoteAccessConnected;
+	api.LaunchReplayUI = &LaunchReplayUI;
 
-	api_1_0_0.StartFrameCapture = &StartFrameCapture;
-	api_1_0_0.IsFrameCapturing = &IsFrameCapturing;
-	api_1_0_0.EndFrameCapture = &EndFrameCapture;
+	api.SetActiveWindow = &SetActiveWindow;
+
+	api.StartFrameCapture = &StartFrameCapture;
+	api.IsFrameCapturing = &IsFrameCapturing;
+	api.EndFrameCapture = &EndFrameCapture;
 }
 
 extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version version, void **outAPIPointers)
@@ -216,7 +218,8 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
 		ret = 1; \
 	}
 
-	API_VERSION_HANDLE(1_0_0, 1_0_0);
+	API_VERSION_HANDLE(1_0_0, 1_0_1);
+	API_VERSION_HANDLE(1_0_1, 1_0_1);
 
 #undef API_VERSION_HANDLE
 

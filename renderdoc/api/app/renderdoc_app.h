@@ -445,10 +445,17 @@ typedef uint32_t (RENDERDOC_CC *pRENDERDOC_EndFrameCapture)(RENDERDOC_DevicePoin
 // instead of 1.0.0. You can check this with the GetAPIVersion entry point
 typedef enum
 {
-	eRENDERDOC_API_Version_1_0_0 = 10000, // RENDERDOC_API_1_0_0 = 1 000 000
+	eRENDERDOC_API_Version_1_0_0 = 10000, // RENDERDOC_API_1_0_0 = 1 00 00
+	eRENDERDOC_API_Version_1_0_1 = 10001, // RENDERDOC_API_1_0_1 = 1 00 01
 } RENDERDOC_Version;
 
-// eRENDERDOC_API_Version_1_0_0
+// API version changelog:
+//
+// 1.0.0 - initial release
+// 1.0.1 - Bugfix: IsFrameCapturing() was returning false for captures that were triggered
+//         by keypress or TriggerCapture, instead of Start/EndFrameCapture.
+
+// eRENDERDOC_API_Version_1_0_1
 typedef struct
 {
 	pRENDERDOC_GetAPIVersion              GetAPIVersion;
@@ -484,7 +491,7 @@ typedef struct
 	pRENDERDOC_StartFrameCapture          StartFrameCapture;
 	pRENDERDOC_IsFrameCapturing           IsFrameCapturing;
 	pRENDERDOC_EndFrameCapture            EndFrameCapture;
-} RENDERDOC_API_1_0_0;
+} RENDERDOC_API_1_0_1;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point
