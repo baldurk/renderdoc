@@ -493,6 +493,8 @@ typedef struct
 	pRENDERDOC_EndFrameCapture            EndFrameCapture;
 } RENDERDOC_API_1_0_1;
 
+typedef RENDERDOC_API_1_0_1 RENDERDOC_API_1_0_0;
+
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // RenderDoc API entry point
 // 
