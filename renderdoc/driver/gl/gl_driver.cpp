@@ -2232,7 +2232,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 	
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		StartFrameCapture(ctxdata.ctx, windowHandle);
+		RenderDoc::Inst().StartFrameCapture(ctxdata.ctx, windowHandle);
 
 		m_AppControlledCapture = false;
 	}

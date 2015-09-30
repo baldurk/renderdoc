@@ -2985,7 +2985,7 @@ void WrappedID3D11Device::FirstFrame(IDXGISwapChain *swap)
 	// if we have to capture the first frame, begin capturing immediately
 	if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
 	{
-		StartFrameCapture(this, swapdesc.OutputWindow);
+		RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapdesc.OutputWindow);
 
 		m_AppControlledCapture = false;
 	}
@@ -3167,7 +3167,7 @@ HRESULT WrappedID3D11Device::Present(IDXGISwapChain *swap, UINT SyncInterval, UI
 
 	if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
 	{
-		StartFrameCapture(this, swapdesc.OutputWindow);
+		RenderDoc::Inst().StartFrameCapture((ID3D11Device *)this, swapdesc.OutputWindow);
 
 		m_AppControlledCapture = false;
 	}
