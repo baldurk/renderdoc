@@ -26,6 +26,8 @@
 
 typedef void (*dlopenCallback)(void *realLib);
 
+void LinuxHookInit();
+
 // if this name is dlopen'd, the real library will be passed
 // to the callback and librenderdoc.so will be returned to user code
 void LinuxHookLibrary(const char *name, dlopenCallback cb);

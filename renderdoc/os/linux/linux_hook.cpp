@@ -35,6 +35,16 @@
 #include <map>
 #include <string>
 
+// depending on symbol resolution, dlopen could get called really early.
+// until we've initialised, just skip any fancy stuff
+static uint32_t hookInited = 0;
+#define HOOK_MAGIC_NUMBER 0xAAF00F00
+
+void LinuxHookInit()
+{
+	hookInited = HOOK_MAGIC_NUMBER;
+}
+
 // need to lock around use of realdlopen and libraryHooks
 Threading::CriticalSection libLock;
 
@@ -52,6 +62,12 @@ DLOPENPROC realdlopen = NULL;
 __attribute__ ((visibility ("default")))
 void *dlopen(const char *filename, int flag)
 {
+	if(hookInited != HOOK_MAGIC_NUMBER)
+	{
+		DLOPENPROC passthru = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
+		return passthru(filename, flag);
+	}
+
 	SCOPED_LOCK(libLock);
 	if(realdlopen == NULL) realdlopen = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
 

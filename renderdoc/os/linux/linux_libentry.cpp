@@ -26,6 +26,8 @@
 #include "hooks/hooks.h"
 #include "os/os_specific.h"
 
+void dlopen_hook_init();
+
 void readCapOpts(const char *str, CaptureOptions *opts)
 {
 	// serialise from string with two chars per byte

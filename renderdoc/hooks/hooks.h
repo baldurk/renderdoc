@@ -81,7 +81,7 @@ class Hook
 // just need this for dlsym
 #include <dlfcn.h>
 
-#define HOOKS_BEGIN()
+#define HOOKS_BEGIN() LinuxHookInit()
 #define HOOKS_END()
 #define HOOKS_REMOVE()
 
