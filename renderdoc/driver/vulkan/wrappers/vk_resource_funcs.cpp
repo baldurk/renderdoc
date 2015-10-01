@@ -98,6 +98,7 @@ VkResult WrappedVulkan::vkAllocMemory(
 			GetResourceManager()->AddLiveResource(id, *pMem);
 		}
 
+		m_MemoryInfo[id].device = device;
 		m_MemoryInfo[id].size = pAllocInfo->allocationSize;
 	}
 
@@ -150,6 +151,7 @@ VkResult WrappedVulkan::vkMapMemory(
 				it->second.mapSize = size == 0 ? it->second.size : size;
 				it->second.mapFlags = flags;
 				it->second.mapFlushed = false;
+				it->second.refData = NULL;
 			}
 		}
 		else if(m_State >= WRITING)
@@ -263,6 +265,7 @@ VkResult WrappedVulkan::vkUnmapMemory(
 				}
 
 				it->second.mappedPtr = NULL;
+				SAFE_DELETE_ARRAY(it->second.refData);
 			}
 		}
 	}

@@ -339,6 +339,42 @@ VkResult WrappedVulkan::vkQueueSubmit(
 		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
 
+	// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
+	// done when not in capframe :(.
+	if(m_State == WRITING_CAPFRAME)
+	{
+		for(auto it = m_MemoryInfo.begin(); it != m_MemoryInfo.end(); ++it)
+		{
+			// potential persistent map, force a full flush
+			if(it->second.mappedPtr)
+			{
+				size_t diffStart = 0, diffEnd = 0;
+				bool found = true;
+
+				// if we have a previous set of data, compare.
+				// otherwise just serialise it all
+				if(it->second.refData)
+					found = FindDiffRange((byte *)it->second.mappedPtr, it->second.refData, (size_t)it->second.mapSize, diffStart, diffEnd);
+				else
+					diffEnd = (size_t)it->second.mapSize;
+
+				if(found)
+				{
+					{
+						RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", it->first, (uint64_t)diffStart, (uint64_t)diffEnd);
+						VkMappedMemoryRange range = { VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE, NULL, GetResourceManager()->GetCurrentHandle<VkDeviceMemory>(it->first), it->second.mapOffset+diffStart, diffEnd-diffStart };
+						vkFlushMappedMemoryRanges(it->second.device, 1, &range);
+					}
+
+					// allocate ref data so we can compare next time to minimise serialised data
+					if(it->second.refData == NULL)
+						it->second.refData = new byte[it->second.mapSize];
+					memcpy(it->second.refData, it->second.mappedPtr, (size_t)it->second.mapSize);
+				}
+			}
+		}
+	}
+
 	for(uint32_t i=0; i < cmdBufferCount; i++)
 	{
 		ResourceId cmd = GetResID(pCmdBuffers[i]);

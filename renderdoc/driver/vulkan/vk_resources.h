@@ -703,13 +703,15 @@ struct VkResourceRecord : public ResourceRecord
 struct MemState
 {
 	MemState()
-		: mapOffset(0), mapSize(0), size(0), mapFlags(0), mappedPtr(0), mapFlushed(false)
+		: device(VK_NULL_HANDLE), mapOffset(0), mapSize(0), size(0), mapFlags(0), mappedPtr(NULL), mapFlushed(false), refData(NULL)
 	{ }
+	VkDevice device;
 	VkDeviceSize mapOffset, mapSize;
 	VkDeviceSize size;
 	VkMemoryMapFlags mapFlags;
 	bool mapFlushed;
 	void *mappedPtr;
+	byte *refData;
 };
 struct ImgState
 {
