@@ -331,14 +331,6 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 	SAFE_DELETE_ARRAY(unwrapped);
 
-	if(m_State == WRITING_CAPFRAME)
-	{
-		SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
-		Serialise_vkQueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
-
-		m_FrameCaptureRecord->AddChunk(scope.Get());
-	}
-
 	// VKTODOHIGH when maps are intercepted with local buffers, this will have to be
 	// done when not in capframe :(.
 	if(m_State == WRITING_CAPFRAME)
@@ -373,6 +365,14 @@ VkResult WrappedVulkan::vkQueueSubmit(
 				}
 			}
 		}
+	}
+
+	if(m_State == WRITING_CAPFRAME)
+	{
+		SCOPED_SERIALISE_CONTEXT(QUEUE_SUBMIT);
+		Serialise_vkQueueSubmit(queue, cmdBufferCount, pCmdBuffers, fence);
+
+		m_FrameCaptureRecord->AddChunk(scope.Get());
 	}
 
 	for(uint32_t i=0; i < cmdBufferCount; i++)
