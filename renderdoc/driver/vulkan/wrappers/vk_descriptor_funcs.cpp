@@ -398,11 +398,29 @@ bool WrappedVulkan::Serialise_vkUpdateDescriptorSets(
 			}
 
 			if(valid)
+			{
 				ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 1, &writeDesc, 0, NULL);
+
+				// update our local tracking
+				vector<VkDescriptorInfo *> &bindings = m_DescriptorSetInfo[GetResourceManager()->GetOriginalID(GetResourceManager()->GetNonDispWrapper(writeDesc.destSet)->id)].currentBindings;
+
+				{
+					RDCASSERT(writeDesc.destBinding < bindings.size());
+					RDCASSERT(writeDesc.destArrayElement == 0);
+
+					VkDescriptorInfo *bind = bindings[writeDesc.destBinding];
+
+					for(uint32_t d=0; d < writeDesc.count; d++)
+						bind[d] = writeDesc.pDescriptors[d];
+				}
+			}
 		}
 		else
 		{
 			ObjDisp(device)->UpdateDescriptorSets(Unwrap(device), 0, NULL, 1, &copyDesc);
+			
+			// don't want to implement this blindly
+			RDCUNIMPLEMENTED("Copying descriptors not implemented");
 		}
 	}
 
