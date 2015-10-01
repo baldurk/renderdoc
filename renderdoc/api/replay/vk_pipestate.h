@@ -250,6 +250,7 @@ struct VulkanPipelineState
 			struct Attachment
 			{
 				ResourceId view;
+				ResourceId img;
 				// VKTODOLOW need layout here?
 			};
 			rdctype::array<Attachment> attachments;

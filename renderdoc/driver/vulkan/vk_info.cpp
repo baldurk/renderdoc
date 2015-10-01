@@ -157,6 +157,11 @@ void VulkanCreationInfo::Framebuffer::Init(const VkFramebufferCreateInfo* pCreat
 		attachments[i].view = VKMGR()->GetNonDispWrapper(pCreateInfo->pAttachments[i].view)->id;
 }
 
+void VulkanCreationInfo::AttachmentView::Init(const VkAttachmentViewCreateInfo* pCreateInfo)
+{
+	image = VKMGR()->GetNonDispWrapper(pCreateInfo->image)->id;
+}
+
 void VulkanCreationInfo::DescSetLayout::Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo)
 {
 	bindings.resize(pCreateInfo->count);

@@ -807,6 +807,9 @@ bool WrappedVulkan::Serialise_vkCreateAttachmentView(
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkAttachmentView view = VK_NULL_HANDLE;
 
+		// use original ID
+		m_CreationInfo.m_AttachmentView[id].Init(&info);
+
 		VkResult ret = ObjDisp(device)->CreateAttachmentView(Unwrap(device), &info, &view);
 
 		if(ret != VK_SUCCESS)

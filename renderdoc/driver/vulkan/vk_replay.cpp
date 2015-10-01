@@ -1206,18 +1206,6 @@ void VulkanReplay::SavePipelineState()
 	VULKANNOTIMP("SavePipelineState");
 
 	{
-		create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
-
-		ResourceId id;
-		VkImage fakeBBIm = VK_NULL_HANDLE;
-		VkExtent3D fakeBBext;
-		ResourceFormat fakeBBfmt;
-		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
-
-		m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
-	}
-
-	{
 		const WrappedVulkan::PartialReplayData::StateVector &state = m_pDriver->m_PartialReplayData.state;
 		VulkanCreationInfo &c = m_pDriver->m_CreationInfo;
 
@@ -1480,8 +1468,10 @@ void VulkanReplay::SavePipelineState()
 			create_array_uninit(m_VulkanPipelineState.Pass.framebuffer.attachments, c.m_Framebuffer[state.framebuffer].attachments.size());
 			for(size_t i=0; i < c.m_Framebuffer[state.framebuffer].attachments.size(); i++)
 			{
-				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = 
-					c.m_Framebuffer[state.framebuffer].attachments[i].view;
+				ResourceId viewid = rm->GetOriginalID(c.m_Framebuffer[state.framebuffer].attachments[i].view);
+
+				m_VulkanPipelineState.Pass.framebuffer.attachments[i].view = viewid;
+				m_VulkanPipelineState.Pass.framebuffer.attachments[i].img = rm->GetOriginalID(c.m_AttachmentView[viewid].image);
 			}
 
 			m_VulkanPipelineState.Pass.renderArea.x = state.renderArea.offset.x;
@@ -1489,6 +1479,21 @@ void VulkanReplay::SavePipelineState()
 			m_VulkanPipelineState.Pass.renderArea.width = state.renderArea.extent.width;
 			m_VulkanPipelineState.Pass.renderArea.height = state.renderArea.extent.height;
 		}
+	}
+
+	{
+		create_array_uninit(m_D3D11PipelineState.m_OM.RenderTargets, 1);
+
+		ResourceId id;
+		VkImage fakeBBIm = VK_NULL_HANDLE;
+		VkExtent3D fakeBBext;
+		ResourceFormat fakeBBfmt;
+		m_pDriver->GetFakeBB(id, fakeBBIm, fakeBBext, fakeBBfmt);
+
+		if(m_VulkanPipelineState.Pass.framebuffer.attachments.count > 0 && m_VulkanPipelineState.Pass.framebuffer.attachments[0].img != ResourceId())
+			id = m_VulkanPipelineState.Pass.framebuffer.attachments[0].img;
+
+		m_D3D11PipelineState.m_OM.RenderTargets[0].Resource = id;
 	}
 }
 

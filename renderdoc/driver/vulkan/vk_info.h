@@ -166,6 +166,14 @@ struct VulkanCreationInfo
 	};
 	map<ResourceId, Framebuffer> m_Framebuffer;
 
+	struct AttachmentView
+	{
+		void Init(const VkAttachmentViewCreateInfo* pCreateInfo);
+
+		ResourceId image;
+	};
+	map<ResourceId, AttachmentView> m_AttachmentView;
+
 	struct DescSetLayout
 	{
 		void Init(const VkDescriptorSetLayoutCreateInfo* pCreateInfo);
