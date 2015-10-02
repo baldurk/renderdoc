@@ -976,7 +976,7 @@ namespace renderdocui.Windows
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 m_Output = r.CreateOutput(renderHandle);
-                //m_Output.SetPixelContext(contextHandle);
+                m_Output.SetPixelContext(contextHandle);
                 m_Output.SetOutputConfig(outConfig);
 
                 this.BeginInvoke(new Action(UI_CreateThumbnails));
