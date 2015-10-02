@@ -379,6 +379,8 @@ bool WrappedVulkan::Serialise_vkBindBufferMemory(
 		buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufId);
 		mem = GetResourceManager()->GetLiveHandle<VkDeviceMemory>(memId);
 
+		m_BufferMemBinds[GetResID(buffer)] = GetResID(mem);
+
 		ObjDisp(device)->BindBufferMemory(Unwrap(device), Unwrap(buffer), Unwrap(mem), offs);
 	}
 
@@ -495,6 +497,10 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(
 	{
 		device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
 		VkBuffer buf = VK_NULL_HANDLE;
+
+		// ensure we can always readback from buffers
+		if(info.usage != VK_BUFFER_USAGE_GENERAL)
+			info.usage |= VK_BUFFER_USAGE_TRANSFER_SOURCE_BIT;
 
 		VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &info, &buf);
 

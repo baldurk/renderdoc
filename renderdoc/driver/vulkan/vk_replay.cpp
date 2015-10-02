@@ -593,8 +593,6 @@ void VulkanReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_
 		vt->QueueWaitIdle(Unwrap(q));
 	}
 
-	// VKTODOHIGH ultra cheeky - map memory directly without copying
-	// to host-visible memory
 	byte *pData = NULL;
 	vt->MapMemory(Unwrap(dev), readbackmem, 0, 0, 0, (void **)&pData);
 
@@ -909,7 +907,7 @@ ResourceId VulkanReplay::RenderOverlay(ResourceId texid, TextureDisplayOverlay o
 	
 void VulkanReplay::RenderMesh(uint32_t frameID, uint32_t eventID, const vector<MeshFormat> &secondaryDraws, MeshDisplay cfg)
 {
-	RDCUNIMPLEMENTED("RenderMesh");
+	VULKANNOTIMP("RenderMesh");
 }
 
 bool VulkanReplay::CheckResizeOutputWindow(uint64_t id)
@@ -1142,8 +1140,97 @@ uint64_t VulkanReplay::MakeOutputWindow(void *wn, bool depth)
 
 vector<byte> VulkanReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
 {
-	RDCUNIMPLEMENTED("GetBufferData");
-	return vector<byte>();
+	VkDevice dev = m_pDriver->GetDev();
+	VkCmdBuffer cmd = m_pDriver->GetCmd();
+	VkQueue q = m_pDriver->GetQ();
+	const VkLayerDispatchTable *vt = ObjDisp(dev);
+
+	ResourceId memid = m_pDriver->m_BufferMemBinds[buff];
+
+	VkBuffer srcBuf = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(buff);
+	
+	if(len == 0)
+	{
+		len = uint32_t(m_pDriver->m_MemoryInfo[memid].size - offset);
+	}
+
+	if(len > 0 && VkDeviceSize(offset+len) > m_pDriver->m_MemoryInfo[memid].size)
+	{
+		RDCWARN("Attempting to read off the end of the array. Will be clamped");
+		len = RDCMIN(len, uint32_t(m_pDriver->m_MemoryInfo[memid].size - offset));
+	}
+
+	vector<byte> ret;
+	ret.resize(len);
+
+	// VKTODOMED - coarse: wait for all writes to this buffer
+	vt->DeviceWaitIdle(Unwrap(dev));
+
+	VkDeviceMemory readbackmem = VK_NULL_HANDLE;
+	VkBuffer destbuf = VK_NULL_HANDLE;
+	VkResult vkr = VK_SUCCESS;
+	byte *pData = NULL;
+
+	{
+		VkCmdBufferBeginInfo beginInfo = { VK_STRUCTURE_TYPE_CMD_BUFFER_BEGIN_INFO, NULL, VK_CMD_BUFFER_OPTIMIZE_SMALL_BATCH_BIT | VK_CMD_BUFFER_OPTIMIZE_ONE_TIME_SUBMIT_BIT };
+
+		vkr = vt->ResetCommandBuffer(Unwrap(cmd), 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+		vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCreateInfo bufInfo = {
+			VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO, NULL,
+			(VkDeviceSize)ret.size(), VK_BUFFER_USAGE_GENERAL, 0,
+			VK_SHARING_MODE_EXCLUSIVE, 0, NULL,
+		};
+
+		VkResult vkr = vt->CreateBuffer(Unwrap(dev), &bufInfo, &destbuf);
+		RDCASSERT(vkr == VK_SUCCESS);
+		
+		VkMemoryRequirements mrq;
+		vkr = vt->GetBufferMemoryRequirements(Unwrap(dev), destbuf, &mrq);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkMemoryAllocInfo allocInfo = {
+			VK_STRUCTURE_TYPE_MEMORY_ALLOC_INFO, NULL,
+			mrq.size, m_pDriver->GetReadbackMemoryIndex(mrq.memoryTypeBits),
+		};
+
+		vkr = vt->AllocMemory(Unwrap(dev), &allocInfo, &readbackmem);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = vt->BindBufferMemory(Unwrap(dev), destbuf, readbackmem, 0);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		VkBufferCopy region = { offset, 0, (VkDeviceSize)ret.size() };
+		vt->CmdCopyBuffer(Unwrap(cmd), Unwrap(srcBuf), destbuf, 1, &region);
+
+		vkr = vt->EndCommandBuffer(Unwrap(cmd));
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = vt->QueueSubmit(Unwrap(q), 1, UnwrapPtr(cmd), VK_NULL_HANDLE);
+		RDCASSERT(vkr == VK_SUCCESS);
+
+		vkr = vt->QueueWaitIdle(Unwrap(q));
+		RDCASSERT(vkr == VK_SUCCESS);
+	}
+
+	vkr = vt->MapMemory(Unwrap(dev), readbackmem, 0, 0, 0, (void **)&pData);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	RDCASSERT(pData != NULL);
+	memcpy(&ret[0], pData, ret.size());
+
+	vkr = vt->UnmapMemory(Unwrap(dev), readbackmem);
+	RDCASSERT(vkr == VK_SUCCESS);
+	
+	vt->DeviceWaitIdle(Unwrap(dev));
+
+	vt->DestroyBuffer(Unwrap(dev), destbuf);
+	vt->FreeMemory(Unwrap(dev), readbackmem);
+
+	return ret;
 }
 
 bool VulkanReplay::IsRenderOutput(ResourceId id)

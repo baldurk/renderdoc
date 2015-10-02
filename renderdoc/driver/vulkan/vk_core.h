@@ -179,9 +179,11 @@ private:
 	{ id = m_FakeBBImgId; im = m_FakeBBIm; extent = m_FakeBBExtent; fmt = m_FakeBBFmt; }
 	
 	// VKTODO all these m_*Info things need to be locked and ensure we only access
-	// them in slow path functions like creation
+	// them in slow path functions like creation, or just moved elsewhere like inside
+	// the wrapped objects
 	map<ResourceId, MemState> m_MemoryInfo;
 	map<ResourceId, ImgState> m_ImageInfo;
+	map<ResourceId, ResourceId> m_BufferMemBinds;
 
 	struct CmdBufferInfo
 	{
