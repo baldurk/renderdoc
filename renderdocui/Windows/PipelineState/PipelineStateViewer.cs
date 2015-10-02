@@ -45,6 +45,7 @@ namespace renderdocui.Windows.PipelineState
         private Core m_Core;
         private D3D11PipelineStateViewer m_D3D11 = null;
         private GLPipelineStateViewer m_GL = null;
+        private VulkanPipelineStateViewer m_Vulkan = null;
         private ILogViewerForm m_Current = null;
 
         public PipelineStateViewer(Core core)
@@ -68,6 +69,8 @@ namespace renderdocui.Windows.PipelineState
                 return GetType().ToString() + "D3D11";
             else if (m_Current == m_GL)
                 return GetType().ToString() + "GL";
+            else if (m_Current == m_Vulkan)
+                return GetType().ToString() + "Vulkan";
 
             return GetType().ToString();
         }
@@ -80,11 +83,14 @@ namespace renderdocui.Windows.PipelineState
                 SetToGL();
             else if (type == "D3D11")
                 SetToD3D11();
+            else if (type == "Vulkan")
+                SetToVulkan();
         }
 
         private void SetToD3D11()
         {
             m_GL = null;
+            m_Vulkan = null;
 
             if (m_D3D11 == null)
             {
@@ -100,6 +106,7 @@ namespace renderdocui.Windows.PipelineState
         private void SetToGL()
         {
             m_D3D11 = null;
+            m_Vulkan = null;
 
             if (m_GL == null)
             {
@@ -112,12 +119,30 @@ namespace renderdocui.Windows.PipelineState
             m_Current = m_GL;
         }
 
+        private void SetToVulkan()
+        {
+            m_GL = null;
+            m_D3D11 = null;
+
+            if (m_Vulkan == null)
+            {
+                Controls.Clear();
+                m_Vulkan = new VulkanPipelineStateViewer(m_Core, this);
+                m_Vulkan.Dock = DockStyle.Fill;
+                Controls.Add(m_Vulkan);
+            }
+
+            m_Current = m_Vulkan;
+        }
+
         public void OnLogfileLoaded()
         {
             if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 SetToD3D11();
             else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
                 SetToGL();
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                SetToVulkan();
 
             m_Current.OnLogfileLoaded();
         }

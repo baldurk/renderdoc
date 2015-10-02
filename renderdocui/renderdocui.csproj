@@ -289,6 +289,12 @@
     <Compile Include="Windows\Dialogs\LiveCapture.Designer.cs">
       <DependentUpon>LiveCapture.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\PipelineState\VulkanPipelineStateViewer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Windows\PipelineState\VulkanPipelineStateViewer.Designer.cs">
+      <DependentUpon>VulkanPipelineStateViewer.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\PipelineState\GLPipelineStateViewer.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -408,6 +414,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\LiveCapture.resx">
       <DependentUpon>LiveCapture.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\PipelineState\VulkanPipelineStateViewer.resx">
+      <DependentUpon>VulkanPipelineStateViewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\PipelineState\GLPipelineStateViewer.resx">
       <DependentUpon>GLPipelineStateViewer.cs</DependentUpon>

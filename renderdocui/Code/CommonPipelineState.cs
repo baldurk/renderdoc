@@ -34,7 +34,7 @@ namespace renderdocui.Code
     {
         private D3D11PipelineState m_D3D11 = null;
         private GLPipelineState m_GL = null;
-        private VulkanPipelineState m_VK = null;
+        private VulkanPipelineState m_Vulkan = null;
         private APIProperties m_APIProps = null;
 
         public CommonPipelineState()
@@ -46,14 +46,14 @@ namespace renderdocui.Code
             m_APIProps = props;
             m_D3D11 = d3d11;
             m_GL = gl;
-            m_VK = vk;
+            m_Vulkan = vk;
         }
 
         private bool LogLoaded
         {
             get
             {
-                return m_D3D11 != null || m_GL != null || m_VK != null;
+                return m_D3D11 != null || m_GL != null || m_Vulkan != null;
             }
         }
 
@@ -77,7 +77,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.Vulkan && m_VK != null;
+                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.Vulkan && m_Vulkan != null;
             }
         }
 
@@ -96,7 +96,7 @@ namespace renderdocui.Code
                         return m_GL != null && m_GL.m_TES.Shader != ResourceId.Null;
 
                     if (IsLogVK)
-                        return m_VK != null && m_VK.TES.Shader != ResourceId.Null;
+                        return m_Vulkan != null && m_Vulkan.TES.Shader != ResourceId.Null;
                 }
 
                 return false;
@@ -137,12 +137,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_VK.VS.BindpointMapping;
-                        case ShaderStageType.Tess_Control: return m_VK.TCS.BindpointMapping;
-                        case ShaderStageType.Tess_Eval: return m_VK.TES.BindpointMapping;
-                        case ShaderStageType.Geometry: return m_VK.GS.BindpointMapping;
-                        case ShaderStageType.Fragment: return m_VK.FS.BindpointMapping;
-                        case ShaderStageType.Compute: return m_VK.CS.BindpointMapping;
+                        case ShaderStageType.Vertex: return m_Vulkan.VS.BindpointMapping;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.BindpointMapping;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_Vulkan.GS.BindpointMapping;
+                        case ShaderStageType.Fragment: return m_Vulkan.FS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_Vulkan.CS.BindpointMapping;
                     }
                 }
             }
@@ -182,12 +182,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_VK.VS.ShaderDetails;
-                        case ShaderStageType.Tess_Control: return m_VK.TCS.ShaderDetails;
-                        case ShaderStageType.Tess_Eval: return m_VK.TES.ShaderDetails;
-                        case ShaderStageType.Geometry: return m_VK.GS.ShaderDetails;
-                        case ShaderStageType.Fragment: return m_VK.FS.ShaderDetails;
-                        case ShaderStageType.Compute: return m_VK.CS.ShaderDetails;
+                        case ShaderStageType.Vertex: return m_Vulkan.VS.ShaderDetails;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.ShaderDetails;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.ShaderDetails;
+                        case ShaderStageType.Geometry: return m_Vulkan.GS.ShaderDetails;
+                        case ShaderStageType.Fragment: return m_Vulkan.FS.ShaderDetails;
+                        case ShaderStageType.Compute: return m_Vulkan.CS.ShaderDetails;
                     }
                 }
             }
@@ -227,12 +227,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_VK.VS.Shader;
-                        case ShaderStageType.Tess_Control: return m_VK.TCS.Shader;
-                        case ShaderStageType.Tess_Eval: return m_VK.TES.Shader;
-                        case ShaderStageType.Geometry: return m_VK.GS.Shader;
-                        case ShaderStageType.Fragment: return m_VK.FS.Shader;
-                        case ShaderStageType.Compute: return m_VK.CS.Shader;
+                        case ShaderStageType.Vertex: return m_Vulkan.VS.Shader;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.Shader;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.Shader;
+                        case ShaderStageType.Geometry: return m_Vulkan.GS.Shader;
+                        case ShaderStageType.Fragment: return m_Vulkan.FS.Shader;
+                        case ShaderStageType.Compute: return m_Vulkan.CS.Shader;
                     }
                 }
             }
@@ -272,12 +272,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_VK.VS.ShaderName;
-                        case ShaderStageType.Domain: return m_VK.TCS.ShaderName;
-                        case ShaderStageType.Hull: return m_VK.TES.ShaderName;
-                        case ShaderStageType.Geometry: return m_VK.GS.ShaderName;
-                        case ShaderStageType.Pixel: return m_VK.FS.ShaderName;
-                        case ShaderStageType.Compute: return m_VK.CS.ShaderName;
+                        case ShaderStageType.Vertex: return m_Vulkan.VS.ShaderName;
+                        case ShaderStageType.Domain: return m_Vulkan.TCS.ShaderName;
+                        case ShaderStageType.Hull: return m_Vulkan.TES.ShaderName;
+                        case ShaderStageType.Geometry: return m_Vulkan.GS.ShaderName;
+                        case ShaderStageType.Pixel: return m_Vulkan.FS.ShaderName;
+                        case ShaderStageType.Compute: return m_Vulkan.CS.ShaderName;
                     }
                 }
             }
@@ -305,9 +305,9 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    buf = m_VK.IA.ibuffer.buf;
+                    buf = m_Vulkan.IA.ibuffer.buf;
                     // VKTODOLOW maybe increase parameter to ulong and upcast others?
-                    ByteOffset = (uint)m_VK.IA.ibuffer.offs;
+                    ByteOffset = (uint)m_Vulkan.IA.ibuffer.offs;
 
                     return;
                 }
@@ -332,7 +332,7 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    return m_VK.IA.primitiveRestartEnable;
+                    return m_Vulkan.IA.primitiveRestartEnable;
                 }
             }
 
@@ -399,13 +399,13 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    VBuffer[] ret = new VBuffer[m_VK.VI.binds.Length];
-                    for (int i = 0; i < m_VK.VI.binds.Length; i++)
+                    VBuffer[] ret = new VBuffer[m_Vulkan.VI.binds.Length];
+                    for (int i = 0; i < m_Vulkan.VI.binds.Length; i++)
                     {
-                        ret[i].Buffer = m_VK.VI.vbuffers[i].buffer;
+                        ret[i].Buffer = m_Vulkan.VI.vbuffers[i].buffer;
                         // VKTODOLOW maybe increase parameter to ulong and upcast others?
-                        ret[i].ByteOffset = (uint)m_VK.VI.vbuffers[i].offset;
-                        ret[i].ByteStride = m_VK.VI.binds[i].bytestride;
+                        ret[i].ByteOffset = (uint)m_Vulkan.VI.vbuffers[i].offset;
+                        ret[i].ByteStride = m_Vulkan.VI.binds[i].bytestride;
                     }
 
                     return ret;
@@ -558,14 +558,14 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    var attrs = m_VK.VI.attrs;
+                    var attrs = m_Vulkan.VI.attrs;
 
                     int num = 0;
                     for (int i = 0; i < attrs.Length; i++)
                     {
                         int attrib = -1;
-                        if (m_VK.VS.BindpointMapping != null && m_VK.VS.ShaderDetails != null)
-                            attrib = m_VK.VS.BindpointMapping.InputAttributes[i];
+                        if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
+                            attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[i];
                         else
                             attrib = i;
 
@@ -581,7 +581,7 @@ namespace renderdocui.Code
                         ret[a].GenericValue = null;
                         ret[a].VertexBuffer = (int)attrs[i].binding;
                         ret[a].RelativeByteOffset = attrs[i].byteoffset;
-                        ret[a].PerInstance = m_VK.VI.binds[attrs[i].binding].perInstance;
+                        ret[a].PerInstance = m_Vulkan.VI.binds[attrs[i].binding].perInstance;
                         ret[a].InstanceRate = 1;
                         ret[a].Format = attrs[i].format;
                         ret[a].Used = true;
@@ -745,8 +745,8 @@ namespace renderdocui.Code
                 else if (IsLogGL)
                     return m_GL.m_FB.m_DrawFBO.Depth.Obj;
                 else if (IsLogVK)
-                    return m_VK.Pass.renderpass.depthstencilAttachment >= 0
-                        ? m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.depthstencilAttachment].img
+                    return m_Vulkan.Pass.renderpass.depthstencilAttachment >= 0
+                        ? m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.depthstencilAttachment].img
                         : ResourceId.Null;
             }
 
@@ -762,8 +762,8 @@ namespace renderdocui.Code
                 else if (IsLogGL)
                     return m_GL.m_FB.m_DrawFBO.Stencil.Obj;
                 else if (IsLogVK)
-                    return m_VK.Pass.renderpass.depthstencilAttachment >= 0
-                        ? m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.depthstencilAttachment].img
+                    return m_Vulkan.Pass.renderpass.depthstencilAttachment >= 0
+                        ? m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.depthstencilAttachment].img
                         : ResourceId.Null;
             }
 
@@ -796,9 +796,9 @@ namespace renderdocui.Code
                 }
                 else if (IsLogVK)
                 {
-                    ResourceId[] ret = new ResourceId[m_VK.Pass.renderpass.colorAttachments.Length];
-                    for (int i = 0; i < m_VK.Pass.renderpass.colorAttachments.Length; i++)
-                        ret[i] = m_VK.Pass.framebuffer.attachments[m_VK.Pass.renderpass.colorAttachments[i]].img;
+                    ResourceId[] ret = new ResourceId[m_Vulkan.Pass.renderpass.colorAttachments.Length];
+                    for (int i = 0; i < m_Vulkan.Pass.renderpass.colorAttachments.Length; i++)
+                        ret[i] = m_Vulkan.Pass.framebuffer.attachments[m_Vulkan.Pass.renderpass.colorAttachments[i]].img;
 
                     return ret;
                 }
