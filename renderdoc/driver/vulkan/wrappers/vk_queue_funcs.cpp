@@ -360,7 +360,7 @@ VkResult WrappedVulkan::vkQueueSubmit(
 
 					// allocate ref data so we can compare next time to minimise serialised data
 					if(it->second.refData == NULL)
-						it->second.refData = new byte[it->second.mapSize];
+						it->second.refData = new byte[(size_t)it->second.mapSize];
 					memcpy(it->second.refData, it->second.mappedPtr, (size_t)it->second.mapSize);
 				}
 			}
