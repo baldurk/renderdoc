@@ -105,6 +105,10 @@ namespace renderdocui.Windows
                 if (copy || compute)
                     return -1;
 
+                // VKTODOLOW temp - need to tidy this up properly
+                if (core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+                    return -1;
+
                 if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
                 {
                     D3D11PipelineState.ShaderStage.ResourceView view = null;
@@ -158,6 +162,10 @@ namespace renderdocui.Windows
                 // to duplicate the logic of GetResourceId() but return
                 // different information
                 if (copy || compute)
+                    return -1;
+
+                // VKTODOLOW temp - need to tidy this up properly
+                if (core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
                     return -1;
 
                 if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
@@ -834,7 +842,8 @@ namespace renderdocui.Windows
                     "}}{0}"
                     , Environment.NewLine);
             }
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL ||
+                m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
             {
                 src = String.Format(
                     "#version 420 core{0}" +
