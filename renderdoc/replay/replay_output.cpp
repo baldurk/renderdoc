@@ -234,6 +234,7 @@ bool ReplayOutput::SetPixelContext(void *wnd)
 
 bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 {
+#if 0
 	OutputPair p;
 
 	RDCASSERT(wnd);
@@ -272,7 +273,7 @@ bool ReplayOutput::AddThumbnail(void *wnd, ResourceId texID)
 	RDCASSERT(p.outputID > 0);
 
 	m_Thumbnails.push_back(p);
-
+#endif
 	return true;
 }
 
